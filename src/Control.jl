@@ -38,6 +38,8 @@ include("synthesis.jl")
 include("timeresp.jl")
 include("utilities.jl")
 
-@require PyPlot include("src/plotting.jl")
+# The path has to be evaluated upon initial import
+const __CONTROL_SOURCE_DIR__ = dirname(Base.source_path())
+@require PyPlot include(joinpath(__CONTROL_SOURCE_DIR__, "plotting.jl"))
 
 end

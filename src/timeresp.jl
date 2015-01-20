@@ -26,6 +26,7 @@ function Base.step(sys::StateSpace, t::AbstractVector)
 end
 Base.step(sys::StateSpace, Tf::Real) = step(sys, _default_time_vector(sys, Tf))
 Base.step(sys::StateSpace) = step(sys, _default_time_vector(sys))
+Base.step(sys::LTISystem, args...) = step(ss(sys), args...)
 
 
 @doc """`[y, t, x] = impulse(sys[, Tf])` or `[y, t, x] = impulse(sys[, t])`
@@ -61,6 +62,7 @@ function impulse(sys::StateSpace, t::AbstractVector)
 end
 impulse(sys::StateSpace, Tf::Real) = impulse(sys, _default_time_vector(sys, Tf))
 impulse(sys::StateSpace) = impulse(sys, _default_time_vector(sys))
+impulse(sys::LTISystem, args...) = impulse(ss(sys), args...)
 
 
 @doc """`[y, t, x] = lsim(sys, u, t[, x0, method])`
@@ -100,6 +102,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
+lsim(sys::LTISystem, args...) = lsim(ss(sys), args...)
 
 
 @doc """`ltitr(A, B, u[, x0])`

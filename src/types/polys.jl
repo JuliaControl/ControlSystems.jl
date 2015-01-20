@@ -178,3 +178,33 @@ function ==(p1::Poly, p2::Poly)
         return p1.a[1+p1.nzfirst:end] == p2.a[1+p2.nzfirst:end]
     end
 end
+
+# compute the roots of a polynomial
+function roots{T}(p::Poly{T})
+    R = promote_type(T, Float64)
+    num_zeros = 0
+    if length(p) == 0
+        return zeros(R, 0)
+    end
+    while abs(p[end-num_zeros]) <= 2*eps(T)
+        if num_zeros == length(p)-1
+            return zeros(R, 0)
+        end
+        num_zeros += 1
+    end
+    n = length(p)-num_zeros-1
+    if n < 1
+        return zeros(R, length(p)-1)
+    end
+    companion = zeros(R, n, n)
+    a0 = p[end-num_zeros]
+    for i = 1:n-1
+        companion[1,i] = -p[end-num_zeros-i] / a0
+        companion[i+1,i] = 1;
+    end
+    companion[1,end] = -p[1] / a0
+    D,V = eig(companion)
+    r = zeros(eltype(D),length(p)-1)
+    r[1:n] = 1./D
+    return r
+end

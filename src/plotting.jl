@@ -47,7 +47,7 @@ function lsimplot(systems::Vector{LTISystem}, u::AbstractVecOrMat,
     PyPlot.draw()
     return fig
 end
-lsimplot(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector, args...) =
+lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) =
         lsimplot(LTISystem[sys], u, t, args...)
 
 
@@ -100,7 +100,7 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                 $funcname(systems, _default_time_data(systems)...)
         $funcname(systems::Vector{LTISystem}, t::AbstractVector) = 
                 $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end])
-        $funcname(sys::StateSpace, args...) = $funcname(LTISystem[sys], args...)
+        $funcname(sys::LTISystem, args...) = $funcname(LTISystem[sys], args...)
     end
 end
 
@@ -117,7 +117,7 @@ time vector `t` can be optionally provided.""" -> impulseplot
 
 # HELPERS:
 
-function _same_io_dims(systems::StateSpace...)
+function _same_io_dims(systems::LTISystem...)
     sizes = map(size, systems)
     return all([s == sizes[1] for s in sizes])
 end

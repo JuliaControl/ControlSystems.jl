@@ -31,6 +31,7 @@ function append(systems::TransferFunction...)
     return TransferFunction(mat, Ts, inputs, outputs)
 end
 
+append(systems::LTISystem...) = append(promote(systems...)...)
 
 function Base.vcat(systems::StateSpace...)
     # Perform checks
@@ -55,6 +56,27 @@ function Base.vcat(systems::StateSpace...)
     return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
 end
 
+function Base.vcat(systems::TransferFunction...)
+    # Perform checks
+    nu = systems[1].nu
+    if !all([s.nu == nu for s in systems])
+        error("All systems must have same input dimension")
+    end
+    Ts = systems[1].Ts
+    if !all([s.Ts == Ts for s in systems])
+        error("Sampling time mismatch")
+    end
+    mat = vcat([s.matrix for s in systems]...)
+    outputs = vcat([s.outputnames for s in systems]...)
+    inputs = systems[1].inputnames
+    if !all([s.inputnames == inputs for s in systems])
+        inputs = UTF8String["" for i = 1:size(inputs, 1)]
+    end
+    return TransferFunction(mat, Ts, inputs, outputs)
+end
+
+Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
+
 function Base.hcat(systems::StateSpace...)
     # Perform checks
     ny = systems[1].ny
@@ -78,6 +100,27 @@ function Base.hcat(systems::StateSpace...)
     return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
 end
 
+function Base.hcat(systems::TransferFunction...)
+    # Perform checks
+    ny = systems[1].ny
+    if !all([s.ny == ny for s in systems])
+        error("All systems must have same output dimension")
+    end
+    Ts = systems[1].Ts
+    if !all([s.Ts == Ts for s in systems])
+        error("Sampling time mismatch")
+    end
+    mat = hcat([s.matrix for s in systems]...)
+    inputs = vcat([s.inputnames for s in systems]...)
+    outputs = systems[1].outputnames
+    if !all([s.outputnames == outputs for s in systems])
+        outputs = UTF8String["" for i = 1:size(outputs, 1)]
+    end
+    return TransferFunction(mat, Ts, inputs, outputs)
+end
+
+Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
+
 # Empty definition to get rid of warning
 Base.blkdiag() = []
 function Base.blkdiag(mats::Matrix...)
@@ -99,42 +142,4 @@ function Base.blkdiag(mats::Matrix...)
         n += j
     end
     return res
-end
-
-function Base.vcat(systems::TransferFunction...)
-    # Perform checks
-    nu = systems[1].nu
-    if !all([s.nu == nu for s in systems])
-        error("All systems must have same input dimension")
-    end
-    Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
-        error("Sampling time mismatch")
-    end
-    mat = vcat([s.matrix for s in systems]...)
-    outputs = vcat([s.outputnames for s in systems]...)
-    inputs = systems[1].inputnames
-    if !all([s.inputnames == inputs for s in systems])
-        inputs = UTF8String["" for i = 1:size(inputs, 1)]
-    end
-    return TransferFunction(mat, Ts, inputs, outputs)
-end
-
-function Base.hcat(systems::TransferFunction...)
-    # Perform checks
-    ny = systems[1].ny
-    if !all([s.ny == ny for s in systems])
-        error("All systems must have same output dimension")
-    end
-    Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
-        error("Sampling time mismatch")
-    end
-    mat = hcat([s.matrix for s in systems]...)
-    inputs = vcat([s.inputnames for s in systems]...)
-    outputs = systems[1].outputnames
-    if !all([s.outputnames == outputs for s in systems])
-        outputs = UTF8String["" for i = 1:size(outputs, 1)]
-    end
-    return TransferFunction(mat, Ts, inputs, outputs)
 end

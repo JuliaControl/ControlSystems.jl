@@ -2,7 +2,8 @@ import Base.LinAlg: BlasFloat
 @doc """`pole(sys)`
 
 Compute the poles of system `sys`.""" ->
-pole(G::StateSpace) = eig(G.A)[1]
+pole(sys::StateSpace) = eig(sys.A)[1]
+pole(sys::TransferFunction) = [map(pole, sys.matrix)...]
 
 @doc """`care(A, B, Q, R)`
 
