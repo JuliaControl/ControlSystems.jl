@@ -86,6 +86,20 @@ ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts, kwargs...)
 # ss(sys) converts to StateSpace
 ss(sys::LTISystem) = convert(StateSpace, sys)
 
+# Create a random statespace system
+function rss(nx::Int, nu::Int=1, ny::Int=1, feedthrough::Bool=true)
+    Q = randn(nx, nx)
+    A = Q*diagm(-100*abs(randn(nx)))*Q'
+    B = randn(nx, nu)
+    C = randn(ny, nx)
+    if feedthrough
+        D = randn(ny, nu)
+    else
+        D = zeros(ny, nu)
+    end
+    return ss(A, B, C, D)
+end
+
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################
