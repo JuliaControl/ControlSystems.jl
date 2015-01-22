@@ -89,9 +89,6 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
 @test sprint(show, D_222) == res
 
 # Errors
-macro test_err(ex)
-    :(@test_throws ErrorException $ex)
-end
 @test_err C_111 + C_222             # Dimension mismatch
 @test_err C_111 - C_222             # Dimension mismatch
 @test_err C_111 * C_222             # Dimension mismatch

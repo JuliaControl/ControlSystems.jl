@@ -1,7 +1,7 @@
 module CustomTest
 using Control
 import Base.Test: @test, @test_throws, Success, Failure, Error, with_handler
-export @test, @test_throws, @test_approx_eq, runtests
+export @test, @test_throws, @test_approx_eq, @test_err, runtests
 
 type TestData
     nfail::Int
@@ -116,6 +116,7 @@ function test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
         sdiff = string("|", astr, " - ", bstr, "| <= ", Eps)
         return false
     end
+    return true
 end
 test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
     test_approx_eq(va, vb, 1E4*length(va.A)*max(Base.Test.array_eps(va.A),
@@ -123,5 +124,11 @@ test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
 
 macro test_approx_eq(a, b)
     :(@test test_approx_eq($(esc(a)), $(esc(b)), $(string(a)), $(string(b))))
+end
+
+macro test_err(ex)
+    quote
+        @test_throws ErrorException $(esc(ex))
+    end
 end
 end  # module

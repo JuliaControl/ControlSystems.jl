@@ -86,9 +86,6 @@ res = ("StateSpace:\nD = \n         u1     u2 \n  y1   4.0    0.0  \n  y2  "*
 @test sprint(show, D_022) == res
 
 # Errors
-macro test_err(ex)
-    :(@test_throws ErrorException $ex)
-end
 @test_err C_111 + C_222             # Dimension mismatch
 @test_err C_111 - C_222             # Dimension mismatch
 @test_err C_111 * C_222             # Dimension mismatch
