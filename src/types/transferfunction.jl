@@ -54,6 +54,33 @@ end
 tf(num::Vector, den::Vector, args...) =
 tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...)
 
+# Function for creation of static gain
+function tf(gain::Array, Ts::Real=0; kwargs...)
+    ny, nu = size(gain, 1, 2)
+    matrix = Array(SisoTf, ny, nu)
+    for o=1:ny
+        for i=1:nu
+            matrix[o, i] = SisoTf([gain[o, i]], [1])
+        end
+    end
+    kvs = Dict(kwargs)
+    inputnames = validate_names(kvs, :inputnames, nu)
+    outputnames = validate_names(kvs, :outputnames, ny)
+    return TransferFunction(matrix, float64(Ts), inputnames, outputnames)
+end
+tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts, kwargs...)
+
+# Function for creation of 's' or 'z' var
+function tf(var::String)
+    var != "s" && error("var must be 's' for continuous time tf.")
+    return tf([1, 0], [1])
+end
+function tf(var::String, Ts::Real)
+    var != "z" && error("var must be 'z' for discrete time tf.")
+    Ts == 0 && error("Ts must not be 0 for discrete time tf.")
+    return tf([1, 0], [1], Ts)
+end
+
 #####################################################################
 ##                          Misc. Functions                        ##
 #####################################################################
@@ -70,7 +97,7 @@ function Base.getindex(t::TransferFunction, inds...)
     rows, cols = inds
     mat = Array(SisoTf, length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    return TransferFunction(mat, t.Ts, [t.inputnames] [t.outputnames])
+    return TransferFunction(mat, t.Ts, [t.inputnames[cols]], [t.outputnames[rows]])
 end
 
 function Base.copy(t::TransferFunction)
@@ -86,7 +113,7 @@ end
 
 ## EQUALITY ##
 function ==(t1::TransferFunction, t2::TransferFunction)
-    fields = [:Ts, :ny, :nu, :inputnames, :outputnames, :statenames, :matrix]
+    fields = [:Ts, :ny, :nu, :inputnames, :outputnames, :matrix]
     for field in fields
         if getfield(t1, field) != getfield(t2, field)
             return false
@@ -185,8 +212,8 @@ function Base.show(io::IO, t::TransferFunction)
                 println(io, inputs[i], " to ", outputs[o])
             end
             print_sisotf(io, t.matrix[o, i], var)
-            if i != t.nu && o != t.ny
-                print("\n")
+            if !(i == t.nu && o == t.ny)
+                print(io, "\n")
             end
         end
     end

@@ -35,6 +35,7 @@ include("connections.jl")
 include("discrete.jl")
 include("matrix_comps.jl")
 include("synthesis.jl")
+include("analysis.jl")
 include("timeresp.jl")
 include("utilities.jl")
 

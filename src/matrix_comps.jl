@@ -1,9 +1,4 @@
 import Base.LinAlg: BlasFloat
-@doc """`pole(sys)`
-
-Compute the poles of system `sys`.""" ->
-pole(sys::StateSpace) = eig(sys.A)[1]
-pole(sys::TransferFunction) = [map(pole, sys.matrix)...]
 
 @doc """`care(A, B, Q, R)`
 
@@ -146,7 +141,7 @@ function ctrb{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T})
     if n != size(B, 1)
         error("B must have the same number of rows as A")
     end
-    res = zeros(n*nu, n)
+    res = zeros(n, n*nu)
     res[:, 1:nu] = B
     for i=1:n-1
         res[:, (1 + i*nu):(1 + i)*nu] = A * res[:, ((i - 1)*nu + 1):i*nu]

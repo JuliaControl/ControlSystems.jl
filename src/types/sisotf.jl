@@ -1,5 +1,5 @@
 ## User should just use TransferFunction
-immutable SisoTf <: LTISystem
+immutable SisoTf
     num::Poly{Float64}
     den::Poly{Float64}
     function SisoTf(num::Poly{Float64}, den::Poly{Float64})
@@ -66,10 +66,14 @@ end
 +(t1::SisoTf, t2::SisoTf) = SisoTf(t1.num*t2.den + t2.num*t1.den, t1.den*t2.den)
 +(t::SisoTf, n::Real) = SisoTf(t.num + n*t.den, t.den)
 +(n::Real, t::SisoTf) = t + n
+.+(t::SisoTf, n::Real) = t + n
+.+(n::Real, t::SisoTf) = t + n
 
 -(t1::SisoTf, t2::SisoTf) = SisoTf(t1.num*t2.den - t2.num*t1.den, t1.den*t2.den)
 -(n::Real, t::SisoTf) = SisoTf(n*t.den - t.num, t.den)
 -(t::SisoTf, n::Real) = +(t, -n)
+.-(t::SisoTf, n::Real) = -(t, n)
+.-(n::Real, t::SisoTf) = -(n, t)
 
 -(t::SisoTf) = SisoTf(-t.num, t.den)
 
