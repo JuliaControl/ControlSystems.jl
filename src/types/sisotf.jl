@@ -35,10 +35,6 @@ function print_sisotf(io::IO, t::SisoTf, var=:s)
     println(io, denstr)
 end
 
-function pole(sys::SisoTf)
-    return roots(sys.den)
-end
-
 Base.promote_rule{T<:Real}(::Type{SisoTf}, ::Type{T}) = SisoTf
 Base.convert(::Type{SisoTf}, b::Real) = SisoTf([b], [1])
 
