@@ -46,7 +46,11 @@ D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
 T, P, B = Control.balance(A)
-@test T == [512 0 0; 0 8 0; 0 0 0.0625]
+# The scaling is BLAS dependent. However, the ratio should be the same on all
+# machines. We just need to check that T == res * constant
+res_diag = [512, 8, 0.0625]
+constant = T[1]/res_diag[1]
+@test all(diag(T) == res_diag * constant)
 @test P == eye(3)
 @test_approx_eq B [1.0 1.5625 1.220703125; 0.64 1.0 0.78125; 0.8192 1.28 1.0]
 
