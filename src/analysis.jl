@@ -5,10 +5,10 @@ pole(sys::StateSpace) = eig(sys.A)[1]
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...]
 pole(sys::SisoTf) = roots(sys.den)
 
-@doc """`Wn, zeta = damp(sys)`
+@doc """`Wn, zeta, ps = damp(sys)`
 
-Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the poles
-of `sys`""" ->
+Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
+poles, `ps`, of `sys`""" ->
 function damp(sys::LTISystem)
     ps = pole(sys)
     if !iscontinuous(sys)
@@ -16,8 +16,11 @@ function damp(sys::LTISystem)
         ps = log(ps)/Ts
     end
     Wn = abs(ps)
+    order = sortperm(Wn)
+    Wn = Wn[order]
+    ps = ps[order]
     zeta = -cos(angle(ps))
-    return Wn, zeta
+    return Wn, zeta, ps
 end
 
 @doc """`dampreport(sys)`
@@ -25,17 +28,14 @@ end
 Display a report of the poles, damping ratio, natural frequency, and time
 constant of the system `sys`""" ->
 function dampreport(io::IO, sys::LTISystem)
-    ps = pole(sys)
-    np = length(ps)
-    Wn, zeta = damp(sys)
+    Wn, zeta, ps = damp(sys)
     t_const = 1./(Wn.*zeta)
-    order = sortperm(Wn)
     header =
     ("|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
      "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
      "+---------------+---------------+---------------+---------------+")
     println(io, header)
-    for i=order
+    for i=1:length(ps)
         p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
         @printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
     end

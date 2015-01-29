@@ -107,8 +107,8 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 ## DAMP ##
 @test_approx_eq damp(sys)[1] [1.0, 4.0, 4.0]
 @test_approx_eq damp(sys)[2] [1.0, -1.0, 1.0]
-@test_approx_eq damp(ex_11)[1] [2.0, 1.0, 1.0, 2.0, 3.0]
-@test_approx_eq damp(ex_11)[2] [1.0, 1.0, -1.0, -1.0, -1.0]
+@test_approx_eq damp(ex_11)[1] [1.0, 1.0, 2.0, 2.0, 3.0]
+@test_approx_eq damp(ex_11)[2] [1.0, -1.0, -1.0, 1.0, -1.0]
 
 ## DAMPREPORT ##
 @test sprint(dampreport, sys) == (
