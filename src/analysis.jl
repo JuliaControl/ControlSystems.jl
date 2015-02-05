@@ -5,6 +5,62 @@ pole(sys::StateSpace) = eig(sys.A)[1]
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...]
 pole(sys::SisoTf) = roots(sys.den)
 
+@doc """`gain(sys)`
+
+Compute the gain of SISO system `sys`.""" ->
+function gain(sys::StateSpace, zs::Vector=tzero(sys))
+    !issiso(sys) && error("Gain only defined for siso systems")
+    nx = sys.nx
+    nz = length(zs)
+    return nz == nx ? sys.D[1] : (sys.C*(sys.A^(nx - nz - 1))*sys.B)[1]
+end
+function gain(sys::TransferFunction)
+    !issiso(sys) && error("Gain only defined for siso systems")
+    s = sys.matrix[1, 1]
+    return s.num[1]/s.den[1]
+end
+
+@doc """`markovparam(sys, n)`
+
+Compute the `n`th markov parameter of state-space system `sys`. This is defined
+as the following:
+
+`h(0) = D`
+
+`h(n) = C*A^(n-1)*B`""" ->
+function markovparam(sys::StateSpace, n::Integer)
+    n < 0 && error("n must be >= 0")
+    return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
+end
+
+@doc """`z, p, k = zpkdata(sys)`
+
+Compute the zeros, poles, and gains of system `sys`.
+
+### Returns
+`z` : Matrix{Vector{Complex128}}, (ny x nu)
+
+`p` : Matrix{Vector{Complex128}}, (ny x nu)
+
+`k` : Matrix{Float64}, (ny x nu)""" ->
+function zpkdata(sys::LTISystem)
+    ny, nu = size(sys)
+    zs = Array(Vector{Complex128}, ny, nu)
+    ps = Array(Vector{Complex128}, ny, nu)
+    ks = Array(Float64, ny, nu)
+    for j = 1:nu
+        for i = 1:ny
+            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys[i, j])
+        end
+    end
+    return zs, ps, ks
+end
+function _zpk_kern(sys::StateSpace)
+    z = tzero(sys)
+    return z, pole(sys), gain(sys, z)
+end
+_zpk_kern(sys::TransferFunction) = (tzero(sys), pole(sys), gain(sys))
+
 @doc """`Wn, zeta, ps = damp(sys)`
 
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
@@ -58,7 +114,7 @@ end
 # Implements the algorithm described in:
 # Emami-Naeini, A. and P. Van Dooren, "Computation of Zeros of Linear
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
-# 
+#
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 function tzero(sys::StateSpace)
     # Balance the system

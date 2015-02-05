@@ -11,14 +11,12 @@ immutable Poly{T<:Number}
     a::Vector{T}
     nzfirst::Int #for effiencicy, track the first non-zero index
     function Poly(a::Vector{T})
-        nzfirst = 0 #find and chop leading zeros
-        for i = 1:length(a)
-            if abs(a[i]) > 2*eps(T)
-                break
-            end
-            nzfirst = i
+        la = length(a)
+        i = 0
+        for i = 1:la
+            if abs(a[i]) > 2*eps(T)  break  end
         end
-        new(a, nzfirst)
+        new(a, i)
     end
 end
 
@@ -28,14 +26,14 @@ Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(Vector{T}, p.a))
 Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}
 Base.eltype{T}(::Poly{T}) = T
 
-Base.length(p::Poly) = length(p.a)-p.nzfirst
+Base.length(p::Poly) = length(p.a) - p.nzfirst + 1
 Base.endof(p::Poly) = length(p)
 deg(p::Poly) = length(p) - 1
 
-Base.getindex(p::Poly, i) = p.a[i+p.nzfirst]
-Base.setindex!(p::Poly, v, i) = (p.a[i+p.nzfirst] = v)
+Base.getindex(p::Poly, i) = p.a[i - 1 + p.nzfirst]
+Base.setindex!(p::Poly, v, i) = (p.a[i - 1 + p.nzfirst] = v)
 
-Base.copy(p::Poly) = Poly(copy(p.a[1+p.nzfirst:end]))
+Base.copy(p::Poly) = Poly(copy(p.a[p.nzfirst:end]))
 
 Base.zero{T}(p::Poly{T}) = Poly([zero(T)])
 Base.zero{T}(::Type{Poly{T}}) = Poly([zero(T)])
@@ -52,8 +50,8 @@ Base.print(io::IO, p::Poly) = print_poly(io, p)
 
 function print_poly{T}(io::IO, p::Poly{T}, var=:x)
     n = length(p)
-    if n <= 0
-        print(io,"0")
+    if n == 1
+        print(io, p[1])
     else
         for j = 1:n
             pj = p[j]
@@ -80,11 +78,11 @@ function print_poly{T}(io::IO, p::Poly{T}, var=:x)
     end
 end
 
-*(c::Number, p::Poly) = Poly(c * p.a[1+p.nzfirst:end])
-*(p::Poly, c::Number) = Poly(c * p.a[1+p.nzfirst:end])
-/(p::Poly, c::Number) = Poly(p.a[1+p.nzfirst:end] / c)
+*(c::Number, p::Poly) = Poly(c * p.a[p.nzfirst:end])
+*(p::Poly, c::Number) = Poly(c * p.a[p.nzfirst:end])
+/(p::Poly, c::Number) = Poly(p.a[p.nzfirst:end] / c)
 ./(p::Poly, c::Number) = /(p, c)
--(p::Poly) = Poly(-p.a[1+p.nzfirst:end])
+-(p::Poly) = Poly(-p.a[p.nzfirst:end])
 
 -(p::Poly, c::Number) = +(p, -c)
 +(c::Number, p::Poly) = +(p, c)
@@ -175,7 +173,21 @@ function ==(p1::Poly, p2::Poly)
     if length(p1) != length(p2)
         return false
     else
-        return p1.a[1+p1.nzfirst:end] == p2.a[1+p2.nzfirst:end]
+        return p1.a[p1.nzfirst:end] == p2.a[p2.nzfirst:end]
+    end
+end
+
+function polyval{T}(p::Poly{T}, x::Number)
+    R = promote_type(T, typeof(x))
+    lenp = length(p)
+    if lenp == 0
+        return zero(R)
+    else
+        y = convert(R, p[1])
+        for i = 2:lenp
+            y = p[i] + x.*y
+        end
+        return y
     end
 end
 

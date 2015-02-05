@@ -1,31 +1,45 @@
 module Control
 
-export LTISystem,
-       StateSpace,
-       TransferFunction,
-       ss,
-       tf,
-       care,
-       dare,
-       dlyap,
-       lqr,
-       dlqr,
-       covar,
-       norm,
-       gram,
-       ctrb,
-       obsv,
-       pole,
-       tzero,
-       damp,
-       dampreport,
-       append,
-       series,
-       parallel,
-       c2d,
-       step,
-       impulse,
-       lsim
+export  LTISystem,
+        StateSpace,
+        TransferFunction,
+        ss,
+        tf,
+        # Linear Algebra
+        care,
+        dare,
+        dlyap,
+        lqr,
+        dlqr,
+        covar,
+        norm,
+        gram,
+        ctrb,
+        obsv,
+        # Stability Analysis
+        pole,
+        tzero,
+        gain,
+        zpkdata,
+        damp,
+        dampreport,
+        markovparam,
+        # Connections
+        append,
+        series,
+        parallel,
+        # Discrete
+        c2d,
+        # Time Response
+        step,
+        impulse,
+        lsim,
+        # Frequency Response
+        freqresp,
+        evalfr,
+        bode,
+        nyquist,
+        sigma
 
 using Requires
 
@@ -40,6 +54,7 @@ include("matrix_comps.jl")
 include("synthesis.jl")
 include("analysis.jl")
 include("timeresp.jl")
+include("freqresp.jl")
 include("utilities.jl")
 
 # The path has to be evaluated upon initial import
