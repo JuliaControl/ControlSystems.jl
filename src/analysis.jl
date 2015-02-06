@@ -50,16 +50,24 @@ function zpkdata(sys::LTISystem)
     ks = Array(Float64, ny, nu)
     for j = 1:nu
         for i = 1:ny
-            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys[i, j])
+            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
         end
     end
     return zs, ps, ks
 end
-function _zpk_kern(sys::StateSpace)
-    z = tzero(sys)
-    return z, pole(sys), gain(sys, z)
+function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
+    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu], sys.C[iy, :])
+    D = sys.D[iy:iy, iu:iu]
+    z = tzero(A, B, C, D)
+    nx = size(A, 1)
+    nz = length(z)
+    k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
+    return z, eigvals(A), k
 end
-_zpk_kern(sys::TransferFunction) = (tzero(sys), pole(sys), gain(sys))
+function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
+    s = sys.matrix[iy, iu]
+    return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+end
 
 @doc """`Wn, zeta, ps = damp(sys)`
 
@@ -116,15 +124,15 @@ end
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
-function tzero(sys::StateSpace)
+tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
+function tzero(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
+        D::Matrix{Float64})
     # Balance the system
-    A, B, C = balance_statespace(sys.A, sys.B, sys.C)
-    D = sys.D
+    A, B, C = balance_statespace(A, B, C)
 
     # Compute a good tolerance
     meps = 10*eps()*norm([A B; C D])
     A, B, C, D = reduce_sys(A, B, C, D, meps)
-    if isempty(A)   return Float64[]    end
     A, B, C, D = reduce_sys(A', C', B', D', meps)
     if isempty(A)   return Float64[]    end
 
@@ -152,6 +160,9 @@ end
 function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
         D::Matrix{Float64}, meps::Float64)
     Cbar, Dbar = C, D
+    if isempty(A)
+        return A, B, C, D
+    end
     while true
         # Compress rows of D
         U = full(qrfact(D)[:Q], thin=false)::Matrix{Float64}

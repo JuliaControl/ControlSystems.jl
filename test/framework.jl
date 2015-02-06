@@ -90,7 +90,6 @@ function test_approx_eq(va, vb, Eps, astr, bstr)
     end
 
     if !isnan(Eps) && !(diff <= Eps)
-        sdiff = string("|", astr, " - ", bstr, "| <= ", Eps)
         return false
     end
     return true

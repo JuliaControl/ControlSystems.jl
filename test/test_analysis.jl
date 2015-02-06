@@ -104,6 +104,46 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 @test_approx_eq pole([sys sys]) [-1.0, 4.0, -4.0, -1.0, 4.0, -4.0]
 @test_approx_eq pole(ex_11) eig(ex_11.A)[1]
 
+## ZPKDATA ##
+# Sort a complex vector by real, breaking ties with imag
+sortcomplex(a) = sort!(sort(a, by=imag), alg=MergeSort, by=real)
+# Compare each vector in an array of vectors
+macro test_array_vecs_eps(a, b, tol)
+    quote
+        @test size($a) == size($b)
+        for (res, sol) = zip($a, $b)
+            @test_approx_eq_eps sortcomplex(res) sol $tol
+        end
+    end
+end
+H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
+G = ss(H)
+sol_z = Vector{Complex128}[Complex128[] Complex128[0.0 + 0.0im];
+        Complex128[-1.0 + 0.0im] Complex128[]]
+sol_p = Vector{Complex128}[Complex128[] Complex128[-0.5 - 3.1224989991991996im,
+        -0.5 + 3.1224989991991996im];
+        Complex128[-5.0 + 0.0im] Complex128[-6.0 + 0.0im]]
+sol_k = [0.0 3.0; 1.0 2.0]
+z, p, k = zpkdata(H)
+@test_array_vecs_eps z sol_z 2*eps(Complex128)
+@test_array_vecs_eps p sol_p 2*eps(Complex128)
+@test k == sol_k
+z, p, k = zpkdata(G)
+@test_array_vecs_eps z sol_z 10*eps(Complex128)
+@test_array_vecs_eps p sol_p 10*eps(Complex128)
+@test k == sol_k
+
+## GAIN ##
+@test [gain(H[1, 1]) gain(H[1, 2]); gain(H[2, 1]) gain(H[2, 2])] == sol_k
+@test [gain(G[1, 1]) gain(G[1, 2]); gain(G[2, 1]) gain(G[2, 2])] == sol_k
+@test_err gain(H)
+@test_err gain(G)
+
+## MARKOVPARAM ##
+@test markovparam(G, 0) == [0.0 0.0; 1.0 0.0]
+@test markovparam(G, 1) == [0.0 3.0; -4.0 2.0]
+@test markovparam(G, 2) == [0.0 -3.0; 20.0 -12.0]
+
 ## DAMP ##
 @test_approx_eq damp(sys)[1] [1.0, 4.0, 4.0]
 @test_approx_eq damp(sys)[2] [1.0, -1.0, 1.0]

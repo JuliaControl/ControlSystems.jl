@@ -16,6 +16,8 @@ export  LTISystem,
         gram,
         ctrb,
         obsv,
+        # Model Simplification
+        sminreal,
         # Stability Analysis
         pole,
         tzero,
@@ -51,6 +53,7 @@ include("types/tf2ss.jl")
 include("connections.jl")
 include("discrete.jl")
 include("matrix_comps.jl")
+include("simplification.jl")
 include("synthesis.jl")
 include("analysis.jl")
 include("timeresp.jl")
