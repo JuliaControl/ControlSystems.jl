@@ -33,7 +33,7 @@ end
 ##                      Constructor Functions                      ##
 #####################################################################
 
-function tf(num::VecOrMat{Vector}, den::VecOrMat{Vector}, Ts::Real=0; kwargs...)
+function tf{T<:Vector}(num::VecOrMat{T}, den::VecOrMat{T}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
     if (ny, nu) != size(den, 1, 2)
