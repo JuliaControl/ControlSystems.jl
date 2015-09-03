@@ -55,7 +55,7 @@ function StateSpace(A::Array, B::Array, C::Array, D::Array, Ts::Real,
         statenames::Vector{UTF8String}, inputnames::Vector{UTF8String},
         outputnames::Vector{UTF8String})
     return StateSpace(float64mat(A), float64mat(B), float64mat(C),
-            float64mat(D), float64(Ts), statenames, inputnames, outputnames)
+            float64mat(D), map(Float64, Ts), statenames, inputnames, outputnames)
 end
 
 #####################################################################
@@ -128,8 +128,8 @@ function +(s1::StateSpace, s2::StateSpace)
     A = [s1.A zeros(s1.nx, s2.nx); 
          zeros(s2.nx, s1.nx) s2.A]
     B = [s1.B ; s2.B]
-    C = [s1.C s2.C]
-    D = [s1.D + s2.D]
+    C = [s1.C s2.C;]
+    D = [s1.D + s2.D;]
 
     # Naming strategy: If only one sys is named, use that. If the names are the
     # same, use them. If the names conflict, then they are ignored, and the
@@ -178,8 +178,8 @@ function *(s1::StateSpace, s2::StateSpace)
     A = [s1.A    s1.B*s2.C;
          zeros(s2.nx, s1.nx)  s2.A]
     B = [s1.B*s2.D ; s2.B]
-    C = [s1.C   s1.D*s2.C]
-    D = [s1.D*s2.D]
+    C = [s1.C   s1.D*s2.C;]
+    D = [s1.D*s2.D;]
 
     statenames = [s1.statenames; s2.statenames]
     return StateSpace(A, B, C, D, s1.Ts, statenames, s2.inputnames,
@@ -219,8 +219,8 @@ function Base.getindex(s::StateSpace, inds...)
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = inds
-    return StateSpace([s.A], [s.B[:, cols]], [s.C[rows, :]], [s.D[rows, cols]],
-            s.Ts, [s.statenames], [s.inputnames[cols]], [s.outputnames[rows]])
+    return StateSpace([s.A;], [s.B[:, cols];], [s.C[rows, :];], [s.D[rows, cols];],
+            s.Ts, [s.statenames;], [s.inputnames[cols];], [s.outputnames[rows];])
 end
 
 #####################################################################

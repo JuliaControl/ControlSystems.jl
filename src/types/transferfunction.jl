@@ -48,7 +48,7 @@ function tf{T<:Vector}(num::VecOrMat{T}, den::VecOrMat{T}, Ts::Real=0; kwargs...
     kvs = Dict(kwargs)
     inputnames = validate_names(kvs, :inputnames, nu)
     outputnames = validate_names(kvs, :outputnames, ny)
-    return TransferFunction(matrix, float64(Ts), inputnames, outputnames)
+    return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
 tf(num::Vector, den::Vector, args...) =
@@ -66,7 +66,7 @@ function tf(gain::Array, Ts::Real=0; kwargs...)
     kvs = Dict(kwargs)
     inputnames = validate_names(kvs, :inputnames, nu)
     outputnames = validate_names(kvs, :outputnames, ny)
-    return TransferFunction(matrix, float64(Ts), inputnames, outputnames)
+    return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts, kwargs...)
 

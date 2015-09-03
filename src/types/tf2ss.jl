@@ -92,7 +92,7 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     Sx = S[1:nx]
     Sio = S[nx+1]
     # Compute permutation of x (if requested)
-    pvec = perm ? balance(A, true)[2] * [1:nx] : [1:nx]
+    pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
     T = zeros(R, nx, nx)
     T[pvec, :] = Sio * diagm(1./Sx)

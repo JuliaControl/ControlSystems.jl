@@ -2,7 +2,7 @@
 
 Compute the poles of system `sys`.""" ->
 pole(sys::StateSpace) = eig(sys.A)[1]
-pole(sys::TransferFunction) = [map(pole, sys.matrix)...]
+pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = roots(sys.den)
 
 @doc """`gain(sys)`
@@ -141,7 +141,7 @@ function tzero(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
     W = full(qrfact(mat')[:Q], thin=false)::Matrix{Float64}
-    W = fliplr(W)
+    W = flipdim(W,2)
     mat = mat*W
     if fastrank(mat', meps) > 0
         nf = size(A, 1)
@@ -178,7 +178,7 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
 
         # Compress columns of Ctilde
         V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{Float64}
-        V = fliplr(V)
+        V = flipdim(V,2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
