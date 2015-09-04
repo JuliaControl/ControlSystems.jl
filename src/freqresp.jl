@@ -123,7 +123,7 @@ function _default_freq_vector(systems::Vector{LTISystem}, plot::Symbol)
     end
     w1 = minimum(bounds)
     w2 = maximum(bounds)
-    nw = int(max(min_pt_total, min_pt_per_dec*(w2 - w1)))
+    nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
     return logspace(w1, w2, nw)
 end
 _default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
