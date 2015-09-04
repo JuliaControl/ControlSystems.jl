@@ -99,4 +99,3 @@ end
 
                 
 array(ny::Int,nx::Int, args::AbstractArray...) = array(Float64, ny, nx, args...)
-                  
