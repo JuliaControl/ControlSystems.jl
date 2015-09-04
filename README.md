@@ -35,9 +35,9 @@ Here we create a simple position controller for an electric motor with an
 inertial load.
 
 ```
-julia> using Control
-
 julia> using PyPlot
+
+julia> using Control
 
 # Motor parameters
 julia> J = 2.0
