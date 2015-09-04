@@ -41,7 +41,8 @@ export  LTISystem,
         evalfr,
         bode,
         nyquist,
-        sigma
+        sigma,
+        array
 
 using Requires
 

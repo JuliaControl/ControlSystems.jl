@@ -2,21 +2,6 @@ module TestTransferFunction
 using CustomTest
 using Control
 
-# Creates an Array of size (ny,nx) with Vector elements from args
-function array(ny::Int,nx::Int,args...)
-  if ny*nx != length(args)
-    error("Number of vectors must fit dimensions")
-  end
-  array = Array{Array{Float64,1},2}(ny,nx)
-
-  for (i,v) in enumerate(args)
-    row = floor(Int,(i-1)./nx)+1
-    col = mod(i-1,nx)+1
-    array[row,col] = v
-  end
-  array
-end
-
 # Naming convention:
 # ------------------
 # {type}_{dims}

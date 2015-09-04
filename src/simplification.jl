@@ -18,7 +18,7 @@ function struct_ctrb_obsv(A::VecOrMat, B::VecOrMat, C::VecOrMat)
         inds = find(costates)
         return A[inds, inds], B[inds, :], C[:, inds], inds
     else
-        return A, B, C, [1:size(A, 1)]
+        return A, B, C, [1:size(A, 1);]
     end
 end
 

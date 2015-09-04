@@ -119,11 +119,11 @@ macro test_array_vecs_eps(a, b, tol)
 end
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
 G = ss(H)
-sol_z = Vector{Complex128}[Complex128[] Complex128[0.0 + 0.0im];
-        Complex128[-1.0 + 0.0im] Complex128[]]
-sol_p = Vector{Complex128}[Complex128[] Complex128[-0.5 - 3.1224989991991996im,
-        -0.5 + 3.1224989991991996im];
-        Complex128[-5.0 + 0.0im] Complex128[-6.0 + 0.0im]]
+sol_z = array(Complex128, 2, 2, Complex128[], Complex128[0.0 + 0.0im],
+        Complex128[-1.0 + 0.0im], Complex128[])
+sol_p = array(Complex128, 2, 2, Complex128[], Complex128[-0.5 - 3.1224989991991996im,
+        -0.5 + 3.1224989991991996im],
+        Complex128[-5.0 + 0.0im], Complex128[-6.0 + 0.0im])
 sol_k = [0.0 3.0; 1.0 2.0]
 z, p, k = zpkdata(H)
 @test_array_vecs_eps z sol_z 2*eps(Complex128)
