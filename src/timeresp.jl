@@ -98,7 +98,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
         dsys, x0map = c2d(sys, dt, :foh)
         x0 = x0map*[x0; u[1,:].']
     end
-    x = ltitr(dsys.A, dsys.B, Float64(u), Float64(x0))
+    x = ltitr(dsys.A, dsys.B, map(Float64,u), map(Float64,x0))
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
