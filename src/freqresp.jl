@@ -134,7 +134,7 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
     if plot != :sigma
         zs, ps = zpkdata(sys)
         # Compose vector of all zs, ps, positive conjugates only.
-        zp = [[vcat(i, j) for (i, j) in zip(zs, ps)]...]
+        zp = vcat([vcat(i, j) for (i, j) in zip(zs, ps)]...)
         zp = zp[imag(zp) .>= 0.0]
     else
         # For sigma plots, use the MIMO poles and zeros

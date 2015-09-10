@@ -269,7 +269,7 @@ sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
 
 function _same_io_dims(systems::LTISystem...)
     sizes = map(size, systems)
-    return all([s == sizes[1] for s in sizes])
+    return all(s -> s == sizes[1], sizes)
 end
 
 function _default_time_data(systems::Vector{LTISystem})
