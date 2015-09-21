@@ -1,5 +1,24 @@
 import PyPlot
-export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot
+export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, setPlotScale
+
+_PlotScale = "dB"
+_PlotScaleFunc = :semilogx
+_PlotScaleStr = "(dB)"
+
+@doc """`setPlotScale(str)`
+
+Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
+`str` should be either `"dB"` or `"log10"`.""" ->
+function setPlotScale(str::AbstractString)
+    if str == "dB"
+        plotSettings = [str, :semilogx, "(dB)"]
+    elseif str == "log10"
+        plotSettings = [str, :loglog, ""]
+    else
+        error("Scale must be set to either \"dB\" or \"log10\"")
+    end
+    global _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings;
+end
 
 @doc """`lsimplot(sys, u, t[, x0, method])`
 
@@ -128,7 +147,9 @@ function bodeplot(systems::Vector{LTISystem}, w::AbstractVector)
     nw = length(w)
     for s = systems
         mag, phase = bode(s, w)[1:2]
-        mag = 20*log10(mag)
+        if _PlotScale == "dB"
+          mag = 20*log10(mag)
+        end
         for j=1:nu
             for i=1:ny
                 magdata = vec(mag[i, j, :])
@@ -137,7 +158,7 @@ function bodeplot(systems::Vector{LTISystem}, w::AbstractVector)
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
-                axes[2*i - 1, j][:semilogx](w, magdata)
+                axes[2*i - 1, j][_PlotScaleFunc](w, magdata)
                 axes[2*i, j][:semilogx](w, phasedata)
             end
         end
@@ -153,10 +174,10 @@ function bodeplot(systems::Vector{LTISystem}, w::AbstractVector)
         for j=1:nu
             axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
         end
-        fig[:text](0.06, 0.5, "Phase (deg), Magnitude (dB)", ha="center",
+        fig[:text](0.06, 0.5, "Phase (deg), Magnitude $_PlotScaleStr", ha="center",
                 va="center", rotation="vertical", size=14)
     else
-        axes[1, 1][:set_ylabel]("Magnitude (dB)", size=14)
+        axes[1, 1][:set_ylabel]("Magnitude $_PlotScaleStr", size=14)
         axes[2, 1][:set_ylabel]("Phase (deg)", size=14)
     end
     fig[:text](0.5, 0.04, "Frequency (rad/s)", ha="center",
@@ -246,18 +267,21 @@ function sigmaplot(systems::Vector{LTISystem}, w::AbstractVector)
     nw = length(w)
     fig, ax = PyPlot.subplots(1, 1)
     for s = systems
-        sv = 20*log10(sigma(s, w)[1])
+        sv = sigma(s, w)[1]
+        if _PlotScale == "dB"
+          sv = 20*log10(sv)
+        end
         # Plot the first singular value, grab the line color, then plot the
         # remaining values all in the same color.
-        line = ax[:plot](w, sv[1, :]')[1]
+        line = ax[_PlotScaleFunc](w, sv[1, :]')[1]
         color = line[:get_color]()
         for i in 2:size(sv, 1)
-            ax[:semilogx](w, sv[i, :]', color=color)
+            ax[_PlotScaleFunc](w, sv[i, :]', color=color)
         end
     end
     ax[:set_title]("Sigma Plot", size=16)
     ax[:set_xlabel]("Frequency (rad/s)", size=14)
-    ax[:set_ylabel]("Singular Values (dB)", size=14)
+    ax[:set_ylabel]("Singular Values $_PlotScaleStr", size=14)
     PyPlot.draw()
     return fig
 end
