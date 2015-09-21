@@ -12,7 +12,7 @@ immutable SisoTf
         new(num, den)
     end
 end
-SisoTf(num::Vector, den::Vector) = SisoTf(Poly(float64(num)), Poly(float64(den)))
+SisoTf(num::Vector, den::Vector) = SisoTf(Poly(map(Float64,num)), Poly(map(Float64,den)))
 
 function print_sisotf(io::IO, t::SisoTf, var=:s)
     # Convert the numerator and denominator to strings

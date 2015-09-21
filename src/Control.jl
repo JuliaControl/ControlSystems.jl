@@ -45,6 +45,8 @@ export  LTISystem,
 
 using Requires
 
+import Base: +, -, *, /, (./), (==), (.+), (.-), (.*)
+
 include("types/lti.jl")
 include("types/transferfunction.jl")
 include("types/statespace.jl")

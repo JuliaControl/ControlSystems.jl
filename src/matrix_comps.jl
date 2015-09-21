@@ -21,7 +21,7 @@ function care{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
         -Q  -A']
 
     S = schurfact(Z)
-    S = ordschur(S, int(S.values.<0))
+    S = ordschur(S, S.values.<0)
     U = S.Z
 
     (m, n) = size(U)
@@ -60,7 +60,7 @@ function dare{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
          -Ait*Q        Ait]
 
     S = schurfact(Z)
-    S = ordschur(S, int(S.values.*S.values.<=1))
+    S = ordschur(S, S.values.*S.values.<=1)
     U = S.Z
 
     (m, n) = size(U)
@@ -199,10 +199,10 @@ function balance{T<:BlasFloat}(A::StridedMatrix{T}, perm::Bool=true)
     P = eye(Int, n)
     if perm
         if ilo > 1
-            for j = (ilo-1):-1:1 cswap!(j, int(scale[j]), P) end
+            for j = (ilo-1):-1:1 cswap!(j, round(Int, scale[j]), P) end
         end
         if ihi < n
-            for j = (ihi+1):n    cswap!(j, int(scale[j]), P) end
+            for j = (ihi+1):n    cswap!(j, round(Int, scale[j]), P) end
         end
     end
     return S, P, B

@@ -123,7 +123,7 @@ function _default_freq_vector(systems::Vector{LTISystem}, plot::Symbol)
     end
     w1 = minimum(bounds)
     w2 = maximum(bounds)
-    nw = int(max(min_pt_total, min_pt_per_dec*(w2 - w1)))
+    nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
     return logspace(w1, w2, nw)
 end
 _default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
@@ -134,7 +134,7 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
     if plot != :sigma
         zs, ps = zpkdata(sys)
         # Compose vector of all zs, ps, positive conjugates only.
-        zp = [[vcat(i, j) for (i, j) in zip(zs, ps)]...]
+        zp = vcat([vcat(i, j) for (i, j) in zip(zs, ps)]...)
         zp = zp[imag(zp) .>= 0.0]
     else
         # For sigma plots, use the MIMO poles and zeros

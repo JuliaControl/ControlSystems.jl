@@ -31,6 +31,7 @@ Base.endof(p::Poly) = length(p)
 deg(p::Poly) = length(p) - 1
 
 Base.getindex(p::Poly, i) = p.a[i - 1 + p.nzfirst]
+Base.getindex(p::Poly, c::Colon) = p.a[p.nzfirst:end]
 Base.setindex!(p::Poly, v, i) = (p.a[i - 1 + p.nzfirst] = v)
 
 Base.copy(p::Poly) = Poly(copy(p.a[p.nzfirst:end]))

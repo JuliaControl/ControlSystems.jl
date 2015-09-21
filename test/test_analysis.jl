@@ -17,6 +17,7 @@ C = [1 1 0 0 0 0;
      0 0 0 1 -1 0]
 D = [1 0;
      1 0]
+
 ex_3 = ss(A, B, C, D)
 @test_approx_eq tzero(ex_3) [0.3411639019140099 + 1.161541399997252im,
                              0.3411639019140099 - 1.161541399997252im,
@@ -118,11 +119,11 @@ macro test_array_vecs_eps(a, b, tol)
 end
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
 G = ss(H)
-sol_z = Vector{Complex128}[Complex128[] Complex128[0.0 + 0.0im];
-        Complex128[-1.0 + 0.0im] Complex128[]]
-sol_p = Vector{Complex128}[Complex128[] Complex128[-0.5 - 3.1224989991991996im,
-        -0.5 + 3.1224989991991996im];
-        Complex128[-5.0 + 0.0im] Complex128[-6.0 + 0.0im]]
+sol_z = vecarray(Complex128, 2, 2, Complex128[], Complex128[0.0 + 0.0im],
+        Complex128[-1.0 + 0.0im], Complex128[])
+sol_p = vecarray(Complex128, 2, 2, Complex128[], Complex128[-0.5 - 3.1224989991991996im,
+        -0.5 + 3.1224989991991996im],
+        Complex128[-5.0 + 0.0im], Complex128[-6.0 + 0.0im])
 sol_k = [0.0 3.0; 1.0 2.0]
 z, p, k = zpkdata(H)
 @test_array_vecs_eps z sol_z 2*eps(Complex128)

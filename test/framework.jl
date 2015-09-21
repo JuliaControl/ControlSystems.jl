@@ -1,7 +1,7 @@
 module CustomTest
 using Control
 import Base.Test: @test, @test_throws, Success, Failure, Error, with_handler
-export @test, @test_throws, @test_approx_eq, @test_approx_eq_eps, @test_err, runtests
+export @test, @test_throws, @test_approx_eq, @test_approx_eq_eps, @test_err, runtests, vecarray
 
 type TestData
     nfail::Int
@@ -133,4 +133,14 @@ macro test_err(ex)
         @test_throws ErrorException $(esc(ex))
     end
 end
+
+function vecarray(T::Type, ny::Int,nx::Int, args::AbstractArray...)
+    if ny*nx != length(args)
+        error("Number of vectors must fit dimensions")
+    end
+    array = reshape(collect(Array{T,1},args),nx,ny)
+    permutedims(array,[2,1])
+end
+vecarray(ny::Int,nx::Int, args::AbstractArray...) = vecarray(Float64, ny, nx, args...)
+
 end  # module
