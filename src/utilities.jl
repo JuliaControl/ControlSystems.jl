@@ -81,21 +81,3 @@ function format_names(names::Vector{UTF8String}, default::String, unknown::Strin
         return names
     end
 end
-
-# Creates an Array of size (ny,nx) with Vector elements from args
-function array(T::Type, ny::Int,nx::Int, args::AbstractArray...)
-  if ny*nx != length(args)
-    error("Number of vectors must fit dimensions")
-  end
-  array = Array{Array{T,1},2}(ny,nx)
-
-  for (i,v) in enumerate(args)
-    row = floor(Int,(i-1)./nx)+1
-    col = mod(i-1,nx)+1
-    array[row,col] = v
-  end
-  array
-end
-
-                
-array(ny::Int,nx::Int, args::AbstractArray...) = array(Float64, ny, nx, args...)
