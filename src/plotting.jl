@@ -297,14 +297,18 @@ function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
     wgm, gm, wpm, pm, fullPhase = margin(systems[1],w, full=true)
     if _PlotScale == "dB"
         mag = 20*log10(1./gm)
+        oneLine = 0
     else
         mag = 1./gm
+        oneLine = 1
     end
     for i=1:length(wgm)
         ax[1][_PlotScaleFunc]([wgm[i],wgm[i]],[1,mag[i]])
     end
+    ax[1][:axhline](oneLine,linestyle="--",color="gray")
     for i=1:length(wpm)
         ax[2][:semilogx]([wpm[i],wpm[i]],[fullPhase[i],fullPhase[i]-pm[i]])
+        ax[2][:axhline](fullPhase[i]-pm[i],linestyle="--",color="gray")
     end
     PyPlot.draw()
     return fig
