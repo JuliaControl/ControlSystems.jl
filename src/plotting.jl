@@ -294,14 +294,17 @@ sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
 function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
     fig = bodeplot(systems,w)
     ax = fig[:axes]
-    wgm, gm = margin(systems[1],w)
+    wgm, gm, wpm, pm, fullPhase = margin(systems[1],w, full=true)
     if _PlotScale == "dB"
         mag = 20*log10(1./gm)
     else
         mag = 1./gm
     end
     for i=1:length(wgm)
-        ax[1][:plot]([wgm[i],wgm[i]],[1,mag[i]])
+        ax[1][_PlotScaleFunc]([wgm[i],wgm[i]],[1,mag[i]])
+    end
+    for i=1:length(wpm)
+        ax[2][:semilogx]([wpm[i],wpm[i]],[fullPhase[i],fullPhase[i]-pm[i]])
     end
     PyPlot.draw()
     return fig

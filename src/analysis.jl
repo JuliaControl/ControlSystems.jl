@@ -224,41 +224,64 @@ function fastrank(A::Matrix{Float64}, meps::Float64)
 end
 
 
-function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S})
+function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
     mag, phase, w = bode(sys, w)
-    
-    gm = Array{Float64,1}()
-    wgm = _allPhaseCrossings(w, phase)
+    wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
     for i = 1:length(wgm)
-        gm[i] = (1./abs(evalfr(sys,im*wgm[i]))[1])
+        gm[i] = 1./abs(evalfr(sys,im*wgm[i])[1])
     end
-    wgm, gm
+    wpm, fi = _allGainCrossings(w, mag)
+    pm = similar(wpm)
+    fif = floor(Integer, fi)
+    fic = ceil(Integer, fi)
+    for i = 1:length(wpm)
+        pm[i] = mod(rad2deg(angle(evalfr(sys,im*wpm[i])[1])),360)-180
+    end
+    if full
+        #Get the rhase at the "float index" fi and set to fullPhase
+        fullPhase = phase[fif]+mod(fi,1).*(phase[fic]-phase[fif])
+        wgm, gm, wpm, pm, fullPhase
+    else
+        wgm, gm, wpm, pm
+    end
 end
-margin(systems::LTISystem) =
-    margin(systems, _default_freq_vector(systems, :bode))
+margin(systems::LTISystem; kwargs...) =
+    margin(systems, _default_freq_vector(systems, :bode); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
+function _allGainCrossings(w, mag)
+    _findCrossings(w,mag.>1,mag-1)
+end
+
 function _allPhaseCrossings(w, phase)
-    wgm = Array{Float64,1}()
     #Calculate numer of times real axis is crossed on negative side
-    n =  Array{Float64,1}(length(phase)) #Nbr of crossed
-    ph = Array{Float64,1}(length(phase)) #Residual
-    for i = 1:length(phase) #Found no easier way to do this
+    n =  Array{Float64,1}(length(w)) #Nbr of crossed
+    ph = Array{Float64,1}(length(w)) #Residual
+    for i = 1:length(w) #Found no easier way to do this
         n[i], ph[i] = fldmod(phase[i]+180,360)#+180
     end
-    for i in 1:(length(phase)-1)
-        if ph[i] == 0
-            wgm = [wgm; w[i]]
+    _findCrossings(w, n, ph)
+end
+
+function _findCrossings(w, n, res)
+      wcross = Array{Float64,1}()
+      tcross = Array{Float64,1}()
+      for i in 1:(length(w)-1)
+        if res[i] == 0
+            wcross = [wcross; w[i]]
+            tcross = [tcross; i]
         elseif n[i] != n[i+1]
-            #Interpolate to approximate crossing with -180
-            t = ph[i]/(ph[i]-ph[i+1])
+            #Interpolate to approximate crossing
+            t = res[i]/(res[i]-res[i+1])
+            tcross = [tcross; i+t]
             wt = w[i]+t*(w[i+1]-w[i])
-            wgm = [wgm; wt]
+            wcross = [wcross; wt]
         end
     end
-    if ph[end] == 0 #Special case if multiple points at -180
-        wgm = [wgm, w[end]]
+    if res[end] == 0 #Special case if multiple points
+        wcross = [wcross, w[end]]
+        tcross = [tcross; length(w)]
     end
-    wgm
+    wcross, tcross
 end
