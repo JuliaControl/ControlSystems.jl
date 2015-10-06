@@ -222,3 +222,43 @@ function fastrank(A::Matrix{Float64}, meps::Float64)
     mrank = sum(norms .> meps)
     return mrank
 end
+
+
+function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S})
+    mag, phase, w = bode(sys, w)
+    
+    gm = Array{Float64,1}()
+    wgm = _allPhaseCrossings(w, phase)
+    gm = similar(wgm)
+    for i = 1:length(wgm)
+        gm[i] = (1./abs(evalfr(sys,im*wgm[i]))[1])
+    end
+    wgm, gm
+end
+margin(systems::LTISystem) =
+    margin(systems, _default_freq_vector(systems, :bode))
+#margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
+
+function _allPhaseCrossings(w, phase)
+    wgm = Array{Float64,1}()
+    #Calculate numer of times real axis is crossed on negative side
+    n =  Array{Float64,1}(length(phase)) #Nbr of crossed
+    ph = Array{Float64,1}(length(phase)) #Residual
+    for i = 1:length(phase) #Found no easier way to do this
+        n[i], ph[i] = fldmod(phase[i]+180,360)#+180
+    end
+    for i in 1:(length(phase)-1)
+        if ph[i] == 0
+            wgm = [wgm; w[i]]
+        elseif n[i] != n[i+1]
+            #Interpolate to approximate crossing with -180
+            t = ph[i]/(ph[i]-ph[i+1])
+            wt = w[i]+t*(w[i+1]-w[i])
+            wgm = [wgm; wt]
+        end
+    end
+    if ph[end] == 0 #Special case if multiple points at -180
+        wgm = [wgm, w[end]]
+    end
+    wgm
+end

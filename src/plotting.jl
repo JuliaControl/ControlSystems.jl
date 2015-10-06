@@ -1,5 +1,5 @@
 import PyPlot
-export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, setPlotScale
+export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale
 
 _PlotScale = "dB"
 _PlotScaleFunc = :semilogx
@@ -11,13 +11,14 @@ Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
 `str` should be either `"dB"` or `"log10"`.""" ->
 function setPlotScale(str::AbstractString)
     if str == "dB"
-        plotSettings = [str, :semilogx, "(dB)"]
+        plotSettings = (str, :semilogx, "(dB)")
     elseif str == "log10"
-        plotSettings = [str, :loglog, ""]
+        plotSettings = (str, :loglog, "")
     else
         error("Scale must be set to either \"dB\" or \"log10\"")
     end
-    global _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings;
+    global _PlotScale, _PlotScaleFunc, _PlotScaleStr
+    _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
 @doc """`lsimplot(sys, u, t[, x0, method])`
@@ -288,6 +289,27 @@ end
 sigmaplot(systems::Vector{LTISystem}) =
     sigmaplot(systems, _default_freq_vector(systems, :sigma))
 sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
+
+
+function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
+    fig = bodeplot(systems,w)
+    ax = fig[:axes]
+    wgm, gm = margin(systems[1],w)
+    if _PlotScale == "dB"
+        mag = 20*log10(1./gm)
+    else
+        mag = 1./gm
+    end
+    for i=1:length(wgm)
+        ax[1][:plot]([wgm[i],wgm[i]],[1,mag[i]])
+    end
+    PyPlot.draw()
+    return fig
+end
+marginplot(systems::LTISystem) =
+    marginplot(systems, _default_freq_vector(systems, :bode))
+marginplot(sys::LTISystem, args...) = marginplot(LTISystem[sys], args...)
+
 
 # HELPERS:
 
