@@ -161,9 +161,9 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
 end
 
 function unwrap!(m::Array)
-    for i = 2:length(m)
-        d = m[i] - m[i-1]
-        m[i] -= floor((d+180) / (360)) * 360
+    for i = 2:size(m,3)
+        d = m[:,:,i] - m[:,:,i-1]
+        m[:,:,i] -= floor((d+180) / (360)) * 360
     end
     return m
 end

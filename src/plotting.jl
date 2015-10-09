@@ -292,28 +292,39 @@ sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
 
 
 function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
+    ny, nu = size(systems[1])
     fig = bodeplot(systems,w)
     ax = fig[:axes]
-    wgm, gm, wpm, pm, fullPhase = margin(systems[1],w, full=true)
-    if _PlotScale == "dB"
-        mag = 20*log10(1./gm)
-        oneLine = 0
-    else
-        mag = 1./gm
-        oneLine = 1
-    end
-    for i=1:length(wgm)
-        ax[1][_PlotScaleFunc]([wgm[i],wgm[i]],[1,mag[i]])
-    end
-    ax[1][:axhline](oneLine,linestyle="--",color="gray")
-    for i=1:length(wpm)
-        ax[2][:semilogx]([wpm[i],wpm[i]],[fullPhase[i],fullPhase[i]-pm[i]])
-        ax[2][:axhline](fullPhase[i]-pm[i],linestyle="--",color="gray")
+    
+    for s = systems
+        for j=1:nu
+            for i=1:ny
+                wgm, gm, wpm, pm, fullPhase = margin(s[i,j],w, full=true)
+                if _PlotScale == "dB"
+                    mag = 20*log10(1./gm)
+                    oneLine = 0
+                else
+                    mag = 1./gm
+                    oneLine = 1
+                end
+                for i=1:length(wgm)
+                    ax[2*nu*(i-1)+j][_PlotScaleFunc]([wgm[i],wgm[i]],[1,mag[i]])
+                end
+                ax[2*nu*(i-1)+j][:axhline](oneLine,linestyle="--",color="gray")
+                for i=1:length(wpm)
+                    ax[nu*(2*i-1)+j][:semilogx]([wpm[i],wpm[i]],[fullPhase[i],fullPhase[i]-pm[i]])
+                    ax[nu*(2*i-1)+j][:axhline](fullPhase[i]-pm[i],linestyle="--",color="gray")
+                end
+            end
+        end
     end
     PyPlot.draw()
     return fig
 end
-marginplot(systems::LTISystem) =
+marginplot(systems::Vector{LTISystem}) =
     marginplot(systems, _default_freq_vector(systems, :bode))
 marginplot(sys::LTISystem, args...) = marginplot(LTISystem[sys], args...)
 

@@ -246,8 +246,8 @@ function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
         wgm, gm, wpm, pm
     end
 end
-margin(systems::LTISystem; kwargs...) =
-    margin(systems, _default_freq_vector(systems, :bode); kwargs...)
+margin(system::LTISystem; kwargs...) =
+    margin(system, _default_freq_vector(system, :bode); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
 function _allGainCrossings(w, mag)
