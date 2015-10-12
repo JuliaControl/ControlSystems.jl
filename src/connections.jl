@@ -77,6 +77,22 @@ end
 
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
+function Base.vcat{T<:Real}(systems::Union{Array{T,2},TransferFunction}...)
+    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+        vcat(map(e->convert(TransferFunction,e),systems)...)
+    else
+        cat(1,systems...)
+    end
+end
+
+function Base.vcat(systems::Union{Real,TransferFunction}...)
+    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+        vcat(map(e->convert(TransferFunction,e),systems)...)
+    else
+        cat(1,systems...)
+    end
+end
+
 function Base.hcat(systems::StateSpace...)
     # Perform checks
     ny = systems[1].ny
@@ -120,6 +136,14 @@ function Base.hcat(systems::TransferFunction...)
 end
 
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
+
+function Base.hcat(systems::Union{Real,TransferFunction}...)
+    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+        hcat(map(e->convert(TransferFunction,e),systems)...)
+    else
+        cat(2,systems...)
+    end
+end
 
 # Empty definition to get rid of warning
 Base.blkdiag() = []

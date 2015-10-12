@@ -54,6 +54,7 @@ function float64mat(A::Vector)
 end
 float64mat(A::Matrix) = map(Float64,A)
 float64mat(A::Matrix{Float64}) = A
+float64mat(A::Real) = float64mat([A])
 
 # Ensures the metadata for an LTISystem is valid
 function validate_names(kwargs, key, n)

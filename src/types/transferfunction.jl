@@ -29,6 +29,16 @@ type TransferFunction <: LTISystem
     end
 end
 
+Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{T}) = TransferFunction
+Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{Array{T,2}}) = TransferFunction
+Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b], [1])
+function Base.convert{T<:Real}(::Type{TransferFunction}, b::AbstractArray{T,2})
+    r = Array{TransferFunction,2}(size(b,2),1)
+    for j=1:size(b,2)
+        r[j] = vcat(map(r->tf([r],[1]),b[:,j])...)
+    end
+    hcat(r...)
+end
 #####################################################################
 ##                      Constructor Functions                      ##
 #####################################################################
