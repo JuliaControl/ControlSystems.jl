@@ -310,13 +310,13 @@ function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
                     mag = 1./gm
                     oneLine = 1
                 end
-                for i=1:length(wgm)
-                    ax[2*nu*(i-1)+j][_PlotScaleFunc]([wgm[i],wgm[i]],[1,mag[i]])
+                for k=1:length(wgm)
+                    ax[2*nu*(i-1)+j][_PlotScaleFunc]([wgm[k],wgm[k]],[1,mag[k]])
                 end
                 ax[2*nu*(i-1)+j][:axhline](oneLine,linestyle="--",color="gray")
-                for i=1:length(wpm)
-                    ax[nu*(2*i-1)+j][:semilogx]([wpm[i],wpm[i]],[fullPhase[i],fullPhase[i]-pm[i]])
-                    ax[nu*(2*i-1)+j][:axhline](fullPhase[i]-pm[i],linestyle="--",color="gray")
+                for k=1:length(wpm)
+                    ax[nu*(2*i-1)+j][:semilogx]([wpm[k],wpm[k]],[fullPhase[k],fullPhase[k]-pm[k]])
+                    ax[nu*(2*i-1)+j][:axhline](fullPhase[k]-pm[k],linestyle="--",color="gray")
                 end
             end
         end
