@@ -30,9 +30,9 @@ type TransferFunction <: LTISystem
 end
 
 Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{T}) = TransferFunction
-Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{Array{T,2}}) = TransferFunction
+Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Union(Type{Array{T,2}},Type{Array{T,1}})) = TransferFunction
 Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b], [1])
-function Base.convert{T<:Real}(::Type{TransferFunction}, b::AbstractArray{T,2})
+function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)
     for j=1:size(b,2)
         r[j] = vcat(map(r->tf([r],[1]),b[:,j])...)

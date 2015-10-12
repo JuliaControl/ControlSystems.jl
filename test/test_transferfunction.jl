@@ -31,6 +31,9 @@ z = tf("z", 0.005)
 @test z == tf([1, 0], [1], 0.005)
 @test C_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]))
 @test D_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]), 0.005)
+@test C_022 == [tf(4) 0;0 4]
+@test C_022 == tf([4 0;0 4])
+@test D_022 == tf([4 0;0 4], 0.005)
 
 # Addition
 @test C_111 + C_111 == tf([2,14,20], [1,10,25])
@@ -92,6 +95,7 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
 @test_err C_111 + C_222             # Dimension mismatch
 @test_err C_111 - C_222             # Dimension mismatch
 @test_err C_111 * C_222             # Dimension mismatch
+@test_err [s 0; 1]                  # Dimension mismatch
 @test_err D_111 + C_111             # Sampling time mismatch
 @test_err D_111 - C_111             # Sampling time mismatch
 @test_err D_111 * C_111             # Sampling time mismatch
@@ -103,4 +107,5 @@ D_diffTs = tf([1], [2], 0.1)
 @test_err tf("s", 0.01)             # s creation can't be discrete
 @test_err tf("z", 0)                # z creation can't be continuous
 @test_err tf("z")                   # z creation can't be continuous
+@test_err [z 0]                     # Sampling time mismatch (inferec could be implemented)
 end
