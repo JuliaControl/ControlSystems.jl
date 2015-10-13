@@ -223,8 +223,28 @@ function fastrank(A::Matrix{Float64}, meps::Float64)
     return mrank
 end
 
-
 function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
+    ny, nu = size(sys)
+    for arr in (:wgm, :gm, :wpm, :pm, :fullPhase)
+        eval(:($arr = Array{Array{Float64,1}}($ny,$nu)))
+    end
+    for j=1:nu
+        for i=1:ny
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w, full=true)
+        end
+    end
+    if full
+        wgm, gm, wpm, pm, fullPhase
+    else
+        wgm, gm, wpm, pm
+    end
+end
+
+function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
+    ny, nu = size(sys)
+    if ny !=1 || nu != 1
+        error("System must be SISO, use `margin` instead")
+    end
     mag, phase, w = bode(sys, w)
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
