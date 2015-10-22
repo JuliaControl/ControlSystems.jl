@@ -31,7 +31,7 @@ ommitted, a zero vector is used.
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.""" ->
-function lsimplot(systems::Vector{LTISystem}, u::AbstractVecOrMat,
+function lsimplot{T<:LTISystem}(systems::Vector{T}, u::AbstractVecOrMat,
         t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
         method::Symbol=_issmooth(u) ? :foh : :zoh)
     if !_same_io_dims(systems...)
@@ -74,7 +74,7 @@ lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) =
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
     funcname = Symbol("$(func)plot")
     @eval begin
-        function $funcname(systems::Vector{LTISystem}, Ts_list::Vector, Tf::Real)
+        function $funcname{T<:LTISystem}(systems::Vector{T}, Ts_list::Vector, Tf::Real)
             if !_same_io_dims(systems...)
                 error("All systems must have the same input/output dimensions")
             end
@@ -113,11 +113,11 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
             PyPlot.draw()
             return fig
         end
-        $funcname(systems::Vector{LTISystem}, Tf::Real) =
+        $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real) =
                 $funcname(systems, map(_default_Ts, systems), Tf)
-        $funcname(systems::Vector{LTISystem}) =
+        $funcname{T<:LTISystem}(systems::Vector{T}) =
                 $funcname(systems, _default_time_data(systems)...)
-        $funcname(systems::Vector{LTISystem}, t::AbstractVector) =
+        $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector) =
                 $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end])
         $funcname(sys::LTISystem, args...) = $funcname(LTISystem[sys], args...)
     end
@@ -139,7 +139,7 @@ time vector `t` can be optionally provided.""" -> impulseplot
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function bodeplot(systems::Vector{LTISystem}, w::AbstractVector)
+function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -186,7 +186,7 @@ function bodeplot(systems::Vector{LTISystem}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-bodeplot(systems::Vector{LTISystem}) =
+bodeplot{T<:LTISystem}(systems::Vector{T}) =
     bodeplot(systems, _default_freq_vector(systems, :bode))
 bodeplot(sys::LTISystem, args...) = bodeplot(LTISystem[sys], args...)
 
@@ -195,7 +195,7 @@ args...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function nyquistplot(systems::Vector{LTISystem}, w::AbstractVector)
+function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -251,7 +251,7 @@ function nyquistplot(systems::Vector{LTISystem}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-nyquistplot(systems::Vector{LTISystem}) =
+nyquistplot{T<:LTISystem}(systems::Vector{T}) =
     nyquistplot(systems, _default_freq_vector(systems, :nyquist))
 nyquistplot(sys::LTISystem, args...) = nyquistplot(LTISystem[sys], args...)
 
@@ -260,7 +260,7 @@ args...)`
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.""" ->
-function sigmaplot(systems::Vector{LTISystem}, w::AbstractVector)
+function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -286,23 +286,29 @@ function sigmaplot(systems::Vector{LTISystem}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-sigmaplot(systems::Vector{LTISystem}) =
+sigmaplot{T<:LTISystem}(systems::Vector{T}) =
     sigmaplot(systems, _default_freq_vector(systems, :sigma))
 sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
 
 
-function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
+function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
     fig = bodeplot(systems,w)
-    ax = fig[:axes]
+    fig[:suptitle]("Margin Plot", size=16)
     
+    ax = fig[:axes]
+    titles = Array(String,nu,ny,2,2)
+    titles[:,:,1,1] = "Gm: "
+    titles[:,:,2,1] = "Pm: "
+    titles[:,:,1,2] = "Wgm: "
+    titles[:,:,2,2] = "Wpm: "
     for s = systems
         for j=1:nu
             for i=1:ny
-                wgm, gm, wpm, pm, fullPhase = margin(s[i,j],w, full=true)
+                wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
                 if _PlotScale == "dB"
                     mag = 20*log10(1./gm)
                     oneLine = 0
@@ -314,17 +320,30 @@ function marginplot(systems::Vector{LTISystem}, w::AbstractVector)
                     ax[2*nu*(i-1)+j][_PlotScaleFunc]([wgm[k];wgm[k]],[1;mag[k]])
                 end
                 ax[2*nu*(i-1)+j][:axhline](oneLine,linestyle="--",color="gray")
+                titles[nu,ny,1,1] *= "["*join([@sprintf("%2.2f",v) for v in gm],", ")*"] "
+                titles[nu,ny,1,2] *= "["*join([@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 for k=1:length(wpm)
                     ax[nu*(2*i-1)+j][:semilogx]([wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]])
                     ax[nu*(2*i-1)+j][:axhline](fullPhase[k]-pm[k],linestyle="--",color="gray")
                 end
+                titles[nu,ny,2,1] *=  "["*join([@sprintf("%2.2f",v) for v in pm],", ")*"] "
+                titles[nu,ny,2,2] *=  "["*join([@sprintf("%2.2f",v) for v in wpm],", ")*"] "
             end
+        end
+    end
+    for j = 1:nu
+        for i = 1:ny
+            ax[2*nu*(i-1)+j][:set_title](titles[nu,ny,1,1]*" "*titles[nu,ny,1,2],loc="center")
+            ax[nu*(2*i-1)+j][:set_title](titles[nu,ny,2,1]*" "*titles[nu,ny,2,2],loc="center")
+            #if length(systems) > 1
+            #        PyPlot.legend(["System "*string(k) for k in 1:length(systems)])
+            #end
         end
     end
     PyPlot.draw()
     return fig
 end
-marginplot(systems::Vector{LTISystem}) =
+marginplot{T<:LTISystem}(systems::Vector{T}) =
     marginplot(systems, _default_freq_vector(systems, :bode))
 marginplot(sys::LTISystem, args...) = marginplot(LTISystem[sys], args...)
 
@@ -336,7 +355,7 @@ function _same_io_dims(systems::LTISystem...)
     return all(s -> s == sizes[1], sizes)
 end
 
-function _default_time_data(systems::Vector{LTISystem})
+function _default_time_data{T<:LTISystem}(systems::Vector{T})
     sample_times = [_default_Ts(i) for i in systems]
     Tf = 100*maximum(sample_times)
     return sample_times, Tf

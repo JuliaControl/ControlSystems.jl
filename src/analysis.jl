@@ -223,24 +223,32 @@ function fastrank(A::Matrix{Float64}, meps::Float64)
     return mrank
 end
 
-function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
+function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
     ny, nu = size(sys)
-    for arr in (:wgm, :gm, :wpm, :pm, :fullPhase)
-        eval(:($arr = Array{Array{Float64,1}}($ny,$nu)))
-    end
+    vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
+    if allMargins
+        for val in vals
+            eval(:($val = Array{Array{Float64,1}}($ny,$nu)))
+        end
+    else
+        for val in vals
+            eval(:($val = Array{Float64,2}($ny,$nu)))
+        end
+    end   
     for j=1:nu
         for i=1:ny
-            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w, full=true)
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w, full=true, allMargins=allMargins)
         end
     end
     if full
+        print(fullPhase)
         wgm, gm, wpm, pm, fullPhase
     else
         wgm, gm, wpm, pm
     end
 end
 
-function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
+function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
@@ -253,14 +261,28 @@ function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false)
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
-    fif = floor(Integer, fi)
-    fic = ceil(Integer, fi)
     for i = 1:length(wpm)
         pm[i] = mod(rad2deg(angle(evalfr(sys,im*wpm[i])[1])),360)-180
     end
+    if !allMargins #Only output the smallest margins
+        gm, idx = findmin([gm;Inf])
+        wgm = [wgm;NaN][idx]
+        fi = [fi;NaN][idx]
+        pm, idx = findmin([abs(pm);Inf])
+        wpm = [wpm;NaN][idx]
+        if full
+            if !isnan(fi) #fi may be NaN, fullPhase is a scalar
+                fullPhase = interpolate(fi, phase)
+            else
+                fullPhase = NaN
+            end
+        end
+    else
+        if full #We know that all values are defined and fullPhase is a vector
+            fullPhase = interpolate(fi, phase)
+        end
+    end
     if full
-        #Get the rhase at the "float index" fi and set to fullPhase
-        fullPhase = phase[fif]+mod(fi,1).*(phase[fic]-phase[fif])
         wgm, gm, wpm, pm, fullPhase
     else
         wgm, gm, wpm, pm
@@ -269,6 +291,13 @@ end
 margin(system::LTISystem; kwargs...) =
     margin(system, _default_freq_vector(system, :bode); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
+
+# Interpolate the values in "list" given the floating point "index" fi
+function interpolate(fi, list)
+    fif = floor(Integer, fi)
+    fic = ceil(Integer, fi)
+    list[fif]+mod(fi,1).*(list[fic]-list[fif])
+end
 
 function _allGainCrossings(w, mag)
     _findCrossings(w,mag.>1,mag-1)
@@ -300,7 +329,7 @@ function _findCrossings(w, n, res)
         end
     end
     if res[end] == 0 #Special case if multiple points
-        wcross = [wcross, w[end]]
+        wcross = [wcross; w[end]]
         tcross = [tcross; length(w)]
     end
     wcross, tcross
