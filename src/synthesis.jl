@@ -11,14 +11,11 @@ For the continuous time model `dx = Ax + Bu`.
 
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.""" ->
-function lqr{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
-            Q::StridedMatrix{T}, R::StridedMatrix{T})
+function lqr(A, B, Q, R)
     S = care(A, B, Q, R)
     K = R\B'*S
     return K
 end
-lqr{T<:Integer}(A::StridedMatrix{T}, B::StridedMatrix{T}, Q::StridedMatrix{T},
-        R::StridedMatrix{T}) = lqr(float(A), float(B), float(Q), float(R))
 
 function lqr(sys::StateSpace, Q, R)
     if iscontinuous(sys)
@@ -36,11 +33,8 @@ minimizes the cost function:
 J = sum(x'Qx + u'Ru, 0, inf).
 
 For the discrte time model `x[k+1] = Ax[k] + Bu[k]`.""" ->
-function dlqr{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
-            Q::StridedMatrix{T}, R::StridedMatrix{T})
+function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
 end
-dlqr{T<:Integer}(A::StridedMatrix{T}, B::StridedMatrix{T}, Q::StridedMatrix{T},
-        R::StridedMatrix{T}) = dlqr(float(A), float(B), float(Q), float(R))

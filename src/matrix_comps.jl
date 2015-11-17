@@ -20,7 +20,7 @@ function care(A, B, Q, R)
         -Q  -A']
 
     S = schurfact(Z)
-    S = ordschur(S, S.values.<0)
+    S = ordschur(S, real(S.values).<0)
     U = S.Z
 
     (m, n) = size(U)
@@ -56,7 +56,7 @@ function dare(A, B, Q, R)
          -Ait*Q        Ait]
 
     S = schurfact(Z)
-    S = ordschur(S, S.values.*S.values.<=1)
+    S = ordschur(S, abs(S.values).<=1)
     U = S.Z
 
     (m, n) = size(U)
