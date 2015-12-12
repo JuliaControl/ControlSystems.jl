@@ -138,14 +138,14 @@ function +(t1::TransferFunction, t2::TransferFunction)
     elseif all(t2.inputnames .== "") || (t1.inputnames == t2.inputnames)
         inputnames = t1.inputnames
     else
-        inputnames = UTF8String["" for i = 1:t1.ny]
+        inputnames = fill(UTF8String(""),t1.ny)
     end
     if all(t1.outputnames .== "")
         outputnames = t2.outputnames
     elseif all(t2.outputnames .== "") || (t1.outputnames == t2.outputnames)
         outputnames = t1.outputnames
     else
-        outputnames = UTF8String["" for i = 1:t1.nu]
+        outputnames = fill(UTF8String(""),t1.nu)
     end
     t1, t2 = promote(t1, t2)
     matrix = t1.matrix + t2.matrix

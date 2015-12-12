@@ -59,7 +59,7 @@ float64mat(A::Matrix{Float64}) = A
 function validate_names(kwargs, key, n)
     names = get(kwargs, key, "")
     if names == ""
-        return UTF8String[names for i = 1:n]
+        return fill(UTF8String(names),n)
     elseif isa(names, Vector) && eltype(names) <: UTF8String
         return names
     elseif isa(names, UTF8String)
