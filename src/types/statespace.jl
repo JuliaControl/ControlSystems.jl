@@ -125,7 +125,7 @@ function +(s1::StateSpace, s2::StateSpace)
         error("Sampling time mismatch")
     end
 
-    A = [s1.A zeros(s1.nx, s2.nx); 
+    A = [s1.A zeros(s1.nx, s2.nx);
          zeros(s2.nx, s1.nx) s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
@@ -140,14 +140,14 @@ function +(s1::StateSpace, s2::StateSpace)
     elseif all(s2.inputnames .== "") || (s1.inputnames == s2.inputnames)
         inputnames = s1.inputnames
     else
-        inputnames = UTF8String["" for i = 1:s1.ny]
+        inputnames = fill(UTF8String(""),s1.ny)
     end
     if all(s1.outputnames .== "")
         outputnames = s2.outputnames
     elseif all(s2.outputnames .== "") || (s1.outputnames == s2.outputnames)
         outputnames = s1.outputnames
     else
-        outputnames = UTF8String["" for i = 1:s1.nu]
+        outputnames = fill(UTF8String(""),s1.nu)
     end
     return StateSpace(A, B, C, D, s1.Ts, statenames, inputnames, outputnames)
 end
@@ -197,7 +197,7 @@ function /(n::Real, s::StateSpace)
     # Ensure s.D is invertible
     Dinv = try
         inv(s.D)
-    catch 
+    catch
         error("D isn't invertible")
     end
     return StateSpace(s.A - s.B*Dinv*s.C, s.B*Dinv, -n*Dinv*s.C, n*Dinv, s.Ts,

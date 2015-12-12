@@ -1,10 +1,10 @@
 # Taken and modified from https://github.com/vtjnash/Polynomial.jl
 # Polynomial.jl was deprecated in favor of Polynomials.jl, which uses reversed
 # indexing. The former was copied to this file, and modified/trimmed to just
-# the bare functions required for TransferFunction support. 
+# the bare functions required for TransferFunction support.
 
 Base.eps{T}(::Type{T}) = zero(T)
-Base.eps{F<:FloatingPoint}(x::Type{F}) = Base.eps(F)
+Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
 Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 
 immutable Poly{T<:Number}
@@ -58,7 +58,7 @@ function print_poly{T}(io::IO, p::Poly{T}, var=:x)
             pj = p[j]
             magpj = abs(pj)
             if magpj > 2*eps(T)
-                if j == 1 
+                if j == 1
                     pj < 0 && print(io, "-")    #Prepend - if first and negative
                 else
                     pj < 0 ? print(io," - ") : print(io," + ")

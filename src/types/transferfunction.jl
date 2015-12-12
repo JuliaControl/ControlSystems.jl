@@ -71,11 +71,11 @@ end
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts, kwargs...)
 
 # Function for creation of 's' or 'z' var
-function tf(var::String)
+function tf(var::AbstractString)
     var != "s" && error("var must be 's' for continuous time tf.")
     return tf([1, 0], [1])
 end
-function tf(var::String, Ts::Real)
+function tf(var::AbstractString, Ts::Real)
     var != "z" && error("var must be 'z' for discrete time tf.")
     Ts == 0 && error("Ts must not be 0 for discrete time tf.")
     return tf([1, 0], [1], Ts)
@@ -138,14 +138,14 @@ function +(t1::TransferFunction, t2::TransferFunction)
     elseif all(t2.inputnames .== "") || (t1.inputnames == t2.inputnames)
         inputnames = t1.inputnames
     else
-        inputnames = UTF8String["" for i = 1:t1.ny]
+        inputnames = fill(UTF8String(""),t1.ny)
     end
     if all(t1.outputnames .== "")
         outputnames = t2.outputnames
     elseif all(t2.outputnames .== "") || (t1.outputnames == t2.outputnames)
         outputnames = t1.outputnames
     else
-        outputnames = UTF8String["" for i = 1:t1.nu]
+        outputnames = fill(UTF8String(""),t1.nu)
     end
     t1, t2 = promote(t1, t2)
     matrix = t1.matrix + t2.matrix
