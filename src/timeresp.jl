@@ -9,7 +9,7 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.""" ->
 function Base.step(sys::StateSpace, t::AbstractVector)
     lt = length(t)
-    ny, nu = size(sys) 
+    ny, nu = size(sys)
     nx = sys.nx
     u = ones(size(t))
     x0 = zeros(nx, 1)
@@ -36,7 +36,7 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.""" ->
 function impulse(sys::StateSpace, t::AbstractVector)
     lt = length(t)
-    ny, nu = size(sys) 
+    ny, nu = size(sys)
     nx = sys.nx
     u = zeros(size(t))
     if iscontinuous(sys)
@@ -75,10 +75,10 @@ method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.""" ->
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
         x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=_issmooth(u) ? :foh : :zoh)
-    ny, nu = size(sys) 
+    ny, nu = size(sys)
     nx = sys.nx
 
-    if length(x0) != nx 
+    if length(x0) != nx
         error("size(x0) must match the number of states of sys")
     elseif !any(size(u) .== [(length(t), nu) (length(t),)])
         error("u must be of size (length(t), nu)")
@@ -118,8 +118,8 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0 = A * x0 + B * u[i,:].'
     end
     return x.'
-end 
-ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T}) = 
+end
+ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T}) =
         ltitr(A, B, u, zeros(T, size(A, 1), 1))
 
 
@@ -139,7 +139,7 @@ function _default_Ts(sys::LTISystem)
     if !iscontinuous(sys)
         Ts = sys.Ts
     elseif !isstable(sys)
-        Ts = 0.05 
+        Ts = 0.05
     else
         ps = pole(sys)
         r = minimum(abs(real(ps)))
@@ -152,7 +152,7 @@ function _default_Ts(sys::LTISystem)
 end
 
 # Determine if a signal is "smooth"
-function _issmooth(u::Array, thresh::FloatingPoint=0.75)
+function _issmooth(u::Array, thresh::AbstractFloat=0.75)
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
     range = maximum(u) - minimum(u)
     du = abs(diff(u))
