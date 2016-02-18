@@ -152,7 +152,7 @@ function _default_Ts(sys::LTISystem)
 end
 
 # Determine if a signal is "smooth"
-function _issmooth(u, thresh::FloatingPoint=0.75)
+function _issmooth(u, thresh::AbstractFloat=0.75)
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
     range = maximum(u) - minimum(u)
     du = abs(diff(u))

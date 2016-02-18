@@ -4,7 +4,7 @@
 # the bare functions required for TransferFunction support. 
 
 Base.eps{T}(::Type{T}) = zero(T)
-Base.eps{F<:FloatingPoint}(x::Type{F}) = Base.eps(F)
+Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
 Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 
 immutable Poly{T<:Number}

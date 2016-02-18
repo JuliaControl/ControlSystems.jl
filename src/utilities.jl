@@ -71,7 +71,7 @@ function validate_names(kwargs, key, n)
 end
 
 # Format the metadata for printing
-function format_names(names::Vector{UTF8String}, default::String, unknown::String)
+function format_names(names::Vector{UTF8String}, default::AbstractString, unknown::AbstractString)
     n = size(names, 1)
     if all(names .== "")
         return UTF8String[default * string(i) for i=1:n]

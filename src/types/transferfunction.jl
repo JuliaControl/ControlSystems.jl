@@ -29,8 +29,10 @@ type TransferFunction <: LTISystem
     end
 end
 
++{T<:Real}(a::TransferFunction, b::AbstractVecOrMat{T}) = +(promote(a,b)...)
+
 Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{T}) = TransferFunction
-Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Union(Type{Array{T,2}},Type{Array{T,1}})) = TransferFunction
+Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = TransferFunction
 Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b], [1])
 function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)
@@ -81,11 +83,11 @@ end
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts, kwargs...)
 
 # Function for creation of 's' or 'z' var
-function tf(var::String)
+function tf(var::AbstractString)
     var != "s" && error("var must be 's' for continuous time tf.")
     return tf([1, 0], [1])
 end
-function tf(var::String, Ts::Real)
+function tf(var::AbstractString, Ts::Real)
     var != "z" && error("var must be 'z' for discrete time tf.")
     Ts == 0 && error("Ts must not be 0 for discrete time tf.")
     return tf([1, 0], [1], Ts)
