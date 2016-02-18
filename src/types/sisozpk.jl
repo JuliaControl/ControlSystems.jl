@@ -1,37 +1,38 @@
 RealOrComplex = Union{Real,Complex}
 
 ## User should just use TransferFunction
-immutable SisoZpk
+immutable SisoZpk <: SisoTf
     z::Vector{Complex{Float64}}
     p::Vector{Complex{Float64}}
     k::Float64
-    function SisoZpk(num::Vector{Complex{Float64}}, den::Vector{Complex{Float64}}, k::Float64)
+    function SisoZpk(z::Vector{Complex{Float64}}, p::Vector{Complex{Float64}}, k::Float64)
         if k == zero(k)
             # The numerator is zero, make the denominator 1
-            den = []
+            p = []
         end
-        new(num, den, k)
+        new(z, p, k)
     end
 end
 
-SisoZpk{T<:RealOrComplex,S<:RealOrComplex}(num::Vector{T}, den::Vector{S}, K::Real) = SisoZpk(float(num), float(den), float(K))
-
+SisoZpk{T<:RealOrComplex,S<:RealOrComplex}(z::AbstractArray{T}, p::AbstractArray{S}, k::Real) = SisoZpk(Complex128[z...], Complex128[p...], Float64(k))
 
 function zp2polys(vec)
-    polys = Array{Poly{Float64},1}
-    polesLeft = Set(1:length(vec))
-    while length(polesLeft) > 0
-        p = polys[pop!(polesLeft)]
-        if abs(imag(p) < sqrt(eps()))
+    polys = Array{Poly{Float64},1}(0)
+    println(vec)
+    polesiLeft = Set(1:length(vec))
+    while length(polesiLeft) > 0
+        p = vec[pop!(polesiLeft)]
+        if abs(imag(p)) < sqrt(eps())
             push!(polys,Poly(float([1, -real(p)])))
         else
-            polesTest = Complex128[i for i in s]
+            polesTest = Complex128[vec[i] for i in polesiLeft]
             val, i = findmin(abs(polesTest-conj(p)))
-            val > sqrt(eps) && error("Could not find conjugate to pole")
-            push!(polys,Poly(float([real(p)^2, 2*real(p)*imag(p), imag(p)^2])))
-            pop!(polesLeft,polesTest[i])
+            val > sqrt(eps()) && error("Could not find conjugate to pole")
+            push!(polys,Poly(float([1, -2*real(p), real(p)^2+imag(p)^2])))
+            pop!(polesiLeft,i)
         end
     end
+    polys
 end
 
 function print_sisozpk(io::IO, t::SisoZpk, var=:s)
@@ -52,7 +53,7 @@ function print_sisozpk(io::IO, t::SisoZpk, var=:s)
     else
         denstr = "$(repeat(" ", div(dashcount - len_den, 2)))$denstr"
     end
-    
+
     gainstr = @sprintf "%3.2f" t.k
     #Add spaces to account for gain string
     numstr = " "^(length(gainstr))*numstr
@@ -76,7 +77,7 @@ Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 #     n[(lt - length(t.num) + 1):end] = t.num[:]
 #     return n
 # end
-# 
+#
 # function Base.den(t::SisoTf)
 #     lt = length(t)
 #     d = zeros(lt)
@@ -87,10 +88,18 @@ Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 ==(t1::SisoZpk, t2::SisoZpk) = (t1.z == t2.z && t1.p == t2.p && t1.k == t2.k)
 
 function +(t1::SisoZpk, t2::SisoZpk)
-  #TODO Make sure gain is computed correctly
-  num = poles(t1.k*prod(zp2polys(t1.num))*prod(zp2polys(t2.den))+t2.k*prod(zp2polys(t2.num))*prod(zp2polys(t1.den)))
-  SisoZpk(num,[t1.den;t2.den],1)
+  numPoly = t1.k*prod(zp2polys(t1.z))*prod(zp2polys(t2.p))+t2.k*prod(zp2polys(t2.z))*prod(zp2polys(t1.p))
+  z = poles(numPoly)
+  if length(numPoly) > 0
+      k = numPoly[1]
+      p = [t1.p;t2.p]
+  else
+      k = 0;
+      p = []
+  end
+  SisoZpk(z,p,k)
 end
+
 +(t::SisoZpk, n::Real) = t + SisoZpk([],[],n)
 +(n::Real, t::SisoZpk) = SisoZpk([],[],n) + t
 .+(t::SisoZpk, n::Real) = t + n

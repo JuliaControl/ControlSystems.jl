@@ -5,6 +5,7 @@ export  LTISystem,
         TransferFunction,
         ss,
         tf,
+        zpk,
         # Linear Algebra
         care,
         dare,
