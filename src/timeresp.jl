@@ -102,7 +102,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
-lsim(sys::LTISystem, args...) = lsim(ss(sys), args...)
+lsim(sys::TransferFunction, u, t, args...) = lsim(ss(sys), u, t, args...)
 
 
 @doc """`ltitr(A, B, u[, x0])`
