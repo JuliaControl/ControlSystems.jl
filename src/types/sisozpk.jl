@@ -25,11 +25,15 @@ function zp2polys(vec)
         if abs(imag(p)) < sqrt(eps())
             push!(polys,Poly(float([1, -real(p)])))
         else
-            polesTest = Complex128[vec[i] for i in polesiLeft]
+            println(p)
+            polesiLeftVec = [i for i in polesiLeft]
+            polesTest = Complex128[vec[polesiLeftVec]...]
+            println(polesTest)
             val, i = findmin(abs(polesTest-conj(p)))
+            println(val, " ", i)
             val > sqrt(eps()) && error("Could not find conjugate to pole")
             push!(polys,Poly(float([1, -2*real(p), real(p)^2+imag(p)^2])))
-            pop!(polesiLeft,i)
+            pop!(polesiLeft,polesiLeftVec[i])
         end
     end
     polys
@@ -67,7 +71,7 @@ Base.promote_rule{T<:Real}(::Type{SisoZpk}, ::Type{T}) = SisoZpk
 Base.convert(::Type{SisoZpk}, b::Real) = SisoZpk([], [], b)
 
 Base.zero(::Type{SisoZpk}) = SisoZpk([],[],0.0)
-Base.zero(t::SisoZpk) = Base.zero(SisoTf)
+Base.zero(t::SisoZpk) = Base.zero(SisoZpk)
 
 Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
@@ -89,7 +93,7 @@ Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
 function +(t1::SisoZpk, t2::SisoZpk)
   numPoly = t1.k*prod(zp2polys(t1.z))*prod(zp2polys(t2.p))+t2.k*prod(zp2polys(t2.z))*prod(zp2polys(t1.p))
-  z = poles(numPoly)
+  z = roots(numPoly)
   if length(numPoly) > 0
       k = numPoly[1]
       p = [t1.p;t2.p]
