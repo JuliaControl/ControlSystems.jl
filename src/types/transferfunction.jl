@@ -140,6 +140,8 @@ end
 tf(num::Vector, den::Vector, args...) =
 tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...)
 
+tf(num::Real, den::Vector, args...) = tf([num], den, args...)
+
 zpk(z::Vector, p::Vector, k::Real, args...) =
 zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...)
 
