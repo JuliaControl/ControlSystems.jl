@@ -66,7 +66,15 @@ function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
 end
 function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
     s = sys.matrix[iy, iu]
-    return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+    return _zpk_kern(s)
+end
+
+function _zpk_kern(s::SisoRational)
+  return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+end
+
+function _zpk_kern(s::SisoZpk)
+  return s.z, s.p, s.k
 end
 
 @doc """`Wn, zeta, ps = damp(sys)`

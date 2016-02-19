@@ -14,6 +14,9 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
         s = im*w
     end
     sys = _preprocess_for_freqresp(sys)
+    if isa(sys,TransferFunction) && !isa(sys.matrix, Array{SisoRational})
+        sys = tf(sys)
+    end
     resp = Array(Complex128, ny, nu, nw)
     for i=1:nw
         # TODO : This doesn't actually take advantage of Hessenberg structure
@@ -66,7 +69,7 @@ function evalfr(sys::TransferFunction, s::Number)
     return res
 end
 
-function evalfr(sys::SisoTf, s::Number)
+function evalfr(sys::SisoRational, s::Number)
     S = promote_type(typeof(s), Float64)
     den = polyval(sys.den, s)
     if den == zero(S)

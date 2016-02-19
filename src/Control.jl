@@ -45,7 +45,7 @@ export  LTISystem,
         nyquist,
         sigma
 
-using Requires
+using PyPlot
 
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*)
 
@@ -63,9 +63,9 @@ include("analysis.jl")
 include("timeresp.jl")
 include("freqresp.jl")
 include("utilities.jl")
+include("plotting.jl")
 
 # The path has to be evaluated upon initial import
 const __CONTROL_SOURCE_DIR__ = dirname(Base.source_path())
-@require PyPlot include(joinpath(__CONTROL_SOURCE_DIR__, "plotting.jl"))
 
 end

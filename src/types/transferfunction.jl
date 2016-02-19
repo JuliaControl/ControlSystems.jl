@@ -59,6 +59,12 @@ function Base.convert(::Type{SisoZpk}, sys::SisoRational)
     end
 end
 
+function Base.convert(::Type{SisoRational}, sys::SisoZpk)
+    num = prod(zp2polys(sys.z))*sys.k
+    den = prod(zp2polys(sys.p))
+    return SisoRational(num, den)
+end
+
 #Just default SisoTf to SisoRational
 SisoTf(args...) = SisoRational(args...)
 Base.convert(::Type{Control.SisoTf}, b::Real) = Base.convert(Control.SisoRational, b)
@@ -127,10 +133,23 @@ function zpk{T<:Vector}(z::VecOrMat{T}, p::VecOrMat{T}, k::VecOrMat, Ts::Real=0;
 end
 
 function zpk(tf::TransferFunction)
+    tf = copy(tf)
     matrix = Array(SisoZpk, tf.ny, tf.nu)
     for o=1:tf.ny
         for i=1:tf.nu
             matrix[o, i] = convert(SisoZpk, tf.matrix[o, i])
+        end
+    end
+    tf.matrix = matrix
+    return tf
+end
+
+function tf(tf::TransferFunction)
+    tf = copy(tf)
+    matrix = Array(SisoRational, tf.ny, tf.nu)
+    for o=1:tf.ny
+        for i=1:tf.nu
+            matrix[o, i] = convert(SisoRational, tf.matrix[o, i])
         end
     end
     tf.matrix = matrix
