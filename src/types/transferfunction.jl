@@ -59,6 +59,9 @@ function Base.convert(::Type{SisoZpk}, sys::SisoRational)
     end
 end
 
+#Just default SisoTf to SisoRational
+SisoTf(args...) = SisoRational(args...)
+Base.convert(::Type{Control.SisoTf}, b::Real) = Base.convert(Control.SisoRational, b)
 #####################################################################
 ##                      SisoTf Operations                   ##
 #####################################################################
@@ -71,7 +74,7 @@ end
 +{T<:SisoTf}(a::Array{T}, b::Real) = map(x->x+b,a)
 +{T<:SisoTf}(b::Real, a::Array{T}) = map(x->x+b,a)
 -{T<:SisoTf}(a::Array{T}, b::Real) = map(x->x-b,a)
--{T<:SisoTf}(b::Real, a::Array{T}) = map(x->x-b,a)
+-{T<:SisoTf}(b::Real, a::Array{T}) = map(x->b-x,a)
 -{T<:SisoTf}(a::Array{T})          = map(x-> -x,a)
 
 #Operations with different types of Siso functions
@@ -184,9 +187,11 @@ function Base.getindex(t::TransferFunction, inds...)
         error("Must specify 2 indices to index TransferFunction model")
     end
     rows, cols = inds
-    mat = Array(typeof(t.matrix), length(rows), length(cols))
+    mat = Array(typeof(t.matrix).parameters[1], length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    return TransferFunction(mat, t.Ts, [t.inputnames[cols]], [t.outputnames[rows]])
+    innames = length(cols) > 1 ? collect(t.inputnames[cols]) : [t.inputnames[cols]];
+    outnames = length(rows) > 1 ? collect(t.outputnames[rows]) : [t.inputnames[rows]];
+    return TransferFunction(mat, t.Ts, innames, outnames)
 end
 
 function Base.copy(t::TransferFunction)

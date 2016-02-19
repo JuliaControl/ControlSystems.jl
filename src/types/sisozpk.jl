@@ -7,8 +7,8 @@ immutable SisoZpk <: SisoTf
     k::Float64
     function SisoZpk(z::Vector{Complex{Float64}}, p::Vector{Complex{Float64}}, k::Float64)
         if k == zero(k)
-            # The numerator is zero, make the denominator 1
             p = []
+            z = []
         end
         new(z, p, k)
     end
@@ -18,13 +18,17 @@ SisoZpk{T<:RealOrComplex,S<:RealOrComplex}(z::AbstractArray{T}, p::AbstractArray
 
 # Taking care of empty vectors being of type Any
 function SisoZpk(z::AbstractArray, p::AbstractArray, k::Real)
-    if length(z) > 0 && !(typeof(z).parameters[1] <: RealOrComplex)
-        error("Zeros must be real or complex")
+    if length(z) > 0
+        if !(typeof(z).parameters[1] <: RealOrComplex)
+            error("Zeros must be real or complex")
+        end
     else
         z = Array(Float64,0)
     end
-    if length(p) > 0 && !(typeof(z).parameters[1] <: RealOrComplex)
-        error("poles must be real or complex")
+    if length(p) > 0
+        if !(typeof(p).parameters[1] <: RealOrComplex)
+            error("poles must be real or complex")
+        end
     else
         p = Array(Float64,0)
     end
