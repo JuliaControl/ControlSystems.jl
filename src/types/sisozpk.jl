@@ -16,21 +16,32 @@ end
 
 SisoZpk{T<:RealOrComplex,S<:RealOrComplex}(z::AbstractArray{T}, p::AbstractArray{S}, k::Real) = SisoZpk(Complex128[z...], Complex128[p...], Float64(k))
 
+# Taking care of empty vectors being of type Any
+function SisoZpk(z::AbstractArray, p::AbstractArray, k::Real)
+    if length(z) > 0 && !(typeof(z).parameters[1] <: RealOrComplex)
+        error("Zeros must be real or complex")
+    else
+        z = Array(Float64,0)
+    end
+    if length(p) > 0 && !(typeof(z).parameters[1] <: RealOrComplex)
+        error("poles must be real or complex")
+    else
+        p = Array(Float64,0)
+    end
+    SisoZpk(z, p, k)
+end
+
 function zp2polys(vec)
     polys = Array{Poly{Float64},1}(0)
-    println(vec)
     polesiLeft = Set(1:length(vec))
     while length(polesiLeft) > 0
         p = vec[pop!(polesiLeft)]
         if abs(imag(p)) < sqrt(eps())
             push!(polys,Poly(float([1, -real(p)])))
         else
-            println(p)
             polesiLeftVec = [i for i in polesiLeft]
             polesTest = Complex128[vec[polesiLeftVec]...]
-            println(polesTest)
             val, i = findmin(abs(polesTest-conj(p)))
-            println(val, " ", i)
             val > sqrt(eps()) && error("Could not find conjugate to pole")
             push!(polys,Poly(float([1, -2*real(p), real(p)^2+imag(p)^2])))
             pop!(polesiLeft,polesiLeftVec[i])
@@ -39,13 +50,19 @@ function zp2polys(vec)
     polys
 end
 
-function print_sisozpk(io::IO, t::SisoZpk, var=:s)
+function print_siso(io::IO, t::SisoZpk, var=:s)
     zpolys = zp2polys(t.z)
     ppolys = zp2polys(t.p)
     # Convert the numerator and denominator to strings
-    numstr = prod(["("*sprint(print_poly, z, var)*")" for z in zpolys])
-    denstr = prod(["("*sprint(print_poly, p, var)*")" for p in ppolys])
-
+    numstr = reduce(*,"",["("*sprint(print_poly, z, var)*")" for z in zpolys])
+    denstr = reduce(*,"",["("*sprint(print_poly, p, var)*")" for p in ppolys])
+    #Don't print empty lines
+    if numstr == ""
+        numstr = "1"
+    end
+    if denstr == ""
+        denstr = "1"
+    end
     # Figure out the length of the separating line
     len_num = length(numstr)
     len_den = length(denstr)

@@ -7,13 +7,12 @@ include("sisozpk.jl")
 #####################################################################
 
 type TransferFunction <: LTISystem
-    matrix::Union{Matrix{SisoRational},Matrix{SisoZpk}}
+    matrix::Matrix{SisoTf}
     Ts::Float64
     nu::Int
     ny::Int
     inputnames::Vector{UTF8String}
     outputnames::Vector{UTF8String}
-    sisoType::Union{Type{SisoRational},Type{SisoZpk}}
     function TransferFunction{T<:SisoTf}(matrix::Matrix{T}, Ts::Float64,
             inputnames::Vector{UTF8String}, outputnames::Vector{UTF8String})
         # Validate size of input and output names
@@ -28,7 +27,7 @@ type TransferFunction <: LTISystem
             error("Ts must be either a positive number, 0
                 (continuous system), or -1 (unspecified)")
         end
-        return new(matrix, Ts, nu, ny, inputnames, outputnames, T)
+        return new(matrix, Ts, nu, ny, inputnames, outputnames)
     end
 end
 
@@ -37,6 +36,11 @@ end
 Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{T}) = TransferFunction
 Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = TransferFunction
 Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b], [1])
+
+Base.promote_rule(::Type{SisoRational}, ::Type{SisoZpk}) = SisoZpk
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoZpk}) = SisoZpk
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoRational}) = SisoZpk
+
 function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)
     for j=1:size(b,2)
@@ -54,6 +58,29 @@ function Base.convert(::Type{SisoZpk}, sys::SisoRational)
         return SisoZpk(roots(sys.num),roots(sys.den),sys.num[1]/sys.den[1])
     end
 end
+
+#####################################################################
+##                      SisoTf Operations                   ##
+#####################################################################
+
+#These make sure that the matrix operation below works as expected
+#Base.convert(::Type{SisoTf}, b::Real) = Base.convert(SisoRational, b)
+*{T<:SisoTf}(a::Array{T}, b::Real) = map(x->x*b,a)
+*{T<:SisoTf}(b::Real, a::Array{T}) = map(x->x*b,a)
+/{T<:SisoTf}(a::Array{T}, b::Real) = map(x->x/b,a)
++{T<:SisoTf}(a::Array{T}, b::Real) = map(x->x+b,a)
++{T<:SisoTf}(b::Real, a::Array{T}) = map(x->x+b,a)
+-{T<:SisoTf}(a::Array{T}, b::Real) = map(x->x-b,a)
+-{T<:SisoTf}(b::Real, a::Array{T}) = map(x->x-b,a)
+-{T<:SisoTf}(a::Array{T})          = map(x-> -x,a)
+
+#Operations with different types of Siso functions
+*(a::SisoTf, b::SisoTf)  = *(promote(a,b)...)
++(a::SisoTf, b::SisoTf)  = +(promote(a,b)...)
+-(a::SisoTf, b::SisoTf)  = -(promote(a,b)...)
+.*(a::SisoTf, b::SisoTf) = .*(promote(a,b)...)
+.+(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
+.-(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
 #####################################################################
 ##                      Constructor Functions                      ##
 #####################################################################
@@ -76,10 +103,10 @@ function tf{T<:Vector}(num::VecOrMat{T}, den::VecOrMat{T}, Ts::Real=0; kwargs...
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
-function zpk{T<:Vector,S<:Real}(z::VecOrMat{T}, p::VecOrMat{T}, k::VecOrMat{S}, Ts::Real=0; kwargs...)
+function zpk{T<:Vector}(z::VecOrMat{T}, p::VecOrMat{T}, k::VecOrMat, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(z, 1, 2)
-    if (ny, nu) != size(den, 1, 2) || (ny, nu) != size(k, 1, 2)
+    if (ny, nu) != size(p, 1, 2) || (ny, nu) != size(k, 1, 2)
         error("s, p, and k kdimensions must match")
     end
     matrix = Array(SisoZpk, ny, nu)
@@ -95,18 +122,13 @@ function zpk{T<:Vector,S<:Real}(z::VecOrMat{T}, p::VecOrMat{T}, k::VecOrMat{S}, 
 end
 
 function zpk(tf::TransferFunction)
-    if tf.sisoType == Type{SisoRational}
-        return tf
-    else
-        matrix = Array(SisoZpk, tf.ny, tf.nu)
-        for o=1:tf.ny
-            for i=1:tf.nu
-                matrix[o, i] = convert(SisoZpk, tf.matrix[o, i])
-            end
+    matrix = Array(SisoZpk, tf.ny, tf.nu)
+    for o=1:tf.ny
+        for i=1:tf.nu
+            matrix[o, i] = convert(SisoZpk, tf.matrix[o, i])
         end
-        tf.matrix = matrix
-        tf.sisoType = SisoZpk
     end
+    tf.matrix = matrix
     return tf
 end
 
@@ -114,7 +136,7 @@ tf(num::Vector, den::Vector, args...) =
 tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...)
 
 zpk(z::Vector, p::Vector, k::Real, args...) =
-zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), k, args...)
+zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...)
 
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
@@ -162,7 +184,7 @@ function Base.getindex(t::TransferFunction, inds...)
         error("Must specify 2 indices to index TransferFunction model")
     end
     rows, cols = inds
-    mat = Array(t.sisoType, length(rows), length(cols))
+    mat = Array(typeof(t.matrix), length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
     return TransferFunction(mat, t.Ts, [t.inputnames[cols]], [t.outputnames[rows]])
 end
@@ -278,11 +300,7 @@ function Base.show(io::IO, t::TransferFunction)
             if !issiso(t)
                 println(io, inputs[i], " to ", outputs[o])
             end
-            if t.sisoType == SisoRational
-                  print_sisorational(io, t.matrix[o, i], var)
-            else
-                  print_sisozpk(io, t.matrix[o, i], var)
-            end
+                print_siso(io, t.matrix[o, i], var)
             if !(i == t.nu && o == t.ny)
                 print(io, "\n")
             end

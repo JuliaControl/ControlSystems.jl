@@ -14,7 +14,7 @@ immutable SisoRational <: SisoTf
 end
 SisoRational(num::Vector, den::Vector) = SisoRational(Poly(map(Float64,num)), Poly(map(Float64,den)))
 
-function print_sisorational(io::IO, t::SisoRational, var=:s)
+function print_siso(io::IO, t::SisoRational, var=:s)
     # Convert the numerator and denominator to strings
     numstr = sprint(print_poly, t.num, var)
     denstr = sprint(print_poly, t.den, var)
