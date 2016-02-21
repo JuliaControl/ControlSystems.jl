@@ -35,6 +35,23 @@ function SisoZpk(z::AbstractArray, p::AbstractArray, k::Real)
     SisoZpk(z, p, k)
 end
 
+function minreal(sys::SisoZpk, eps::Real)
+    newZ = copy(sys.z)
+    newP = Vector{Complex{Float64}}()
+    doubles = Vector{Int64}()
+    newZ = copy(sys.z)
+    for (pi, p) in enumerate(sys.p)
+        val, zi = findmin(abs(p-newZ))
+        if val < eps
+            deleteat!(newZ, zi)
+            continue;
+        else
+            push!(newP, p)
+        end
+    end
+    SisoZpk(newZ, newP, sys.k)
+end
+
 function zp2polys(vec)
     polys = Array{Poly{Float64},1}(0)
     polesiLeft = Set(1:length(vec))
@@ -138,7 +155,7 @@ end
 
 -(t::SisoZpk) = SisoZpk(t.z, t.p, -z.k)
 
-*(t1::SisoZpk, t2::SisoZpk) = SisoZpk([t1.z;t2.z], [t1.p;t2.z], t1.k*t2.k)
+*(t1::SisoZpk, t2::SisoZpk) = SisoZpk([t1.z;t2.z], [t1.p;t2.p], t1.k*t2.k)
 *(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k*n)
 *(n::Real, t::SisoZpk) = *(t, n)
 .*(t1::SisoZpk, t2::SisoZpk) = *(t1, t2)

@@ -19,6 +19,7 @@ export  LTISystem,
         obsv,
         # Model Simplification
         sminreal,
+        minreal,
         # Stability Analysis
         pole,
         tzero,

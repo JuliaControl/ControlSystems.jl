@@ -179,8 +179,8 @@ function tf(gain::Array, Ts::Real=0; kwargs...)
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts, kwargs...)
-
-zpk(gain::Array, Ts::Real=0; kwargs...) = zpk(tf(gain, Ts; kwargs...))
+zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k, kwargs...)
+#zpk(gain::Array, Ts::Real=0; kwargs...) = zpk(tf(gain, Ts; kwargs...))
 
 # Function for creation of 's' or 'z' var
 function tf(var::AbstractString)
@@ -224,6 +224,15 @@ function Base.copy(t::TransferFunction)
     return TransferFunction(matrix, t.Ts, inputnames, outputnames)
 end
 
+function minreal(t::TransferFunction, eps::Real=sqrt(eps()))
+    matrix = similar(t.matrix)
+    for o=1:t.ny
+        for i=1:t.nu
+            matrix[o, i] = minreal(t.matrix[o, i], eps)
+        end
+    end
+    return TransferFunction(matrix, t.Ts, copy(t.inputnames), copy(t.outputnames))
+end
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################
