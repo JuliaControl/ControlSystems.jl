@@ -36,7 +36,9 @@ end
 
 Base.promote_rule(::Type{StateSpace}, ::Type{TransferFunction}) = StateSpace
 
-function siso_tf_to_ss(t::SisoTf)
+siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
+
+function siso_tf_to_ss(t::SisoRational)
     t = normalize_tf(t)
     tnum = num(t)
     tden = den(t)
@@ -57,7 +59,7 @@ function siso_tf_to_ss(t::SisoTf)
     return float64mat(a), float64mat(b), float64mat(c), d
 end
 
-function normalize_tf(t::SisoTf)
+function normalize_tf(t::SisoRational)
     d = t.den[1]
     return SisoTf(t.num/d, t.den/d)
 end

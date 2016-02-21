@@ -39,7 +39,7 @@ Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b], [1])
 
 Base.promote_rule(::Type{SisoRational}, ::Type{SisoZpk}) = SisoZpk
 Base.promote_rule(::Type{SisoTf}, ::Type{SisoZpk}) = SisoZpk
-Base.promote_rule(::Type{SisoTf}, ::Type{SisoRational}) = SisoZpk
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoRational}) = SisoRational
 
 function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)

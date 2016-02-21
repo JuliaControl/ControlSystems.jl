@@ -52,6 +52,14 @@ function minreal(sys::SisoZpk, eps::Real)
     SisoZpk(newZ, newP, sys.k)
 end
 
+function Base.num(t::SisoZpk)
+    return copy(t.z)
+end
+
+function Base.den(t::SisoZpk)
+    return copy(t.p)
+end
+
 function zp2polys(vec)
     polys = Array{Poly{Float64},1}(0)
     polesiLeft = Set(1:length(vec))

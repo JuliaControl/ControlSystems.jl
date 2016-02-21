@@ -38,7 +38,7 @@ Returns `true` if the `TransferFunction` is proper. This means that order(den)
 >= order(num))""" ->
 function isproper(t::TransferFunction)
     for s in t.matrix
-        if length(s.num) > length(s.den)
+        if length(num(s)) > length(den(s))
             return false
         end
     end
