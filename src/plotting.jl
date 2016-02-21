@@ -424,8 +424,8 @@ end
 @doc """`gofplot(sys)``
 
 Gang-of-Four plot.""" ->
-function gofplot(P,C)
-    S,T,D,N = gof(P,C)
+function gangoffourplot(P,C)
+    S,T,D,N = gangoffour(P,C)
     bodeplot(S,T,D,N)
     legend("S = \\frac{1}{1+PC}","T = \\frac{PC}{1+PC}","D = \\frac{P}{1+PC}","N = \\frac{C}{1+PC}")
 end

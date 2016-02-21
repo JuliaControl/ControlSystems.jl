@@ -343,22 +343,45 @@ function _findCrossings(w, n, res)
     wcross, tcross
 end
 
-@doc """`S,T,D,N = gof(P,C)`
+@doc """`S,T,D,N = gangoffour(P,C)`
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
-S = 1/(1+P*C) Sensitivity function
-D = P/(1+P*C)
-N = C/(1+P*C)
-T = PC/(1+P*C) Complementary sensitivity function
+S = 1/(1+PC) Sensitivity function
+D = P/(1+PC)
+N = C/(1+PC)
+T = PC/(1+PC) Complementary sensitivity function
 
 Only supports SISO systems""" ->
-function gof(P::TransferFunction,C::TransferFunction)
+function gangoffour(P::TransferFunction,C::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny > 4
-        error("gof only supports SISO systems")
+        error("gangoffour only supports SISO systems")
     end
     S = 1/(1+P*C)
     D = P*S
     N = C*S
     T = P*N
     return S,T,D,N
+end
+
+@doc """`S, T, D, N, RY, RU, RE = gangofseven(P,C,F)`
+
+Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`, computes the four transfer functions in the Gang-of-Four.
+S = 1/(1+PC) Sensitivity function
+D = P/(1+PC)
+N = C/(1+PC)
+T = PC/(1+PC) Complementary sensitivity function
+RY = PCF/(1+PC)
+RU = CF/(1+P*C)
+RE = F/(1+P*C)
+
+Only supports SISO systems""" ->
+function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)
+    if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
+        error("gof only supports SISO systems")
+    end
+    S,T,D,N = gangoffour(P,C)
+    RY = T*F
+    RU = N*F
+    RE = S*F
+    return S, T, D, N, RY, RU, RE
 end
