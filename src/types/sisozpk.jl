@@ -104,7 +104,7 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
         denstr = "$(repeat(" ", div(dashcount - len_den, 2)))$denstr"
     end
 
-    gainstr = @sprintf "%3.2f" t.k
+    gainstr = string(t.k)
     #Add spaces to account for gain string
     numstr = " "^(length(gainstr))*numstr
     denstr = " "^(length(gainstr))*denstr
