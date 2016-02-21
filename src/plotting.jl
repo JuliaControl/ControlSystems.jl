@@ -298,7 +298,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     ny, nu = size(systems[1])
     fig = bodeplot(systems,w)
     fig[:suptitle]("Margin Plot", size=16)
-    
+
     ax = fig[:axes]
     titles = Array(String,nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
@@ -361,3 +361,62 @@ function _default_time_data{T<:LTISystem}(systems::Vector{T})
     return sample_times, Tf
 end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
+
+
+# @doc """`pzmap(sys, args...)`, `pzmap(LTISystem[sys1, sys2...], args...)`
+#
+# Create a pole-zero map of the `LTISystem`(s).""" ->
+# function pzmap(systems::Vector)
+#     ny, nu = size(systems[1])
+#     fig, axes = PyPlot.subplots(ny, nu, sharex="col", sharey="row")
+#     for s = systems
+#         z,p,k = zpkdata(s)
+#         for j=1:nu
+#             for i=1:ny
+#                 axes[i - 1, j][plot](z,"o")
+#                 axes[i - 1, j][plot](p,"x")
+#             end
+#         end
+#     end
+#     # Add labels and titles
+#     fig[:suptitle]("Pole-zero map", size=16)
+#     if ny*nu != 1
+#         for i=1:ny
+#             div(i+1, 2)
+#             axes[i, 1][:set_ylabel]("To: y($(div(i + 1, 2)))",
+#                     size=12, color="0.30")
+#         end
+#         for j=1:nu
+#             axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
+#         end
+#     end
+#     PyPlot.draw()
+#     return fig
+# end
+
+@doc """`pzmap(sys)`, `pzmap(sys)`
+
+Create a pole-zero map of the `LTISystem`(s).""" ->
+function pzmap(system)
+    if system.nu + system.ny > 2
+        warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
+    end
+    fig = PyPlot.figure()
+
+    z,p,k = zpkdata(system)
+    !isempty(z[1]) && PyPlot.plot(real(z[1]),imag(z[1]),"bo",markersize=15., markeredgewidth=3.)
+    !isempty(p[1]) && PyPlot.plot(real(p[1]),imag(p[1]),"bx",markersize=15., markeredgewidth=3.)
+    PyPlot.title("Pole-zero map")
+
+    if system.Ts > 0
+        v = linspace(0,2π,100)
+        S,C = sin(v),cos(v)
+        PyPlot.hold(true)
+        PyPlot.plot(C,S,"--k")
+    else
+        PyPlot.grid(true)
+    end
+
+    PyPlot.draw()
+    return fig
+end
