@@ -56,7 +56,7 @@ function zpkdata(sys::LTISystem)
     return zs, ps, ks
 end
 function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
-    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu], sys.C[iy, :])
+    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu:iu], sys.C[iy:iy, :])
     D = sys.D[iy:iy, iu:iu]
     z = tzero(A, B, C, D)
     nx = size(A, 1)
