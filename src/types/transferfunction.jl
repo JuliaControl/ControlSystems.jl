@@ -210,7 +210,7 @@ function Base.getindex(t::TransferFunction, inds...)
         error("Must specify 2 indices to index TransferFunction model")
     end
     rows, cols = inds
-    mat = Array(typeof(t.matrix).parameters[1], length(rows), length(cols))
+    mat = Array(eltype(t.matrix), length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
     innames = length(cols) > 1 ? collect(t.inputnames[cols]) : [t.inputnames[cols]];
     outnames = length(rows) > 1 ? collect(t.outputnames[rows]) : [t.inputnames[rows]];

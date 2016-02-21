@@ -19,14 +19,14 @@ SisoZpk{T<:RealOrComplex,S<:RealOrComplex}(z::AbstractArray{T}, p::AbstractArray
 # Taking care of empty vectors being of type Any
 function SisoZpk(z::AbstractArray, p::AbstractArray, k::Real)
     if length(z) > 0
-        if !(typeof(z).parameters[1] <: RealOrComplex)
+        if !(eltype(z) <: RealOrComplex)
             error("Zeros must be real or complex")
         end
     else
         z = Array(Float64,0)
     end
     if length(p) > 0
-        if !(typeof(p).parameters[1] <: RealOrComplex)
+        if !(eltype(p) <: RealOrComplex)
             error("poles must be real or complex")
         end
     else
