@@ -242,7 +242,7 @@ function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMa
         for val in vals
             eval(:($val = Array{Float64,2}($ny,$nu)))
         end
-    end   
+    end
     for j=1:nu
         for i=1:ny
             wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w, full=true, allMargins=allMargins)
@@ -341,4 +341,24 @@ function _findCrossings(w, n, res)
         tcross = [tcross; length(w)]
     end
     wcross, tcross
+end
+
+@doc """`S,T,D,N = gof(P,C)`
+
+Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+S = 1/(1+P*C) Sensitivity function
+D = P/(1+P*C)
+N = C/(1+P*C)
+T = PC/(1+P*C) Complementary sensitivity function
+
+Only supports SISO systems""" ->
+function gof(P::TransferFunction,C::TransferFunction)
+    if P.nu + P.ny + C.nu + C.ny > 4
+        error("gof only supports SISO systems")
+    end
+    S = 1/(1+P*C)
+    D = P*S
+    N = C*S
+    T = P*N
+    return S,T,D,N
 end

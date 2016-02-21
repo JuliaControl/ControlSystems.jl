@@ -394,7 +394,7 @@ _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 #     return fig
 # end
 
-@doc """`pzmap(sys)`, `pzmap(sys)`
+@doc """`pzmap(sys)``
 
 Create a pole-zero map of the `LTISystem`(s).""" ->
 function pzmap(system)
@@ -419,4 +419,13 @@ function pzmap(system)
 
     PyPlot.draw()
     return fig
+end
+
+@doc """`gofplot(sys)``
+
+Gang-of-Four plot.""" ->
+function gofplot(P,C)
+    S,T,D,N = gof(P,C)
+    bodeplot(S,T,D,N)
+    legend("S = \\frac{1}{1+PC}","T = \\frac{PC}{1+PC}","D = \\frac{P}{1+PC}","N = \\frac{C}{1+PC}")
 end
