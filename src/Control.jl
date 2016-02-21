@@ -46,6 +46,7 @@ export  LTISystem,
         nyquist,
         sigma
 
+using PyCall
 using PyPlot
 
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*)
