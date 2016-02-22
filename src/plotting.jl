@@ -1,5 +1,5 @@
 import PyPlot
-export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale
+export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven
 
 _PlotScale = "dB"
 _PlotScaleFunc = :semilogx
