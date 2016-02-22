@@ -38,3 +38,38 @@ function dlqr(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
 end
+
+@doc """`place(A, B, p)`, `place(sys::StateSpace, p)`
+
+Calculate gain matrix `K` such that
+the poles of `(A-BK)` in are in `p`""" ->
+function place(A, B, p)
+    n = length(p)
+    n != size(A,1) && error("Must define as many poles as states")
+    n != size(B,1) && error("A and B must have same number of rows")
+    if size(B,2) == 1
+        acker(A,B,p)
+    else
+        error("place only implemented for SISO systems")
+    end
+end
+
+function place(sys::StateSpace, p)
+    return place(sys.A, sys.B, p)
+end
+
+#Implements Ackermann's formula for placing poles of (A-BK) in p
+function acker(A,B,p)
+  n = length(p)
+  #Calculate characteristic polynomial
+  poly = reduce(*,Poly([1]),[Poly([1, -pi]) for pi in p])
+  q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
+  for i = n:-1:0
+      q += A^(n-i)*poly[i+1]
+  end
+  S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
+  for i = 0:(n-1)
+      S[:,i+1] = A^i*B
+  end
+  return [zeros(1,n-1) 1]*(S\q)
+end

@@ -17,6 +17,7 @@ export  LTISystem,
         gram,
         ctrb,
         obsv,
+        place,
         # Model Simplification
         sminreal,
         minreal,
