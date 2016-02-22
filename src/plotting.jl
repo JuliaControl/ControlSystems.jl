@@ -160,7 +160,9 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
                 end
                 phasedata = vec(phase[i, j, :])
                 axes[2*i - 1, j][_PlotScaleFunc](w, magdata)
+                axes[2*i - 1, j][:grid](true, which="both")
                 axes[2*i, j][:semilogx](w, phasedata)
+                axes[2*i, j][:grid](true, which="both")
             end
         end
     end
@@ -426,6 +428,7 @@ end
 Gang-of-Four plot.""" ->
 function gangoffourplot(P::LTISystem,C::LTISystem)
     S,T,D,N = gangoffour(P,C)
-    bodeplot([S,T,D,N])
-    legend("S = \\frac{1}{1+PC}","T = \\frac{PC}{1+PC}","D = \\frac{P}{1+PC}","N = \\frac{C}{1+PC}")
+    fig = bodeplot([S T;D N])
+    legend("S = \$\\frac{1}{1+PC}\$","T = \$\\frac{PC}{1+PC}\$","D = \$\\frac{P}{1+PC}\$","N = \$\\frac{C}{1+PC}\$")
+    return fig
 end
