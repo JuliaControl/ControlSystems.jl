@@ -397,7 +397,7 @@ _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 @doc """`pzmap(sys)``
 
 Create a pole-zero map of the `LTISystem`(s).""" ->
-function pzmap(system)
+function pzmap(system::LTISystem)
     if system.nu + system.ny > 2
         warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
@@ -424,8 +424,8 @@ end
 @doc """`gofplot(sys)``
 
 Gang-of-Four plot.""" ->
-function gangoffourplot(P,C)
+function gangoffourplot(P::LTISystem,C::LTISystem)
     S,T,D,N = gangoffour(P,C)
-    bodeplot(S,T,D,N)
+    bodeplot([S,T,D,N])
     legend("S = \\frac{1}{1+PC}","T = \\frac{PC}{1+PC}","D = \\frac{P}{1+PC}","N = \\frac{C}{1+PC}")
 end
