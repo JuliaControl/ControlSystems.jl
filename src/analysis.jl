@@ -17,7 +17,7 @@ end
 function gain(sys::TransferFunction)
     !issiso(sys) && error("Gain only defined for siso systems")
     s = sys.matrix[1, 1]
-    return s.num[1]/s.den[1]
+    return s.num[end]/s.den[end]
 end
 
 @doc """`markovparam(sys, n)`
