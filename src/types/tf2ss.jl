@@ -106,8 +106,9 @@ function ss2tf(s::StateSpace)
 end
 
 function ss2tf(A, B, C, Ts = 0, inames = "", onames = "")
-    numP = charpoly(A-B*C) - charpoly(A)
-    denP = charpoly(A)
+    charpolA = charpoly(A)
+    numP = charpoly(A-B*C) - charpolA
+    denP = charpolA
     return tf(numP[1:length(numP)], denP[1:length(denP)], Ts, inputnames=inames, outputnames=onames)
 end
 
