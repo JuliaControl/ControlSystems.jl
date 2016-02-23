@@ -6,7 +6,7 @@ pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = roots(sys.den)
 
 @doc """`gain(sys)`
-
+TODO Check if this is correct gain
 Compute the gain of SISO system `sys`.""" ->
 function gain(sys::StateSpace, zs::Vector=tzero(sys))
     !issiso(sys) && error("Gain only defined for siso systems")
@@ -14,7 +14,8 @@ function gain(sys::StateSpace, zs::Vector=tzero(sys))
     nz = length(zs)
     return nz == nx ? sys.D[1] : (sys.C*(sys.A^(nx - nz - 1))*sys.B)[1]
 end
-function gain(sys::TransferFunction)
+
+function dcgain(sys::TransferFunction)
     !issiso(sys) && error("Gain only defined for siso systems")
     s = sys.matrix[1, 1]
     return s.num[end]/s.den[end]

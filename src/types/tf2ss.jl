@@ -100,3 +100,18 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     T[pvec, :] = Sio * diagm(1./Sx)
     return T
 end
+
+function ss2tf(s::StateSpace)
+    return ss2tf(s.A, s.B, s.C, s.Ts, s.inputnames, s.outputnames)
+end
+
+function ss2tf(A, B, C, Ts = 0, inames = "", onames = "")
+    numP = charpoly(A-B*C) - charpoly(A)
+    denP = charpoly(A)
+    return tf(numP[1:length(numP)], denP[1:length(denP)], Ts, inputnames=inames, outputnames=onames)
+end
+
+function charpoly(A)
+    λ = eigvals(A);
+    p = reduce(*,Control.Poly([1.]), Control.Poly[Control.Poly([1, -λᵢ]) for λᵢ in λ])
+end

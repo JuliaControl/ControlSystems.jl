@@ -96,7 +96,7 @@ Base.zero(t::SisoTf) = zero(SisoRational)
 ##                      Constructor Functions                      ##
 #####################################################################
 
-function tf{T<:Vector}(num::VecOrMat{T}, den::VecOrMat{T}, Ts::Real=0; kwargs...)
+function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
     if (ny, nu) != size(den, 1, 2)
@@ -114,7 +114,7 @@ function tf{T<:Vector}(num::VecOrMat{T}, den::VecOrMat{T}, Ts::Real=0; kwargs...
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
-function zpk{T<:Vector}(z::VecOrMat{T}, p::VecOrMat{T}, k::VecOrMat, Ts::Real=0; kwargs...)
+function zpk{T<:Vector,S<:Vector}(z::VecOrMat{T}, p::VecOrMat{S}, k::VecOrMat, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(z, 1, 2)
     if (ny, nu) != size(p, 1, 2) || (ny, nu) != size(k, 1, 2)
@@ -156,13 +156,13 @@ function tf(tf::TransferFunction)
     return tf
 end
 
-tf(num::Vector, den::Vector, args...) =
-tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...)
+tf(num::Vector, den::Vector, args...; kwargs...) =
+tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...; kwargs...)
 
-tf(num::Real, den::Vector, args...) = tf([num], den, args...)
+tf(num::Real, den::Vector, args...; kwargs...) = tf([num], den, args...; kwargs...)
 
-zpk(z::Vector, p::Vector, k::Real, args...) =
-zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...)
+zpk(z::Vector, p::Vector, k::Real, args...; kwargs...) =
+zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...; kwargs...)
 
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
@@ -178,8 +178,8 @@ function tf(gain::Array, Ts::Real=0; kwargs...)
     outputnames = validate_names(kvs, :outputnames, ny)
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
-tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts, kwargs...)
-zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k, kwargs...)
+tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts; kwargs...)
+zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k; kwargs...)
 #zpk(gain::Array, Ts::Real=0; kwargs...) = zpk(tf(gain, Ts; kwargs...))
 
 # Function for creation of 's' or 'z' var
