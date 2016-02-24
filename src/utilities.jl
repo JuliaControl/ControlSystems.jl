@@ -35,7 +35,7 @@ end
 @doc """`isproper(tf)`
 
 Returns `true` if the `TransferFunction` is proper. This means that order(den)
->= order(num))""" ->
+\>= order(num))""" ->
 function isproper(t::TransferFunction)
     for s in t.matrix
         if length(num(s)) > length(den(s))

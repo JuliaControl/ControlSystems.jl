@@ -79,6 +79,20 @@ function evalfr(sys::SisoRational, s::Number)
     end
 end
 
+function Base.call(sys::TransferFunction, s)
+    evalfr(sys,s)
+end
+
+function Base.call(sys::TransferFunction, s::Number, map_to_unit_circle::Bool)
+    @assert !Control.iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    evalfr(sys,exp(im*s.*sys.Ts))
+end
+
+function Base.call(sys::TransferFunction, s::AbstractVector, map_to_unit_circle::Bool)
+    @assert !Control.iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    freqresp(sys,s)
+end
+
 @doc """`mag, phase, w = bode(sys[, w])`
 
 Compute the magnitude and phase parts of the frequency response of system `sys`

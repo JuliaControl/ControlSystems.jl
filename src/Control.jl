@@ -52,8 +52,9 @@ export  LTISystem,
 
 using PyCall
 using PyPlot
+import Plots
 
-import Base: +, -, *, /, (./), (==), (.+), (.-), (.*)
+import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), call
 
 include("types/lti.jl")
 include("types/transferfunction.jl")
@@ -70,6 +71,7 @@ include("timeresp.jl")
 include("freqresp.jl")
 include("utilities.jl")
 include("plotting.jl")
+include("pid_design.jl")
 
 # The path has to be evaluated upon initial import
 const __CONTROL_SOURCE_DIR__ = dirname(Base.source_path())

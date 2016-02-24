@@ -71,7 +71,7 @@ function zp2polys(vec)
             polesiLeftVec = [i for i in polesiLeft]
             polesTest = Complex128[vec[polesiLeftVec]...]
             val, i = findmin(abs(polesTest-conj(p)))
-            val > sqrt(eps()) && error("Could not find conjugate to pole")
+            val > 2*sqrt(eps()) && error("Could not find conjugate to pole")
             push!(polys,Poly(float([1, -2*real(p), real(p)^2+imag(p)^2])))
             pop!(polesiLeft,polesiLeftVec[i])
         end
