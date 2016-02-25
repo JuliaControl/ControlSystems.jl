@@ -32,6 +32,7 @@ export  LTISystem,
         dampreport,
         markovparam,
         margin,
+        gangoffour,
         # Connections
         append,
         series,

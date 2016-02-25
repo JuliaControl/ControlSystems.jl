@@ -1,5 +1,5 @@
 import PyPlot
-export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven
+export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffourplot, gangofseven, pzmap
 
 _PlotScale = "dB"
 _PlotScaleFunc = :semilogx
@@ -197,7 +197,7 @@ args...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
+function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotNeg = true)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -215,8 +215,12 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
                 line = axes[i, j][:plot](redata, imdata)[1]
                 color = line[:get_color]()
                 # Plot the mirror
-                ax = axes[i, j]
-                ax[:plot](redata, -imdata, color=color)
+                if plotNeg
+                  ax = axes[i, j]
+                  ax[:plot](redata, -imdata, color=color)
+                end
+                #Plot the cross at -1
+                axes[i, j][:plot]([-1],[0],"x", markersize=10)
                 # Add arrows at the midpoint
                 mp = div(nw, 2)
                 ax[:arrow](redata[mp], imdata[mp], redata[mp + 1] - redata[mp],
@@ -253,9 +257,9 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-nyquistplot{T<:LTISystem}(systems::Vector{T}) =
-    nyquistplot(systems, _default_freq_vector(systems, :nyquist))
-nyquistplot(sys::LTISystem, args...) = nyquistplot(LTISystem[sys], args...)
+nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+    nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
+nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot(LTISystem[sys], args...; kwargs...)
 
 @doc """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...],
 args...)`
@@ -423,12 +427,20 @@ function pzmap(system::LTISystem)
     return fig
 end
 
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)
+    S,T,D,N = gangoffour(P,C)
+    fig = bodeplot(LTISystem[[S[i] T[i];D[i] N[i]] for i = 1:length(C)])
+    #legend("S = \$\\frac{1}{1+PC}\$","T = \$\\frac{PC}{1+PC}\$","D = \$\\frac{P}{1+PC}\$","N = \$\\frac{C}{1+PC}\$")
+    return fig
+end
+
+
 @doc """`gofplot(sys)``
 
 Gang-of-Four plot.""" ->
 function gangoffourplot(P::LTISystem,C::LTISystem)
     S,T,D,N = gangoffour(P,C)
     fig = bodeplot([S T;D N])
-    legend("S = \$\\frac{1}{1+PC}\$","T = \$\\frac{PC}{1+PC}\$","D = \$\\frac{P}{1+PC}\$","N = \$\\frac{C}{1+PC}\$")
+    #legend("S = \$\\frac{1}{1+PC}\$","T = \$\\frac{PC}{1+PC}\$","D = \$\\frac{P}{1+PC}\$","N = \$\\frac{C}{1+PC}\$")
     return fig
 end

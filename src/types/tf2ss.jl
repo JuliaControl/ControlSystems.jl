@@ -114,5 +114,13 @@ end
 
 function charpoly(A)
     λ = eigvals(A);
-    p = reduce(*,Control.Poly([1.]), Control.Poly[Control.Poly([1, -λᵢ]) for λᵢ in λ])
+    p = reduce(*,Control.Poly([1.]), Control.Poly[Control.Poly([1, -λᵢ]) for λᵢ in λ]);
+    if maximum(imag(p[:])) < sqrt(eps())
+        for i = 1:length(p)
+            p[i] = real(p[i])
+        end
+    else
+        error("Characteristic polynomial should be real")
+    end
+    p
 end

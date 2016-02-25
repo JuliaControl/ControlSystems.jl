@@ -344,7 +344,7 @@ function _findCrossings(w, n, res)
     wcross, tcross
 end
 
-@doc """`S,T,D,N = gangoffour(P,C)`
+@doc """`S,T,D,N = gangoffour(P,C), gangoffour(P::AbstractVector,C::AbstractVector)`
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 S = 1/(1+PC) Sensitivity function
@@ -353,7 +353,7 @@ N = C/(1+PC)
 T = PC/(1+PC) Complementary sensitivity function
 
 Only supports SISO systems""" ->
-function gangoffour(P::TransferFunction,C::TransferFunction)
+function gangoffour(P::TransferFunction, C::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
     end
@@ -362,6 +362,23 @@ function gangoffour(P::TransferFunction,C::TransferFunction)
     N = C*S
     T = P*N
     return S,T,D,N
+end
+
+function gangoffour(P::AbstractVector, C::AbstractVector)
+    if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
+        error("gangoffour only supports SISO systems")
+    end
+    length(P) == length(C) || error("P has to be the same length as C")
+    n = length(P)
+    S = [1/(1+P[i]*C[i]) for i in 1:n]
+    D = [P[i]*S[i] for i in 1:n]
+    N = [C[i]*S[i] for i in 1:n]
+    T = [P[i]*N[i] for i in 1:n]
+    return S,T,D,N
+end
+
+function gangoffour(P::TransferFunction, C::AbstractVector)
+    gangoffour(LTISystem[P for i = 1:length(C)], C)
 end
 
 @doc """`S, T, D, N, RY, RU, RE = gangofseven(P,C,F)`
