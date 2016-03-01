@@ -8,11 +8,9 @@ pole(sys::SisoTf) = roots(sys.den)
 @doc """`gain(sys)`
 TODO Check if this is correct gain
 Compute the gain of SISO system `sys`.""" ->
-function gain(sys::StateSpace, zs::Vector=tzero(sys))
+function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
     !issiso(sys) && error("Gain only defined for siso systems")
-    nx = sys.nx
-    nz = length(zs)
-    return nz == nx ? sys.D[1] : (sys.C*(sys.A^(nx - nz - 1))*sys.B)[1]
+    return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
 end
 
 function dcgain(sys::TransferFunction)
