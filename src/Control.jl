@@ -5,6 +5,8 @@ export  LTISystem,
         TransferFunction,
         ss,
         tf,
+        zpk,
+        ss2tf,
         # Linear Algebra
         care,
         dare,
@@ -16,16 +18,21 @@ export  LTISystem,
         gram,
         ctrb,
         obsv,
+        place,
         # Model Simplification
         sminreal,
+        minreal,
         # Stability Analysis
         pole,
         tzero,
         gain,
+        dcgain,
         zpkdata,
         damp,
         dampreport,
         markovparam,
+        margin,
+        gangoffour,
         # Connections
         append,
         series,
@@ -43,7 +50,8 @@ export  LTISystem,
         nyquist,
         sigma
 
-using Requires
+using PyCall
+using PyPlot
 
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*)
 
@@ -61,9 +69,9 @@ include("analysis.jl")
 include("timeresp.jl")
 include("freqresp.jl")
 include("utilities.jl")
+include("plotting.jl")
 
 # The path has to be evaluated upon initial import
 const __CONTROL_SOURCE_DIR__ = dirname(Base.source_path())
-@require PyPlot include(joinpath(__CONTROL_SOURCE_DIR__, "plotting.jl"))
 
 end

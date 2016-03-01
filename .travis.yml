@@ -1,14 +1,10 @@
-language: cpp
-compiler:
-    - clang
+language: julia
+julia:
+  - 0.4
 notifications:
     email: false
-before_install:
-    - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-    - sudo add-apt-repository ppa:staticfloat/julianightlies -y
-    - sudo apt-get update -qq -y
-    - sudo apt-get install libpcre3-dev julia -y
 script:
     - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir())/Control`); Pkg.resolve()'
+    - julia -e 'ENV["PYTHON"]=""; Pkg.build("PyCall")'
     - julia -e 'using Control; @assert isdefined(:Control); @assert typeof(Control) === Module'
     - julia --color=yes test/runtests.jl

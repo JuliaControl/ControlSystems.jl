@@ -9,8 +9,7 @@ Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """ ->
-function care{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
-            Q::StridedMatrix{T}, R::StridedMatrix{T})
+function care(A, B, Q, R)
     G = try
         B*inv(R)*B'
     catch
@@ -21,7 +20,7 @@ function care{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
         -Q  -A']
 
     S = schurfact(Z)
-    S = ordschur(S, S.values.<0)
+    S = ordschur(S, real(S.values).<0)
     U = S.Z
 
     (m, n) = size(U)
@@ -29,8 +28,6 @@ function care{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
     U21 = U[div(m,2)+1:m, 1:div(n,2)]
     return U21/U11
 end
-care{T<:Integer}(A::StridedMatrix{T}, B::StridedMatrix{T}, Q::StridedMatrix{T},
-        R::StridedMatrix{T}) = care(float(A), float(B), float(Q), float(R))
 
 @doc """`dare(A, B, Q, R)`
 
@@ -42,8 +39,7 @@ Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """ ->
-function dare{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
-            Q::StridedMatrix{T}, R::StridedMatrix{T})
+function dare(A, B, Q, R)
     G = try
         B*inv(R)*B'
     catch
@@ -60,7 +56,7 @@ function dare{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
          -Ait*Q        Ait]
 
     S = schurfact(Z)
-    S = ordschur(S, S.values.*S.values.<=1)
+    S = ordschur(S, abs(S.values).<=1)
     U = S.Z
 
     (m, n) = size(U)
@@ -68,22 +64,18 @@ function dare{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
     U21 = U[div(m,2)+1:m, 1:div(n,2)]
     return U21/U11
 end
-dare{T<:Integer}(A::StridedMatrix{T}, B::StridedMatrix{T}, Q::StridedMatrix{T},
-        R::StridedMatrix{T}) = dare(float(A), float(B), float(Q), float(R))
 
 @doc """`dlyap(A, Q)`
 
 Compute the solution "X" to the discrete Lyapunov equation
 "AXA' - X + Q = 0".
 """
-function dlyap{T<:BlasFloat}(A::StridedMatrix{T}, Q::StridedMatrix{T})
+function dlyap(A, Q)
     lhs = kron(A, conj(A))
     lhs = eye(size(lhs, 1)) - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
     return reshape(x, size(Q))
 end
-dlyap{T<:Integer}(A::StridedMatrix{T}, Q::StridedMatrix{T}) =
-        dlyap(float(A), float(Q))
 
 @doc """`gram(sys, opt)`
 
@@ -112,7 +104,7 @@ Compute the observability matrix for the system described by `(A, C)` or `sys`.
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
 `gram(sys, :o)` is positive definite.""" ->
-function obsv{T<:BlasFloat}(A::StridedMatrix{T}, C::StridedMatrix{T})
+function obsv(A, C)
     n = size(A, 1)
     ny = size(C, 1)
     if n != size(C, 2)
@@ -135,7 +127,7 @@ Compute the controllability matrix for the system described by `(A, B)` or
 Note that checking for controllability by computing the rank from
 `obsv` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite.""" ->
-function ctrb{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T})
+function ctrb(A, B)
     n = size(A, 1)
     nu = size(B, 2)
     if n != size(B, 1)
@@ -186,7 +178,7 @@ end
 Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale, and not permute `A`.""" ->
-function balance{T<:BlasFloat}(A::StridedMatrix{T}, perm::Bool=true)
+function balance(A, perm::Bool=true)
     n = Base.LinAlg.chksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'

@@ -36,7 +36,9 @@ end
 
 Base.promote_rule(::Type{StateSpace}, ::Type{TransferFunction}) = StateSpace
 
-function siso_tf_to_ss(t::SisoTf)
+siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
+
+function siso_tf_to_ss(t::SisoRational)
     t = normalize_tf(t)
     tnum = num(t)
     tden = den(t)
@@ -57,7 +59,7 @@ function siso_tf_to_ss(t::SisoTf)
     return float64mat(a), float64mat(b), float64mat(c), d
 end
 
-function normalize_tf(t::SisoTf)
+function normalize_tf(t::SisoRational)
     d = t.den[1]
     return SisoTf(t.num/d, t.den/d)
 end
@@ -97,4 +99,28 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     T = zeros(R, nx, nx)
     T[pvec, :] = Sio * diagm(1./Sx)
     return T
+end
+
+function ss2tf(s::StateSpace)
+    return ss2tf(s.A, s.B, s.C, s.Ts, s.inputnames, s.outputnames)
+end
+
+function ss2tf(A, B, C, Ts = 0, inames = "", onames = "")
+    charpolA = charpoly(A)
+    numP = charpoly(A-B*C) - charpolA
+    denP = charpolA
+    return tf(numP[1:length(numP)], denP[1:length(denP)], Ts, inputnames=inames, outputnames=onames)
+end
+
+function charpoly(A)
+    λ = eigvals(A);
+    p = reduce(*,Control.Poly([1.]), Control.Poly[Control.Poly([1, -λᵢ]) for λᵢ in λ]);
+    if maximum(imag(p[:])) < sqrt(eps())
+        for i = 1:length(p)
+            p[i] = real(p[i])
+        end
+    else
+        error("Characteristic polynomial should be real")
+    end
+    p
 end

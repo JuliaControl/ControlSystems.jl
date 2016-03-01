@@ -102,7 +102,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
-lsim(sys::LTISystem, args...) = lsim(ss(sys), args...)
+lsim(sys::TransferFunction, u, t, args...) = lsim(ss(sys), u, t, args...)
 
 
 @doc """`ltitr(A, B, u[, x0])`
@@ -152,7 +152,7 @@ function _default_Ts(sys::LTISystem)
 end
 
 # Determine if a signal is "smooth"
-function _issmooth(u::Array, thresh::FloatingPoint=0.75)
+function _issmooth(u, thresh::AbstractFloat=0.75)
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
     range = maximum(u) - minimum(u)
     du = abs(diff(u))

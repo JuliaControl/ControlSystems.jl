@@ -6,18 +6,17 @@ pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = roots(sys.den)
 
 @doc """`gain(sys)`
-
+TODO Check if this is correct gain
 Compute the gain of SISO system `sys`.""" ->
-function gain(sys::StateSpace, zs::Vector=tzero(sys))
+function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
     !issiso(sys) && error("Gain only defined for siso systems")
-    nx = sys.nx
-    nz = length(zs)
-    return nz == nx ? sys.D[1] : (sys.C*(sys.A^(nx - nz - 1))*sys.B)[1]
+    return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
 end
-function gain(sys::TransferFunction)
+
+function dcgain(sys::TransferFunction)
     !issiso(sys) && error("Gain only defined for siso systems")
     s = sys.matrix[1, 1]
-    return s.num[1]/s.den[1]
+    return s.num[end]/s.den[end]
 end
 
 @doc """`markovparam(sys, n)`
@@ -56,7 +55,7 @@ function zpkdata(sys::LTISystem)
     return zs, ps, ks
 end
 function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
-    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu], sys.C[iy, :])
+    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu:iu], sys.C[iy:iy, :])
     D = sys.D[iy:iy, iu:iu]
     z = tzero(A, B, C, D)
     nx = size(A, 1)
@@ -66,7 +65,15 @@ function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
 end
 function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
     s = sys.matrix[iy, iu]
-    return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+    return _zpk_kern(s)
+end
+
+function _zpk_kern(s::SisoRational)
+  return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+end
+
+function _zpk_kern(s::SisoZpk)
+  return s.z, s.p, s.k
 end
 
 @doc """`Wn, zeta, ps = damp(sys)`
@@ -221,4 +228,176 @@ function fastrank(A::Matrix{Float64}, meps::Float64)
     end
     mrank = sum(norms .> meps)
     return mrank
+end
+
+function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
+    ny, nu = size(sys)
+    vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
+    if allMargins
+        for val in vals
+            eval(:($val = Array{Array{Float64,1}}($ny,$nu)))
+        end
+    else
+        for val in vals
+            eval(:($val = Array{Float64,2}($ny,$nu)))
+        end
+    end
+    for j=1:nu
+        for i=1:ny
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w, full=true, allMargins=allMargins)
+        end
+    end
+    if full
+        print(fullPhase)
+        wgm, gm, wpm, pm, fullPhase
+    else
+        wgm, gm, wpm, pm
+    end
+end
+
+function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
+    ny, nu = size(sys)
+    if ny !=1 || nu != 1
+        error("System must be SISO, use `margin` instead")
+    end
+    mag, phase, w = bode(sys, w)
+    wgm, = _allPhaseCrossings(w, phase)
+    gm = similar(wgm)
+    for i = 1:length(wgm)
+        gm[i] = 1./abs(evalfr(sys,im*wgm[i])[1])
+    end
+    wpm, fi = _allGainCrossings(w, mag)
+    pm = similar(wpm)
+    for i = 1:length(wpm)
+        pm[i] = mod(rad2deg(angle(evalfr(sys,im*wpm[i])[1])),360)-180
+    end
+    if !allMargins #Only output the smallest margins
+        gm, idx = findmin([gm;Inf])
+        wgm = [wgm;NaN][idx]
+        fi = [fi;NaN][idx]
+        pm, idx = findmin([abs(pm);Inf])
+        wpm = [wpm;NaN][idx]
+        if full
+            if !isnan(fi) #fi may be NaN, fullPhase is a scalar
+                fullPhase = interpolate(fi, phase)
+            else
+                fullPhase = NaN
+            end
+        end
+    else
+        if full #We know that all values are defined and fullPhase is a vector
+            fullPhase = interpolate(fi, phase)
+        end
+    end
+    if full
+        wgm, gm, wpm, pm, fullPhase
+    else
+        wgm, gm, wpm, pm
+    end
+end
+margin(system::LTISystem; kwargs...) =
+    margin(system, _default_freq_vector(system, :bode); kwargs...)
+#margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
+
+# Interpolate the values in "list" given the floating point "index" fi
+function interpolate(fi, list)
+    fif = floor(Integer, fi)
+    fic = ceil(Integer, fi)
+    list[fif]+mod(fi,1).*(list[fic]-list[fif])
+end
+
+function _allGainCrossings(w, mag)
+    _findCrossings(w,mag.>1,mag-1)
+end
+
+function _allPhaseCrossings(w, phase)
+    #Calculate numer of times real axis is crossed on negative side
+    n =  Array{Float64,1}(length(w)) #Nbr of crossed
+    ph = Array{Float64,1}(length(w)) #Residual
+    for i = 1:length(w) #Found no easier way to do this
+        n[i], ph[i] = fldmod(phase[i]+180,360)#+180
+    end
+    _findCrossings(w, n, ph)
+end
+
+function _findCrossings(w, n, res)
+      wcross = Array{Float64,1}()
+      tcross = Array{Float64,1}()
+      for i in 1:(length(w)-1)
+        if res[i] == 0
+            wcross = [wcross; w[i]]
+            tcross = [tcross; i]
+        elseif n[i] != n[i+1]
+            #Interpolate to approximate crossing
+            t = res[i]/(res[i]-res[i+1])
+            tcross = [tcross; i+t]
+            wt = w[i]+t*(w[i+1]-w[i])
+            wcross = [wcross; wt]
+        end
+    end
+    if res[end] == 0 #Special case if multiple points
+        wcross = [wcross; w[end]]
+        tcross = [tcross; length(w)]
+    end
+    wcross, tcross
+end
+
+@doc """`S,T,D,N = gangoffour(P,C), gangoffour(P::AbstractVector,C::AbstractVector)`
+
+Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+S = 1/(1+PC) Sensitivity function
+D = P/(1+PC)
+N = C/(1+PC)
+T = PC/(1+PC) Complementary sensitivity function
+
+Only supports SISO systems""" ->
+function gangoffour(P::TransferFunction, C::TransferFunction)
+    if P.nu + P.ny + C.nu + C.ny > 4
+        error("gangoffour only supports SISO systems")
+    end
+    S = 1/(1+P*C)
+    D = P*S
+    N = C*S
+    T = P*N
+    return S,T,D,N
+end
+
+function gangoffour(P::AbstractVector, C::AbstractVector)
+    if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
+        error("gangoffour only supports SISO systems")
+    end
+    length(P) == length(C) || error("P has to be the same length as C")
+    n = length(P)
+    S = [1/(1+P[i]*C[i]) for i in 1:n]
+    D = [P[i]*S[i] for i in 1:n]
+    N = [C[i]*S[i] for i in 1:n]
+    T = [P[i]*N[i] for i in 1:n]
+    return S,T,D,N
+end
+
+function gangoffour(P::TransferFunction, C::AbstractVector)
+    gangoffour(LTISystem[P for i = 1:length(C)], C)
+end
+
+@doc """`S, T, D, N, RY, RU, RE = gangofseven(P,C,F)`
+
+Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`, computes the four transfer functions in the Gang-of-Four.
+S = 1/(1+PC) Sensitivity function
+D = P/(1+PC)
+N = C/(1+PC)
+T = PC/(1+PC) Complementary sensitivity function
+RY = PCF/(1+PC)
+RU = CF/(1+P*C)
+RE = F/(1+P*C)
+
+Only supports SISO systems""" ->
+function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)
+    if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
+        error("gof only supports SISO systems")
+    end
+    S,T,D,N = gangoffour(P,C)
+    RY = T*F
+    RU = N*F
+    RE = S*F
+    return S, T, D, N, RY, RU, RE
 end

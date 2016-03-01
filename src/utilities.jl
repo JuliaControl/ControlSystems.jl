@@ -38,7 +38,7 @@ Returns `true` if the `TransferFunction` is proper. This means that order(den)
 >= order(num))""" ->
 function isproper(t::TransferFunction)
     for s in t.matrix
-        if length(s.num) > length(s.den)
+        if length(num(s)) > length(den(s))
             return false
         end
     end
@@ -54,6 +54,7 @@ function float64mat(A::Vector)
 end
 float64mat(A::Matrix) = map(Float64,A)
 float64mat(A::Matrix{Float64}) = A
+float64mat(A::Real) = float64mat([A])
 
 # Ensures the metadata for an LTISystem is valid
 function validate_names(kwargs, key, n)
@@ -70,7 +71,7 @@ function validate_names(kwargs, key, n)
 end
 
 # Format the metadata for printing
-function format_names(names::Vector{UTF8String}, default::String, unknown::String)
+function format_names(names::Vector{UTF8String}, default::AbstractString, unknown::AbstractString)
     n = size(names, 1)
     if all(names .== "")
         return UTF8String[default * string(i) for i=1:n]

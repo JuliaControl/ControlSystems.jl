@@ -3,14 +3,22 @@ using CustomTest
 using Control
 # Naming convention:
 # ------------------
-# {type}_{dims}[_d]
+# {type}[S]_{dims}[_d]
 # type: C: Continuous, D: Discrete
+# scalar: add "S" if any input is scalar
 # dims: "nxnuny"
 # feedthrough: append "_d" if `D` is present
 
+# SCALARS
+a_2 = [-5 -3; 2 -9]
+CS_111 = ss(-5, 2, 3, [0])
+CS_111_d = ss([3], 2, 1, 1)
+CS_211 = ss(a_2, [1; 2], [1 0], 0)
+CS_221 = ss(a_2, [1 0; 0 2], [1 0], 0)
+CS_222 = ss(a_2, [1 0; 0 2], eye(2), 0)
+
 # CONTINUOUS
 a_1 = [-5]
-a_2 = [-5 -3; 2 -9]
 C_111 = ss(a_1, [2], [3], [0])
 C_211 = ss(a_2, [1; 2], [1 0], [0])
 C_212 = ss(a_2, [1; 2], eye(2), [0; 0])
@@ -30,6 +38,13 @@ D_222_d = ss(da_2, [1 0; 0 2], eye(2), eye(2), 0.005)
 D_022 = ss(4*eye(2), 0.005)
 
 # TESTS
+# Contstuct with scalars
+@test CS_111 == C_111
+@test CS_111_d == ss([3],[2],[1],[1])
+@test CS_211 == C_211
+@test CS_221 == C_221
+@test CS_222 == C_222
+
 # Addition
 @test C_111 + C_111 == ss([-5 0; 0 -5],[2; 2],[3 3],[0])
 @test C_222 + C_222 == ss([-5 -3 0 0; 2 -9 0 0; 0 0 -5 -3;
@@ -102,4 +117,5 @@ D_diffTs = ss([1], [2], [3], [4], 0.1)
 @test_err ss([1], [2 0], [1], [2])      # I/0 dim mismatch
 @test_err ss([1], [2], [3 4], [1])      # I/0 dim mismatch
 @test_err ss([1], [2], [3], [4], -0.1)  # Negative samping time
+@test_err ss(eye(2), eye(2), eye(2), [0]) # Dimension mismatch
 end
