@@ -1,4 +1,4 @@
-export rstd, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, lsima, indirect_str
+export rstd, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden#, lsima, indirect_str
 
 
 @doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
