@@ -540,9 +540,9 @@ end
 pzmap(system::LTISystem, args...) = pzmap!(Plots.plot(), system::LTISystem, args...)
 
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)
-    S,T,D,N = gangoffour(P,C)
-    fig = bodeplot(LTISystem[[S[i] T[i];D[i] N[i]] for i = 1:length(C)])
-    legend("S = \$1/(1+PC)\$","T = \$PC/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$")
+    S,D,N,T = gangoffour(P,C)
+    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)])
+    legend("S = \$1/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$","T = \$PC/(1+PC)\$")
     return fig
 end
 
@@ -551,8 +551,8 @@ end
 
 Gang-of-Four plot.""" ->
 function gangoffourplot(P::LTISystem,C::LTISystem)
-    S,T,D,N = gangoffour(P,C)
-    fig = bodeplot([S T;D N])
-    legend("S = \$1/(1+PC)\$","T = \$PC/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$")
+    S,D,N,T = gangoffour(P,C)
+    fig = bodeplot([S D;N T])
+    legend("S = \$1/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$","T = \$PC/(1+PC)\$")
     return fig
 end

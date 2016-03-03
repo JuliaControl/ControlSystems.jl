@@ -388,7 +388,7 @@ function delaymargin(G::LTISystem)
     dₘ
 end
 
-@doc """`S,T,D,N = gangoffour(P,C)`, gangoffour(P::AbstractVector,C::AbstractVector)
+@doc """`S,D,N,T = gangoffour(P,C)`, gangoffour(P::AbstractVector,C::AbstractVector)
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 S = 1/(1+PC) Sensitivity function
@@ -405,7 +405,7 @@ function gangoffour(P::TransferFunction,C::TransferFunction)
     D = minreal(P*S)
     N = minreal(C*S)
     T = minreal(P*N)
-    return S,T,D,N
+    return S, D, N, T
 end
 
 function gangoffour(P::AbstractVector, C::AbstractVector)
@@ -418,14 +418,14 @@ function gangoffour(P::AbstractVector, C::AbstractVector)
     D = [minreal(P[i]*S[i]) for i in 1:n]
     N = [minreal(C[i]*S[i]) for i in 1:n]
     T = [minreal(P[i]*N[i]) for i in 1:n]
-    return S,T,D,N
+    return S, D, N, T
 end
 
 function gangoffour(P::TransferFunction, C::AbstractVector)
     gangoffour(LTISystem[P for i = 1:length(C)], C)
 end
 
-@doc """`S, T, D, N, RY, RU, RE = gangofseven(P,C,F)`
+@doc """`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
 
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`, computes the four transfer functions in the Gang-of-Four.
 S = 1/(1+PC) Sensitivity function
@@ -441,9 +441,9 @@ function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction
     if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
         error("gof only supports SISO systems")
     end
-    S,T,D,N = gangoffour(P,C)
+    S, D, N, T = gangoffour(P,C)
     RY = T*F
     RU = N*F
     RE = S*F
-    return S, T, D, N, RY, RU, RE
+    return S, D, N, T, RY, RU, RE
 end
