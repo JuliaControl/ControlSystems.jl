@@ -1,5 +1,5 @@
 import PyPlot, Colors
-export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!
+export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
 _PlotScale = "dB"
 _PlotScaleFunc = :semilogx
@@ -267,13 +267,11 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs
 
     fig = Plots.plot()
     # Ensure that `axes` is always a matrix of handles
-    megaangles = [map(s -> 180/pi*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...]
+    megaangles = collect(map(s -> 180/pi*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     PCyc = Set{Int}(floor(Int,megaangles/360))
     PCyc = sort(collect(PCyc))
     for (sysi,s) = enumerate(systems)
-
-
         re_resp, im_resp = nyquist(s, w)[1:2]
         redata = squeeze(re_resp, (1,2))
         imdata = squeeze(im_resp, (1,2))
