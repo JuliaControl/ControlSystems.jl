@@ -1,3 +1,5 @@
+using PyPlot
+
 module Control
 
 export  LTISystem,
@@ -50,8 +52,6 @@ export  LTISystem,
         nyquist,
         sigma
 
-using PyCall
-using PyPlot
 import Plots
 
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), call
