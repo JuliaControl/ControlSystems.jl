@@ -19,7 +19,9 @@ end
 """
 Plots interesting figures related to closing the loop around process `P` with a PID controller
 Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.
+
 `time` indicates whether or not the parameters are given as gains (default) or as time constants
+
 `series` indicates  whether or not the series form or parallel form (default) is desired
 
 Available plots are `:gof` for Gang of four, `:nyquist`, `:controller` for a bode plot of the controller TF and `:pz` for pole-zero maps
@@ -62,7 +64,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         label = "\$k_p = $(round(kp,3)), \\quad k_i = $(round(ki,3)), \\quad k_d = $(round(kd,3))\$"
 
         C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
-        S,T,D,N = gangoffour(P,C)
+        S,D,N,T = gangoffour(P,C)
 
         if nyquist_
             NQ = nyquist(P*C,ω)
@@ -106,9 +108,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 end
 
 """
-`rlocus(P)` computes and plots the root locus of the single-input,
-    single-output LTISystem P. The root locus plot is used to analyze
-    the negative feedback loop
+`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with the feedback loop
 
                       +-----+
           ---->O----->|  P  |----+---->
@@ -117,12 +117,7 @@ end
                |       +---+     |
                +-------| K |<----+
                        +---+
-
-    and shows the trajectories of the closed-loop poles when the feedback
-    gain K varies from 0 to Inf.  rlocus automatically generates a set of
-    positive gain values that produce a smooth plot.
-
-    `rlocus(SYS,K)` uses a user-specified vector K of gain values.
+and feedback gains `K`, if `K` is not provided, linspace(1e-6,50,10000) is used
 """
 function rlocus(P::LTISystem, K=0)
     K = 0
