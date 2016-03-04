@@ -47,7 +47,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     end
     ω   = ω   == 0 ? logspace(-3,3,500) : ω
 
-
+    getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
     gof_        = in(:gof        ,args)
     nyquist_    = in(:nyquist    ,args)
@@ -83,24 +83,24 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
             imdata = NQ[2][:]
             ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
             xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
-            Plots.plot!(nq,redata,imdata, ylims=ylim, xlims=xlim, lab=label)
+            Plots.plot!(nq,redata,imdata, ylims=ylim, xlims=xlim, lab=label, c=getColorSys(i))
         end
         if gof_
             BD = bode(S,ω)
-            Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
             BD = bode(D,ω)
-            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
             BD = bode(N,ω)
-            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
             BD = bode(T,ω)
-            Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
         end
         if pz_
             pzmap!(pz,T)
         end
         if controller_
             BD = bode(C,ω)
-            Plots.plot!(cplot,BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(cplot,BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
         end
     end
 
