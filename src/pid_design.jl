@@ -88,11 +88,11 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         if gof_
             BD = bode(S,ω)
             Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label)
-            BD = bode(T,ω)
-            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label)
             BD = bode(D,ω)
-            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label)
             BD = bode(N,ω)
+            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label)
+            BD = bode(T,ω)
             Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label)
         end
         if pz_
@@ -107,9 +107,9 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     nyquist_ && Plots.plot!(nq,legend=true, title="Nyquist curves")
     if gof_
         Plots.plot!(bd[1,1],legend=true, title="S", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[1,2],legend=true, title="T", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,1],legend=true, title="D", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,2],legend=true, title="N", xscale=:log10, yscale=:log10)
+        Plots.plot!(bd[1,2],legend=true, title="D", xscale=:log10, yscale=:log10)
+        Plots.plot!(bd[2,1],legend=true, title="N", xscale=:log10, yscale=:log10)
+        Plots.plot!(bd[2,2],legend=true, title="T", xscale=:log10, yscale=:log10)
     end
     if pz_
         Plots.plot!(pz,title="Pole-zero map")
