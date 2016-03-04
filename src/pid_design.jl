@@ -123,24 +123,18 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 end
 
 """
-`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with the feedback loop
-
-+-----+
----->O----->|  P  |----+---->
--|      +-----+    |
-|                 |
-|       +---+     |
-+-------| K |<----+
-+---+
-and feedback gains `K`, if `K` is not provided, linspace(1e-6,50,10000) is used
+`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
 """
 function rlocus(P::LTISystem, K=0)
-    K = 0
-    K = K == 0 ? linspace(1e-6,50,10000) : K
+    K = K == 0 ? linspace(1e-6,500,10000) : K
     Z = tzero(P)
-    poles = map(K -> pole(minreal(K*P/(1+K*P),1e-10)), K)
+    poles = map(K -> pole(K*P/(1+K*P)), K)
     poles = cat(2,poles...)'
-    Plots.plot(real(poles), imag(poles), legend=false)
+    redata = real(poles)
+    imdata = imag(poles)
+    ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
+    xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    Plots.plot(redata, imdata, legend=false,ylims=ylim, xlims=xlim)
     Plots.scatter!(real(Z), imag(Z), m=:c)
 end
 
