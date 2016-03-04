@@ -79,7 +79,11 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 
         if nyquist_
             NQ = nyquist(P*C,ω)
-            Plots.plot!(nq,NQ[1][:],NQ[2][:], lab=label)
+            redata = NQ[1][:]
+            imdata = NQ[2][:]
+            ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
+            xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
+            Plots.plot!(nq,redata,imdata, ylims=ylim, xlims=xlim, lab=label)
         end
         if gof_
             BD = bode(S,ω)
