@@ -294,7 +294,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
     fig             = Plots.plot()
-    megaangles      = [map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...]
+    megaangles      = collect(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     PCyc            = Set{Int}(floor(Int,megaangles/360))
     PCyc            = sort(collect(PCyc))
@@ -557,6 +557,9 @@ end
 
 pzmap(system::LTISystem, args...) = pzmap!(Plots.plot(), system::LTISystem, args...)
 
+@doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)`
+
+Gang-of-Four plot.""" ->
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)
     S,D,N,T = gangoffour(P,C)
     fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)])
@@ -564,10 +567,6 @@ function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)
     return fig
 end
 
-
-@doc """`gofplot(sys)``
-
-Gang-of-Four plot.""" ->
 function gangoffourplot(P::LTISystem,C::LTISystem)
     S,D,N,T = gangoffour(P,C)
     fig = bodeplot([S D;N T])

@@ -41,7 +41,11 @@ function minreal(sys::SisoZpk, eps::Real)
     doubles = Vector{Int64}()
     newZ = copy(sys.z)
     for (pi, p) in enumerate(sys.p)
-        val, zi = findmin(abs(p-newZ))
+        if !isempty(newZ)
+            val, zi = findmin(abs(p-newZ))
+        else
+            val = Inf #Keep looping over p, adding poles
+        end
         if val < eps
             deleteat!(newZ, zi)
             continue;
