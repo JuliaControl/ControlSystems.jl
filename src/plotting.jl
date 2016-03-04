@@ -227,11 +227,44 @@ nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
 nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot(LTISystem[sys], args...; kwargs...)
 
 
-# @doc """`nicholsplot(sys, args...)`, `nicholsplot(LTISystem[sys1, sys2...], args...)`
-#
-# Create a Nichols plot of the `LTISystem`(s). A frequency vector `w` can be
-# optionally provided.""" ->
-function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
+@doc """
+`nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)`
+
+Create a Nichols plot of the `LTISystem`(s). A frequency vector `w` can be
+optionally provided.
+
+Keyword arguments:
+```
+text = true
+Gains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]
+pInc = 30
+sat = 0.4
+val = 0.85
+fontsize = 10
+```
+
+`pInc` determines the increment in degrees between phase lines.
+
+`sat` ∈ [0,1] determines the saturation of the gain lines
+
+`val` ∈ [0,1] determines the brightness of the gain lines
+
+Additional keyword arguments are sent to the function plotting the systems and can be
+used to specify colors, line styles etc. using regular Plots.jl syntax
+
+This function is based on code subject to the two-clause BSD licence
+Copyright 2011 Will Robertson
+Copyright 2011 Philipp Allgeuer
+
+""" ->
+function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
+    text=true,
+    Gains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60],
+    pInc = 30,
+    sat = 0.4,
+    val = 0.85,
+    fontsize = 10,
+    kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -243,104 +276,89 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs
     end
     nw = length(w)
 
-    Gains = [12 6 3 1 0.5 -0.5 -1 -3 -6 -10 -20 -40 -60][:]
-    PInc = 30
-    LWidth = 1
+    # Gain circle functions
+    angle(x)        = unwrap(atan2(imag(x),real(x)))
+    RadM(m)         = abs(m/(m^2-1))
+    CentreM(m)      = m^2/(1-m^2)
+    Ny(mdb,t)       = CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
+    Niϕ(mdb,t)      = rad2deg((angle(Ny(mdb,t))))
+    Ni_Ga(mdb,t)    = 20.*log10(abs(Ny(mdb,t)))
 
-    # Draw M-circles
-    angle(x) = unwrap(atan2(imag(x),real(x)))
-    RadM(m)= abs(m/(m^2-1))
-    CentreM(m)= m^2/(1-m^2)
-    Ny(mdb,t)= CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
-    Ni_Ph(mdb,t)= rad2deg((angle(Ny(mdb,t))))
-    Ni_Ga(mdb,t)= 20.*log10(abs(Ny(mdb,t)))
+    # Phase circle functions
+    Radϕ(ϕ)         = 1./(2.*abs(sind(ϕ)))
+    Nyℜ(ϕ,t)        = -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
+    Nyℑ(ϕ,t)        = 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
+    Niϕϕ(ϕ,t)       = rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*floor(ϕ/360)
+    Ni_Gaϕ(ϕ,t)     = 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
+    Ni_La(ϕ)        = 0.090*10^(ϕ/60)
+    getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
-    # Define equations that determine the N-circles
-    RadN(phi)= 1./(2.*abs(sind(phi)));
-    Ny_Re(phi,t)= -0.5+RadN(phi).*cosd(t+mod(phi,180)-90);
-    Ny_Im(phi,t)= 1./(2.*tand(phi))+RadN(phi).*sind(t+mod(phi,180)-90);
-    Ni_PhN(phi,t)= rad2deg((angle(Ny_Re(phi,t)+im*Ny_Im(phi,t))))+360*floor(phi/360);
-    Ni_GaN(phi,t)= 20.*log10(abs(Ny_Re(phi,t)+im*Ny_Im(phi,t)));
-    Ni_La(phase)= 0.090*10^(phase/60);
-    # Generate the colour space
-    CalcRgb(mdb) = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,0.4, 0.85))
-
-    fig = Plots.plot()
-    # Ensure that `axes` is always a matrix of handles
-    megaangles = collect(map(s -> 180/pi*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
+    fig             = Plots.plot()
+    megaangles      = [map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...]
     filter!(x-> !isnan(x), megaangles)
-    PCyc = Set{Int}(floor(Int,megaangles/360))
-    PCyc = sort(collect(PCyc))
-    for (sysi,s) = enumerate(systems)
-        re_resp, im_resp = nyquist(s, w)[1:2]
-        redata = squeeze(re_resp, (1,2))
-        imdata = squeeze(im_resp, (1,2))
-        mag = 20*log10(sqrt(redata.^2 + imdata.^2))
-        angles = 180/pi*angle(im*imdata.+redata)
-        Plots.plot!(fig,angles, mag; kwargs...)
-    end
+    PCyc            = Set{Int}(floor(Int,megaangles/360))
+    PCyc            = sort(collect(PCyc))
 
-    #  Apply M-circle equations and plot the result
+    #  Gain circles
     for k=Gains
-        PVals=Ni_Ph(k,0:0.1:360)
-        GVals=Ni_Ga(k,0:0.1:360)
+        ϕVals   =Niϕ(k,0:0.1:360)
+        GVals   =Ni_Ga(k,0:0.1:360)
         for l in PCyc
-            Plots.plot!(fig,PVals+l*360,GVals,c=CalcRgb(k),linewidth=LWidth, grid=false)
-            if true
-                if sign(k) > 0
-                    mla = 210
-                else
-                    mla = 210
-                end
-                if mla > 180
-                    offset = (l+1)*360
-                else
-                    offset = l*360
-                end
-                TextX=Ni_Ph(k,mla)+offset
-                TextY=Ni_Ga(k,mla)
-                Plots.plot!(fig,ann=(TextX,TextY,Plots.text("$(string(k)) dB")))
+            Plots.plot!(fig,ϕVals+l*360,GVals,c=getColor(k), grid=false)
+            if text
+                offset  = (l+1)*360
+                TextX   = Niϕ(k,210)+offset
+                TextY   = Ni_Ga(k,210)
+                Plots.plot!(fig,ann=(TextX,TextY,Plots.text("$(string(k)) dB",fontsize)))
             end
         end
     end
-    #  Draw N-circles
 
-    #  Create input vectors
-    Phi=PCyc[1]*360:PInc:PCyc[end]*360;
-    T1=logspace(-4,log10(180),300);
-    T2=[T1; 360-flipdim(T1,1)];
+    #  Phase circles
+    Phi=PCyc[1]*360:pInc:PCyc[end]*360
+    T1=logspace(-4,log10(180),300)
+    T2=[T1; 360-flipdim(T1,1)]
 
-    #  Apply N-circle equations and plot the result
     for k=Phi
         if abs(sind(k))<1e-3
-            Plots.plot!(fig,[k,k],[-110,25],c=Colors.RGB(0.75*[1, 1, 1]...),linewidth=LWidth);
+            Plots.plot!(fig,[k,k],[-110,25],c=Colors.RGB(0.75*[1, 1, 1]...))
             if cosd(5)>0
-                TextX=k;
-                TextY=1;
+                TextX=k
+                TextY=1
             else
-                TextX=k;
-                TextY=-46.5;
+                TextX=k
+                TextY=-46.5
             end
         else
-            Plots.plot!(fig,Ni_PhN(k,T2),Ni_GaN(k,T2),c=Colors.RGB(0.75*[1,1,1]...),linewidth=LWidth);
+            Plots.plot!(fig,Niϕϕ(k,T2),Ni_Gaϕ(k,T2),c=Colors.RGB(0.75*[1,1,1]...))
             Offset=k-180*floor(Int,k/180);
-            # if sign(sind(k))==1
-            #     TextX=Ni_PhN(k,Ni_La(180-Offset));
-            #     TextY=Ni_GaN(k,Ni_La(180-Offset));
-            # else
-            #     TextX=Ni_PhN(k,-Ni_La(Offset))+360;
-            #     TextY=Ni_GaN(k,-Ni_La(Offset));
-            # end
+            if sign(sind(k))==1
+                TextX=Niϕϕ(k,Ni_La(180-Offset))
+                TextY=Ni_Gaϕ(k,Ni_La(180-Offset))
+            else
+                TextX=Niϕϕ(k,-Ni_La(Offset))+360
+                TextY=Ni_Gaϕ(k,-Ni_La(Offset))
+            end
         end
-        if false
-            # text(TextX,TextY,[num2str(k),'°'],...
-            # 'FontSize',LSize,...
-            # 'horizontalalignment','center',...
-            # 'UserData',user_data(k));
+        if text
+            Plots.plot!(fig,ann=(TextX,TextY,Plots.text("$(string(k))°",fontsize)))
         end
 
         Plots.plot!(fig, title="Nichols chart", grid=false, legend=false)
 
+    end
+    dKwargs = Dict(kwargs)
+    LW = "linewidth" ∈ keys(dKwargs) ? pop!(dKwargs,"linewidth") : 2
+
+    # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
+    getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(systems)))^1.5,0.9,0.8))
+    for (sysi,s) = enumerate(systems)
+        ℜresp, ℑresp        = nyquist(s, w)[1:2]
+        ℜdata               = squeeze(ℜresp, (1,2))
+        ℑdata               = squeeze(ℑresp, (1,2))
+        mag                 = 20*log10(sqrt(ℜdata.^2 + ℑdata.^2))
+        angles              = 180/π*angle(im*ℑdata.+ℜdata)
+        Plots.plot!(fig,angles, mag; linewidth = LW, c = getColorSys(sysi), kwargs...)
     end
 
     return fig
