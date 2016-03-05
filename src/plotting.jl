@@ -2,7 +2,7 @@ import PyPlot, Colors
 export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
 _PlotScale = "dB"
-_PlotScaleFunc = :semilogx
+_PlotScaleFunc = :identity
 _PlotScaleStr = "(dB)"
 
 @doc """`setPlotScale(str)`
@@ -11,9 +11,9 @@ Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
 `str` should be either `"dB"` or `"log10"`.""" ->
 function setPlotScale(str::AbstractString)
     if str == "dB"
-        plotSettings = (str, :semilogx, "(dB)")
+        plotSettings = (str, :identity, "(dB)")
     elseif str == "log10"
-        plotSettings = (str, :loglog, "")
+        plotSettings = (str, :log10, "")
     else
         error("Scale must be set to either \"dB\" or \"log10\"")
     end
@@ -135,16 +135,16 @@ time vector `t` can be optionally provided.""" -> impulseplot
 
 
 ## FREQUENCY PLOTS ##
-@doc """`bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...)`
+@doc """`bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
+function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase=true)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig, axes = PyPlot.subplots(2*ny, nu, sharex="col", sharey="row")
+    fig = Plots.subplot(n=(plotphase?2:1)*ny*nu, nc=nu)
     nw = length(w)
     for s = systems
         mag, phase = bode(s, w)[1:2]
@@ -159,38 +159,17 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
-                axes[2*i - 1, j][_PlotScaleFunc](w, magdata)
-                axes[2*i - 1, j][:grid](true, which="both")
-                axes[2*i, j][:semilogx](w, phasedata)
-                axes[2*i, j][:grid](true, which="both")
+                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, ylabel="To: y($(div(i + 1, 2)))", title="From: u($j)", ylabel="Magnitude $_PlotScaleStr")
+                plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)")
             end
         end
     end
-    # Add labels and titles
-    fig[:suptitle]("Bode Plot", size=16)
-    if ny*nu != 1
-        for i=1:2*ny
-            div(i+1, 2)
-            axes[i, 1][:set_ylabel]("To: y($(div(i + 1, 2)))",
-                size=12, color="0.30")
-        end
-        for j=1:nu
-            axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
-        end
-        fig[:text](0.06, 0.5, "Phase (deg), Magnitude $_PlotScaleStr", ha="center",
-            va="center", rotation="vertical", size=14)
-    else
-        axes[1, 1][:set_ylabel]("Magnitude $_PlotScaleStr", size=14)
-        axes[2, 1][:set_ylabel]("Phase (deg)", size=14)
-    end
-    fig[:text](0.5, 0.04, "Frequency (rad/s)", ha="center",
-    va="center", size=14)
-    PyPlot.draw()
+
     return fig
 end
-bodeplot{T<:LTISystem}(systems::Vector{T}) =
-    bodeplot(systems, _default_freq_vector(systems, :bode))
-bodeplot(sys::LTISystem, args...) = bodeplot(LTISystem[sys], args...)
+bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) =
+    bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
+bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot(LTISystem[sys], args...; plotphase=plotphase)
 
 @doc """ `nyquistplot(sys, args...)`, `nyquistplot(LTISystem[sys1, sys2...], args...)`
 
@@ -560,19 +539,27 @@ end
 
 pzmap(system::LTISystem, args...) = pzmap!(Plots.plot(), system::LTISystem, args...)
 
-@doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)`
+@doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
 
 Gang-of-Four plot.""" ->
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)
     S,D,N,T = gangoffour(P,C)
-    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)])
-    legend("S = \$1/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$","T = \$PC/(1+PC)\$")
+    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], plotphase=plotphase)
+    lower = plotphase ? 3 : 2
+    Plots.plot!(fig[1,1],title="\$S = 1/(1+PC)\$")
+    Plots.plot!(fig[1,2],title="\$D = P/(1+PC)\$")
+    Plots.plot!(fig[lower,1],title="\$N = C/(1+PC)\$")
+    Plots.plot!(fig[lower,2],title="\$T = PC/(1+PC\$)")
     return fig
 end
 
-function gangoffourplot(P::LTISystem,C::LTISystem)
+function gangoffourplot(P::LTISystem,C::LTISystem; plotphase=false)
     S,D,N,T = gangoffour(P,C)
-    fig = bodeplot([S D;N T])
-    legend("S = \$1/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$","T = \$PC/(1+PC)\$")
+    fig = bodeplot([S D;N T], plotphase=plotphase)
+    lower = plotphase ? 3 : 2
+    Plots.plot!(fig[1,1],title="\$S = 1/(1+PC)\$")
+    Plots.plot!(fig[1,2],title="\$D = P/(1+PC)\$")
+    Plots.plot!(fig[lower,1],title="\$N = C/(1+PC)\$")
+    Plots.plot!(fig[lower,2],title="\$T = PC/(1+PC\$)")
     return fig
 end
