@@ -210,7 +210,10 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, args..
             for i=1:ny
                 redata = reshape(re_resp[i, j, :], nw)
                 imdata = reshape(im_resp[i, j, :], nw)
-                Plots.plot!(fig[i, j],redata, imdata, title="From: u($j)", ylabel="To: y($i)", args...)
+                ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
+                xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
+                Plots.plot!(fig[i, j],redata, imdata, title="From: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim, args...)
+
 
                 v = linspace(0,2π,100)
                 S,C = sin(v),cos(v)

@@ -30,13 +30,24 @@ One can also supply a frequency vector ω to be used in Bode and Nyquist plots
 
 `pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)`
 """
-function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)
+function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false)
 
-    n = max(length(kps), length(kis), length(kds))
-    kps = kps == 0 ? zeros(n) : kps
-    kis = kis == 0 ? zeros(n) : kis
-    kds = kds == 0 ? zeros(n) : kds
+
+
+    if grid
+        kp = [i for i in kps, j in kis, k in kds][:]
+        ki = [j for i in kps, j in kis, k in kds][:]
+        kd = [k for i in kps, j in kis, k in kds][:]
+        kps, kis, kds = kp, ki, kd
+    else
+        n = max(length(kps), length(kis), length(kds))
+        kps = kps == 0 ? zeros(n) : kps
+        kis = kis == 0 ? zeros(n) : kis
+        kds = kds == 0 ? zeros(n) : kds
+    end
     ω   = ω   == 0 ? logspace(-3,3,500) : ω
+
+    getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
     gof_        = in(:gof        ,args)
     nyquist_    = in(:nyquist    ,args)
@@ -68,33 +79,37 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 
         if nyquist_
             NQ = nyquist(P*C,ω)
-            Plots.plot!(nq,NQ[1][:],NQ[2][:], lab=label)
+            redata = NQ[1][:]
+            imdata = NQ[2][:]
+            ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
+            xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
+            Plots.plot!(nq,redata,imdata, ylims=ylim, xlims=xlim, lab=label, c=getColorSys(i))
         end
         if gof_
             BD = bode(S,ω)
-            Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label)
-            BD = bode(T,ω)
-            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
             BD = bode(D,ω)
-            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
             BD = bode(N,ω)
-            Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
+            BD = bode(T,ω)
+            Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
         end
         if pz_
             pzmap!(pz,T)
         end
         if controller_
             BD = bode(C,ω)
-            Plots.plot!(cplot,BD[3][:],BD[1][:], lab=label)
+            Plots.plot!(cplot,BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
         end
     end
 
     nyquist_ && Plots.plot!(nq,legend=true, title="Nyquist curves")
     if gof_
         Plots.plot!(bd[1,1],legend=true, title="S", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[1,2],legend=true, title="T", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,1],legend=true, title="D", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,2],legend=true, title="N", xscale=:log10, yscale=:log10)
+        Plots.plot!(bd[1,2],legend=true, title="D", xscale=:log10, yscale=:log10)
+        Plots.plot!(bd[2,1],legend=true, title="N", xscale=:log10, yscale=:log10)
+        Plots.plot!(bd[2,2],legend=true, title="T", xscale=:log10, yscale=:log10)
     end
     if pz_
         Plots.plot!(pz,title="Pole-zero map")
@@ -108,24 +123,18 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 end
 
 """
-`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with the feedback loop
-
-                      +-----+
-          ---->O----->|  P  |----+---->
-              -|      +-----+    |
-               |                 |
-               |       +---+     |
-               +-------| K |<----+
-                       +---+
-and feedback gains `K`, if `K` is not provided, linspace(1e-6,50,10000) is used
+`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
 """
 function rlocus(P::LTISystem, K=0)
-    K = 0
-    K = K == 0 ? linspace(1e-6,50,10000) : K
+    K = K == 0 ? linspace(1e-6,500,10000) : K
     Z = tzero(P)
-    poles = map(K -> pole(minreal(K*P/(1+K*P),1e-10)), K)
+    poles = map(K -> pole(K*P/(1+K*P)), K)
     poles = cat(2,poles...)'
-    Plots.plot(real(poles), imag(poles), legend=false)
+    redata = real(poles)
+    imdata = imag(poles)
+    ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
+    xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    Plots.plot(redata, imdata, legend=false,ylims=ylim, xlims=xlim)
     Plots.scatter!(real(Z), imag(Z), m=:c)
 end
 

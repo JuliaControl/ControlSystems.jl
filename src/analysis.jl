@@ -391,10 +391,14 @@ end
 @doc """`S,D,N,T = gangoffour(P,C)`, gangoffour(P::AbstractVector,C::AbstractVector)
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
-S = 1/(1+PC) Sensitivity function
-D = P/(1+PC)
-N = C/(1+PC)
-T = PC/(1+PC) Complementary sensitivity function
+
+`S = 1/(1+PC)` Sensitivity function
+
+`D = P/(1+PC)`
+
+`N = C/(1+PC)`
+
+`T = PC/(1+PC)` Complementary sensitivity function
 
 Only supports SISO systems""" ->
 function gangoffour(P::TransferFunction,C::TransferFunction)
