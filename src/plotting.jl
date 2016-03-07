@@ -165,6 +165,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
         if _PlotScale == "dB"
             mag = 20*log10(mag)
         end
+        xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
             for i=1:ny
                 magdata = vec(mag[i, j, :])
@@ -173,7 +174,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
-                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, ylabel="To: y($(div(i + 1, 2)))", title="From: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_$(si)\$"; getStyleSys(si,length(systems))...)
+                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_$(si)\$"; getStyleSys(si,length(systems))...)
                 plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))...)
             end
         end
@@ -204,7 +205,7 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, ; neg=
                 imdata = reshape(im_resp[i, j, :], nw)
                 ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
                 xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
-                Plots.plot!(fig[i, j],redata, imdata, title="From: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim; getStyleSys(si,length(systems))..., kwargs...)
+                Plots.plot!(fig[i, j],redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim; getStyleSys(si,length(systems))..., kwargs...)
 
                 if si == length(systems)
                     v = linspace(0,2π,100)
