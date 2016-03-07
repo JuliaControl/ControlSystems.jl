@@ -1,17 +1,17 @@
 import PyPlot, Colors
 export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
-getColorSys(i,Nsys)   = convert(Colors.RGB,Colors.HSV(360*(1-(i-1)/Nsys)^1.5,0.9,0.8))
+getColorSys(i,Nsys)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8))
 function getStyleSys(i,Nsys)
     Ncmax = 5
     if Nsys <= Ncmax
-        return Dict(:c => convert(Colors.RGB,Colors.HSV(360*(1-(i-1)/Nsys)^1.5,0.9,0.8)) , :l => :solid)
+        return Dict(:c => convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8)) , :l => :solid)
     end
     styles = [:solid, :dash, :dot, :dashdot]
     Nstyles = min(ceil(Int,Nsys/Ncmax), length(styles))
     Nc = ceil(Int,Nsys / Nstyles)
     istyle = min(floor(Int,i/Nc)+1 , length(styles))
-    c = convert(Colors.RGB,Colors.HSV(360*(1-(mod(i-1,Nc)/Nc))^1.5,0.9,0.8))
+    c = convert(Colors.RGB,Colors.HSV(360*((mod(i-1,Nc)/Nc))^1.5,0.9,0.8))
 
     return Dict(:c => c, :l => styles[istyle])
 end
@@ -293,7 +293,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
     fig             = Plots.plot()
-    megaangles      = collect(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
+    megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     PCyc            = Set{Int}(floor(Int,megaangles/360))
     PCyc            = sort(collect(PCyc))
