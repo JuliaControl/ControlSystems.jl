@@ -82,8 +82,7 @@ function lsimplot{T<:LTISystem}(systems::Vector{T}, u::AbstractVecOrMat,
     PyPlot.draw()
     return fig
 end
-lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) =
-lsimplot(LTISystem[sys], u, t, args...)
+lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) = lsimplot(LTISystem[sys], u, t, args...)
 
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
@@ -182,8 +181,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
 
     return fig
 end
-bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) =
-bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
+bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) = bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
 bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot(LTISystem[sys], args...; plotphase=plotphase)
 
 @doc """ `nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
@@ -221,8 +219,7 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, ; neg=
     return fig
 end
 
-nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
-nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
+nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) = nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
 nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot(LTISystem[sys], args...; kwargs...)
 
 
@@ -362,19 +359,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     return fig
 end
 
-# function feedback{T<:LTISystem}(systems::Vector{T})
-#     systems2 = deepcopy(systems)
-#     for (i,G) in enumerate(systems)
-#         if isa(G,TransferFunction) #|| isa(G,zpkdata)
-#             systems2[i] = minreal(G/(1+G))
-#         elseif isa(G,StateSpace)
-#             systems2[i].A = G.A-G.B*
-#         end
-#     end
-# end
-
-nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
-nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
+nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) = nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
 nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot(LTISystem[sys],args...; kwargs...)
 
 
@@ -422,8 +407,7 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-sigmaplot{T<:LTISystem}(systems::Vector{T}) =
-sigmaplot(systems, _default_freq_vector(systems, :sigma))
+sigmaplot{T<:LTISystem}(systems::Vector{T}) = sigmaplot(systems, _default_freq_vector(systems, :sigma))
 sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
 
 
@@ -479,8 +463,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-marginplot{T<:LTISystem}(systems::Vector{T}) =
-marginplot(systems, _default_freq_vector(systems, :bode))
+marginplot{T<:LTISystem}(systems::Vector{T}) = marginplot(systems, _default_freq_vector(systems, :bode))
 marginplot(sys::LTISystem, args...) = marginplot(LTISystem[sys], args...)
 
 
@@ -498,37 +481,6 @@ function _default_time_data{T<:LTISystem}(systems::Vector{T})
 end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
-
-# @doc """`pzmap(sys, args...)`, `pzmap(LTISystem[sys1, sys2...], args...)`
-#
-# Create a pole-zero map of the `LTISystem`(s).""" ->
-# function pzmap(systems::Vector)
-#     ny, nu = size(systems[1])
-#     fig, axes = PyPlot.subplots(ny, nu, sharex="col", sharey="row")
-#     for s = systems
-#         z,p,k = zpkdata(s)
-#         for j=1:nu
-#             for i=1:ny
-#                 axes[i - 1, j][plot](z,"o")
-#                 axes[i - 1, j][plot](p,"x")
-#             end
-#         end
-#     end
-#     # Add labels and titles
-#     fig[:suptitle]("Pole-zero map", size=16)
-#     if ny*nu != 1
-#         for i=1:ny
-#             div(i+1, 2)
-#             axes[i, 1][:set_ylabel]("To: y($(div(i + 1, 2)))",
-#                     size=12, color="0.30")
-#         end
-#         for j=1:nu
-#             axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
-#         end
-#     end
-#     PyPlot.draw()
-#     return fig
-# end
 
 @doc """`pzmap(sys)``
 
