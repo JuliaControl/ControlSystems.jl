@@ -70,6 +70,8 @@ SisoTf(args...) = SisoRational(args...)
 Base.convert(::Type{Control.SisoTf}, b::Real) = Base.convert(Control.SisoRational, b)
 Base.zero(::Type{SisoTf}) = zero(SisoRational)
 Base.zero(t::SisoTf) = zero(SisoRational)
+
+tzero(sys::SisoTf) = roots(sys.num)
 #####################################################################
 ##                      SisoTf Operations                   ##
 #####################################################################
@@ -96,6 +98,25 @@ Base.zero(t::SisoTf) = zero(SisoRational)
 ##                      Constructor Functions                      ##
 #####################################################################
 
+@doc """ `tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)` Create transfer function as a fraction of polynomials:
+
+`sys = numerator/denominator`
+
+`num`: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems
+or an array of vectors to create MIMO system.
+
+`den`: the coefficients of the denominator polynomial. Either vector to create SISO systems
+or an array of vectors to create MIMO system.
+
+`Ts`: Sample time or `0` for continuous system.
+
+`kwargs`: `inputnames`, `outputnames`: Arrays of strings representing the inputs and outputs.
+
+Other uses:
+
+`tf(sys)`: Convert `sys` to `tf` form.
+
+`tf("s")`, `tf("z")`: Create the continous transferfunction `s`.""" ->
 function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
@@ -114,6 +135,28 @@ function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
+@doc """ `zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)` Create transfer
+function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
+
+`sys = k*numerator/denominator`
+
+`num`: the roots of the numerator polynomial. Either scalar or vector to create SISO systems
+or an array of vectors to create MIMO system.
+
+`den`: the roots of the denominator polynomial. Either vector to create SISO systems
+or an array of vectors to create MIMO system.
+
+`k`: The gain of the system. Obs, this is not the same as `dcgain`.
+
+`Ts`: Sample time or `0` for continuous system.
+
+`kwargs`: `inputnames`, `outputnames`: Arrays of strings representing the inputs and outputs.
+
+Other uses:
+
+`tf(sys)`: Convert `sys` to `tf` form.
+
+`tf("s")`: Create the transferfunction `s`.""" ->
 function zpk{T<:Vector,S<:Vector}(z::VecOrMat{T}, p::VecOrMat{S}, k::VecOrMat, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(z, 1, 2)
@@ -157,12 +200,12 @@ function tf(tf::TransferFunction)
 end
 
 tf(num::Vector, den::Vector, args...; kwargs...) =
-tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...; kwargs...)
+    tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...; kwargs...)
 
 tf(num::Real, den::Vector, args...; kwargs...) = tf([num], den, args...; kwargs...)
 
 zpk(z::Vector, p::Vector, k::Real, args...; kwargs...) =
-zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...; kwargs...)
+    zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...; kwargs...)
 
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
@@ -180,7 +223,6 @@ function tf(gain::Array, Ts::Real=0; kwargs...)
 end
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts; kwargs...)
 zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k; kwargs...)
-#zpk(gain::Array, Ts::Real=0; kwargs...) = zpk(tf(gain, Ts; kwargs...))
 
 # Function for creation of 's' or 'z' var
 function tf(var::AbstractString)
@@ -212,8 +254,8 @@ function Base.getindex(t::TransferFunction, inds...)
     rows, cols = inds
     mat = Array(eltype(t.matrix), length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    innames = length(cols) > 1 ? collect(t.inputnames[cols]) : [t.inputnames[cols]];
-    outnames = length(rows) > 1 ? collect(t.outputnames[rows]) : [t.inputnames[rows]];
+    innames = length(cols) > 1 ? collect(t.inputnames[cols]) : [t.inputnames[cols]]
+    outnames = length(rows) > 1 ? collect(t.outputnames[rows]) : [t.inputnames[rows]]
     return TransferFunction(mat, t.Ts, innames, outnames)
 end
 

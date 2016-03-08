@@ -41,7 +41,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         error("Unsupported method: ", method)
     end
     return StateSpace(Ad, Bd, Cd, Dd, Ts, sys.statenames, sys.inputnames,
-    sys.outputnames), x0map
+        sys.outputnames), x0map
 end
 
 
@@ -182,21 +182,12 @@ end
 
 
 function c2d(G::TransferFunction, h;kwargs...)
-    # error("This method does not handle zeros well")
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
     sysd = c2d(sys,h,kwargs...)[1]
     return ss2tf(sysd)
-
-    # z,p,gain = zpkdata(G)
-    # num = isempty(z[1]) ? 1 : real(c2d_roots2poly(z[1],h))
-    # den = isempty(p[1]) ? 1 : real(c2d_roots2poly(p[1],h))
-    # # @bp
-    # # gain = (gain*abs(sum(den)/sum(num)))[1]
-    # return tf(gain[1]*num,den,h)
-
 end
 
 

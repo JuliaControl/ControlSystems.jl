@@ -112,6 +112,9 @@ function ss2tf(A, B, C, Ts = 0, inames = "", onames = "")
     return tf(numP[1:length(numP)], denP[1:length(denP)], Ts, inputnames=inames, outputnames=onames)
 end
 
+tf(sys::StateSpace) = ss2tf(sys)
+zpk(sys::StateSpace) = zpk(ss2tf(sys))
+
 function charpoly(A)
     λ = eigvals(A);
     p = reduce(*,Control.Poly([1.]), Control.Poly[Control.Poly([1, -λᵢ]) for λᵢ in λ]);

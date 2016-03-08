@@ -48,7 +48,7 @@ function minreal(sys::SisoZpk, eps::Real)
         end
         if val < eps
             deleteat!(newZ, zi)
-            continue;
+            continue
         else
             push!(newP, p)
         end
@@ -63,6 +63,9 @@ end
 function Base.den(t::SisoZpk)
     return copy(t.p)
 end
+
+tzero(sys::SisoZpk) = num(sys)
+pole(sys::SisoZpk) = den(sys)
 
 function zp2polys(vec)
     polys = Array{Poly{Float64},1}(0)
@@ -83,18 +86,29 @@ function zp2polys(vec)
     polys
 end
 
+function evalfr(sys::SisoRational, s::Number)
+    S = promote_type(typeof(s), Float64)
+    den = polyval(sys.den, s)
+    if den == zero(S)
+        convert(S, Inf)
+    else
+        polyval(sys.num, s)/den
+    end
+end
+
 function print_siso(io::IO, t::SisoZpk, var=:s)
     zpolys = zp2polys(t.z)
     ppolys = zp2polys(t.p)
     # Convert the numerator and denominator to strings
-    numstr = reduce(*,"",["("*sprint(print_poly, z, var)*")" for z in zpolys])
-    denstr = reduce(*,"",["("*sprint(print_poly, p, var)*")" for p in ppolys])
-    #Don't print empty lines
-    if numstr == ""
-        numstr = "1"
+    if length(zpolys) < 2
+        numstr = ( length(zpolys) == 0 ) ? "1.0" : sprint(print_poly, zpolys[1], var)
+    else
+        numstr = reduce(*,"",["("*sprint(print_poly, z, var)*")" for z in zpolys])
     end
-    if denstr == ""
-        denstr = "1"
+    if length(ppolys) < 2
+        denstr = ( length(ppolys) == 0 ) ? "1.0" : sprint(print_poly, ppolys[1], var)
+    else
+        denstr = reduce(*,"",["("*sprint(print_poly, p, var)*")" for p in ppolys])
     end
     # Figure out the length of the separating line
     len_num = length(numstr)
@@ -125,19 +139,6 @@ Base.zero(t::SisoZpk) = Base.zero(SisoZpk)
 
 Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
-# function Base.num(t::SisoZpk)
-#     lt = length(t)
-#     n = zeros(lt)
-#     n[(lt - length(t.num) + 1):end] = t.num[:]
-#     return n
-# end
-#
-# function Base.den(t::SisoTf)
-#     lt = length(t)
-#     d = zeros(lt)
-#     d[(lt - length(t.den) + 1):end] = t.den[:]
-#     return d
-# end
 
 ==(t1::SisoZpk, t2::SisoZpk) = (t1.z == t2.z && t1.p == t2.p && t1.k == t2.k)
 
@@ -148,7 +149,7 @@ function +(t1::SisoZpk, t2::SisoZpk)
       k = numPoly[1]
       p = [t1.p;t2.p]
   else
-      k = 0;
+      k = 0
       p = []
   end
   SisoZpk(z,p,k)

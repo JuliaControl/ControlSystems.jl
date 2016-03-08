@@ -131,7 +131,7 @@ Compute the invariant zeros of the system `sys`. If `sys` is a minimal
 realization, these are also the transmission zeros.""" ->
 function tzero(sys::TransferFunction)
     if issiso(sys)
-        return roots(sys.matrix[1,1].num)
+        return tzero(sys.matrix[1,1])
     else
         return tzero(ss(sys))
     end
