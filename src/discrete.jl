@@ -74,9 +74,8 @@ Outputs: R,S,T  : Polynomials in controller
 See function DAB how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
 
-Michael Lundh     LastEditDate : Wed Mar 21 14:35:36 1990
-Copyright (c) 1990 by Michael Lundh and Department of Automatic Control,
-Lund Institute of Technology, Lund, SWEDEN
+See Computer-Controlled Systems: Theory and Design, Third Edition
+Karl Johan Åström, Björn Wittenmark
 """
 function rstd(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1])
 
@@ -107,6 +106,8 @@ DAB   Solves the Diophantine-Aryabhatta-Bezout identity
 AX + BY = C, where A, B, C, X and Y are polynomials
 and deg Y = deg A - 1.
 
+See Computer-Controlled Systems: Theory and Design, Third Edition
+Karl Johan Åström, Björn Wittenmark
 """
 function dab(a,b,c)
 
