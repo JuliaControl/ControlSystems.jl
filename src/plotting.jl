@@ -1,8 +1,23 @@
 import PyPlot, Colors
 export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
+getColorSys(i,Nsys)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8))
+function getStyleSys(i,Nsys)
+    Ncmax = 5
+    if Nsys <= Ncmax
+        return Dict(:c => convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8)) , :l => :solid)
+    end
+    styles = [:solid, :dash, :dot, :dashdot]
+    Nstyles = min(ceil(Int,Nsys/Ncmax), length(styles))
+    Nc = ceil(Int,Nsys / Nstyles)
+    istyle = min(floor(Int,i/Nc)+1 , length(styles))
+    c = convert(Colors.RGB,Colors.HSV(360*((mod(i-1,Nc)/Nc))^1.5,0.9,0.8))
+
+    return Dict(:c => c, :l => styles[istyle])
+end
+
 _PlotScale = "dB"
-_PlotScaleFunc = :semilogx
+_PlotScaleFunc = :identity
 _PlotScaleStr = "(dB)"
 
 @doc """`setPlotScale(str)`
@@ -11,9 +26,9 @@ Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
 `str` should be either `"dB"` or `"log10"`.""" ->
 function setPlotScale(str::AbstractString)
     if str == "dB"
-        plotSettings = (str, :semilogx, "(dB)")
+        plotSettings = (str, :identity, "(dB)")
     elseif str == "log10"
-        plotSettings = (str, :loglog, "")
+        plotSettings = (str, :log10, "")
     else
         error("Scale must be set to either \"dB\" or \"log10\"")
     end
@@ -32,8 +47,8 @@ Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.""" ->
 function lsimplot{T<:LTISystem}(systems::Vector{T}, u::AbstractVecOrMat,
-        t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
-        method::Symbol=_issmooth(u) ? :foh : :zoh)
+    t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
+    method::Symbol=_issmooth(u) ? :foh : :zoh)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -135,22 +150,23 @@ time vector `t` can be optionally provided.""" -> impulseplot
 
 
 ## FREQUENCY PLOTS ##
-@doc """`bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...)`
+@doc """`bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
+function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase=true)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig, axes = PyPlot.subplots(2*ny, nu, sharex="col", sharey="row")
+    fig = Plots.subplot(n=(plotphase?2:1)*ny*nu, nc=nu)
     nw = length(w)
-    for s = systems
+    for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
         if _PlotScale == "dB"
             mag = 20*log10(mag)
         end
+        xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
             for i=1:ny
                 magdata = vec(mag[i, j, :])
@@ -159,44 +175,23 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
-                axes[2*i - 1, j][_PlotScaleFunc](w, magdata)
-                axes[2*i - 1, j][:grid](true, which="both")
-                axes[2*i, j][:semilogx](w, phasedata)
-                axes[2*i, j][:grid](true, which="both")
+                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_$(si)\$"; getStyleSys(si,length(systems))...)
+                plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))...)
             end
         end
     end
-    # Add labels and titles
-    fig[:suptitle]("Bode Plot", size=16)
-    if ny*nu != 1
-        for i=1:2*ny
-            div(i+1, 2)
-            axes[i, 1][:set_ylabel]("To: y($(div(i + 1, 2)))",
-                size=12, color="0.30")
-        end
-        for j=1:nu
-            axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
-        end
-        fig[:text](0.06, 0.5, "Phase (deg), Magnitude $_PlotScaleStr", ha="center",
-            va="center", rotation="vertical", size=14)
-    else
-        axes[1, 1][:set_ylabel]("Magnitude $_PlotScaleStr", size=14)
-        axes[2, 1][:set_ylabel]("Phase (deg)", size=14)
-    end
-    fig[:text](0.5, 0.04, "Frequency (rad/s)", ha="center",
-    va="center", size=14)
-    PyPlot.draw()
+
     return fig
 end
-bodeplot{T<:LTISystem}(systems::Vector{T}) =
-    bodeplot(systems, _default_freq_vector(systems, :bode))
-bodeplot(sys::LTISystem, args...) = bodeplot(LTISystem[sys], args...)
+bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) =
+    bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
+bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot(LTISystem[sys], args...; plotphase=plotphase)
 
-@doc """ `nyquistplot(sys, args...)`, `nyquistplot(LTISystem[sys1, sys2...], args...)`
+@doc """ `nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, args...; neg=false)
+function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, ; neg=false, kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -204,7 +199,7 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, args..
     nw = length(w)
     fig = Plots.subplot(n=ny*nu, nc= nu)
     # Ensure that `axes` is always a matrix of handles
-    for s = systems
+    for (si,s) = enumerate(systems)
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
@@ -212,13 +207,15 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, args..
                 imdata = reshape(im_resp[i, j, :], nw)
                 ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
                 xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
-                Plots.plot!(fig[i, j],redata, imdata, title="From: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim, args...)
+                Plots.plot!(fig[i, j],redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim; getStyleSys(si,length(systems))..., kwargs...)
 
-
-                v = linspace(0,2π,100)
-                S,C = sin(v),cos(v)
-                Plots.plot!(fig[i, j],C,S,l=:dash,c=:black, grid=true)
-                # neg && Plots.plot!(fig[i, j],redata, -imdata, args...)
+                if si == length(systems)
+                    v = linspace(0,2π,100)
+                    S,C = sin(v),cos(v)
+                    Plots.plot!(fig[i, j],C,S,l=:dash,c=:black, lab="")
+                    Plots.plot!(fig[i, j],C-1,S,l=:dash,c=:red, grid=true, lab="")
+                    # neg && Plots.plot!(fig[i, j],redata, -imdata, args...)
+                end
             end
         end
     end
@@ -297,7 +294,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
     fig             = Plots.plot()
-    megaangles      = collect(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
+    megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     PCyc            = Set{Int}(floor(Int,megaangles/360))
     PCyc            = sort(collect(PCyc))
@@ -354,29 +351,17 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     LW = "linewidth" ∈ keys(dKwargs) ? pop!(dKwargs,"linewidth") : 2
 
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
-    getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(systems)))^1.5,0.9,0.8))
     for (sysi,s) = enumerate(systems)
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
         ℜdata               = squeeze(ℜresp, (1,2))
         ℑdata               = squeeze(ℑresp, (1,2))
         mag                 = 20*log10(sqrt(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
-        Plots.plot!(fig,angles, mag; linewidth = LW, c = getColorSys(sysi), kwargs...)
+        Plots.plot!(fig,angles, mag; linewidth = LW, getStyleSys(sysi,length(systems))..., kwargs...)
     end
 
     return fig
 end
-
-# function feedback{T<:LTISystem}(systems::Vector{T})
-#     systems2 = deepcopy(systems)
-#     for (i,G) in enumerate(systems)
-#         if isa(G,TransferFunction) #|| isa(G,zpkdata)
-#             systems2[i] = minreal(G/(1+G))
-#         elseif isa(G,StateSpace)
-#             systems2[i].A = G.A-G.B*
-#         end
-#     end
-# end
 
 nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
     nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
@@ -504,48 +489,17 @@ end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
 
-# @doc """`pzmap(sys, args...)`, `pzmap(LTISystem[sys1, sys2...], args...)`
-#
-# Create a pole-zero map of the `LTISystem`(s).""" ->
-# function pzmap(systems::Vector)
-#     ny, nu = size(systems[1])
-#     fig, axes = PyPlot.subplots(ny, nu, sharex="col", sharey="row")
-#     for s = systems
-#         z,p,k = zpkdata(s)
-#         for j=1:nu
-#             for i=1:ny
-#                 axes[i - 1, j][plot](z,"o")
-#                 axes[i - 1, j][plot](p,"x")
-#             end
-#         end
-#     end
-#     # Add labels and titles
-#     fig[:suptitle]("Pole-zero map", size=16)
-#     if ny*nu != 1
-#         for i=1:ny
-#             div(i+1, 2)
-#             axes[i, 1][:set_ylabel]("To: y($(div(i + 1, 2)))",
-#                     size=12, color="0.30")
-#         end
-#         for j=1:nu
-#             axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
-#         end
-#     end
-#     PyPlot.draw()
-#     return fig
-# end
-
 @doc """`pzmap(sys)``
 
 Create a pole-zero map of the `LTISystem`(s).""" ->
-function pzmap!(fig, system::LTISystem, args...)
+function pzmap!(fig, system::LTISystem, args...; kwargs...)
     if system.nu + system.ny > 2
         warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
 
     z,p,k = zpkdata(system)
-    !isempty(z[1]) && Plots.scatter!(fig,real(z[1]),imag(z[1]),m=:c,markersize=15., markeralpha=0.5, args...)
-    !isempty(p[1]) && Plots.scatter!(fig,real(p[1]),imag(p[1]),m=:x,markersize=15., args...)
+    !isempty(z[1]) && Plots.scatter!(fig,real(z[1]),imag(z[1]),m=:c,markersize=15., markeralpha=0.5, args...; kwargs...)
+    !isempty(p[1]) && Plots.scatter!(fig,real(p[1]),imag(p[1]),m=:x,markersize=15., args...; kwargs...)
     Plots.title!("Pole-zero map")
 
     if system.Ts > 0
@@ -558,21 +512,23 @@ function pzmap!(fig, system::LTISystem, args...)
     return fig
 end
 
-pzmap(system::LTISystem, args...) = pzmap!(Plots.plot(), system::LTISystem, args...)
+pzmap(system::LTISystem, args...; kwargs...) = pzmap!(Plots.plot(), system::LTISystem, args...; kwargs...)
 
-@doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)`
+@doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
 
 Gang-of-Four plot.""" ->
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector)
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false)
     S,D,N,T = gangoffour(P,C)
-    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)])
-    legend("S = \$1/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$","T = \$PC/(1+PC)\$")
+    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase)
+    lower = plotphase ? 3 : 2
+    Plots.plot!(fig[1,1],title="\$S = 1/(1+PC)\$")
+    Plots.plot!(fig[1,2],title="\$D = P/(1+PC)\$")
+    Plots.plot!(fig[lower,1],title="\$N = C/(1+PC)\$")
+    Plots.plot!(fig[lower,2],title="\$T = PC/(1+PC\$)")
     return fig
 end
 
-function gangoffourplot(P::LTISystem,C::LTISystem)
-    S,D,N,T = gangoffour(P,C)
-    fig = bodeplot([S D;N T])
-    legend("S = \$1/(1+PC)\$","D = \$P/(1+PC)\$","N = \$C/(1+PC)\$","T = \$PC/(1+PC)\$")
-    return fig
+
+function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false)
+    gangoffourplot(P,[C], args...; plotphase=plotphase)
 end

@@ -147,14 +147,8 @@ function laglink(a, M; h=0)
     num = [1/a, 1]
     den = [M/a, 1]
     gain = M
-    if h <= 0
-        return tf(gain*num,den)
-    end
-    num = c2d_poly2poly(num,h)
-    den = c2d_poly2poly(den,h)
-    gain *= sum(den)/sum(num)
-    return tf(gain*num,den,h)
-
+    G = tf(gain*num,den)
+    return  h <= 0 ? G : c2d(G,h)
 end
 
 
@@ -165,19 +159,16 @@ Returns a phase advancing link, the top of the phase curve is located at `ω = b
 
 The phase advance at `ω = b√(N)` can be plotted as a function of `N` with `leadlinkcurve()`
 
-See also `leadlinkat`
+Values of `N < 1` will give a phase retarding link.
+
+See also `leadlinkat` `laglink`
 """
 function leadlink(b, N, K; h=0)
     num = [1/b, 1]
     den = [1/(b*N), 1]
     gain = K
-    if h <= 0
-        return tf(gain*num,den)
-    end
-    num = c2d_poly2poly(num,h)
-    den = c2d_poly2poly(den,h)
-    gain *= sum(den)/sum(num)
-    return tf(gain*num,den,h)
+    G = tf(gain*num,den)
+    return  h <= 0 ? G : c2d(G,h)
 
 end
 
@@ -188,7 +179,9 @@ Returns a phase advancing link, the top of the phase curve is located at `ω` wh
 
 The phase advance at `ω` can be plotted as a function of `N` with `leadlinkcurve()`
 
-See also `leadlink`
+Values of `N < 1` will give a phase retarding link.
+
+See also `leadlink` `laglink`
 """
 function leadlinkat(ω, N, K; h=0)
     b = ω / sqrt(N)
@@ -198,10 +191,12 @@ end
 """
 Plot the phase advance as a function of `N` for a lead link (phase advance link)
 
+If an input argument `s` is given, the curve is plotted from `s` to 10, else from 1 to 10.
+
 See also `Leadlink, leadlinkat`
 """
-function leadlinkcurve()
-    N = linspace(1,10)
+function leadlinkcurve(start=1)
+    N = linspace(start,10)
     dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
     Plots.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
 end
