@@ -78,11 +78,12 @@ function lsimplot{T<:LTISystem}(systems::Vector{T}, u::AbstractVecOrMat,
     end
     fig[:text](0.5, 0.04, "Time (s)", ha="center", va="center", size=14)
     fig[:text](0.06, 0.5, "Amplitude", ha="center", va="center",
-    rotation="vertical", size=14)
+        rotation="vertical", size=14)
     PyPlot.draw()
     return fig
 end
-lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) = lsimplot(LTISystem[sys], u, t, args...)
+lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) =
+    lsimplot(LTISystem[sys], u, t, args...)
 
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
@@ -123,16 +124,16 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
             end
             fig[:text](0.5, 0.04, "Time (s)", ha="center", va="center", size=14)
             fig[:text](0.06, 0.5, "Amplitude", ha="center", va="center",
-            rotation="vertical", size=14)
+                rotation="vertical", size=14)
             PyPlot.draw()
             return fig
         end
         $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real) =
-        $funcname(systems, map(_default_Ts, systems), Tf)
+            $funcname(systems, map(_default_Ts, systems), Tf)
         $funcname{T<:LTISystem}(systems::Vector{T}) =
-        $funcname(systems, _default_time_data(systems)...)
+            $funcname(systems, _default_time_data(systems)...)
         $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector) =
-        $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end])
+            $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end])
         $funcname(sys::LTISystem, args...) = $funcname(LTISystem[sys], args...)
     end
 end
@@ -182,7 +183,8 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
 
     return fig
 end
-bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) = bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
+bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) =
+    bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
 bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot(LTISystem[sys], args...; plotphase=plotphase)
 
 @doc """ `nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
@@ -220,7 +222,8 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, ; neg=
     return fig
 end
 
-nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) = nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
+nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+    nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
 nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot(LTISystem[sys], args...; kwargs...)
 
 
@@ -360,7 +363,8 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     return fig
 end
 
-nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) = nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
+nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
+    nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
 nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot(LTISystem[sys],args...; kwargs...)
 
 
@@ -408,7 +412,8 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-sigmaplot{T<:LTISystem}(systems::Vector{T}) = sigmaplot(systems, _default_freq_vector(systems, :sigma))
+sigmaplot{T<:LTISystem}(systems::Vector{T}) =
+    sigmaplot(systems, _default_freq_vector(systems, :sigma))
 sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
 
 
@@ -464,7 +469,8 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     PyPlot.draw()
     return fig
 end
-marginplot{T<:LTISystem}(systems::Vector{T}) = marginplot(systems, _default_freq_vector(systems, :bode))
+marginplot{T<:LTISystem}(systems::Vector{T}) =
+    marginplot(systems, _default_freq_vector(systems, :bode))
 marginplot(sys::LTISystem, args...) = marginplot(LTISystem[sys], args...)
 
 
