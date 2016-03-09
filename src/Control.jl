@@ -1,5 +1,3 @@
-import PyPlot
-
 module Control
 
 export  LTISystem,
@@ -52,7 +50,6 @@ export  LTISystem,
         nyquist,
         sigma
 
-using PyPlot
 import Plots
 
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), call

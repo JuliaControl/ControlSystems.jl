@@ -1,4 +1,4 @@
-import PyPlot, Colors
+import Colors
 export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
 getColorSys(i,Nsys)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8))
@@ -36,9 +36,9 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-@doc """`lsimplot(sys, u, t[, x0, method])`
+@doc """`lsimplot(sys::StateSpace, u, t[, x0, method]), lsimplot(sys::TransferFunction,u,t[,method])`
 
-`lsimplot(LTISystem[sys1, sys2...], u, t[, x0, method])`
+`lsimplot(StateSpace[sys1, sys2...], u, t[, x0, method]), lsimplot(TransferFunction[sys1, sys2...], u, t[, method])`
 
 Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
 ommitted, a zero vector is used.
@@ -46,45 +46,29 @@ ommitted, a zero vector is used.
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.""" ->
-function lsimplot{T<:LTISystem}(systems::Vector{T}, u::AbstractVecOrMat,
+function lsimplot{T<:StateSpace}(systems::Vector{T}, u::AbstractVecOrMat,
     t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
     method::Symbol=_issmooth(u) ? :foh : :zoh)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig, axes = PyPlot.subplots(ny, 1, sharex=true)
-    if ny == 1
-        axes = [axes]
-    end
-    for s = systems
+    fig = Plots.subplot(n=ny, nr=ny)
+    for (si, s) in enumerate(systems)
         y = lsim(s, u, t, x0, method)[1]
         for i=1:ny
-            ax = axes[i]
             ydata = reshape(y[:, i], size(t, 1))
-            if iscontinuous(s)
-                ax[:plot](t, ydata)
-            else
-                ax[:step](t, ydata, where="post")
-            end
+            style = iscontinuous(s) ? :path : :steppost
+            ytext = (ny > 1) ? "Amplitude to: y($i)": "Amplitude"
+            Plots.plot!(fig[i,1], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title="System Response",  lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))...)
         end
     end
-    # Add labels and titles
-    fig[:suptitle]("System Response", size=16)
-    if ny != 1
-        for i=1:ny
-            axes[i, 1][:set_ylabel]("To: y($i)", size=12, color="0.30")
-        end
-    end
-    fig[:text](0.5, 0.04, "Time (s)", ha="center", va="center", size=14)
-    fig[:text](0.06, 0.5, "Amplitude", ha="center", va="center",
-        rotation="vertical", size=14)
-    PyPlot.draw()
     return fig
 end
 lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) =
-    lsimplot(LTISystem[sys], u, t, args...)
-
+    lsimplot(StateSpace[sys], u, t, args...)
+lsimplot{T<:LTISystem}(sys::Vector{T}, u::AbstractVecOrMat, t::AbstractVector, args...) =
+    lsimplot(StateSpace[s for s in sys], u, t, args...)
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
     funcname = Symbol("$(func)plot")
@@ -94,38 +78,20 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                 error("All systems must have the same input/output dimensions")
             end
             ny, nu = size(systems[1])
-            fig, temp = PyPlot.subplots(ny, nu, sharex="col", sharey="row")
-            # Ensure that `axes` is always a matrix of handles
-            axes = ny == 1 ? reshape([temp], ny, nu) : temp
-            for (s, Ts) in zip(systems, Ts_list)
+            fig = Plots.subplot(n = ny*nu, nr = ny)
+            for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
                 t = 0:Ts:Tf
                 y = ($func)(s, t)[1]
                 for i=1:ny
                     for j=1:nu
-                        ax = axes[i, j]
                         ydata = reshape(y[:, i, j], size(t, 1))
-                        if iscontinuous(s)
-                            ax[:plot](t, ydata)
-                        else
-                            ax[:step](t, ydata, where="post")
-                        end
+                        style = iscontinuous(s) ? :path : :steppost
+                        ttext = (nu > 1 && i==1) ? $title*" from: u($j) " : $title
+                        ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)": "Amplitude"
+                        Plots.plot!(fig[i,j], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title=ttext, lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))...)
                     end
                 end
             end
-            # Add labels and titles
-            fig[:suptitle]($title, size=16)
-            if ny*nu != 1
-                for i=1:ny
-                    axes[i, 1][:set_ylabel]("To: y($i)", size=12, color="0.30")
-                end
-                for j=1:nu
-                    axes[1, j][:set_title]("From: u($j)", size=12, color="0.30")
-                end
-            end
-            fig[:text](0.5, 0.04, "Time (s)", ha="center", va="center", size=14)
-            fig[:text](0.06, 0.5, "Amplitude", ha="center", va="center",
-                rotation="vertical", size=14)
-            PyPlot.draw()
             return fig
         end
         $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real) =
@@ -175,7 +141,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
-                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_$(si)\$"; getStyleSys(si,length(systems))...)
+                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))...)
                 plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))...)
             end
         end
@@ -392,24 +358,18 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     end
     ny, nu = size(systems[1])
     nw = length(w)
-    fig, ax = PyPlot.subplots(1, 1)
-    for s = systems
+    fig = Plots.plot()
+    for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
         if _PlotScale == "dB"
             sv = 20*log10(sv)
         end
-        # Plot the first singular value, grab the line color, then plot the
-        # remaining values all in the same color.
-        line = ax[_PlotScaleFunc](w, sv[1, :]')[1]
-        color = line[:get_color]()
-        for i in 2:size(sv, 1)
-            ax[_PlotScaleFunc](w, sv[i, :]', color=color)
+        for i in 1:size(sv, 1)
+            Plots.plot!(fig, w, sv[1,:]', xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))... )
         end
     end
-    ax[:set_title]("Sigma Plot", size=16)
-    ax[:set_xlabel]("Frequency (rad/s)", size=14)
-    ax[:set_ylabel]("Singular Values $_PlotScaleStr", size=14)
-    PyPlot.draw()
+    Plots.plot!(fig, title="Sigma Plot", xlabel="Frequency (rad/s)",
+        ylabel="Singular Values $_PlotScaleStr")
     return fig
 end
 sigmaplot{T<:LTISystem}(systems::Vector{T}) =
@@ -422,16 +382,14 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig = bodeplot(systems,w)
-    fig[:suptitle]("Margin Plot", size=16)
+    fig = bodeplot(systems, w)
 
-    ax = fig[:axes]
-    titles = Array(String,nu,ny,2,2)
+    titles = Array(AbstractString,nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
     titles[:,:,2,1] = "Pm: "
     titles[:,:,1,2] = "Wgm: "
     titles[:,:,2,2] = "Wpm: "
-    for s = systems
+    for (si, s) in enumerate(systems)
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
@@ -443,30 +401,30 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
                     oneLine = 1
                 end
                 for k=1:length(wgm)
-                    ax[2*nu*(i-1)+j][_PlotScaleFunc]([wgm[k];wgm[k]],[1;mag[k]])
+                    #Plot gain margins
+                    Plots.plot!(fig[2i-1,j], [wgm[k];wgm[k]], [1;mag[k]], lab=""; getStyleSys(si,length(systems))...)
                 end
-                ax[2*nu*(i-1)+j][:axhline](oneLine,linestyle="--",color="gray")
-                titles[nu,ny,1,1] *= "["*join([@sprintf("%2.2f",v) for v in gm],", ")*"] "
-                titles[nu,ny,1,2] *= "["*join([@sprintf("%2.2f",v) for v in wgm],", ")*"] "
+                #Plot gain line at 1
+                Plots.plot!(fig[2i-1,j], [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="")
+                titles[j,i,1,1] *= "["*join([@sprintf("%2.2f",v) for v in gm],", ")*"] "
+                titles[j,i,1,2] *= "["*join([@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 for k=1:length(wpm)
-                    ax[nu*(2*i-1)+j][:semilogx]([wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]])
-                    ax[nu*(2*i-1)+j][:axhline](fullPhase[k]-pm[k],linestyle="--",color="gray")
+                    #Plot the phase margins
+                    Plots.plot!(fig[2i,j], [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab=""; getStyleSys(si,length(systems))...)
+                    #Plot the line at 360*k
+                    Plots.plot!(fig[2i,j], [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="")
                 end
-                titles[nu,ny,2,1] *=  "["*join([@sprintf("%2.2f",v) for v in pm],", ")*"] "
-                titles[nu,ny,2,2] *=  "["*join([@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+                titles[j,i,2,1] *=  "["*join([@sprintf("%2.2f",v) for v in pm],", ")*"] "
+                titles[j,i,2,2] *=  "["*join([@sprintf("%2.2f",v) for v in wpm],", ")*"] "
             end
         end
     end
     for j = 1:nu
         for i = 1:ny
-            ax[2*nu*(i-1)+j][:set_title](titles[nu,ny,1,1]*" "*titles[nu,ny,1,2],loc="center")
-            ax[nu*(2*i-1)+j][:set_title](titles[nu,ny,2,1]*" "*titles[nu,ny,2,2],loc="center")
-            #if length(systems) > 1
-            #        PyPlot.legend(["System "*string(k) for k in 1:length(systems)])
-            #end
+            Plots.title!(fig[2i-1,j], titles[j,i,1,1]*" "*titles[j,i,1,2])
+            Plots.title!(fig[2i,j], titles[j,i,2,1]*" "*titles[j,i,2,2])
         end
     end
-    PyPlot.draw()
     return fig
 end
 marginplot{T<:LTISystem}(systems::Vector{T}) =
