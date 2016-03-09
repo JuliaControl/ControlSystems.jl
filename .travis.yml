@@ -5,6 +5,5 @@ notifications:
     email: false
 script:
     - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir())/Control`); Pkg.resolve()'
-    - julia -e 'ENV["PYTHON"]=""; Pkg.build("PyCall")'
     - julia -e 'using Control; @assert isdefined(:Control); @assert typeof(Control) === Module'
     - julia --color=yes test/runtests.jl
