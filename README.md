@@ -9,7 +9,7 @@ A control systems design toolbox for Julia.
 This package is yet to be released, and as such is not in `METADATA` (it should
 be released soon though!). To install, in the Julia REPL:
 
-```
+```julia
 julia> Pkg.clone("https://github.com/JuliaControl/Control.jl.git")
 ```
 
@@ -34,9 +34,7 @@ time and frequency domain, and analyzed for stability/performance properties.
 Here we create a simple position controller for an electric motor with an
 inertial load.
 
-```
-julia> using PyPlot
-
+```julia
 julia> using Control
 
 # Motor parameters
@@ -67,7 +65,7 @@ julia> CLs = LTISystem[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 # Plot the step response of the controllers
 julia> stepplot(CLs);
 
-julia> legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
+julia> PyPlot.legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
 ```
 
 ![StepResponse](/example/step_response.png)

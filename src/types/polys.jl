@@ -4,7 +4,7 @@
 # the bare functions required for TransferFunction support. 
 
 Base.eps{T}(::Type{T}) = zero(T)
-Base.eps{F<:FloatingPoint}(x::Type{F}) = Base.eps(F)
+Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
 Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 
 immutable Poly{T<:Number}
@@ -59,9 +59,9 @@ function print_poly{T}(io::IO, p::Poly{T}, var=:x)
             magpj = abs(pj)
             if magpj > 2*eps(T)
                 if j == 1 
-                    pj < 0 && print(io, "-")    #Prepend - if first and negative
+                    real(pj) < 0 && print(io, "-")    #Prepend - if first and negative
                 else
-                    pj < 0 ? print(io," - ") : print(io," + ")
+                    real(pj) < 0 ? print(io," - ") : print(io," + ")
                 end
                 #Print pj if pj is the last coefficient, or pj is not identically 1
                 if j == n || abs(magpj - 1) > 2*eps(T)

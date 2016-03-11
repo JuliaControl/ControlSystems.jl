@@ -73,6 +73,19 @@ function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0; kwargs...)
     return StateSpace(A, B, C, D, Ts, statenames, inputnames, outputnames)
 end
 
+# Function for accepting scalars
+function ss(A::Union{Real,Array}, B::Union{Real,Array}, C::Union{Real,Array}, D::Union{Real,Array}, args...; kwargs...)
+    A = float64mat(A)
+    B = float64mat(B)
+    C = float64mat(C)
+    if D == 0
+        D = zeros(size(C,1),size(B,2))
+    else
+        D = float64mat(D)
+    end
+    ss(A, B, C, D, args..., kwargs...)
+end
+
 # Function for creation of static gain
 function ss(D::Array, Ts::Real=0; kwargs...)
     ny, nu = size(D, 1, 2)

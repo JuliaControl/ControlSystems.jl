@@ -134,11 +134,11 @@ z, p, k = zpkdata(G)
 @test_array_vecs_eps p sol_p 10*eps(Complex128)
 @test k == sol_k
 
-## GAIN ##
-@test [gain(H[1, 1]) gain(H[1, 2]); gain(H[2, 1]) gain(H[2, 2])] == sol_k
-@test [gain(G[1, 1]) gain(G[1, 2]); gain(G[2, 1]) gain(G[2, 2])] == sol_k
-@test_err gain(H)
-@test_err gain(G)
+## GAIN ## #Gain is confusing when referring to zpkdata. Test dcgain instead
+@test [dcgain(H[1, 1]) dcgain(H[1, 2]); dcgain(H[2, 1]) dcgain(H[2, 2])] ≈ [0 0; 0.2 1/3]
+@test [dcgain(G[1, 1]) dcgain(G[1, 2]); dcgain(G[2, 1]) dcgain(G[2, 2])] ≈ [0 0; 0.2 1/3]
+@test_err dcgain(H)
+@test_err dcgain(G)
 
 ## MARKOVPARAM ##
 @test markovparam(G, 0) == [0.0 0.0; 1.0 0.0]

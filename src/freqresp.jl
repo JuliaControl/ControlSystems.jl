@@ -66,14 +66,18 @@ function evalfr(sys::TransferFunction, s::Number)
     return res
 end
 
-function evalfr(sys::SisoTf, s::Number)
-    S = promote_type(typeof(s), Float64)
-    den = polyval(sys.den, s)
-    if den == zero(S)
-        convert(S, Inf)
-    else
-        polyval(sys.num, s)/den
-    end
+function Base.call(sys::TransferFunction, s)
+    evalfr(sys,s)
+end
+
+function Base.call(sys::TransferFunction, s::Number, map_to_unit_circle::Bool)
+    @assert !Control.iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    evalfr(sys,exp(im*s.*sys.Ts))
+end
+
+function Base.call(sys::TransferFunction, s::AbstractVector, map_to_unit_circle::Bool)
+    @assert !Control.iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    freqresp(sys,s)
 end
 
 @doc """`mag, phase, w = bode(sys[, w])`
@@ -82,7 +86,7 @@ Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`""" ->
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
-    return abs(resp), rad2deg(angle(resp)), w
+    return abs(resp), unwrap!(rad2deg(angle(resp))), w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
 
@@ -111,7 +115,7 @@ function sigma(sys::LTISystem, w::AbstractVector)
 end
 sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, :sigma))
 
-function _default_freq_vector(systems::Vector{LTISystem}, plot::Symbol)
+function _default_freq_vector{T<:LTISystem}(systems::Vector{T}, plot::Symbol)
     min_pt_per_dec = 60
     min_pt_total = 200
     nsys = length(systems)
@@ -158,4 +162,12 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
         w2 = 2
     end
     return [w1, w2], zp
+end
+
+function unwrap!(m::Array)
+    for i = 2:size(m,3)
+        d = m[:,:,i] - m[:,:,i-1]
+        m[:,:,i] -= floor((d+180) / (360)) * 360
+    end
+    return m
 end
