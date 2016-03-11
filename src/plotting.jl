@@ -333,21 +333,6 @@ nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
     nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
 nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot(LTISystem[sys],args...; kwargs...)
 
-
-function unwrap(ϕ)
-    if length(ϕ) == 1
-        return ϕ
-    end
-    δϕ = diff(ϕ)
-    δϕs = mod(δϕ+π,2π) - π
-    δϕs[(δϕs.==-π) & (δϕ.>0)] = π
-    δϕadd = δϕs - δϕ
-    δϕadd[abs(δϕ).<π] = 0
-
-    ϕ[2:end] = ϕ[2:end] + cumsum(δϕadd)
-    return ϕ
-end
-
 @doc """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A

@@ -86,7 +86,7 @@ Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`""" ->
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
-    return abs(resp), unwrap!(rad2deg(angle(resp))), w
+    return abs(resp), rad2deg(unwrap!(angle(resp),3)), w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
 
@@ -164,10 +164,3 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
     return [w1, w2], zp
 end
 
-function unwrap!(m::Array)
-    for i = 2:size(m,3)
-        d = m[:,:,i] - m[:,:,i-1]
-        m[:,:,i] -= floor((d+180) / (360)) * 360
-    end
-    return m
-end

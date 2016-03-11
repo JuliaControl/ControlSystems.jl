@@ -82,3 +82,19 @@ function format_names(names::Vector{UTF8String}, default::AbstractString, unknow
         return names
     end
 end
+
+function unwrap!(m::AbstractArray, dim=1)
+    for i = 2:size(m, dim)
+        #This is a copy of slicedim from the JuliaLang but enables us to write to it
+        #For the code (with dim=1) is equivalent to
+        # d = m[i,:,:,...,:] - m[i-1,:,...,:]
+        # m[i,:,:,...,:] = floor((d+180) / (360)) * 360
+        alldims(i) = [ n==dim ? i : (1:size(m,n)) for n in 1:ndims(m) ]
+        d = m[alldims(i)...] - m[alldims(i-1)...]
+        m[alldims(i)...] -= floor((d+π) / 2π) * 2π
+    end
+    return m
+end
+
+unwrap(m::AbstractArray, args...) = unwrap!(copy(m), args...)
+unwrap(x::Number) = x
