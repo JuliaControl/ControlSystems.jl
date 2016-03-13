@@ -20,7 +20,6 @@ Compute the dcgain of system `sys`.
 equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
 function dcgain(sys::TransferFunction)
     !issiso(sys) && error("Gain only defined for siso systems")
-    s = sys.matrix[1, 1]
     if sys.Ts > 0
         return map(s->sum(s.num.a)/sum(s.den.a), sys.matrix)
     end
@@ -101,8 +100,8 @@ function damp(sys::LTISystem)
     order = sortperm(Wn)
     Wn = Wn[order]
     ps = ps[order]
-    zeta = -cos(angle(ps))
-    return Wn, zeta, ps
+    ζ = -cos(angle(ps))
+    return Wn, ζ, ps
 end
 
 @doc """`dampreport(sys)`
@@ -270,7 +269,6 @@ function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMa
         end
     end
     if full
-        print(fullPhase)
         wgm, gm, wpm, pm, fullPhase
     else
         wgm, gm, wpm, pm
@@ -388,7 +386,7 @@ function delaymargin(G::LTISystem)
     dₘ
 end
 
-@doc """`S,D,N,T = gangoffour(P,C)`, gangoffour(P::AbstractVector,C::AbstractVector)
+@doc """`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 
@@ -426,19 +424,31 @@ function gangoffour(P::AbstractVector, C::AbstractVector)
 end
 
 function gangoffour(P::TransferFunction, C::AbstractVector)
-    gangoffour(LTISystem[P for i = 1:length(C)], C)
+    gangoffour(fill(P,length(C)), C)
+end
+
+function gangoffour(P::AbstractVector, C::TransferFunction)
+    gangoffour(P, fill(C,length(P)))
 end
 
 @doc """`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
 
-Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`, computes the four transfer functions in the Gang-of-Four.
-S = 1/(1+PC) Sensitivity function
-D = P/(1+PC)
-N = C/(1+PC)
-T = PC/(1+PC) Complementary sensitivity function
-RY = PCF/(1+PC)
-RU = CF/(1+P*C)
-RE = F/(1+P*C)
+Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
+computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
+
+`S = 1/(1+PC)` Sensitivity function
+
+`D = P/(1+PC)`
+
+`N = C/(1+PC)`
+
+`T = PC/(1+PC)` Complementary sensitivity function
+
+`RY = PCF/(1+PC)`
+
+`RU = CF/(1+P*C)`
+
+`RE = F/(1+P*C)`
 
 Only supports SISO systems""" ->
 function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)

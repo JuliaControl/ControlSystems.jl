@@ -59,10 +59,10 @@ function place(sys::StateSpace, p)
 end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p
-function acker(A,B,p)
-  n = length(p)
+function acker(A,B,P)
+  n = length(P)
   #Calculate characteristic polynomial
-  poly = reduce(*,Poly([1]),[Poly([1, -pi]) for pi in p])
+  poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
   q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
   for i = n:-1:0
       q += A^(n-i)*poly[i+1]

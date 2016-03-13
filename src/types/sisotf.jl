@@ -43,7 +43,7 @@ Base.promote_rule{T<:Real}(::Type{SisoRational}, ::Type{T}) = SisoRational
 Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 
 Base.zero(::Type{SisoRational}) = SisoRational(zero(Poly{Float64}), one(Poly{Float64}))
-Base.zero(t::SisoRational) = Base.zero(SisoRational)
+Base.zero(::SisoRational) = Base.zero(SisoRational)
 
 Base.length(t::SisoRational) = max(length(t.num), length(t.den))
 

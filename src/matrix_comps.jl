@@ -69,7 +69,7 @@ end
 
 Compute the solution "X" to the discrete Lyapunov equation
 "AXA' - X + Q = 0".
-"""
+""" ->
 function dlyap(A, Q)
     lhs = kron(A, conj(A))
     lhs = eye(size(lhs, 1)) - lhs
@@ -122,7 +122,7 @@ obsv(sys::StateSpace) = obsv(sys.A, sys.C)
 @doc """`ctrb(A, B)` or `ctrb(sys)`
 
 Compute the controllability matrix for the system described by `(A, B)` or
-`sys`. 
+`sys`.
 
 Note that checking for controllability by computing the rank from
 `obsv` is not the most numerically accurate way, a better method is
@@ -182,19 +182,19 @@ function balance(A, perm::Bool=true)
     n = Base.LinAlg.chksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
-    ilo, ihi, scale = LAPACK.gebal!(job, B)
+    ilo, ihi, scaling = LAPACK.gebal!(job, B)
 
-    S = diagm(scale)
+    S = diagm(scaling)
     for j = 1:(ilo-1)   S[j,j] = 1 end
     for j = (ihi+1):n   S[j,j] = 1 end
 
     P = eye(Int, n)
     if perm
         if ilo > 1
-            for j = (ilo-1):-1:1 cswap!(j, round(Int, scale[j]), P) end
+            for j = (ilo-1):-1:1 cswap!(j, round(Int, scaling[j]), P) end
         end
         if ihi < n
-            for j = (ihi+1):n    cswap!(j, round(Int, scale[j]), P) end
+            for j = (ihi+1):n    cswap!(j, round(Int, scaling[j]), P) end
         end
     end
     return S, P, B
