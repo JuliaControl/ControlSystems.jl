@@ -1,6 +1,6 @@
 module TestFreqResp
 using CustomTest
-using Control
+using ControlSystems
 
 ## EVALFR ##
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]

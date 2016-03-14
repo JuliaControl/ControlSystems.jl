@@ -1,6 +1,6 @@
 module TestTransferFunction
 using CustomTest
-using Control
+using ControlSystems
 
 # Naming convention:
 # ------------------

@@ -1,6 +1,6 @@
 module TestDiscrete
 using CustomTest
-using Control
+using ControlSystems
 
 C_111 = ss([-5], [2], [3], [0])
 C_212 = ss([-5 -3; 2 -9], [1; 2], eye(2), [0; 0])
@@ -16,7 +16,7 @@ macro test_c2d(ex, sys_sol, mat_sol)
 end
 @test c2d(ss(4*eye(2)), 0.5, :zoh) == (ss(4*eye(2), 0.5), zeros(0, 2))
 @test c2d(ss(4*eye(2)), 0.5, :foh) == (ss(4*eye(2), 0.5), zeros(0, 2))
-@test_c2d(c2d(C_111, 0.01, :zoh), 
+@test_c2d(c2d(C_111, 0.01, :zoh),
 ss([0.951229424500714], [0.019508230199714396], [3], [0], 0.01), [1 0])
 @test_c2d(c2d(C_111, 0.01, :foh),
 ss([0.951229424500714], [0.01902855227625244], [3], [0.029506188017136226], 0.01),

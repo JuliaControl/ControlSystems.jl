@@ -1,6 +1,6 @@
 module TestSimplification
 using CustomTest
-using Control
+using ControlSystems
 
 ## SMINREAL ##
 G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
