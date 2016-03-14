@@ -1,5 +1,3 @@
-import Base.LinAlg: BlasFloat
-
 @doc """`care(A, B, Q, R)`
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
