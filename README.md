@@ -1,6 +1,6 @@
 # Control.jl
 
-[![Build Status](https://travis-ci.org/JuliaControl/Control.jl.svg)](https://travis-ci.org/JuliaControl/Control.jl)
+[![Build Status](https://travis-ci.org/JuliaControl/Control.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/Control.jl)
 
 A control systems design toolbox for Julia.
 
