@@ -117,7 +117,7 @@ zpk(sys::StateSpace) = zpk(ss2tf(sys))
 
 function charpoly(A)
     λ = eigvals(A);
-    p = reduce(*,Control.Poly([1.]), Control.Poly[Control.Poly([1, -λᵢ]) for λᵢ in λ]);
+    p = reduce(*,ControlSystems.Poly([1.]), ControlSystems.Poly[ControlSystems.Poly([1, -λᵢ]) for λᵢ in λ]);
     if maximum(imag(p[:])) < sqrt(eps())
         for i = 1:length(p)
             p[i] = real(p[i])

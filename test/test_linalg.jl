@@ -1,6 +1,6 @@
 module TestLinAlg
 using CustomTest
-using Control
+using ControlSystems
 a = [-3 2;1 1]
 b = [0  1]'
 c = [1 -1]
@@ -45,7 +45,7 @@ D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
 @test norm(ss([1],[2],[3],[4])) == Inf
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
-T, P, B = Control.balance(A)
+T, P, B = ControlSystems.balance(A)
 # The scaling is BLAS dependent. However, the ratio should be the same on all
 # machines. We just need to check that T == res * constant
 res_diag = [512, 8, 0.0625]

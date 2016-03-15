@@ -1,5 +1,5 @@
 module CustomTest
-using Control
+using ControlSystems
 import Base.Test: @test, @test_throws, Success, Failure, Error, with_handler
 export @test, @test_throws, @test_approx_eq, @test_approx_eq_eps, @test_err, runtests, vecarray
 

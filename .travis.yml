@@ -4,6 +4,6 @@ julia:
 notifications:
     email: false
 script:
-    - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir())/Control`); Pkg.resolve()'
-    - julia -e 'using Control; @assert isdefined(:Control); @assert typeof(Control) === Module'
+    - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir())/ControlSystems`); Pkg.resolve()'
+    - julia -e 'using ControlSystems; @assert isdefined(:ControlSystems); @assert typeof(ControlSystems) === Module'
     - julia --color=yes test/runtests.jl
