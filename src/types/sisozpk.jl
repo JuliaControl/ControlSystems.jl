@@ -40,7 +40,7 @@ function minreal(sys::SisoZpk, eps::Real)
     newP = Vector{Complex{Float64}}()
     doubles = Vector{Int64}()
     newZ = copy(sys.z)
-    for (pi, p) in enumerate(sys.p)
+    for  p in sys.p
         if !isempty(newZ)
             val, zi = findmin(abs(p-newZ))
         else
@@ -135,7 +135,7 @@ Base.promote_rule{T<:Real}(::Type{SisoZpk}, ::Type{T}) = SisoZpk
 Base.convert(::Type{SisoZpk}, b::Real) = SisoZpk([], [], b)
 
 Base.zero(::Type{SisoZpk}) = SisoZpk([],[],0.0)
-Base.zero(t::SisoZpk) = Base.zero(SisoZpk)
+Base.zero(::SisoZpk) = Base.zero(SisoZpk)
 
 Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
@@ -166,7 +166,7 @@ end
 .-(t::SisoZpk, n::Real) = -(t, n)
 .-(n::Real, t::SisoZpk) = -(n, t)
 
--(t::SisoZpk) = SisoZpk(t.z, t.p, -z.k)
+-(t::SisoZpk) = SisoZpk(t.z, t.p, -t.k)
 
 *(t1::SisoZpk, t2::SisoZpk) = SisoZpk([t1.z;t2.z], [t1.p;t2.p], t1.k*t2.k)
 *(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k*n)
@@ -175,6 +175,6 @@ end
 .*(t::SisoZpk, n::Real) = *(t, n)
 .*(n::Real, t::SisoZpk) = *(t, n)
 
-/(n::Real, t::SisoZpk) = SisoZpk(t.p, t.z, 1/t.k)
-/(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, 1/t.k)
+/(n::Real, t::SisoZpk) = SisoZpk(t.p, t.z, n/t.k)
+/(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k/n)
 /(t1::SisoZpk, t2::SisoZpk) = t1*(1/t2)

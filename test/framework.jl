@@ -13,7 +13,7 @@ global TEST_DATA = TestData(0, 0, false)
 term_cs = Base.tty_size()[2]
 linebreak(lns::Int=0) = println(repeat("\n", lns), repeat("-", term_cs))
 
-function run_test(file::String, term_cs=term_cs)
+function run_test(file::AbstractString, term_cs=term_cs)
     print("* $file")
     include("$file.jl")
     spacing = repeat(" ", max(0, term_cs - length(file) - 8))
@@ -23,7 +23,7 @@ function run_test(file::String, term_cs=term_cs)
     TEST_DATA.failed = false
 end
 
-custom_handler(r::Success) = nothing
+custom_handler(::Success) = nothing
 
 function custom_handler(r::Failure)
     TEST_DATA.nfail += 1

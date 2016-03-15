@@ -215,9 +215,9 @@ function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, cont
     end
 
     dt = Float64(t[2] - t[1])
-    if !ControlSystems.iscontinuous(sys) || method == :zoh
-        if ControlSystems.iscontinuous(sys)
-            dsys = ControlSystems.c2d(sys, dt, :zoh)[1]
+    if !iscontinuous(sys) || method == :zoh
+        if iscontinuous(sys)
+            dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
@@ -225,7 +225,7 @@ function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, cont
             dsys = sys
         end
     else
-        dsys, x0map = ControlSystems.c2d(sys, dt, :foh)
+        dsys, x0map = c2d(sys, dt, :foh)
     end
     n = size(t, 1)
     x = Array(T, size(sys.A, 1), n)
@@ -261,7 +261,7 @@ function indirect_str(state, y, u,uc, nb,na, lambda,bm1,am,ao,ar=[1],as=[1])
 
     a = [1;theta[1:na]]
     b = theta[na+1:end]
-    r,s,t = ControlSystems.rstd([1],b,a,bm1,am,ao,ar,as)
+    r,s,t = rstd([1],b,a,bm1,am,ao,ar,as)
     uo = r⋅u[end:-1:end-length(r)+1] + s⋅y[end-1:-1:end-length(s)] + t⋅uc[end:-1:end-length(t)+1]
 
     return uo,state

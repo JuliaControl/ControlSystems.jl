@@ -60,13 +60,13 @@ float64mat(A::Real) = float64mat([A])
 function validate_names(kwargs, key, n)
     names = get(kwargs, key, "")
     if names == ""
-        return UTF8String[names for i = 1:n]
-    elseif isa(names, Vector) && eltype(names) <: UTF8String
-        return names
-    elseif isa(names, UTF8String)
+        return fill(UTF8String(""), n)
+    elseif isa(names, Vector) && eltype(names) <: AbstractString
+        return UTF8String[names[i] for i = 1:n]
+    elseif isa(names, AbstractString)
         return UTF8String[names * "$i" for i = 1:n]
     else
-        error("$key must be of type `UTF8String` or Vector{UTF8String}")
+        error("$key must be of type `AbstractString` or Vector{AbstractString}")
     end
 end
 
@@ -77,24 +77,25 @@ function format_names(names::Vector{UTF8String}, default::AbstractString, unknow
         return UTF8String[default * string(i) for i=1:n]
     else
         for (i, n) in enumerate(names)
-            names[i] = (n == "") ? unknown : n
+            names[i] = UTF8String((n == "") ? unknown : n)
         end
         return names
     end
 end
 
-function unwrap!(m::AbstractArray, dim=1)
-    for i = 2:size(m, dim)
+function unwrap!(M::Array, dim=1)
+    alldims(i) = [ n==dim ? i : (1:size(M,n)) for n in 1:ndims(M) ]
+    for i = 2:size(M, dim)
         #This is a copy of slicedim from the JuliaLang but enables us to write to it
-        #For the code (with dim=1) is equivalent to
-        # d = m[i,:,:,...,:] - m[i-1,:,...,:]
-        # m[i,:,:,...,:] = floor((d+180) / (360)) * 360
-        alldims(i) = [ n==dim ? i : (1:size(m,n)) for n in 1:ndims(m) ]
-        d = m[alldims(i)...] - m[alldims(i-1)...]
-        m[alldims(i)...] -= floor((d+π) / 2π) * 2π
+        #The code (with dim=1) is equivalent to
+        # d = M[i,:,:,...,:] - M[i-1,:,...,:]
+        # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
+        d = M[alldims(i)...] - M[alldims(i-1)...]
+        M[alldims(i)...] -= floor((d+π) / 2π) * 2π
     end
-    return m
+    return M
 end
 
-unwrap(m::AbstractArray, args...) = unwrap!(copy(m), args...)
+#Collect will create a copy and collect the elements
+unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
