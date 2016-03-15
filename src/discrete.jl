@@ -261,11 +261,7 @@ function indirect_str(state, y, u,uc, nb,na, lambda,bm1,am,ao,ar=[1],as=[1])
 
     a = [1;theta[1:na]]
     b = theta[na+1:end]
-<<<<<<< HEAD
     r,s,t = rstd([1],b,a,bm1,am,ao,ar,as)
-=======
-    r,s,t = ControlSystems.rstd([1],b,a,bm1,am,ao,ar,as)
->>>>>>> master
     uo = r⋅u[end:-1:end-length(r)+1] + s⋅y[end-1:-1:end-length(s)] + t⋅uc[end:-1:end-length(t)+1]
 
     return uo,state
