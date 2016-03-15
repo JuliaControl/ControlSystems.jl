@@ -1,16 +1,15 @@
-# Control.jl
+# ControlSystems.jl
 
-[![Build Status](https://travis-ci.org/JuliaControl/Control.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/Control.jl)
+[![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
 
 A control systems design toolbox for Julia.
 
 ## Installation
 
-This package is yet to be released, and as such is not in `METADATA` (it should
-be released soon though!). To install, in the Julia REPL:
+To install, in the Julia REPL:
 
 ```julia
-julia> Pkg.clone("https://github.com/JuliaControl/Control.jl.git")
+julia> Pkg.clone("https://github.com/JuliaControl/ControlSystems.jl.git")
 ```
 
 Note that this package requires Julia 0.4.
@@ -35,7 +34,7 @@ Here we create a simple position controller for an electric motor with an
 inertial load.
 
 ```julia
-julia> using Control
+julia> using ControlSystems
 
 # Motor parameters
 julia> J = 2.0

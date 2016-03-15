@@ -1,5 +1,5 @@
 module CustomTest
-using Control
+using ControlSystems
 import Base.Test: @test, @test_throws, Success, Failure, Error, with_handler
 export @test, @test_throws, @test_approx_eq, @test_approx_eq_eps, @test_err, runtests, vecarray
 
@@ -18,7 +18,7 @@ function run_test(file::String, term_cs=term_cs)
     include("$file.jl")
     spacing = repeat(" ", max(0, term_cs - length(file) - 8))
     if !TEST_DATA.failed
-        println(spacing, "\033[1m\033[32mPASSED\033[0m") 
+        println(spacing, "\033[1m\033[32mPASSED\033[0m")
     end
     TEST_DATA.failed = false
 end

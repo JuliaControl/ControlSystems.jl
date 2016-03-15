@@ -1,6 +1,6 @@
 module TestConnections
 using CustomTest
-using Control
+using ControlSystems
 
 ## STATE SPACE ##
 # CONTINUOUS

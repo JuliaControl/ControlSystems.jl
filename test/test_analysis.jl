@@ -1,6 +1,6 @@
 module TestAnalysis
 using CustomTest
-using Control
+using ControlSystems
 
 ## TZERO ##
 # Examples from the Emami-Naeini & Van Dooren Paper

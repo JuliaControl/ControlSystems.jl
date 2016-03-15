@@ -1,4 +1,4 @@
-module Control
+module ControlSystems
 
 export  LTISystem,
         StateSpace,
@@ -72,6 +72,6 @@ include("plotting.jl")
 include("pid_design.jl")
 
 # The path has to be evaluated upon initial import
-const __CONTROL_SOURCE_DIR__ = dirname(Base.source_path())
+const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())
 
 end

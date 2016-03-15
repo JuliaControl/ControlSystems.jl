@@ -67,7 +67,7 @@ end
 
 #Just default SisoTf to SisoRational
 SisoTf(args...) = SisoRational(args...)
-Base.convert(::Type{Control.SisoTf}, b::Real) = Base.convert(Control.SisoRational, b)
+Base.convert(::Type{ControlSystems.SisoTf}, b::Real) = Base.convert(ControlSystems.SisoRational, b)
 Base.zero(::Type{SisoTf}) = zero(SisoRational)
 Base.zero(t::SisoTf) = zero(SisoRational)
 

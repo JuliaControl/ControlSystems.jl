@@ -1,6 +1,6 @@
 module TestLinAlg
 using CustomTest
-using Control
+using ControlSystems
 a = [-3 2;1 1]
 b = [0  1]'
 c = [1 -1]
