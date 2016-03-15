@@ -254,8 +254,8 @@ function Base.getindex(t::TransferFunction, inds...)
     rows, cols = inds
     mat = Array(eltype(t.matrix), length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    innames = length(cols) > 1 ? collect(t.inputnames[cols]) : [t.inputnames[cols]]
-    outnames = length(rows) > 1 ? collect(t.outputnames[rows]) : [t.inputnames[rows]]
+    innames = UTF8String[t.inputnames[i] for i in cols]
+    outnames = UTF8String[t.outputnames[i] for i in rows]
     return TransferFunction(mat, t.Ts, innames, outnames)
 end
 

@@ -74,6 +74,9 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test size(C_222) == (2, 2)
 @test size(C_212) == (2, 1)
 @test C_222[1,1] == tf([1, 2, 3], [1, 8, 15])
+@test C_222[1:1,1] == tf([1, 2, 3], [1, 8, 15])
+@test C_222[1,1:2] == C_221
+@test size(C_222[1,[]]) == (1,0)
 
 # Printing
 res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2.0s + 3.0\n-----------"*
