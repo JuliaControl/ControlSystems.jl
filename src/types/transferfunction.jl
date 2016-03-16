@@ -44,7 +44,7 @@ Base.promote_rule(::Type{SisoTf}, ::Type{SisoRational}) = SisoRational
 function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)
     for j=1:size(b,2)
-        r[j] = vcat(map(r->tf([r],[1]),b[:,j])...)
+        r[j] = vcat(map(s->tf([s],[1]),b[:,j])...)
     end
     hcat(r...)
 end
@@ -67,9 +67,9 @@ end
 
 #Just default SisoTf to SisoRational
 SisoTf(args...) = SisoRational(args...)
-Base.convert(::Type{Control.SisoTf}, b::Real) = Base.convert(Control.SisoRational, b)
+Base.convert(::Type{ControlSystems.SisoTf}, b::Real) = Base.convert(ControlSystems.SisoRational, b)
 Base.zero(::Type{SisoTf}) = zero(SisoRational)
-Base.zero(t::SisoTf) = zero(SisoRational)
+Base.zero(::SisoTf) = zero(SisoRational)
 
 tzero(sys::SisoTf) = roots(sys.num)
 #####################################################################
@@ -187,25 +187,25 @@ function zpk(tf::TransferFunction)
     return tf
 end
 
-function tf(tf::TransferFunction)
-    tf = copy(tf)
-    matrix = Array(SisoRational, tf.ny, tf.nu)
-    for o=1:tf.ny
-        for i=1:tf.nu
-            matrix[o, i] = convert(SisoRational, tf.matrix[o, i])
+function tf(s::TransferFunction)
+    s = copy(s)
+    matrix = Array(SisoRational, s.ny, s.nu)
+    for o=1:s.ny
+        for i=1:s.nu
+            matrix[o, i] = convert(SisoRational, s.matrix[o, i])
         end
     end
-    tf.matrix = matrix
-    return tf
+    s.matrix = matrix
+    return s
 end
 
-tf(num::Vector, den::Vector, args...; kwargs...) =
-    tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), args...; kwargs...)
+tf(num::Vector, den::Vector, Ts::Real=0; kwargs...) =
+    tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), Ts; kwargs...)
 
-tf(num::Real, den::Vector, args...; kwargs...) = tf([num], den, args...; kwargs...)
+tf(num::Real, den::Vector, Ts::Real=0; kwargs...) = tf([num], den, Ts; kwargs...)
 
-zpk(z::Vector, p::Vector, k::Real, args...; kwargs...) =
-    zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), args...; kwargs...)
+zpk(z::Vector, p::Vector, k::Real, Ts::Real=0; kwargs...) =
+    zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), Ts; kwargs...)
 
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
@@ -222,7 +222,7 @@ function tf(gain::Array, Ts::Real=0; kwargs...)
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts; kwargs...)
-zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k; kwargs...)
+zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k, Ts; kwargs...)
 
 # Function for creation of 's' or 'z' var
 function tf(var::AbstractString)
@@ -306,14 +306,14 @@ function +(t1::TransferFunction, t2::TransferFunction)
     elseif all(t2.inputnames .== "") || (t1.inputnames == t2.inputnames)
         inputnames = t1.inputnames
     else
-        inputnames = UTF8String["" for i = 1:t1.ny]
+        inputnames = fill(UTF8String(""),t1.ny)
     end
     if all(t1.outputnames .== "")
         outputnames = t2.outputnames
     elseif all(t2.outputnames .== "") || (t1.outputnames == t2.outputnames)
         outputnames = t1.outputnames
     else
-        outputnames = UTF8String["" for i = 1:t1.nu]
+        outputnames = fill(UTF8String(""),t1.nu)
     end
     t1, t2 = promote(t1, t2)
     matrix = t1.matrix + t2.matrix
@@ -373,13 +373,13 @@ function Base.show(io::IO, t::TransferFunction)
     inputs = format_names(t.inputnames, "Input ", "?")
     outputs = format_names(t.outputnames, "Output ", "?")
     println(io, "TransferFunction:")
-    var = iscontinuous(t) ? :s : :z
+    tftype = iscontinuous(t) ? :s : :z
     for i=1:t.nu
         for o=1:t.ny
             if !issiso(t)
                 println(io, inputs[i], " to ", outputs[o])
             end
-                print_siso(io, t.matrix[o, i], var)
+                print_siso(io, t.matrix[o, i], tftype)
             if !(i == t.nu && o == t.ny)
                 print(io, "\n")
             end

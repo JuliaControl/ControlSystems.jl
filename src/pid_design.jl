@@ -125,10 +125,10 @@ end
 """
 `rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
 """
-function rlocus(P::LTISystem, K=0)
-    K = K == 0 ? linspace(1e-6,500,10000) : K
+function rlocus(P::LTISystem, K=[])
+    K = isempty(K) ? linspace(1e-6,500,10000) : K
     Z = tzero(P)
-    poles = map(K -> pole(K*P/(1+K*P)), K)
+    poles = map(k -> pole(k*P/(1+k*P)), K)
     poles = cat(2,poles...)'
     redata = real(poles)
     imdata = imag(poles)
@@ -144,10 +144,10 @@ end
 Returns a phase retarding link, the rule of thumb `a = 0.1ωc` guarantees less than 6 degrees phase margin loss. The bode curve will go from `M`, bend down at `a/M` and level out at 1 for frequencies > `a`
 """
 function laglink(a, M; h=0)
-    num = [1/a, 1]
-    den = [M/a, 1]
+    numerator = [1/a, 1]
+    denominator = [M/a, 1]
     gain = M
-    G = tf(gain*num,den)
+    G = tf(gain*numerator,denominator)
     return  h <= 0 ? G : c2d(G,h)
 end
 
@@ -164,10 +164,10 @@ Values of `N < 1` will give a phase retarding link.
 See also `leadlinkat` `laglink`
 """
 function leadlink(b, N, K; h=0)
-    num = [1/b, 1]
-    den = [1/(b*N), 1]
+    numerator = [1/b, 1]
+    denominator = [1/(b*N), 1]
     gain = K
-    G = tf(gain*num,den)
+    G = tf(gain*numerator,denominator)
     return  h <= 0 ? G : c2d(G,h)
 
 end

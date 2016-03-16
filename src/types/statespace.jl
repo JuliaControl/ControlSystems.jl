@@ -138,7 +138,7 @@ function +(s1::StateSpace, s2::StateSpace)
         error("Sampling time mismatch")
     end
 
-    A = [s1.A zeros(s1.nx, s2.nx); 
+    A = [s1.A zeros(s1.nx, s2.nx);
          zeros(s2.nx, s1.nx) s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
@@ -153,14 +153,14 @@ function +(s1::StateSpace, s2::StateSpace)
     elseif all(s2.inputnames .== "") || (s1.inputnames == s2.inputnames)
         inputnames = s1.inputnames
     else
-        inputnames = UTF8String["" for i = 1:s1.ny]
+        inputnames = fill(UTF8String(""),s1.ny)
     end
     if all(s1.outputnames .== "")
         outputnames = s2.outputnames
     elseif all(s2.outputnames .== "") || (s1.outputnames == s2.outputnames)
         outputnames = s1.outputnames
     else
-        outputnames = UTF8String["" for i = 1:s1.nu]
+        outputnames = fill(UTF8String(""),s1.nu)
     end
     return StateSpace(A, B, C, D, s1.Ts, statenames, inputnames, outputnames)
 end
@@ -210,7 +210,7 @@ function /(n::Real, s::StateSpace)
     # Ensure s.D is invertible
     Dinv = try
         inv(s.D)
-    catch 
+    catch
         error("D isn't invertible")
     end
     return StateSpace(s.A - s.B*Dinv*s.C, s.B*Dinv, -n*Dinv*s.C, n*Dinv, s.Ts,
@@ -223,7 +223,7 @@ end
 #####################################################################
 ##                       Indexing Functions                        ##
 #####################################################################
-Base.ndims(s::StateSpace) = 2
+Base.ndims(::StateSpace) = 2
 Base.size(s::StateSpace) = (s.ny, s.nu)
 Base.size(s::StateSpace, d) = d <= 2 ? size(s)[d] : 1
 
@@ -245,7 +245,7 @@ function _string_mat_with_headers(X::Matrix, cols::Vector{UTF8String},
                                 rows::Vector{UTF8String})
     mat = [[""] cols';
            rows X]
-    p = (io, mat) -> Base.showarray(io, mat, header=false, repr=false)
+    p = (io, m) -> Base.showarray(io, m, header=false, repr=false)
     return replace(sprint(p, mat), "\"", " ")
 end
 

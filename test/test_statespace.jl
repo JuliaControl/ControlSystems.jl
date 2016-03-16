@@ -1,6 +1,6 @@
 module TestStateSpace
 using CustomTest
-using Control
+using ControlSystems
 # Naming convention:
 # ------------------
 # {type}[S]_{dims}[_d]
