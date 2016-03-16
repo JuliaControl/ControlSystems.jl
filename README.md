@@ -16,7 +16,7 @@ Note that this package requires Julia 0.4.
 
 ## Documentation
 
-All exported functions have docstrings, which can be viewed from the REPL. A
+Some of the exported functions have docstrings, which can be viewed from the REPL. A
 documentation website is on the list of things to do...
 
 ## Usage
@@ -59,7 +59,7 @@ TransferFunction:
 Continuous-time transfer function model
 
 # Create an array of closed loop systems for different values of Kp
-julia> CLs = [kp*P/(1 + kp*P) for kp = [1, 5, 15]];
+julia> CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 julia> stepplot(CLs);
