@@ -4,6 +4,7 @@ julia:
 notifications:
     email: false
 script:
-    - julia -e 'Pkg.init(); run(`ln -s $(pwd()) $(Pkg.dir())/ControlSystems`); Pkg.resolve()'
-    - julia -e 'using ControlSystems; @assert isdefined(:ControlSystems); @assert typeof(ControlSystems) === Module'
-    - julia --color=yes test/runtests.jl
+    - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
+    - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
+after_success:
+    - julia -e 'cd(Pkg.dir("ControlSystems")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
