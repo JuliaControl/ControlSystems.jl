@@ -1,6 +1,7 @@
 # ControlSystems.jl
 
 [![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
+[![Coverage Status](https://coveralls.io/repos/github/JuliaControl/ControlSystems.jl/badge.svg?branch=tests)](https://coveralls.io/github/JuliaControl/ControlSystems.jl?branch=tests)
 
 A control systems design toolbox for Julia.
 
