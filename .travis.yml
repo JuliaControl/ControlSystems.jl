@@ -4,6 +4,7 @@ julia:
 notifications:
     email: false
 script:
+    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
     - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
     - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
 after_success:
