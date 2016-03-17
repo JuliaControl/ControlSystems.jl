@@ -1,7 +1,7 @@
 # Taken and modified from https://github.com/vtjnash/Polynomial.jl
 # Polynomial.jl was deprecated in favor of Polynomials.jl, which uses reversed
 # indexing. The former was copied to this file, and modified/trimmed to just
-# the bare functions required for TransferFunction support. 
+# the bare functions required for TransferFunction support.
 
 Base.eps{T}(::Type{T}) = zero(T)
 Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
@@ -58,7 +58,7 @@ function print_poly{T}(io::IO, p::Poly{T}, var=:x)
             pj = p[j]
             magpj = abs(pj)
             if magpj > 2*eps(T)
-                if j == 1 
+                if j == 1
                     real(pj) < 0 && print(io, "-")    #Prepend - if first and negative
                 else
                     real(pj) < 0 ? print(io," - ") : print(io," + ")
@@ -175,6 +175,14 @@ function ==(p1::Poly, p2::Poly)
         return false
     else
         return p1.a[p1.nzfirst:end] == p2.a[p2.nzfirst:end]
+    end
+end
+
+function isapprox(p1::Poly, p2::Poly)
+    if length(p1) != length(p2)
+        return false
+    else
+        return p1.a[p1.nzfirst:end] ≈ p2.a[p2.nzfirst:end]
     end
 end
 

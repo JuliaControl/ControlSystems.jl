@@ -86,13 +86,14 @@ function zp2polys(vec)
     polys
 end
 
-function evalfr(sys::SisoRational, s::Number)
+function evalfr(sys::SisoZpk, s::Number)
     S = promote_type(typeof(s), Float64)
-    den = polyval(sys.den, s)
+    den = reduce(*, (poly) -> polyval(poly, s), zp2polys(sys.p))
     if den == zero(S)
-        convert(S, Inf)
+        return convert(S, Inf)
     else
-        polyval(sys.num, s)/den
+        num = reduce(*, (poly) -> polyval(poly, s), zp2polys(sys.z))
+        return sys.k*num/den
     end
 end
 
@@ -141,6 +142,10 @@ Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
 
 ==(t1::SisoZpk, t2::SisoZpk) = (t1.z == t2.z && t1.p == t2.p && t1.k == t2.k)
+function isapprox(t1::SisoZpk, t2::SisoZpk, res = sqrt(eps()))
+    tdiff = minreal(t1 - t2, sqrt(res))
+    norm(tdiff.k) ≈ 0
+end
 
 function +(t1::SisoZpk, t2::SisoZpk)
   numPoly = t1.k*prod(zp2polys(t1.z))*prod(zp2polys(t2.p))+t2.k*prod(zp2polys(t2.z))*prod(zp2polys(t1.p))

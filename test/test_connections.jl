@@ -96,4 +96,24 @@ s = tf("s")
 @test [D_111 Dtf_221] == [D_111 ss(Dtf_221)]
 @test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
 @test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
+
+# Combination tfRational and sisoZpk
+Czpk_111 = zpk([-2],[-5],1)
+Czpk_211 = zpk([-1+sqrt(2)im,-1-sqrt(2)im], [-5,-3],1)
+Czpk_212 = zpk(vecarray(2, 1, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(2, 1, [-5,-3], [-5,-3]), [1;1])
+Czpk_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2, [-5,-3], [-5,-3]), [1 1])
+Czpk_222 = [Czpk_221; Czpk_221]
+Czpk_022 = [zpk([],[],4) 0; 0 zpk([],[],4)]
+
+@test_approx_eq Czpk_111 Ctf_111
+@test_approx_eq Czpk_211 Ctf_211
+@test_approx_eq Czpk_212 Ctf_212
+@test_approx_eq Czpk_221 Ctf_221
+@test_approx_eq Czpk_222 Ctf_222
+@test_approx_eq Czpk_022 Ctf_022
+
+@test_approx_eq Czpk_222 [Ctf_221; Czpk_221]
+
+#This might fail depending on if minreal is used or not
+@test_approx_eq (Czpk_211+1) (Ctf_211+1)
 end

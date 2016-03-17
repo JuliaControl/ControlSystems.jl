@@ -94,6 +94,28 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
        "(seconds)\nDiscrete-time transfer function model")
 @test sprint(show, D_222) == res
 
+# Type stability Continuous-time
+@test eltype(fill(tf("s"),2)) <: TransferFunction
+@test eltype(fill(tf([1],[1,1]),2)) <: TransferFunction
+@test eltype(fill(tf(1.0,[1,1]),2)) <: TransferFunction
+@test eltype(fill(tf([1 2; 3 4]),2)) <: TransferFunction
+@test eltype(fill(tf(1)+tf(2),2)) <: TransferFunction
+@test eltype(fill(tf(1)/tf(2),2)) <: TransferFunction
+@test eltype(fill(tf(1)+1,2)) <: TransferFunction
+
+@test eltype([tf(1), zpk(1)]) <: TransferFunction
+
+# Type stability Discrete-time
+@test eltype(fill(tf("z",1.0),2)) <: TransferFunction
+@test eltype(fill(tf([1],[1,1],1),2)) <: TransferFunction
+@test eltype(fill(tf(1.0,[1,1],1),2)) <: TransferFunction
+@test eltype(fill(tf([1 2; 3 4],1),2)) <: TransferFunction
+@test eltype(fill(tf(1,1)+tf(2,1),2)) <: TransferFunction
+@test eltype(fill(tf(1,1)/tf(2,1),2)) <: TransferFunction
+@test eltype(fill(tf(1,1.0)+1,2)) <: TransferFunction
+
+@test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
+
 # Errors
 @test_err C_111 + C_222             # Dimension mismatch
 @test_err C_111 - C_222             # Dimension mismatch
