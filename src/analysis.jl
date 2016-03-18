@@ -3,7 +3,7 @@
 Compute the poles of system `sys`.""" ->
 pole(sys::StateSpace) = eig(sys.A)[1]
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
-pole(sys::SisoTf) = roots(sys.den)
+pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 @doc """`dcgain(sys)`
 

@@ -39,6 +39,12 @@ function print_siso(io::IO, t::SisoRational, var=:s)
     println(io, denstr)
 end
 
+function print_compact(io::Base.IO, t::SisoRational, var=:s)
+    numstr = sprint(print_poly, t.num, var)
+    denstr = sprint(print_poly, t.den, var)
+    println(io, "($numstr)/($denstr)")
+end
+
 Base.promote_rule{T<:Real}(::Type{SisoRational}, ::Type{T}) = SisoRational
 Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 
@@ -70,6 +76,9 @@ function evalfr(sys::SisoRational, s::Number)
         polyval(sys.num, s)/den
     end
 end
+
+tzero(t::SisoRational) = roots(t.num)
+pole(t::SisoRational) = roots(t.den)
 
 ==(t1::SisoRational, t2::SisoRational) = (t1.num == t2.num && t1.den == t2.den)
 # We might want to consider alowing scaled num and den as equal

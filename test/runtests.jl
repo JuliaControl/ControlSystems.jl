@@ -3,6 +3,7 @@ using CustomTest
 
 my_tests = ["test_statespace",
             "test_transferfunction",
+            "test_generalizedtf",
             "test_analysis",
             "test_connections",
             "test_discrete",

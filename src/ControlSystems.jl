@@ -5,6 +5,7 @@ export  LTISystem,
         TransferFunction,
         ss,
         tf,
+        tfg,
         zpk,
         ss2tf,
         # Linear Algebra
@@ -51,8 +52,7 @@ export  LTISystem,
         sigma
 
 import Plots
-
-import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call
+import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call, convert
 
 include("types/lti.jl")
 include("types/transferfunction.jl")

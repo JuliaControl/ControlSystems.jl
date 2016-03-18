@@ -103,8 +103,6 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
 @test eltype(fill(tf(1)/tf(2),2)) <: TransferFunction
 @test eltype(fill(tf(1)+1,2)) <: TransferFunction
 
-@test eltype([tf(1), zpk(1)]) <: TransferFunction
-
 # Type stability Discrete-time
 @test eltype(fill(tf("z",1.0),2)) <: TransferFunction
 @test eltype(fill(tf([1],[1,1],1),2)) <: TransferFunction
@@ -113,8 +111,6 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
 @test eltype(fill(tf(1,1)+tf(2,1),2)) <: TransferFunction
 @test eltype(fill(tf(1,1)/tf(2,1),2)) <: TransferFunction
 @test eltype(fill(tf(1,1.0)+1,2)) <: TransferFunction
-
-@test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
 
 # Errors
 @test_err C_111 + C_222             # Dimension mismatch

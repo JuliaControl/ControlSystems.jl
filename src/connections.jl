@@ -33,6 +33,12 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
+#This is needed until julia removes deprecated vect()
+function Base.vect(sys::Union{LTISystem, Real}...)
+    T = Base.promote_typeof(sys...)
+    copy!(Array(T,length(sys)), sys)
+end
+
 function Base.vcat(systems::StateSpace...)
     # Perform checks
     nu = systems[1].nu
@@ -78,7 +84,7 @@ end
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
 function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
-    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+    if promote_type(map(e->typeof(e),systems)...) <: TransferFunction
         vcat(map(e->convert(TransferFunction,e),systems)...)
     else
         cat(1,systems...)
@@ -130,7 +136,7 @@ end
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
 function Base.hcat{T<:Real}(systems::Union{T,VecOrMat{T},TransferFunction}...)
-    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+    if promote_type(map(e->typeof(e),systems)...) <: TransferFunction
         hcat(map(e->convert(TransferFunction,e),systems)...)
     else
         cat(2,systems...)
