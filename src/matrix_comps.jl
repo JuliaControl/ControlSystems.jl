@@ -171,6 +171,10 @@ function Base.norm(sys::StateSpace, p::Real=2)
     end
 end
 
+function Base.norm(sys::TransferFunction, p::Real=2)
+    return Base.norm(ss(sys),p)
+end
+
 @doc """`T, B = balance(A[, perm=true])`
 
 Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row

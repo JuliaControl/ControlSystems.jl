@@ -7,7 +7,7 @@
 Returns `true` if `sys` is stable, else returns `false`.""" ->
 function isstable(sys::LTISystem)
     if sys.Ts == 0
-        if any(real(pole(sys)).>0)
+        if any(real(pole(sys)).>=0)
             return false
         end
     else

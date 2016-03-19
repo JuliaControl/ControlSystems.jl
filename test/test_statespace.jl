@@ -3,11 +3,12 @@ using CustomTest
 using ControlSystems
 # Naming convention:
 # ------------------
-# {type}[S]_{dims}[_d]
+# {type}[S]_{dims}[_d][_n]
 # type: C: Continuous, D: Discrete
 # scalar: add "S" if any input is scalar
 # dims: "nxnuny"
 # feedthrough: append "_d" if `D` is present
+# names: append "_n" if some inputs/outputs/states are named
 
 # SCALARS
 a_2 = [-5 -3; 2 -9]
@@ -36,6 +37,10 @@ D_221 = ss(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
 D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
 D_222_d = ss(da_2, [1 0; 0 2], eye(2), eye(2), 0.005)
 D_022 = ss(4*eye(2), 0.005)
+
+# Definition of input, output and state names
+C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2), 
+  statenames=["i","u"],inputnames=UTF8String("e"),outputnames="theta")
 
 # TESTS
 # Contstuct with scalars
@@ -78,6 +83,11 @@ D_022 = ss(4*eye(2), 0.005)
 @test size(C_222) == (2, 2)
 @test size(C_212) == (2, 1)
 @test C_222[1,1] == ss([-5 -3; 2 -9],[1; 0],[1 0],[0])
+
+# Naming signals
+@test C_222_d_n.statenames == UTF8String["i","u"]
+@test C_222_d_n.inputnames == UTF8String["e1","e2"]
+@test C_222_d_n.outputnames == UTF8String["theta1","theta2"]
 
 # Printing
 res = ("StateSpace:\nA = \n          x1      x2 \n  x1   -5.0    -3.0  \n  x2"*
