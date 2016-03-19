@@ -16,9 +16,21 @@ Note that this package requires Julia 0.4.
 
 ## Documentation
 
-All exported functions have docstrings, which can be viewed from the REPL. A
-documentation website is on the list of things to do...
-
+Some of the exported functions have docstrings, which can be viewed from the REPL, using for example `?tf `. A
+documentation website is on the list of things to do.
+Some of the available commands are:
+##### Constructing systems
+ss, tf, zpk, ss2tf
+##### Analysis
+pole, tzero, norm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma
+##### Synthesis
+care, dare, dlyap, lqr, dlqr, place, pid, leadlink, laglink, leadlinkat, rstd, dab
+##### Time and Frequency response
+step, impulse, lsim, freqresp, evalfr, bode, nyquist
+##### Plotting
+lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
+##### Other
+minreal, sminreal, c2d
 ## Usage
 
 This toolbox works similar to that of other major computer-aided control
@@ -59,7 +71,7 @@ TransferFunction:
 Continuous-time transfer function model
 
 # Create an array of closed loop systems for different values of Kp
-julia> CLs = [kp*P/(1 + kp*P) for kp = [1, 5, 15]];
+julia> CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 julia> stepplot(CLs);
