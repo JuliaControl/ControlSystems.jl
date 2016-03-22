@@ -10,4 +10,5 @@ script:
 after_success:
     - julia -e 'cd(Pkg.dir("ControlSystems")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
     - julia -e 'Pkg.clone("https://github.com/MichaelHatherly/Lapidary.jl")'
+    - julia -e 'ENV["PYTHON"]=""; Pkg.build("PyCall"); Pkg.add("PyPlot")'
     - julia -e 'cd(Pkg.dir("ControlSystems")); include(joinpath("docs", "make.jl"))'

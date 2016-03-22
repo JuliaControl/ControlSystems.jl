@@ -1,13 +1,21 @@
-# ControlSystems.jl Documentation
+    {meta}
+    CurrentModule = ControlSystems
+
+## ControlSystems.jl Manual
 
     {contents}
-    
-## Creating TransferFunctions
+    Pages = ["man/introduction.md", "man/creatingtfs.md"]
 
-    {docs}
-    tf(x)
-    zpk(x)
+## Examples
+    {contents}
+    Pages = ["example.md"]
 
-## Index
+## Functions
+
+    {contents}
+    Pages = ["lib/constructors.md", "lib/plotting.md"]
+
+## Documentation Index
 
     {index}
+    Pages = ["lib/constructors.md", "lib/plotting.md"]

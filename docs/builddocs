@@ -1,0 +1,2 @@
+julia make.jl
+mkdocs build --clean

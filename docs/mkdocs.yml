@@ -20,4 +20,11 @@ markdown_extensions:
 docs_dir: 'build'
 
 pages:
-  - Home: index.md
+  - Home: 'index.md'
+  - Examples: 'example.md'
+  - Manual:
+    - Introduction: 'man/introduction.md'
+    - 'Creating Transfer Functions': man/creatingtfs.md
+  - Functions:
+    - Plotting: 'lib/plotting.md'
+    - Constructors: 'lib/constructors.md'   

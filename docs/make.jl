@@ -1,6 +1,8 @@
-using Lapidary, ControlSystems
+using Lapidary, ControlSystems, Plots
 
-makedocs()
+makedocs(modules=[ControlSystems])
+
+include("src/makeplots.jl")
 
 deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
