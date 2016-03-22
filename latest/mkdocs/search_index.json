@@ -1,0 +1,24 @@
+{
+    "docs": [
+        {
+            "location": "/", 
+            "text": "ControlSystems.jl Documentation\n\n\n\n\nControlSystems.jl Documentation\n\n\nCreating TransferFunctions\n\n\nIndex\n\n\n\n\n\n\n\n\n\n\nCreating TransferFunctions\n\n\n#\n\n\nControlSystems.tf\n \n \nMethod\n.\n\n\n\n\ntf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)\n Create transfer function as a fraction of polynomials:\n\n\nsys = numerator/denominator\n\n\nnum\n: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nden\n: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nTs\n: Sample time or \n0\n for continuous system.\n\n\nkwargs\n: \ninputnames\n, \noutputnames\n: Arrays of strings representing the inputs and outputs.\n\n\nOther uses:\n\n\ntf(sys)\n: Convert \nsys\n to \ntf\n form.\n\n\ntf(\"s\")\n, \ntf(\"z\")\n: Create the continous transferfunction \ns\n.\n\n\n#\n\n\nControlSystems.zpk\n \n \nMethod\n.\n\n\n\n\nzpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)\n Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.\n\n\nsys = k*numerator/denominator\n\n\nnum\n: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nden\n: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nk\n: The gain of the system. Obs, this is not the same as \ndcgain\n.\n\n\nTs\n: Sample time or \n0\n for continuous system.\n\n\nkwargs\n: \ninputnames\n, \noutputnames\n: Arrays of strings representing the inputs and outputs.\n\n\nOther uses:\n\n\ntf(sys)\n: Convert \nsys\n to \ntf\n form.\n\n\ntf(\"s\")\n: Create the transferfunction \ns\n.\n\n\n\n\nIndex\n\n\n\n\nControlSystems.tf\n\n\nControlSystems.zpk", 
+            "title": "Home"
+        }, 
+        {
+            "location": "/#controlsystemsjl-documentation", 
+            "text": "ControlSystems.jl Documentation  Creating TransferFunctions  Index", 
+            "title": "ControlSystems.jl Documentation"
+        }, 
+        {
+            "location": "/#creating-transferfunctions", 
+            "text": "#  ControlSystems.tf     Method .   tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)  Create transfer function as a fraction of polynomials:  sys = numerator/denominator  num : the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.  den : the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.  Ts : Sample time or  0  for continuous system.  kwargs :  inputnames ,  outputnames : Arrays of strings representing the inputs and outputs.  Other uses:  tf(sys) : Convert  sys  to  tf  form.  tf(\"s\") ,  tf(\"z\") : Create the continous transferfunction  s .  #  ControlSystems.zpk     Method .   zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)  Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.  sys = k*numerator/denominator  num : the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.  den : the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.  k : The gain of the system. Obs, this is not the same as  dcgain .  Ts : Sample time or  0  for continuous system.  kwargs :  inputnames ,  outputnames : Arrays of strings representing the inputs and outputs.  Other uses:  tf(sys) : Convert  sys  to  tf  form.  tf(\"s\") : Create the transferfunction  s .", 
+            "title": "Creating TransferFunctions"
+        }, 
+        {
+            "location": "/#index", 
+            "text": "ControlSystems.tf  ControlSystems.zpk", 
+            "title": "Index"
+        }
+    ]
+}
