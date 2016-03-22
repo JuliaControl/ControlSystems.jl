@@ -21,7 +21,7 @@ docs_dir: 'build'
 
 pages:
   - Home: 'index.md'
-  - Examples: 'example.md'
+  - Examples: 'examples/example.md'
   - Manual:
     - Introduction: 'man/introduction.md'
     - 'Creating Transfer Functions': man/creatingtfs.md
