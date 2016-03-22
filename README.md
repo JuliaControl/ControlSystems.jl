@@ -80,3 +80,6 @@ julia> PyPlot.legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
 ```
 
 ![StepResponse](/example/step_response.png)
+
+### Additional examples
+See the examples folder
