@@ -77,6 +77,8 @@ zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
+# Test that number of poles matter
+@test !(zpk([],[1,1],1) == zpk([],[1],1))
 # TODO test printing when it is implemented better
 
 # Type stability Continuous and discrete time

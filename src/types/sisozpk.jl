@@ -141,7 +141,7 @@ Base.zero(::SisoZpk) = Base.zero(SisoZpk)
 Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
 
-==(t1::SisoZpk, t2::SisoZpk) = (Set(t1.z) == Set(t2.z) && Set(t1.p) == Set(t2.p) && t1.k == t2.k)
+==(t1::SisoZpk, t2::SisoZpk) = (t1-t2).k == 0.0
 function isapprox(t1::SisoZpk, t2::SisoZpk, res = sqrt(eps()))
     tdiff = t1 - t2
     isapprox(tdiff.k, 0, atol=res)
