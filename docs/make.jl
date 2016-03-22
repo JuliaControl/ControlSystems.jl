@@ -3,5 +3,5 @@ using Lapidary, ControlSystems
 makedocs()
 
 deploydocs(
-    repo = "https://github.com/JuliaControl/ControlSystems.jl"
+    repo = "github.com/JuliaControl/ControlSystems.jl.git"
 )
