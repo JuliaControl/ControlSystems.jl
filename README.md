@@ -24,7 +24,9 @@ ss, tf, zpk, ss2tf
 ##### Analysis
 pole, tzero, norm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma
 ##### Synthesis
-care, dare, dlyap, lqr, dlqr, place, pid, leadlink, laglink, leadlinkat, rstd, rstc, dab
+care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab
+###### PID design
+pid, stabregionPID, loopshapingPI, pidplots
 ##### Time and Frequency response
 step, impulse, lsim, freqresp, evalfr, bode, nyquist
 ##### Plotting
