@@ -1,6 +1,8 @@
 pwd()
 mkdir("docs/build/plots")
 
+Plots.pyplot()
+
 ## PID design functions
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
