@@ -1,4 +1,4 @@
-export rstd, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, zpconv#, lsima, indirect_str
+export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, zpconv#, lsima, indirect_str
 
 
 @doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
@@ -44,40 +44,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         sys.outputnames), x0map
 end
 
-
-
-"""
-rstd  Polynomial synthesis in discrete time.
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)`
-
-Polynomial synthesis according to CCS ch 10 to
-design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
-
-Inputs:  BPLUS  : Part of open loop numerator
-BMINUS : Part of open loop numerator
-A      : Open loop denominator
-BM1    : Additional zeros
-AM     : Closed loop denominator
-AO     : Observer polynomial
-AR     : Pre-specified factor of R,
-e.g integral part [1, -1]^k
-AS     : Pre-specified factor of S,
-e.g notch filter [1, 0, w^2]
-
-Outputs: R,S,T  : Polynomials in controller
-
-See function DAB how the solution to the Diophantine-
-Aryabhatta-Bezout identity is chosen.
-
-See Computer-Controlled Systems: Theory and Design, Third Edition
-Karl Johan Åström, Björn Wittenmark
-"""
-function rstd(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1])
+function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
 
     ae      = conv(a,ar)
     be      = conv(bminus,as)
@@ -88,7 +55,7 @@ function rstd(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1])
     s       = conv(s1,as)
 
     bm      = conv(bminus,bm1)
-    t0      = sum(am)/sum(bm)
+    t0      = (cont ? am[end]/bm[end] : sum(am)/sum(bm))
     t       = t0*conv(ao,bm1)
     s       = s/r[1]
     t       = t/r[1]
@@ -97,6 +64,37 @@ function rstd(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1])
     r,s,t
 end
 
+
+
+"""
+See ?rstd for the discerte case
+"""
+rstc(args...)=rst(args..., ;cont=true)
+
+"""
+rstd  Polynomial synthesis in discrete time.
+`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)`
+`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)`
+`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)`
+Polynomial synthesis according to CCS ch 10 to
+design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
+Inputs:  BPLUS  : Part of open loop numerator
+BMINUS : Part of open loop numerator
+A      : Open loop denominator
+BM1    : Additional zeros
+AM     : Closed loop denominator
+AO     : Observer polynomial
+AR     : Pre-specified factor of R,
+e.g integral part [1, -1]^k
+AS     : Pre-specified factor of S,
+e.g notch filter [1, 0, w^2]
+Outputs: R,S,T  : Polynomials in controller
+See function DAB how the solution to the Diophantine-
+Aryabhatta-Bezout identity is chosen.
+See Computer-Controlled Systems: Theory and Design, Third Edition
+Karl Johan Åström, Björn Wittenmark
+"""
+rstd(args...)=rst(args..., ;cont=false)
 
 """
 DAB   Solves the Diophantine-Aryabhatta-Bezout identity
