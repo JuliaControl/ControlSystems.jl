@@ -2,23 +2,108 @@
     "docs": [
         {
             "location": "/", 
-            "text": "ControlSystems.jl Documentation\n\n\n\n\nControlSystems.jl Documentation\n\n\nCreating TransferFunctions\n\n\nIndex\n\n\n\n\n\n\n\n\n\n\nCreating TransferFunctions\n\n\n#\n\n\nControlSystems.tf\n \n \nMethod\n.\n\n\n\n\ntf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)\n Create transfer function as a fraction of polynomials:\n\n\nsys = numerator/denominator\n\n\nnum\n: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nden\n: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nTs\n: Sample time or \n0\n for continuous system.\n\n\nkwargs\n: \ninputnames\n, \noutputnames\n: Arrays of strings representing the inputs and outputs.\n\n\nOther uses:\n\n\ntf(sys)\n: Convert \nsys\n to \ntf\n form.\n\n\ntf(\"s\")\n, \ntf(\"z\")\n: Create the continous transferfunction \ns\n.\n\n\n#\n\n\nControlSystems.zpk\n \n \nMethod\n.\n\n\n\n\nzpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)\n Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.\n\n\nsys = k*numerator/denominator\n\n\nnum\n: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nden\n: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nk\n: The gain of the system. Obs, this is not the same as \ndcgain\n.\n\n\nTs\n: Sample time or \n0\n for continuous system.\n\n\nkwargs\n: \ninputnames\n, \noutputnames\n: Arrays of strings representing the inputs and outputs.\n\n\nOther uses:\n\n\ntf(sys)\n: Convert \nsys\n to \ntf\n form.\n\n\ntf(\"s\")\n: Create the transferfunction \ns\n.\n\n\n\n\nIndex\n\n\n\n\nControlSystems.tf\n\n\nControlSystems.zpk", 
+            "text": "ControlSystems.jl Manual\n\n\n\n\nIntroduction\n\n\nInstallation\n\n\n\n\n\n\nCreating Transfer Function\n\n\ntf\n\n\n\n\n\n\n\n\n\n\nExamples\n\n\n\n\nFunctions\n\n\n\n\nSome idex?\n\n\nConstructors\n\n\nPlotting\n\n\nPlotting function\n\n\n\n\n\n\n\n\n\n\nDocumentation Index\n\n\n\n\nControlSystems.tf\n\n\nControlSystems.zpk\n\n\nControlSystems.bodeplot\n\n\nControlSystems.impulseplot\n\n\nControlSystems.nicholsplot\n\n\nControlSystems.stepplot", 
             "title": "Home"
         }, 
         {
-            "location": "/#controlsystemsjl-documentation", 
-            "text": "ControlSystems.jl Documentation  Creating TransferFunctions  Index", 
-            "title": "ControlSystems.jl Documentation"
+            "location": "/#controlsystemsjl-manual", 
+            "text": "Introduction  Installation    Creating Transfer Function  tf", 
+            "title": "ControlSystems.jl Manual"
         }, 
         {
-            "location": "/#creating-transferfunctions", 
-            "text": "#  ControlSystems.tf     Method .   tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)  Create transfer function as a fraction of polynomials:  sys = numerator/denominator  num : the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.  den : the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.  Ts : Sample time or  0  for continuous system.  kwargs :  inputnames ,  outputnames : Arrays of strings representing the inputs and outputs.  Other uses:  tf(sys) : Convert  sys  to  tf  form.  tf(\"s\") ,  tf(\"z\") : Create the continous transferfunction  s .  #  ControlSystems.zpk     Method .   zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)  Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.  sys = k*numerator/denominator  num : the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.  den : the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.  k : The gain of the system. Obs, this is not the same as  dcgain .  Ts : Sample time or  0  for continuous system.  kwargs :  inputnames ,  outputnames : Arrays of strings representing the inputs and outputs.  Other uses:  tf(sys) : Convert  sys  to  tf  form.  tf(\"s\") : Create the transferfunction  s .", 
-            "title": "Creating TransferFunctions"
+            "location": "/#examples", 
+            "text": "", 
+            "title": "Examples"
         }, 
         {
-            "location": "/#index", 
+            "location": "/#functions", 
+            "text": "Some idex?  Constructors  Plotting  Plotting function", 
+            "title": "Functions"
+        }, 
+        {
+            "location": "/#documentation-index", 
+            "text": "ControlSystems.tf  ControlSystems.zpk  ControlSystems.bodeplot  ControlSystems.impulseplot  ControlSystems.nicholsplot  ControlSystems.stepplot", 
+            "title": "Documentation Index"
+        }, 
+        {
+            "location": "/examples/example/", 
+            "text": "PID design functions\n\n\nBy plotting the gang of four under unit feedback for the process\n\n\nP = tf(1,[1,1])^4\ngangoffourplot(P,tf(1))\n\n\n\n\n\n\nwe notice that the sensitivity function is a bit too high at around frequencies \u03c9 = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the function \nloopshapingPI\n and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.\n\n\n\u03c9p = 0.8\nkp,ki,C = loopshapingPI(P,\u03c9p,phasemargin=60, doplot=true)\n\n\n\n\n\n\nAdvanced pole-zero placement\n\n\nThis example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.\n\n\nDefine the process\n\n\n\u03b6 = 0.2\n\u03c9 = 1\n\nB = [1]\nA   = [1, 2\u03b6*\u03c9, \u03c9^2]\nP  = tf(B,A)\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 0.4s + 1.0\n\nContinuous-time transfer function model\n\n\n\n\nDefine the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system\n\n\n\u03b60 = 0.7\n\u03c90 = 2\nAm = [1, 2\u03b60*\u03c90, \u03c90^2]\nAo = conv(2Am, [1/2, 1]) # Observer polynomial\nAR = [1,0] # Force the controller to contain an integrator\n\nB\u207a  = [1] # The process numerator polynomial can be facored as B = B\u207aB\u207b where B\u207b contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)\nB\u207b  = [1]\nBm  = conv(B\u207a, B\u207b) # In this case, keep the entire numerator polynomial of the process\n\nR,S,T = rstc(B\u207a,B\u207b,A,bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials\n\nGcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output\n\nstepplot([P,Gcl]) # Visualize the open and closed loop responses.\ngangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK\n\n\n\n\n\n\nStability boundary for PID controllers\n\n\nThe stability boundary, where the transfer function \nP(s)C(s) = -1\n, can be plotted with the command \nstabregionPID\n. The process can be given in string form or as a regular LTIsystem.\n\n\nP1 = \nexp(-sqrt(s))\n\nf1 = stabregionPID(P1,logspace(-5,1,1000))\nP2 = \n100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2)\n\nf2 = stabregionPID(P2,logspace(-5,2,1000))\nP3 = tf(1,[1,1])^4\nf3 = stabregionPID(P3,logspace(-5,0,1000))", 
+            "title": "Examples"
+        }, 
+        {
+            "location": "/examples/example/#pid-design-functions", 
+            "text": "By plotting the gang of four under unit feedback for the process  P = tf(1,[1,1])^4\ngangoffourplot(P,tf(1))   we notice that the sensitivity function is a bit too high at around frequencies \u03c9 = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the function  loopshapingPI  and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.  \u03c9p = 0.8\nkp,ki,C = loopshapingPI(P,\u03c9p,phasemargin=60, doplot=true)", 
+            "title": "PID design functions"
+        }, 
+        {
+            "location": "/examples/example/#advanced-pole-zero-placement", 
+            "text": "This example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.  Define the process  \u03b6 = 0.2\n\u03c9 = 1\n\nB = [1]\nA   = [1, 2\u03b6*\u03c9, \u03c9^2]\nP  = tf(B,A)\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 0.4s + 1.0\n\nContinuous-time transfer function model  Define the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system  \u03b60 = 0.7\n\u03c90 = 2\nAm = [1, 2\u03b60*\u03c90, \u03c90^2]\nAo = conv(2Am, [1/2, 1]) # Observer polynomial\nAR = [1,0] # Force the controller to contain an integrator\n\nB\u207a  = [1] # The process numerator polynomial can be facored as B = B\u207aB\u207b where B\u207b contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)\nB\u207b  = [1]\nBm  = conv(B\u207a, B\u207b) # In this case, keep the entire numerator polynomial of the process\n\nR,S,T = rstc(B\u207a,B\u207b,A,bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials\n\nGcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output\n\nstepplot([P,Gcl]) # Visualize the open and closed loop responses.\ngangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK", 
+            "title": "Advanced pole-zero placement"
+        }, 
+        {
+            "location": "/examples/example/#stability-boundary-for-pid-controllers", 
+            "text": "The stability boundary, where the transfer function  P(s)C(s) = -1 , can be plotted with the command  stabregionPID . The process can be given in string form or as a regular LTIsystem.  P1 =  exp(-sqrt(s)) \nf1 = stabregionPID(P1,logspace(-5,1,1000))\nP2 =  100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2) \nf2 = stabregionPID(P2,logspace(-5,2,1000))\nP3 = tf(1,[1,1])^4\nf3 = stabregionPID(P3,logspace(-5,0,1000))", 
+            "title": "Stability boundary for PID controllers"
+        }, 
+        {
+            "location": "/man/introduction/", 
+            "text": "Introduction\n\n\n\n\nInstallation\n\n\nHow do you install this stuff? SOme text about running\n\n\nPkg.add(\nControlSystems\n)", 
+            "title": "Introduction"
+        }, 
+        {
+            "location": "/man/introduction/#introduction", 
+            "text": "", 
+            "title": "Introduction"
+        }, 
+        {
+            "location": "/man/introduction/#installation", 
+            "text": "How do you install this stuff? SOme text about running  Pkg.add( ControlSystems )", 
+            "title": "Installation"
+        }, 
+        {
+            "location": "/man/creatingtfs/", 
+            "text": "Creating Transfer Function\n\n\n\n\ntf\n\n\nIts easy! Just run\n\n\ntf(num, den, Ts)", 
+            "title": "Creating Transfer Functions"
+        }, 
+        {
+            "location": "/man/creatingtfs/#creating-transfer-function", 
+            "text": "", 
+            "title": "Creating Transfer Function"
+        }, 
+        {
+            "location": "/man/creatingtfs/#tf", 
+            "text": "Its easy! Just run  tf(num, den, Ts)", 
+            "title": "tf"
+        }, 
+        {
+            "location": "/lib/plotting/", 
+            "text": "Plotting\n\n\n\n\nControlSystems.bodeplot\n\n\nControlSystems.impulseplot\n\n\nControlSystems.nicholsplot\n\n\nControlSystems.stepplot\n\n\n\n\n\n\nPlotting function\n\n\n#\n\n\nControlSystems.bodeplot\n \n \nFunction\n.\n\n\n\n\nbodeplot(sys, args...)\n, \nbodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)\n\n\nCreate a Bode plot of the \nLTISystem\n(s). A frequency vector \nw\n can be optionally provided.\n\n\n#\n\n\nControlSystems.stepplot\n \n \nFunction\n.\n\n\n\n\nstepplot(sys, args...)\n, \nstepplot(LTISystem[sys1, sys2...], args...)\n\n\nPlot the \nstep\n response of the \nLTISystem\n(s). A final time \nTf\n or a time vector \nt\n can be optionally provided.\n\n\n#\n\n\nControlSystems.impulseplot\n \n \nFunction\n.\n\n\n\n\nimpulseplot(sys, args...)\n, \nimpulseplot(LTISystem[sys1, sys2...], args...)\n\n\nPlot the \nimpulse\n response of the \nLTISystem\n(s). A final time \nTf\n or a time vector \nt\n can be optionally provided.\n\n\n#\n\n\nControlSystems.nicholsplot\n \n \nFunction\n.\n\n\n\n\nnicholsplot{T\n:LTISystem}(systems::Vector{T}, w::AbstractVector)\n\n\nCreate a Nichols plot of the \nLTISystem\n(s). A frequency vector \nw\n can be optionally provided.\n\n\nKeyword arguments:\n\n\ntext = true\nGains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]\npInc = 30\nsat = 0.4\nval = 0.85\nfontsize = 10\n\n\n\n\npInc\n determines the increment in degrees between phase lines.\n\n\nsat\n \u2208 [0,1] determines the saturation of the gain lines\n\n\nval\n \u2208 [0,1] determines the brightness of the gain lines\n\n\nAdditional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax\n\n\nThis function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer", 
+            "title": "Plotting"
+        }, 
+        {
+            "location": "/lib/plotting/#plotting", 
+            "text": "ControlSystems.bodeplot  ControlSystems.impulseplot  ControlSystems.nicholsplot  ControlSystems.stepplot", 
+            "title": "Plotting"
+        }, 
+        {
+            "location": "/lib/plotting/#plotting-function", 
+            "text": "#  ControlSystems.bodeplot     Function .   bodeplot(sys, args...) ,  bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)  Create a Bode plot of the  LTISystem (s). A frequency vector  w  can be optionally provided.  #  ControlSystems.stepplot     Function .   stepplot(sys, args...) ,  stepplot(LTISystem[sys1, sys2...], args...)  Plot the  step  response of the  LTISystem (s). A final time  Tf  or a time vector  t  can be optionally provided.  #  ControlSystems.impulseplot     Function .   impulseplot(sys, args...) ,  impulseplot(LTISystem[sys1, sys2...], args...)  Plot the  impulse  response of the  LTISystem (s). A final time  Tf  or a time vector  t  can be optionally provided.  #  ControlSystems.nicholsplot     Function .   nicholsplot{T :LTISystem}(systems::Vector{T}, w::AbstractVector)  Create a Nichols plot of the  LTISystem (s). A frequency vector  w  can be optionally provided.  Keyword arguments:  text = true\nGains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]\npInc = 30\nsat = 0.4\nval = 0.85\nfontsize = 10  pInc  determines the increment in degrees between phase lines.  sat  \u2208 [0,1] determines the saturation of the gain lines  val  \u2208 [0,1] determines the brightness of the gain lines  Additional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax  This function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer", 
+            "title": "Plotting function"
+        }, 
+        {
+            "location": "/lib/constructors/", 
+            "text": "Some idex?\n\n\n\n\nControlSystems.tf\n\n\nControlSystems.zpk\n\n\n\n\n\n\nConstructors\n\n\n#\n\n\nControlSystems.tf\n \n \nFunction\n.\n\n\n\n\ntf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)\n Create transfer function as a fraction of polynomials:\n\n\nsys = numerator/denominator\n\n\nnum\n: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nden\n: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nTs\n: Sample time or \n0\n for continuous system.\n\n\nkwargs\n: \ninputnames\n, \noutputnames\n: Arrays of strings representing the inputs and outputs.\n\n\nOther uses:\n\n\ntf(sys)\n: Convert \nsys\n to \ntf\n form.\n\n\ntf(\"s\")\n, \ntf(\"z\")\n: Create the continous transferfunction \ns\n.\n\n\n#\n\n\nControlSystems.zpk\n \n \nFunction\n.\n\n\n\n\nzpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)\n Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.\n\n\nsys = k*numerator/denominator\n\n\nnum\n: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nden\n: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\n\nk\n: The gain of the system. Obs, this is not the same as \ndcgain\n.\n\n\nTs\n: Sample time or \n0\n for continuous system.\n\n\nkwargs\n: \ninputnames\n, \noutputnames\n: Arrays of strings representing the inputs and outputs.\n\n\nOther uses:\n\n\ntf(sys)\n: Convert \nsys\n to \ntf\n form.\n\n\ntf(\"s\")\n: Create the transferfunction \ns\n.", 
+            "title": "Constructors"
+        }, 
+        {
+            "location": "/lib/constructors/#some-idex", 
             "text": "ControlSystems.tf  ControlSystems.zpk", 
-            "title": "Index"
+            "title": "Some idex?"
+        }, 
+        {
+            "location": "/lib/constructors/#constructors", 
+            "text": "#  ControlSystems.tf     Function .   tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)  Create transfer function as a fraction of polynomials:  sys = numerator/denominator  num : the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.  den : the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.  Ts : Sample time or  0  for continuous system.  kwargs :  inputnames ,  outputnames : Arrays of strings representing the inputs and outputs.  Other uses:  tf(sys) : Convert  sys  to  tf  form.  tf(\"s\") ,  tf(\"z\") : Create the continous transferfunction  s .  #  ControlSystems.zpk     Function .   zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)  Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.  sys = k*numerator/denominator  num : the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.  den : the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.  k : The gain of the system. Obs, this is not the same as  dcgain .  Ts : Sample time or  0  for continuous system.  kwargs :  inputnames ,  outputnames : Arrays of strings representing the inputs and outputs.  Other uses:  tf(sys) : Convert  sys  to  tf  form.  tf(\"s\") : Create the transferfunction  s .", 
+            "title": "Constructors"
         }
     ]
 }

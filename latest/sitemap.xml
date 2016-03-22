@@ -9,4 +9,44 @@
     </url>
     
 
+    
+    <url>
+     <loc>None/examples/example/</loc>
+     <lastmod>2016-03-22</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+        
+    <url>
+     <loc>None/man/introduction/</loc>
+     <lastmod>2016-03-22</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>None/man/creatingtfs/</loc>
+     <lastmod>2016-03-22</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
+    
+        
+    <url>
+     <loc>None/lib/plotting/</loc>
+     <lastmod>2016-03-22</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>None/lib/constructors/</loc>
+     <lastmod>2016-03-22</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
 </urlset>

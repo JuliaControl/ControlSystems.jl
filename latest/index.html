@@ -63,16 +63,72 @@
         
             <ul>
             
-                <li class="toctree-l3"><a href="#controlsystemsjl-documentation">ControlSystems.jl Documentation</a></li>
+                <li class="toctree-l3"><a href="#controlsystemsjl-manual">ControlSystems.jl Manual</a></li>
                 
-                    <li><a class="toctree-l4" href="#creating-transferfunctions">Creating TransferFunctions</a></li>
+            
+                <li class="toctree-l3"><a href="#examples">Examples</a></li>
                 
-                    <li><a class="toctree-l4" href="#index">Index</a></li>
+            
+                <li class="toctree-l3"><a href="#functions">Functions</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#documentation-index">Documentation Index</a></li>
                 
             
             </ul>
         
     </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="examples/example/">Examples</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <ul class="subnav">
+    <li><span>Manual</span></li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="man/introduction/">Introduction</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="man/creatingtfs/">Creating Transfer Functions</a>
+        
+    </li>
+
+        
+    </ul>
+<li>
+          
+            <li>
+    <ul class="subnav">
+    <li><span>Functions</span></li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="lib/plotting/">Plotting</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="lib/constructors/">Constructors</a>
+        
+    </li>
+
+        
+    </ul>
 <li>
           
         </ul>
@@ -111,52 +167,51 @@
           <div role="main">
             <div class="section">
               
-                <p><a id='ControlSystems.jl-Documentation-1'></a></p>
-<h1 id="controlsystemsjl-documentation">ControlSystems.jl Documentation</h1>
+                <p><a id='ControlSystems.jl-Manual-1'></a></p>
+<h2 id="controlsystemsjl-manual">ControlSystems.jl Manual</h2>
 <ul>
-<li><a href=".#ControlSystems.jl-Documentation-1">ControlSystems.jl Documentation</a><ul>
-<li><a href=".#Creating-TransferFunctions-1">Creating TransferFunctions</a></li>
-<li><a href=".#Index-1">Index</a></li>
+<li><a href="man/introduction/#Introduction-1">Introduction</a><ul>
+<li><a href="man/introduction/#Installation-1">Installation</a></li>
+</ul>
+</li>
+<li><a href="man/creatingtfs/#Creating-Transfer-Function-1">Creating Transfer Function</a><ul>
+<li><a href="man/creatingtfs/#tf-1">tf</a></li>
 </ul>
 </li>
 </ul>
-<p><a id='Creating-TransferFunctions-1'></a></p>
-<h2 id="creating-transferfunctions">Creating TransferFunctions</h2>
-<p><a id='ControlSystems.tf-Tuple{Any}' href='#ControlSystems.tf-Tuple{Any}'>#</a>
-<strong><code>ControlSystems.tf</code></strong> &mdash; <em>Method</em>.</p>
-<hr />
-<p><code>tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)</code> Create transfer function as a fraction of polynomials:</p>
-<p><code>sys = numerator/denominator</code></p>
-<p><code>num</code>: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>den</code>: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>Ts</code>: Sample time or <code>0</code> for continuous system.</p>
-<p><code>kwargs</code>: <code>inputnames</code>, <code>outputnames</code>: Arrays of strings representing the inputs and outputs.</p>
-<p>Other uses:</p>
-<p><code>tf(sys)</code>: Convert <code>sys</code> to <code>tf</code> form.</p>
-<p><code>tf("s")</code>, <code>tf("z")</code>: Create the continous transferfunction <code>s</code>.</p>
-<p><a id='ControlSystems.zpk-Tuple{Any}' href='#ControlSystems.zpk-Tuple{Any}'>#</a>
-<strong><code>ControlSystems.zpk</code></strong> &mdash; <em>Method</em>.</p>
-<hr />
-<p><code>zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)</code> Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.</p>
-<p><code>sys = k*numerator/denominator</code></p>
-<p><code>num</code>: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>den</code>: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>k</code>: The gain of the system. Obs, this is not the same as <code>dcgain</code>.</p>
-<p><code>Ts</code>: Sample time or <code>0</code> for continuous system.</p>
-<p><code>kwargs</code>: <code>inputnames</code>, <code>outputnames</code>: Arrays of strings representing the inputs and outputs.</p>
-<p>Other uses:</p>
-<p><code>tf(sys)</code>: Convert <code>sys</code> to <code>tf</code> form.</p>
-<p><code>tf("s")</code>: Create the transferfunction <code>s</code>.</p>
-<p><a id='Index-1'></a></p>
-<h2 id="index">Index</h2>
+<p><a id='Examples-1'></a></p>
+<h2 id="examples">Examples</h2>
+<p><a id='Functions-1'></a></p>
+<h2 id="functions">Functions</h2>
 <ul>
-<li><a href=".#ControlSystems.tf-Tuple{Any}"><code>ControlSystems.tf</code></a></li>
-<li><a href=".#ControlSystems.zpk-Tuple{Any}"><code>ControlSystems.zpk</code></a></li>
+<li><a href="lib/constructors/#Some-idex?-1">Some idex?</a></li>
+<li><a href="lib/constructors/#Constructors-1">Constructors</a></li>
+<li><a href="lib/plotting/#Plotting-1">Plotting</a><ul>
+<li><a href="lib/plotting/#Plotting-function-1">Plotting function</a></li>
+</ul>
+</li>
+</ul>
+<p><a id='Documentation-Index-1'></a></p>
+<h2 id="documentation-index">Documentation Index</h2>
+<ul>
+<li><a href="lib/constructors/#ControlSystems.tf"><code>ControlSystems.tf</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.zpk"><code>ControlSystems.zpk</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.bodeplot"><code>ControlSystems.bodeplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.impulseplot"><code>ControlSystems.impulseplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.nicholsplot"><code>ControlSystems.nicholsplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.stepplot"><code>ControlSystems.stepplot</code></a></li>
 </ul>
               
             </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="examples/example/" class="btn btn-neutral float-right" title="Examples">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+    </div>
   
 
   <hr/>
@@ -183,6 +238,8 @@
       
       
       
+        <span style="margin-left: 15px"><a href="examples/example/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
     </span>
 </div>
 
@@ -191,5 +248,5 @@
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-03-22 17:02:47.678732
+Build Date UTC : 2016-03-22 22:51:12.523738
 -->
