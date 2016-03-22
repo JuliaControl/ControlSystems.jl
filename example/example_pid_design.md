@@ -48,7 +48,7 @@ gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer fu
 
 
 
-# Stability boundary fo PID controllers
+# Stability boundary for PID controllers
 The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plotted with the command `stabregionPID`. The process can be given in string form or as a regular LTIsystem.
 
 ```julia
