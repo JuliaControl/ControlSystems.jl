@@ -1,9 +1,10 @@
-mkdir("build/plots")
+pwd()
+mkdir("docs/build/plots")
 
 ## PID design functions
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
-Plots.savefig("build/plots/pidgofplot.svg")
+Plots.savefig("docs/build/plots/pidgofplot.svg")
 
 ## Advanced pole-zero placement
 #ζ = 0.2
