@@ -241,7 +241,7 @@ function stabregionPID(P::AbstractString, ω = logspace(-3,1); kd=0)
     phi     = angle(Pv)
     kp      = -cos(phi)./r
     ki      = kd*ω.^2 - ω.*sin(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$P, \\quad k_d = $(round(kd,4))\$"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$ $(replace(P,".","")), \\quad k_d = $(round(kd,4))\$"), kp, ki
 end
 
 
