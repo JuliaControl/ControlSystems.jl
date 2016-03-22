@@ -59,3 +59,23 @@ f2 = stabregionPID(P2,logspace(-5,2,1000))
 P3 = tf(1,[1,1])^4
 f3 = stabregionPID(P3,logspace(-5,0,1000))
 ```
+
+
+
+
+# PID plots
+This example utilizes the function `pidplots`, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
+```julia
+P = tf([1.],[1., 1])
+
+ζ = 0.5 # Desired damping
+
+ws = logspace(-1,2,8) # A vector of closed-loop bandwidths
+kp = 2*ζ*ws-1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
+ki = ws.^2
+pidplots(P,:nyquist,:gof;kps=kp,kis=ki, ω= logspace(-2,2,500)) # Request Nyquist and Gang-of-four plots
+
+kp = linspace(-1,1,8) # Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
+ki = sqrt(1-kp.^2)/10
+pidplots(P,:nyquist,:gof;kps=kp,kis=ki)
+```
