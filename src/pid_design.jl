@@ -212,8 +212,8 @@ process with transfer function P(s)
 The PID controller is assumed to be on the form kp +ki/s +kd s
 
 The curve is found by analyzing
-P(s)\*C(s) = -1 ⟹
-|PC| = |P| |C| = 1
+P(s)\*C(s) = -1 ⟹\n
+|PC| = |P| |C| = 1\n
 arg(P) + arg(C) = -π
 
 
