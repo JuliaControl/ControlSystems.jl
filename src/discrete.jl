@@ -1,4 +1,4 @@
-export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden#, lsima, indirect_str
+export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, zpconv#, lsima, indirect_str
 
 
 @doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
@@ -274,4 +274,16 @@ function indirect_str(state, y, u,uc, nb,na, lambda,bm1,am,ao,ar=[1],as=[1])
 
     return uo,state
 
+end
+
+
+"""
+`zpc(a,r,b,s)` form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+"""
+function zpconv(a,r,b,s)
+    d = length(a)+length(r)-length(b)-length(s)
+    if d > 0
+        b = [zeros(d);b]
+    end
+    conv(a,r) + conv(b,s)
 end
