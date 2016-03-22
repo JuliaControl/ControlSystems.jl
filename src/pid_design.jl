@@ -1,4 +1,4 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI
 
 """
 Calculates and returns a PID controller on transfer function form.
@@ -29,6 +29,8 @@ Available plots are `:gof` for Gang of four, `:nyquist`, `:controller` for a bod
 One can also supply a frequency vector ω to be used in Bode and Nyquist plots
 
 `pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)`
+
+See also `loopshapingPI`, `stabregionPID`
 """
 function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false)
 
@@ -218,6 +220,8 @@ arg(P) + arg(C) = -π
 
 
 If `P` is a string (e.g. "exp(-sqrt(s))", the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
+
+See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
 function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0)
     Pv      = squeeze(freqresp(P,ω)[1],(1,2))
@@ -238,4 +242,41 @@ function stabregionPID(P::AbstractString, ω = logspace(-3,1); kd=0)
     kp      = -cos(phi)./r
     ki      = kd*ω.^2 - ω.*sin(phi)./r
     Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$P, \\quad k_d = $(round(kd,4))\$"), kp, ki
+end
+
+
+
+"""
+`kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin)`
+
+Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
+
+If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
+
+If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
+
+See also `pidplots`, `stabregionPID`
+"""
+function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
+Pw = P(im*ωp)[1]
+ϕp = angle(Pw)
+rp = abs(Pw)
+
+if phasemargin > 0
+    ϕl = deg2rad(-180+phasemargin)
+else
+    ϕl = ϕl == 0 ? ϕp : ϕl
+end
+rl = rl == 0 ? rp : rl
+
+kp = rl/rp*cos(ϕp-ϕl)
+ki = rl*ωp/rp*sin(ϕp-ϕl)
+
+C = pid(kp=kp, ki=ki)
+
+if doplot
+    gangoffourplot(P,[tf(1),C])
+    nyquistplot([P, P*C])
+end
+return kp,ki,C
 end
