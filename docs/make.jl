@@ -6,6 +6,6 @@ include("src/makeplots.jl")
 
 deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
-    latest = "tests",
+    latest = "master",
     julia = "0.4"
 )
