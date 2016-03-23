@@ -1,5 +1,3 @@
-# Plotting
-    
     {index}
     Pages = ["plotting.md"]
 

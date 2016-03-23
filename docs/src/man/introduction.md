@@ -1,9 +1,6 @@
-# Introduction
-
 ## Installation
 
 To install this package simply run
-## Installation
 ```julia
 Pkg.add("ControlSystems")
 ```
