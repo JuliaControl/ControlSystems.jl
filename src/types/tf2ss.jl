@@ -104,6 +104,9 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     return T
 end
 
+@doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0, inames = "", onames = "")`
+
+Convert a `StateSpace` realization to a `TransferFunction`""" ->
 function ss2tf(s::StateSpace)
     return ss2tf(s.A, s.B, s.C, s.Ts, s.inputnames, s.outputnames)
 end

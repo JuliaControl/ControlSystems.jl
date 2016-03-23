@@ -21,10 +21,14 @@ docs_dir: 'build'
 
 pages:
   - Home: 'index.md'
-  - Examples: 'examples/example.md'
-  - Manual:
+  - Examples:
+    - Design: 'examples/example.md'
+  - Guide:
     - Introduction: 'man/introduction.md'
-    - 'Creating Transfer Functions': man/creatingtfs.md
+    - 'Creating Transfer Functions': 'man/creatingtfs.md'
   - Functions:
+    - Constructors: 'lib/constructors.md'
+    - Analysis: 'lib/analysis.md'
+    - Synthesis: 'lib/analysis.md'
+    - 'Time and Frequency response': 'lib/timefreqresponse.md'
     - Plotting: 'lib/plotting.md'
-    - Constructors: 'lib/constructors.md'   
