@@ -74,6 +74,9 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test size(C_222) == (2, 2)
 @test size(C_212) == (2, 1)
 @test C_222[1,1] == tf([1, 2, 3], [1, 8, 15])
+@test C_222[1:1,1] == tf([1, 2, 3], [1, 8, 15])
+@test C_222[1,1:2] == C_221
+@test size(C_222[1,[]]) == (1,0)
 
 # Printing
 res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2.0s + 3.0\n-----------"*
@@ -90,6 +93,28 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
        "  z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 "*
        "(seconds)\nDiscrete-time transfer function model")
 @test sprint(show, D_222) == res
+
+# Type stability Continuous-time
+@test eltype(fill(tf("s"),2)) <: TransferFunction
+@test eltype(fill(tf([1],[1,1]),2)) <: TransferFunction
+@test eltype(fill(tf(1.0,[1,1]),2)) <: TransferFunction
+@test eltype(fill(tf([1 2; 3 4]),2)) <: TransferFunction
+@test eltype(fill(tf(1)+tf(2),2)) <: TransferFunction
+@test eltype(fill(tf(1)/tf(2),2)) <: TransferFunction
+@test eltype(fill(tf(1)+1,2)) <: TransferFunction
+
+@test eltype([tf(1), zpk(1)]) <: TransferFunction
+
+# Type stability Discrete-time
+@test eltype(fill(tf("z",1.0),2)) <: TransferFunction
+@test eltype(fill(tf([1],[1,1],1),2)) <: TransferFunction
+@test eltype(fill(tf(1.0,[1,1],1),2)) <: TransferFunction
+@test eltype(fill(tf([1 2; 3 4],1),2)) <: TransferFunction
+@test eltype(fill(tf(1,1)+tf(2,1),2)) <: TransferFunction
+@test eltype(fill(tf(1,1)/tf(2,1),2)) <: TransferFunction
+@test eltype(fill(tf(1,1.0)+1,2)) <: TransferFunction
+
+@test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
 
 # Errors
 @test_err C_111 + C_222             # Dimension mismatch

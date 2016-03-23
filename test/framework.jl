@@ -128,6 +128,8 @@ macro test_approx_eq_eps(a, b, meps)
     :(@test test_approx_eq($(esc(a)), $(esc(b)), $(esc(meps)), $(string(a)), $(string(b))))
 end
 
+test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
+
 macro test_err(ex)
     quote
         @test_throws ErrorException $(esc(ex))
@@ -141,6 +143,11 @@ function vecarray(T::Type, ny::Int,nx::Int, args::AbstractArray...)
     array = reshape(collect(Array{T,1},args),nx,ny)
     permutedims(array,[2,1])
 end
-vecarray(ny::Int,nx::Int, args::AbstractArray...) = vecarray(Float64, ny, nx, args...)
+vecarray{T}(ny::Int,nx::Int, args::AbstractArray{T}...) = vecarray(T, ny, nx, args...)
+
+function vecarray(ny::Int,nx::Int, args::AbstractArray...)
+    args2 = promote(args...)
+    vecarray(eltype(args2[1]), ny, nx, args2...)
+end
 
 end  # module

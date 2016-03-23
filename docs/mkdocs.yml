@@ -1,0 +1,30 @@
+site_name:        ControlSystems.jl
+repo_url:         https://github.com/JuliaControl/ControlSystems.jl
+site_description: A control systems design toolbox for Julia.
+site_author:      JuliaControl
+
+theme: readthedocs
+
+extra_css:
+  - assets/Lapidary.css
+
+extra_javascript:
+  - https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML
+  - assets/mathjaxhelper.js
+
+markdown_extensions:
+  - extra
+  - tables
+  - fenced_code
+
+docs_dir: 'build'
+
+pages:
+  - Home: 'index.md'
+  - Examples: 'examples/example.md'
+  - Manual:
+    - Introduction: 'man/introduction.md'
+    - 'Creating Transfer Functions': man/creatingtfs.md
+  - Functions:
+    - Plotting: 'lib/plotting.md'
+    - Constructors: 'lib/constructors.md'   
