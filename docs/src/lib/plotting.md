@@ -1,7 +1,7 @@
     {index}
     Pages = ["plotting.md"]
 
-## Plotting function
+# Plotting functions
 
     {docs}
     bodeplot

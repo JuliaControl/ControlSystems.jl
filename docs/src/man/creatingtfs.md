@@ -1,3 +1,4 @@
+# Creating Transfer Functions
     {meta}
     DocTestSetup = quote
         using ControlSystems
@@ -9,7 +10,7 @@ The syntax for creating a transfer function is
 tf(num, den, Ts=0)
 ```
 where `num` and `den` are the polinomial coefficients of the numerator and denominator of the polynomial and `Ts` is the sample time.
-#### Example:
+### Example:
 ```julia
 tf([1],[1,2,1])
 
@@ -31,7 +32,7 @@ Sometimes it's better to represent the transferfunction by its poles, zeros and 
 zpk(zeros, poles, gain, Ts=0)
 ```
 where `zeros` and `poles` are `Vectors` of the zeros and poles for the system and `gain` is a gain coefficient.
-#### Example
+### Example
 ```julia
 zpk([-1,1], [-5, -10], 2)
 
@@ -53,7 +54,7 @@ If you want to work with transfer functions that are not rational functions, it 
 tfa(str::String), tfa(str::Expr)
 ```
 This function will either convert `str` to an expression or directly accept an `Expr` and create a transfer function.
-#### Example:
+### Example:
 ```julia
 tfa("1/((s+1)*exp(-sqrt(s)))")
 

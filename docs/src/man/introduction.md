@@ -1,3 +1,4 @@
+# Introduction
 ## Installation
 
 To install this package simply run
