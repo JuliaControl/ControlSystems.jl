@@ -2,22 +2,22 @@
     "docs": [
         {
             "location": "/", 
-            "text": "ControlSystems.jl Manual\n\n\n\n\nIntroduction\n\n\nInstallation\n\n\n\n\n\n\nCreating Transfer Function\n\n\ntf\n\n\n\n\n\n\n\n\n\n\nExamples\n\n\n\n\nFunctions\n\n\n\n\nSome idex?\n\n\nConstructors\n\n\nPlotting\n\n\nPlotting function\n\n\n\n\n\n\n\n\n\n\nDocumentation Index\n\n\n\n\nControlSystems.tf\n\n\nControlSystems.zpk\n\n\nControlSystems.bodeplot\n\n\nControlSystems.impulseplot\n\n\nControlSystems.nicholsplot\n\n\nControlSystems.stepplot", 
+            "text": "ControlSystems.jl Manual\n\n\n- [Installation](man/introduction.md#Installation-1)\n- [Basic functions](man/introduction.md#Basic-functions-1)\n- [Plotting](man/introduction.md#Plotting-1)\n- [tf - Rational Representation](man/creatingtfs.md#tf-Rational-Representation-1)\n- [zpk - Pole-Zero-Gain Representation](man/creatingtfs.md#zpk-Pole-Zero-Gain-Representation-1)\n- [tfa - Generalized Representation](man/creatingtfs.md#tfa-Generalized-Representation-1)\n- [Converting between types](man/creatingtfs.md#Converting-between-types-1)\n\n\n\n\n\nExamples\n\n\n\n\nPID design functions\n\n\nAdvanced pole-zero placement\n\n\nStability boundary for PID controllers\n\n\n\n\n\n\nFunctions\n\n\n\n\nSome idex?\n\n\nConstructors\n\n\nPlotting function\n\n\n\n\n\n\n\n\n\n\nDocumentation Index\n\n\n\n\nControlSystems.tf\n\n\nControlSystems.zpk\n\n\nControlSystems.bodeplot\n\n\nControlSystems.impulseplot\n\n\nControlSystems.nicholsplot\n\n\nControlSystems.stepplot", 
             "title": "Home"
         }, 
         {
             "location": "/#controlsystemsjl-manual", 
-            "text": "Introduction  Installation    Creating Transfer Function  tf", 
+            "text": "- [Installation](man/introduction.md#Installation-1)\n- [Basic functions](man/introduction.md#Basic-functions-1)\n- [Plotting](man/introduction.md#Plotting-1)\n- [tf - Rational Representation](man/creatingtfs.md#tf-Rational-Representation-1)\n- [zpk - Pole-Zero-Gain Representation](man/creatingtfs.md#zpk-Pole-Zero-Gain-Representation-1)\n- [tfa - Generalized Representation](man/creatingtfs.md#tfa-Generalized-Representation-1)\n- [Converting between types](man/creatingtfs.md#Converting-between-types-1)", 
             "title": "ControlSystems.jl Manual"
         }, 
         {
             "location": "/#examples", 
-            "text": "", 
+            "text": "PID design functions  Advanced pole-zero placement  Stability boundary for PID controllers", 
             "title": "Examples"
         }, 
         {
             "location": "/#functions", 
-            "text": "Some idex?  Constructors  Plotting  Plotting function", 
+            "text": "Some idex?  Constructors  Plotting function", 
             "title": "Functions"
         }, 
         {
@@ -47,42 +47,67 @@
         }, 
         {
             "location": "/man/introduction/", 
-            "text": "Introduction\n\n\n\n\nInstallation\n\n\nHow do you install this stuff? SOme text about running\n\n\nPkg.add(\nControlSystems\n)", 
-            "title": "Introduction"
-        }, 
-        {
-            "location": "/man/introduction/#introduction", 
-            "text": "", 
+            "text": "Installation\n\n\nTo install this package simply run\n\n\nPkg.add(\nControlSystems\n)\n\n\n\n\n\n\nBasic functions\n\n\n\n\nPlotting\n\n\nPlotting requires some extra care. The ControlSystems package is using \nPlots.jl\n as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using \nPyPlot\n. If you have several back-ends for plotting then you can select the one you want to use with the corresponding \nPlots\n call (for \nPyPlot\n this is \nPlots.pyplot()\n, some alternatives are \nimmerse(), gadfly(), plotly()\n). A simple example where we generate a plot using \nimmerse\n and save it to a file is\n\n\nusing ControlSystems\nPlots.immerse()\n\nfig = bodeplot(tf(1,[1,2,1]))\n\nPlots.savefig(fig, \nmyfile.svg\n)", 
             "title": "Introduction"
         }, 
         {
             "location": "/man/introduction/#installation", 
-            "text": "How do you install this stuff? SOme text about running  Pkg.add( ControlSystems )", 
+            "text": "To install this package simply run  Pkg.add( ControlSystems )", 
             "title": "Installation"
         }, 
         {
-            "location": "/man/creatingtfs/", 
-            "text": "Creating Transfer Function\n\n\n\n\ntf\n\n\nIts easy! Just run\n\n\ntf(num, den, Ts)", 
-            "title": "Creating Transfer Functions"
-        }, 
-        {
-            "location": "/man/creatingtfs/#creating-transfer-function", 
+            "location": "/man/introduction/#basic-functions", 
             "text": "", 
-            "title": "Creating Transfer Function"
+            "title": "Basic functions"
         }, 
         {
-            "location": "/man/creatingtfs/#tf", 
-            "text": "Its easy! Just run  tf(num, den, Ts)", 
-            "title": "tf"
-        }, 
-        {
-            "location": "/lib/plotting/", 
-            "text": "Plotting\n\n\n\n\nControlSystems.bodeplot\n\n\nControlSystems.impulseplot\n\n\nControlSystems.nicholsplot\n\n\nControlSystems.stepplot\n\n\n\n\n\n\nPlotting function\n\n\n#\n\n\nControlSystems.bodeplot\n \n \nFunction\n.\n\n\n\n\nbodeplot(sys, args...)\n, \nbodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)\n\n\nCreate a Bode plot of the \nLTISystem\n(s). A frequency vector \nw\n can be optionally provided.\n\n\n#\n\n\nControlSystems.stepplot\n \n \nFunction\n.\n\n\n\n\nstepplot(sys, args...)\n, \nstepplot(LTISystem[sys1, sys2...], args...)\n\n\nPlot the \nstep\n response of the \nLTISystem\n(s). A final time \nTf\n or a time vector \nt\n can be optionally provided.\n\n\n#\n\n\nControlSystems.impulseplot\n \n \nFunction\n.\n\n\n\n\nimpulseplot(sys, args...)\n, \nimpulseplot(LTISystem[sys1, sys2...], args...)\n\n\nPlot the \nimpulse\n response of the \nLTISystem\n(s). A final time \nTf\n or a time vector \nt\n can be optionally provided.\n\n\n#\n\n\nControlSystems.nicholsplot\n \n \nFunction\n.\n\n\n\n\nnicholsplot{T\n:LTISystem}(systems::Vector{T}, w::AbstractVector)\n\n\nCreate a Nichols plot of the \nLTISystem\n(s). A frequency vector \nw\n can be optionally provided.\n\n\nKeyword arguments:\n\n\ntext = true\nGains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]\npInc = 30\nsat = 0.4\nval = 0.85\nfontsize = 10\n\n\n\n\npInc\n determines the increment in degrees between phase lines.\n\n\nsat\n \u2208 [0,1] determines the saturation of the gain lines\n\n\nval\n \u2208 [0,1] determines the brightness of the gain lines\n\n\nAdditional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax\n\n\nThis function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer", 
+            "location": "/man/introduction/#plotting", 
+            "text": "Plotting requires some extra care. The ControlSystems package is using  Plots.jl  as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using  PyPlot . If you have several back-ends for plotting then you can select the one you want to use with the corresponding  Plots  call (for  PyPlot  this is  Plots.pyplot() , some alternatives are  immerse(), gadfly(), plotly() ). A simple example where we generate a plot using  immerse  and save it to a file is  using ControlSystems\nPlots.immerse()\n\nfig = bodeplot(tf(1,[1,2,1]))\n\nPlots.savefig(fig,  myfile.svg )", 
             "title": "Plotting"
         }, 
         {
-            "location": "/lib/plotting/#plotting", 
-            "text": "ControlSystems.bodeplot  ControlSystems.impulseplot  ControlSystems.nicholsplot  ControlSystems.stepplot", 
+            "location": "/man/creatingtfs/", 
+            "text": "tf - Rational Representation\n\n\nThe syntax for creating a transfer function is\n\n\ntf(num, den, Ts=0)\n\n\n\n\nwhere \nnum\n and \nden\n are the polinomial coefficients of the numerator and denominator of the polynomial and \nTs\n is the sample time.\n\n\n\n\nExample:\n\n\ntf([1],[1,2,1])\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 2.0s + 1.0\n\nContinuous-time transfer function model\n\n\n\n\nThe transfer functions created using this method will be of type \nTransferFunction{SisoRational}\n.\n\n\n\n\nzpk - Pole-Zero-Gain Representation\n\n\nSometimes it's better to represent the transferfunction by its poles, zeros and gain, this can be done using\n\n\nzpk(zeros, poles, gain, Ts=0)\n\n\n\n\nwhere \nzeros\n and \npoles\n are \nVectors\n of the zeros and poles for the system and \ngain\n is a gain coefficient.\n\n\n\n\nExample\n\n\nzpk([-1,1], [-5, -10], 2)\n\n# output\n\nTransferFunction:\n   (s - 1.0)(s + 1.0)\n2.0-------------------\n   (s + 10.0)(s + 5.0)\n\nContinuous-time transfer function model\n\n\n\n\nThe transfer functions created using this method will be of type \nTransferFunction{SisoZpk}\n.\n\n\n\n\ntfa - Generalized Representation\n\n\nIf you want to work with transfer functions that are not rational functions, it is possible to use the \ntfa\n representation\n\n\ntfa(str::String), tfa(str::Expr)\n\n\n\n\nThis function will either convert \nstr\n to an expression or directly accept an \nExpr\n and create a transfer function.\n\n\n\n\nExample:\n\n\ntfa(\n1/((s+1)*exp(-sqrt(s)))\n)\n\n## output\n\nTransferFunction:\n1/((s+1)*exp(-sqrt(s)))\n\nContinuous-time transfer function model\n\n\n\n\nThe transfer functions created using this method will be of type \nTransferFunction{SisoGeneralized}\n. This type will work with some functions like \nbodeplot, stepplot\n but not others ,like \npoles\n.\n\n\n\n\nConverting between types\n\n\nIt is sometime useful to convert one representation to another, this is possible using the same functions, for example\n\n\ntf(zpk([-1], [1], 2, 0.1))\n\n# output\n\nTransferFunction:\n2.0z + 2.0\n----------\n z - 1.0\n\nSample Time: 0.1 (seconds)\nDiscrete-time transfer function model", 
+            "title": "Creating Transfer Functions"
+        }, 
+        {
+            "location": "/man/creatingtfs/#tf-rational-representation", 
+            "text": "The syntax for creating a transfer function is  tf(num, den, Ts=0)  where  num  and  den  are the polinomial coefficients of the numerator and denominator of the polynomial and  Ts  is the sample time.", 
+            "title": "tf - Rational Representation"
+        }, 
+        {
+            "location": "/man/creatingtfs/#example", 
+            "text": "tf([1],[1,2,1])\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 2.0s + 1.0\n\nContinuous-time transfer function model  The transfer functions created using this method will be of type  TransferFunction{SisoRational} .", 
+            "title": "Example:"
+        }, 
+        {
+            "location": "/man/creatingtfs/#zpk-pole-zero-gain-representation", 
+            "text": "Sometimes it's better to represent the transferfunction by its poles, zeros and gain, this can be done using  zpk(zeros, poles, gain, Ts=0)  where  zeros  and  poles  are  Vectors  of the zeros and poles for the system and  gain  is a gain coefficient.", 
+            "title": "zpk - Pole-Zero-Gain Representation"
+        }, 
+        {
+            "location": "/man/creatingtfs/#example_1", 
+            "text": "zpk([-1,1], [-5, -10], 2)\n\n# output\n\nTransferFunction:\n   (s - 1.0)(s + 1.0)\n2.0-------------------\n   (s + 10.0)(s + 5.0)\n\nContinuous-time transfer function model  The transfer functions created using this method will be of type  TransferFunction{SisoZpk} .", 
+            "title": "Example"
+        }, 
+        {
+            "location": "/man/creatingtfs/#tfa-generalized-representation", 
+            "text": "If you want to work with transfer functions that are not rational functions, it is possible to use the  tfa  representation  tfa(str::String), tfa(str::Expr)  This function will either convert  str  to an expression or directly accept an  Expr  and create a transfer function.", 
+            "title": "tfa - Generalized Representation"
+        }, 
+        {
+            "location": "/man/creatingtfs/#example_2", 
+            "text": "tfa( 1/((s+1)*exp(-sqrt(s))) )\n\n## output\n\nTransferFunction:\n1/((s+1)*exp(-sqrt(s)))\n\nContinuous-time transfer function model  The transfer functions created using this method will be of type  TransferFunction{SisoGeneralized} . This type will work with some functions like  bodeplot, stepplot  but not others ,like  poles .", 
+            "title": "Example:"
+        }, 
+        {
+            "location": "/man/creatingtfs/#converting-between-types", 
+            "text": "It is sometime useful to convert one representation to another, this is possible using the same functions, for example  tf(zpk([-1], [1], 2, 0.1))\n\n# output\n\nTransferFunction:\n2.0z + 2.0\n----------\n z - 1.0\n\nSample Time: 0.1 (seconds)\nDiscrete-time transfer function model", 
+            "title": "Converting between types"
+        }, 
+        {
+            "location": "/lib/plotting/", 
+            "text": "ControlSystems.bodeplot\n\n\nControlSystems.impulseplot\n\n\nControlSystems.nicholsplot\n\n\nControlSystems.stepplot\n\n\n\n\n\n\nPlotting function\n\n\n#\n\n\nControlSystems.bodeplot\n \n \nFunction\n.\n\n\n\n\nbodeplot(sys, args...)\n, \nbodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)\n\n\nCreate a Bode plot of the \nLTISystem\n(s). A frequency vector \nw\n can be optionally provided.\n\n\n#\n\n\nControlSystems.stepplot\n \n \nFunction\n.\n\n\n\n\nstepplot(sys, args...)\n, \nstepplot(LTISystem[sys1, sys2...], args...)\n\n\nPlot the \nstep\n response of the \nLTISystem\n(s). A final time \nTf\n or a time vector \nt\n can be optionally provided.\n\n\n#\n\n\nControlSystems.impulseplot\n \n \nFunction\n.\n\n\n\n\nimpulseplot(sys, args...)\n, \nimpulseplot(LTISystem[sys1, sys2...], args...)\n\n\nPlot the \nimpulse\n response of the \nLTISystem\n(s). A final time \nTf\n or a time vector \nt\n can be optionally provided.\n\n\n#\n\n\nControlSystems.nicholsplot\n \n \nFunction\n.\n\n\n\n\nnicholsplot{T\n:LTISystem}(systems::Vector{T}, w::AbstractVector)\n\n\nCreate a Nichols plot of the \nLTISystem\n(s). A frequency vector \nw\n can be optionally provided.\n\n\nKeyword arguments:\n\n\ntext = true\nGains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]\npInc = 30\nsat = 0.4\nval = 0.85\nfontsize = 10\n\n\n\n\npInc\n determines the increment in degrees between phase lines.\n\n\nsat\n \u2208 [0,1] determines the saturation of the gain lines\n\n\nval\n \u2208 [0,1] determines the brightness of the gain lines\n\n\nAdditional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax\n\n\nThis function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer", 
             "title": "Plotting"
         }, 
         {

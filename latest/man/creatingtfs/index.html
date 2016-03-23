@@ -89,9 +89,22 @@
         
             <ul>
             
-                <li class="toctree-l3"><a href="#creating-transfer-function">Creating Transfer Function</a></li>
+                <li class="toctree-l3"><a href="#tf-rational-representation">tf - Rational Representation</a></li>
                 
-                    <li><a class="toctree-l4" href="#tf">tf</a></li>
+                    <li><a class="toctree-l4" href="#example">Example:</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#zpk-pole-zero-gain-representation">zpk - Pole-Zero-Gain Representation</a></li>
+                
+                    <li><a class="toctree-l4" href="#example_1">Example</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#tfa-generalized-representation">tfa - Generalized Representation</a></li>
+                
+                    <li><a class="toctree-l4" href="#example_2">Example:</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#converting-between-types">Converting between types</a></li>
                 
             
             </ul>
@@ -164,12 +177,84 @@
           <div role="main">
             <div class="section">
               
-                <p><a id='Creating-Transfer-Function-1'></a></p>
-<h1 id="creating-transfer-function">Creating Transfer Function</h1>
-<p><a id='tf-1'></a></p>
-<h2 id="tf">tf</h2>
-<p>Its easy! Just run</p>
-<pre><code class="julia">tf(num, den, Ts)
+                <p><a id='tf-Rational-Representation-1'></a></p>
+<h2 id="tf-rational-representation">tf - Rational Representation</h2>
+<p>The syntax for creating a transfer function is</p>
+<pre><code class="julia">tf(num, den, Ts=0)
+</code></pre>
+
+<p>where <code>num</code> and <code>den</code> are the polinomial coefficients of the numerator and denominator of the polynomial and <code>Ts</code> is the sample time.</p>
+<p><a id='Example:-1'></a></p>
+<h4 id="example">Example:</h4>
+<pre><code class="julia">tf([1],[1,2,1])
+
+# output
+
+TransferFunction:
+      1.0
+----------------
+s^2 + 2.0s + 1.0
+
+Continuous-time transfer function model
+</code></pre>
+
+<p>The transfer functions created using this method will be of type <code>TransferFunction{SisoRational}</code>.</p>
+<p><a id='zpk-Pole-Zero-Gain-Representation-1'></a></p>
+<h2 id="zpk-pole-zero-gain-representation">zpk - Pole-Zero-Gain Representation</h2>
+<p>Sometimes it's better to represent the transferfunction by its poles, zeros and gain, this can be done using</p>
+<pre><code class="julia">zpk(zeros, poles, gain, Ts=0)
+</code></pre>
+
+<p>where <code>zeros</code> and <code>poles</code> are <code>Vectors</code> of the zeros and poles for the system and <code>gain</code> is a gain coefficient.</p>
+<p><a id='Example-1'></a></p>
+<h4 id="example_1">Example</h4>
+<pre><code class="julia">zpk([-1,1], [-5, -10], 2)
+
+# output
+
+TransferFunction:
+   (s - 1.0)(s + 1.0)
+2.0-------------------
+   (s + 10.0)(s + 5.0)
+
+Continuous-time transfer function model
+</code></pre>
+
+<p>The transfer functions created using this method will be of type <code>TransferFunction{SisoZpk}</code>.</p>
+<p><a id='tfa-Generalized-Representation-1'></a></p>
+<h2 id="tfa-generalized-representation">tfa - Generalized Representation</h2>
+<p>If you want to work with transfer functions that are not rational functions, it is possible to use the <code>tfa</code> representation</p>
+<pre><code class="julia">tfa(str::String), tfa(str::Expr)
+</code></pre>
+
+<p>This function will either convert <code>str</code> to an expression or directly accept an <code>Expr</code> and create a transfer function.</p>
+<p><a id='Example:-2'></a></p>
+<h4 id="example_2">Example:</h4>
+<pre><code class="julia">tfa(&quot;1/((s+1)*exp(-sqrt(s)))&quot;)
+
+## output
+
+TransferFunction:
+1/((s+1)*exp(-sqrt(s)))
+
+Continuous-time transfer function model
+</code></pre>
+
+<p>The transfer functions created using this method will be of type <code>TransferFunction{SisoGeneralized}</code>. This type will work with some functions like <code>bodeplot, stepplot</code> but not others ,like <code>poles</code>.</p>
+<p><a id='Converting-between-types-1'></a></p>
+<h2 id="converting-between-types">Converting between types</h2>
+<p>It is sometime useful to convert one representation to another, this is possible using the same functions, for example</p>
+<pre><code class="julia">tf(zpk([-1], [1], 2, 0.1))
+
+# output
+
+TransferFunction:
+2.0z + 2.0
+----------
+ z - 1.0
+
+Sample Time: 0.1 (seconds)
+Discrete-time transfer function model
 </code></pre>
               
             </div>

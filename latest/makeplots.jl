@@ -1,12 +1,12 @@
-pwd()
-mkdir("docs/build/plots")
+plotsDir = "docs/build/plots"
+mkdir(plotsDir)
 
 Plots.pyplot()
 
 ## PID design functions
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
-Plots.savefig("docs/build/plots/pidgofplot.svg")
+Plots.savefig("$plotsDir/pidgofplot.svg")
 
 ## Advanced pole-zero placement
 #ζ = 0.2
@@ -26,5 +26,5 @@ Plots.savefig("docs/build/plots/pidgofplot.svg")
 #Gcl = tf(conv(B,T),zpconv(A,R,B,S))
 #f1 = stepplot([P,Gcl])
 #f2 = gangoffourplot(P, tf(-S,R))
-#Plots.savefig(f1, "rstcstepplot.svg")
-#Plots.savefig(f2, "rstcgofplot.svg")
+#Plots.savefig(f1, "$plotsDir/rstcstepplot.svg")
+#Plots.savefig(f2, "$plotsDir/rstcgofplot.svg")

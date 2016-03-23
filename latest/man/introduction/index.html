@@ -82,9 +82,13 @@
         
             <ul>
             
-                <li class="toctree-l3"><a href="#introduction">Introduction</a></li>
+                <li class="toctree-l3"><a href="#installation">Installation</a></li>
                 
-                    <li><a class="toctree-l4" href="#installation">Installation</a></li>
+            
+                <li class="toctree-l3"><a href="#basic-functions">Basic functions</a></li>
+                
+            
+                <li class="toctree-l3"><a href="#plotting">Plotting</a></li>
                 
             
             </ul>
@@ -164,12 +168,23 @@
           <div role="main">
             <div class="section">
               
-                <p><a id='Introduction-1'></a></p>
-<h1 id="introduction">Introduction</h1>
-<p><a id='Installation-1'></a></p>
+                <p><a id='Installation-1'></a></p>
 <h2 id="installation">Installation</h2>
-<p>How do you install this stuff? SOme text about running</p>
+<p>To install this package simply run</p>
 <pre><code class="julia">Pkg.add(&quot;ControlSystems&quot;)
+</code></pre>
+
+<p><a id='Basic-functions-1'></a></p>
+<h2 id="basic-functions">Basic functions</h2>
+<p><a id='Plotting-1'></a></p>
+<h2 id="plotting">Plotting</h2>
+<p>Plotting requires some extra care. The ControlSystems package is using <code>Plots.jl</code> as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using <code>PyPlot</code>. If you have several back-ends for plotting then you can select the one you want to use with the corresponding <code>Plots</code> call (for <code>PyPlot</code> this is <code>Plots.pyplot()</code>, some alternatives are <code>immerse(), gadfly(), plotly()</code>). A simple example where we generate a plot using <code>immerse</code> and save it to a file is</p>
+<pre><code class="julia">using ControlSystems
+Plots.immerse()
+
+fig = bodeplot(tf(1,[1,2,1]))
+
+Plots.savefig(fig, &quot;myfile.svg&quot;)
 </code></pre>
               
             </div>
