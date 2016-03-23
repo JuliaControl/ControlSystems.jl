@@ -8,7 +8,7 @@
 
 ## Examples
     {contents}
-    Pages = ["example.md"]
+    Pages = ["examples/example.md"]
 
 ## Functions
 
