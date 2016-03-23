@@ -73,3 +73,19 @@ function acker(A,B,P)
   end
   return [zeros(1,n-1) 1]*(S\q)
 end
+
+
+"""
+`feedback(L)` Return L/(1+L)
+`feedback(P,C)` Return PC/(1+PC)
+"""
+feedback(L::TransferFunction) = L/(1+L)
+feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
+
+
+"""
+`feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+`feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
+"""
+feedback2dof(P::TransferFunction,R,S,T) = tf(conv(tfnum(P),T),zpconv(tfden(P),R,B,S))
+feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
