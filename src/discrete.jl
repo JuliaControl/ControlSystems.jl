@@ -1,4 +1,4 @@
-export rstd, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden#, lsima, indirect_str
+export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, zpconv#, lsima, indirect_str
 
 
 @doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
@@ -45,6 +45,32 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
 end
 
 
+function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
+
+    ae      = conv(a,ar)
+    be      = conv(bminus,as)
+    aoam    = conv(am,ao)
+    r1,s1   = dab(ae,be,aoam)
+
+    r       = conv(conv(r1,ar),bplus)
+    s       = conv(s1,as)
+
+    bm      = conv(bminus,bm1)
+    t0      = (cont ? am[end]/bm[end] : sum(am)/sum(bm))
+    t       = t0*conv(ao,bm1)
+    s       = s/r[1]
+    t       = t/r[1]
+    r       = r/r[1]
+
+    r,s,t
+end
+
+
+
+"""
+See ?rstd for the discerte case
+"""
+rstc(args...)=rst(args..., ;cont=true)
 
 """
 rstd  Polynomial synthesis in discrete time.
@@ -77,25 +103,7 @@ Aryabhatta-Bezout identity is chosen.
 See Computer-Controlled Systems: Theory and Design, Third Edition
 Karl Johan Åström, Björn Wittenmark
 """
-function rstd(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1])
-
-    ae      = conv(a,ar)
-    be      = conv(bminus,as)
-    aoam    = conv(am,ao)
-    r1,s1   = dab(ae,be,aoam)
-
-    r       = conv(conv(r1,ar),bplus)
-    s       = conv(s1,as)
-
-    bm      = conv(bminus,bm1)
-    t0      = sum(am)/sum(bm)
-    t       = t0*conv(ao,bm1)
-    s       = s/r[1]
-    t       = t/r[1]
-    r       = r/r[1]
-
-    r,s,t
-end
+rstd(args...)=rst(args..., ;cont=false)
 
 
 """
@@ -266,4 +274,16 @@ function indirect_str(state, y, u,uc, nb,na, lambda,bm1,am,ao,ar=[1],as=[1])
 
     return uo,state
 
+end
+
+
+"""
+`zpc(a,r,b,s)` form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+"""
+function zpconv(a,r,b,s)
+    d = length(a)+length(r)-length(b)-length(s)
+    if d > 0
+        b = [zeros(d);b]
+    end
+    conv(a,r) + conv(b,s)
 end
