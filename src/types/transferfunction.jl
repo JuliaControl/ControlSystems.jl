@@ -120,7 +120,9 @@ isapprox(a::SisoTf, b::SisoTf) = ≈(promote(a,b)...)
 ##                      Constructor Functions                      ##
 #####################################################################
 
-@doc """ `tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)` Create transfer function as a fraction of polynomials:
+@doc """ `sys = tf(num, den, Ts=0; kwargs...), sys = tf(gain, Ts=0; kwargs...)`
+
+Create transfer function as a fraction of polynomials:
 
 `sys = numerator/denominator`
 
@@ -157,8 +159,9 @@ function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
-@doc """ `zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)` Create transfer
-function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
+@doc """ `zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)`
+
+Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
 
 `sys = k*numerator/denominator`
 
@@ -215,6 +218,16 @@ function tf(tf::TransferFunction)
     return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
 
+@doc """ `sys = tfg(tf::LTISystem), `tfg(s::AbstractString)`, `tfg(exp::Expr)`, `tfg(::Array)`
+
+Create generalized transfer function represented by an expression. The variable has to be `s`.
+
+Example: `tfg("1/exp(-sqrt(s))")`, `tfg(["1/exp(-sqrt(s))"), "1/(s+1)])`, `tfg(:(s+1))`
+
+Other uses:
+
+`tfg(sys)`: Convert `sys` to `tfg` form.
+""" ->
 function tfg(tf::TransferFunction)
     oldmat = tf.matrix
     matrix = Array(SisoGeneralized, tf.ny, tf.nu)
@@ -321,12 +334,13 @@ function Base.copy(t::TransferFunction)
     return TransferFunction(matrix, t.Ts, inputnames, outputnames)
 end
 
+@doc """`tf = minreal(tf::TransferFunction, eps=sqrt(eps()))`
+
+Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros """ ->
 function minreal(t::TransferFunction, eps::Real=sqrt(eps()))
     matrix = similar(t.matrix)
-    for o=1:t.ny
-        for i=1:t.nu
-            matrix[o, i] = minreal(t.matrix[o, i], eps)
-        end
+    for i = eachindex(t.matrix)
+        matrix[i] = minreal(t.matrix[i], eps)
     end
     return TransferFunction(matrix, t.Ts, copy(t.inputnames), copy(t.outputnames))
 end

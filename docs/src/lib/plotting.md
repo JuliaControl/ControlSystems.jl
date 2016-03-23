@@ -5,6 +5,17 @@
 
     {docs}
     bodeplot
-    stepplot
+    gangoffourplot
     impulseplot
+    leadlinkcurve
+    lsimplot
+    marginplot
     nicholsplot
+    nyquistplot
+    pidplots
+    pzmap
+    pzmap!
+    rlocus
+    sigmaplot
+    setPlotScale
+    stepplot

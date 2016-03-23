@@ -1,4 +1,4 @@
-plotsDir = "docs/build/plots"
+plotsDir = (pwd()[end-3:end] == "docs") ? "build/plots" : "docs/build/plots"
 mkdir(plotsDir)
 Plots.pyplot()
 

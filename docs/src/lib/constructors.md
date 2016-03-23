@@ -1,7 +1,16 @@
     {index}
     Pages = ["constructors.md"]
 
-# Constructors
+# Constructing transfer functions
+
     {docs}
+    append
+    c2d
+    minreal
+    parallel
+    series
+    sminreal
+    ss2tf
     tf
+    tfg
     zpk
