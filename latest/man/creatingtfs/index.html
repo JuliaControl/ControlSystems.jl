@@ -89,22 +89,15 @@
         
             <ul>
             
-                <li class="toctree-l3"><a href="#tf-rational-representation">tf - Rational Representation</a></li>
+                <li class="toctree-l3"><a href="#creating-transfer-functions">Creating Transfer Functions</a></li>
                 
-                    <li><a class="toctree-l4" href="#example">Example:</a></li>
+                    <li><a class="toctree-l4" href="#tf-rational-representation">tf - Rational Representation</a></li>
                 
-            
-                <li class="toctree-l3"><a href="#zpk-pole-zero-gain-representation">zpk - Pole-Zero-Gain Representation</a></li>
+                    <li><a class="toctree-l4" href="#zpk-pole-zero-gain-representation">zpk - Pole-Zero-Gain Representation</a></li>
                 
-                    <li><a class="toctree-l4" href="#example_1">Example</a></li>
+                    <li><a class="toctree-l4" href="#tfa-generalized-representation">tfa - Generalized Representation</a></li>
                 
-            
-                <li class="toctree-l3"><a href="#tfa-generalized-representation">tfa - Generalized Representation</a></li>
-                
-                    <li><a class="toctree-l4" href="#example_2">Example:</a></li>
-                
-            
-                <li class="toctree-l3"><a href="#converting-between-types">Converting between types</a></li>
+                    <li><a class="toctree-l4" href="#converting-between-types">Converting between types</a></li>
                 
             
             </ul>
@@ -177,7 +170,9 @@
           <div role="main">
             <div class="section">
               
-                <p><a id='tf-Rational-Representation-1'></a></p>
+                <p><a id='Creating-Transfer-Functions-1'></a></p>
+<h1 id="creating-transfer-functions">Creating Transfer Functions</h1>
+<p><a id='tf-Rational-Representation-1'></a></p>
 <h2 id="tf-rational-representation">tf - Rational Representation</h2>
 <p>The syntax for creating a transfer function is</p>
 <pre><code class="julia">tf(num, den, Ts=0)
@@ -185,7 +180,7 @@
 
 <p>where <code>num</code> and <code>den</code> are the polinomial coefficients of the numerator and denominator of the polynomial and <code>Ts</code> is the sample time.</p>
 <p><a id='Example:-1'></a></p>
-<h4 id="example">Example:</h4>
+<h3 id="example">Example:</h3>
 <pre><code class="julia">tf([1],[1,2,1])
 
 # output
@@ -207,7 +202,7 @@ Continuous-time transfer function model
 
 <p>where <code>zeros</code> and <code>poles</code> are <code>Vectors</code> of the zeros and poles for the system and <code>gain</code> is a gain coefficient.</p>
 <p><a id='Example-1'></a></p>
-<h4 id="example_1">Example</h4>
+<h3 id="example_1">Example</h3>
 <pre><code class="julia">zpk([-1,1], [-5, -10], 2)
 
 # output
@@ -229,7 +224,7 @@ Continuous-time transfer function model
 
 <p>This function will either convert <code>str</code> to an expression or directly accept an <code>Expr</code> and create a transfer function.</p>
 <p><a id='Example:-2'></a></p>
-<h4 id="example_2">Example:</h4>
+<h3 id="example_2">Example:</h3>
 <pre><code class="julia">tfa(&quot;1/((s+1)*exp(-sqrt(s)))&quot;)
 
 ## output

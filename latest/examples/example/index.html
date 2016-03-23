@@ -171,7 +171,7 @@
 gangoffourplot(P,tf(1))
 </code></pre>
 
-<p><img alt="" src="../plots/pidgofplot.svg" /></p>
+<p><img alt="" src="../../plots/pidgofplot.svg" /></p>
 <p>we notice that the sensitivity function is a bit too high at around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the function <code>loopshapingPI</code> and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.</p>
 <pre><code class="julia">ωp = 0.8
 kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)
