@@ -1,6 +1,7 @@
 # ControlSystems.jl
 
 [![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
+[![Coverage Status](https://coveralls.io/repos/github/JuliaControl/ControlSystems.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaControl/ControlSystems.jl?branch=master)
 
 A control systems design toolbox for Julia.
 
@@ -16,9 +17,21 @@ Note that this package requires Julia 0.4.
 
 ## Documentation
 
-Some of the exported functions have docstrings, which can be viewed from the REPL. A
-documentation website is on the list of things to do...
-
+Some of the exported functions have docstrings, which can be viewed from the REPL, using for example `?tf `. A
+documentation website is on the list of things to do.
+Some of the available commands are:
+##### Constructing systems
+ss, tf, zpk, ss2tf
+##### Analysis
+pole, tzero, norm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma
+##### Synthesis
+care, dare, dlyap, lqr, dlqr, place, pid, leadlink, laglink, leadlinkat, rstd, rstc, dab
+##### Time and Frequency response
+step, impulse, lsim, freqresp, evalfr, bode, nyquist
+##### Plotting
+lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
+##### Other
+minreal, sminreal, c2d
 ## Usage
 
 This toolbox works similar to that of other major computer-aided control
