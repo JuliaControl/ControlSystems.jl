@@ -37,6 +37,8 @@ export  LTISystem,
         append,
         series,
         parallel,
+        feedback,
+        feedback2dof,
         # Discrete
         c2d,
         # Time Response
