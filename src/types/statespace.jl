@@ -141,6 +141,23 @@ function ==(s1::StateSpace, s2::StateSpace)
     return true
 end
 
+## Approximate ##
+function isapprox(s1::StateSpace, s2::StateSpace)
+    fieldsApprox = [:Ts, :nx, :ny, :nu, :A, :B, :C, :D]
+    fieldsEqual = [:inputnames, :outputnames, :statenames]
+    for field in fieldsApprox
+        if !(getfield(s1, field) ≈ getfield(s2, field))
+            return false
+        end
+    end
+    for field in fieldsEqual
+        if getfield(s1, field) != getfield(s2, field)
+            return false
+        end
+    end
+    return true
+end
+
 ## ADDITION ##
 function +(s1::StateSpace, s2::StateSpace)
     #Ensure systems have same dimensions

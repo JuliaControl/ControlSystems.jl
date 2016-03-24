@@ -61,7 +61,19 @@ function Base.den(t::SisoRational)
     return d
 end
 
+function evalfr(sys::SisoRational, s::Number)
+    S = promote_type(typeof(s), Float64)
+    den = polyval(sys.den, s)
+    if den == zero(S)
+        convert(S, Inf)
+    else
+        polyval(sys.num, s)/den
+    end
+end
+
 ==(t1::SisoRational, t2::SisoRational) = (t1.num == t2.num && t1.den == t2.den)
+# We might want to consider alowing scaled num and den as equal
+isapprox(t1::SisoRational, t2::SisoRational) = (t1.num ≈ t2.num && t1.den ≈ t2.den)
 
 +(t1::SisoRational, t2::SisoRational) = SisoRational(t1.num*t2.den + t2.num*t1.den, t1.den*t2.den)
 +(t::SisoRational, n::Real) = SisoRational(t.num + n*t.den, t.den)

@@ -53,7 +53,7 @@ export  LTISystem,
 
 import Plots
 
-import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), call
+import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call
 
 include("types/lti.jl")
 include("types/transferfunction.jl")

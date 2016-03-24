@@ -1,0 +1,14 @@
+#!/bin/sh
+if [ $# -eq 0 ]
+then
+juliapath=julia
+else
+juliapath=$1
+fi
+ 
+$juliapath -e '"Lapidary" in keys(Pkg.installed()) || Pkg.clone("https://github.com/MichaelHatherly/Lapidary.jl");'
+$juliapath -e '"PyPlot" in keys(Pkg.installed()) || Pkg.add("PyPlot");'
+
+$juliapath make.jl
+
+mkdocs build --clean

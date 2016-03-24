@@ -94,6 +94,10 @@ tzero(sys::SisoTf) = roots(sys.num)
 .*(a::SisoTf, b::SisoTf) = .*(promote(a,b)...)
 .+(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
 .-(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
+
+==(a::SisoTf, b::SisoTf) = ==(promote(a,b)...)
+!=(a::SisoTf, b::SisoTf) = !(a==b)
+isapprox(a::SisoTf, b::SisoTf) = ≈(promote(a,b)...)
 #####################################################################
 ##                      Constructor Functions                      ##
 #####################################################################
@@ -221,6 +225,21 @@ function tf(gain::Array, Ts::Real=0; kwargs...)
     outputnames = validate_names(kvs, :outputnames, ny)
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
+
+function zpk(gain::Array, Ts::Real=0; kwargs...)
+    ny, nu = size(gain, 1, 2)
+    matrix = Array(SisoZpk, ny, nu)
+    for o=1:ny
+        for i=1:nu
+            matrix[o, i] = SisoZpk([],[], gain[o, i])
+        end
+    end
+    kvs = Dict(kwargs)
+    inputnames = validate_names(kvs, :inputnames, nu)
+    outputnames = validate_names(kvs, :outputnames, ny)
+    return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
+end
+
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts; kwargs...)
 zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k, Ts; kwargs...)
 
@@ -254,8 +273,8 @@ function Base.getindex(t::TransferFunction, inds...)
     rows, cols = inds
     mat = Array(eltype(t.matrix), length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    innames = length(cols) > 1 ? collect(t.inputnames[cols]) : [t.inputnames[cols]]
-    outnames = length(rows) > 1 ? collect(t.outputnames[rows]) : [t.inputnames[rows]]
+    innames = UTF8String[t.inputnames[i] for i in cols]
+    outnames = UTF8String[t.outputnames[i] for i in rows]
     return TransferFunction(mat, t.Ts, innames, outnames)
 end
 
@@ -288,6 +307,28 @@ function ==(t1::TransferFunction, t2::TransferFunction)
         end
     end
     return true
+end
+
+## Approximate ##
+function isapprox(t1::TransferFunction, t2::TransferFunction)
+    t1, t2 = promote(t1, t2)
+    fieldsApprox = [:Ts, :ny, :nu, :matrix]
+    fieldsEqual = [:inputnames, :outputnames]
+    for field in fieldsApprox
+        if !(getfield(t1, field) ≈ getfield(t2, field))
+            return false
+        end
+    end
+    for field in fieldsEqual
+        if getfield(t1, field) != getfield(t2, field)
+            return false
+        end
+    end
+    return true
+end
+
+function isapprox{T<:SisoTf, S<:SisoTf}(t1::Array{T}, t2::Array{S})
+    reduce(&, [isapprox(t1[i], t2[i]) for i in eachindex(t1)])
 end
 
 ## ADDITION ##
