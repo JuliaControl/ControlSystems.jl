@@ -73,3 +73,24 @@ function acker(A,B,P)
   end
   return [zeros(1,n-1) 1]*(S\q)
 end
+
+
+"""
+`feedback(L)` Return L/(1+L)
+`feedback(P,C)` Return PC/(1+PC)
+"""
+feedback(L::TransferFunction) = L/(1+L)
+feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
+
+
+"""
+`feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+`feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
+"""
+function feedback2dof(P::TransferFunction,R,S,T)
+    if !issiso(P)
+        error("Feedback not implemented for MIMO systems")
+    end
+     tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
+ end
+feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

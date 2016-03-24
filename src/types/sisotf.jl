@@ -67,6 +67,9 @@ function Base.den(t::SisoRational)
     return d
 end
 
+denpoly(G::SisoRational) = Poly(den(G))
+numpoly(G::SisoRational) = Poly(num(G))
+
 function evalfr(sys::SisoRational, s::Number)
     S = promote_type(typeof(s), Float64)
     den = polyval(sys.den, s)

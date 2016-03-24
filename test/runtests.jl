@@ -10,6 +10,7 @@ my_tests = ["test_statespace",
             "test_discrete",
             "test_linalg",
             "test_simplification",
-            "test_freqresp"]
+            "test_freqresp",
+            "test_synthesis"]
 
 runtests(my_tests)
