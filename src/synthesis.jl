@@ -137,9 +137,8 @@ end
 `feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
 """
 function feedback2dof(P::TransferFunction,R,S,T)
-    if !issiso(P)
-        error("Feedback not implemented for MIMO systems")
-    end
-     tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
+    !issiso(P) && error("Feedback not implemented for MIMO systems")
+    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
  end
+ 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

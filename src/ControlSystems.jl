@@ -55,7 +55,10 @@ export  LTISystem,
         evalfr,
         bode,
         nyquist,
-        sigma
+        sigma,
+        # utilities
+        numpoly,
+        denpoly
 
 import Plots
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call, convert
