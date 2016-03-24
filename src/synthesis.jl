@@ -110,24 +110,24 @@ feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
 
 `feedback(sys1,sys2)`
 
-Forms the feedback interconnection
+Forms the negative feedback interconnection
 ```julia
->---sys1--->
-   |    |
-   -sys2-
+>-+ sys1 +-->
+  |      |
+ (-)sys2 +
 ```
 If no second system is given, negative identity feedback is assumed
 """
 function feedback(sys::StateSpace)
     sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(-eye(sys.ny)))
+    feedback(sys,ss(eye(sys.ny)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)
     sum(abs(sys1.D)) != 0 && sum(abs(sys2.D)) != 0 && error("There can not be a direct term (D) in both sys1 and sys2")
-    A = [sys1.A+sys1.B*sys2.D*sys1.C sys1.B*sys2.C; sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*sys2.C]
+    A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
-    C = [sys1.C  sys1.D*sys2.C]
+    C = [sys1.C  sys1.D*(-sys2.C)]
     ss(A,B,C,sys1.D)
 end
 
