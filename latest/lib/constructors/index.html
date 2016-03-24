@@ -65,15 +65,23 @@
 <li>
           
             <li>
+    <ul class="subnav">
+    <li><span>Examples</span></li>
+
+        
+            
     <li class="toctree-l1 ">
-        <a class="" href="../../examples/example/">Examples</a>
+        <a class="" href="../../examples/example/">Design</a>
         
     </li>
+
+        
+    </ul>
 <li>
           
             <li>
     <ul class="subnav">
-    <li><span>Manual</span></li>
+    <li><span>Guide</span></li>
 
         
             
@@ -99,22 +107,43 @@
 
         
             
-    <li class="toctree-l1 ">
-        <a class="" href="../plotting/">Plotting</a>
-        
-    </li>
-
-        
-            
     <li class="toctree-l1 current">
         <a class="current" href="./">Constructors</a>
         
             <ul>
             
-                <li class="toctree-l3"><a href="#constructors">Constructors</a></li>
+                <li class="toctree-l3"><a href="#constructing-transfer-functions">Constructing transfer functions</a></li>
                 
             
             </ul>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="../analysis/">Analysis</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="../analysis/">Synthesis</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="../timefreqresponse/">Time and Frequency response</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="../plotting/">Plotting</a>
         
     </li>
 
@@ -163,15 +192,60 @@
             <div class="section">
               
                 <ul>
+<li><a href="./#ControlSystems.append"><code>ControlSystems.append</code></a></li>
+<li><a href="./#ControlSystems.c2d"><code>ControlSystems.c2d</code></a></li>
+<li><a href="./#ControlSystems.minreal"><code>ControlSystems.minreal</code></a></li>
+<li><a href="./#ControlSystems.parallel"><code>ControlSystems.parallel</code></a></li>
+<li><a href="./#ControlSystems.series"><code>ControlSystems.series</code></a></li>
+<li><a href="./#ControlSystems.sminreal"><code>ControlSystems.sminreal</code></a></li>
+<li><a href="./#ControlSystems.ss2tf"><code>ControlSystems.ss2tf</code></a></li>
 <li><a href="./#ControlSystems.tf"><code>ControlSystems.tf</code></a></li>
+<li><a href="./#ControlSystems.tfg"><code>ControlSystems.tfg</code></a></li>
 <li><a href="./#ControlSystems.zpk"><code>ControlSystems.zpk</code></a></li>
 </ul>
-<p><a id='Constructors-1'></a></p>
-<h1 id="constructors">Constructors</h1>
+<p><a id='Constructing-transfer-functions-1'></a></p>
+<h1 id="constructing-transfer-functions">Constructing transfer functions</h1>
+<p><a id='ControlSystems.append' href='#ControlSystems.append'>#</a>
+<strong><code>ControlSystems.append</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>append(systems::StateSpace...), append(systems::TransferFunction...)</code></p>
+<p>Append systems in block diagonal form</p>
+<p><a id='ControlSystems.c2d' href='#ControlSystems.c2d'>#</a>
+<strong><code>ControlSystems.c2d</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>[sysd, x0map] = c2d(sys, Ts, method=:zoh)</code></p>
+<p>Convert the continuous system <code>sys</code> into a discrete system with sample time <code>Ts</code>, using the provided method. Currently only <code>:zoh</code> and <code>:foh</code> are provided.</p>
+<p>Returns the discrete system <code>sysd</code>, and a matrix <code>x0map</code> that transforms the initial conditions to the discrete domain by <code>x0_discrete = x0map*[x0; u0]</code></p>
+<p><a id='ControlSystems.minreal' href='#ControlSystems.minreal'>#</a>
+<strong><code>ControlSystems.minreal</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>tf = minreal(tf::TransferFunction, eps=sqrt(eps()))</code></p>
+<p>Create a minimial representation of each transfer function in <code>tf</code> by cancelling poles and zeros </p>
+<p><a id='ControlSystems.parallel' href='#ControlSystems.parallel'>#</a>
+<strong><code>ControlSystems.parallel</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>series(s1::LTISystem, s2::LTISystem)</code></p>
+<p>Connect systems in parallel, equivalent to <code>s2+s1</code></p>
+<p><a id='ControlSystems.series' href='#ControlSystems.series'>#</a>
+<strong><code>ControlSystems.series</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>series(s1::LTISystem, s2::LTISystem)</code></p>
+<p>Connect systems in series, equivalent to <code>s2*s1</code></p>
+<p><a id='ControlSystems.sminreal' href='#ControlSystems.sminreal'>#</a>
+<strong><code>ControlSystems.sminreal</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>sminreal(sys)</code></p>
+<p>Compute the structurally minimal realization of the state-space system <code>sys</code>. A structurally minimal realization is one where only states that can be determined to be uncontrollable and unobservable based on the location of 0s in <code>sys</code> are removed.</p>
+<p><a id='ControlSystems.ss2tf' href='#ControlSystems.ss2tf'>#</a>
+<strong><code>ControlSystems.ss2tf</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>sys = ss2tf(s::StateSpace)</code>, <code>sys = ss2tf(A, B, C, Ts = 0, inames = "", onames = "")</code></p>
+<p>Convert a <code>StateSpace</code> realization to a <code>TransferFunction</code></p>
 <p><a id='ControlSystems.tf' href='#ControlSystems.tf'>#</a>
 <strong><code>ControlSystems.tf</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)</code> Create transfer function as a fraction of polynomials:</p>
+<p><code>sys = tf(num, den, Ts=0; kwargs...), sys = tf(gain, Ts=0; kwargs...)</code></p>
+<p>Create transfer function as a fraction of polynomials:</p>
 <p><code>sys = numerator/denominator</code></p>
 <p><code>num</code>: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.</p>
 <p><code>den</code>: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.</p>
@@ -180,10 +254,19 @@
 <p>Other uses:</p>
 <p><code>tf(sys)</code>: Convert <code>sys</code> to <code>tf</code> form.</p>
 <p><code>tf("s")</code>, <code>tf("z")</code>: Create the continous transferfunction <code>s</code>.</p>
+<p><a id='ControlSystems.tfg' href='#ControlSystems.tfg'>#</a>
+<strong><code>ControlSystems.tfg</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>sys = tfg(tf::LTISystem),</code>tfg(s::AbstractString)<code>,</code>tfg(exp::Expr)<code>,</code>tfg(::Array)`</p>
+<p>Create generalized transfer function represented by an expression. The variable has to be <code>s</code>.</p>
+<p>Example: <code>tfg("1/exp(-sqrt(s))")</code>, <code>tfg(["1/exp(-sqrt(s))"), "1/(s+1)])</code>, <code>tfg(:(s+1))</code></p>
+<p>Other uses:</p>
+<p><code>tfg(sys)</code>: Convert <code>sys</code> to <code>tfg</code> form.</p>
 <p><a id='ControlSystems.zpk' href='#ControlSystems.zpk'>#</a>
 <strong><code>ControlSystems.zpk</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)</code> Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.</p>
+<p><code>zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)</code></p>
+<p>Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.</p>
 <p><code>sys = k*numerator/denominator</code></p>
 <p><code>num</code>: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.</p>
 <p><code>den</code>: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.</p>
@@ -200,8 +283,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="../analysis/" class="btn btn-neutral float-right" title="Analysis">Next <span class="icon icon-circle-arrow-right"></span></a>
       
-        <a href="../plotting/" class="btn btn-neutral" title="Plotting"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+        <a href="../../man/creatingtfs/" class="btn btn-neutral" title="Creating Transfer Functions"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -229,8 +314,10 @@
           <a href="https://github.com/JuliaControl/ControlSystems.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../plotting/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../../man/creatingtfs/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
+      
+        <span style="margin-left: 15px"><a href="../analysis/" style="color: #fcfcfc">Next &raquo;</a></span>
       
     </span>
 </div>

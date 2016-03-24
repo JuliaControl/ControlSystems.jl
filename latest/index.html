@@ -65,9 +65,9 @@
             
                 <li class="toctree-l3"><a href="#controlsystemsjl-manual">ControlSystems.jl Manual</a></li>
                 
-                    <li><a class="toctree-l4" href="#guide">Guide</a></li>
-                
                     <li><a class="toctree-l4" href="#examples">Examples</a></li>
+                
+                    <li><a class="toctree-l4" href="#guide">Guide</a></li>
                 
                     <li><a class="toctree-l4" href="#functions">Functions</a></li>
                 
@@ -80,15 +80,23 @@
 <li>
           
             <li>
+    <ul class="subnav">
+    <li><span>Examples</span></li>
+
+        
+            
     <li class="toctree-l1 ">
-        <a class="" href="examples/example/">Examples</a>
+        <a class="" href="examples/example/">Design</a>
         
     </li>
+
+        
+    </ul>
 <li>
           
             <li>
     <ul class="subnav">
-    <li><span>Manual</span></li>
+    <li><span>Guide</span></li>
 
         
             
@@ -115,14 +123,35 @@
         
             
     <li class="toctree-l1 ">
-        <a class="" href="lib/plotting/">Plotting</a>
+        <a class="" href="lib/constructors/">Constructors</a>
         
     </li>
 
         
             
     <li class="toctree-l1 ">
-        <a class="" href="lib/constructors/">Constructors</a>
+        <a class="" href="lib/analysis/">Analysis</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="lib/analysis/">Synthesis</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="lib/timefreqresponse/">Time and Frequency response</a>
+        
+    </li>
+
+        
+            
+    <li class="toctree-l1 ">
+        <a class="" href="lib/plotting/">Plotting</a>
         
     </li>
 
@@ -168,9 +197,6 @@
               
                 <p><a id='ControlSystems.jl-Manual-1'></a></p>
 <h1 id="controlsystemsjl-manual">ControlSystems.jl Manual</h1>
-<p>A guide</p>
-<p><a id='Guide-1'></a></p>
-<h2 id="guide">Guide</h2>
 <p><a id='Examples-1'></a></p>
 <h2 id="examples">Examples</h2>
 <ul>
@@ -179,21 +205,67 @@
 <li><a href="examples/example/#Stability-boundary-for-PID-controllers-1">Stability boundary for PID controllers</a></li>
 <li><a href="examples/example/#PID-plots-1">PID plots</a></li>
 </ul>
+<p><a id='Guide-1'></a></p>
+<h2 id="guide">Guide</h2>
 <p><a id='Functions-1'></a></p>
 <h2 id="functions">Functions</h2>
 <ul>
-<li><a href="lib/constructors/#Constructors-1">Constructors</a></li>
+<li><a href="lib/constructors/#Constructing-transfer-functions-1">Constructing transfer functions</a></li>
 <li><a href="lib/plotting/#Plotting-functions-1">Plotting functions</a></li>
 </ul>
 <p><a id='Documentation-Index-1'></a></p>
 <h2 id="documentation-index">Documentation Index</h2>
 <ul>
+<li><a href="lib/constructors/#ControlSystems.append"><code>ControlSystems.append</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.c2d"><code>ControlSystems.c2d</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.minreal"><code>ControlSystems.minreal</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.parallel"><code>ControlSystems.parallel</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.series"><code>ControlSystems.series</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.sminreal"><code>ControlSystems.sminreal</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.ss2tf"><code>ControlSystems.ss2tf</code></a></li>
 <li><a href="lib/constructors/#ControlSystems.tf"><code>ControlSystems.tf</code></a></li>
+<li><a href="lib/constructors/#ControlSystems.tfg"><code>ControlSystems.tfg</code></a></li>
 <li><a href="lib/constructors/#ControlSystems.zpk"><code>ControlSystems.zpk</code></a></li>
 <li><a href="lib/plotting/#ControlSystems.bodeplot"><code>ControlSystems.bodeplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.gangoffourplot"><code>ControlSystems.gangoffourplot</code></a></li>
 <li><a href="lib/plotting/#ControlSystems.impulseplot"><code>ControlSystems.impulseplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.leadlinkcurve"><code>ControlSystems.leadlinkcurve</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.lsimplot"><code>ControlSystems.lsimplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.marginplot"><code>ControlSystems.marginplot</code></a></li>
 <li><a href="lib/plotting/#ControlSystems.nicholsplot"><code>ControlSystems.nicholsplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.nyquistplot"><code>ControlSystems.nyquistplot</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.pidplots"><code>ControlSystems.pidplots</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.pzmap"><code>ControlSystems.pzmap</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.pzmap!"><code>ControlSystems.pzmap!</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.rlocus"><code>ControlSystems.rlocus</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.setPlotScale"><code>ControlSystems.setPlotScale</code></a></li>
+<li><a href="lib/plotting/#ControlSystems.sigmaplot"><code>ControlSystems.sigmaplot</code></a></li>
 <li><a href="lib/plotting/#ControlSystems.stepplot"><code>ControlSystems.stepplot</code></a></li>
+<li><a href="lib/timefreqresponse/#Base.step"><code>Base.step</code></a></li>
+<li><a href="lib/timefreqresponse/#ControlSystems.bode"><code>ControlSystems.bode</code></a></li>
+<li><a href="lib/timefreqresponse/#ControlSystems.evalfr"><code>ControlSystems.evalfr</code></a></li>
+<li><a href="lib/timefreqresponse/#ControlSystems.freqresp"><code>ControlSystems.freqresp</code></a></li>
+<li><a href="lib/timefreqresponse/#ControlSystems.impulse"><code>ControlSystems.impulse</code></a></li>
+<li><a href="lib/timefreqresponse/#ControlSystems.lsim"><code>ControlSystems.lsim</code></a></li>
+<li><a href="lib/timefreqresponse/#ControlSystems.nyquist"><code>ControlSystems.nyquist</code></a></li>
+<li><a href="lib/analysis/#Base.LinAlg.norm"><code>Base.LinAlg.norm</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.covar"><code>ControlSystems.covar</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.ctrb"><code>ControlSystems.ctrb</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.damp"><code>ControlSystems.damp</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.dampreport"><code>ControlSystems.dampreport</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.dcgain"><code>ControlSystems.dcgain</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.delaymargin"><code>ControlSystems.delaymargin</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.gangoffour"><code>ControlSystems.gangoffour</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.gangofseven"><code>ControlSystems.gangofseven</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.gram"><code>ControlSystems.gram</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.margin"><code>ControlSystems.margin</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.markovparam"><code>ControlSystems.markovparam</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.obsv"><code>ControlSystems.obsv</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.pole"><code>ControlSystems.pole</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.sigma"><code>ControlSystems.sigma</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.stabregionPID"><code>ControlSystems.stabregionPID</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.tzero"><code>ControlSystems.tzero</code></a></li>
+<li><a href="lib/analysis/#ControlSystems.zpkdata"><code>ControlSystems.zpkdata</code></a></li>
 </ul>
               
             </div>
@@ -202,7 +274,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="examples/example/" class="btn btn-neutral float-right" title="Examples">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="examples/example/" class="btn btn-neutral float-right" title="Design">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
     </div>
@@ -242,5 +314,5 @@
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-03-23 15:38:04.323674
+Build Date UTC : 2016-03-24 12:10:59.014194
 -->
