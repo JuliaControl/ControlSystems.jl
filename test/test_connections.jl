@@ -105,6 +105,17 @@ Czpk_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2,
 Czpk_222 = [Czpk_221; Czpk_221]
 Czpk_022 = [zpk([],[],4) 0; 0 zpk([],[],4)]
 
+#Make sure that we get a vector
+arr = Array{TransferFunction{ControlSystems.SisoZpk},1}(2)
+arr[1] = zpk(tf(1)); arr[2] = zpk(2);
+@test [tf(1), zpk(2)] == arr
+arr2 = Array{TransferFunction{ControlSystems.SisoRational},1}(2)
+arr2[1] = tf(1, 0.1); arr2[2] = tf(2, 0.1);
+@test [tf(1, 0.1), tf(2, 0.1)] == arr2
+arr3 = Array{StateSpace,1}(3)
+arr3[1] = ss(0); arr3[2] = ss(1); arr3[3] = ss(2)
+@test [0, zpk(1), ss(2)] == arr3
+
 @test_approx_eq Czpk_111 Ctf_111
 @test_approx_eq Czpk_211 Ctf_211
 @test_approx_eq Czpk_212 Ctf_212

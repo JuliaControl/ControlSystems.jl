@@ -34,7 +34,10 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
     return ss(A, B, C, D, t.Ts, inputnames=t.inputnames, outputnames=t.outputnames)
 end
 
-Base.promote_rule(::Type{StateSpace}, ::Type{TransferFunction}) = StateSpace
+Base.convert(::Type{StateSpace}, t::Real) = ss(t)
+
+Base.promote_rule{T<:SisoTf}(::Type{StateSpace}, ::Type{TransferFunction{T}}) = StateSpace
+Base.promote_rule{T<:Real}(::Type{StateSpace}, ::Type{T}) = StateSpace
 
 siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
@@ -101,6 +104,9 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     return T
 end
 
+@doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0, inames = "", onames = "")`
+
+Convert a `StateSpace` realization to a `TransferFunction`""" ->
 function ss2tf(s::StateSpace)
     return ss2tf(s.A, s.B, s.C, s.Ts, s.inputnames, s.outputnames)
 end

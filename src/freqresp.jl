@@ -13,6 +13,7 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     else
         s = im*w
     end
+    #Evil but nessesary type instability here
     sys = _preprocess_for_freqresp(sys)
     resp = Array(Complex128, ny, nu, nw)
     for i=1:nw
@@ -36,7 +37,12 @@ function _preprocess_for_freqresp(sys::StateSpace)
     StateSpace(H, Q, P, D, sys.Ts, sys.statenames, sys.inputnames,
         sys.outputnames)
 end
-_preprocess_for_freqresp(sys::TransferFunction) = sys
+
+function _preprocess_for_freqresp(sys::TransferFunction)
+    map(sisotf -> _preprocess_for_freqresp(sisotf), sys.matrix)
+end
+
+_preprocess_for_freqresp(sys::SisoTf) = sys
 
 @doc """Evaluate the frequency response
 
@@ -65,6 +71,8 @@ function evalfr(sys::TransferFunction, s::Number)
     end
     return res
 end
+
+evalfr(mat::Matrix, s::Number) = map(sys -> evalfr(sys, s), mat)
 
 function Base.call(sys::TransferFunction, s)
     evalfr(sys,s)
@@ -132,6 +140,12 @@ function _default_freq_vector{T<:LTISystem}(systems::Vector{T}, plot::Symbol)
 end
 _default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
         LTISystem[sys], plot)
+
+_default_freq_vector{T<:TransferFunction{SisoGeneralized}}(sys::Vector{T}, plot::Symbol) =
+    logspace(-2,2,400)
+_default_freq_vector(sys::TransferFunction{SisoGeneralized} , plot::Symbol) =
+    logspace(-2,2,400)
+
 
 function _bounds_and_features(sys::LTISystem, plot::Symbol)
     # Get zeros and poles for each channel

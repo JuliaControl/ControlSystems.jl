@@ -151,7 +151,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
 end
 bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) =
     bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
-bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot(LTISystem[sys], args...; plotphase=plotphase)
+bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot([sys], args...; plotphase=plotphase)
 
 @doc """ `nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
@@ -190,7 +190,7 @@ end
 
 nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
     nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
-nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot(LTISystem[sys], args...; kwargs...)
+nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot([sys], args...; kwargs...)
 
 
 @doc """
@@ -331,7 +331,7 @@ end
 
 nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
     nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
-nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot(LTISystem[sys],args...; kwargs...)
+nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwargs...)
 
 @doc """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
 
@@ -359,9 +359,12 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
 end
 sigmaplot{T<:LTISystem}(systems::Vector{T}) =
     sigmaplot(systems, _default_freq_vector(systems, :sigma))
-sigmaplot(sys::LTISystem, args...) = sigmaplot(LTISystem[sys], args...)
+sigmaplot(sys::LTISystem, args...) = sigmaplot([sys], args...)
 
+@doc """`marginplot(sys::LTISystem [,w::AbstractVector])`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector)`
 
+Plot all the amplitude and phase margins of the system(s) `sys`.
+A frequency vector `w` can be optionally provided.""" ->
 function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
@@ -414,7 +417,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
 end
 marginplot{T<:LTISystem}(systems::Vector{T}) =
     marginplot(systems, _default_freq_vector(systems, :bode))
-marginplot(sys::LTISystem, args...) = marginplot(LTISystem[sys], args...)
+marginplot(sys::LTISystem, args...) = marginplot([sys], args...)
 
 
 # HELPERS:
@@ -432,9 +435,9 @@ end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
 
-@doc """`pzmap(sys)``
+@doc """`pzmap!(fig, system, args...; kwargs...)`
 
-Create a pole-zero map of the `LTISystem`(s).""" ->
+Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
 function pzmap!(fig, system::LTISystem, args...; kwargs...)
     if system.nu + system.ny > 2
         warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
@@ -455,7 +458,10 @@ function pzmap!(fig, system::LTISystem, args...; kwargs...)
     return fig
 end
 
-pzmap(system::LTISystem, args...; kwargs...) = pzmap!(Plots.plot(), system::LTISystem, args...; kwargs...)
+@doc """`pzmap(system, args...; kwargs...)`
+
+Create a pole-zero map of the `LTISystem`(s), `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
+pzmap(system::LTISystem, args...; kwargs...) = pzmap!(Plots.plot(), system, args...; kwargs...)
 
 @doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
 

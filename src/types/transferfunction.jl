@@ -2,12 +2,13 @@ abstract SisoTf
 include("polys.jl")
 include("sisotf.jl")
 include("sisozpk.jl")
+include("sisogeneralized.jl")
 #####################################################################
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type TransferFunction <: LTISystem
-    matrix::Matrix{SisoTf}
+type TransferFunction{S<:SisoTf} <: LTISystem
+    matrix::Matrix{S}
     Ts::Float64
     nu::Int
     ny::Int
@@ -27,24 +28,34 @@ type TransferFunction <: LTISystem
             error("Ts must be either a positive number, 0
                 (continuous system), or -1 (unspecified)")
         end
-        return new(matrix, Ts, nu, ny, inputnames, outputnames)
+        return new{T}(matrix, Ts, nu, ny, inputnames, outputnames)
     end
 end
+TransferFunction{T<:SisoTf}(matrix::Matrix{T}, args...) = TransferFunction{T}(matrix, args...)
 
 +{T<:Real}(a::TransferFunction, b::AbstractVecOrMat{T}) = +(promote(a,b)...)
 
-Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Type{T}) = TransferFunction
-Base.promote_rule{T<:Real}(::Type{TransferFunction}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = TransferFunction
-Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b], [1])
+Base.promote_rule{S<:SisoTf,T<:Real}(::Type{TransferFunction{S}}, ::Type{T}) = TransferFunction{S}
+Base.promote_rule{S<:SisoTf,T<:Real}(::Type{TransferFunction{S}}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = TransferFunction{S}
 
+Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b])
+Base.convert{T<:Real}(::Type{TransferFunction{SisoRational}}, b::T) = tf(b)
+Base.convert{T<:Real}(::Type{TransferFunction{SisoZpk}}, b::T) = zpk(b)
+Base.convert{T<:Real}(::Type{TransferFunction{SisoGeneralized}}, b::T) = tfg(b)
+
+Base.convert(::Type{TransferFunction{SisoZpk}}, s::TransferFunction) = zpk(s)
+Base.convert(::Type{TransferFunction{SisoRational}}, s::TransferFunction) = tf(s)
+Base.convert(::Type{TransferFunction{SisoGeneralized}}, s::TransferFunction) = tfg(s)
+
+Base.promote_rule(::Type{TransferFunction{SisoRational}}, ::Type{TransferFunction{SisoZpk}}) = TransferFunction{SisoZpk}
+Base.promote_rule{T<:SisoTf}(::Type{TransferFunction{T}}, ::Type{TransferFunction{SisoGeneralized}}) = TransferFunction{SisoGeneralized}
 Base.promote_rule(::Type{SisoRational}, ::Type{SisoZpk}) = SisoZpk
-Base.promote_rule(::Type{SisoTf}, ::Type{SisoZpk}) = SisoZpk
-Base.promote_rule(::Type{SisoTf}, ::Type{SisoRational}) = SisoRational
+Base.promote_rule{T<:SisoTf}(::Type{T}, ::Type{SisoGeneralized}) = SisoGeneralized
 
 function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)
     for j=1:size(b,2)
-        r[j] = vcat(map(s->tf([s],[1]),b[:,j])...)
+        r[j] = vcat(map(k->convert(TransferFunction,k),b[:,j])...)
     end
     hcat(r...)
 end
@@ -65,13 +76,20 @@ function Base.convert(::Type{SisoRational}, sys::SisoZpk)
     return SisoRational(num, den)
 end
 
+Base.convert(::Type{SisoGeneralized}, sys::SisoRational) = SisoGeneralized(sprint(print_compact, sys))
+Base.convert(::Type{SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, convert(SisoRational, sys))
+
+Base.convert(::Type{SisoRational}, sys::SisoGeneralized) = SisoRational(sys.expr)
+Base.convert(::Type{SisoZpk}, sys::SisoGeneralized) = convert(SisoZpk, SisoRational(sys.expr))
+Base.convert(::Type{TransferFunction{SisoZpk}}, s::TransferFunction) = zpk(s)
+
 #Just default SisoTf to SisoRational
 SisoTf(args...) = SisoRational(args...)
 Base.convert(::Type{ControlSystems.SisoTf}, b::Real) = Base.convert(ControlSystems.SisoRational, b)
 Base.zero(::Type{SisoTf}) = zero(SisoRational)
 Base.zero(::SisoTf) = zero(SisoRational)
 
-tzero(sys::SisoTf) = roots(sys.num)
+tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 #####################################################################
 ##                      SisoTf Operations                   ##
 #####################################################################
@@ -102,7 +120,9 @@ isapprox(a::SisoTf, b::SisoTf) = ≈(promote(a,b)...)
 ##                      Constructor Functions                      ##
 #####################################################################
 
-@doc """ `tf(num, den, Ts=0; kwargs...), tf(gain, Ts=0; kwargs...)` Create transfer function as a fraction of polynomials:
+@doc """ `sys = tf(num, den, Ts=0; kwargs...), sys = tf(gain, Ts=0; kwargs...)`
+
+Create transfer function as a fraction of polynomials:
 
 `sys = numerator/denominator`
 
@@ -139,8 +159,9 @@ function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
-@doc """ `zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)` Create transfer
-function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
+@doc """ `zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)`
+
+Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
 
 `sys = k*numerator/denominator`
 
@@ -180,28 +201,43 @@ function zpk{T<:Vector,S<:Vector}(z::VecOrMat{T}, p::VecOrMat{S}, k::VecOrMat, T
 end
 
 function zpk(tf::TransferFunction)
-    tf = copy(tf)
+    oldmat = tf.matrix
     matrix = Array(SisoZpk, tf.ny, tf.nu)
-    for o=1:tf.ny
-        for i=1:tf.nu
-            matrix[o, i] = convert(SisoZpk, tf.matrix[o, i])
-        end
+    for i in eachindex(oldmat)
+        matrix[i] = convert(SisoZpk, oldmat[i])
     end
-    tf.matrix = matrix
-    return tf
+    return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
 
-function tf(s::TransferFunction)
-    s = copy(s)
-    matrix = Array(SisoRational, s.ny, s.nu)
-    for o=1:s.ny
-        for i=1:s.nu
-            matrix[o, i] = convert(SisoRational, s.matrix[o, i])
-        end
+function tf(tf::TransferFunction)
+    oldmat = tf.matrix
+    matrix = Array(SisoRational, tf.ny, tf.nu)
+    for i in eachindex(oldmat)
+        matrix[i] = convert(SisoRational, oldmat[i])
     end
-    s.matrix = matrix
-    return s
+    return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
+
+@doc """ `sys = tfg(tf::LTISystem), `tfg(s::AbstractString)`, `tfg(exp::Expr)`, `tfg(::Array)`
+
+Create generalized transfer function represented by an expression. The variable has to be `s`.
+
+Example: `tfg("1/exp(-sqrt(s))")`, `tfg(["1/exp(-sqrt(s))"), "1/(s+1)])`, `tfg(:(s+1))`
+
+Other uses:
+
+`tfg(sys)`: Convert `sys` to `tfg` form.
+""" ->
+function tfg(tf::TransferFunction)
+    oldmat = tf.matrix
+    matrix = Array(SisoGeneralized, tf.ny, tf.nu)
+    for i in eachindex(oldmat)
+        matrix[i] = convert(SisoGeneralized, oldmat[i])
+    end
+    return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
+end
+
+zpk(sys::TransferFunction{SisoGeneralized}) = zpk(tf(sys))
 
 tf(num::Vector, den::Vector, Ts::Real=0; kwargs...) =
     tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), Ts; kwargs...)
@@ -215,10 +251,8 @@ zpk(z::Vector, p::Vector, k::Real, Ts::Real=0; kwargs...) =
 function tf(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
     matrix = Array(SisoRational, ny, nu)
-    for o=1:ny
-        for i=1:nu
-            matrix[o, i] = SisoRational([gain[o, i]], [1])
-        end
+    for i in eachindex(gain)
+        matrix[i] = SisoRational([gain[i]], [1])
     end
     kvs = Dict(kwargs)
     inputnames = validate_names(kvs, :inputnames, nu)
@@ -257,6 +291,21 @@ end
 zpk(var::AbstractString) = zpk(tf(var))
 zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 
+function tfg(systems::Array, Ts::Real=0; kwargs...)
+    ny, nu = size(systems, 1, 2)
+    matrix = Array(SisoGeneralized, ny, nu)
+    for o=1:ny
+        for i=1:nu
+            matrix[o, i] = SisoGeneralized(systems[o, i])
+        end
+    end
+    kvs = Dict(kwargs)
+    inputnames = validate_names(kvs, :inputnames, nu)
+    outputnames = validate_names(kvs, :outputnames, ny)
+    return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
+end
+
+tfg(var::Union{AbstractString,ExprLike}, Ts=0; kwargs...) = tfg([var], Ts; kwargs...)
 #####################################################################
 ##                          Misc. Functions                        ##
 #####################################################################
@@ -285,12 +334,13 @@ function Base.copy(t::TransferFunction)
     return TransferFunction(matrix, t.Ts, inputnames, outputnames)
 end
 
+@doc """`tf = minreal(tf::TransferFunction, eps=sqrt(eps()))`
+
+Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros """ ->
 function minreal(t::TransferFunction, eps::Real=sqrt(eps()))
     matrix = similar(t.matrix)
-    for o=1:t.ny
-        for i=1:t.nu
-            matrix[o, i] = minreal(t.matrix[o, i], eps)
-        end
+    for i = eachindex(t.matrix)
+        matrix[i] = minreal(t.matrix[i], eps)
     end
     return TransferFunction(matrix, t.Ts, copy(t.inputnames), copy(t.outputnames))
 end

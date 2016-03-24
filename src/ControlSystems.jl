@@ -5,9 +5,11 @@ export  LTISystem,
         TransferFunction,
         ss,
         tf,
+        tfg,
         zpk,
         ss2tf,
         # Linear Algebra
+        balance,
         care,
         dare,
         dlyap,
@@ -20,18 +22,19 @@ export  LTISystem,
         obsv,
         place,
         # Model Simplification
+        reduce_sys,
         sminreal,
         minreal,
         # Stability Analysis
         pole,
         tzero,
-        gain,
         dcgain,
         zpkdata,
         damp,
         dampreport,
         markovparam,
         margin,
+        delaymargin,
         gangoffour,
         # Connections
         append,
@@ -51,8 +54,7 @@ export  LTISystem,
         sigma
 
 import Plots
-
-import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call
+import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call, convert
 
 include("types/lti.jl")
 include("types/transferfunction.jl")

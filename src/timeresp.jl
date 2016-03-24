@@ -24,10 +24,13 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     end
     return y, t, x
 end
-Base.step(sys::StateSpace, Tf::Real) = step(sys, _default_time_vector(sys, Tf))
-Base.step(sys::StateSpace) = step(sys, _default_time_vector(sys))
-Base.step(sys::LTISystem, args...) = step(ss(sys), args...)
+function Base.step(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
+    lsim(sys, ones(length(t), sys.nu), t)
+end
 
+Base.step(sys::LTISystem, Tf::Real) = step(sys, _default_time_vector(sys, Tf))
+Base.step(sys::LTISystem) = step(sys, _default_time_vector(sys))
+Base.step(sys::TransferFunction, t::AbstractVector) = step(ss(sys), t::AbstractVector)
 
 @doc """`[y, t, x] = impulse(sys[, Tf])` or `[y, t, x] = impulse(sys[, t])`
 
@@ -60,10 +63,15 @@ function impulse(sys::StateSpace, t::AbstractVector)
     end
     return y, t, x
 end
-impulse(sys::StateSpace, Tf::Real) = impulse(sys, _default_time_vector(sys, Tf))
-impulse(sys::StateSpace) = impulse(sys, _default_time_vector(sys))
-impulse(sys::LTISystem, args...) = impulse(ss(sys), args...)
+function impulse(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
+    u = zeros(length(t), sys.nu)
+    u[1,:] = 1/(t[2]-t[1])
+    lsim(sys::TransferFunction{SisoGeneralized}, u, t)
+end
 
+impulse(sys::LTISystem, Tf::Real) = impulse(sys, _default_time_vector(sys, Tf))
+impulse(sys::LTISystem) = impulse(sys, _default_time_vector(sys))
+impulse(sys::TransferFunction, t::AbstractVector) = impulse(ss(sys), t)
 
 @doc """`[y, t, x] = lsim(sys, u, t[, x0, method])`
 
@@ -104,6 +112,21 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
 end
 lsim(sys::TransferFunction, u, t, args...) = lsim(ss(sys), u, t, args...)
 
+function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
+    ny, nu = size(sys)
+    if !any(size(u) .== [(length(t), nu) (length(t),)])
+        error("u must be of size (length(t), nu)")
+    end
+    ny, nu = size(sys)
+    y = Array{Float64}(length(t),ny)
+    for i = 1:nu
+        for o = 1:ny
+            dt = Float64(t[2]-t[1])
+            y[:,o] += lsimabstract(sys.matrix[o,i], u[:,i], dt, t[end])
+        end
+    end
+    return y, t
+end
 
 @doc """`ltitr(A, B, u[, x0])`
 
@@ -132,7 +155,7 @@ function _default_time_vector(sys::LTISystem, Tf::Real=-1)
     if Tf == -1
         Tf = 100*Ts
     end
-    return 0:Ts:Tf
+    return linspace(0, Tf, round(Int, Tf/Ts))
 end
 
 function _default_Ts(sys::LTISystem)
@@ -142,7 +165,7 @@ function _default_Ts(sys::LTISystem)
         Ts = 0.05
     else
         ps = pole(sys)
-        r = minimum(abs(real(ps)))
+        r = minimum([abs(real(ps));0])
         if r == 0.0
             r = 1.0
         end
@@ -150,6 +173,8 @@ function _default_Ts(sys::LTISystem)
     end
     return Ts
 end
+
+_default_Ts(sys::TransferFunction{SisoGeneralized}) = 0.07
 
 # Determine if a signal is "smooth"
 function _issmooth(u, thresh::AbstractFloat=0.75)

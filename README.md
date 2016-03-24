@@ -23,13 +23,13 @@ Some of the available commands are:
 ##### Constructing systems
 ss, tf, zpk, ss2tf
 ##### Analysis
-pole, tzero, norm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma
+pole, tzero, norm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
 ##### Synthesis
 care, dare, dlyap, lqr, dlqr, place, pid, leadlink, laglink, leadlinkat, rstd, rstc, dab
 ##### Time and Frequency response
 step, impulse, lsim, freqresp, evalfr, bode, nyquist
 ##### Plotting
-lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
+lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
 ##### Other
 minreal, sminreal, c2d
 ## Usage

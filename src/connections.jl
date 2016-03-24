@@ -1,10 +1,25 @@
 # Model interconnections
 
+@doc """
+`series(s1::LTISystem, s2::LTISystem)`
+
+Connect systems in series, equivalent to `s2*s1`
+""" ->
 series(s1::LTISystem, s2::LTISystem) = s2*s1
 
+@doc """
+`series(s1::LTISystem, s2::LTISystem)`
+
+Connect systems in parallel, equivalent to `s2+s1`
+""" ->
 parallel(s1::LTISystem, s2::LTISystem) = s1 + s2
 
 append() = LTISystem[]
+@doc """
+`append(systems::StateSpace...), append(systems::TransferFunction...)`
+
+Append systems in block diagonal form
+""" ->
 function append(systems::StateSpace...)
     Ts = systems[1].Ts
     if !all([s.Ts == Ts for s in systems])
@@ -32,6 +47,12 @@ function append(systems::TransferFunction...)
 end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
+
+#This is needed until julia removes deprecated vect()
+function Base.vect(sys::Union{LTISystem, Real}...)
+    T = Base.promote_typeof(sys...)
+    copy!(Array(T,length(sys)), sys)
+end
 
 function Base.vcat(systems::StateSpace...)
     # Perform checks
@@ -78,7 +99,7 @@ end
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
 function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
-    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+    if promote_type(map(e->typeof(e),systems)...) <: TransferFunction
         vcat(map(e->convert(TransferFunction,e),systems)...)
     else
         cat(1,systems...)
@@ -130,7 +151,7 @@ end
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
 function Base.hcat{T<:Real}(systems::Union{T,VecOrMat{T},TransferFunction}...)
-    if promote_type(map(e->typeof(e),systems)...) == TransferFunction
+    if promote_type(map(e->typeof(e),systems)...) <: TransferFunction
         hcat(map(e->convert(TransferFunction,e),systems)...)
     else
         cat(2,systems...)
