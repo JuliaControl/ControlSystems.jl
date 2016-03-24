@@ -159,10 +159,12 @@ end
 
 # Note: the following function returns a Float64 when p=2, and a Tuple{Float64,Float64} when p=Inf.
 # This varargout behavior might not be a good idea.
+# The H∞ norm computation is probably not as accurate as with SLICOT, but this seems to be still 
+# reasonably ok as a first step
 @doc """
 `..  norm(sys[, p; tol=...])`
 
-Compute the H`p`-norm of the system `sys`. `p` can be either `2` or `Inf` 
+Compute the H`p`-norm of the LTI system `sys`. `p` can be either `2` or `Inf` 
 (default is 2). For the H∞ norm, the function returns the pair `(val,fpeak)`,
 where `fpeak` (in rad/TimeUnit) is where the gain achieves its peak value `val`.
 
@@ -180,7 +182,11 @@ function Base.norm(sys::StateSpace, p::Real=2; tol=1e-12)
     if p == 2
         return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
     elseif p == Inf
-        return normHinf_twoSteps(sys,tol)
+        if sys.Ts == 0
+            return normHinf_twoSteps_ct(sys,tol)
+        else
+            error("H∞ norm computation not yet implemented for discrete-time systems!")
+        end
     else
         error("`p` must be either `2` or `Inf`")
     end
@@ -190,7 +196,7 @@ function Base.norm(sys::TransferFunction, p::Real=2; tol=1e-12)
     return Base.norm(ss(sys),p)
 end
 
-function normHinf_twoSteps(sys::StateSpace,tol=1e-12,maxIters=1000,approximag=1e-10)
+function normHinf_twoSteps_ct(sys::StateSpace,tol=1e-12,maxIters=1000,approximag=1e-10)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
