@@ -87,5 +87,5 @@ feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
 `feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
 `feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
 """
-feedback2dof(P::TransferFunction,R,S,T) = tf(conv(tfnum(P),T),zpconv(tfden(P),R,B,S))
+feedback2dof(P::TransferFunction,R,S,T) = tf(conv(tfnum(P),T),zpconv(tfden(P),R,tfnum(P),S))
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
