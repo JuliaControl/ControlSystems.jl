@@ -17,8 +17,9 @@ Note that this package requires Julia 0.4.
 
 ## Documentation
 
-Some of the exported functions have docstrings, which can be viewed from the REPL, using for example `?tf `. A
-documentation website is on the list of things to do.
+All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
+
+A documentation website is under development [here](http://juliacontrol.github.io/ControlSystems.jl/latest/).
 Some of the available commands are:
 ##### Constructing systems
 ss, tf, zpk, ss2tf

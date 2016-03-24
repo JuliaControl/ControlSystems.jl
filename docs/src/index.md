@@ -11,8 +11,8 @@
 ## Guide
 
     {contents}
-    Pages = ["man/introduction.md, man/creatingtfs.md"]
-    Depth = 2
+    Pages = ["man/introduction.md", "man/creatingtfs.md"]
+    Depth = 1
 
 ## Functions
 
