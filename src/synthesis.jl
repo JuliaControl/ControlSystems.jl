@@ -17,11 +17,26 @@ function lqr(A, B, Q, R)
     return K
 end
 
+@doc """`kalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+
+Calculate the optimal Kalman gain
+
+""" ->
+kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
+
 function lqr(sys::StateSpace, Q, R)
     if iscontinuous(sys)
         return lqr(sys.A, sys.B, Q, R)
     else
         return dlqr(sys.A, sys.B, Q, R)
+    end
+end
+
+function kalman(sys::StateSpace, R1,R2)
+    if iscontinuous(sys)
+        return lqr(sys.A', sys.C', R1,R2)'
+    else
+        return dlqr(sys.A', sys.C', R1,R2)'
     end
 end
 
@@ -38,6 +53,13 @@ function dlqr(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
 end
+
+@doc """`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+
+Calculate the optimal Kalman gain for discrete time systems
+
+""" ->
+dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
 
 @doc """`place(A, B, p)`, `place(sys::StateSpace, p)`
 
@@ -81,6 +103,33 @@ end
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
+
+
+"""
+`feedback(sys)`
+
+`feedback(sys1,sys2)`
+
+Forms the feedback interconnection
+```julia
+>---sys1--->
+   |    |
+   -sys2-
+```
+If no second system is given, negative identity feedback is assumed
+"""
+function feedback(sys::StateSpace)
+    sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
+    feedback(sys,ss(-eye(sys.ny)))
+end
+
+function feedback(sys1::StateSpace,sys2::StateSpace)
+    sum(abs(sys1.D)) != 0 && sum(abs(sys2.D)) != 0 && error("There can not be a direct term (D) in both sys1 and sys2")
+    A = [sys1.A+sys1.B*sys2.D*sys1.C sys1.B*sys2.C; sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*sys2.C]
+    B = [sys1.B; sys2.B*sys1.D]
+    C = [sys1.C  sys1.D*sys2.C]
+    ss(A,B,C,sys1.D)
+end
 
 
 """

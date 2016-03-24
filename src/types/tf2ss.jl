@@ -107,15 +107,25 @@ end
 @doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0, inames = "", onames = "")`
 
 Convert a `StateSpace` realization to a `TransferFunction`""" ->
-function ss2tf(s::StateSpace)
-    return ss2tf(s.A, s.B, s.C, s.Ts, s.inputnames, s.outputnames)
+function ss2tf(s::StateSpace, inames = "", onames = "")
+    return ss2tf(s.A, s.B, s.C, s.Ts, inames, onames)
 end
 
 function ss2tf(A, B, C, Ts = 0, inames = "", onames = "")
+    nu,ny = size(B,2),size(C,1)
+    ubernum = Matrix{Vector}(ny,nu)
+    uberden = Matrix{Vector}(ny,nu)
+    for i = 1:nu, j=1:ny
+        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:])
+    end
+    tf(ubernum,uberden, Ts, inputnames=inames, outputnames=onames)
+end
+
+function sisoss2tf(A, B, C)
     charpolA = charpoly(A)
     numP = charpoly(A-B*C) - charpolA
     denP = charpolA
-    return tf(numP[1:length(numP)], denP[1:length(denP)], Ts, inputnames=inames, outputnames=onames)
+    return numP[1:length(numP)], denP[1:length(denP)]
 end
 
 tf(sys::StateSpace) = ss2tf(sys)
