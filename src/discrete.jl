@@ -1,4 +1,4 @@
-export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, zpconv#, lsima, indirect_str
+export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
 @doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
@@ -197,11 +197,6 @@ function c2d(G::TransferFunction, h;kwargs...)
     sysd = c2d(sys,h,kwargs...)[1]
     return ss2tf(sysd)
 end
-
-
-tfnum(G::TransferFunction) = G.matrix[1,1].num.a
-tfden(G::TransferFunction) = G.matrix[1,1].den.a
-
 
 
 @doc """`[y, t, x] = lsima(sys, t[, x0, method])`

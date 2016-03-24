@@ -61,6 +61,10 @@ function Base.den(t::SisoRational)
     return d
 end
 
+denpoly(G::SisoRational) = Poly(den(G))
+
+numpoly(G::SisoRational) = Poly(num(G))
+
 ==(t1::SisoRational, t2::SisoRational) = (t1.num == t2.num && t1.den == t2.den)
 
 +(t1::SisoRational, t2::SisoRational) = SisoRational(t1.num*t2.den + t2.num*t1.den, t1.den*t2.den)

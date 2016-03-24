@@ -86,6 +86,14 @@ function zp2polys(vec)
     polys
 end
 
+function numpoly(G::SisoZpk)
+    zpolys = zp2polys(G.z)
+end
+
+function denpoly(G::SisoZpk)
+    ppolys = zp2polys(G.p)
+end
+
 function evalfr(sys::SisoRational, s::Number)
     S = promote_type(typeof(s), Float64)
     den = polyval(sys.den, s)

@@ -99,3 +99,9 @@ end
 #Collect will create a copy and collect the elements
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
+
+
+numpoly(G::TransferFunction) = map(numpoly, G.matrix)
+denpoly(G::TransferFunction) = map(denpoly, G.matrix)
+
+poly2vec(p::Poly) = p.a[1:end]

@@ -1,4 +1,4 @@
-module TestStateSpace
+module TestSynthesis
 using CustomTest
 using ControlSystems
 
