@@ -15,7 +15,8 @@ end
 SisoGeneralized(str::AbstractString) = SisoGeneralized(parse(str))
 
 function minreal(sys::SisoGeneralized, eps::Real=sqrt(eps()))
-    error("minreal is not implemented for abstract transferfunctions")
+    warn("minreal is not implemented for abstract transferfunctions, returning same system")
+    sys
 end
 
 function print_siso(io::IO, t::SisoGeneralized, var=:s)

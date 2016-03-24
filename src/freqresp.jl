@@ -72,15 +72,7 @@ function evalfr(sys::TransferFunction, s::Number)
     return res
 end
 
-#This is called after _preprocess_for_freqresp
-function evalfr(mat::Matrix, s::Number)
-    S = promote_type(typeof(s), Float64)
-    res = Array(S, size(mat)...)
-    for i in eachindex(mat)
-        res[i] = evalfr(mat[i], s)
-    end
-    return res
-end
+evalfr(mat::Matrix, s::Number) = map(sys -> evalfr(sys, s), mat)
 
 function Base.call(sys::TransferFunction, s)
     evalfr(sys,s)

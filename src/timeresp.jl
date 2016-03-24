@@ -25,7 +25,7 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     return y, t, x
 end
 function Base.step(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
-    lsim(sys::TransferFunction{SisoGeneralized}, ones(length(t), sys.nu), t)
+    lsim(sys, ones(length(t), sys.nu), t)
 end
 
 Base.step(sys::LTISystem, Tf::Real) = step(sys, _default_time_vector(sys, Tf))
