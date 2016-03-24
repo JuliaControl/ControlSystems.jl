@@ -83,6 +83,9 @@ C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
 @test size(C_222) == (2, 2)
 @test size(C_212) == (2, 1)
 @test C_222[1,1] == ss([-5 -3; 2 -9],[1; 0],[1 0],[0])
+@test C_222[1:1,1] == ss([-5 -3; 2 -9],[1; 0],[1 0],[0])
+@test C_222[1,1:2] == C_221
+@test size(C_222[1,[]]) == (1,0)
 
 # Naming signals
 @test C_222_d_n.statenames == UTF8String["i","u"]
