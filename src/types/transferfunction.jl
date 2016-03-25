@@ -115,7 +115,7 @@ tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 
 ==(a::SisoTf, b::SisoTf) = ==(promote(a,b)...)
 !=(a::SisoTf, b::SisoTf) = !(a==b)
-isapprox(a::SisoTf, b::SisoTf, atol=0) = isapprox(promote(a,b)...; atol=atol) # atol should preferably be a kwarg, but that causes infinite loops
+isapprox(a::SisoTf, b::SisoTf; kwargs...) = isapprox(promote(a,b)...; kwargs...)
 #####################################################################
 ##                      Constructor Functions                      ##
 #####################################################################
@@ -377,7 +377,7 @@ function isapprox(t1::TransferFunction, t2::TransferFunction; kwargs...)
     return true
 end
 
-function isapprox{T<:SisoTf, S<:SisoTf}(t1::Array{T}, t2::Array{S};kwargs...)
+function isapprox{T<:SisoTf, S<:SisoTf}(t1::Array{T}, t2::Array{S}; kwargs...)
     reduce(&, [isapprox(t1[i], t2[i]; kwargs...) for i in eachindex(t1)])
 end
 

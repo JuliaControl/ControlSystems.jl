@@ -150,7 +150,7 @@ Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
 
 ==(t1::SisoZpk, t2::SisoZpk) = (t1-t2).k == 0.0
-function isapprox(t1::SisoZpk, t2::SisoZpk, rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
+function isapprox(t1::SisoZpk, t2::SisoZpk; rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
     tdiff = t1 - t2
     isapprox(tdiff.k, 0, atol=atol, rtol=rtol)
 end
