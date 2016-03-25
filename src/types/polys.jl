@@ -178,11 +178,11 @@ function ==(p1::Poly, p2::Poly)
     end
 end
 
-function isapprox(p1::Poly, p2::Poly)
+function isapprox(p1::Poly, p2::Poly; kwargs...)
     if length(p1) != length(p2)
         return false
     else
-        return p1.a[p1.nzfirst:end] ≈ p2.a[p2.nzfirst:end]
+        return isapprox(p1.a[p1.nzfirst:end], p2.a[p2.nzfirst:end]; kwargs...)
     end
 end
 
