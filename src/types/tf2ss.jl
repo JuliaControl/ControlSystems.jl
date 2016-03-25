@@ -104,21 +104,21 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     return T
 end
 
-@doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0, inames = "", onames = "")`
+@doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")`
 
 Convert a `StateSpace` realization to a `TransferFunction`""" ->
-function ss2tf(s::StateSpace, inames = "", onames = "")
-    return ss2tf(s.A, s.B, s.C, s.Ts, inames, onames)
+function ss2tf(s::StateSpace)
+    return ss2tf(s.A, s.B, s.C, s.Ts, inputnames=s.inputnames, outputnames=s.outputnames)
 end
 
-function ss2tf(A, B, C, Ts = 0, inames = "", onames = "")
+function ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")
     nu,ny = size(B,2),size(C,1)
     ubernum = Matrix{Vector}(ny,nu)
     uberden = Matrix{Vector}(ny,nu)
     for i = 1:nu, j=1:ny
         ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:])
     end
-    tf(ubernum,uberden, Ts, inputnames=inames, outputnames=onames)
+    tf(ubernum,uberden, Ts, inputnames=inputnames, outputnames=outputnames)
 end
 
 function sisoss2tf(A, B, C)
