@@ -32,7 +32,7 @@ z = zpk("z", 0.005)
 @test C_022 == zpk(vecarray(Int64, 2, 2, [], [], [], []), vecarray(Int64, 2, 2, [], [], [], []), [4 0; 0 4])
 @test D_022 == zpk(vecarray(2, 2, [], [], [], []), vecarray(2, 2, [], [], [], []), [4 0; 0 4], 0.005)
 @test C_022 == [zpk(4) 0;0 4]
-#We might want to fix this
+#TODO We might want to fix this
 #@test D_022 == [zpk(4, 0.005) 0;0 4])
 
 #TODO improve polynomial accuracy se these are equal

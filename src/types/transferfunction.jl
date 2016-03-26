@@ -115,7 +115,7 @@ tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 
 ==(a::SisoTf, b::SisoTf) = ==(promote(a,b)...)
 !=(a::SisoTf, b::SisoTf) = !(a==b)
-isapprox(a::SisoTf, b::SisoTf) = ≈(promote(a,b)...)
+isapprox(a::SisoTf, b::SisoTf; kwargs...) = isapprox(promote(a,b)...; kwargs...)
 #####################################################################
 ##                      Constructor Functions                      ##
 #####################################################################
@@ -360,12 +360,12 @@ function ==(t1::TransferFunction, t2::TransferFunction)
 end
 
 ## Approximate ##
-function isapprox(t1::TransferFunction, t2::TransferFunction)
+function isapprox(t1::TransferFunction, t2::TransferFunction; kwargs...)
     t1, t2 = promote(t1, t2)
     fieldsApprox = [:Ts, :ny, :nu, :matrix]
     fieldsEqual = [:inputnames, :outputnames]
     for field in fieldsApprox
-        if !(getfield(t1, field) ≈ getfield(t2, field))
+        if !(isapprox(getfield(t1, field), getfield(t2, field); kwargs...))
             return false
         end
     end
@@ -377,8 +377,8 @@ function isapprox(t1::TransferFunction, t2::TransferFunction)
     return true
 end
 
-function isapprox{T<:SisoTf, S<:SisoTf}(t1::Array{T}, t2::Array{S})
-    reduce(&, [isapprox(t1[i], t2[i]) for i in eachindex(t1)])
+function isapprox{T<:SisoTf, S<:SisoTf}(t1::Array{T}, t2::Array{S}; kwargs...)
+    reduce(&, [isapprox(t1[i], t2[i]; kwargs...) for i in eachindex(t1)])
 end
 
 ## ADDITION ##

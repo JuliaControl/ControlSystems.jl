@@ -85,7 +85,9 @@ pole(t::SisoRational) = roots(t.den)
 
 ==(t1::SisoRational, t2::SisoRational) = (t1.num == t2.num && t1.den == t2.den)
 # We might want to consider alowing scaled num and den as equal
-isapprox(t1::SisoRational, t2::SisoRational) = (t1.num ≈ t2.num && t1.den ≈ t2.den)
+function isapprox(t1::SisoRational, t2::SisoRational; rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
+    isapprox(t1.num,t2.num, rtol=rtol, atol=atol) && isapprox(t1.den, t2.den, rtol=rtol, atol=atol)
+end
 
 +(t1::SisoRational, t2::SisoRational) = SisoRational(t1.num*t2.den + t2.num*t1.den, t1.den*t2.den)
 +(t::SisoRational, n::Real) = SisoRational(t.num + n*t.den, t.den)

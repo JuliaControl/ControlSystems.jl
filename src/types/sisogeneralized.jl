@@ -88,7 +88,7 @@ SisoRational(expr::Number) = isa(expr,Real) ? SisoRational([expr],[1]) : error("
 
 ==(t1::SisoGeneralized, t2::SisoGeneralized) = (t1.expr == t2.expr)
 
-#isapprox(t1::SisoRational, t2::SisoRational) = (t1.num ≈ t2.num && t1.den ≈ t2.den)
+isapprox(t1::SisoGeneralized, t2::SisoGeneralized; kwargs...) = error("isapprox not implemented for generalized tf")
 
 +(t1::SisoGeneralized, t2::SisoGeneralized) = SisoGeneralized(:($(t1.expr) + $(t2.expr)))
 +(t::SisoGeneralized, n::Real) = SisoGeneralized(:($(t.expr) + $n))
