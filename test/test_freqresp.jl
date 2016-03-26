@@ -17,4 +17,11 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test_approx_eq evalfr(G, -1) [0.0 -0.3; 0.0 0.4]
 @test_approx_eq evalfr(G, 0) [0.0 0.0; 0.2 1/3]
 
+## Shortcut notation for evalfr ##
+F = tf([1],[1,0.5],-1)
+omega = 2
+z = 0.5(1+im)
+@test F(omega,true)[1] == 1/(exp(-im*2)+0.5)
+@test F(z,false)[1] == 1/(z+0.5)
+@test_throws ErrorException F(z,true)
 end

@@ -26,6 +26,7 @@ export  LTISystem,
         sminreal,
         minreal,
         # Stability Analysis
+        isstable,
         pole,
         tzero,
         dcgain,

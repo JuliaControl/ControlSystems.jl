@@ -44,11 +44,12 @@ end
 
 _preprocess_for_freqresp(sys::SisoTf) = sys
 
-@doc """Evaluate the frequency response
+@doc """
+`evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
+at the complex number s=x (continuous-time) or z=x (discrete-time).
 
-`H(s) = C*((sI - A)^-1)*B + D`
-
-of system `sys` at value `s`. For many values of `s`, use `freqresp` instead.""" ->
+For many values of `x`, use `freqresp` instead.
+""" ->
 function evalfr(sys::StateSpace, s::Number)
     S = promote_type(typeof(s), Float64)
     try
@@ -74,13 +75,25 @@ end
 
 evalfr(mat::Matrix, s::Number) = map(sys -> evalfr(sys, s), mat)
 
+@doc """
+`F(s)`, `F(omega, true)`, `F(z, false)`
+
+Notation for frequency response evaluation.
+- F(s) evaluates the continuous-time transfer function F at s.
+- F(omega,true) evaluates the discrete-time transfer function F at j Ts omega
+- F(z,false) evaluates the discrete-time transfer function F at z
+""" ->
 function Base.call(sys::TransferFunction, s)
     evalfr(sys,s)
 end
 
-function Base.call(sys::TransferFunction, s::Number, map_to_unit_circle::Bool)
+function Base.call(sys::TransferFunction, z_or_omega::Number, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
-    evalfr(sys,exp(im*s.*sys.Ts))
+    if map_to_unit_circle
+        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
+    else
+        evalfr(sys,z_or_omega)
+    end
 end
 
 function Base.call(sys::TransferFunction, s::AbstractVector, map_to_unit_circle::Bool)
