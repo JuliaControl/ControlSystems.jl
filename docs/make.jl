@@ -12,6 +12,7 @@ end
 # And dont install the dependencies unless we are deploying
 function myDeps()
     if get(ENV, "TRAVIS", "") != ""
+        println("Installing deploy dependencies")
         run(`pip install --user pygments mkdocs`)
         ENV["PYTHON"]=""
         Pkg.add("PyPlot")
@@ -24,5 +25,5 @@ deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
     latest = "master",
     julia = "0.4",
-    deps = myDeps()
+    deps = myDeps
 )
