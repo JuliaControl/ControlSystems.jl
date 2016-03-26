@@ -8,8 +8,10 @@
     care
     dab
     dare
+    dkalman
     dlqr
     dlyap
+    kalman
     laglink
     leadlink
     leadlinkat

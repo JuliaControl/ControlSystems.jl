@@ -15,7 +15,7 @@ end
 SisoGeneralized(str::AbstractString) = SisoGeneralized(parse(str))
 
 function minreal(sys::SisoGeneralized, eps::Real=sqrt(eps()))
-    warn("minreal is not implemented for abstract transferfunctions, returning same system")
+    warn("minreal is not implemented for generalized transferfunctions, returning same system")
     sys
 end
 
@@ -29,11 +29,11 @@ Base.convert(::Type{SisoGeneralized}, b::Real) = SisoGeneralized(b)
 Base.zero(::Type{SisoGeneralized}) = SisoGeneralized(0)
 Base.zero(::SisoGeneralized) = Base.zero(SisoGeneralized)
 
-Base.length(t::SisoGeneralized) = error("length is not implemented for abstract transferfunctions")
-Base.num(t::SisoGeneralized) = error("num is not implemented for abstract transferfunctions")
-Base.den(t::SisoGeneralized) = error("den is not implemented for abstract transferfunctions")
-pole(t::SisoGeneralized) = error("pole is not implemented for abstract transferfunctions")
-tzero(t::SisoGeneralized) = error("tzero is not implemented for abstract transferfunctions")
+Base.length(t::SisoGeneralized) = error("length is not implemented for generalized transferfunctions")
+Base.num(t::SisoGeneralized) = error("num is not implemented for generalized transferfunctions")
+Base.den(t::SisoGeneralized) = error("den is not implemented for generalized transferfunctions")
+pole(t::SisoGeneralized) = error("pole is not implemented for generalized transferfunctions")
+tzero(t::SisoGeneralized) = error("tzero is not implemented for generalized transferfunctions")
 
 #This makes sure that the function can compile once
 function _preprocess_for_freqresp(sys::SisoGeneralized)

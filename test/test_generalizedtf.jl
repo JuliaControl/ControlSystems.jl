@@ -1,4 +1,4 @@
-module TestAbstractTF
+module TestGeneralizedTF
 using CustomTest
 using ControlSystems
 
