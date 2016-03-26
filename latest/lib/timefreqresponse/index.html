@@ -192,6 +192,7 @@
             <div class="section">
               
                 <ul>
+<li><a href="./#Base.call"><code>Base.call</code></a></li>
 <li><a href="./#Base.step"><code>Base.step</code></a></li>
 <li><a href="./#ControlSystems.bode"><code>ControlSystems.bode</code></a></li>
 <li><a href="./#ControlSystems.evalfr"><code>ControlSystems.evalfr</code></a></li>
@@ -202,6 +203,11 @@
 </ul>
 <p><a id='Time-and-Frequency-response-1'></a></p>
 <h1 id="time-and-frequency-response">Time and Frequency response</h1>
+<p><a id='Base.call' href='#Base.call'>#</a>
+<strong><code>Base.call</code></strong> &mdash; <em>Function</em>.</p>
+<hr />
+<p><code>F(s)</code>, <code>F(omega, true)</code>, <code>F(z, false)</code></p>
+<p>Notation for frequency response evaluation. - F(s) evaluates the continuous-time transfer function F at s. - F(omega,true) evaluates the discrete-time transfer function F at j Ts omega - F(z,false) evaluates the discrete-time transfer function F at z</p>
 <p><a id='ControlSystems.bode' href='#ControlSystems.bode'>#</a>
 <strong><code>ControlSystems.bode</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
@@ -210,9 +216,8 @@
 <p><a id='ControlSystems.evalfr' href='#ControlSystems.evalfr'>#</a>
 <strong><code>ControlSystems.evalfr</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p>Evaluate the frequency response</p>
-<p><code>H(s) = C*((sI - A)^-1)*B + D</code></p>
-<p>of system <code>sys</code> at value <code>s</code>. For many values of <code>s</code>, use <code>freqresp</code> instead.</p>
+<p><code>evalfr(sys, x)</code> Evaluate the transfer function of the LTI system sys at the complex number s=x (continuous-time) or z=x (discrete-time).</p>
+<p>For many values of <code>x</code>, use <code>freqresp</code> instead.</p>
 <p><a id='ControlSystems.freqresp' href='#ControlSystems.freqresp'>#</a>
 <strong><code>ControlSystems.freqresp</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
