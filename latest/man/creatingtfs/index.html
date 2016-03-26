@@ -103,7 +103,7 @@
                 
                     <li><a class="toctree-l4" href="#zpk-pole-zero-gain-representation">zpk - Pole-Zero-Gain Representation</a></li>
                 
-                    <li><a class="toctree-l4" href="#tfa-generalized-representation">tfa - Generalized Representation</a></li>
+                    <li><a class="toctree-l4" href="#tfg-generalized-representation">tfg - Generalized Representation</a></li>
                 
                     <li><a class="toctree-l4" href="#converting-between-types">Converting between types</a></li>
                 
@@ -245,16 +245,16 @@ Continuous-time transfer function model
 </code></pre>
 
 <p>The transfer functions created using this method will be of type <code>TransferFunction{SisoZpk}</code>.</p>
-<p><a id='tfa-Generalized-Representation-1'></a></p>
-<h2 id="tfa-generalized-representation">tfa - Generalized Representation</h2>
-<p>If you want to work with transfer functions that are not rational functions, it is possible to use the <code>tfa</code> representation</p>
-<pre><code class="julia">tfa(str::String), tfa(str::Expr)
+<p><a id='tfg-Generalized-Representation-1'></a></p>
+<h2 id="tfg-generalized-representation">tfg - Generalized Representation</h2>
+<p>If you want to work with transfer functions that are not rational functions, it is possible to use the <code>tfg</code> representation</p>
+<pre><code class="julia">tfg(str::String), tfg(str::Expr)
 </code></pre>
 
 <p>This function will either convert <code>str</code> to an expression or directly accept an <code>Expr</code> and create a transfer function.</p>
 <p><a id='Example:-2'></a></p>
 <h3 id="example_2">Example:</h3>
-<pre><code class="julia">tfa(&quot;1/((s+1)*exp(-sqrt(s)))&quot;)
+<pre><code class="julia">tfg(&quot;1/((s+1)*exp(-sqrt(s)))&quot;)
 
 ## output
 
