@@ -157,19 +157,103 @@ function covar(sys::StateSpace, W::StridedMatrix)
     return C*Q*C' + D*W*D'
 end
 
-@doc """`norm(sys[, p])`
+# Note: the following function returns a Float64 when p=2, and a Tuple{Float64,Float64} when p=Inf.
+# This varargout behavior might not be a good idea.
+# The H∞ norm computation is probably not as accurate as with SLICOT, but this seems to be still 
+# reasonably ok as a first step
+@doc """
+`..  norm(sys[, p; tol=...])`
 
-Compute the `p`-norm of the system `sys`. `p` can be either `2` or `Inf`
-(default is 2)""" ->
-function Base.norm(sys::StateSpace, p::Real=2)
+Compute the H`p`-norm of the LTI system `sys`. `p` can be either `2` or `Inf` 
+(default is 2). For the H∞ norm, the function returns the pair `(val,fpeak)`,
+where `fpeak` (in rad/TimeUnit) is where the gain achieves its peak value `val`.
+
+sys is first converted to a state space model if needed.
+
+`tol` is an optional keyword argument, used currently only for the computation of H∞ norms. 
+It represents the desired relative accuracy for the computed H∞ norm  
+(default 1e-12 - not an absolute certificate however).
+
+The H∞ norm computation implements the 'two-step algorithm' in: 
+N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm 
+of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
+""" ->
+function Base.norm(sys::StateSpace, p::Real=2; tol=1e-12)
     if p == 2
         return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
     elseif p == Inf
-        error("Hinf norm not implemented")
+        if sys.Ts == 0
+            return normHinf_twoSteps_ct(sys,tol)
+        else
+            error("H∞ norm computation not yet implemented for discrete-time systems!")
+        end
     else
         error("`p` must be either `2` or `Inf`")
     end
 end
+
+function Base.norm(sys::TransferFunction, p::Real=2; tol=1e-12)
+    return Base.norm(ss(sys),p)
+end
+
+function normHinf_twoSteps_ct(sys::StateSpace,tol=1e-12,maxIters=1000,approximag=1e-10)
+    # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
+    # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
+    # Because of this tuning for example, the relative precision that we provide on the norm computation
+    # is not a true guarantee, more an order of magnitude
+    # outputs: pair of Float64, namely H∞ norm approximation and frequency fpeak at which it is achieved
+    p = pole(sys)  
+    if any(real(p).>=0)
+        # N.B.: more efficient than calling isstable, which would recompute the poles
+        return Inf
+    else
+        # Initialization: computation of a lower bound from 3 terms
+        lb = maximum(svdvals(sys.D)); fpeak = Inf
+        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,0)))])
+        if idx == 2
+            fpeak = 0
+        end
+        p = pole(sys)
+        if isreal(p)  # only real poles
+            omegap = minimum(abs(p))
+        else  # at least one pair of complex poles
+            tmp = maximum(abs(imag(p)./(real(p).*abs(p))))
+            omegap = abs(p[indmax(tmp)])
+        end
+        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,omegap*1im)))])
+        if idx == 2
+            fpeak = omegap
+        end
+
+        # Iterations
+        iter = 1;
+        while iter <= maxIters
+            res = (1+2tol)*lb
+            R = sys.D'*sys.D - res^2*eye(sys.nu)
+            S = sys.D*sys.D' - res^2*eye(sys.ny)
+            M = sys.A-sys.B*(R\sys.D')*sys.C
+            H = [         M              -res*sys.B*(R\sys.B') ;
+                   res*sys.C'*(S\sys.C)            -M'            ]
+            omegas = eigvals(H)
+            omegaps = imag(omegas[ (abs(real(omegas)).<=approximag) & (imag(omegas).>=0) ])
+            if isempty(omegaps)
+                return (1+tol)*lb, fpeak
+            else  # if not empty, omegaps contains at least two values
+                ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
+                for mval in ms
+                    (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,mval*1im)))])
+                            if idx == 2
+                                fpeak = mval
+                            end
+                end
+            end
+            iter += 1
+        end
+        println("The computation of the H-infinity norm did not converge in $maxIters iterations")
+    end
+end
+
+
 
 @doc """`T, B = balance(A[, perm=true])`
 

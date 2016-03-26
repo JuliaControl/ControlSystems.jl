@@ -13,6 +13,34 @@ a_2 = [-5 -3; 2 -9]
 C_212 = ss(a_2, [1; 2], eye(2), [0; 0])
 C_222 = ss(a_2, [1 0; 0 2], eye(2), zeros(2,2))
 
+a_3 = [-0.81  0.47 -0.43  1.58  0.25 -0.40  0.92;
+       -0.61 -1.89  0.80 -1.59  2.01  0.98 -0.90;
+        0.50 -1.18 -2.12 -1.56 -1.14  0.14 -0.87;
+       -1.28  2.12  0.47 -1.16  3.65 -1.23 -1.26;
+       -0.24 -0.08  1.58 -3.58 -1.26  1.72 -2.59;
+        1.28 -0.96 -1.28 -0.57 -2.43 -2.43 -0.36;
+       -0.16  1.53 -0.99  1.47  0.61 -2.22 -3.27]
+b_3 =  [ 0.49 -0.80  0.10;
+        -0.18  0.70  0.72;
+         0.00  0.83  2.58;
+         1.42  0.00  0.00;
+         0.00  0.22  0.19;
+         0.00  0.00 -0.08;
+         0.00 -1.15 -1.93]
+c_3 = [ 0.00  0.84  0.10  0.30  0.49  1.71  0.00  
+       -1.79 -0.89 -0.54 -0.60  0.74 -0.19  0.00]
+d_3 = [ 1.36  0.96  1.44
+       -1.07  0.00 -1.96]
+C_732 = ss(a_3,b_3,c_3,d_3);
+
+s = tf("s")
+f_C_211 = (s+2)*(s+3)/((s+4)*(s+5))
+# biquad passband
+omega0 = 52.0; Q = 10
+f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1 );
+
+C_22tf = [0 tf([3,0],[1,1,10]);tf([1,1],[1,5]) tf(2,[1,6])]
+
 da_2 = [0.2 -0.8; -0.8 0.07]
 D_221 = ss(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
 D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
@@ -43,6 +71,20 @@ D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
 @test_approx_eq norm(D_222) 4.940973856125768
 @test_approx_eq norm(D_221) 3.4490083195926426
 @test norm(ss([1],[2],[3],[4])) == Inf
+
+# Test Hinfinity norm computations
+tolHinf = 1e-12
+@test_approx_eq_eps norm(C_212,Inf,tol=tolHinf)[1] 0.242535625036333 tolHinf
+@test_approx_eq_eps norm(C_222,Inf,tol=tolHinf)[1] 0.242535625036333 tolHinf
+ninf, fpeak = norm(C_732,Inf,tol=tolHinf)
+@test_approx_eq_eps ninf 4.899135403568278 (10*tolHinf) 
+@test_approx_eq_eps fpeak 6.112977387441163 1e-6
+@test_approx_eq_eps norm(f_C_211,Inf,tol=tolHinf)[1] 1.0 (2*tolHinf)
+@test_approx_eq norm(f_C_211_bis,Inf,tol=tolHinf)[2] 52.0
+
+ninf, fpeak = norm(C_22tf,Inf,tol=tolHinf) 
+@test_approx_eq_eps ninf 3.014974550173459 (10*tolHinf)  
+@test_approx_eq_eps fpeak 3.162123338668049 1e-8
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
 T, P, B = ControlSystems.balance(A)
