@@ -4,6 +4,7 @@
 # Time and Frequency response
 
     {docs}
+    call
     bode
     evalfr
     freqresp
