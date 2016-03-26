@@ -1,3 +1,7 @@
+function makePlots()
+
+println("Generating plots")
+
 plotsDir = (pwd()[end-3:end] == "docs") ? "build/plots" : "docs/build/plots"
 mkdir(plotsDir)
 Plots.pyplot()
@@ -10,7 +14,7 @@ Plots.savefig(plotsDir*"/pidgofplot.svg")
 
 ωp = 0.8
 kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=false)
-gangoffourplot(P,C)
+gangoffourplot(P, [tf(1), C])
 Plots.savefig(plotsDir*"/pidgofplot2.svg")
 nyquistplot([P, P*C])
 Plots.savefig(plotsDir*"/pidnyquistplot.svg")
@@ -18,7 +22,7 @@ Plots.savefig(plotsDir*"/pidnyquistplot.svg")
 
 ωp = 2
 kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)
-gangoffourplot(P,C60)
+gangoffourplot(P, [tf(1), C60])
 Plots.savefig(plotsDir*"/pidgofplot3.svg")
 nyquistplot([P, P*C60])
 Plots.savefig(plotsDir*"/pidnyquistplot2.svg")
@@ -88,3 +92,4 @@ Plots.savefig(plotsDir*"/pidplotsgof2.svg")
 #f2 = gangoffourplot(P, tf(-S,R))
 #Plots.savefig(f1, "$plotsDir/rstcstepplot.svg")
 #Plots.savefig(f2, "$plotsDir/rstcgofplot.svg")
+end
