@@ -1,6 +1,6 @@
 @doc """Evaluate the frequency response
 
-`H(jw) = C*((jwI -A)^-1)*B + D`
+`H(iw) = C*((iwI -A)^-1)*B + D`
 
 of system `sys` over the frequency vector `w`.""" ->
 function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
@@ -80,7 +80,7 @@ evalfr(mat::Matrix, s::Number) = map(sys -> evalfr(sys, s), mat)
 
 Notation for frequency response evaluation.
 - F(s) evaluates the continuous-time transfer function F at s.
-- F(omega,true) evaluates the discrete-time transfer function F at j Ts omega
+- F(omega,true) evaluates the discrete-time transfer function F at i*Ts*omega
 - F(z,false) evaluates the discrete-time transfer function F at z
 """ ->
 function Base.call(sys::TransferFunction, s)
