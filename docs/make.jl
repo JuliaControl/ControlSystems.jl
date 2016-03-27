@@ -1,4 +1,4 @@
-using Lapidary, ControlSystems, Plots
+using Documenter, ControlSystems, Plots
 include("src/makeplots.jl")
 
 makedocs(modules=[ControlSystems])
