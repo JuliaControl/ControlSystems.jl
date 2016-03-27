@@ -122,7 +122,7 @@
         
             
     <li class="toctree-l1 ">
-        <a class="" href="../analysis/">Synthesis</a>
+        <a class="" href="../synthesis/">Synthesis</a>
         
     </li>
 
@@ -207,7 +207,7 @@
 <strong><code>Base.call</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
 <p><code>F(s)</code>, <code>F(omega, true)</code>, <code>F(z, false)</code></p>
-<p>Notation for frequency response evaluation. - F(s) evaluates the continuous-time transfer function F at s. - F(omega,true) evaluates the discrete-time transfer function F at j Ts omega - F(z,false) evaluates the discrete-time transfer function F at z</p>
+<p>Notation for frequency response evaluation. - F(s) evaluates the continuous-time transfer function F at s. - F(omega,true) evaluates the discrete-time transfer function F at i<em>Ts</em>omega - F(z,false) evaluates the discrete-time transfer function F at z</p>
 <p><a id='ControlSystems.bode' href='#ControlSystems.bode'>#</a>
 <strong><code>ControlSystems.bode</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
@@ -222,7 +222,7 @@
 <strong><code>ControlSystems.freqresp</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
 <p>Evaluate the frequency response</p>
-<p><code>H(jw) = C*((jwI -A)^-1)*B + D</code></p>
+<p><code>H(iw) = C*((iwI -A)^-1)*B + D</code></p>
 <p>of system <code>sys</code> over the frequency vector <code>w</code>.</p>
 <p><a id='ControlSystems.impulse' href='#ControlSystems.impulse'>#</a>
 <strong><code>ControlSystems.impulse</code></strong> &mdash; <em>Function</em>.</p>
@@ -255,7 +255,7 @@
         <a href="../plotting/" class="btn btn-neutral float-right" title="Plotting">Next <span class="icon icon-circle-arrow-right"></span></a>
       
       
-        <a href="../analysis/" class="btn btn-neutral" title="Synthesis"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../synthesis/" class="btn btn-neutral" title="Synthesis"><span class="icon icon-circle-arrow-left"></span> Previous</a>
       
     </div>
   
@@ -283,7 +283,7 @@
           <a href="https://github.com/JuliaControl/ControlSystems.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
-        <span><a href="../analysis/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+        <span><a href="../synthesis/" style="color: #fcfcfc;">&laquo; Previous</a></span>
       
       
         <span style="margin-left: 15px"><a href="../plotting/" style="color: #fcfcfc">Next &raquo;</a></span>
