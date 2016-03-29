@@ -159,23 +159,23 @@ end
 
 # Note: the following function returns a Float64 when p=2, and a Tuple{Float64,Float64} when p=Inf.
 # This varargout behavior might not be a good idea.
-# The H∞ norm computation is probably not as accurate as with SLICOT, but this seems to be still 
+# The H∞ norm computation is probably not as accurate as with SLICOT, but this seems to be still
 # reasonably ok as a first step
 @doc """
 `..  norm(sys[, p; tol=...])`
 
-Compute the H`p`-norm of the LTI system `sys`. `p` can be either `2` or `Inf` 
+Compute the H`p`-norm of the LTI system `sys`. `p` can be either `2` or `Inf`
 (default is 2). For the H∞ norm, the function returns the pair `(val,fpeak)`,
 where `fpeak` (in rad/TimeUnit) is where the gain achieves its peak value `val`.
 
 sys is first converted to a state space model if needed.
 
-`tol` is an optional keyword argument, used currently only for the computation of H∞ norms. 
-It represents the desired relative accuracy for the computed H∞ norm  
+`tol` is an optional keyword argument, used currently only for the computation of H∞ norms.
+It represents the desired relative accuracy for the computed H∞ norm
 (default 1e-12 - not an absolute certificate however).
 
-The H∞ norm computation implements the 'two-step algorithm' in: 
-N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm 
+The H∞ norm computation implements the 'two-step algorithm' in:
+N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
 of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
 """ ->
 function Base.norm(sys::StateSpace, p::Real=2; tol=1e-12)
@@ -202,7 +202,7 @@ function normHinf_twoSteps_ct(sys::StateSpace,tol=1e-12,maxIters=1000,approximag
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: pair of Float64, namely H∞ norm approximation and frequency fpeak at which it is achieved
-    p = pole(sys)  
+    p = pole(sys)
     if any(real(p).>=0)
         # N.B.: more efficient than calling isstable, which would recompute the poles
         return Inf
@@ -286,4 +286,43 @@ function cswap!{T<:Number}(i::Integer, j::Integer, X::StridedMatrix{T})
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end
+end
+
+
+
+"""
+`sysr, G = balreal(sys::StateSpace)`
+
+Calculates a balance realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`
+
+See also `gram`
+
+Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+"""
+function balreal(sys::StateSpace)
+P = gram(sys, :c)
+Q = gram(sys, :o)
+Q1 = chol(Q)
+U,Σ,V = svd(Q1*P*Q1')
+Σ = sqrt(Σ)
+Σ1 = diagm((sqrt(Σ)))
+T = Σ1\(U'Q1)
+
+Pz = T*P*T'
+Qz = inv(T')*Q*inv(T)
+if vecnorm(Pz-Qz) > sqrt(eps())
+    warn("balreal: Result may be inaccurate")
+    println("Controllability gramian before transform")
+    display(P)
+    println("Controllability gramian after transform")
+    display(Pz)
+    println("Observability gramian before transform")
+    display(Q)
+    println("Observability gramian after transform")
+    display(Qz)
+    println("Singular values of PQ")
+    display(Σ)
+end
+
+sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(Σ)
 end

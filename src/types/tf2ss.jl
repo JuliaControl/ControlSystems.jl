@@ -67,6 +67,18 @@ function normalize_tf(t::SisoRational)
     return SisoTf(t.num/d, t.den/d)
 end
 
+
+"""
+`A, B, C, T = balance_statespace{S}(A::Matrix{S}, B::Matrix{S}, C::Matrix{S}, perm::Bool=false)`
+
+`sys, T = balance_statespace(sys::StateSpace, perm::Bool=false)`
+
+Computes a balancing transformation `T` that attempts to scale the system so
+that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
+If `perm=true`, the states in `A` are allowed to be reordered.
+
+This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
+"""
 function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
         C::Matrix{S}, perm::Bool=false)
     nx = size(A, 1)
@@ -87,9 +99,23 @@ function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
     return A, B, C, T
 end
 
-# Computes a balancing transformation `T` that attempts to scale the system so
-# that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
-# If `perm=true`, the states in `A` are allowed to be reordered.
+function balance_statespace(sys::StateSpace, perm::Bool=false)
+    A, B, C, T = balance_statespace(A,B,C, perm)
+    return ss(A,B,C,sys.D), T
+end
+
+"""
+`T = balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bool=false)`
+
+`T = balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(A,B,C,perm)`
+
+Computes a balancing transformation `T` that attempts to scale the system so
+that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
+If `perm=true`, the states in `A` are allowed to be reordered.
+
+This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
+See also `balance_statespace`, `balance`
+"""
 function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bool=false)
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
@@ -103,6 +129,9 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     T[pvec, :] = Sio * diagm(1./Sx)
     return T
 end
+
+balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(A,B,C,perm)
+
 
 @doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")`
 
