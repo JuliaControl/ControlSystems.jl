@@ -27,6 +27,7 @@ export  LTISystem,
         reduce_sys,
         sminreal,
         minreal,
+        balreal,
         # Stability Analysis
         isstable,
         pole,
