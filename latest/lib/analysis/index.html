@@ -295,10 +295,10 @@
 <strong><code>Base.LinAlg.norm</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
 <p><code>..  norm(sys[, p; tol=...])</code></p>
-<p>Compute the H<code>p</code>-norm of the LTI system <code>sys</code>. <code>p</code> can be either <code>2</code> or <code>Inf</code>  (default is 2). For the H∞ norm, the function returns the pair <code>(val,fpeak)</code>, where <code>fpeak</code> (in rad/TimeUnit) is where the gain achieves its peak value <code>val</code>.</p>
+<p>Compute the H<code>p</code>-norm of the LTI system <code>sys</code>. <code>p</code> can be either <code>2</code> or <code>Inf</code> (default is 2). For the H∞ norm, the function returns the pair <code>(val,fpeak)</code>, where <code>fpeak</code> (in rad/TimeUnit) is where the gain achieves its peak value <code>val</code>.</p>
 <p>sys is first converted to a state space model if needed.</p>
-<p><code>tol</code> is an optional keyword argument, used currently only for the computation of H∞ norms.  It represents the desired relative accuracy for the computed H∞ norm   (default 1e-12 - not an absolute certificate however).</p>
-<p>The H∞ norm computation implements the 'two-step algorithm' in:  N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm  of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.</p>
+<p><code>tol</code> is an optional keyword argument, used currently only for the computation of H∞ norms. It represents the desired relative accuracy for the computed H∞ norm (default 1e-12 - not an absolute certificate however).</p>
+<p>The H∞ norm computation implements the 'two-step algorithm' in: N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.</p>
 <p><a id='ControlSystems.obsv' href='#ControlSystems.obsv'>#</a>
 <strong><code>ControlSystems.obsv</code></strong> &mdash; <em>Function</em>.</p>
 <hr />

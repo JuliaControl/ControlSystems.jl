@@ -4,7 +4,7 @@
     
     <url>
      <loc>None/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -13,7 +13,7 @@
         
     <url>
      <loc>None/examples/example/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
@@ -23,13 +23,13 @@
         
     <url>
      <loc>None/man/introduction/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/man/creatingtfs/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
@@ -39,31 +39,31 @@
         
     <url>
      <loc>None/lib/constructors/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/lib/analysis/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/lib/synthesis/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/lib/timefreqresponse/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>None/lib/plotting/</loc>
-     <lastmod>2016-03-27</lastmod>
+     <lastmod>2016-03-29</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
