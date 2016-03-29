@@ -100,7 +100,7 @@ function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
 end
 
 function balance_statespace(sys::StateSpace, perm::Bool=false)
-    A, B, C, T = balance_statespace(A,B,C, perm)
+    A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
     return ss(A,B,C,sys.D), T
 end
 
@@ -119,7 +119,7 @@ See also `balance_statespace`, `balance`
 function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bool=false)
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    S = diag(balance([A B; C 0], false)[1])
+    S = diag(balance([A B; C zeros(size(C*B))], false)[1])
     Sx = S[1:nx]
     Sio = S[nx+1]
     # Compute permutation of x (if requested)
@@ -130,7 +130,7 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     return T
 end
 
-balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(A,B,C,perm)
+balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
 @doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")`

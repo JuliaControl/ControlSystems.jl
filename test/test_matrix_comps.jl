@@ -15,6 +15,11 @@ sysr, G = balreal(sys)
 @test_approx_eq gram(sysr, :o) G
 @test_approx_eq sort(pole(sysr)) sort(pole(sys))
 
+sysb,T = ControlSystems.balance_statespace(sys)
+Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
+@test_approx_eq sysb.A Ab
+
+@test_approx_eq ControlSystems.balance_transform(A,B,C) ControlSystems.balance_transform(sys)
 
 end
