@@ -12,6 +12,7 @@ my_tests = ["test_statespace",
             "test_simplification",
             "test_freqresp",
             "test_synthesis",
-            "test_matrix_comps"]
+            "test_matrix_comps",
+            "test_timeresp"]
 
 runtests(my_tests)

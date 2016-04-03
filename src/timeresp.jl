@@ -73,14 +73,38 @@ impulse(sys::LTISystem, Tf::Real) = impulse(sys, _default_time_vector(sys, Tf))
 impulse(sys::LTISystem) = impulse(sys, _default_time_vector(sys))
 impulse(sys::TransferFunction, t::AbstractVector) = impulse(ss(sys), t)
 
-@doc """`[y, t, x] = lsim(sys, u, t[, x0, method])`
+@doc """`y, t, x = lsim(sys, u, t[, x0, method])`
+
+`y, t, x, uout = lsim(sys, u::Function, t[, x0, method])`
 
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
 a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.""" ->
+`method` parameter can be specified as either `:zoh` or `:foh`.
+
+`u` can be a function or a matrix/vector of precalculated control signals.
+If `u` is a function, then `u(t,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
+To simulate a unit step, use `(t,x)-> 1`, for a ramp, use `(t,x)-> t`, etc.
+
+Usage example:
+```julia
+A = [0 1; 0 0]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0)
+Q = eye(2)
+R = eye(1)
+L = lqr(sys,Q,R)
+
+u(t,x) = -L*x # Form control law,
+t=0:0.1:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+```
+""" ->
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
         x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=_issmooth(u) ? :foh : :zoh)
     ny, nu = size(sys)
@@ -110,6 +134,36 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
+
+function lsim(sys::StateSpace, u::Function, t::AbstractVector,
+        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
+    ny, nu = size(sys)
+    nx = sys.nx
+    if length(x0) != nx
+        error("size(x0) must match the number of states of sys")
+    elseif size(u(1,x0)) != (nu,) && size(u(1,x0)) != (nu,1)
+        error("return value of u must be of size nu")
+    end
+
+    dt = Float64(t[2] - t[1])
+    if !iscontinuous(sys) || method == :zoh
+        if iscontinuous(sys)
+            dsys = c2d(sys, dt, :zoh)[1]
+        else
+            if sys.Ts != dt
+                error("Time vector must match sample time for discrete system")
+            end
+            dsys = sys
+        end
+    else
+        dsys, x0map = c2d(sys, dt, :foh)
+        x0 = x0map*[x0; u(1,x0)]
+    end
+    x,uout = ltitr(dsys.A, dsys.B, u, length(t), map(Float64,x0))
+    y = (sys.C*(x.') + sys.D*(uout.')).'
+    return y, t, x, uout
+end
+
 lsim(sys::TransferFunction, u, t, args...) = lsim(ss(sys), u, t, args...)
 
 function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
@@ -128,12 +182,17 @@ function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
     return y, t
 end
 
-@doc """`ltitr(A, B, u[, x0])`
+@doc """`ltitr(A, B, u[,x0])`
+
+`ltitr(A, B, u::Function, iters[,x0])`
 
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
-If `x0` is not provided, a zero-vector is used.""" ->
+If `x0` is not provided, a zero-vector is used.
+
+If `u` is a function, then `u(t,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
+""" ->
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
-        x0::VecOrMat{T})
+        x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
     n = size(u, 1)
     x = Array(T, size(A, 1), n)
     for i=1:n
@@ -142,9 +201,20 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
     end
     return x.'
 end
-ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T}) =
-        ltitr(A, B, u, zeros(T, size(A, 1), 1))
 
+
+function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, iters::Int,
+    x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
+    x = Array(T, size(A, 1), iters)
+    uout = Array(T, size(B, 2), iters)
+
+    for i=1:iters
+        x[:,i] = x0
+        uout[:,i] = u(i,x0)
+        x0 = A * x0 + B * uout[:,i]
+    end
+    return x.', uout.'
+end
 
 # HELPERS:
 
