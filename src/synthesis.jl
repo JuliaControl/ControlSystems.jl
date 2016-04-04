@@ -10,7 +10,25 @@ For the continuous time model `dx = Ax + Bu`.
 `lqr(sys, Q, R)`
 
 Solve the LQR problem for state-space system `sys`. Works for both discrete
-and continuous time systems.""" ->
+and continuous time systems.
+
+Usage example:
+```julia
+A = [0 1; 0 0]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0)
+Q = eye(2)
+R = eye(1)
+L = lqr(sys,Q,R)
+
+u(t,x) = -L*x # Form control law,
+t=0:0.1:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+```
+""" ->
 function lqr(A, B, Q, R)
     S = care(A, B, Q, R)
     K = R\B'*S
@@ -47,7 +65,26 @@ minimizes the cost function:
 
 J = sum(x'Qx + u'Ru, 0, inf).
 
-For the discrte time model `x[k+1] = Ax[k] + Bu[k]`.""" ->
+For the discrte time model `x[k+1] = Ax[k] + Bu[k]`.
+
+Usage example:
+```julia
+h = 0.1
+A = [1 h; 0 1]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0, h)
+Q = eye(2)
+R = eye(1)
+L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(t,x) = -L*x # Form control law,
+t=0:h:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+```
+""" ->
 function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
@@ -140,5 +177,5 @@ function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
     tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
  end
- 
+
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
