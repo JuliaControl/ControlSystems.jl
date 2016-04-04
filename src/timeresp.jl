@@ -85,8 +85,8 @@ method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.
 
 `u` can be a function or a matrix/vector of precalculated control signals.
-If `u` is a function, then `u(t,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(t,x)-> 1`, for a ramp, use `(t,x)-> t`, etc.
+If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
+To simulate a unit step, use `(i,x)-> 1`, for a ramp, use `(i,x)-> i*h`, for a step at `t=5`, use (i,x)-> (i*h >= 5) etc.
 
 Usage example:
 ```julia
@@ -189,7 +189,7 @@ end
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
-If `u` is a function, then `u(t,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
+If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """ ->
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
