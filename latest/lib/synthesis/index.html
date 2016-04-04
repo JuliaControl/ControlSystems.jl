@@ -249,6 +249,23 @@
 <p>Calculate the optimal gain matrix <code>K</code> for the state-feedback law <code>u[k] = K*x[k]</code> that minimizes the cost function:</p>
 <p>J = sum(x'Qx + u'Ru, 0, inf).</p>
 <p>For the discrte time model <code>x[k+1] = Ax[k] + Bu[k]</code>.</p>
+<p>Usage example:</p>
+<pre><code class="julia">h = 0.1
+A = [1 h; 0 1]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0, h)
+Q = eye(2)
+R = eye(1)
+L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(t,x) = -L*x # Form control law,
+t=0:h:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]', xlabel=&quot;Time [s]&quot;)
+</code></pre>
+
 <p><a id='ControlSystems.dlyap' href='#ControlSystems.dlyap'>#</a>
 <strong><code>ControlSystems.dlyap</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
@@ -297,6 +314,22 @@
 <p>For the continuous time model <code>dx = Ax + Bu</code>.</p>
 <p><code>lqr(sys, Q, R)</code></p>
 <p>Solve the LQR problem for state-space system <code>sys</code>. Works for both discrete and continuous time systems.</p>
+<p>Usage example:</p>
+<pre><code class="julia">A = [0 1; 0 0]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0)
+Q = eye(2)
+R = eye(1)
+L = lqr(sys,Q,R)
+
+u(t,x) = -L*x # Form control law,
+t=0:0.1:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]', xlabel=&quot;Time [s]&quot;)
+</code></pre>
+
 <p><a id='ControlSystems.pid' href='#ControlSystems.pid'>#</a>
 <strong><code>ControlSystems.pid</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
