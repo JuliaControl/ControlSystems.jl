@@ -38,7 +38,7 @@ B⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ wh
 B⁻  = [1]
 Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process
 
-R,S,T = rstc(B⁺,B⁻,A,bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
+R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
 
 Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output
 
