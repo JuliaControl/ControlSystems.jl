@@ -20,6 +20,7 @@ Note that this package requires Julia 0.4.
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
 
 A documentation website under developement is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+
 Some of the available commands are:
 ##### Constructing systems
 ss, tf, zpk, ss2tf
@@ -73,7 +74,7 @@ CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 stepplot(CLs);
-# Add legend. This is specific to PyPlot back-end, see documentation for more info.
+# Add legend. This is specific to the PyPlot back-end, see documentation for more info.
 PyPlot.legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
 ```
 
