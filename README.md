@@ -10,7 +10,7 @@ A control systems design toolbox for Julia.
 To install, in the Julia REPL:
 
 ```julia
-julia> Pkg.add("ControlSystems")
+Pkg.add("ControlSystems")
 ```
 
 Note that this package requires Julia 0.4.
