@@ -19,7 +19,8 @@ Note that this package requires Julia 0.4.
 
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
 
-A documentation website is under development [here](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+A documentation website under developement is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+
 Some of the available commands are:
 ##### Constructing systems
 ss, tf, zpk, ss2tf
@@ -48,37 +49,33 @@ Here we create a simple position controller for an electric motor with an
 inertial load.
 
 ```julia
-julia> using ControlSystems
+using ControlSystems
 
 # Motor parameters
-julia> J = 2.0
-
-julia> b = 0.04
-
-julia> K = 1.0
-
-julia> R = 0.08
-
-julia> L = 1e-4
+J = 2.0
+b = 0.04
+K = 1.0
+R = 0.08
+L = 1e-4
 
 # Create the model transfer function
-julia> s = tf("s")
-
-julia> P = K/(s*((J*s + b)*(L*s + R) + K^2))
-TransferFunction:
-               1.0
----------------------------------
-0.0002s^3 + 0.160004s^2 + 1.0032s
-
-Continuous-time transfer function model
+s = tf("s")
+P = K/(s*((J*s + b)*(L*s + R) + K^2))
+# This generates the system
+# TransferFunction:
+#                1.0
+# ---------------------------------
+# 0.0002s^3 + 0.160004s^2 + 1.0032s
+#
+#Continuous-time transfer function model
 
 # Create an array of closed loop systems for different values of Kp
-julia> CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
+CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
-julia> stepplot(CLs);
-
-julia> PyPlot.legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
+stepplot(CLs);
+# Add legend. This is specific to the PyPlot back-end, see documentation for more info.
+PyPlot.legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
 ```
 
 ![StepResponse](/example/step_response.png)
