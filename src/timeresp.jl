@@ -246,6 +246,9 @@ end
 
 _default_Ts(sys::TransferFunction{SisoGeneralized}) = 0.07
 
+#TODO a reasonable check
+_issmooth(u::Function) = false
+
 # Determine if a signal is "smooth"
 function _issmooth(u, thresh::AbstractFloat=0.75)
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always

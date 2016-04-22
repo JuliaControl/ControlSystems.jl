@@ -46,7 +46,7 @@ ommitted, a zero vector is used.
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.""" ->
-function lsimplot{T<:StateSpace}(systems::Vector{T}, u::AbstractVecOrMat,
+function lsimplot{T<:StateSpace}(systems::Vector{T}, u::Union{AbstractVecOrMat,Function},
     t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
     method::Symbol=_issmooth(u) ? :foh : :zoh)
     if !_same_io_dims(systems...)
@@ -65,9 +65,9 @@ function lsimplot{T<:StateSpace}(systems::Vector{T}, u::AbstractVecOrMat,
     end
     return fig
 end
-lsimplot(sys::LTISystem, u::AbstractVecOrMat, t::AbstractVector, args...) =
+lsimplot(sys::LTISystem, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...) =
     lsimplot(StateSpace[sys], u, t, args...)
-lsimplot{T<:LTISystem}(sys::Vector{T}, u::AbstractVecOrMat, t::AbstractVector, args...) =
+lsimplot{T<:LTISystem}(sys::Vector{T}, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...) =
     lsimplot(StateSpace[s for s in sys], u, t, args...)
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
@@ -120,7 +120,7 @@ time vector `t` can be optionally provided.""" -> impulseplot
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.""" ->
-function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase=true)
+function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase=true, kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -141,7 +141,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
-                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))...)
+                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
                 plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))...)
             end
         end
@@ -149,9 +149,9 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
 
     return fig
 end
-bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true) =
-    bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase)
-bodeplot(sys::LTISystem, args...; plotphase=true) = bodeplot([sys], args...; plotphase=plotphase)
+bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true, kwargs...) =
+    bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase, kwargs...)
+bodeplot(sys::LTISystem, args...; plotphase=true, kwargs...) = bodeplot([sys], args...; plotphase=plotphase, kwargs...)
 
 @doc """ `nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
