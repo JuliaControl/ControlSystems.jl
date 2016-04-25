@@ -130,6 +130,8 @@ end
 
 test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
 
+test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
+
 macro test_err(ex)
     quote
         @test_throws ErrorException $(esc(ex))
