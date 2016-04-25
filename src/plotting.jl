@@ -146,7 +146,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
                 end
                 phasedata = vec(phase[:, i, j])
                 Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
-                plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))...)
+                plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))..., kwargs...)
             end
         end
     end
@@ -357,7 +357,7 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs..
         if _PlotScale == "dB"
             sv = 20*log10(sv)
         end
-        for i in 1:size(sv, 1)
+        for i in 1:size(sv, 2)
             Plots.plot!(fig, w, sv[:, i], xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))..., kwargs...)
         end
     end

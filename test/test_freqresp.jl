@@ -24,4 +24,11 @@ z = 0.5(1+im)
 @test F(omega,true)[1] == 1/(exp(-im*2)+0.5)
 @test F(z,false)[1] == 1/(z+0.5)
 @test_throws ErrorException F(z,true)
+
+sys = tf([1,-1], [1,1,1])
+f(s) = (s-1)./(s.^2+s+1)
+w = logspace(-2,2,50)
+resp = f(im*w)
+
+@test bode(sys, w)[1:2] == (abs(resp[:,:,:]), rad2deg(angle(resp[:,:,:])))
 end
