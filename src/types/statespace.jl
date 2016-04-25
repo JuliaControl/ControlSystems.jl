@@ -65,12 +65,12 @@ end
 @doc """`ss(A,B,C,D[, Ts, statenames=..., inputnames=..., outputnames=...]) -> sys`
 
 Create a state-space model.
-This is a continuous-time model if Ts is omitted or set to 0. 
-Otherwise, this is a discrete-time model with sampling period Ts. 
+This is a continuous-time model if Ts is omitted or set to 0.
+Otherwise, this is a discrete-time model with sampling period Ts.
 Set Ts=-1 for a discrete-time model with unspecified sampling period.
 
-State, input and output names: each can be either a vector of strings (one string per dimension), 
-or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify 
+State, input and output names: each can be either a vector of strings (one string per dimension),
+or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify
 the coordinates for each dimension (e.g. "x1", "x2", ...).
 
 `sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
@@ -102,8 +102,8 @@ end
 function ss(D::Array, Ts::Real=0; kwargs...)
     ny, nu = size(D, 1, 2)
     A = zeros(0, 0)
-    B = zeros(0, nu)
-    C = zeros(ny, 0)
+    B = zeros(1, nu)
+    C = zeros(ny, 1)
     return ss(A, B, C, D, Ts, kwargs...)
 end
 ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts, kwargs...)
