@@ -138,7 +138,7 @@ function sigma(sys::LTISystem, w::AbstractVector)
     nw, ny, nu = size(resp)
     sv = Array(Float64, nw, min(ny, nu))
     for i=1:nw
-        sv[i, :] = svdvals(resp[i, :, :])
+        sv[i, :] = svdvals(squeeze(resp[i, :, :],(1)))
     end
     return sv, w
 end

@@ -25,10 +25,35 @@ z = 0.5(1+im)
 @test F(z,false)[1] == 1/(z+0.5)
 @test_throws ErrorException F(z,true)
 
-sys = tf([1,-1], [1,1,1])
-f(s) = (s-1)./(s.^2+s+1)
-w = logspace(-2,2,50)
-resp = f(im*w)
+## Test bode, nyquist and sigma
+sys = [tf([1,-1], [1,1,1]) 0; 0 tf([1],[1,1])]
+f(s) = [(s-1)./(s.^2+s+1) 0; 0 1./(1+s)]
+ws = logspace(-2,2,50)
+resp = Array(Complex128,50,2,2)
+for (i,w) in enumerate(ws)
+    resp[i,:,:] = f(im*w)
+end
 
-@test bode(sys, w)[1:2] == (abs(resp[:,:,:]), rad2deg(angle(resp[:,:,:])))
+@test bode(sys, ws)[1:2] == (abs(resp), rad2deg(angle(resp)))
+@test nyquist(sys, ws)[1:2] == (real(resp), imag(resp))
+sigs = Array(Float64,50,2)
+for i in eachindex(ws)
+    sigs[i,:] =  svdvals(squeeze(resp[i,:,:],(1,)))
+end
+@test sigma(sys, ws)[1] == sigs
+
+#Test default freq vector contains at least half a decade more than all features
+p, z = 100, 1/1000
+sys2 = [tf([1],[1/p,1]) tf([1/z, 2/z, 1],[1])]
+mag, phase, ws2 = bode(sys2)
+@test maximum(ws2) >= 2max(p,z)
+@test minimum(ws2) <= 0.5min(p,z)
+
+#Test default freq vector not too small
+p, z = 1, 1.2
+sys2 = [tf([1],[1/p,1]) tf([1/z, 2/z, 1],[1])]
+mag, mag, ws2 = bode(sys2)
+@test maximum(ws2) >= 5max(p,z)
+@test minimum(ws2) <= 0.2min(p,z)
+@test length(ws2) > 100
 end
