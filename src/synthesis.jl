@@ -63,22 +63,34 @@ function kalman(sys::StateSpace, R1,R2)
 end
 
 """
-`G = lqg(A,B,C,D, Q1, Q2, R1, R2)`
+`L, K, syscl, sysc = lqg(A,B,C,D, Q1, Q2, R1, R2)`
 
-`G = lqg(sys, Q1, Q2, R1, R2)`
+`L, K, syscl, sysc = lqg(sys, Q1, Q2, R1, R2)`
 
 calls `lqr` and `kalman` and forms the closed-loop system
 
-returns an LQG object, see `LQG`
+`L` is the feedback matrix, such that `A-BL` is stable
+
+`K` is the kalman gain
+
+`syscl` is the closed-loop system, including observer
+
+`sysc` is a dynamical system describing the controller u=L*inv(A-BL-KC+KDL)Ky
 
 See also `lqgi`
 """
-function lqg(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
+function lqg(A,B,C,D, Q1, Q2, R1, R2)
     n = size(A,1)
     m = size(B,2)
     p = size(C,1)
-    L = lqr(A, B, Q1+qQ*C'C, Q2)
-    K = kalman(A, C, R1+qR*B*B', R2)
+    L = lqr(A,B,Q1,Q2)
+    K = kalman(A,C,R1,R2)
+
+    # Closed-loop system
+    Acl = [A-B*L B*L; zeros(n,n) A-K*C]
+    Bcl = [B; zeros(B)]
+    Ccl = [C zeros(C)]
+    syscl = ss(Acl,Bcl,Ccl,0)
 
     # Controller system
     Ac=A-B*L-K*C+K*D*L
@@ -123,9 +135,16 @@ function lqgi(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
     Ce = [C zeros(p,m)]
     De = D
 
-    L = lqr(A, B, Q1+qQ*C'C, Q2)
+
+    L = lqr(A,B,Q1,Q2)
     Le = [L eye(m)]
-    K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
+    K = kalman(Ae,Ce,R1,R2)
+
+    # Closed-loop system
+    Acl = [Ae-Be*Le Be*Le; zeros(Ae) Ae-K*Ce]
+    Bcl = [Be; zeros(Be)]
+    Ccl = [Ce zeros(Ce)]
+    syscl = ss(Acl,Bcl,Ccl,0)
 
     # Controller system
     Ac=Ae-Be*Le-K*Ce+K*De*Le
