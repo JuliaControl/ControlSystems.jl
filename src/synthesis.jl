@@ -58,6 +58,103 @@ function kalman(sys::StateSpace, R1,R2)
     end
 end
 
+"""
+`L, K, syscl, sysc = lqg(A,B,C,D, Q1, Q2, R1, R2)`
+
+`L, K, syscl, sysc = lqg(sys, Q1, Q2, R1, R2)`
+
+calls `lqr` and `kalman` and forms the closed-loop system
+
+`L` is the feedback matrix, such that `A-BL` is stable
+
+`K` is the kalman gain
+
+`syscl` is the closed-loop system, including observer
+
+`sysc` is a dynamical system describing the controller u=L*inv(A-BL-KC+KDL)Ky
+
+See also `lqgi`
+"""
+function lqg(A,B,C,D, Q1, Q2, R1, R2)
+    n = size(A,1)
+    m = size(B,2)
+    p = size(C,1)
+    L = lqr(A,B,Q1,Q2)
+    K = kalman(A,C,R1,R2)
+
+    # Closed-loop system
+    Acl = [A-B*L B*L; zeros(n,n) A-K*C]
+    Bcl = [B; zeros(B)]
+    Ccl = [C zeros(C)]
+    syscl = ss(Acl,Bcl,Ccl,0)
+
+    # Controller system
+    Ac=A-B*L-K*C+K*D*L
+    Bc=K
+    Cc=L
+    Dc=zeros(D')
+    sysc = ss(Ac,Bc,Cc,Dc)
+
+
+    return L, K, syscl, sysc
+
+end
+function lqg(sys, Q1, Q2, R1, R2)
+    lqg(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2)
+end
+
+"""
+`L, K, syscl, sysc = lqgi(A,B,C,D, Q1, Q2, R1, R2)`
+
+`L, K, syscl, sysc = lqgi(sys, Q1, Q2, R1, R2)`
+
+Adds a model of a constant disturbance on the inputs to the system described by `A,B,C,D`,
+calls `lqr` and `kalman` and forms the closed-loop system. The resulting controller will have intregral action.
+
+`L` is the feedback matrix, such that `A-BL` is stable. Note that the length of the state vector is increased by the number of inputs.
+
+`K` is the kalman gain
+
+`syscl` is the closed-loop system, including observer
+
+`sysc` is a dynamical system describing the controller u=L*inv(A-BL-KC+KDL)Ky
+
+See also `lqg`
+"""
+function lqgi(A,B,C,D, Q1, Q2, R1, R2)
+    n = size(A,1)
+    m = size(B,2)
+    p = size(C,1)
+    Ae = [A B; zeros(m,n+m)]
+    Be = [B;zeros(m,m)]
+    Ce = [C zeros(p,m)]
+    De = D
+
+
+    L = lqr(A,B,Q1,Q2)
+    Le = [L eye(m)]
+    K = kalman(Ae,Ce,R1,R2)
+
+    # Closed-loop system
+    Acl = [Ae-Be*Le Be*Le; zeros(Ae) Ae-K*Ce]
+    Bcl = [Be; zeros(Be)]
+    Ccl = [Ce zeros(Ce)]
+    syscl = ss(Acl,Bcl,Ccl,0)
+
+    # Controller system
+    Ac=Ae-Be*Le-K*Ce+K*De*Le
+    Bc=K
+    Cc=Le
+    Dc=zeros(D')
+    sysc = ss(Ac,Bc,Cc,Dc)
+
+    return L,K,syscl,sysc
+end
+
+function lqgi(sys, Q1, Q2, R1, R2)
+    lqgi(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2)
+end
+
 @doc """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = K*x[k]` that
@@ -119,24 +216,24 @@ end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p
 function acker(A,B,P)
-  n = length(P)
-  #Calculate characteristic polynomial
-  poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
-  q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
-  for i = n:-1:0
-      q += A^(n-i)*poly[i+1]
-  end
-  S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
-  for i = 0:(n-1)
-      S[:,i+1] = A^i*B
-  end
-  return [zeros(1,n-1) 1]*(S\q)
+    n = length(P)
+    #Calculate characteristic polynomial
+    poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
+    q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
+    for i = n:-1:0
+        q += A^(n-i)*poly[i+1]
+    end
+    S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
+    for i = 0:(n-1)
+        S[:,i+1] = A^i*B
+    end
+    return [zeros(1,n-1) 1]*(S\q)
 end
 
 
 """
-`feedback(L)` Return L/(1+L)
-`feedback(P,C)` Return PC/(1+PC)
+`feedback(L)` Returns L/(1+L)
+`feedback(P,C)` Returns PC/(1+PC)
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
@@ -176,6 +273,6 @@ end
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
     tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
- end
+end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
