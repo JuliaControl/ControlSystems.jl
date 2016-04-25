@@ -137,22 +137,22 @@ balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,s
 
 Convert a `StateSpace` realization to a `TransferFunction`""" ->
 function ss2tf(s::StateSpace)
-    return ss2tf(s.A, s.B, s.C, s.Ts, inputnames=s.inputnames, outputnames=s.outputnames)
+    return ss2tf(s.A, s.B, s.C, s.D, s.Ts, inputnames=s.inputnames, outputnames=s.outputnames)
 end
 
-function ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")
+function ss2tf(A, B, C, D, Ts = 0; inputnames = "", outputnames = "")
     nu,ny = size(B,2),size(C,1)
     ubernum = Matrix{Vector}(ny,nu)
     uberden = Matrix{Vector}(ny,nu)
     for i = 1:nu, j=1:ny
-        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:])
+        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:], D[j,i])
     end
     tf(ubernum,uberden, Ts, inputnames=inputnames, outputnames=outputnames)
 end
 
-function sisoss2tf(A, B, C)
+function sisoss2tf(A, B, C, D)
     charpolA = charpoly(A)
-    numP = charpoly(A-B*C) - charpolA
+    numP = charpoly(A-B*C) - charpolA + D*charpolA
     denP = charpolA
     return numP[1:length(numP)], denP[1:length(denP)]
 end
