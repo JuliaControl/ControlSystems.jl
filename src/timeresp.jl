@@ -6,7 +6,9 @@
 
 Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
-locations.""" ->
+locations.
+
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
 function Base.step(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
@@ -36,7 +38,9 @@ Base.step(sys::TransferFunction, t::AbstractVector) = step(ss(sys), t::AbstractV
 
 Calculate the impulse response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
-locations.""" ->
+locations.
+
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
 function impulse(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
@@ -79,6 +83,8 @@ impulse(sys::TransferFunction, t::AbstractVector) = impulse(ss(sys), t)
 
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
 a zero vector is used.
+
+`y`, `x`, `uout` has time in the first dimension.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the

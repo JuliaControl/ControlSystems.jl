@@ -1,4 +1,6 @@
-@doc """Evaluate the frequency response
+@doc """H, w, = freqresp(sys, w)
+
+Evaluate the frequency response
 
 `H(iw) = C*((iwI -A)^-1)*B + D`
 
@@ -15,11 +17,11 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     end
     #Evil but nessesary type instability here
     sys = _preprocess_for_freqresp(sys)
-    resp = Array(Complex128, ny, nu, nw)
+    resp = Array(Complex128, nw, ny, nu)
     for i=1:nw
         # TODO : This doesn't actually take advantage of Hessenberg structure
         # for statespace version.
-        resp[:, :, i] = evalfr(sys, s[i])
+        resp[i, :, :] = evalfr(sys, s[i])
     end
     return resp, w
 end
@@ -104,17 +106,21 @@ end
 @doc """`mag, phase, w = bode(sys[, w])`
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
-at frequencies `w`""" ->
+at frequencies `w`
+
+`mag` and `phase` has size `(length(w), ny, nu)`""" ->
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
-    return abs(resp), rad2deg(unwrap!(angle(resp),3)), w
+    return abs(resp), rad2deg(unwrap!(angle(resp),1)), w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
 
 @doc """`re, im, w = nyquist(sys[, w])`
 
 Compute the real and imaginary parts of the frequency response of system `sys`
-at frequencies `w`""" ->
+at frequencies `w`
+
+`re` and `im` has size `(length(w), ny, nu)`""" ->
 function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
     return real(resp), imag(resp), w
@@ -124,13 +130,15 @@ nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
 @doc """`sv, w = sigma(sys[, w])`
 
 Compute the singular values of the frequency response of system `sys` at
-frequencies `w`""" ->
+frequencies `w`
+
+`sv` has size `(length(w), max(ny, nu))`""" ->
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
-    ny, nu, nw = size(resp)
-    sv = Array(Float64, min(ny, nu), nw)
+    nw, ny, nu = size(resp)
+    sv = Array(Float64, nw, min(ny, nu))
     for i=1:nw
-        sv[:, i] = svdvals(resp[:, :, i])
+        sv[i, :] = svdvals(resp[i, :, :])
     end
     return sv, w
 end

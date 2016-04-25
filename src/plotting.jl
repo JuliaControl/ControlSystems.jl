@@ -36,19 +36,21 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-@doc """`lsimplot(sys::StateSpace, u, t[, x0, method]), lsimplot(sys::TransferFunction,u,t[,method])`
+@doc """`fig = lsimplot(sys::StateSpace, u, t[, x0, method]; kwargs...), lsimplot(sys::TransferFunction,u,t[,method]; kwargs...)`
 
-`lsimplot(StateSpace[sys1, sys2...], u, t[, x0, method]), lsimplot(TransferFunction[sys1, sys2...], u, t[, method])`
+`lsimplot(StateSpace[sys1, sys2...], u, t[, x0, method]; kwargs...), lsimplot(TransferFunction[sys1, sys2...], u, t[, method]; kwargs...)`
 
 Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
 ommitted, a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.""" ->
+`method` parameter can be specified as either `:zoh` or `:foh`.
+
+`kwargs` is sent as argument to Plots.plot.""" ->
 function lsimplot{T<:StateSpace}(systems::Vector{T}, u::Union{AbstractVecOrMat,Function},
     t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
-    method::Symbol=_issmooth(u) ? :foh : :zoh)
+    method::Symbol=_issmooth(u) ? :foh : :zoh; kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -60,20 +62,20 @@ function lsimplot{T<:StateSpace}(systems::Vector{T}, u::Union{AbstractVecOrMat,F
             ydata = reshape(y[:, i], size(t, 1))
             style = iscontinuous(s) ? :path : :steppost
             ytext = (ny > 1) ? "Amplitude to: y($i)": "Amplitude"
-            Plots.plot!(fig[i,1], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title="System Response",  lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))...)
+            Plots.plot!(fig[i,1], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title="System Response",  lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
         end
     end
     return fig
 end
-lsimplot(sys::LTISystem, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...) =
-    lsimplot(StateSpace[sys], u, t, args...)
-lsimplot{T<:LTISystem}(sys::Vector{T}, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...) =
-    lsimplot(StateSpace[s for s in sys], u, t, args...)
+lsimplot(sys::LTISystem, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...; kwargs...) =
+    lsimplot(StateSpace[sys], u, t, args...; kwargs...)
+lsimplot{T<:LTISystem}(sys::Vector{T}, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...; kwargs...) =
+    lsimplot(StateSpace[s for s in sys], u, t, args...; kwargs...)
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
     funcname = Symbol("$(func)plot")
     @eval begin
-        function $funcname{T<:LTISystem}(systems::Vector{T}, Ts_list::Vector, Tf::Real)
+        function $funcname{T<:LTISystem}(systems::Vector{T}, Ts_list::Vector, Tf::Real; kwargs...)
             if !_same_io_dims(systems...)
                 error("All systems must have the same input/output dimensions")
             end
@@ -88,38 +90,40 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                         style = iscontinuous(s) ? :path : :steppost
                         ttext = (nu > 1 && i==1) ? $title*" from: u($j) " : $title
                         ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)": "Amplitude"
-                        Plots.plot!(fig[i,j], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title=ttext, lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))...)
+                        Plots.plot!(fig[i,j], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title=ttext, lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
                     end
                 end
             end
             return fig
         end
-        $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real) =
-            $funcname(systems, map(_default_Ts, systems), Tf)
-        $funcname{T<:LTISystem}(systems::Vector{T}) =
-            $funcname(systems, _default_time_data(systems)...)
-        $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector) =
-            $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end])
-        $funcname(sys::LTISystem, args...) = $funcname(LTISystem[sys], args...)
+        $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real; kwargs...) =
+            $funcname(systems, map(_default_Ts, systems), Tf; kwargs...)
+        $funcname{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+            $funcname(systems, _default_time_data(systems)...; kwargs...)
+        $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector; kwargs...) =
+            $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end]; kwargs...)
+        $funcname(sys::LTISystem, args...; kwargs...) = $funcname(LTISystem[sys], args...; kwargs...)
     end
 end
 
-@doc """`stepplot(sys, args...)`, `stepplot(LTISystem[sys1, sys2...], args...)`
+@doc """`fig = stepplot(sys, args...)`, `stepplot(LTISystem[sys1, sys2...], args...)`
 
 Plot the `step` response of the `LTISystem`(s). A final time `Tf` or a
 time vector `t` can be optionally provided.""" -> stepplot
 
-@doc """`impulseplot(sys, args...)`, `impulseplot(LTISystem[sys1, sys2...], args...)`
+@doc """`fig = impulseplot(sys, args...)`, `impulseplot(LTISystem[sys1, sys2...], args...)`
 
 Plot the `impulse` response of the `LTISystem`(s). A final time `Tf` or a
 time vector `t` can be optionally provided.""" -> impulseplot
 
 
 ## FREQUENCY PLOTS ##
-@doc """`bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)`
+@doc """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.""" ->
+optionally provided.
+
+`kwargs` is sent as argument to Plots.plot.""" ->
 function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase=true, kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
@@ -135,12 +139,12 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
         xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
             for i=1:ny
-                magdata = vec(mag[i, j, :])
+                magdata = vec(mag[:, i, j])
                 if all(magdata .== -Inf)
                     # 0 system, don't plot anything
                     continue
                 end
-                phasedata = vec(phase[i, j, :])
+                phasedata = vec(phase[:, i, j])
                 Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
                 plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))...)
             end
@@ -153,11 +157,13 @@ bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true, kwargs...) =
     bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase, kwargs...)
 bodeplot(sys::LTISystem, args...; plotphase=true, kwargs...) = bodeplot([sys], args...; plotphase=plotphase, kwargs...)
 
-@doc """ `nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
+@doc """`fig = nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.""" ->
-function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, ; neg=false, kwargs...)
+optionally provided.
+
+`kwargs` is sent as argument to Plots.plot.""" ->
+function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; neg=false, kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -169,8 +175,8 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector, ; neg=
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata = reshape(re_resp[i, j, :], nw)
-                imdata = reshape(im_resp[i, j, :], nw)
+                redata = re_resp[:, i, j]
+                imdata = im_resp[:, i, j]
                 ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
                 xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
                 Plots.plot!(fig[i, j],redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim; getStyleSys(si,length(systems))..., kwargs...)
@@ -194,7 +200,7 @@ nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot([sys], args...; kw
 
 
 @doc """
-`nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)`
+fig = `nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)`
 
 Create a Nichols plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
@@ -260,7 +266,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
     fig             = Plots.plot()
-    megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(1,2))), systems)...)
+    megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     PCyc            = Set{Int}(floor(Int,megaangles/360))
     PCyc            = sort(collect(PCyc))
@@ -319,8 +325,8 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
     for (sysi,s) = enumerate(systems)
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
-        ℜdata               = squeeze(ℜresp, (1,2))
-        ℑdata               = squeeze(ℑresp, (1,2))
+        ℜdata               = squeeze(ℜresp, (2,3))
+        ℑdata               = squeeze(ℑresp, (2,3))
         mag                 = 20*log10(sqrt(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
         Plots.plot!(fig,angles, mag; linewidth = LW, getStyleSys(sysi,length(systems))..., kwargs...)
@@ -336,8 +342,10 @@ nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwa
 @doc """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
-frequency vector `w` can be optionally provided.""" ->
-function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
+frequency vector `w` can be optionally provided.
+
+`kwargs` is sent as argument to Plots.plot.""" ->
+function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -350,27 +358,29 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
             sv = 20*log10(sv)
         end
         for i in 1:size(sv, 1)
-            Plots.plot!(fig, w, sv[1,:]', xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))... )
+            Plots.plot!(fig, w, sv[:, i], xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))..., kwargs...)
         end
     end
     Plots.plot!(fig, title="Sigma Plot", xlabel="Frequency (rad/s)",
         ylabel="Singular Values $_PlotScaleStr")
     return fig
 end
-sigmaplot{T<:LTISystem}(systems::Vector{T}) =
-    sigmaplot(systems, _default_freq_vector(systems, :sigma))
-sigmaplot(sys::LTISystem, args...) = sigmaplot([sys], args...)
+sigmaplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+    sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
+sigmaplot(sys::LTISystem, args...; kwargs...) = sigmaplot([sys], args...; kwargs...)
 
-@doc """`marginplot(sys::LTISystem [,w::AbstractVector])`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector)`
+@doc """`fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)`
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
-A frequency vector `w` can be optionally provided.""" ->
-function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
+A frequency vector `w` can be optionally provided.
+
+`kwargs` is sent as argument to Plots.plot.""" ->
+function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig = bodeplot(systems, w)
+    fig = bodeplot(systems, w, kwargs...)
 
     titles = Array(AbstractString,nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
@@ -415,9 +425,9 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector)
     end
     return fig
 end
-marginplot{T<:LTISystem}(systems::Vector{T}) =
-    marginplot(systems, _default_freq_vector(systems, :bode))
-marginplot(sys::LTISystem, args...) = marginplot([sys], args...)
+marginplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+    marginplot(systems, _default_freq_vector(systems, :bode); kwargs...)
+marginplot(sys::LTISystem, args...; kwargs...) = marginplot([sys], args...; kwargs...)
 
 
 # HELPERS:
@@ -435,7 +445,7 @@ end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
 
-@doc """`pzmap!(fig, system, args...; kwargs...)`
+@doc """`fig = pzmap!(fig, system, args...; kwargs...)`
 
 Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
 function pzmap!(fig, system::LTISystem, args...; kwargs...)
@@ -458,17 +468,19 @@ function pzmap!(fig, system::LTISystem, args...; kwargs...)
     return fig
 end
 
-@doc """`pzmap(system, args...; kwargs...)`
+@doc """`fig = pzmap(system, args...; kwargs...)`
 
 Create a pole-zero map of the `LTISystem`(s), `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
 pzmap(system::LTISystem, args...; kwargs...) = pzmap!(Plots.plot(), system, args...; kwargs...)
 
-@doc """`gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
+@doc """`fig = gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
 
-Gang-of-Four plot.""" ->
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false)
+Gang-of-Four plot.
+
+`kwargs` is sent as argument to Plots.plot.""" ->
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
     S,D,N,T = gangoffour(P,C)
-    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase)
+    fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
     lower = plotphase ? 3 : 2
     Plots.plot!(fig[1,1],title="\$S = 1/(1+PC)\$")
     Plots.plot!(fig[1,2],title="\$D = P/(1+PC)\$")
@@ -478,6 +490,6 @@ function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotpha
 end
 
 
-function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false)
-    gangoffourplot(P,[C], args...; plotphase=plotphase)
+function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwargs...)
+    gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
 end
