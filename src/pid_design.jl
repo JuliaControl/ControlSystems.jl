@@ -224,7 +224,7 @@ If `P` is a string (e.g. "exp(-sqrt(s))", the stability of feedback loops using 
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
 function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0, doplot = true)
-    Pv      = squeeze(freqresp(P,ω)[1],(1,2))
+    Pv      = squeeze(freqresp(P,ω)[1],(2,3))
     r       = abs(Pv)
     phi     = angle(Pv)
     kp      = -cos(phi)./r
