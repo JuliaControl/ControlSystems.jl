@@ -23,7 +23,7 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
         # for statespace version.
         resp[i, :, :] = evalfr(sys, s[i])
     end
-    return resp, w
+    return sisodrop(resp,[2,3]), w
 end
 
 # Implements algorithm found in:
@@ -54,12 +54,14 @@ For many values of `x`, use `freqresp` instead.
 """ ->
 function evalfr(sys::StateSpace, s::Number)
     S = promote_type(typeof(s), Float64)
+    v = Array(S, sys.ny, sys.nu)
     try
         R = Diagonal(S[s for i=1:sys.nx]) - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{S})  # Weird type stability issue
+        v = sys.D + sys.C*((R\sys.B)::Matrix{S})  # Weird type stability issue
     catch
-        fill(convert(S, Inf), size(sys))
+        v = fill(convert(S, Inf), size(sys))
     end
+    sisodrop(v, [1,2])
 end
 
 function evalfr(sys::TransferFunction, s::Number)
@@ -72,7 +74,7 @@ function evalfr(sys::TransferFunction, s::Number)
             res[i, j] = evalfr(mat[i, j], s)
         end
     end
-    return res
+    return sisodrop(res, [1,2])
 end
 
 evalfr(mat::Matrix, s::Number) = map(sys -> evalfr(sys, s), mat)
@@ -132,15 +134,15 @@ nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
 Compute the singular values of the frequency response of system `sys` at
 frequencies `w`
 
-`sv` has size `(length(w), max(ny, nu))`""" ->
+`sv` has size `(length(w), min(ny, nu))`""" ->
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
     nw, ny, nu = size(resp)
     sv = Array(Float64, nw, min(ny, nu))
     for i=1:nw
-        sv[i, :] = svdvals(resp[i, :, :])
+        sv[i, :] = svdvals(squeeze(resp[i, :, :],(1)))
     end
-    return sv, w
+    return sisodrop(sv, 2), w
 end
 sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, :sigma))
 

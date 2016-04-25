@@ -30,5 +30,5 @@ f(s) = (s-1)./(s.^2+s+1)
 w = logspace(-2,2,50)
 resp = f(im*w)
 
-@test bode(sys, w)[1:2] == (abs(resp[:,:,:]), rad2deg(angle(resp[:,:,:])))
+@test bode(sys, w)[1:2] == (abs(resp), rad2deg(angle(resp)))
 end

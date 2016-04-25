@@ -105,3 +105,22 @@ numpoly(G::TransferFunction) = map(numpoly, G.matrix)
 denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 
 poly2vec(p::Poly) = p.a[1:end]
+
+@doc """`sisodrop(v, ind)`
+
+Drop the indices `ind` in `v` if they are all `1`, creating a scalar if all dims are dropped
+and ignoring indices not in `v`""" ->
+function sisodrop(v, ind)
+    if all(i -> size(v,i) == 1, ind)
+        if ndims(ind) == 0
+            return sisodrop(ind < ndims(v) ? squeeze(v,ind) : v)
+        else
+            return sisodrop(squeeze(v, (ind[find(ind .<= ndims(v))]...)))
+        end
+    end
+    return v
+end
+
+function sisodrop(v)
+    ndims(v) == 0 ? v[1] : v
+end

@@ -8,7 +8,9 @@ Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`
+
+`nu` and `ny` dimensions will be dropped if system is siso.""" ->
 function Base.step(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
@@ -24,7 +26,7 @@ function Base.step(sys::StateSpace, t::AbstractVector)
             y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0, :zoh)
         end
     end
-    return y, t, x
+    return sisodrop(y, [2,3]), t, sisodrop(x, 3)
 end
 function Base.step(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
     lsim(sys, ones(length(t), sys.nu), t)
@@ -65,7 +67,7 @@ function impulse(sys::StateSpace, t::AbstractVector)
             y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0s[:,i], :zoh)
         end
     end
-    return y, t, x
+    return sisodrop(y,[2,3]), t, sisodrop(x,3)
 end
 function impulse(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
     u = zeros(length(t), sys.nu)
@@ -138,7 +140,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
     end
     x = ltitr(dsys.A, dsys.B, map(Float64,u), map(Float64,x0))
     y = (sys.C*(x.') + sys.D*(u.')).'
-    return y, t, x
+    return sisodrop(y,[2,3]), t, sisodrop(x,3)
 end
 
 function lsim(sys::StateSpace, u::Function, t::AbstractVector,
@@ -167,7 +169,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector,
     end
     x,uout = ltitr(dsys.A, dsys.B, u, length(t), map(Float64,x0))
     y = (sys.C*(x.') + sys.D*(uout.')).'
-    return y, t, x, uout
+    return sisodrop(y,[2,3]), t, sisodrop(x,3), sisodrop(uout,2)
 end
 
 lsim(sys::TransferFunction, u, t, args...) = lsim(ss(sys), u, t, args...)
@@ -185,7 +187,7 @@ function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
             y[:,o] += lsimabstract(sys.matrix[o,i], u[:,i], dt, t[end])
         end
     end
-    return y, t
+    return sisodrop(y,[2,3]), t
 end
 
 @doc """`ltitr(A, B, u[,x0])`
@@ -205,7 +207,7 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x[:,i] = x0
         x0 = A * x0 + B * u[i,:].'
     end
-    return x.'
+    return sisodrop(x.',2)
 end
 
 
@@ -219,7 +221,7 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, iters::Int,
         uout[:,i] = u(i,x0)
         x0 = A * x0 + B * uout[:,i]
     end
-    return x.', uout.'
+    return sisodrop(x.',2), sisodrop(uout.',2)
 end
 
 # HELPERS:
