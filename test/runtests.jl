@@ -4,14 +4,14 @@ using CustomTest
 try
     Pkg.installed("VisualRegressionTests")
 catch
-    warning("VisualRegressionTests needs to be installed to test plots, adding now:")
+    warn("VisualRegressionTests needs to be installed to test plots, adding now:")
     Pkg.clone("https://github.com/tbreloff/VisualRegressionTests.jl.git")
 end
 
 try
     Pkg.installed("ControlExamplePlots")
 catch
-    warning("ControlExamplePlots needs to be installed to test plots, adding now:")
+    warn("ControlExamplePlots needs to be installed to test plots, adding now:")
     Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git")
 end
 

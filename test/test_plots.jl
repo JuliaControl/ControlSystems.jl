@@ -24,4 +24,11 @@ res = genplots(funcs, refs, popup=false)
 @test  res[6] |> success
 #"lsim.png"
 @test  res[7] |> success
+#"margin.png"
+@test  res[8] |> success
+#"gangoffour.png"
+@test  res[9] |> success
+#"pzmap.png"
+@test  res[10] |> success
+
 end
