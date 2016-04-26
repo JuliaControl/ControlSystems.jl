@@ -12,6 +12,8 @@ For the continuous time model `dx = Ax + Bu`.
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
 
+See also `lqg`
+
 Usage example:
 ```julia
 A = [0 1; 0 0]
@@ -39,6 +41,8 @@ end
 
 Calculate the optimal Kalman gain
 
+See also `lqg`
+
 """ ->
 kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
 
@@ -59,34 +63,22 @@ function kalman(sys::StateSpace, R1,R2)
 end
 
 """
-`L, K, syscl, sysc = lqg(A,B,C,D, Q1, Q2, R1, R2)`
+`G = lqg(A,B,C,D, Q1, Q2, R1, R2)`
 
-`L, K, syscl, sysc = lqg(sys, Q1, Q2, R1, R2)`
+`G = lqg(sys, Q1, Q2, R1, R2)`
 
 calls `lqr` and `kalman` and forms the closed-loop system
 
-`L` is the feedback matrix, such that `A-BL` is stable
-
-`K` is the kalman gain
-
-`syscl` is the closed-loop system, including observer
-
-`sysc` is a dynamical system describing the controller u=L*inv(A-BL-KC+KDL)Ky
+returns an LQG object, see `LQG`
 
 See also `lqgi`
 """
-function lqg(A,B,C,D, Q1, Q2, R1, R2)
+function lqg(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
     n = size(A,1)
     m = size(B,2)
     p = size(C,1)
-    L = lqr(A,B,Q1,Q2)
-    K = kalman(A,C,R1,R2)
-
-    # Closed-loop system
-    Acl = [A-B*L B*L; zeros(n,n) A-K*C]
-    Bcl = [B; zeros(B)]
-    Ccl = [C zeros(C)]
-    syscl = ss(Acl,Bcl,Ccl,0)
+    L = lqr(A, B, Q1+qQ*C'C, Q2)
+    K = kalman(A, C, R1+qR*B*B', R2)
 
     # Controller system
     Ac=A-B*L-K*C+K*D*L
@@ -95,51 +87,45 @@ function lqg(A,B,C,D, Q1, Q2, R1, R2)
     Dc=zeros(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
-
-    return L, K, syscl, sysc
+    return LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
 
 end
+
 function lqg(sys, Q1, Q2, R1, R2)
     lqg(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2)
 end
 
-"""
-`L, K, syscl, sysc = lqgi(A,B,C,D, Q1, Q2, R1, R2)`
+function lqg(G::LQG)
+    f = G.integrator ? lqgi : lqg
+    f(G.P.A, G.P.B, G.P.C, G.P.D, G.Q1, G.Q2, G.R1, G.R2, qQ=G.qQ, qR=G.qR)
+end
 
-`L, K, syscl, sysc = lqgi(sys, Q1, Q2, R1, R2)`
+"""
+`G = lqgi(A,B,C,D, Q1, Q2, R1, R2)`
+
+`G = lqgi(sys, Q1, Q2, R1, R2)`
 
 Adds a model of a constant disturbance on the inputs to the system described by `A,B,C,D`,
 calls `lqr` and `kalman` and forms the closed-loop system. The resulting controller will have intregral action.
 
-`L` is the feedback matrix, such that `A-BL` is stable. Note that the length of the state vector is increased by the number of inputs.
-
-`K` is the kalman gain
-
-`syscl` is the closed-loop system, including observer
-
-`sysc` is a dynamical system describing the controller u=L*inv(A-BL-KC+KDL)Ky
+returns an LQG object, see `LQG`
 
 See also `lqg`
 """
-function lqgi(A,B,C,D, Q1, Q2, R1, R2)
+function lqgi(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
     n = size(A,1)
     m = size(B,2)
     p = size(C,1)
+
+    # Augment with disturbance model
     Ae = [A B; zeros(m,n+m)]
     Be = [B;zeros(m,m)]
     Ce = [C zeros(p,m)]
     De = D
 
-
-    L = lqr(A,B,Q1,Q2)
+    L = lqr(A, B, Q1+qQ*C'C, Q2)
     Le = [L eye(m)]
-    K = kalman(Ae,Ce,R1,R2)
-
-    # Closed-loop system
-    Acl = [Ae-Be*Le Be*Le; zeros(Ae) Ae-K*Ce]
-    Bcl = [Be; zeros(Be)]
-    Ccl = [Ce zeros(Ce)]
-    syscl = ss(Acl,Bcl,Ccl,0)
+    K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
 
     # Controller system
     Ac=Ae-Be*Le-K*Ce+K*De*Le
@@ -148,7 +134,7 @@ function lqgi(A,B,C,D, Q1, Q2, R1, R2)
     Dc=zeros(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
-    return L,K,syscl,sysc
+    LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
 end
 
 function lqgi(sys, Q1, Q2, R1, R2)
@@ -163,6 +149,8 @@ minimizes the cost function:
 J = sum(x'Qx + u'Ru, 0, inf).
 
 For the discrte time model `x[k+1] = Ax[k] + Bu[k]`.
+
+See also `lqg`
 
 Usage example:
 ```julia
