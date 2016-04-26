@@ -8,6 +8,7 @@ export  LTISystem,
         tfg,
         zpk,
         ss2tf,
+        LQG,
         # Linear Algebra
         balance,
         care,
@@ -71,6 +72,7 @@ include("types/lti.jl")
 include("types/transferfunction.jl")
 include("types/statespace.jl")
 include("types/tf2ss.jl")
+include("types/lqg.jl")
 
 include("connections.jl")
 include("discrete.jl")

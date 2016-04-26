@@ -20,6 +20,7 @@ _PlotScale = "dB"
 _PlotScaleFunc = :identity
 _PlotScaleStr = "(dB)"
 
+
 @doc """`setPlotScale(str)`
 
 Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
@@ -35,6 +36,8 @@ function setPlotScale(str::AbstractString)
     global _PlotScale, _PlotScaleFunc, _PlotScaleStr
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
+
+setPlotScale("log10")
 
 @doc """`lsimplot(sys::StateSpace, u, t[, x0, method]), lsimplot(sys::TransferFunction,u,t[,method])`
 
