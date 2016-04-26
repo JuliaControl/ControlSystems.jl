@@ -19,6 +19,8 @@ ENV["PYTHON"]=""
 Pkg.add("PyPlot")
 Pkg.build("PyCall")
 
+Pkg.add("FactCheck")
+
 my_tests = ["test_statespace",
             "test_transferfunction",
             "test_generalizedtf",
