@@ -8,6 +8,9 @@ script:
     - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
     - julia -e 'Pkg.clone("https://github.com/tbreloff/VisualRegressionTests.jl.git");'
     - julia -e 'Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git");'
+    - julia -e 'ENV["PYTHON"]=""'
+    - julia -e 'Pkg.add("PyPlot")'
+    - julia -e 'Pkg.build("PyCall")'
     - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
 after_success:
     - julia -e 'cd(Pkg.dir("ControlSystems")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
