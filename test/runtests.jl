@@ -15,6 +15,10 @@ catch
     Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git")
 end
 
+ENV["PYTHON"]=""
+Pkg.add("PyPlot")
+Pkg.build("PyCall")
+
 my_tests = ["test_statespace",
             "test_transferfunction",
             "test_generalizedtf",
