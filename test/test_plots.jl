@@ -5,8 +5,8 @@ using VisualRegressionTests, ControlExamplePlots
 
 default(show=false)
 
-funcs, refs = getexamples()
-res = genplots(funcs, refs, popup=false)
+funcs, refs, eps = getexamples()
+res = genplots(funcs, refs, eps=eps, popup=false)
 
 ##Explicit enumeration for simpler debugging
 
