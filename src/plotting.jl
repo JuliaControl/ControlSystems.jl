@@ -177,8 +177,8 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; neg=fa
             for i=1:ny
                 redata = re_resp[:, i, j]
                 imdata = im_resp[:, i, j]
-                ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
-                xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
+                ylim = (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                xlim = (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                 Plots.plot!(fig[i, j],redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim; getStyleSys(si,length(systems))..., kwargs...)
 
                 if si == length(systems)
