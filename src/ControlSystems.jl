@@ -32,6 +32,7 @@ export  LTISystem,
         sminreal,
         minreal,
         balreal,
+        baltrunc,
         # Stability Analysis
         isstable,
         pole,

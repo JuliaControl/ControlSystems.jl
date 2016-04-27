@@ -309,3 +309,30 @@ function Base.show(io::IO, s::StateSpace)
         print(io, "Discrete-time state-space model")
     end
 end
+
+
+
+#####################################################################
+##                        Other  Functions                         ##
+#####################################################################
+
+"""
+`minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
+"""
+function minreal(s::StateSpace, tol=sqrt(eps()))
+    s = baltrunc(s, atol=tol, rtol = 0)[1]
+    diagonalize(s)
+end
+
+"""
+`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal. The result is rounded to `digits` decimal points.
+"""
+function diagonalize(s::StateSpace, digits = 12)
+    r = x -> round(x,digits)
+    S,V = eig(s.A)
+    A = V\s.A*V     |> r
+    B = V\s.B       |> r
+    C = s.C*V       |> r
+    D = s.D         |> r
+    return ss(A,B,C,D)
+end
