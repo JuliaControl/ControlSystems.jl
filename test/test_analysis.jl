@@ -137,7 +137,6 @@ z, p, k = zpkdata(G)
 ## GAIN ## #Gain is confusing when referring to zpkdata. Test dcgain instead
 @test [dcgain(H[1, 1]) dcgain(H[1, 2]); dcgain(H[2, 1]) dcgain(H[2, 2])] ≈ [0 0; 0.2 1/3]
 @test [dcgain(G[1, 1]) dcgain(G[1, 2]); dcgain(G[2, 1]) dcgain(G[2, 2])] ≈ [0 0; 0.2 1/3]
-@test_err dcgain(H)
 @test_err dcgain(G)
 
 ## MARKOVPARAM ##

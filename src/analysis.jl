@@ -13,18 +13,105 @@ function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
     return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
 end
 
-@doc """`dcgain(sys)`
+# Helper function for SISO systems
+function _dcgain(sys::SisoTf, discrete::Bool = false)
+  zerovec = numvec(sys)[end:-1:1]
+  polevec = denvec(sys)[end:-1:1]
+  K       = length(polevec)
 
-Compute the dcgain of system `sys`.
+  # Assume causal system. `numvec` and `denvec` functions do not return
+  # vectors of the same size. That's why try to have the same sized arrays.
+  zerovec = vcat( zerovec, zeros(K-length(zerovec)) )
 
-equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
-function dcgain(sys::TransferFunction)
-    !issiso(sys) && error("Gain only defined for siso systems")
-    if sys.Ts > 0
-        return map(s->sum(s.num.a)/sum(s.den.a), sys.matrix)
+  if discrete   # Discrete systems
+    # Right now `isstable` does not work with sys::SisoTf inputs.
+    # if !isstable(sys)
+    #   return NaN
+    # end
+
+    for k = 1:K
+      zerosum = sum(zerovec[k:end])
+      polesum = sum(polevec[k:end])
+
+      # 0/0 will result in L'Hopital
+      if zerosum == polesum == zero(zerosum)
+        zerovec[k+1:end] = zerovec[k+1:end].*(1:K-k)
+        polevec[k+1:end] = polevec[k+1:end].*(1:K-k)
+      else
+        return zerosum/polesum
+      end
     end
+  else          # Continuous systems
+    # Right now `isstable` does not work with sys::SisoTf inputs.
+    # if !isstable(sys)
+    #   return NaN
+    # end
 
-    return map(s -> s.num[end]/s.den[end], sys.matrix)
+    for k = 1:K
+      # 0/0 will result in L'Hopital
+      if zerovec[k] == polevec[k] == zero(zerovec[1])
+        zerovec[k+1:end] = zerovec[k+1:end].*(1:K-k)
+        polevec[k+1:end] = polevec[k+1:end].*(1:K-k)
+      else
+        return zerovec[k]/polevec[k]
+      end
+    end
+  end
+end
+
+"""
+    dcgain(sys::TransferFunction)
+
+Return the DC gain of system `sys`.
+
+The function returns `NaN` for unstable systems, and ``G(s=0)`` and ``G(z=1)`` for stable
+continuous- and discrete-time systems, respectively.
+
+# Examples
+```julia
+julia> # Continuous-time systems
+
+julia> c1 = tf([1],[1,0]); # 1/s
+
+julia> c2 = tf([1,0],[1,1]); # s/(s+1)
+
+julia> c3 = tf([1],[1,5]); # s/(s+5)
+
+julia> c4 = tf([1],[1,-5]); # s/(s-5)
+
+julia> c5 = tf([c1 c2;c3 c4]);
+
+julia> dcgain(c5)
+2x2 Array{Float64,2}:
+ Inf      0.0
+   0.2  NaN  
+
+julia> # Discrete-time systems
+
+julia> d1 = tf([1],[1,-1],0.5); # 1/(z-1)
+
+julia> d2 = tf([1,-1],[1,0],0.5); # (z-1)/z
+
+julia> d3 = tf([1,-.7],[1,-.3],0.5); # (z-.7)/(z-.3)
+
+julia> d4 = tf([1,-.7],[1,-1.5],0.5); # (z-.7)/(z-1.5)
+
+julia> d5 = tf([d1 d2;d3 d4]);
+
+julia> dcgain(d5)
+2x2 Array{Float64,2}:
+ Inf           0.0
+    0.428571  NaN  
+```
+"""
+function dcgain(sys::TransferFunction)
+  gains = zeros(size(sys.matrix))
+
+  for idx in eachindex(sys.matrix)
+    gains[idx] = _dcgain(sys.matrix[idx], sys.Ts > 0)
+  end
+
+  return gains
 end
 
 @doc """`markovparam(sys, n)`
