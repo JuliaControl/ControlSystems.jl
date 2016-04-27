@@ -293,9 +293,9 @@ end
 """
 `sysr, G = balreal(sys::StateSpace)`
 
-Calculates a balance realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`
+Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`
 
-See also `gram`
+See also `gram`, `baltrunc`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
@@ -325,4 +325,31 @@ if vecnorm(Pz-Qz) > sqrt(eps())
 end
 
 sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(Σ)
+end
+
+
+"""
+`sysr, G = baltrunc(sys::StateSpace, atol = √ϵ, rtol=1e-3, unitgain=true)`
+
+Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed. If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
+
+See also `gram`, `balreal`
+
+Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+"""
+function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = true)
+    sysbal, S = balreal(sys)
+    S = diag(S)
+    S = S[S .>= atol]
+    S = S[S .>= S[1]*rtol]
+    n = length(S)
+    A = sysbal.A[1:n,1:n]
+    B = sysbal.B[1:n,:]
+    C = sysbal.C[:,1:n]
+    D = sysbal.D
+    if unitgain
+        D = D/(C*inv(-A)*B)
+    end
+
+    return ss(A,B,C,D), diagm(S)
 end
