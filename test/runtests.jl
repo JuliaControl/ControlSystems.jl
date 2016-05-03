@@ -1,12 +1,12 @@
 include("framework.jl")
 using CustomTest
 
-try
-    Pkg.installed("VisualRegressionTests")
-catch
-    warn("VisualRegressionTests needs to be installed to test plots, adding now:")
-    Pkg.clone("https://github.com/tbreloff/VisualRegressionTests.jl.git")
-end
+#try
+#    Pkg.installed("VisualRegressionTests")
+#catch
+#    warn("VisualRegressionTests needs to be installed to test plots, adding now:")
+#    Pkg.clone("https://github.com/tbreloff/VisualRegressionTests.jl.git")
+#end
 
 try
     Pkg.installed("ControlExamplePlots")
@@ -15,9 +15,6 @@ catch
     Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git")
 end
 
-ENV["PYTHON"]=""
-Pkg.add("PyPlot")
-Pkg.build("PyCall")
 
 Pkg.add("FactCheck")
 
