@@ -14,9 +14,6 @@ function myDeps()
     if get(ENV, "TRAVIS", "") != ""
         println("Installing deploy dependencies")
         run(`pip install --user pygments mkdocs`)
-        ENV["PYTHON"]=""
-        Pkg.add("PyPlot")
-        Pkg.build("PyCall")
         makePlots()
     end
 end

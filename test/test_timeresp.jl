@@ -32,4 +32,40 @@ yd, td, xd = lsim(sysdfb, zeros(501), t, x0)
 @test_approx_eq y yd
 @test_approx_eq x xd
 
+
+#Test step and impulse
+t0 = 0:0.05:2
+systf = [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
+sysss = ss([-1 0 0; 0 -2 -1; 0 1 0], [1 0; 0 1; 0 0], [1 0 0; 0 1 -1], 0)
+yreal = zeros(length(t0), 2, 2)
+xreal = zeros(length(t0), 3, 2)
+
+#Step tf
+y, t, x = step(systf, t0)
+yreal[:,1,1] = 1-exp(-t)
+yreal[:,2,2] = -1+exp(-t)+2*exp(-t).*t
+@test_approx_eq_eps y yreal 1e-14
+#Step ss
+y, t, x = step(sysss, t)
+@test_approx_eq_eps y yreal 1e-14
+xreal[:,1,1] = yreal[:,1,1]
+xreal[:,2,2] = exp(-t).*t
+xreal[:,3,2] = exp(-t).*(-t-1) + 1
+@test_approx_eq_eps x xreal 1e-14
+
+#Impulse tf
+y, t, x = impulse(systf, t)
+yreal[:,1,1] = exp(-t)
+yreal[:,2,2] = exp(-t).*(1 - 2.*t)
+@test_approx_eq_eps y yreal 1e-14
+#Impulse ss
+y, t, x = impulse(sysss, t)
+@test_approx_eq_eps y yreal 1e-14
+xreal[:,1,1] = yreal[:,1,1]
+xreal[:,2,2] = -exp(-t).*t + exp(-t)
+xreal[:,3,2] = exp(-t).*t
+@test_approx_eq_eps x xreal 1e-14
+
+#Make sure t was never changed
+@test t0 == t
 end
