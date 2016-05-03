@@ -213,17 +213,19 @@
 <p><a id='ControlSystems.bodeplot' href='#ControlSystems.bodeplot'>#</a>
 <strong><code>ControlSystems.bodeplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>bodeplot(sys, args...)</code>, <code>bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true)</code></p>
+<p><code>fig = bodeplot(sys, args...)</code>, <code>bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)</code></p>
 <p>Create a Bode plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
+<p><code>kwargs</code> is sent as argument to Plots.plot.</p>
 <p><a id='ControlSystems.gangoffourplot' href='#ControlSystems.gangoffourplot'>#</a>
 <strong><code>ControlSystems.gangoffourplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>gangoffourplot(P::LTISystem, C::LTISystem)</code>, <code>gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)</code></p>
+<p><code>fig = gangoffourplot(P::LTISystem, C::LTISystem)</code>, <code>gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)</code></p>
 <p>Gang-of-Four plot.</p>
+<p><code>kwargs</code> is sent as argument to Plots.plot.</p>
 <p><a id='ControlSystems.impulseplot' href='#ControlSystems.impulseplot'>#</a>
 <strong><code>ControlSystems.impulseplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>impulseplot(sys, args...)</code>, <code>impulseplot(LTISystem[sys1, sys2...], args...)</code></p>
+<p><code>fig = impulseplot(sys, args...)</code>, <code>impulseplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the <code>impulse</code> response of the <code>LTISystem</code>(s). A final time <code>Tf</code> or a time vector <code>t</code> can be optionally provided.</p>
 <p><a id='ControlSystems.leadlinkcurve' href='#ControlSystems.leadlinkcurve'>#</a>
 <strong><code>ControlSystems.leadlinkcurve</code></strong> &mdash; <em>Function</em>.</p>
@@ -234,19 +236,21 @@
 <p><a id='ControlSystems.lsimplot' href='#ControlSystems.lsimplot'>#</a>
 <strong><code>ControlSystems.lsimplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>lsimplot(sys::StateSpace, u, t[, x0, method]), lsimplot(sys::TransferFunction,u,t[,method])</code></p>
-<p><code>lsimplot(StateSpace[sys1, sys2...], u, t[, x0, method]), lsimplot(TransferFunction[sys1, sys2...], u, t[, method])</code></p>
+<p><code>fig = lsimplot(sys::StateSpace, u, t[, x0, method]; kwargs...), lsimplot(sys::TransferFunction,u,t[,method]; kwargs...)</code></p>
+<p><code>lsimplot(StateSpace[sys1, sys2...], u, t[, x0, method]; kwargs...), lsimplot(TransferFunction[sys1, sys2...], u, t[, method]; kwargs...)</code></p>
 <p>Calculate the time response of the <code>LTISystem</code>(s) to input <code>u</code>. If <code>x0</code> is ommitted, a zero vector is used.</p>
 <p>Continuous time systems are discretized before simulation. By default, the method is chosen based on the smoothness of the input signal. Optionally, the <code>method</code> parameter can be specified as either <code>:zoh</code> or <code>:foh</code>.</p>
+<p><code>kwargs</code> is sent as argument to Plots.plot.</p>
 <p><a id='ControlSystems.marginplot' href='#ControlSystems.marginplot'>#</a>
 <strong><code>ControlSystems.marginplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>marginplot(sys::LTISystem [,w::AbstractVector])</code>, <code>marginplot(sys::Vector{LTISystem}, w::AbstractVector)</code></p>
+<p><code>fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)</code>, <code>marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)</code></p>
 <p>Plot all the amplitude and phase margins of the system(s) <code>sys</code>. A frequency vector <code>w</code> can be optionally provided.</p>
+<p><code>kwargs</code> is sent as argument to Plots.plot.</p>
 <p><a id='ControlSystems.nicholsplot' href='#ControlSystems.nicholsplot'>#</a>
 <strong><code>ControlSystems.nicholsplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>nicholsplot{T&lt;:LTISystem}(systems::Vector{T}, w::AbstractVector)</code></p>
+<p>fig = <code>nicholsplot{T&lt;:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)</code></p>
 <p>Create a Nichols plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p>Keyword arguments:</p>
 <pre><code>text = true
@@ -265,8 +269,9 @@ fontsize = 10
 <p><a id='ControlSystems.nyquistplot' href='#ControlSystems.nyquistplot'>#</a>
 <strong><code>ControlSystems.nyquistplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>nyquistplot(sys; kwargs...)</code>, <code>nyquistplot(LTISystem[sys1, sys2...]; kwargs...)</code></p>
+<p><code>fig = nyquistplot(sys; kwargs...)</code>, <code>nyquistplot(LTISystem[sys1, sys2...]; kwargs...)</code></p>
 <p>Create a Nyquist plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
+<p><code>kwargs</code> is sent as argument to Plots.plot.</p>
 <p><a id='ControlSystems.pidplots' href='#ControlSystems.pidplots'>#</a>
 <strong><code>ControlSystems.pidplots</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
@@ -280,12 +285,12 @@ fontsize = 10
 <p><a id='ControlSystems.pzmap' href='#ControlSystems.pzmap'>#</a>
 <strong><code>ControlSystems.pzmap</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>pzmap(system, args...; kwargs...)</code></p>
+<p><code>fig = pzmap(system, args...; kwargs...)</code></p>
 <p>Create a pole-zero map of the <code>LTISystem</code>(s), <code>args</code> and <code>kwargs</code> will be sent to the <code>scatter</code> plot command.</p>
 <p><a id='ControlSystems.pzmap!' href='#ControlSystems.pzmap!'>#</a>
 <strong><code>ControlSystems.pzmap!</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>pzmap!(fig, system, args...; kwargs...)</code></p>
+<p><code>fig = pzmap!(fig, system, args...; kwargs...)</code></p>
 <p>Create a pole-zero map of the <code>LTISystem</code>(s) in figure <code>fig</code>, <code>args</code> and <code>kwargs</code> will be sent to the <code>scatter</code> plot command.</p>
 <p><a id='ControlSystems.rlocus' href='#ControlSystems.rlocus'>#</a>
 <strong><code>ControlSystems.rlocus</code></strong> &mdash; <em>Function</em>.</p>
@@ -296,6 +301,7 @@ fontsize = 10
 <hr />
 <p><code>sigmaplot(sys, args...)</code>, <code>sigmaplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the singular values of the frequency response of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
+<p><code>kwargs</code> is sent as argument to Plots.plot.</p>
 <p><a id='ControlSystems.setPlotScale' href='#ControlSystems.setPlotScale'>#</a>
 <strong><code>ControlSystems.setPlotScale</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
@@ -304,7 +310,7 @@ fontsize = 10
 <p><a id='ControlSystems.stepplot' href='#ControlSystems.stepplot'>#</a>
 <strong><code>ControlSystems.stepplot</code></strong> &mdash; <em>Function</em>.</p>
 <hr />
-<p><code>stepplot(sys, args...)</code>, <code>stepplot(LTISystem[sys1, sys2...], args...)</code></p>
+<p><code>fig = stepplot(sys, args...)</code>, <code>stepplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the <code>step</code> response of the <code>LTISystem</code>(s). A final time <code>Tf</code> or a time vector <code>t</code> can be optionally provided.</p>
               
             </div>
