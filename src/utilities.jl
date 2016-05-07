@@ -38,7 +38,7 @@ Returns `true` if the `TransferFunction` is proper. This means that order(den)
 \>= order(num))""" ->
 function isproper(t::TransferFunction)
     for s in t.matrix
-        if length(num(s)) > length(den(s))
+        if length(numpoly(s)) > length(denpoly(s))
             return false
         end
     end
@@ -99,9 +99,5 @@ end
 #Collect will create a copy and collect the elements
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
-
-
-numpoly(G::TransferFunction) = map(numpoly, G.matrix)
-denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 
 poly2vec(p::Poly) = p.a[1:end]

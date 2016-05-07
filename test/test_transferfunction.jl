@@ -129,4 +129,28 @@ D_diffTs = tf([1], [2], 0.1)
 @test_err tf("z", 0)                # z creation can't be continuous
 @test_err tf("z")                   # z creation can't be continuous
 @test_err [z 0]                     # Sampling time mismatch (inferec could be implemented)
+
+# Test numpoly, numvec, denpoly, denvec for SisoRational
+
+# Test deprecation (is not an error)
+#@test_err num(C_111.matrix[1,1])
+#@test_err den(C_111.matrix[1,1])
+
+@test numvec(C_111.matrix[1,1]) == [1, 2]
+@test denvec(C_111.matrix[1,1]) == [1, 5]
+
+vecs = Array{Array{Float64,1},2}(1,2)
+vecs[1,1] = [1,2,3]; vecs[1,2] = [1, 2]
+@test numvec(D_221) == vecs
+vecs[1,1] = [1,-0.2,-0.15]; vecs[1,2] = [1, -0.2, -0.15]
+@test denvec(D_221) == vecs
+
+@test size(numpoly(D_221)) == (1,2)
+@test numpoly(D_221) == [ControlSystems.Poly([1, 2, 3.0]) ControlSystems.Poly([1, 2.0])]
+@test size(denpoly(D_221)) == (1,2)
+@test denpoly(D_221) == [ControlSystems.Poly([1, -0.2, -0.15]) ControlSystems.Poly([1, -0.2, -0.15])]
+
+#After switch to polynomials
+#@test numpoly(D_221) == [Polynomials.Poly([3.0, 2, 1]) Polynomials.Poly([2.0, 1])])
+#@test denpoly(D_221) == [Polynomials.Poly([-0.15, -0.2, 1]) Polynomials.Poly([-0.15, -0.2, 1])]
 end

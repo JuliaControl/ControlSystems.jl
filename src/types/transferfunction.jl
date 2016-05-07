@@ -61,19 +61,17 @@ function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
 end
 
 function Base.convert(::Type{SisoZpk}, sys::SisoRational)
-    if length(sys.num) == 0
+    if length(numvec(sys)) == 0
         return SisoZpk([],[],0)
-    elseif all(sys.den == zero(sys.den))
+    elseif all(denvec(sys) == zero(denvec(sys)))
         error("Zero denominator, this should not be possible")
     else
-        return SisoZpk(roots(sys.num),roots(sys.den),sys.num[1]/sys.den[1])
+        return SisoZpk(roots(numpoly(sys)),roots(denpoly(sys)),numvec(sys)[1]/denvec(sys)[1])
     end
 end
 
 function Base.convert(::Type{SisoRational}, sys::SisoZpk)
-    num = prod(zp2polys(sys.z))*sys.k
-    den = prod(zp2polys(sys.p))
-    return SisoRational(num, den)
+    return SisoRational(numpoly(sys), denpoly(sys))
 end
 
 Base.convert(::Type{SisoGeneralized}, sys::SisoRational) = SisoGeneralized(sprint(print_compact, sys))
@@ -89,7 +87,6 @@ Base.convert(::Type{ControlSystems.SisoTf}, b::Real) = Base.convert(ControlSyste
 Base.zero(::Type{SisoTf}) = zero(SisoRational)
 Base.zero(::SisoTf) = zero(SisoRational)
 
-tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 #####################################################################
 ##                      SisoTf Operations                   ##
 #####################################################################
@@ -344,6 +341,72 @@ function minreal(t::TransferFunction, eps::Real=sqrt(eps()))
     end
     return TransferFunction(matrix, t.Ts, copy(t.inputnames), copy(t.outputnames))
 end
+
+# Fallback for new Siso Types
+tzero{T<:SisoTf}(::T) = error("tzero is not implemented for type $T")
+pole{T<:SisoTf}(::T) = error("pole is not implemented for type $T")
+numvec{T<:SisoTf}(::T) = error("numvec is not implemented for type $T")
+denvec{T<:SisoTf}(::T) = error("denvec is not implemented for type $T")
+numpoly{T<:SisoTf}(::T) = error("numpoly is not implemented for type $T")
+denpoly{T<:SisoTf}(::T) = error("denpoly is not implemented for type $T")
+
+"""
+`numpolys = numpoly(tf::TransferFunction)`
+
+Get an `Array` of of size `(ny,nu)` containing `Poly`s representing the
+numerators of `tf` from each input to output.
+
+The numerators from `numpoly` divided by the denominators in `denpoly`
+contains a full respresentation of `tf`.
+
+See also `denpoly`, `numvec`, `denvec`.
+"""
+numpoly(t::TransferFunction) = map(numpoly, t.matrix)
+
+"""
+`denpolys = denpoly(tf::TransferFunction)`
+
+Get an `Array` of of size `(ny,nu)` containing `Poly`s representing the
+denominators of `tf` from each input to output.
+
+The numerators from `numpoly` divided by the denominators in `denpoly`
+contains a full respresentation of `tf`.
+
+See also `numpoly`, `numvec`, `denvec`.
+"""
+denpoly(t::TransferFunction) = map(denpoly, t.matrix)
+
+"""
+`numvecs = numvec(tf::TransferFunction)`
+
+Get an `Array` of of size `(ny,nu)` containing `Vector`s representing the
+numerators of `tf` from each input to output.
+
+The numerators from `numpoly` divided by the denominators in `denpoly`
+contains a full respresentation of `tf`.
+
+The polynomials are represented by the coefficients, from largest to smallest
+exponent, ending with the constant term.
+
+See also `numpoly`, `denpoly`, `denvec`.
+"""
+numvec(t::TransferFunction) = map(numvec, t.matrix)
+
+"""
+`denvecs = denvec(tf::TransferFunction)`
+
+Get an `Array` of of size `(ny,nu)` containing `Vector`s representing the
+denominators of `tf` from each input to output.
+
+The numerators from `numpoly` divided by the denominators in `denpoly`
+contains a full respresentation of `tf`.
+
+The polynomials are represented by the coefficients, from largest to smallest
+exponent, ending with the constant term.
+
+See also `numpoly`, `denpoly`, `numvec`.
+"""
+denvec(t::TransferFunction) = map(denvec, t.matrix)
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################

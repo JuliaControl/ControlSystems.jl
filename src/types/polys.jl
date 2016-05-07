@@ -200,6 +200,8 @@ function polyval{T}(p::Poly{T}, x::Number)
     end
 end
 
+Base.call{T}(p::Poly{T}, x::Number) = polyval(p, x)
+
 # compute the roots of a polynomial
 function roots{T}(p::Poly{T})
     R = promote_type(T, Float64)

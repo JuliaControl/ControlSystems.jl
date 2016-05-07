@@ -60,7 +60,9 @@ export  LTISystem,
         sigma,
         # utilities
         numpoly,
-        denpoly
+        denpoly,
+        numvec,
+        denvec
 
 import Plots
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call, convert

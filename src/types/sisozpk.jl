@@ -57,15 +57,17 @@ function minreal(sys::SisoZpk, eps::Real)
 end
 
 function Base.num(t::SisoZpk)
+    Base.depwarn("`num is deprecated for getting numerator, use `numvec` or `numpoly` instead", :numvec)
     return copy(t.z)
 end
 
 function Base.den(t::SisoZpk)
+    Base.depwarn("`den is deprecated for getting denominator, use `denvec` or `denpoly` instead", :denvec)
     return copy(t.p)
 end
 
-tzero(sys::SisoZpk) = num(sys)
-pole(sys::SisoZpk) = den(sys)
+tzero(sys::SisoZpk) = copy(sys.z)
+pole(sys::SisoZpk) = copy(sys.p)
 
 function zp2polys(vec)
     polys = Array{Poly{Float64},1}(0)
@@ -86,13 +88,11 @@ function zp2polys(vec)
     polys
 end
 
-function numpoly(G::SisoZpk)
-    zpolys = zp2polys(G.z)
-end
+numvec(t::SisoZpk) = numpoly(t)[:]
+denvec(t::SisoZpk) = denpoly(t)[:]
 
-function denpoly(G::SisoZpk)
-    ppolys = zp2polys(G.p)
-end
+numpoly(t::SisoZpk) = prod(zp2polys(t.z))*t.k
+denpoly(t::SisoZpk) = prod(zp2polys(t.p))
 
 function evalfr(sys::SisoZpk, s::Number)
     S = promote_type(typeof(s), Float64)

@@ -9,7 +9,7 @@ immutable SisoRational <: SisoTf
             # The numerator is zero, make the denominator 1
             den = one(den)
         end
-        new(num, den)
+        new(copy(num), copy(den))
     end
 end
 SisoRational(num::Vector, den::Vector) = SisoRational(Poly(map(Float64,num)), Poly(map(Float64,den)))
@@ -54,6 +54,7 @@ Base.zero(::SisoRational) = Base.zero(SisoRational)
 Base.length(t::SisoRational) = max(length(t.num), length(t.den))
 
 function Base.num(t::SisoRational)
+    Base.depwarn("`num is deprecated for getting numerator, use `numvec` or `numpoly` instead", :numvec)
     lt = length(t)
     n = zeros(lt)
     n[(lt - length(t.num) + 1):end] = t.num[:]
@@ -61,22 +62,25 @@ function Base.num(t::SisoRational)
 end
 
 function Base.den(t::SisoRational)
+    Base.depwarn("`den` is deprecated for getting denominator, use `denvec` or `denpoly` instead", :denvec)
     lt = length(t)
     d = zeros(lt)
     d[(lt - length(t.den) + 1):end] = t.den[:]
     return d
 end
 
-denpoly(G::SisoRational) = Poly(den(G))
-numpoly(G::SisoRational) = Poly(num(G))
+numvec(t::SisoRational) = t.num[:]
+denvec(t::SisoRational) = t.den[:]
+numpoly(t::SisoRational) = copy(t.num)
+denpoly(t::SisoRational) = copy(t.den)
 
 function evalfr(sys::SisoRational, s::Number)
     S = promote_type(typeof(s), Float64)
-    den = polyval(sys.den, s)
+    den = sys.den(s)
     if den == zero(S)
         convert(S, Inf)
     else
-        polyval(sys.num, s)/den
+        sys.num(s)/den
     end
 end
 

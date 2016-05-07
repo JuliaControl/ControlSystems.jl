@@ -43,13 +43,15 @@ siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
 function siso_tf_to_ss(t::SisoRational)
     t = normalize_tf(t)
-    tnum = num(t)
-    tden = den(t)
+    tnum0 = numvec(t)
+    tden = denvec(t)
     len = length(tden)
+    #Pad tnum0 with zeros
+    tnum = [zeros(len - length(tnum0)); tnum0]
     d = Array(Float64, 1, 1)
     d[1] = tnum[1]
 
-    if len==1 || tnum == zero(Poly{Float64})
+    if len==1 || tnum == [0.0]
         a = zeros(0, 0)
         b = zeros(0, 1)
         c = zeros(1, 0)
@@ -63,8 +65,10 @@ function siso_tf_to_ss(t::SisoRational)
 end
 
 function normalize_tf(t::SisoRational)
-    d = t.den[1]
-    return SisoTf(t.num/d, t.den/d)
+    num = numpoly(t)
+    den = denpoly(t)
+    d = denvec(t)[1]
+    return SisoTf(num/d, den/d)
 end
 
 

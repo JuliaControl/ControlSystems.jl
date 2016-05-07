@@ -15,4 +15,20 @@ C_111 = tfg("(s+1)/(s+2)")
 @test zpk(C_011*C_111) == zpk([-1,-2],[-2],1)
 
 @test bode(C_111*C_011, logspace(-1,1)) == bode(tfg("(s+2)*((s+1)/(s+2))"), logspace(-1,1))
+
+# Test numpoly, numvec, denpoly, denvec for SisoZpk
+
+# Test deprecation (is not an error)
+#@test_err num(C_111.matrix[1,1])
+#@test_err den(C_111.matrix[1,1])
+
+@test_err numvec(C_111.matrix[1,1])
+@test_err denvec(C_111.matrix[1,1])
+
+@test_err numvec(C_111)
+@test_err denvec(C_111)
+
+@test_err numpoly(C_111)
+@test_err denpoly(C_111)
+
 end

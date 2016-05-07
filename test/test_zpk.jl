@@ -110,4 +110,35 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_err zpk("z")                   # z creation can't be continuous
 # Remove this when inferec is implemented
 @test_err [z 0]                     # Sampling time mismatch (inferec could be implemented)
+
+# Test numpoly, numvec, denpoly, denvec for SisoZpk
+
+# Test deprecation
+#@test_err num(C_111.matrix[1,1])
+#@test_err den(C_111.matrix[1,1])
+
+@test numvec(C_111.matrix[1,1]) == [1, 2]
+@test denvec(C_111.matrix[1,1]) == [1, 5]
+
+#Unwrap matrix to use approx_eq
+@test_approx_eq numvec(D_221)[1,1] [1, 2, 3]
+@test_approx_eq numvec(D_221)[1,2] [1, 2]
+
+@test_approx_eq denvec(D_221)[1,1] [1,-0.2,-0.15]
+@test_approx_eq denvec(D_221)[1,2] [1, -0.2, -0.15]
+
+@test size(numpoly(D_221)) == (1,2)
+@test numpoly(D_221)[1,1] ≈ ControlSystems.Poly([1,2,3.0])
+@test numpoly(D_221)[1,2] ≈ ControlSystems.Poly([1, 2.0])
+
+@test size(denpoly(D_221)) == (1,2)
+@test denpoly(D_221)[1,1] ≈ ControlSystems.Poly([1, -0.2, -0.15])
+@test denpoly(D_221)[1,2] ≈ ControlSystems.Poly([1, -0.2, -0.15])
+
+#After switch to polynomials
+#@test numpoly(D_221)[1,1] ≈ Polynomials.Poly([3.0, 2, 1])
+#@test numpoly(D_221)[1,2] ≈ Polynomials.Poly([2.0, 1])
+
+#@test denpoly(D_221) ≈ Polynomials.Poly([-0.15, -0.2, 1])
+#@test denpoly(D_221) ≈ Polynomials.Poly([-0.15, -0.2, 1])
 end
