@@ -353,7 +353,7 @@ denpoly{T<:SisoTf}(::T) = error("denpoly is not implemented for type $T")
 """
 `numpolys = numpoly(tf::TransferFunction)`
 
-Get an `Array` of of size `(ny,nu)` containing `Poly`s representing the
+Get an `Array` of size `(ny,nu)` containing `Poly`s representing the
 numerators of `tf` from each input to output.
 
 The numerators from `numpoly` divided by the denominators in `denpoly`
@@ -366,7 +366,7 @@ numpoly(t::TransferFunction) = map(numpoly, t.matrix)
 """
 `denpolys = denpoly(tf::TransferFunction)`
 
-Get an `Array` of of size `(ny,nu)` containing `Poly`s representing the
+Get an `Array` of size `(ny,nu)` containing `Poly`s representing the
 denominators of `tf` from each input to output.
 
 The numerators from `numpoly` divided by the denominators in `denpoly`
@@ -379,7 +379,7 @@ denpoly(t::TransferFunction) = map(denpoly, t.matrix)
 """
 `numvecs = numvec(tf::TransferFunction)`
 
-Get an `Array` of of size `(ny,nu)` containing `Vector`s representing the
+Get an `Array` of size `(ny,nu)` containing `Vector`s representing the
 numerators of `tf` from each input to output.
 
 The numerators from `numpoly` divided by the denominators in `denpoly`
@@ -395,7 +395,7 @@ numvec(t::TransferFunction) = map(numvec, t.matrix)
 """
 `denvecs = denvec(tf::TransferFunction)`
 
-Get an `Array` of of size `(ny,nu)` containing `Vector`s representing the
+Get an `Array` of size `(ny,nu)` containing `Vector`s representing the
 denominators of `tf` from each input to output.
 
 The numerators from `numpoly` divided by the denominators in `denpoly`
