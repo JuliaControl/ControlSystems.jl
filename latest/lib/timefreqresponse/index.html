@@ -205,36 +205,30 @@
 <h1 id="time-and-frequency-response">Time and Frequency response</h1>
 <p><a id='Base.call' href='#Base.call'>#</a>
 <strong><code>Base.call</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>F(s)</code>, <code>F(omega, true)</code>, <code>F(z, false)</code></p>
 <p>Notation for frequency response evaluation. - F(s) evaluates the continuous-time transfer function F at s. - F(omega,true) evaluates the discrete-time transfer function F at i<em>Ts</em>omega - F(z,false) evaluates the discrete-time transfer function F at z</p>
 <p><a id='ControlSystems.bode' href='#ControlSystems.bode'>#</a>
 <strong><code>ControlSystems.bode</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>mag, phase, w = bode(sys[, w])</code></p>
 <p>Compute the magnitude and phase parts of the frequency response of system <code>sys</code> at frequencies <code>w</code></p>
 <p><code>mag</code> and <code>phase</code> has size <code>(length(w), ny, nu)</code></p>
 <p><a id='ControlSystems.evalfr' href='#ControlSystems.evalfr'>#</a>
 <strong><code>ControlSystems.evalfr</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>evalfr(sys, x)</code> Evaluate the transfer function of the LTI system sys at the complex number s=x (continuous-time) or z=x (discrete-time).</p>
 <p>For many values of <code>x</code>, use <code>freqresp</code> instead.</p>
 <p><a id='ControlSystems.freqresp' href='#ControlSystems.freqresp'>#</a>
 <strong><code>ControlSystems.freqresp</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p>H, w, = freqresp(sys, w)</p>
 <p>Evaluate the frequency response</p>
 <p><code>H(iw) = C*((iwI -A)^-1)*B + D</code></p>
 <p>of system <code>sys</code> over the frequency vector <code>w</code>.</p>
 <p><a id='ControlSystems.impulse' href='#ControlSystems.impulse'>#</a>
 <strong><code>ControlSystems.impulse</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>[y, t, x] = impulse(sys[, Tf])</code> or <code>[y, t, x] = impulse(sys[, t])</code></p>
 <p>Calculate the impulse response of system <code>sys</code>. If the final time <code>Tf</code> or time vector <code>t</code> is not provided, one is calculated based on the system pole locations.</p>
 <p><code>y</code> has size <code>(length(t), ny, nu)</code>, <code>x</code> has size <code>(length(t), nx, nu)</code></p>
 <p><a id='ControlSystems.lsim' href='#ControlSystems.lsim'>#</a>
 <strong><code>ControlSystems.lsim</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>y, t, x = lsim(sys, u, t[, x0, method])</code></p>
 <p><code>y, t, x, uout = lsim(sys, u::Function, t[, x0, method])</code></p>
 <p>Calculate the time response of system <code>sys</code> to input <code>u</code>. If <code>x0</code> is ommitted, a zero vector is used.</p>
@@ -259,13 +253,11 @@ plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]', xlabel=&quot;Time [
 
 <p><a id='ControlSystems.nyquist' href='#ControlSystems.nyquist'>#</a>
 <strong><code>ControlSystems.nyquist</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>re, im, w = nyquist(sys[, w])</code></p>
 <p>Compute the real and imaginary parts of the frequency response of system <code>sys</code> at frequencies <code>w</code></p>
 <p><code>re</code> and <code>im</code> has size <code>(length(w), ny, nu)</code></p>
 <p><a id='Base.step' href='#Base.step'>#</a>
 <strong><code>Base.step</code></strong> &mdash; <em>Function</em>.</p>
-<hr />
 <p><code>[y, t, x] = step(sys[, Tf])</code> or <code>[y, t, x] = step(sys[, t])</code></p>
 <p>Calculate the step response of system <code>sys</code>. If the final time <code>Tf</code> or time vector <code>t</code> is not provided, one is calculated based on the system pole locations.</p>
 <p><code>y</code> has size <code>(length(t), ny, nu)</code>, <code>x</code> has size <code>(length(t), nx, nu)</code></p>
