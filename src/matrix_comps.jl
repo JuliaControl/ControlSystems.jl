@@ -149,7 +149,7 @@ function covar(sys::StateSpace, W::StridedMatrix)
     if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
         error("W must be a square matrix the same size as `sys.B` columns")
     end
-    if !isstable(sys) || any(D .!= 0)
+    if !isstable(sys) || (iscontinuous(sys) && any(D .!= 0))
         return Inf
     end
     func = iscontinuous(sys) ? lyap : dlyap
