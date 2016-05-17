@@ -22,4 +22,13 @@ Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
 @test_approx_eq ControlSystems.balance_transform(A,B,C) ControlSystems.balance_transform(sys)
 
+
+@test_approx_eq covar(sys, eye(2)) [0.002560975609756 0.002439024390244; 0.002439024390244 0.002560975609756]
+D2 = eye(2)
+sys2 = ss(A,B,C,D2, 1)
+@test_approx_eq covar(sys2, eye(2)) [1.000110108378310 -0.000010098377310; -0.000010098377310 1.000110108378310]
+#Direct term means infinite covariance
+sys3 = ss(A,B,C,D2)
+@test covar(sys3, eye(2)) == [Inf Inf; Inf Inf]
+
 end

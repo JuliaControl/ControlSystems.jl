@@ -150,7 +150,7 @@ function covar(sys::StateSpace, W::StridedMatrix)
         error("W must be a square matrix the same size as `sys.B` columns")
     end
     if !isstable(sys) || (iscontinuous(sys) && any(D .!= 0))
-        return Inf
+        return fill(Inf,(size(C,1),size(C,1)))
     end
     func = iscontinuous(sys) ? lyap : dlyap
     Q = func(A, B*W*B')
