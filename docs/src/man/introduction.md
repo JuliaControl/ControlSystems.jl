@@ -7,13 +7,14 @@ Pkg.add("ControlSystems")
 ```
 
 ## Basic functions
-    {meta}
-    DocTestSetup = quote
-        using ControlSystems
-        P = tf([1],[1,1])
-        T = P/(1+P)
-    end
-Transfer functions can easily be created using the function `tf(num, den, Ts=0)`, where `num` and `den` are vectors representing the numerator and denominator of a rational function. See [`tf`]({ref}) or the section "Creating Transfer Functions" for more info. These functions can then be connected and modified using the operators `+,-,*,/` and functions like [`append`]({ref}).
+```@meta
+DocTestSetup = quote
+    using ControlSystems
+    P = tf([1],[1,1])
+    T = P/(1+P)
+end
+```
+Transfer functions can easily be created using the function `tf(num, den, Ts=0)`, where `num` and `den` are vectors representing the numerator and denominator of a rational function. See [`tf`](@ref) or the section "Creating Transfer Functions" for more info. These functions can then be connected and modified using the operators `+,-,*,/` and functions like [`append`](@ref).
 
 Example:
 ```julia
