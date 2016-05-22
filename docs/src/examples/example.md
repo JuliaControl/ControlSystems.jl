@@ -1,7 +1,8 @@
-    {meta}
-    DocTestSetup = quote
-        using ControlSystems
-    end
+```@meta
+DocTestSetup = quote
+    using ControlSystems
+end
+```
 
 # PID design functions
 By plotting the gang of four under unit feedback for the process

@@ -1,14 +1,16 @@
-    {index}
-    Pages = ["timefreqresponse.md"]
+```@index
+Pages = ["timefreqresponse.md"]
+```
 
 # Time and Frequency response
 
-    {docs}
-    call
-    bode
-    evalfr
-    freqresp
-    impulse
-    lsim
-    nyquist
-    step
+```@docs
+call
+bode
+evalfr
+freqresp
+impulse
+lsim
+nyquist
+step
+```
