@@ -215,8 +215,9 @@
 <h1 id="analysis">Analysis</h1>
 <p><a id='ControlSystems.covar' href='#ControlSystems.covar'>#</a>
 <strong><code>ControlSystems.covar</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>covar(sys, W)</code></p>
-<p>Calculate the stationary covariance of an lti-model <code>sys</code>, driven by gaussian white noise of covariance <code>W</code></p>
+<p><code>P = covar(sys, W)</code></p>
+<p>Calculate the stationary covariance <code>P = E[y(t)y(t)']</code> of an lti-model <code>sys</code>, driven by gaussian white noise 'w' of covariance <code>E[w(t)w(τ)]=W*δ(t-τ)</code> where δ is the dirac delta.</p>
+<p>The ouput is if Inf if the system is unstable. Passing white noise directly to the output will result in infinite covariance in the corresponding outputs (D<em>W</em>D.' .!= 0) for contunuous systems.</p>
 <p><a id='ControlSystems.ctrb' href='#ControlSystems.ctrb'>#</a>
 <strong><code>ControlSystems.ctrb</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>ctrb(A, B)</code> or <code>ctrb(sys)</code></p>
