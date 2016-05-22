@@ -140,22 +140,45 @@ function ctrb(A, B)
 end
 ctrb(sys::StateSpace) = ctrb(sys.A, sys.B)
 
-@doc """`covar(sys, W)`
+@doc """`P = covar(sys, W)`
 
-Calculate the stationary covariance of an lti-model `sys`, driven by gaussian
-white noise of covariance `W`""" ->
+Calculate the stationary covariance `P = E[y(t)y(t)']` of an lti-model `sys`, driven by gaussian
+white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac delta.
+
+The ouput is if Inf if the system is unstable. Passing white noise directly to
+the output will result in infinite covariance in the corresponding outputs
+(D*W*D.' .!= 0) for contunuous systems.""" ->
 function covar(sys::StateSpace, W::StridedMatrix)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
     if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
         error("W must be a square matrix the same size as `sys.B` columns")
     end
-    if !isstable(sys) || any(D .!= 0)
-        return Inf
+    if !isstable(sys)
+        return fill(Inf,(size(C,1),size(C,1)))
     end
     func = iscontinuous(sys) ? lyap : dlyap
-    Q = func(A, B*W*B')
-    return C*Q*C' + D*W*D'
+    Q = try
+        func(A, B*W*B')
+    catch
+        error("No solution to the Lyapunov equation was found in covar")
+    end
+    P = C*Q*C'
+    if iscontinuous(sys)
+        #Variance and covariance infinite for direct terms
+        directNoise = D*W*D'
+        for i in 1:size(C,1)
+            if directNoise[i,i] != 0
+                P[i,:] = Inf
+                P[:,i] = Inf
+            end
+        end
+    else
+        P += D*W*D'
+    end
+    return P
 end
+
+covar(sys::TransferFunction, W::StridedMatrix) = covar(ss(sys), W)
 
 # Note: the following function returns a Float64 when p=2, and a Tuple{Float64,Float64} when p=Inf.
 # This varargout behavior might not be a good idea.
