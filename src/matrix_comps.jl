@@ -147,7 +147,7 @@ white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac de
 
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
-(P[D*W*D' .!= 0] = Inf) for contunuous systems.""" ->
+(D*W*D.' .!= 0) for contunuous systems.""" ->
 function covar(sys::StateSpace, W::StridedMatrix)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
     if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
@@ -157,14 +157,21 @@ function covar(sys::StateSpace, W::StridedMatrix)
         return fill(Inf,(size(C,1),size(C,1)))
     end
     func = iscontinuous(sys) ? lyap : dlyap
-    try
-        Q = func(A, B*W*B')
+    Q = try
+        func(A, B*W*B')
     catch
-        error("No solution to the Lyapunov equation was found")
+        error("No solution to the Lyapunov equation was found in covar")
     end
     P = C*Q*C'
     if iscontinuous(sys)
-        P[D*W*D' .!= 0] = Inf
+        #Variance and covariance infinite for direct terms
+        directNoise = D*W*D'
+        for i in 1:size(C,1)
+            if directNoise[i,i] != 0
+                P[i,:] = Inf
+                P[:,i] = Inf
+            end
+        end
     else
         P += D*W*D'
     end
