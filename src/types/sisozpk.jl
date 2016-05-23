@@ -88,7 +88,10 @@ function zp2polys(vec)
     polys
 end
 
-numvec(t::SisoZpk) = numpoly(t)[:]
+function numvec(t::SisoZpk)
+  np = numpoly(t)
+  vcat(zeros(length(t)-length(np)), np[:])
+end
 denvec(t::SisoZpk) = denpoly(t)[:]
 
 numpoly(t::SisoZpk) = prod(zp2polys(t.z))*t.k

@@ -69,7 +69,7 @@ function Base.den(t::SisoRational)
     return d
 end
 
-numvec(t::SisoRational) = t.num[:]
+numvec(t::SisoRational) = vcat(zeros(length(t)-length(t.num)), t.num[:])
 denvec(t::SisoRational) = t.den[:]
 numpoly(t::SisoRational) = copy(t.num)
 denpoly(t::SisoRational) = copy(t.den)
