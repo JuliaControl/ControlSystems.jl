@@ -45,6 +45,15 @@ da_2 = [0.2 -0.8; -0.8 0.07]
 D_221 = ss(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
 D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
 
+a_4 = [-0.08 0.83 0.0 0.0;-0.83 -0.08 0.0 0.0;0.0 0.0 -0.7 9.0;0.0 0.0 -9.0 -0.7]
+b_4 = [1 1;0 0;1 -1;0 0]
+c_4 = [0.4 0.0 0.4 0.0;0.6 0.0 1.0 0.0]
+d_4 = [0.3 0.0;0.0 -0.15]
+D_422 = ss(a_4,b_4,c_4,d_4,0.2)
+z = tf("z", 0.05)
+D_311 = z^3/((z+0.5)*(z^2-1.4z+0.72801))
+
+
 @test_approx_eq gram(C_212,:c) [0.042016806722689065 0.09663865546218485
     0.09663865546218488 0.24369747899159663]
 @test_approx_eq gram(C_212,:o) [0.09523809523809523 -0.0119047619047619
@@ -81,10 +90,22 @@ ninf, fpeak = norm(C_732,Inf,tol=tolHinf)
 @test_approx_eq_eps fpeak 6.112977387441163 1e-6
 @test_approx_eq_eps norm(f_C_211,Inf,tol=tolHinf)[1] 1.0 (2*tolHinf)
 @test_approx_eq norm(f_C_211_bis,Inf,tol=tolHinf)[2] 52.0
+@test_approx_eq norm(1/(s-1),Inf,tol=tolHinf)[1] 1.0  # unstable system
 
 ninf, fpeak = norm(C_22tf,Inf,tol=tolHinf) 
 @test_approx_eq_eps ninf 3.014974550173459 (10*tolHinf)  
 @test_approx_eq_eps fpeak 3.162123338668049 1e-8
+
+ninf, fpeak = norm(D_221,Inf,tol=tolHinf)
+@test_approx_eq_eps ninf 17.794697451669421 (20*tolHinf)  
+@test_approx_eq_eps fpeak 0 1e-8
+ninf, fpeak = norm(D_422,Inf,tol=tolHinf)
+@test_approx_eq_eps ninf 3.360351099392252 (10*tolHinf)
+@test_approx_eq_eps fpeak 8.320643111730551 1e-8
+ninf, fpeak = norm(D_311,Inf,tol=tolHinf)
+@test_approx_eq_eps ninf 4.458729529942810 (10*tolHinf)
+@test_approx_eq_eps fpeak 11.878021287349698 1e-6
+
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
 T, P, B = ControlSystems.balance(A)
