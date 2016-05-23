@@ -51,7 +51,7 @@ Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 Base.zero(::Type{SisoRational}) = SisoRational(zero(Poly{Float64}), one(Poly{Float64}))
 Base.zero(::SisoRational) = Base.zero(SisoRational)
 
-Base.length(t::SisoRational) = max(length(t.num), length(t.den))
+Base.length(t::SisoRational) = max(length(t.num), length(t.den)) - 1
 
 function Base.num(t::SisoRational)
     Base.depwarn("`num is deprecated for getting numerator, use `numvec` or `numpoly` instead", :numvec)
