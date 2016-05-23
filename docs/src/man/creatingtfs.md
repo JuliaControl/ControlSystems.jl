@@ -1,8 +1,9 @@
 # Creating Transfer Functions
-    {meta}
-    DocTestSetup = quote
-        using ControlSystems
-    end
+```@meta
+DocTestSetup = quote
+    using ControlSystems
+end
+```
 
 ## tf - Rational Representation
 The syntax for creating a transfer function is
