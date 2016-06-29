@@ -55,14 +55,15 @@ function lsimplot{T<:StateSpace}(systems::Vector{T}, u::Union{AbstractVecOrMat,F
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig = Plots.subplot(n=ny, nr=ny)
+    fig = Plots.plot(layout=(ny,1))
+    s2i(i,j) = sub2ind((ny,1),j,i)
     for (si, s) in enumerate(systems)
         y = lsim(s, u, t, x0, method)[1]
         for i=1:ny
             ydata = reshape(y[:, i], size(t, 1))
             style = iscontinuous(s) ? :path : :steppost
             ytext = (ny > 1) ? "Amplitude to: y($i)": "Amplitude"
-            Plots.plot!(fig[i,1], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title="System Response",  lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
+            Plots.plot!(fig, t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title="System Response", subplot=s2i(1,i), lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
         end
     end
     return fig
@@ -80,7 +81,9 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                 error("All systems must have the same input/output dimensions")
             end
             ny, nu = size(systems[1])
-            fig = Plots.subplot(n = ny*nu, nr = ny)
+            fig = Plots.plot(layout=(ny,nu))
+            titles = fill("", ny*nu)
+            s2i(i,j) = sub2ind((ny,nu),j,i)
             for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
                 t = 0:Ts:Tf
                 y = ($func)(s, t)[1]
@@ -89,11 +92,13 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                         ydata = reshape(y[:, i, j], size(t, 1))
                         style = iscontinuous(s) ? :path : :steppost
                         ttext = (nu > 1 && i==1) ? $title*" from: u($j) " : $title
+                        titles[s2i(i,j)] = ttext
                         ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)": "Amplitude"
-                        Plots.plot!(fig[i,j], t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title=ttext, lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
+                        Plots.plot!(fig, t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, subplot=s2i(i,j), lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
                     end
                 end
             end
+            Plots.plot!(fig, title=titles')
             return fig
         end
         $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real; kwargs...) =
@@ -129,7 +134,8 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig = Plots.subplot(n=(plotphase?2:1)*ny*nu, nc=nu)
+    fig = Plots.plot(layout=((plotphase?2:1)*ny,nu))
+    s2i(i,j) = sub2ind((nu,(plotphase?2:1)*ny),j,i)
     nw = length(w)
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -145,8 +151,8 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
                     continue
                 end
                 phasedata = vec(phase[:, i, j])
-                Plots.plot!(fig[(plotphase?(2i-1):i),j], w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
-                plotphase && Plots.plot!(fig[2i,j], w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)",xlabel="Frequency (rad/s)"; getStyleSys(si,length(systems))..., kwargs...)
+                Plots.plot!(fig, w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, subplot=s2i((plotphase?(2i-1):i),j), title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
+                plotphase && Plots.plot!(fig, w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)", subplot=s2i(2i,j), xlabel="Frequency (rad/s)", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
             end
         end
     end
@@ -169,7 +175,8 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; neg=fa
     end
     ny, nu = size(systems[1])
     nw = length(w)
-    fig = Plots.subplot(n=ny*nu, nc= nu)
+    fig = Plots.plot(layout=(ny,nu))
+    s2i(i,j) = sub2ind((ny,nu),j,i)
     # Ensure that `axes` is always a matrix of handles
     for (si,s) = enumerate(systems)
         re_resp, im_resp = nyquist(s, w)[1:2]
@@ -179,13 +186,13 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; neg=fa
                 imdata = im_resp[:, i, j]
                 ylim = (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                 xlim = (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
-                Plots.plot!(fig[i, j],redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim; getStyleSys(si,length(systems))..., kwargs...)
+                Plots.plot!(fig,redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim, subplot=s2i(i,j), lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
 
                 if si == length(systems)
                     v = linspace(0,2π,100)
                     S,C = sin(v),cos(v)
-                    Plots.plot!(fig[i, j],C,S,l=:dash,c=:black, lab="")
-                    Plots.plot!(fig[i, j],C-1,S,l=:dash,c=:red, grid=true, lab="")
+                    Plots.plot!(fig,C,S,l=:dash,c=:black, lab="", subplot=s2i(i,j))
+                    Plots.plot!(fig,C-1,S,l=:dash,c=:red, grid=true, lab="", subplot=s2i(i,j))
                     # neg && Plots.plot!(fig[i, j],redata, -imdata, args...)
                 end
             end
@@ -381,7 +388,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
     end
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
-
+    s2i(i,j) = sub2ind((ny,nu),j,i)
     titles = Array(AbstractString,nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
     titles[:,:,2,1] = "Pm: "
@@ -400,17 +407,17 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
                 end
                 for k=1:length(wgm)
                     #Plot gain margins
-                    Plots.plot!(fig[2i-1,j], [wgm[k];wgm[k]], [1;mag[k]], lab=""; getStyleSys(si,length(systems))...)
+                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]], lab="", subplot=s2i(2i-1,j); getStyleSys(si,length(systems))...)
                 end
                 #Plot gain line at 1
-                Plots.plot!(fig[2i-1,j], [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="")
+                Plots.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
                 titles[j,i,1,1] *= "["*join([@sprintf("%2.2f",v) for v in gm],", ")*"] "
                 titles[j,i,1,2] *= "["*join([@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 for k=1:length(wpm)
                     #Plot the phase margins
-                    Plots.plot!(fig[2i,j], [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab=""; getStyleSys(si,length(systems))...)
+                    Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab="", subplot=s2i(2i,j); getStyleSys(si,length(systems))...)
                     #Plot the line at 360*k
-                    Plots.plot!(fig[2i,j], [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="")
+                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
                 end
                 titles[j,i,2,1] *=  "["*join([@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([@sprintf("%2.2f",v) for v in wpm],", ")*"] "
@@ -419,8 +426,8 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
     end
     for j = 1:nu
         for i = 1:ny
-            Plots.title!(fig[2i-1,j], titles[j,i,1,1]*" "*titles[j,i,1,2])
-            Plots.title!(fig[2i,j], titles[j,i,2,1]*" "*titles[j,i,2,2])
+            Plots.title!(fig, titles[j,i,1,1]*" "*titles[j,i,1,2], subplot=s2i(2i-1,j))
+            Plots.title!(fig, titles[j,i,2,1]*" "*titles[j,i,2,2], subplot=s2i(2i,j))
         end
     end
     return fig
@@ -482,10 +489,11 @@ function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotpha
     S,D,N,T = gangoffour(P,C)
     fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
     lower = plotphase ? 3 : 2
-    Plots.plot!(fig[1,1],title="\$S = 1/(1+PC)\$")
-    Plots.plot!(fig[1,2],title="\$D = P/(1+PC)\$")
-    Plots.plot!(fig[lower,1],title="\$N = C/(1+PC)\$")
-    Plots.plot!(fig[lower,2],title="\$T = PC/(1+PC\$)")
+    s2i(i,j) = sub2ind((2,(plotphase?4:2)),j,i)
+    Plots.plot!(fig,title="\$S = 1/(1+PC)\$", subplot=s2i(1,1))
+    Plots.plot!(fig,title="\$D = P/(1+PC)\$", subplot=s2i(1,2))
+    Plots.plot!(fig,title="\$N = C/(1+PC)\$", subplot=s2i(lower,1))
+    Plots.plot!(fig,title="\$T = PC/(1+PC\$)", subplot=s2i(lower,2))
     return fig
 end
 
