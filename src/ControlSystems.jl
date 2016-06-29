@@ -62,7 +62,7 @@ export  LTISystem,
         numpoly,
         denpoly
 
-import Plots
+using Plots
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call, convert
 
 include("types/lti.jl")

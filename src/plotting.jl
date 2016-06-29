@@ -69,9 +69,9 @@ function lsimplot{T<:StateSpace}(systems::Vector{T}, u::Union{AbstractVecOrMat,F
     return fig
 end
 lsimplot(sys::LTISystem, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...; kwargs...) =
-    lsimplot(StateSpace[sys], u, t, args...; kwargs...)
+lsimplot(StateSpace[sys], u, t, args...; kwargs...)
 lsimplot{T<:LTISystem}(sys::Vector{T}, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...; kwargs...) =
-    lsimplot(StateSpace[s for s in sys], u, t, args...; kwargs...)
+lsimplot(StateSpace[s for s in sys], u, t, args...; kwargs...)
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
     funcname = Symbol("$(func)plot")
@@ -102,11 +102,11 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
             return fig
         end
         $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real; kwargs...) =
-            $funcname(systems, map(_default_Ts, systems), Tf; kwargs...)
+        $funcname(systems, map(_default_Ts, systems), Tf; kwargs...)
         $funcname{T<:LTISystem}(systems::Vector{T}; kwargs...) =
-            $funcname(systems, _default_time_data(systems)...; kwargs...)
+        $funcname(systems, _default_time_data(systems)...; kwargs...)
         $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector; kwargs...) =
-            $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end]; kwargs...)
+        $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end]; kwargs...)
         $funcname(sys::LTISystem, args...; kwargs...) = $funcname(LTISystem[sys], args...; kwargs...)
     end
 end
@@ -160,50 +160,63 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
     return fig
 end
 bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true, kwargs...) =
-    bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase, kwargs...)
+bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase, kwargs...)
 bodeplot(sys::LTISystem, args...; plotphase=true, kwargs...) = bodeplot([sys], args...; plotphase=plotphase, kwargs...)
 
+@userplot Nyquistplot
 @doc """`fig = nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`kwargs` is sent as argument to Plots.plot.""" ->
-function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; neg=false, kwargs...)
+`kwargs` is sent as argument to plot.""" ->
+nyquistplot
+@recipe function nyquistplot(p::Nyquistplot)
+    systems = p.args[1]
+    if isa(systems,LTISystem)
+        systems = [systems]
+    end
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
+    w = length(p.args) < 2 ?  _default_freq_vector(systems, :nyquist) : p.args[2]
     nw = length(w)
-    fig = Plots.plot(layout=(ny,nu))
+    layout := (ny,nu)
     s2i(i,j) = sub2ind((ny,nu),j,i)
     # Ensure that `axes` is always a matrix of handles
     for (si,s) = enumerate(systems)
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata = re_resp[:, i, j]
-                imdata = im_resp[:, i, j]
-                ylim = (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                xlim = (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
-                Plots.plot!(fig,redata, imdata, title="Nyquist plot from: u($j)", ylabel="To: y($i)", ylims=ylim, xlims=xlim, subplot=s2i(i,j), lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
-
+                redata      = re_resp[:, i, j]
+                imdata      = im_resp[:, i, j]
+                @series begin
+                    ylims      := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                    xlims      := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                    title       --> "Nyquist plot from: u($j)"
+                    yguide      --> "To: y($i)"
+                    subplot    := s2i(i,j)
+                    label       --> "\$G_\{$(si)\}\$"
+                    styledict   = getStyleSys(si,length(systems))
+                    linestyle   --> styledict[:l]
+                    linecolor   --> styledict[:c]
+                    (redata, imdata)
+                end
                 if si == length(systems)
                     v = linspace(0,2π,100)
                     S,C = sin(v),cos(v)
-                    Plots.plot!(fig,C,S,l=:dash,c=:black, lab="", subplot=s2i(i,j))
-                    Plots.plot!(fig,C-1,S,l=:dash,c=:red, grid=true, lab="", subplot=s2i(i,j))
-                    # neg && Plots.plot!(fig[i, j],redata, -imdata, args...)
+                    linestyle := :dash
+                    linecolor := :black
+                    label := ""
+                    @series (C,S)
+                    @series (C-1,S)
                 end
+
             end
         end
     end
-    return fig
 end
-
-nyquistplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
-    nyquistplot(systems, _default_freq_vector(systems, :nyquist); kwargs...)
-nyquistplot(sys::LTISystem, args...; kwargs...) = nyquistplot([sys], args...; kwargs...)
 
 
 @doc """
@@ -343,7 +356,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
 end
 
 nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
-    nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
+nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
 nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwargs...)
 
 @doc """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
@@ -369,11 +382,11 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs..
         end
     end
     Plots.plot!(fig, title="Sigma Plot", xlabel="Frequency (rad/s)",
-        ylabel="Singular Values $_PlotScaleStr")
+    ylabel="Singular Values $_PlotScaleStr")
     return fig
 end
 sigmaplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
-    sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
+sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
 sigmaplot(sys::LTISystem, args...; kwargs...) = sigmaplot([sys], args...; kwargs...)
 
 @doc """`fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)`
@@ -433,7 +446,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
     return fig
 end
 marginplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
-    marginplot(systems, _default_freq_vector(systems, :bode); kwargs...)
+marginplot(systems, _default_freq_vector(systems, :bode); kwargs...)
 marginplot(sys::LTISystem, args...; kwargs...) = marginplot([sys], args...; kwargs...)
 
 
