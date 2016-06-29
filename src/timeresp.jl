@@ -231,7 +231,7 @@ function _default_time_vector(sys::LTISystem, Tf::Real=-1)
     if Tf == -1
         Tf = 100*Ts
     end
-    return linspace(0, Tf, round(Int, Tf/Ts))
+    return linspace(0, Tf, round(Int, Tf/Ts)+1)
 end
 
 function _default_Ts(sys::LTISystem)
