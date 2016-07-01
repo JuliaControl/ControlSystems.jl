@@ -66,6 +66,21 @@ xreal[:,2,2] = -exp(-t).*t + exp(-t)
 xreal[:,3,2] = exp(-t).*t
 @test_approx_eq_eps x xreal 1e-14
 
+
+#Step response of discrete system with specified final time
+G = tf([1], [1; zeros(3)], 1)
+y, t2, x = step(G, 10)
+@test_approx_eq_eps y [zeros(3); ones(8)] 1e-14
+@test_approx_eq_eps t2 0:1:10 1e-14
+
+#Impulse response of discrete system to final time that is not mulitple of the sample time 
+G = tf([1], [1; zeros(3)], 0.3)
+y, t2, x = step(G, 2)
+@test_approx_eq_eps y [zeros(3); ones(4)] 1e-14
+@test_approx_eq_eps t2 0:0.3:1.8 1e-14
+
+
+
 #Make sure t was never changed
 @test t0 == t
 end
