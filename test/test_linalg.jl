@@ -83,26 +83,26 @@ D_311 = z^3/((z+0.5)*(z^2-1.4z+0.72801))
 
 # Test Hinfinity norm computations
 tolHinf = 1e-12
-@test_approx_eq_eps norm(C_212,Inf,tol=tolHinf)[1] 0.242535625036333 tolHinf
-@test_approx_eq_eps norm(C_222,Inf,tol=tolHinf)[1] 0.242535625036333 tolHinf
-ninf, fpeak = norm(C_732,Inf,tol=tolHinf)
+@test_approx_eq_eps norm(C_212, Inf, tol=tolHinf) 0.242535625036333 tolHinf
+@test_approx_eq_eps norm(C_222, Inf, tol=tolHinf) 0.242535625036333 tolHinf
+ninf, fpeak = norminf(C_732, tol=tolHinf)
 @test_approx_eq_eps ninf 4.899135403568278 (10*tolHinf) 
 @test_approx_eq_eps fpeak 6.112977387441163 1e-6
-@test_approx_eq_eps norm(f_C_211,Inf,tol=tolHinf)[1] 1.0 (2*tolHinf)
-@test_approx_eq norm(f_C_211_bis,Inf,tol=tolHinf)[2] 52.0
-@test_approx_eq norm(1/(s-1),Inf,tol=tolHinf)[1] 1.0  # unstable system
+@test_approx_eq_eps norm(f_C_211, Inf, tol=tolHinf) 1.0 (2*tolHinf)
+@test_approx_eq norminf(f_C_211_bis, tol=tolHinf)[2] 52.0
+@test_approx_eq norm(1/(s-1), Inf, tol=tolHinf) 1.0  # unstable system
 
-ninf, fpeak = norm(C_22tf,Inf,tol=tolHinf) 
+ninf, fpeak = norminf(C_22tf, tol=tolHinf) 
 @test_approx_eq_eps ninf 3.014974550173459 (10*tolHinf)  
 @test_approx_eq_eps fpeak 3.162123338668049 1e-8
 
-ninf, fpeak = norm(D_221,Inf,tol=tolHinf)
+ninf, fpeak = norminf(D_221, tol=tolHinf)
 @test_approx_eq_eps ninf 17.794697451669421 (20*tolHinf)  
 @test_approx_eq_eps fpeak 0 1e-8
-ninf, fpeak = norm(D_422,Inf,tol=tolHinf)
+ninf, fpeak = norminf(D_422, tol=tolHinf)
 @test_approx_eq_eps ninf 3.360351099392252 (10*tolHinf)
 @test_approx_eq_eps fpeak 8.320643111730551 1e-8
-ninf, fpeak = norm(D_311,Inf,tol=tolHinf)
+ninf, fpeak = norminf(D_311, tol=tolHinf)
 @test_approx_eq_eps ninf 4.458729529942810 (10*tolHinf)
 @test_approx_eq_eps fpeak 11.878021287349698 1e-6
 

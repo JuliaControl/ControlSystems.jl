@@ -180,22 +180,21 @@ end
 
 covar(sys::TransferFunction, W::StridedMatrix) = covar(ss(sys), W)
 
-# Note: the following function returns a Float64 when p=2, and a Tuple{Float64,Float64} when p=Inf.
-# This varargout behavior might not be a good idea.
-# The H∞ norm computation is probably not as accurate as with SLICOT, but this seems to be still
-# reasonably ok as a first step
+
+# Note: the H∞ norm computation is probably not as accurate as with SLICOT, 
+# but this seems to be still reasonably ok as a first step
 @doc """
 `..  norm(sys, p=2; tol=1e-6)`
 
-`norm(sys)` or `norm(sys,2)` compute the H2 norm of the LTI system `sys`.
+`norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
-`norm(sys,Inf)` computes the L∞ norm of the LTI system `sys`, and returns the pair `(val,fpeak)`,
-with `fpeak` (in rad/TimeUnit) the frequency at which the gain achieves its peak value `val`. 
+`norm(sys, Inf)` computes the L∞ norm of the LTI system `sys`. 
 The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
+If the peak gain frequency is required as well, use the function `norminf` instead.
 
 `tol` is an optional keyword argument, used only for the computation of L∞ norms.
 It represents the desired relative accuracy for the computed L∞ norm
-(default 1e-6 - not an absolute certificate however).
+(this is not an absolute certificate however).
 
 sys is first converted to a state space model if needed.
 
@@ -211,10 +210,9 @@ function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
         return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
     elseif p == Inf
         if sys.Ts == 0
-            return normHinf_twoSteps_ct(sys,tol)
+            return normHinf_twoSteps_ct(sys,tol)[1]
         else
-            #error("H∞ norm computation not yet implemented for discrete-time systems!")
-            return normHinf_twoSteps_dt(sys,tol)
+            return normHinf_twoSteps_dt(sys,tol)[1]
         end
     else
         error("`p` must be either `2` or `Inf`")
@@ -222,10 +220,41 @@ function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
 end
 
 function Base.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
-    return Base.norm(ss(sys),p,tol=tol)
+    return Base.norm(ss(sys), p, tol=tol)
 end
 
-function normHinf_twoSteps_ct(sys::StateSpace,tol=1e-6,maxIters=1000,approximag=1e-10)
+@doc """
+`.. (peakgain, peakgainfrequency) = norminf(sys; tol=1e-6)`
+
+Compute the L∞ norm of the LTI system `sys`, together with the frequency 
+`peakgainfrequency` (in rad/TimeUnit) at which the gain achieves its peak value `peakgain`.
+The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
+
+`tol` is an optional keyword argument representing the desired relative accuracy for 
+the computed L∞ norm (this is not an absolute certificate however).
+
+sys is first converted to a state space model if needed.
+
+The L∞ norm computation implements the 'two-step algorithm' in:
+N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
+of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
+For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
+calculation for generalized state space systems in continuous and discrete time', 
+American Control Conference, 1991.
+""" ->
+function norminf(sys::StateSpace; tol=1e-6)
+    if sys.Ts == 0
+        return normHinf_twoSteps_ct(sys,tol)
+    else
+        return normHinf_twoSteps_dt(sys,tol)
+    end
+end
+
+function norminf(sys::TransferFunction, ; tol=1e-6)
+    return norminf(ss(sys), tol=tol)
+end
+
+function normHinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
