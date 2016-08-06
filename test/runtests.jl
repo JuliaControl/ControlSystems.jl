@@ -4,8 +4,8 @@ using CustomTest
 try
     Pkg.installed("ControlExamplePlots")
 catch
-    warn("ControlExamplePlots needs to be installed to test plots, adding now:")
-    Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git")
+    error("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
+            Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
 end
 
 my_tests = ["test_statespace",
