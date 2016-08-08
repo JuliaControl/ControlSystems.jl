@@ -1,5 +1,6 @@
 module TestDiscrete
 using CustomTest
+using Base.Test
 using ControlSystems
 
 C_111 = ss([-5], [2], [3], [0])
@@ -50,7 +51,7 @@ eye(2), [1.0049174573058164 -9.657141633428213e-5; 3.219047211142736e-5 1.009706
 [1 0 -0.004917457305816479 9.657141633428213e-5; 0 1 -3.219047211142736e-5 -0.009706152723187249])
 
 # ERRORS
-@test_err c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
-@test_err c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
+@test_throws ErrorException c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
+@test_throws ErrorException c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
 
 end

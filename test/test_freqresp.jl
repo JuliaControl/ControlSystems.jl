@@ -1,5 +1,6 @@
 module TestFreqResp
 using CustomTest
+using Base.Test
 using ControlSystems
 
 ## EVALFR ##
@@ -38,7 +39,7 @@ end
 @test nyquist(sys, ws)[1:2] == (real(resp), imag(resp))
 sigs = Array(Float64,50,2)
 for i in eachindex(ws)
-    sigs[i,:] =  svdvals(squeeze(resp[i,:,:],(1,)))
+    sigs[i,:] =  svdvals(resp[i,:,:])
 end
 @test sigma(sys, ws)[1] == sigs
 

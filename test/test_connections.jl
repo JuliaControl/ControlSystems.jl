@@ -1,5 +1,6 @@
 module TestConnections
 using CustomTest
+using Base.Test
 using ControlSystems
 
 ## STATE SPACE ##
@@ -38,11 +39,11 @@ D_022 = ss(4*eye(2), 0.005)
 macro test_err(ex)
     :(@test_throws ErrorException $ex)
 end
-@test_err [C_111 D_111]                 # Sampling time mismatch
-@test_err [C_111; D_111]                # Sampling time mismatch
-@test_err append(C_111, D_111)          # Sampling time mismatch
-@test_err [C_111 C_212]                 # Dimension mismatch
-@test_err [C_111; C_221]                # Dimension mismatch
+@test_throws ErrorException [C_111 D_111]                 # Sampling time mismatch
+@test_throws ErrorException [C_111; D_111]                # Sampling time mismatch
+@test_throws ErrorException append(C_111, D_111)          # Sampling time mismatch
+@test_throws ErrorException [C_111 C_212]                 # Dimension mismatch
+@test_throws ErrorException [C_111; C_221]                # Dimension mismatch
 
 ## TRANSFER FUNCTION ##
 # CONTINUOUS

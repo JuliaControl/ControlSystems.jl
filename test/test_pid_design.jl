@@ -1,5 +1,6 @@
 module TestAnalysis
 using CustomTest
+using Base.Test
 using ControlSystems
 
 

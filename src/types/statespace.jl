@@ -11,14 +11,14 @@ type StateSpace <: LTISystem
     nx::Int
     nu::Int
     ny::Int
-    statenames::Vector{UTF8String}
-    inputnames::Vector{UTF8String}
-    outputnames::Vector{UTF8String}
+    statenames::Vector{String}
+    inputnames::Vector{String}
+    outputnames::Vector{String}
 
     function StateSpace(A::Matrix{Float64}, B::Matrix{Float64},
             C::Matrix{Float64}, D::Matrix{Float64}, Ts::Float64,
-            statenames::Vector{UTF8String}, inputnames::Vector{UTF8String},
-            outputnames::Vector{UTF8String})
+            statenames::Vector{String}, inputnames::Vector{String},
+            outputnames::Vector{String})
         nx = size(A, 1)
         nu = size(B, 2)
         ny = size(C, 1)
@@ -52,8 +52,8 @@ type StateSpace <: LTISystem
 end
 
 function StateSpace(A::Array, B::Array, C::Array, D::Array, Ts::Real,
-        statenames::Vector{UTF8String}, inputnames::Vector{UTF8String},
-        outputnames::Vector{UTF8String})
+        statenames::Vector{String}, inputnames::Vector{String},
+        outputnames::Vector{String})
     return StateSpace(float64mat(A), float64mat(B), float64mat(C),
             float64mat(D), map(Float64, Ts), statenames, inputnames, outputnames)
 end
@@ -182,14 +182,14 @@ function +(s1::StateSpace, s2::StateSpace)
     elseif all(s2.inputnames .== "") || (s1.inputnames == s2.inputnames)
         inputnames = s1.inputnames
     else
-        inputnames = fill(UTF8String(""),s1.ny)
+        inputnames = fill(String(""),s1.ny)
     end
     if all(s1.outputnames .== "")
         outputnames = s2.outputnames
     elseif all(s2.outputnames .== "") || (s1.outputnames == s2.outputnames)
         outputnames = s1.outputnames
     else
-        outputnames = fill(UTF8String(""),s1.nu)
+        outputnames = fill(String(""),s1.nu)
     end
     return StateSpace(A, B, C, D, s1.Ts, statenames, inputnames, outputnames)
 end
@@ -260,7 +260,7 @@ function Base.getindex(s::StateSpace, inds...)
     if size(inds, 1) != 2
         error("Must specify 2 indices to index statespace model")
     end
-    rows, cols = inds
+    rows, cols = ControlSystems.index2range(inds...)
     return StateSpace([s.A;], [s.B[:, cols];], [s.C[rows, :];], [s.D[rows, cols];],
             s.Ts, [s.statenames;], [s.inputnames[cols];], [s.outputnames[rows];])
 end
@@ -270,11 +270,11 @@ end
 #####################################################################
 
 # TODO : this is a very hacky way of handling StateSpace printing.
-function _string_mat_with_headers(X::Matrix, cols::Vector{UTF8String},
-                                rows::Vector{UTF8String})
-    mat = [[""] cols';
+function _string_mat_with_headers(X::Matrix, cols::Vector{String},
+                                rows::Vector{String})
+    mat = [[""] reshape(cols,1,length(cols));
            rows X]
-    p = (io, m) -> Base.showarray(io, m, header=false, repr=false)
+    p = (io, m) -> Base.showarray(io, m, false, header=false)
     return replace(sprint(p, mat), "\"", " ")
 end
 
