@@ -1,13 +1,6 @@
 include("framework.jl")
 using CustomTest
 
-try
-    Pkg.installed("ControlExamplePlots")
-catch
-    error("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
-            Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
-end
-
 my_tests = ["test_statespace",
             "test_transferfunction",
             "test_generalizedtf",
@@ -21,7 +14,14 @@ my_tests = ["test_statespace",
             "test_synthesis",
             "test_matrix_comps",
             "test_timeresp",
-            "test_conversion",
-            "test_plots"]
+            "test_conversion"]
+            
+try
+    Pkg.installed("ControlExamplePlots")
+    push!(my_tests, "test_plots")
+catch
+    warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
+            Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
+end
 
 runtests(my_tests)
