@@ -108,7 +108,7 @@ poly2vec(p::Poly) = p.a[1:end]
 
 """
 outs = index2range(ind1, ind2)
-Helper function to convert indexes with scalars to ranges. Used to avoid dropping ranges
+Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
 index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
 index2range{T<:Number}(ind::T) = ind:ind
