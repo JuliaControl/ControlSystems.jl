@@ -56,6 +56,11 @@ float64mat(A::Matrix) = map(Float64,A)
 float64mat(A::Matrix{Float64}) = A
 float64mat(A::Real) = float64mat([A])
 
+ensure_matrix(A::Vector) = reshape(A, size(A, 1), 1)
+ensure_matrix{T<:Number}(A::Matrix{T}) = A
+ensure_matrix{T<:Number}(A::T) = ensure_matrix([A])
+
+
 # Ensures the metadata for an LTISystem is valid
 function validate_names(kwargs, key, n)
     names = get(kwargs, key, "")

@@ -1,4 +1,4 @@
-function Base.convert(::Type{StateSpace}, t::TransferFunction)
+function Base.convert{T}(::Type{StateSpace{T}}, t::TransferFunction)
     if !isproper(t)
         error("System is improper, a state-space representation is impossible")
     end
@@ -6,7 +6,7 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
     mat = t.matrix
     # TODO : These are added due to scoped for blocks, but is a hack. This
     # could be much cleaner.
-    Ac = Bc = Cc = Dc = A = B = C = D = Array(Float64, 0, 0)
+    Ac = Bc = Cc = Dc = A = B = C = D = Array(T, 0, 0)
     for i=1:nu
         for j=1:ny
             a, b, c, d = siso_tf_to_ss(mat[j, i])
@@ -31,13 +31,22 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
         end
     end
     A, B, C = balance_statespace(A, B, C)[1:3]
+    # TODO: Not so nice way perhaps, there should be a better way..
+    T2 = Array{Base.promote_type(T, Float64), 2}
+    A = convert(T2, A)
+    B = convert(T2, B)
+    C = convert(T2, C)
+    D = convert(T2, D)
     return ss(A, B, C, D, t.Ts, inputnames=t.inputnames, outputnames=t.outputnames)
 end
 
-Base.convert(::Type{StateSpace}, t::Real) = ss(t)
 
-Base.promote_rule{T<:SisoTf}(::Type{StateSpace}, ::Type{TransferFunction{T}}) = StateSpace
-Base.promote_rule{T<:Real}(::Type{StateSpace}, ::Type{T}) = StateSpace
+
+Base.convert{T}(::Type{StateSpace{T}}, n::Number) = ss(convert(T, n))
+Base.promote_rule{T1<:Number, T2<:SisoTf}(::Type{StateSpace{T1}}, ::Type{TransferFunction{T2}}) = StateSpace{promote_type(T1,Float64)}#promote_type vs promote_rule?
+Base.promote_rule{T1<:Number, T2<:Number}(::Type{StateSpace{T1}}, ::Type{T2}) = StateSpace{promote_type(T1,T2)}
+Base.promote_rule{T1<:Number, T2<:Number}(::Type{StateSpace{T1}}, ::Type{StateSpace{T2}}) = StateSpace{promote_type(T1,T2)}
+
 
 siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
