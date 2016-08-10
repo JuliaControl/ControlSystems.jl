@@ -210,9 +210,9 @@ function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
         return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
     elseif p == Inf
         if sys.Ts == 0
-            return normHinf_twoSteps_ct(sys,tol)[1]
+            return normLinf_twoSteps_ct(sys,tol)[1]
         else
-            return normHinf_twoSteps_dt(sys,tol)[1]
+            return normLinf_twoSteps_dt(sys,tol)[1]
         end
     else
         error("`p` must be either `2` or `Inf`")
@@ -244,9 +244,9 @@ American Control Conference, 1991.
 """ ->
 function norminf(sys::StateSpace; tol=1e-6)
     if sys.Ts == 0
-        return normHinf_twoSteps_ct(sys,tol)
+        return normLinf_twoSteps_ct(sys,tol)
     else
-        return normHinf_twoSteps_dt(sys,tol)
+        return normLinf_twoSteps_dt(sys,tol)
     end
 end
 
@@ -254,16 +254,21 @@ function norminf(sys::TransferFunction, ; tol=1e-6)
     return norminf(ss(sys), tol=tol)
 end
 
-function normHinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
+function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: pair of Float64, namely L∞ norm approximation and frequency fpeak at which it is achieved
+    if sys.nx == 0  # static gain
+        return (norm(sys.D,2), 0.0)
+    end
     p = pole(sys)
-    if any(map(x->isapprox(x,0.0),real(p)))
-        # A pole on the imaginary axis
-        return Inf
+    # Check if there is a pole on the imaginary axis
+    pidx = findfirst(map(x->isapprox(x,0.0),real(p)))
+    if pidx > 0
+        return (Inf, imag(p[pidx]))
+        # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     else
         # Initialization: computation of a lower bound from 3 terms
         lb = maximum(svdvals(sys.D)); fpeak = Inf
@@ -277,7 +282,7 @@ function normHinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             tmp = maximum(abs(imag(p)./(real(p).*abs(p))))
             omegap = abs(p[indmax(tmp)])
         end
-        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,omegap*1im)))])
+        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys, omegap*1im)))])
         if idx == 2
             fpeak = omegap
         end
@@ -313,11 +318,15 @@ end
 
 # discrete-time version of normHinf_twoSteps_ct above
 # The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
-function normHinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=1e-8)
+function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=1e-8)
+    if sys.nx == 0  # static gain
+        return (norm(sys.D,2), 0.0)
+    end
     p = pole(sys)
-    if any(map(x->isapprox(x,1.0),abs(p)))
-        # A pole on the unit circle
-        return Inf
+    # Check first if there is a pole on the unit circle
+    pidx = findfirst(map(x->isapprox(x,1.0),abs(p)))
+    if (pidx > 0)
+        return (Inf, angle(p[pidx])/abs(sys.Ts))
     else
         # Initialization: computation of a lower bound from 3 terms
         lb = maximum(svdvals(evalfr(sys,1))); fpeak = 0
@@ -333,7 +342,7 @@ function normHinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
         else 
             omegap = pi/2
         end
-        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,exp(omegap*1im))))])
+        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys, exp(omegap*1im))))])
         if idx == 2
             fpeak = omegap
         end

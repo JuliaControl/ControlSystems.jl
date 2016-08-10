@@ -53,6 +53,9 @@ D_422 = ss(a_4,b_4,c_4,d_4,0.2)
 z = tf("z", 0.05)
 D_311 = z^3/((z+0.5)*(z^2-1.4z+0.72801))
 
+C_static = ss([-0.78593 -1.2707;  0.2638 -1.13143])
+D_static = ss([0.704473 1.56483; -1.6661 -2.16041], 0.07)
+
 
 @test_approx_eq gram(C_212,:c) [0.042016806722689065 0.09663865546218485
     0.09663865546218488 0.24369747899159663]
@@ -105,6 +108,12 @@ ninf, fpeak = norminf(D_422, tol=tolHinf)
 ninf, fpeak = norminf(D_311, tol=tolHinf)
 @test_approx_eq_eps ninf 4.458729529942810 (10*tolHinf)
 @test_approx_eq_eps fpeak 11.878021287349698 1e-6
+ninf, fpeak = norminf(C_static, tol=tolHinf)
+@test_approx_eq_eps ninf 1.760164138376307 1e-12
+@test_approx_eq_eps fpeak 0 1e-12
+ninf, fpeak = norminf(D_static, tol=tolHinf)
+@test_approx_eq_eps ninf 3.205246234285972 1e-12
+@test_approx_eq_eps fpeak 0 1e-12
 
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
