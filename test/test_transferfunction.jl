@@ -1,5 +1,6 @@
 module TestTransferFunction
 using CustomTest
+using Base.Test
 using ControlSystems
 
 # Naming convention:
@@ -113,20 +114,20 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
 @test eltype(fill(tf(1,1.0)+1,2)) <: TransferFunction
 
 # Errors
-@test_err C_111 + C_222             # Dimension mismatch
-@test_err C_111 - C_222             # Dimension mismatch
-@test_err C_111 * C_222             # Dimension mismatch
-@test_err [s 0; 1]                  # Dimension mismatch
-@test_err D_111 + C_111             # Sampling time mismatch
-@test_err D_111 - C_111             # Sampling time mismatch
-@test_err D_111 * C_111             # Sampling time mismatch
+@test_throws ErrorException C_111 + C_222             # Dimension mismatch
+@test_throws ErrorException C_111 - C_222             # Dimension mismatch
+@test_throws ErrorException C_111 * C_222             # Dimension mismatch
+@test_throws ErrorException [s 0; 1]                  # Dimension mismatch
+@test_throws ErrorException D_111 + C_111             # Sampling time mismatch
+@test_throws ErrorException D_111 - C_111             # Sampling time mismatch
+@test_throws ErrorException D_111 * C_111             # Sampling time mismatch
 D_diffTs = tf([1], [2], 0.1)
-@test_err D_111 + D_diffTs          # Sampling time mismatch
-@test_err D_111 - D_diffTs          # Sampling time mismatch
-@test_err D_111 * D_diffTs          # Sampling time mismatch
-@test_err tf([1], [2], -0.1)        # Negative samping time
-@test_err tf("s", 0.01)             # s creation can't be discrete
-@test_err tf("z", 0)                # z creation can't be continuous
-@test_err tf("z")                   # z creation can't be continuous
-@test_err [z 0]                     # Sampling time mismatch (inferec could be implemented)
+@test_throws ErrorException D_111 + D_diffTs          # Sampling time mismatch
+@test_throws ErrorException D_111 - D_diffTs          # Sampling time mismatch
+@test_throws ErrorException D_111 * D_diffTs          # Sampling time mismatch
+@test_throws ErrorException tf([1], [2], -0.1)        # Negative samping time
+@test_throws ErrorException tf("s", 0.01)             # s creation can't be discrete
+@test_throws ErrorException tf("z", 0)                # z creation can't be continuous
+@test_throws ErrorException tf("z")                   # z creation can't be continuous
+@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 end

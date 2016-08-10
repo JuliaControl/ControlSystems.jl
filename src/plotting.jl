@@ -82,7 +82,7 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
             end
             ny, nu = size(systems[1])
             fig = Plots.plot(layout=(ny,nu))
-            titles = fill("", ny*nu)
+            titles = fill("", 1, ny*nu)
             s2i(i,j) = sub2ind((ny,nu),j,i)
             for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
                 t = 0:Ts:Tf
@@ -98,7 +98,7 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                     end
                 end
             end
-            Plots.plot!(fig, title=titles')
+            Plots.plot!(fig, title=titles)
             return fig
         end
         $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real; kwargs...) =

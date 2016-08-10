@@ -1,5 +1,6 @@
 module TestTimeResp
 using CustomTest
+using Base.Test
 using ControlSystems
 
 A = [0 1; 0 0]

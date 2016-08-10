@@ -284,7 +284,7 @@ Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale, and not permute `A`.""" ->
 function balance(A, perm::Bool=true)
-    n = Base.LinAlg.chksquare(A)
+    n = Base.LinAlg.checksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
     ilo, ihi, scaling = LAPACK.gebal!(job, B)

@@ -85,11 +85,11 @@ Notation for frequency response evaluation.
 - F(omega,true) evaluates the discrete-time transfer function F at i*Ts*omega
 - F(z,false) evaluates the discrete-time transfer function F at z
 """ ->
-function Base.call(sys::TransferFunction, s)
+function (sys::TransferFunction)(s)
     evalfr(sys,s)
 end
 
-function Base.call(sys::TransferFunction, z_or_omega::Number, map_to_unit_circle::Bool)
+function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
     if map_to_unit_circle
         isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
@@ -98,7 +98,7 @@ function Base.call(sys::TransferFunction, z_or_omega::Number, map_to_unit_circle
     end
 end
 
-function Base.call(sys::TransferFunction, s::AbstractVector, map_to_unit_circle::Bool)
+function (sys::TransferFunction)(s::AbstractVector, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
     freqresp(sys,s)
 end
@@ -138,7 +138,7 @@ function sigma(sys::LTISystem, w::AbstractVector)
     nw, ny, nu = size(resp)
     sv = Array(Float64, nw, min(ny, nu))
     for i=1:nw
-        sv[i, :] = svdvals(squeeze(resp[i, :, :],(1)))
+        sv[i, :] = svdvals(resp[i, :, :])
     end
     return sv, w
 end

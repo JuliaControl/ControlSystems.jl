@@ -1,5 +1,6 @@
 module TestConversion
 using CustomTest
+using Base.Test
 using ControlSystems
 
 f11 = tf(ss([-1 0;1 1],[1;0],[1 1],0))

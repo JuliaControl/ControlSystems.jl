@@ -60,24 +60,24 @@ float64mat(A::Real) = float64mat([A])
 function validate_names(kwargs, key, n)
     names = get(kwargs, key, "")
     if names == ""
-        return fill(UTF8String(""), n)
+        return fill(String(""), n)
     elseif isa(names, Vector) && eltype(names) <: AbstractString
-        return UTF8String[names[i] for i = 1:n]
+        return String[names[i] for i = 1:n]
     elseif isa(names, AbstractString)
-        return UTF8String[names * "$i" for i = 1:n]
+        return String[names * "$i" for i = 1:n]
     else
         error("$key must be of type `AbstractString` or Vector{AbstractString}")
     end
 end
 
 # Format the metadata for printing
-function format_names(names::Vector{UTF8String}, default::AbstractString, unknown::AbstractString)
+function format_names(names::Vector{String}, default::AbstractString, unknown::AbstractString)
     n = size(names, 1)
     if all(names .== "")
-        return UTF8String[default * string(i) for i=1:n]
+        return String[default * string(i) for i=1:n]
     else
         for (i, n) in enumerate(names)
-            names[i] = UTF8String((n == "") ? unknown : n)
+            names[i] = String((n == "") ? unknown : n)
         end
         return names
     end
@@ -105,3 +105,12 @@ numpoly(G::TransferFunction) = map(numpoly, G.matrix)
 denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 
 poly2vec(p::Poly) = p.a[1:end]
+
+"""
+outs = index2range(ind1, ind2)
+Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
+"""
+index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
+index2range{T<:Number}(ind::T) = ind:ind
+index2range{T<:AbstractArray}(ind::T) = ind
+index2range(ind::Colon) = ind

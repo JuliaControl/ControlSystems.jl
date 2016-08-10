@@ -1,5 +1,6 @@
 module TestSimplification
 using CustomTest
+using Base.Test
 using ControlSystems
 
 ## SMINREAL ##

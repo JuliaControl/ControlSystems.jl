@@ -1,5 +1,6 @@
 module TestPlots
 using CustomTest
+using Base.Test
 using ControlSystems, Plots
 using VisualRegressionTests, ControlExamplePlots
 

@@ -145,7 +145,7 @@ function ss2tf(A, B, C, D, Ts = 0; inputnames = "", outputnames = "")
     ubernum = Matrix{Vector}(ny,nu)
     uberden = Matrix{Vector}(ny,nu)
     for i = 1:nu, j=1:ny
-        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:], D[j,i])
+        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:]', D[j,i])
     end
     tf(ubernum,uberden, Ts, inputnames=inputnames, outputnames=outputnames)
 end

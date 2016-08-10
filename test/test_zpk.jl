@@ -1,5 +1,6 @@
 module TestZpk
 using CustomTest
+using Base.Test
 using ControlSystems
 
 # Naming convention:
@@ -93,21 +94,21 @@ zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
 @test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
 
 # Errors
-@test_err C_111 + C_222             # Dimension mismatch
-@test_err C_111 - C_222             # Dimension mismatch
-@test_err C_111 * C_222             # Dimension mismatch
-@test_err [s 0; 1]                  # Dimension mismatch
-@test_err D_111 + C_111             # Sampling time mismatch
-@test_err D_111 - C_111             # Sampling time mismatch
-@test_err D_111 * C_111             # Sampling time mismatch
+@test_throws ErrorException C_111 + C_222             # Dimension mismatch
+@test_throws ErrorException C_111 - C_222             # Dimension mismatch
+@test_throws ErrorException C_111 * C_222             # Dimension mismatch
+@test_throws ErrorException [s 0; 1]                  # Dimension mismatch
+@test_throws ErrorException D_111 + C_111             # Sampling time mismatch
+@test_throws ErrorException D_111 - C_111             # Sampling time mismatch
+@test_throws ErrorException D_111 * C_111             # Sampling time mismatch
 D_diffTs = zpk(tf([1], [2], 0.1))
-@test_err D_111 + D_diffTs          # Sampling time mismatch
-@test_err D_111 - D_diffTs          # Sampling time mismatch
-@test_err D_111 * D_diffTs          # Sampling time mismatch
-@test_err zpk([1], [2], 1, -0.1)        # Negative samping time
-@test_err zpk("s", 0.01)             # s creation can't be discrete
-@test_err zpk("z", 0)                # z creation can't be continuous
-@test_err zpk("z")                   # z creation can't be continuous
+@test_throws ErrorException D_111 + D_diffTs          # Sampling time mismatch
+@test_throws ErrorException D_111 - D_diffTs          # Sampling time mismatch
+@test_throws ErrorException D_111 * D_diffTs          # Sampling time mismatch
+@test_throws ErrorException zpk([1], [2], 1, -0.1)        # Negative samping time
+@test_throws ErrorException zpk("s", 0.01)             # s creation can't be discrete
+@test_throws ErrorException zpk("z", 0)                # z creation can't be continuous
+@test_throws ErrorException zpk("z")                   # z creation can't be continuous
 # Remove this when inferec is implemented
-@test_err [z 0]                     # Sampling time mismatch (inferec could be implemented)
+@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 end

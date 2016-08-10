@@ -72,7 +72,7 @@ function Base.vcat(systems::StateSpace...)
     outputs = vcat([s.outputnames for s in systems]...)
     inputs = systems[1].inputnames
     if !all([s.inputnames == inputs for s in systems])
-        inputs = fill(UTF8String(""),size(inputs, 1))
+        inputs = fill(String(""),size(inputs, 1))
     end
     return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
 end
@@ -91,7 +91,7 @@ function Base.vcat(systems::TransferFunction...)
     outputs = vcat([s.outputnames for s in systems]...)
     inputs = systems[1].inputnames
     if !all([s.inputnames == inputs for s in systems])
-        inputs = fill(UTF8String(""),size(inputs, 1))
+        inputs = fill(String(""),size(inputs, 1))
     end
     return TransferFunction(mat, Ts, inputs, outputs)
 end
@@ -124,7 +124,7 @@ function Base.hcat(systems::StateSpace...)
     inputs = vcat([s.inputnames for s in systems]...)
     outputs = systems[1].outputnames
     if !all([s.outputnames == outputs for s in systems])
-        outputs = fill(UTF8String(""),size(outputs, 1))
+        outputs = fill(String(""),size(outputs, 1))
     end
     return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
 end
@@ -143,7 +143,7 @@ function Base.hcat(systems::TransferFunction...)
     inputs = vcat([s.inputnames for s in systems]...)
     outputs = systems[1].outputnames
     if !all([s.outputnames == outputs for s in systems])
-        outputs = fill(UTF8String(""),size(outputs, 1))
+        outputs = fill(String(""),size(outputs, 1))
     end
     return TransferFunction(mat, Ts, inputs, outputs)
 end

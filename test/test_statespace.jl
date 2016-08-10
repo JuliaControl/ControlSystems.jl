@@ -1,5 +1,6 @@
 module TestStateSpace
 using CustomTest
+using Base.Test
 using ControlSystems
 # Naming convention:
 # ------------------
@@ -40,7 +41,7 @@ D_022 = ss(4*eye(2), 0.005)
 
 # Definition of input, output and state names
 C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2), 
-  statenames=["i","u"],inputnames=UTF8String("e"),outputnames="theta")
+  statenames=["i","u"],inputnames=String("e"),outputnames="theta")
 
 # TESTS
 # Contstuct with scalars
@@ -88,9 +89,9 @@ C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
 @test size(C_222[1,[]]) == (1,0)
 
 # Naming signals
-@test C_222_d_n.statenames == UTF8String["i","u"]
-@test C_222_d_n.inputnames == UTF8String["e1","e2"]
-@test C_222_d_n.outputnames == UTF8String["theta1","theta2"]
+@test C_222_d_n.statenames == String["i","u"]
+@test C_222_d_n.inputnames == String["e1","e2"]
+@test C_222_d_n.outputnames == String["theta1","theta2"]
 
 # Printing
 res = ("StateSpace:\nA = \n          x1      x2 \n  x1   -5.0    -3.0  \n  x2"*
@@ -114,21 +115,21 @@ res = ("StateSpace:\nD = \n         u1     u2 \n  y1   4.0    0.0  \n  y2  "*
 @test sprint(show, D_022) == res
 
 # Errors
-@test_err C_111 + C_222             # Dimension mismatch
-@test_err C_111 - C_222             # Dimension mismatch
-@test_err C_111 * C_222             # Dimension mismatch
-@test_err D_111 + C_111             # Sampling time mismatch
-@test_err D_111 - C_111             # Sampling time mismatch
-@test_err D_111 * C_111             # Sampling time mismatch
+@test_throws ErrorException C_111 + C_222             # Dimension mismatch
+@test_throws ErrorException C_111 - C_222             # Dimension mismatch
+@test_throws ErrorException C_111 * C_222             # Dimension mismatch
+@test_throws ErrorException D_111 + C_111             # Sampling time mismatch
+@test_throws ErrorException D_111 - C_111             # Sampling time mismatch
+@test_throws ErrorException D_111 * C_111             # Sampling time mismatch
 D_diffTs = ss([1], [2], [3], [4], 0.1)
-@test_err D_111 + D_diffTs            # Sampling time mismatch
-@test_err D_111 - D_diffTs            # Sampling time mismatch
-@test_err D_111 * D_diffTs            # Sampling time mismatch
-@test_err 1/C_222                     # Not invertible
-@test_err 1/C_212                     # Not invertible
-@test_err ss([1 2], [1], [2], [3])      # Not square A
-@test_err ss([1], [2 0], [1], [2])      # I/0 dim mismatch
-@test_err ss([1], [2], [3 4], [1])      # I/0 dim mismatch
-@test_err ss([1], [2], [3], [4], -0.1)  # Negative samping time
-@test_err ss(eye(2), eye(2), eye(2), [0]) # Dimension mismatch
+@test_throws ErrorException D_111 + D_diffTs            # Sampling time mismatch
+@test_throws ErrorException D_111 - D_diffTs            # Sampling time mismatch
+@test_throws ErrorException D_111 * D_diffTs            # Sampling time mismatch
+@test_throws ErrorException 1/C_222                     # Not invertible
+@test_throws ErrorException 1/C_212                     # Not invertible
+@test_throws ErrorException ss([1 2], [1], [2], [3])      # Not square A
+@test_throws ErrorException ss([1], [2 0], [1], [2])      # I/0 dim mismatch
+@test_throws ErrorException ss([1], [2], [3 4], [1])      # I/0 dim mismatch
+@test_throws ErrorException ss([1], [2], [3], [4], -0.1)  # Negative samping time
+@test_throws ErrorException ss(eye(2), eye(2), eye(2), [0]) # Dimension mismatch
 end

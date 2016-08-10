@@ -1,5 +1,6 @@
 module TestSynthesis
 using CustomTest
+using Base.Test
 using ControlSystems
 
 P = tf(1,[1,1])
@@ -20,7 +21,7 @@ T = [1]
 @test feedback2dof(P,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
 @test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5) 
 
-@test_err feedback(ss(1),ss(1))
-@test_err feedback(ss(eye(2), ones(2,2), ones(1,2),0))
+@test_throws ErrorException feedback(ss(1),ss(1))
+@test_throws ErrorException feedback(ss(eye(2), ones(2,2), ones(1,2),0))
 
 end

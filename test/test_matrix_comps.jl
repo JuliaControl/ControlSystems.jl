@@ -1,5 +1,6 @@
 module TestMatrixComps
 using CustomTest
+using Base.Test
 using ControlSystems
 
 
