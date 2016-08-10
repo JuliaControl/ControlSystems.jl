@@ -29,13 +29,13 @@ end
 # Implements algorithm found in:
 # Laub, A.J., "Efficient Multivariable Frequency Response Computations",
 # IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
-function _preprocess_for_freqresp(sys::StateSpace)
+function _preprocess_for_freqresp{T}(sys::StateSpace{T})
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
     F = hessfact(A)
-    H = F[:H]::Matrix{Float64}
-    T = full(F[:Q])
-    P = C*T
-    Q = T\B
+    H = F[:H]::Matrix{T} #TODO: Should be real? Same type as T? Obviously not if T::Integer...
+    Tmat = full(F[:Q]) # TODO name clash with the type parameter T, so renamed to Tmat
+    P = C*Tmat
+    Q = Tmat\B
     StateSpace(H, Q, P, D, sys.Ts, sys.statenames, sys.inputnames,
         sys.outputnames)
 end

@@ -2,11 +2,11 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type StateSpace <: LTISystem
-    A::Matrix{Float64}
-    B::Matrix{Float64}
-    C::Matrix{Float64}
-    D::Matrix{Float64}
+type StateSpace{T} <: LTISystem
+    A::Matrix{T}
+    B::Matrix{T}
+    C::Matrix{T}
+    D::Matrix{T}
     Ts::Float64
     nx::Int
     nu::Int
@@ -15,8 +15,8 @@ type StateSpace <: LTISystem
     inputnames::Vector{String}
     outputnames::Vector{String}
 
-    function StateSpace(A::Matrix{Float64}, B::Matrix{Float64},
-            C::Matrix{Float64}, D::Matrix{Float64}, Ts::Float64,
+    function StateSpace(A::Matrix{T}, B::Matrix{T},
+            C::Matrix{T}, D::Matrix{T}, Ts::Float64,
             statenames::Vector{String}, inputnames::Vector{String},
             outputnames::Vector{String})
         nx = size(A, 1)
@@ -51,11 +51,19 @@ type StateSpace <: LTISystem
     end
 end
 
-function StateSpace(A::Array, B::Array, C::Array, D::Array, Ts::Real,
+# Or is it already known when the constructor is called what type fo
+function StateSpace(A::Union{Number,Array}, B::Union{Number,Array}, C::Union{Number,Array}, D::Union{Number,Array}, Ts::Real,
         statenames::Vector{String}, inputnames::Vector{String},
         outputnames::Vector{String})
-    return StateSpace(float64mat(A), float64mat(B), float64mat(C),
-            float64mat(D), map(Float64, Ts), statenames, inputnames, outputnames)
+
+        (A, B, C, D) = promote(ensure_matrix(A), ensure_matrix(B),
+                               ensure_matrix(C), ensure_matrix(D))
+
+        # Why do we need to specify T, isn't the inner constructor more specific anyway?
+        T = promote_type(typeof(A[1]), typeof(B[1]), typeof(C[1]), typeof(D[1]))
+
+        return StateSpace{T}(A, B, C, D, map(Float64, Ts),
+                        statenames, inputnames, outputnames)
 end
 
 #####################################################################
@@ -65,37 +73,29 @@ end
 @doc """`ss(A,B,C,D[, Ts, statenames=..., inputnames=..., outputnames=...]) -> sys`
 
 Create a state-space model.
-This is a continuous-time model if Ts is omitted or set to 0. 
-Otherwise, this is a discrete-time model with sampling period Ts. 
+This is a continuous-time model if Ts is omitted or set to 0.
+Otherwise, this is a discrete-time model with sampling period Ts.
 Set Ts=-1 for a discrete-time model with unspecified sampling period.
 
-State, input and output names: each can be either a vector of strings (one string per dimension), 
-or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify 
+State, input and output names: each can be either a vector of strings (one string per dimension),
+or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify
 the coordinates for each dimension (e.g. "x1", "x2", ...).
 
 `sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
-function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0; kwargs...)
-    # Check the kwargs for metadata
+function ss(A::Union{Number,Array}, B::Union{Number,Array}, C::Union{Number,Array}, D::Union{Number,Array}, Ts::Real=0; kwargs...)
+    # For accepting scalar D
+    if D == 0
+        D = zeros(size(C,1),size(B,2))
+    end
+
     nu = size(B, 2)
     ny, nx = size(C, 1, 2)
     kvs = Dict(kwargs)
-    statenames = validate_names(kvs, :statenames, nx)
+    statenames = validate_names(kvs, :statenames, nx) # Are these needed?, a transfer function shouldn't have to carry along variable names
     inputnames = validate_names(kvs, :inputnames, nu)
     outputnames = validate_names(kvs, :outputnames, ny)
-    return StateSpace(A, B, C, D, Ts, statenames, inputnames, outputnames)
-end
 
-# Function for accepting scalars
-function ss(A::Union{Real,Array}, B::Union{Real,Array}, C::Union{Real,Array}, D::Union{Real,Array}, args...; kwargs...)
-    A = float64mat(A)
-    B = float64mat(B)
-    C = float64mat(C)
-    if D == 0
-        D = zeros(size(C,1),size(B,2))
-    else
-        D = float64mat(D)
-    end
-    ss(A, B, C, D, args..., kwargs...)
+    return StateSpace(A, B, C, D, Ts, statenames, inputnames, outputnames)
 end
 
 # Function for creation of static gain
@@ -109,7 +109,7 @@ end
 ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts, kwargs...)
 
 # ss(sys) converts to StateSpace
-ss(sys::LTISystem) = convert(StateSpace, sys)
+ss(sys::LTISystem) = convert(StateSpace{Float64}, sys) # TODO: Just defaulting to Float64
 
 # Create a random statespace system
 function rss(nx::Int, nu::Int=1, ny::Int=1, feedthrough::Bool=true)
@@ -123,6 +123,20 @@ function rss(nx::Int, nu::Int=1, ny::Int=1, feedthrough::Bool=true)
         D = zeros(ny, nu)
     end
     return ss(A, B, C, D)
+end
+
+
+#####################################################################
+##                         Conversion                              ##
+#####################################################################
+
+# Convert state-space system of one type to another
+function Base.convert{T}(::Type{StateSpace{T}}, sys::StateSpace)
+    A = convert(Array{T,2}, sys.A)
+    B = convert(Array{T,2}, sys.B)
+    C = convert(Array{T,2}, sys.C)
+    D = convert(Array{T,2}, sys.D)
+    return StateSpace(A, B, C, D, sys.Ts, sys.statenames, sys.inputnames, sys.outputnames)
 end
 
 #####################################################################
@@ -159,7 +173,7 @@ function isapprox(s1::StateSpace, s2::StateSpace)
 end
 
 ## ADDITION ##
-function +(s1::StateSpace, s2::StateSpace)
+function +{T}(s1::StateSpace{T}, s2::StateSpace{T})
     #Ensure systems have same dimensions
     if size(s1) != size(s2)
         error("Systems have different shapes.")
@@ -194,17 +208,17 @@ function +(s1::StateSpace, s2::StateSpace)
     return StateSpace(A, B, C, D, s1.Ts, statenames, inputnames, outputnames)
 end
 
-+(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C, s.D .+ n, s.Ts,
++(s::StateSpace, n::Number) = StateSpace(s.A, s.B, s.C, s.D .+ n, s.Ts,
         s.statenames, s.inputnames, s.outputnames)
 +(n::Real, s::StateSpace) = +(s, n)
 
 ## SUBTRACTION ##
 -(s1::StateSpace, s2::StateSpace) = +(s1, -s2)
--(s::StateSpace, n::Real) = +(s, -n)
--(n::Real, s::StateSpace) = +(-s, n)
+-(s::StateSpace, n::Number) = +(s, -n)
+-(n::Number, s::StateSpace) = +(-s, n)
 
 ## NEGATION ##
--(s::StateSpace) = StateSpace(s.A, s.B, -s.C, -s.D, s.Ts, s.statenames,
+-{T}(s::StateSpace{T}) = StateSpace{T}(s.A, s.B, -s.C, -s.D, s.Ts, s.statenames,
         s.inputnames, s.outputnames)
 
 ## MULTIPLICATION ##
@@ -270,38 +284,38 @@ end
 #####################################################################
 
 # TODO : this is a very hacky way of handling StateSpace printing.
-function _string_mat_with_headers(X::Matrix, cols::Vector{String},
-                                rows::Vector{String})
-    mat = [[""] reshape(cols,1,length(cols));
-           rows X]
+function _string_mat_with_headers(X::Matrix, col_labels::Vector{String},
+                                row_labels::Vector{String})
+    mat = ["" reshape(col_labels,1,length(col_labels));
+           row_labels X]
     p = (io, m) -> Base.showarray(io, m, false, header=false)
     return replace(sprint(p, mat), "\"", " ")
 end
 
 Base.print(io::IO, s::StateSpace) = show(io, s)
 
-function Base.show(io::IO, s::StateSpace)
+function Base.show(io::IO, sys::StateSpace)
     # Compose the name vectors
-    inputs = format_names(s.inputnames, "u", "?")
-    outputs = format_names(s.outputnames, "y", "?")
-    println(io, "StateSpace:")
-    if s.nx > 0
-        states = format_names(s.statenames, "x", "?")
-        println(io, "A = \n", _string_mat_with_headers(s.A, states, states))
-        println(io, "B = \n", _string_mat_with_headers(s.B, inputs, states))
-        println(io, "C = \n", _string_mat_with_headers(s.C, states, outputs))
+    inputnames = format_names(sys.inputnames, "u", "?")
+    outputnames = format_names(sys.outputnames, "y", "?")
+    println(io, "StateSpace{", typeof(sys.A[1]), "}:")
+    if sys.nx > 0
+        statenames = format_names(sys.statenames, "x", "?")
+        println(io, "A = \n", _string_mat_with_headers(sys.A, statenames, statenames))
+        println(io, "B = \n", _string_mat_with_headers(sys.B, inputnames, statenames))
+        println(io, "C = \n", _string_mat_with_headers(sys.C, statenames, outputnames))
     end
-    println(io, "D = \n", _string_mat_with_headers(s.D, inputs, outputs), "\n")
+    println(io, "D = \n", _string_mat_with_headers(sys.D, inputnames, outputnames), "\n")
     # Print sample time
-    if s.Ts > 0
-        println(io, "Sample Time: ", s.Ts, " (seconds)")
-    elseif s.Ts == -1
+    if sys.Ts > 0
+        println(io, "Sample Time: ", sys.Ts, " (seconds)")
+    elseif sys.Ts == -1
         println(io, "Sample Time: unspecified")
     end
     # Print model type
-    if s.nx == 0
+    if sys.nx == 0
         print(io, "Static gain")
-    elseif iscontinuous(s)
+    elseif iscontinuous(sys)
         print(io, "Continuous-time state-space model")
     else
         print(io, "Discrete-time state-space model")

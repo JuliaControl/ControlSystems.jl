@@ -111,7 +111,7 @@ y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
 """ ->
-function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
+function lsim{T}(sys::StateSpace{T}, u::AbstractVecOrMat, t::AbstractVector,
         x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=_issmooth(u) ? :foh : :zoh)
     ny, nu = size(sys)
     nx = sys.nx
@@ -136,7 +136,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
         dsys, x0map = c2d(sys, dt, :foh)
         x0 = x0map*[x0; u[1,:].']
     end
-    x = ltitr(dsys.A, dsys.B, map(Float64,u), map(Float64,x0))
+    x = ltitr(dsys.A, dsys.B, map(T,u), map(T,x0))
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
@@ -255,8 +255,10 @@ _default_Ts(sys::TransferFunction{SisoGeneralized}) = 0.07
 #TODO a reasonable check
 _issmooth(u::Function) = false
 
+_issmooth(u) = false
+
 # Determine if a signal is "smooth"
-function _issmooth(u, thresh::AbstractFloat=0.75)
+function _issmooth(u::Array{Float64,1}, thresh::AbstractFloat=0.75) # TODO: Does it make sense for MIMO signals?, it doens't for complex signals
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
     dist = maximum(u) - minimum(u)
     du = abs(diff(u))
