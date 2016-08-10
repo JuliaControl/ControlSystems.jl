@@ -325,7 +325,6 @@ function Base.getindex(t::TransferFunction, inds...)
     rows, cols = ControlSystems.index2range(inds...)
     mat = Array(eltype(t.matrix), length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    # Reshape the names to 1-dim Array in case it becomes a 0-dim Array
     innames = String[t.inputnames[i] for i in cols]
     outnames = String[t.outputnames[i] for i in rows]
     return TransferFunction(mat, t.Ts, innames, outnames)
