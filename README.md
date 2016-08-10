@@ -13,7 +13,7 @@ To install, in the Julia REPL:
 Pkg.add("ControlSystems")
 ```
 
-Note that this package requires Julia 0.4.
+Note that the latest version of this package requires Julia 0.5. Users of Julia 0.4 should use [v0.1.4](https://github.com/JuliaControl/ControlSystems.jl/tree/v0.1.4) instead.
 
 ## Documentation
 
