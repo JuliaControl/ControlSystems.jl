@@ -57,20 +57,11 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     pz_         = in(:pz         ,args)
     nichols_    = in(:nichols    ,args)
 
-
-    if nyquist_
-        nq = Plots.plot()
-    end
-    if gof_
-        bd = Plots.subplot(n=4,nc=2)
-    end
-    if pz_
-        pz = Plots.plot()
-    end
-    if controller_
-        cplot = plot()
-    end
-
+    Cs = LTISystem[]
+    PCs = LTISystem[]
+    Ts  = LTISystem[]
+    labels = Array{String,2}(1,length(kps))
+    colors =  Array{Colors.RGB{Float64},2}(1, length(kps))
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
@@ -78,46 +69,23 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 
         C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
-
-        if nyquist_
-            NQ = nyquist(P*C,ω)
-            redata = NQ[1][:]
-            imdata = NQ[2][:]
-            ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
-            xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
-            Plots.plot!(nq,redata,imdata, ylims=ylim, xlims=xlim, lab=label, c=getColorSys(i))
-        end
-        if gof_
-            BD = bode(S,ω)
-            Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-            BD = bode(D,ω)
-            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-            BD = bode(N,ω)
-            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-            BD = bode(T,ω)
-            Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-        end
-        if pz_
-            pzmap!(pz,T)
-        end
-        if controller_
-            BD = bode(C,ω)
-            Plots.plot!(cplot,BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-        end
+        push!(Cs, C)
+        push!(PCs, P*C)
+        push!(Ts, T)
+        labels[i] = label
     end
 
-    nyquist_ && Plots.plot!(nq,legend=true, title="Nyquist curves")
+    if nyquist_
+        nq = nyquistplot(PCs, ω, lab=labels, title="Nyquist curves")
+    end
     if gof_
-        Plots.plot!(bd[1,1],legend=true, title="S", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[1,2],legend=true, title="D", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,1],legend=true, title="N", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,2],legend=true, title="T", xscale=:log10, yscale=:log10)
+        bd = gangoffourplot(P, Cs, ω, lab=labels)
     end
     if pz_
-        Plots.plot!(pz,title="Pole-zero map")
+        pzmap(Ts, title="Pole-zero map")
     end
     if controller_
-        Plots.plot!(cplot,title="Controller bode plot",legend=true, xscale=:log10, yscale=:log10)
+        cplot = bodeplot(Cs, ω, lab=labels, title="Controller bode plot")
     end
 
 
