@@ -215,20 +215,24 @@
 <p><code>fig = bodeplot(sys, args...)</code>, <code>bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)</code></p>
 <p>Create a Bode plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L126-L132' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.gangoffourplot' href='#ControlSystems.gangoffourplot'>#</a>
 <strong><code>ControlSystems.gangoffourplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = gangoffourplot(P::LTISystem, C::LTISystem)</code>, <code>gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)</code></p>
 <p>Gang-of-Four plot.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L483-L488' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.impulseplot' href='#ControlSystems.impulseplot'>#</a>
 <strong><code>ControlSystems.impulseplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = impulseplot(sys, args...)</code>, <code>impulseplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the <code>impulse</code> response of the <code>LTISystem</code>(s). A final time <code>Tf</code> or a time vector <code>t</code> can be optionally provided.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L119-L123' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.leadlinkcurve' href='#ControlSystems.leadlinkcurve'>#</a>
 <strong><code>ControlSystems.leadlinkcurve</code></strong> &mdash; <em>Function</em>.</p>
 <p>Plot the phase advance as a function of <code>N</code> for a lead link (phase advance link)</p>
 <p>If an input argument <code>s</code> is given, the curve is plotted from <code>s</code> to 10, else from 1 to 10.</p>
 <p>See also <code>Leadlink, leadlinkat</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/pid_design.jl#L161-L167' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.lsimplot' href='#ControlSystems.lsimplot'>#</a>
 <strong><code>ControlSystems.lsimplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = lsimplot(sys::StateSpace, u, t[, x0, method]; kwargs...), lsimplot(sys::TransferFunction,u,t[,method]; kwargs...)</code></p>
@@ -236,11 +240,13 @@
 <p>Calculate the time response of the <code>LTISystem</code>(s) to input <code>u</code>. If <code>x0</code> is ommitted, a zero vector is used.</p>
 <p>Continuous time systems are discretized before simulation. By default, the method is chosen based on the smoothness of the input signal. Optionally, the <code>method</code> parameter can be specified as either <code>:zoh</code> or <code>:foh</code>.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L39-L51' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.marginplot' href='#ControlSystems.marginplot'>#</a>
 <strong><code>ControlSystems.marginplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)</code>, <code>marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)</code></p>
 <p>Plot all the amplitude and phase margins of the system(s) <code>sys</code>. A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L379-L385' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.nicholsplot' href='#ControlSystems.nicholsplot'>#</a>
 <strong><code>ControlSystems.nicholsplot</code></strong> &mdash; <em>Function</em>.</p>
 <p>fig = <code>nicholsplot{T&lt;:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)</code></p>
@@ -259,11 +265,13 @@ fontsize = 10
 <p><code>val</code> ∈ [0,1] determines the brightness of the gain lines</p>
 <p>Additional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax</p>
 <p>This function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L209-L238' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.nyquistplot' href='#ControlSystems.nyquistplot'>#</a>
 <strong><code>ControlSystems.nyquistplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = nyquistplot(sys; kwargs...)</code>, <code>nyquistplot(LTISystem[sys1, sys2...]; kwargs...)</code></p>
 <p>Create a Nyquist plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L166-L172' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.pidplots' href='#ControlSystems.pidplots'>#</a>
 <strong><code>ControlSystems.pidplots</code></strong> &mdash; <em>Function</em>.</p>
 <p>Plots interesting figures related to closing the loop around process <code>P</code> with a PID controller Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.</p>
@@ -273,30 +281,37 @@ fontsize = 10
 <p>One can also supply a frequency vector ω to be used in Bode and Nyquist plots</p>
 <p><code>pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)</code></p>
 <p>See also <code>loopshapingPI</code>, <code>stabregionPID</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/pid_design.jl#L19-L34' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.pzmap' href='#ControlSystems.pzmap'>#</a>
 <strong><code>ControlSystems.pzmap</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = pzmap(system, args...; kwargs...)</code></p>
 <p>Create a pole-zero map of the <code>LTISystem</code>(s), <code>args</code> and <code>kwargs</code> will be sent to the <code>scatter</code> plot command.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L478-L481' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.pzmap!' href='#ControlSystems.pzmap!'>#</a>
 <strong><code>ControlSystems.pzmap!</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = pzmap!(fig, system, args...; kwargs...)</code></p>
 <p>Create a pole-zero map of the <code>LTISystem</code>(s) in figure <code>fig</code>, <code>args</code> and <code>kwargs</code> will be sent to the <code>scatter</code> plot command.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L455-L458' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.rlocus' href='#ControlSystems.rlocus'>#</a>
 <strong><code>ControlSystems.rlocus</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>rlocus(P::LTISystem, K)</code> computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains <code>K</code>, if <code>K</code> is not provided, linspace(1e-6,500,10000) is used</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/pid_design.jl#L95-L97' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.sigmaplot' href='#ControlSystems.sigmaplot'>#</a>
 <strong><code>ControlSystems.sigmaplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>sigmaplot(sys, args...)</code>, <code>sigmaplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the singular values of the frequency response of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L349-L355' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.setPlotScale' href='#ControlSystems.setPlotScale'>#</a>
 <strong><code>ControlSystems.setPlotScale</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>setPlotScale(str)</code></p>
 <p>Set the default scale of magnitude in <code>bodeplot</code> and <code>sigmaplot</code>. <code>str</code> should be either <code>"dB"</code> or <code>"log10"</code>.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L23-L27' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.stepplot' href='#ControlSystems.stepplot'>#</a>
 <strong><code>ControlSystems.stepplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = stepplot(sys, args...)</code>, <code>stepplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the <code>step</code> response of the <code>LTISystem</code>(s). A final time <code>Tf</code> or a time vector <code>t</code> can be optionally provided.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/plotting.jl#L114-L118' class='documenter-source'>source</a><br></p>
               
             </div>
           </div>
