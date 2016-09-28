@@ -488,12 +488,11 @@ Gang-of-Four plot.
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
     S,D,N,T = gangoffour(P,C)
     fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
-    lower = plotphase ? 3 : 2
-    s2i(i,j) = sub2ind((2,(plotphase?4:2)),j,i)
-    Plots.plot!(fig,title="\$S = 1/(1+PC)\$", subplot=s2i(1,1))
-    Plots.plot!(fig,title="\$D = P/(1+PC)\$", subplot=s2i(1,2))
-    Plots.plot!(fig,title="\$N = C/(1+PC)\$", subplot=s2i(lower,1))
-    Plots.plot!(fig,title="\$T = PC/(1+PC\$)", subplot=s2i(lower,2))
+    titles = fill("", 1, plotphase ? 8 : 4)
+    # Empty titles on phase
+    titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
+    titles[titleIdx] = ["\$S = 1/(1+PC)\$", "\$D = P/(1+PC)\$", "\$N = C/(1+PC)\$", "\$T = PC/(1+PC\$)"]
+    Plots.plot!(fig, title = titles)
     return fig
 end
 
