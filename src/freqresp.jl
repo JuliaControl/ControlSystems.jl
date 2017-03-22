@@ -111,7 +111,7 @@ at frequencies `w`
 `mag` and `phase` has size `(length(w), ny, nu)`""" ->
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
-    return abs(resp), rad2deg(unwrap!(angle(resp),1)), w
+    return abs.(resp), rad2deg(unwrap!(angle(resp),1)), w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
 
@@ -180,7 +180,7 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
         zp = [tzero(sys); pole(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
-    fzp = log10(abs(zp))
+    fzp = log10(abs.(zp))
     fzp = fzp[fzp .> -4]
     fzp = sort!(fzp)
     # Determine the bounds on the frequency vector

@@ -96,7 +96,7 @@ function damp(sys::LTISystem)
         Ts = sys.Ts == -1 ? 1 : sys.Ts
         ps = log(ps)/Ts
     end
-    Wn = abs(ps)
+    Wn = abs.(ps)
     order = sortperm(Wn)
     Wn = Wn[order]
     ps = ps[order]
@@ -300,7 +300,7 @@ function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, a
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
         fi = [fi;NaN][idx]
-        pm, idx = findmin([abs(pm);Inf])
+        pm, idx = findmin([abs.(pm);Inf])
         wpm = [wpm;NaN][idx]
         if full
             if !isnan(fi) #fi may be NaN, fullPhase is a scalar
