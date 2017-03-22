@@ -389,7 +389,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
     s2i(i,j) = sub2ind((ny,nu),j,i)
-    titles = Array(AbstractString,nu,ny,2,2)
+    titles = Array{AbstractString}(nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
     titles[:,:,2,1] = "Pm: "
     titles[:,:,1,2] = "Wgm: "

@@ -15,7 +15,7 @@ u(i,x) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
-@test sum(abs(x[end,:])) < eps()
+@test sum(abs.(x[end,:])) < eps()
 
 #Do a manual simulation with uout
 ym, tm, xm = lsim(sys, uout, t, x0)
@@ -74,7 +74,7 @@ y, t2, x = step(G, 10)
 @test_approx_eq_eps y [zeros(3); ones(8)] 1e-14
 @test_approx_eq_eps t2 0:1:10 1e-14
 
-#Impulse response of discrete system to final time that is not mulitple of the sample time 
+#Impulse response of discrete system to final time that is not mulitple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)
 y, t2, x = step(G, 2)
 @test_approx_eq_eps y [zeros(3); ones(4)] 1e-14

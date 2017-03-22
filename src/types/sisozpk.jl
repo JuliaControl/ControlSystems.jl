@@ -23,14 +23,14 @@ function SisoZpk(z::AbstractArray, p::AbstractArray, k::Real)
             error("Zeros must be real or complex")
         end
     else
-        z = Array(Float64,0)
+        z = Array{Float64}(0)
     end
     if length(p) > 0
         if !(eltype(p) <: RealOrComplex)
             error("poles must be real or complex")
         end
     else
-        p = Array(Float64,0)
+        p = Array{Float64}(0)
     end
     SisoZpk(z, p, k)
 end
@@ -170,23 +170,23 @@ end
 
 +(t::SisoZpk, n::Real) = t + SisoZpk([],[],n)
 +(n::Real, t::SisoZpk) = SisoZpk([],[],n) + t
-.+(t::SisoZpk, n::Real) = t + n
-.+(n::Real, t::SisoZpk) = t + n
+#.+(t::SisoZpk, n::Real) = t + n
+#.+(n::Real, t::SisoZpk) = t + n
 
 -(t1::SisoZpk, t2::SisoZpk) = +(t1,-t2)
 -(n::Real, t::SisoZpk) = SisoZpk([],[],n) - t
 -(t::SisoZpk, n::Real) = +(t, -n)
-.-(t::SisoZpk, n::Real) = -(t, n)
-.-(n::Real, t::SisoZpk) = -(n, t)
+#.-(t::SisoZpk, n::Real) = -(t, n)
+#.-(n::Real, t::SisoZpk) = -(n, t)
 
 -(t::SisoZpk) = SisoZpk(t.z, t.p, -t.k)
 
 *(t1::SisoZpk, t2::SisoZpk) = SisoZpk([t1.z;t2.z], [t1.p;t2.p], t1.k*t2.k)
 *(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k*n)
 *(n::Real, t::SisoZpk) = *(t, n)
-.*(t1::SisoZpk, t2::SisoZpk) = *(t1, t2)
-.*(t::SisoZpk, n::Real) = *(t, n)
-.*(n::Real, t::SisoZpk) = *(t, n)
+#.*(t1::SisoZpk, t2::SisoZpk) = *(t1, t2)
+#.*(t::SisoZpk, n::Real) = *(t, n)
+#.*(n::Real, t::SisoZpk) = *(t, n)
 
 /(n::Real, t::SisoZpk) = SisoZpk(t.p, t.z, n/t.k)
 /(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k/n)

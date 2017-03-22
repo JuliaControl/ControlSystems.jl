@@ -111,7 +111,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = Array(R, n)
+        a = Array{R}(n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] + p2[i]
         end
@@ -119,7 +119,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = Array(R, m)
+        a = Array{R}(m)
         for i = 1:n
             a[m-n+i] = p1[i] + p2[m-n+i]
         end
@@ -135,7 +135,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = Array(R, n)
+        a = Array{R}(n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] - p2[i]
         end
@@ -143,7 +143,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = Array(R, m)
+        a = Array{R}(m)
         for i = 1:n
             a[m-n+i] = p1[i] - p2[m-n+i]
         end

@@ -18,8 +18,8 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     if nu == 1
         y, t, x = lsim(sys, u, t, x0, :zoh)
     else
-        x = Array(Float64, lt, nx, nu)
-        y = Array(Float64, lt, ny, nu)
+        x = Array{Float64}(lt, nx, nu)
+        y = Array{Float64}(lt, ny, nu)
         for i=1:nu
             y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0, :zoh)
         end
@@ -59,8 +59,8 @@ function impulse(sys::StateSpace, t::AbstractVector)
     if nu == 1
         y, t, x = lsim(sys, u, t, x0s, :zoh)
     else
-        x = Array(Float64, lt, nx, nu)
-        y = Array(Float64, lt, ny, nu)
+        x = Array{Float64}(lt, nx, nu)
+        y = Array{Float64}(lt, ny, nu)
         for i=1:nu
             y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0s[:,i], :zoh)
         end
@@ -200,7 +200,7 @@ If `u` is a function, then `u(i,x)` is called to calculate the control signal ev
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
     n = size(u, 1)
-    x = Array(T, size(A, 1), n)
+    x = Array{T}(size(A, 1), n)
     for i=1:n
         x[:,i] = x0
         x0 = A * x0 + B * u[i,:]
@@ -211,8 +211,8 @@ end
 
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, iters::Int,
     x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
-    x = Array(T, size(A, 1), iters)
-    uout = Array(T, size(B, 2), iters)
+    x = Array{T}(size(A, 1), iters)
+    uout = Array{T}(size(B, 2), iters)
 
     for i=1:iters
         x[:,i] = x0
@@ -241,7 +241,7 @@ function _default_Ts(sys::LTISystem)
         Ts = 0.05
     else
         ps = pole(sys)
-        r = minimum([abs(real(ps));0])
+        r = minimum([abs.(real.(ps));0])
         if r == 0.0
             r = 1.0
         end
@@ -259,6 +259,6 @@ _issmooth(u::Function) = false
 function _issmooth(u, thresh::AbstractFloat=0.75)
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
     dist = maximum(u) - minimum(u)
-    du = abs(diff(u))
+    du = abs.(diff(u))
     return !isempty(du) && all(maximum(du) <= thresh*dist)
 end

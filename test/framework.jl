@@ -17,7 +17,7 @@ function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bst
     for field in valfields
         mata = getfield(va, field)
         matb = getfield(vb, field)
-        diff = max(diff, maximum(abs(mata - matb)))
+        diff = max(diff, maximum(abs.(mata - matb)))
     end
     if !isnan(Eps) && !(diff <= Eps)
         sdiff = string("|", astr, " - ", bstr, "| <= ", Eps)

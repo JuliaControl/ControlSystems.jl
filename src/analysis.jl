@@ -52,9 +52,9 @@ Compute the zeros, poles, and gains of system `sys`.
 `k` : Matrix{Float64}, (ny x nu)""" ->
 function zpkdata(sys::LTISystem)
     ny, nu = size(sys)
-    zs = Array(Vector{Complex128}, ny, nu)
-    ps = Array(Vector{Complex128}, ny, nu)
-    ks = Array(Float64, ny, nu)
+    zs = Array{Vector{Complex128}}(ny, nu)
+    ps = Array{Vector{Complex128}}(ny, nu)
+    ks = Array{Float64}(ny, nu)
     for j = 1:nu
         for i = 1:ny
             zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
@@ -233,7 +233,7 @@ end
 function fastrank(A::Matrix{Float64}, meps::Float64)
     n, m = size(A, 1, 2)
     if n*m == 0     return 0    end
-    norms = Array(Float64, n)
+    norms = Array{Float64}(n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end

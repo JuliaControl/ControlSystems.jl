@@ -17,7 +17,7 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     end
     #Evil but nessesary type instability here
     sys = _preprocess_for_freqresp(sys)
-    resp = Array(Complex128, nw, ny, nu)
+    resp = Array{Complex128}(nw, ny, nu)
     for i=1:nw
         # TODO : This doesn't actually take advantage of Hessenberg structure
         # for statespace version.
@@ -66,7 +66,7 @@ function evalfr(sys::TransferFunction, s::Number)
     S = promote_type(typeof(s), Float64)
     mat = sys.matrix
     ny, nu = size(mat)
-    res = Array(S, ny, nu)
+    res = Array{S}(ny, nu)
     for j = 1:nu
         for i = 1:ny
             res[i, j] = evalfr(mat[i, j], s)
@@ -136,7 +136,7 @@ frequencies `w`
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)[1]
     nw, ny, nu = size(resp)
-    sv = Array(Float64, nw, min(ny, nu))
+    sv = Array{Float64}(nw, min(ny, nu))
     for i=1:nw
         sv[i, :] = svdvals(resp[i, :, :])
     end
@@ -148,7 +148,7 @@ function _default_freq_vector{T<:LTISystem}(systems::Vector{T}, plot::Symbol)
     min_pt_per_dec = 60
     min_pt_total = 200
     nsys = length(systems)
-    bounds = Array(Float64, 2, nsys)
+    bounds = Array{Float64}(2, nsys)
     for i=1:nsys
         # TODO : For now we ignore the feature information. In the future,
         # these can be used to improve the frequency vector near features.
