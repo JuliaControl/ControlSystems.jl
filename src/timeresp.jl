@@ -134,7 +134,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
         end
     else
         dsys, x0map = c2d(sys, dt, :foh)
-        x0 = x0map*[x0; u[1,:].']
+        x0 = x0map*[x0; u[1:1,:].']
     end
     x = ltitr(dsys.A, dsys.B, map(Float64,u), map(Float64,x0))
     y = (sys.C*(x.') + sys.D*(u.')).'
@@ -203,7 +203,7 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
     x = Array(T, size(A, 1), n)
     for i=1:n
         x[:,i] = x0
-        x0 = A * x0 + B * u[i,:].'
+        x0 = A * x0 + B * u[i,:]
     end
     return x.'
 end

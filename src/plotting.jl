@@ -83,7 +83,7 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
             ny, nu = size(systems[1])
             fig = Plots.plot(layout=(ny,nu))
             titles = fill("", 1, ny*nu)
-            s2i(i,j) = sub2ind((ny,nu),j,i)
+            s2i(i,j) = sub2ind((ny,nu),i,j)
             for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
                 t = 0:Ts:Tf
                 y = ($func)(s, t)[1]
