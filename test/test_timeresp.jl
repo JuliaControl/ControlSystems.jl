@@ -19,8 +19,8 @@ y, t, x, uout = lsim(sys,u,t,x0)
 
 #Do a manual simulation with uout
 ym, tm, xm = lsim(sys, uout, t, x0)
-@test_approx_eq y ym
-@test_approx_eq x xm
+@test y ≈ ym
+@test x ≈ xm
 
 # Now compare to closed loop
 # Discretization is needed before feedback
@@ -30,8 +30,8 @@ sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
 yd, td, xd = lsim(sysdfb, zeros(501), t, x0)
 
-@test_approx_eq y yd
-@test_approx_eq x xd
+@test y ≈ yd
+@test x ≈ xd
 
 
 #Test step and impulse
@@ -45,40 +45,40 @@ xreal = zeros(length(t0), 3, 2)
 y, t, x = step(systf, t0)
 yreal[:,1,1] = 1-exp(-t)
 yreal[:,2,2] = -1+exp(-t)+2*exp(-t).*t
-@test_approx_eq_eps y yreal 1e-14
+@test y ≈ yreal atol=1e-14
 #Step ss
 y, t, x = step(sysss, t)
-@test_approx_eq_eps y yreal 1e-14
+@test y ≈ yreal atol=1e-14
 xreal[:,1,1] = yreal[:,1,1]
 xreal[:,2,2] = exp(-t).*t
 xreal[:,3,2] = exp(-t).*(-t-1) + 1
-@test_approx_eq_eps x xreal 1e-14
+@test x ≈ xreal atol=1e-14
 
 #Impulse tf
 y, t, x = impulse(systf, t)
 yreal[:,1,1] = exp(-t)
 yreal[:,2,2] = exp(-t).*(1 - 2.*t)
-@test_approx_eq_eps y yreal 1e-14
+@test y ≈ yreal atol=1e-14
 #Impulse ss
 y, t, x = impulse(sysss, t)
-@test_approx_eq_eps y yreal 1e-14
+@test y ≈ yreal atol=1e-14
 xreal[:,1,1] = yreal[:,1,1]
 xreal[:,2,2] = -exp(-t).*t + exp(-t)
 xreal[:,3,2] = exp(-t).*t
-@test_approx_eq_eps x xreal 1e-14
+@test x ≈ xreal atol=1e-14
 
 
 #Step response of discrete system with specified final time
 G = tf([1], [1; zeros(3)], 1)
 y, t2, x = step(G, 10)
-@test_approx_eq_eps y [zeros(3); ones(8)] 1e-14
-@test_approx_eq_eps t2 0:1:10 1e-14
+@test y ≈ [zeros(3); ones(8)] atol=1e-14
+@test t2 ≈ 0:1:10 1e-14
 
 #Impulse response of discrete system to final time that is not mulitple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)
 y, t2, x = step(G, 2)
-@test_approx_eq_eps y [zeros(3); ones(4)] 1e-14
-@test_approx_eq_eps t2 0:0.3:1.8 1e-14
+@test y ≈ [zeros(3); ones(4)] atol=1e-14
+@test t2 ≈ 0:0.3:1.8 atol=1e-14
 
 
 

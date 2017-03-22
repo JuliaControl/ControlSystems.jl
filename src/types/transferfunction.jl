@@ -1,4 +1,4 @@
-abstract SisoTf
+abstract type SisoTf end
 include("polys.jl")
 include("sisotf.jl")
 include("sisozpk.jl")
@@ -14,8 +14,8 @@ type TransferFunction{S<:SisoTf} <: LTISystem
     ny::Int
     inputnames::Vector{String}
     outputnames::Vector{String}
-    function TransferFunction{T<:SisoTf}(matrix::Matrix{T}, Ts::Float64,
-            inputnames::Vector{String}, outputnames::Vector{String})
+    function TransferFunction{T}(matrix::Matrix{T}, Ts::Float64,
+            inputnames::Vector{String}, outputnames::Vector{String}) where T<:SisoTf
         # Validate size of input and output names
         ny, nu = size(matrix)
         if size(inputnames, 1) != nu

@@ -140,7 +140,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
         if _PlotScale == "dB"
-            mag = 20*log10(mag)
+            mag = 20*log10.(mag)
         end
         xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
@@ -334,7 +334,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
         ℜdata               = squeeze(ℜresp, (2,3))
         ℑdata               = squeeze(ℑresp, (2,3))
-        mag                 = 20*log10(sqrt(ℜdata.^2 + ℑdata.^2))
+        mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
         Plots.plot!(fig,angles, mag; linewidth = LW, getStyleSys(sysi,length(systems))..., kwargs...)
     end
@@ -362,7 +362,7 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs..
     for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
         if _PlotScale == "dB"
-            sv = 20*log10(sv)
+            sv = 20*log10.(sv)
         end
         for i in 1:size(sv, 2)
             Plots.plot!(fig, w, sv[:, i], xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))..., kwargs...)
@@ -399,7 +399,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
                 if _PlotScale == "dB"
-                    mag = 20*log10(1./gm)
+                    mag = 20*log10.(1./gm)
                     oneLine = 0
                 else
                     mag = 1./gm

@@ -117,15 +117,15 @@ arr3 = Array{StateSpace,1}(3)
 arr3[1] = ss(0); arr3[2] = ss(1); arr3[3] = ss(2)
 @test [0, zpk(1), ss(2)] == arr3
 
-@test_approx_eq Czpk_111 Ctf_111
-@test_approx_eq Czpk_211 Ctf_211
-@test_approx_eq Czpk_212 Ctf_212
-@test_approx_eq Czpk_221 Ctf_221
-@test_approx_eq Czpk_222 Ctf_222
-@test_approx_eq Czpk_022 Ctf_022
+@test Czpk_111 ≈ Ctf_111
+@test Czpk_211 ≈ Ctf_211
+@test Czpk_212 ≈ Ctf_212
+@test Czpk_221 ≈ Ctf_221
+@test Czpk_222 ≈ Ctf_222
+@test Czpk_022 ≈ Ctf_022
 
-@test_approx_eq Czpk_222 [Ctf_221; Czpk_221]
+@test Czpk_222 ≈ [Ctf_221; Czpk_221]
 
 #This might fail depending on if minreal is used or not
-@test_approx_eq (Czpk_211+1) (Ctf_211+1)
+@test (Czpk_211+1) ≈ (Ctf_211+1)
 end

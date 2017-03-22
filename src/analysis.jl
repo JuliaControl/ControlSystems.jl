@@ -100,7 +100,7 @@ function damp(sys::LTISystem)
     order = sortperm(Wn)
     Wn = Wn[order]
     ps = ps[order]
-    ζ = -cos(angle(ps))
+    ζ = -cos.(angle.(ps))
     return Wn, ζ, ps
 end
 
@@ -205,7 +205,7 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, 
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Float64[]
+            A = B = Cbar = Dbar = Array{Float64,2}(0,0)
             break
         end
         # Update System

@@ -7,8 +7,8 @@ b = [0  1]'
 c = [1 -1]
 r = [3]'
 
-@test_approx_eq care(a, b, c'*c, r) [0.5895174372762604 1.8215747248860816; 1.8215747248860823 8.818839806923107]
-@test_approx_eq dare(a, b, c'*c, r) [240.73344504496302 -131.09928700089387; -131.0992870008943 75.93413176750603]
+@test care(a, b, c'*c, r) ≈ [0.5895174372762604 1.8215747248860816; 1.8215747248860823 8.818839806923107]
+@test dare(a, b, c'*c, r) ≈ [240.73344504496302 -131.09928700089387; -131.0992870008943 75.93413176750603]
 
 a_2 = [-5 -3; 2 -9]
 C_212 = ss(a_2, [1; 2], eye(2), [0; 0])
@@ -28,7 +28,7 @@ b_3 =  [ 0.49 -0.80  0.10;
          0.00  0.22  0.19;
          0.00  0.00 -0.08;
          0.00 -1.15 -1.93]
-c_3 = [ 0.00  0.84  0.10  0.30  0.49  1.71  0.00  
+c_3 = [ 0.00  0.84  0.10  0.30  0.49  1.71  0.00
        -1.79 -0.89 -0.54 -0.60  0.74 -0.19  0.00]
 d_3 = [ 1.36  0.96  1.44
        -1.07  0.00 -1.96]
@@ -58,63 +58,63 @@ C_static = ss([-0.78593 -1.2707;  0.2638 -1.13143])
 D_static = ss([0.704473 1.56483; -1.6661 -2.16041], 0.07)
 
 
-@test_approx_eq gram(C_212,:c) [0.042016806722689065 0.09663865546218485
+@test gram(C_212,:c) ≈ [0.042016806722689065 0.09663865546218485
     0.09663865546218488 0.24369747899159663]
-@test_approx_eq gram(C_212,:o) [0.09523809523809523 -0.0119047619047619
+@test gram(C_212,:o) ≈ [0.09523809523809523 -0.0119047619047619
     -0.011904761904761911 0.059523809523809534]
-@test_approx_eq gram(C_222,:c) [0.11764705882352941 -0.029411764705882346
+@test gram(C_222,:c) ≈ [0.11764705882352941 -0.029411764705882346
     -0.02941176470588234 0.21568627450980393]
-@test_approx_eq gram(C_222,:o) [0.09523809523809523 -0.0119047619047619
+@test gram(C_222,:o) ≈ [0.09523809523809523 -0.0119047619047619
     -0.011904761904761911 0.059523809523809534]
-@test_approx_eq gram(D_221,:c) [11.895658388619264 -7.526846649259635
+@test gram(D_221,:c) ≈ [11.895658388619264 -7.526846649259635
     -7.526846649259634 12.517564258299078]
-@test_approx_eq gram(D_221,:o) [3.1039794541519283 -1.7910988952221152
+@test gram(D_221,:o) ≈ [3.1039794541519283 -1.7910988952221152
     -1.7910988952221152 2.197919733616834]
-@test_approx_eq gram(D_222,:c) [11.895658388619264 -7.526846649259635
+@test gram(D_222,:c) ≈ [11.895658388619264 -7.526846649259635
     -7.526846649259634 12.517564258299078]
-@test_approx_eq gram(D_222,:o) [5.301899187768763 -3.2250358337314955
+@test gram(D_222,:o) ≈ [5.301899187768763 -3.2250358337314955
     -3.2250358337314955 4.777830864787395]
 
 @test obsv(C_222) == [1 0; 0 1; -5 -3; 2 -9]
 @test ctrb(C_222) == [1 0 -5 -6; 0 2 2 -18]
 @test obsv(C_212) == [1 0; 0 1; -5 -3; 2 -9]
 @test ctrb(C_212) == [1 -11; 2 -16]
-@test_approx_eq norm(C_222) 0.5773502691896258
-@test_approx_eq norm(C_212) 0.5345224838248488
-@test_approx_eq norm(D_222) 4.940973856125768
-@test_approx_eq norm(D_221) 3.4490083195926426
+@test norm(C_222) ≈ 0.5773502691896258
+@test norm(C_212) ≈ 0.5345224838248488
+@test norm(D_222) ≈ 4.940973856125768
+@test norm(D_221) ≈ 3.4490083195926426
 @test norm(ss([1],[2],[3],[4])) == Inf
 
 # Test Hinfinity norm computations
 tolHinf = 1e-12
-@test_approx_eq_eps norm(C_212, Inf, tol=tolHinf) 0.242535625036333 tolHinf
-@test_approx_eq_eps norm(C_222, Inf, tol=tolHinf) 0.242535625036333 tolHinf
+@test norm(C_212, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
+@test norm(C_222, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
 ninf, fpeak = norminf(C_732, tol=tolHinf)
-@test_approx_eq_eps ninf 4.899135403568278 (10*tolHinf) 
-@test_approx_eq_eps fpeak 6.112977387441163 1e-6
-@test_approx_eq_eps norm(f_C_211, Inf, tol=tolHinf) 1.0 (2*tolHinf)
-@test_approx_eq norminf(f_C_211_bis, tol=tolHinf)[2] 52.0
-@test_approx_eq norm(1/(s-1), Inf, tol=tolHinf) 1.0  # unstable system
+@test ninf ≈ 4.899135403568278 atol=(10*tolHinf)
+@test fpeak ≈ 6.112977387441163 atol=1e-6
+@test norm(f_C_211, Inf, tol=tolHinf) ≈ 1.0 atol=(2*tolHinf)
+@test norminf(f_C_211_bis, tol=tolHinf)[2] ≈ 52.0
+@test norm(1/(s-1), Inf, tol=tolHinf) ≈ 1.0  # unstable system
 
-ninf, fpeak = norminf(C_22tf, tol=tolHinf) 
-@test_approx_eq_eps ninf 3.014974550173459 (10*tolHinf)  
-@test_approx_eq_eps fpeak 3.162123338668049 1e-8
+ninf, fpeak = norminf(C_22tf, tol=tolHinf)
+@test ninf ≈ 3.014974550173459 atol=(10*tolHinf)
+@test fpeak ≈ 3.162123338668049 atol=1e-8
 
 ninf, fpeak = norminf(D_221, tol=tolHinf)
-@test_approx_eq_eps ninf 17.794697451669421 (20*tolHinf)  
-@test_approx_eq_eps fpeak 0 1e-8
+@test ninf ≈ 17.794697451669421 atol=(20*tolHinf)
+@test fpeak ≈ 0 atol=1e-8
 ninf, fpeak = norminf(D_422, tol=tolHinf)
-@test_approx_eq_eps ninf 3.360351099392252 (10*tolHinf)
-@test_approx_eq_eps fpeak 8.320643111730551 1e-8
+@test ninf ≈ 3.360351099392252 atol=(10*tolHinf)
+@test fpeak ≈ 8.320643111730551 atol=1e-8
 ninf, fpeak = norminf(D_311, tol=tolHinf)
-@test_approx_eq_eps ninf 4.458729529942810 (10*tolHinf)
-@test_approx_eq_eps fpeak 11.878021287349698 1e-6
+@test ninf ≈ 4.458729529942810 atol=(10*tolHinf)
+@test fpeak ≈ 11.878021287349698 atol=1e-6
 ninf, fpeak = norminf(C_static, tol=tolHinf)
-@test_approx_eq_eps ninf 1.760164138376307 1e-12
-@test_approx_eq_eps fpeak 0 1e-12
+@test ninf ≈ 1.760164138376307 atol=1e-12
+@test fpeak ≈ 0 atol=1e-12
 ninf, fpeak = norminf(D_static, tol=tolHinf)
-@test_approx_eq_eps ninf 3.205246234285972 1e-12
-@test_approx_eq_eps fpeak 0 1e-12
+@test ninf ≈ 3.205246234285972 atol=1e-12
+@test fpeak ≈ 0 atol=1e-12
 
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
@@ -125,6 +125,6 @@ res_diag = [512, 8, 0.0625]
 constant = T[1]/res_diag[1]
 @test all(diag(T) == res_diag * constant)
 @test P == eye(3)
-@test_approx_eq B [1.0 1.5625 1.220703125; 0.64 1.0 0.78125; 0.8192 1.28 1.0]
+@test B ≈ [1.0 1.5625 1.220703125; 0.64 1.0 0.78125; 0.8192 1.28 1.0]
 
 end

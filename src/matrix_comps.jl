@@ -297,7 +297,7 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             H = [         M              -res*sys.B*(R\sys.B') ;
                    res*sys.C'*(S\sys.C)            -M'            ]
             omegas = eigvals(H)
-            omegaps = imag(omegas[ (abs.(real.(omegas)).<=approximag) & (imag.(omegas).>=0) ])
+            omegaps = imag.(omegas[ (abs.(real.(omegas)).<=approximag) .& (imag.(omegas).>=0) ])
             sort!(omegaps)
             if isempty(omegaps)
                 return (1+tol)*lb, fpeak
@@ -359,7 +359,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
                   sys.C'*(eye(sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
             zs = eig(L,M)[1]  # generalized eigenvalues
             # are there eigenvalues on the unit circle?
-            omegaps = angle(zs[ (abs.(abs.(zs)-1) .<= approxcirc) & (imag(zs).>=0)])
+            omegaps = angle.(zs[ (abs.(abs.(zs)-1) .<= approxcirc) .& (imag(zs).>=0)])
             sort!(omegaps)
             if isempty(omegaps)
                 return (1+tol)*lb, fpeak/sys.Ts
@@ -428,8 +428,7 @@ P = gram(sys, :c)
 Q = gram(sys, :o)
 Q1 = chol(Q)
 U,Σ,V = svd(Q1*P*Q1')
-Σ = sqrt(Σ)
-Σ1 = diagm((sqrt(Σ)))
+Σ1 = diagm((sqrt.(Σ)))
 T = Σ1\(U'Q1)
 
 Pz = T*P*T'
@@ -448,5 +447,5 @@ if vecnorm(Pz-Qz) > sqrt(eps())
     display(Σ)
 end
 
-sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(Σ)
+sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), Σ1
 end

@@ -10,11 +10,11 @@ Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 immutable Poly{T<:Number}
     a::Vector{T}
     nzfirst::Int #for effiencicy, track the first non-zero index
-    function Poly(a::Vector{T})
+    function Poly{S}(a::Vector{S}) where S
         la = length(a)
         i = 0
         for i = 1:la
-            if abs(a[i]) > 2*eps(T)  break  end
+            if abs(a[i]) > 2*eps(S)  break  end
         end
         new(a, i)
     end
@@ -82,7 +82,7 @@ end
 *(c::Number, p::Poly) = Poly(c * p.a[p.nzfirst:end])
 *(p::Poly, c::Number) = Poly(c * p.a[p.nzfirst:end])
 /(p::Poly, c::Number) = Poly(p.a[p.nzfirst:end] / c)
-./(p::Poly, c::Number) = /(p, c)
+#./(p::Poly, c::Number) = /(p, c)
 -(p::Poly) = Poly(-p.a[p.nzfirst:end])
 
 -(p::Poly, c::Number) = +(p, -c)

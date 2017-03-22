@@ -42,7 +42,7 @@ function minreal(sys::SisoZpk, eps::Real)
     newZ = copy(sys.z)
     for  p in sys.p
         if !isempty(newZ)
-            val, zi = findmin(abs(p-newZ))
+            val, zi = findmin(abs.(p-newZ))
         else
             val = Inf #Keep looping over p, adding poles
         end
@@ -77,7 +77,7 @@ function zp2polys(vec)
         else
             polesiLeftVec = [i for i in polesiLeft]
             polesTest = Complex128[vec[polesiLeftVec]...]
-            val, i = findmin(abs(polesTest-conj(p)))
+            val, i = findmin(abs.(polesTest-conj(p)))
             val > 2*sqrt(eps()) && error("Could not find conjugate to pole")
             push!(polys,Poly(float([1, -2*real(p), real(p)^2+imag(p)^2])))
             pop!(polesiLeft,polesiLeftVec[i])
