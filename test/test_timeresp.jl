@@ -43,28 +43,28 @@ xreal = zeros(length(t0), 3, 2)
 
 #Step tf
 y, t, x = step(systf, t0)
-yreal[:,1,1] = 1-exp(-t)
-yreal[:,2,2] = -1+exp(-t)+2*exp(-t).*t
+yreal[:,1,1] = 1-exp.(-t)
+yreal[:,2,2] = -1+exp.(-t)+2*exp.(-t).*t
 @test y ≈ yreal atol=1e-14
 #Step ss
 y, t, x = step(sysss, t)
 @test y ≈ yreal atol=1e-14
 xreal[:,1,1] = yreal[:,1,1]
-xreal[:,2,2] = exp(-t).*t
-xreal[:,3,2] = exp(-t).*(-t-1) + 1
+xreal[:,2,2] = exp.(-t).*t
+xreal[:,3,2] = exp.(-t).*(-t-1) + 1
 @test x ≈ xreal atol=1e-14
 
 #Impulse tf
 y, t, x = impulse(systf, t)
-yreal[:,1,1] = exp(-t)
-yreal[:,2,2] = exp(-t).*(1 - 2.*t)
+yreal[:,1,1] = exp.(-t)
+yreal[:,2,2] = exp.(-t).*(1 - 2.*t)
 @test y ≈ yreal atol=1e-14
 #Impulse ss
 y, t, x = impulse(sysss, t)
 @test y ≈ yreal atol=1e-14
 xreal[:,1,1] = yreal[:,1,1]
-xreal[:,2,2] = -exp(-t).*t + exp(-t)
-xreal[:,3,2] = exp(-t).*t
+xreal[:,2,2] = -exp.(-t).*t + exp.(-t)
+xreal[:,3,2] = exp.(-t).*t
 @test x ≈ xreal atol=1e-14
 
 
@@ -72,7 +72,7 @@ xreal[:,3,2] = exp(-t).*t
 G = tf([1], [1; zeros(3)], 1)
 y, t2, x = step(G, 10)
 @test y ≈ [zeros(3); ones(8)] atol=1e-14
-@test t2 ≈ 0:1:10 1e-14
+@test t2 ≈ 0:1:10 atol=1e-14
 
 #Impulse response of discrete system to final time that is not mulitple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)

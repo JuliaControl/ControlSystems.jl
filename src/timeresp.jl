@@ -118,7 +118,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
 
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
-    elseif !any(size(u) .== [(length(t), nu) (length(t),)])
+    elseif !(size(u) in [(length(t), nu) (length(t),)])
         error("u must be of size (length(t), nu)")
     end
 

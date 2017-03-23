@@ -428,7 +428,8 @@ P = gram(sys, :c)
 Q = gram(sys, :o)
 Q1 = chol(Q)
 U,Σ,V = svd(Q1*P*Q1')
-Σ1 = diagm((sqrt.(Σ)))
+Σ .= sqrt.(Σ)
+Σ1 = diagm(sqrt.(Σ))
 T = Σ1\(U'Q1)
 
 Pz = T*P*T'
@@ -447,5 +448,5 @@ if vecnorm(Pz-Qz) > sqrt(eps())
     display(Σ)
 end
 
-sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), Σ1
+sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(Σ)
 end
