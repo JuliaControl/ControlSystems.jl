@@ -13,7 +13,7 @@ end
 # Determine the structurally controllable and observable realization for the system
 struct_ctrb_obsv(sys::StateSpace) = struct_ctrb_obsv(sys.A, sys.B, sys.C)
 function struct_ctrb_obsv(A::VecOrMat, B::VecOrMat, C::VecOrMat)
-    costates = struct_ctrb_states(A, B) & struct_ctrb_states(A', C')
+    costates = struct_ctrb_states(A, B) .& struct_ctrb_states(A', C')
     if !all(costates)
         inds = find(costates)
         return A[inds, inds], B[inds, :], C[:, inds], inds
@@ -29,8 +29,8 @@ function struct_ctrb_states(A::VecOrMat, B::VecOrMat)
     d_cvec = cvec = any(B .!= 0, 2)
     while any(d_cvec .!= 0)
         Adcvec = any(bitA[:, find(d_cvec)], 2)
-        cvec = cvec | Adcvec
-        d_cvec = Adcvec & ~cvec
+        cvec = cvec .| Adcvec
+        d_cvec = Adcvec .& .~cvec
     end
     return cvec
 end

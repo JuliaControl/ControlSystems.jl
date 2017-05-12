@@ -51,7 +51,7 @@ append(systems::LTISystem...) = append(promote(systems...)...)
 #This is needed until julia removes deprecated vect()
 function Base.vect(sys::Union{LTISystem, Real}...)
     T = Base.promote_typeof(sys...)
-    copy!(Array(T,length(sys)), sys)
+    copy!(Array{T}(length(sys)), sys)
 end
 
 function Base.vcat(systems::StateSpace...)

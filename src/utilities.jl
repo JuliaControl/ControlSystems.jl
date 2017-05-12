@@ -7,11 +7,11 @@
 Returns `true` if `sys` is stable, else returns `false`.""" ->
 function isstable(sys::LTISystem)
     if sys.Ts == 0
-        if any(real(pole(sys)).>=0)
+        if any(real.(pole(sys)).>=0)
             return false
         end
     else
-        if any(abs(pole(sys)).>=1)
+        if any(abs.(pole(sys)).>=1)
             return false
         end
     end
@@ -91,7 +91,7 @@ function unwrap!(M::Array, dim=1)
         # d = M[i,:,:,...,:] - M[i-1,:,...,:]
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
-        M[alldims(i)...] -= floor((d+π) / 2π) * 2π
+        M[alldims(i)...] -= floor.((d+π) / 2π) * 2π
     end
     return M
 end

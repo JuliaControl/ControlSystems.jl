@@ -161,7 +161,7 @@ function feedback(sys::StateSpace)
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)
-    sum(abs(sys1.D)) != 0 && sum(abs(sys2.D)) != 0 && error("There can not be a direct term (D) in both sys1 and sys2")
+    sum(abs.(sys1.D)) != 0 && sum(abs.(sys2.D)) != 0 && error("There can not be a direct term (D) in both sys1 and sys2")
     A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]

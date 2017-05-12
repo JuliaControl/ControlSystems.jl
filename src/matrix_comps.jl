@@ -54,7 +54,7 @@ function dare(A, B, Q, R)
          -Ait*Q        Ait]
 
     S = schurfact(Z)
-    S = ordschur(S, abs(S.values).<=1)
+    S = ordschur(S, abs.(S.values).<=1)
     U = S.Z
 
     (m, n) = size(U)
@@ -181,14 +181,14 @@ end
 covar(sys::TransferFunction, W::StridedMatrix) = covar(ss(sys), W)
 
 
-# Note: the H∞ norm computation is probably not as accurate as with SLICOT, 
+# Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
 @doc """
 `..  norm(sys, p=2; tol=1e-6)`
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
-`norm(sys, Inf)` computes the L∞ norm of the LTI system `sys`. 
+`norm(sys, Inf)` computes the L∞ norm of the LTI system `sys`.
 The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
 If the peak gain frequency is required as well, use the function `norminf` instead.
 
@@ -202,7 +202,7 @@ The L∞ norm computation implements the 'two-step algorithm' in:
 N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
 of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
 For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
-calculation for generalized state space systems in continuous and discrete time', 
+calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """ ->
 function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
@@ -226,11 +226,11 @@ end
 @doc """
 `.. (peakgain, peakgainfrequency) = norminf(sys; tol=1e-6)`
 
-Compute the L∞ norm of the LTI system `sys`, together with the frequency 
+Compute the L∞ norm of the LTI system `sys`, together with the frequency
 `peakgainfrequency` (in rad/TimeUnit) at which the gain achieves its peak value `peakgain`.
 The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
 
-`tol` is an optional keyword argument representing the desired relative accuracy for 
+`tol` is an optional keyword argument representing the desired relative accuracy for
 the computed L∞ norm (this is not an absolute certificate however).
 
 sys is first converted to a state space model if needed.
@@ -239,7 +239,7 @@ The L∞ norm computation implements the 'two-step algorithm' in:
 N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
 of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
 For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
-calculation for generalized state space systems in continuous and discrete time', 
+calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """ ->
 function norminf(sys::StateSpace; tol=1e-6)
@@ -277,9 +277,9 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             fpeak = 0
         end
         if isreal(p)  # only real poles
-            omegap = minimum(abs(p))
+            omegap = minimum(abs.(p))
         else  # at least one pair of complex poles
-            tmp = maximum(abs(imag(p)./(real(p).*abs(p))))
+            tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
             omegap = abs(p[indmax(tmp)])
         end
         (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys, omegap*1im)))])
@@ -297,7 +297,7 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             H = [         M              -res*sys.B*(R\sys.B') ;
                    res*sys.C'*(S\sys.C)            -M'            ]
             omegas = eigvals(H)
-            omegaps = imag(omegas[ (abs(real(omegas)).<=approximag) & (imag(omegas).>=0) ])
+            omegaps = imag.(omegas[ (abs.(real.(omegas)).<=approximag) .& (imag.(omegas).>=0) ])
             sort!(omegaps)
             if isempty(omegaps)
                 return (1+tol)*lb, fpeak
@@ -324,7 +324,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
     end
     p = pole(sys)
     # Check first if there is a pole on the unit circle
-    pidx = findfirst(map(x->isapprox(x,1.0),abs(p)))
+    pidx = findfirst(map(x->isapprox(x,1.0),abs.(p)))
     if (pidx > 0)
         return (Inf, angle(p[pidx])/abs(sys.Ts))
     else
@@ -338,8 +338,8 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
         p = p[imag(p).>0]
         if ~isempty(p)  # not just real poles
             # find frequency of pôle closest to unit circle
-            omegap = angle(p[findmin(abs(abs(p)-1))[2]])
-        else 
+            omegap = angle(p[findmin(abs.(abs.(p)-1))[2]])
+        else
             omegap = pi/2
         end
         (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys, exp(omegap*1im))))])
@@ -355,11 +355,11 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
             RinvDt = R\sys.D'
             L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
                   zeros(sys.nx,sys.nx)      eye(sys.nx)]
-            M = [ eye(sys.nx)                              zeros(sys.nx,sys.nx); 
+            M = [ eye(sys.nx)                              zeros(sys.nx,sys.nx);
                   sys.C'*(eye(sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
             zs = eig(L,M)[1]  # generalized eigenvalues
             # are there eigenvalues on the unit circle?
-            omegaps = angle(zs[ (abs(abs(zs)-1) .<= approxcirc) & (imag(zs).>=0)])
+            omegaps = angle.(zs[ (abs.(abs.(zs)-1) .<= approxcirc) .& (imag(zs).>=0)])
             sort!(omegaps)
             if isempty(omegaps)
                 return (1+tol)*lb, fpeak/sys.Ts
@@ -428,8 +428,8 @@ P = gram(sys, :c)
 Q = gram(sys, :o)
 Q1 = chol(Q)
 U,Σ,V = svd(Q1*P*Q1')
-Σ = sqrt(Σ)
-Σ1 = diagm((sqrt(Σ)))
+Σ .= sqrt.(Σ)
+Σ1 = diagm(sqrt.(Σ))
 T = Σ1\(U'Q1)
 
 Pz = T*P*T'
