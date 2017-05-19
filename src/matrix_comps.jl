@@ -123,7 +123,7 @@ Compute the controllability matrix for the system described by `(A, B)` or
 `sys`.
 
 Note that checking for controllability by computing the rank from
-`obsv` is not the most numerically accurate way, a better method is
+`ctrb` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite.""" ->
 function ctrb(A, B)
     n = size(A, 1)
