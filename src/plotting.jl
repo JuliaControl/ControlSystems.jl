@@ -436,31 +436,40 @@ nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
 nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
 nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwargs...)
 
+@userplot Sigmaplot
 @doc """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to Plots.plot.""" ->
-function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
+sigmaplot
+@recipe function sigmaplot(p::Sigmaplot)
+    systems, w = p.args[1:2]
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
     nw = length(w)
-    fig = Plots.plot()
+    title --> "Sigma Plot"
+    xguide --> "Frequency (rad/s)",
+    yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
         end
+        styledict = getStyleSys(si,length(systems))
         for i in 1:size(sv, 2)
-            Plots.plot!(fig, w, sv[:, i], xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))..., kwargs...)
+            @series begin
+                xscale --> :log10
+                yscale --> _PlotScaleFunc
+                linestyle --> styledict[:l]
+                linecolor --> styledict[:c]
+                w, sv[:, i]
+            end
         end
     end
-    Plots.plot!(fig, title="Sigma Plot", xlabel="Frequency (rad/s)",
-    ylabel="Singular Values $_PlotScaleStr")
-    return fig
 end
 sigmaplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
 sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
