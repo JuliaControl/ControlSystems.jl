@@ -16,12 +16,12 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     u = ones(size(t))
     x0 = zeros(nx, 1)
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0, :zoh)
+        y, t, x = lsim(sys, u, t, x0=x0, method=:zoh)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0, :zoh)
+            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, method=:zoh)
         end
     end
     return y, t, x
@@ -57,12 +57,12 @@ function impulse(sys::StateSpace, t::AbstractVector)
         u[1] = 1/sys.Ts
     end
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0s, :zoh)
+        y, t, x = lsim(sys, u, t, x0=x0s, method=:zoh)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0s[:,i], :zoh)
+            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0s[:,i], method=:zoh)
         end
     end
     return y, t, x

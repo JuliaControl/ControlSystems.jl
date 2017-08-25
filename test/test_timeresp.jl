@@ -14,11 +14,11 @@ L = lqr(sys,Q,R)
 u(i,x) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
+y, t, x, uout = lsim(sys,u,t,x0=x0)
 @test sum(abs.(x[end,:])) < eps()
 
 #Do a manual simulation with uout
-ym, tm, xm = lsim(sys, uout, t, x0)
+ym, tm, xm = lsim(sys, uout, t, x0=x0)
 @test y ≈ ym
 @test x ≈ xm
 
@@ -28,7 +28,7 @@ sysd = c2d(sys, 0.1)[1]
 # Create the closed loop system
 sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
-yd, td, xd = lsim(sysdfb, zeros(501), t, x0)
+yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
 
 @test y ≈ yd
 @test x ≈ xd
