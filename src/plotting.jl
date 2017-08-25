@@ -36,42 +36,58 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-@doc """`fig = lsimplot(sys::StateSpace, u, t[, x0, method]; kwargs...), lsimplot(sys::TransferFunction,u,t[,method]; kwargs...)`
+@userplot Lsimplot
 
-`lsimplot(StateSpace[sys1, sys2...], u, t[, x0, method]; kwargs...), lsimplot(TransferFunction[sys1, sys2...], u, t[, method]; kwargs...)`
+@doc """`fig = lsimplot(sys::LTISystem, u, t; x0=0, method)`
+
+`lsimplot(LTISystem[sys1, sys2...], u, t; x0, method)`
 
 Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
-ommitted, a zero vector is used.
+not specified, a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.
 
 `kwargs` is sent as argument to Plots.plot.""" ->
-function lsimplot{T<:StateSpace}(systems::Vector{T}, u::Union{AbstractVecOrMat,Function},
-    t::AbstractVector, x0::VecOrMat=zeros(systems[1].nx, 1),
-    method::Symbol=_issmooth(u) ? :foh : :zoh; kwargs...)
+lsimplot
+
+@recipe function lsimplot(p::Lsimplot; method=nothing)
+    systems,u,t = p.args[1:3]
+
+    if !isa(systems,AbstractArray)
+        systems = [systems]
+    end
+    if method == nothing
+        method = _issmooth(u) ? :foh : :zoh
+    end
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig = Plots.plot(layout=(ny,1))
+    layout := (ny,1)
     s2i(i,j) = sub2ind((ny,1),j,i)
-    for (si, s) in enumerate(systems)
-        y = lsim(s, u, t, x0, method)[1]
+    for (si,s) in enumerate(systems)
+        s = systems[si]
+        y = length(p.args) >= 4 ? lsim(s, u, t, x0=p.args[4], method=method)[1] : lsim(s, u, t, method=method)[1]
+        styledict = getStyleSys(si,length(systems))
+        seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
-            ydata = reshape(y[:, i], size(t, 1))
-            style = iscontinuous(s) ? :path : :steppost
             ytext = (ny > 1) ? "Amplitude to: y($i)": "Amplitude"
-            Plots.plot!(fig, t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, title="System Response", subplot=s2i(1,i), lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
+            @series begin
+                xguide  --> "Time (s)"
+                yguide  --> ytext
+                title   --> "System Response"
+                subplot := s2i(1,i)
+                label     --> "\$G_\{$(si)\}\$"
+                linestyle --> styledict[:l]
+                linecolor --> styledict[:c]
+                t,  y[:, i]
+            end
         end
     end
-    return fig
 end
-lsimplot(sys::LTISystem, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...; kwargs...) =
-lsimplot(StateSpace[sys], u, t, args...; kwargs...)
-lsimplot{T<:LTISystem}(sys::Vector{T}, u::Union{AbstractVecOrMat,Function}, t::AbstractVector, args...; kwargs...) =
-lsimplot(StateSpace[s for s in sys], u, t, args...; kwargs...)
+
 
 for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
     funcname = Symbol("$(func)plot")
