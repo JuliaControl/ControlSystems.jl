@@ -228,7 +228,7 @@ optionally provided.
 nyquistplot
 @recipe function nyquistplot(p::Nyquistplot)
     systems = p.args[1]
-    if isa(systems,LTISystem)
+    if !isa(systems,AbstractArray)
         systems = [systems]
     end
     if !_same_io_dims(systems...)
@@ -274,6 +274,8 @@ nyquistplot
 end
 
 
+@userplot Nicholsplot
+
 @doc """
 fig = `nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)`
 
@@ -304,14 +306,17 @@ Copyright 2011 Will Robertson
 Copyright 2011 Philipp Allgeuer
 
 """ ->
-function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
-    text=true,
-    Gains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60],
-    pInc = 30,
-    sat = 0.4,
-    val = 0.85,
-    fontsize = 10,
-    kwargs...)
+nicholsplot
+@recipe function nicholsplot(p::Nicholsplot;
+    text     = true,
+    Gains    = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60],
+    pInc     = 30,
+    sat      = 0.4,
+    val      = 0.85,
+    fontsize = 10)
+
+    systems, w = p.args[1:2]
+
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -324,26 +329,25 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     nw = length(w)
 
     # Gain circle functions
-    angle(x)        = unwrap(atan2(imag(x),real(x)))
-    RadM(m)         = abs(m/(m^2-1))
-    CentreM(m)      = m^2/(1-m^2)
-    Ny(mdb,t)       = CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
-    Niϕ(mdb,t)      = rad2deg((angle(Ny(mdb,t))))
-    Ni_Ga(mdb,t)    = 20.*log10(abs(Ny(mdb,t)))
+    angle(x)        = @. unwrap(atan2(imag(x),real(x)))
+    RadM(m)         = @. abs(m/(m^2-1))
+    CentreM(m)      = @. m^2/(1-m^2)
+    Ny(mdb,t)       = @. CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
+    Niϕ(mdb,t)      = @. rad2deg((angle(Ny(mdb,t))))
+    Ni_Ga(mdb,t)    = @. 20.*log10(abs(Ny(mdb,t)))
 
     # Phase circle functions
-    Radϕ(ϕ)         = 1./(2.*abs(sind(ϕ)))
-    Nyℜ(ϕ,t)        = -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
-    Nyℑ(ϕ,t)        = 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
-    Niϕϕ(ϕ,t)       = rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*floor(ϕ/360)
-    Ni_Gaϕ(ϕ,t)     = 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
-    Ni_La(ϕ)        = 0.090*10^(ϕ/60)
+    Radϕ(ϕ)         = @. 1./(2.*abs(sind(ϕ)))
+    Nyℜ(ϕ,t)        = @. -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
+    Nyℑ(ϕ,t)        = @. 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
+    Niϕϕ(ϕ,t)       = @. rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*floor(ϕ/360)
+    Ni_Gaϕ(ϕ,t)     = @. 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
+    Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
-    fig             = Plots.plot()
     megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
     filter!(x-> !isnan(x), megaangles)
-    PCyc            = Set{Int}(floor(Int,megaangles/360))
+    PCyc            = Set{Int}(floor.(Int,megaangles/360))
     PCyc            = sort(collect(PCyc))
 
     #  Gain circles
@@ -351,12 +355,16 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
         ϕVals   =Niϕ(k,0:0.1:360)
         GVals   =Ni_Ga(k,0:0.1:360)
         for l in PCyc
-            Plots.plot!(fig,ϕVals+l*360,GVals,c=getColor(k), grid=false)
-            if text
-                offset  = (l+1)*360
-                TextX   = Niϕ(k,210)+offset
-                TextY   = Ni_Ga(k,210)
-                Plots.plot!(fig,ann=(TextX,TextY,Plots.text("$(string(k)) dB",fontsize)))
+            @series begin
+                linecolor --> getColor(k)
+                grid --> false
+                if text
+                    offset  = (l+1)*360
+                    TextX   = Niϕ(k,210)+offset
+                    TextY   = Ni_Ga(k,210)
+                    annotation := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
+                end
+                ϕVals+l*360,GVals
             end
         end
     end
@@ -368,7 +376,10 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
 
     for k=Phi
         if abs(sind(k))<1e-3
-            Plots.plot!(fig,[k,k],[-110,25],c=Colors.RGB(0.75*[1, 1, 1]...))
+            @series begin
+                linecolor := Colors.RGB(0.75*[1, 1, 1]...)
+                [k,k],[-110,25]
+            end
             if cosd(5)>0
                 TextX=k
                 TextY=1
@@ -377,7 +388,10 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
                 TextY=-46.5
             end
         else
-            Plots.plot!(fig,Niϕϕ(k,T2),Ni_Gaϕ(k,T2),c=Colors.RGB(0.75*[1,1,1]...))
+            @series begin
+                linecolor := Colors.RGB(0.75*[1,1,1]...)
+                Niϕϕ(k,T2),Ni_Gaϕ(k,T2)
+            end
             Offset=k-180*floor(Int,k/180);
             if sign(sind(k))==1
                 TextX=Niϕϕ(k,Ni_La(180-Offset))
@@ -387,11 +401,13 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
                 TextY=Ni_Gaϕ(k,-Ni_La(Offset))
             end
         end
-        if text
-            Plots.plot!(fig,ann=(TextX,TextY,Plots.text("$(string(k))°",fontsize)))
-        end
 
-        Plots.plot!(fig, title="Nichols chart", grid=false, legend=false)
+        annotation := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
+
+
+        title --> "Nichols chart"
+        grid --> false
+        legend --> false
 
     end
     dKwargs = Dict(kwargs)
@@ -404,10 +420,16 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
         ℑdata               = squeeze(ℑresp, (2,3))
         mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
-        Plots.plot!(fig,angles, mag; linewidth = LW, getStyleSys(sysi,length(systems))..., kwargs...)
+        @series begin
+            linewidth = LW
+            styledict = getStyleSys(sysi,length(systems))
+            linestyle --> styledict[:l]
+            linecolor --> styledict[:c]
+            angles, mag
+        end
     end
 
-    return fig
+
 end
 
 nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
@@ -535,7 +557,7 @@ function pzmap!(fig, system::LTISystem, args...; kwargs...)
 
     if system.Ts > 0
         v = linspace(0,2π,100)
-        S,C = sin(v),cos(v)
+        S,C = sin.(v),cos.(v)
         Plots.plot!(fig,C,S,l=:dash,c=:black, grid=true)
     end
     Plots.plot!(fig,legend=false)
