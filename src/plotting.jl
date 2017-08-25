@@ -122,6 +122,7 @@ Plot the `impulse` response of the `LTISystem`(s). A final time `Tf` or a
 time vector `t` can be optionally provided.""" -> impulseplot
 
 
+@userplot Bodeplot
 ## FREQUENCY PLOTS ##
 @doc """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
@@ -129,19 +130,32 @@ Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
 `kwargs` is sent as argument to Plots.plot.""" ->
-function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase=true, kwargs...)
+bodeplot
+
+@recipe function bodeplot(p::Bodeplot; plotphase=true)
+    systems = p.args[1]
+    if !isa(systems, AbstractArray)
+        systems = [systems]
+    end
+    if length(p.args) >= 2
+        w = p.args[2]
+    else
+        w = _default_freq_vector(systems, :bode)
+    end
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    fig = Plots.plot(layout=((plotphase?2:1)*ny,nu))
     s2i(i,j) = sub2ind((nu,(plotphase?2:1)*ny),j,i)
+    layout := ((plotphase?2:1)*ny,nu)
     nw = length(w)
+
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
         if _PlotScale == "dB"
             mag = 20*log10.(mag)
         end
+
         xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
             for i=1:ny
@@ -151,19 +165,44 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
                     continue
                 end
                 phasedata = vec(phase[:, i, j])
-                Plots.plot!(fig, w, magdata, grid=true, yscale=_PlotScaleFunc, xscale=:log10, xlabel=xlab, subplot=s2i((plotphase?(2i-1):i),j), title="Bode plot from: u($j)", ylabel="Magnitude $_PlotScaleStr", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
-                plotphase && Plots.plot!(fig, w, phasedata, grid=true, xscale=:log10, ylabel="Phase (deg)", subplot=s2i(2i,j), xlabel="Frequency (rad/s)", lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
+                styledict = getStyleSys(si,length(systems))
+                @series begin
+                    grid      --> true
+                    yscale    --> _PlotScaleFunc
+                    xscale    --> :log10
+                    xguide    --> xlab
+                    subplot := s2i((plotphase?(2i-1):i),j)
+                    title     --> "Bode plot from: u($j)"
+                    yguide    --> "Magnitude $_PlotScaleStr"
+                    label     --> "\$G_\{$(si)\}\$"
+                    linestyle --> styledict[:l]
+                    linecolor --> styledict[:c]
+                    w, magdata
+                end
+                if !plotphase
+                    continue
+                end
+                @series begin
+                    grid      --> true
+                    xscale    --> :log10
+                    yguide    --> "Phase (deg)"
+                    subplot := s2i(2i,j)
+                    xguide    --> "Frequency (rad/s)"
+                    label     --> "\$G_\{$(si)\}\$"
+                    linestyle --> styledict[:l]
+                    linecolor --> styledict[:c]
+                    w, phasedata
+                end
+
             end
         end
     end
 
-    return fig
-end
-bodeplot{T<:LTISystem}(systems::Vector{T}; plotphase=true, kwargs...) =
-bodeplot(systems, _default_freq_vector(systems, :bode); plotphase=plotphase, kwargs...)
-bodeplot(sys::LTISystem, args...; plotphase=true, kwargs...) = bodeplot([sys], args...; plotphase=plotphase, kwargs...)
 
-@userplot Nyquistplot
+end
+
+
+Plots.@userplot Nyquistplot
 @doc """`fig = nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
@@ -171,7 +210,7 @@ optionally provided.
 
 `kwargs` is sent as argument to plot.""" ->
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot)
+Plots.@recipe function nyquistplot(p::Nyquistplot)
     systems = p.args[1]
     if isa(systems,LTISystem)
         systems = [systems]
@@ -191,7 +230,7 @@ nyquistplot
             for i=1:ny
                 redata      = re_resp[:, i, j]
                 imdata      = im_resp[:, i, j]
-                @series begin
+                Plots.@series begin
                     ylims      := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                     xlims      := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title       --> "Nyquist plot from: u($j)"
@@ -205,12 +244,12 @@ nyquistplot
                 end
                 if si == length(systems)
                     v = linspace(0,2π,100)
-                    S,C = sin(v),cos(v)
+                    S,C = sin.(v),cos.(v)
                     linestyle := :dash
                     linecolor := :black
                     label := ""
-                    @series (C,S)
-                    @series (C-1,S)
+                    Plots.@series (C,S)
+                    Plots.@series (C-1,S)
                 end
 
             end
