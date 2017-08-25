@@ -551,33 +551,51 @@ end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
 
-@doc """`fig = pzmap!(fig, system, args...; kwargs...)`
+@userplot Pzmap
+@doc """`fig = pzmap(fig, system, args...; kwargs...)`
 
 Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
-function pzmap!(fig, system::LTISystem, args...; kwargs...)
-    if system.nu + system.ny > 2
+pzmap
+@recipe function pzmap(p::Pzmap)
+    systems = p.args[1]
+    if systems[1].nu + systems[1].ny > 2
         warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
+    seriestype := :scatter
+    title --> "Pole-zero map"
+    legend --> false
+    for system in systems
+        z,p,k = zpkdata(system)
+        if !isempty(z[1])
+            @series begin
+                markershape := :c
+                markersize --> 15.
+                markeralpha --> 0.5
+                real(z[1]),imag(z[1])
+            end
+        end
+        if !isempty(p[1])
+            @series begin
+                markershape := :x
+                markersize := 15.
+                real(p[1]),imag(p[1])
+            end
+        end
 
-    z,p,k = zpkdata(system)
-    !isempty(z[1]) && Plots.scatter!(fig,real(z[1]),imag(z[1]),m=:c,markersize=15., markeralpha=0.5, args...; kwargs...)
-    !isempty(p[1]) && Plots.scatter!(fig,real(p[1]),imag(p[1]),m=:x,markersize=15., args...; kwargs...)
-    Plots.title!("Pole-zero map")
-
-    if system.Ts > 0
-        v = linspace(0,2π,100)
-        S,C = sin.(v),cos.(v)
-        Plots.plot!(fig,C,S,l=:dash,c=:black, grid=true)
+        if system.Ts > 0
+            v = linspace(0,2π,100)
+            S,C = sin.(v),cos.(v)
+            @series begin
+                linestyle --> :dash
+                c := :black
+                grid --> true
+                C,S
+            end
+        end
     end
-    Plots.plot!(fig,legend=false)
-
-    return fig
 end
-
-@doc """`fig = pzmap(system, args...; kwargs...)`
-
-Create a pole-zero map of the `LTISystem`(s), `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
-pzmap(system::LTISystem, args...; kwargs...) = pzmap!(Plots.plot(), system, args...; kwargs...)
+pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
+pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 @doc """`fig = gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
 
