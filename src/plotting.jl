@@ -213,12 +213,47 @@ bodeplot
             end
         end
     end
+end
 
-
+@recipe function f(::Type{Val{:bodemag}}, x, y, z)
+    w = x
+    magdata = y
+    seriestype := :path
+    primary := false
+    @series begin
+        grid      --> true
+        yscale    --> :log10
+        xscale    --> :log10
+        yguide    --> "Magnitude"
+        x := w; y := magdata
+        ()
+    end
+    x := []
+    y := []
+    ()
+end
+@recipe function f(::Type{Val{:bodephase}}, x, y, z)
+    w = x
+    phasedata = y
+    seriestype := :path
+    primary := false
+    @series begin
+        grid      --> true
+        xscale    --> :log10
+        yguide    --> "Phase (deg)"
+        subplot := 2
+        xguide    --> "Frequency (rad/s)"
+        x := w; y := phasedata
+        ()
+    end
+    x := []
+    y := []
+    ()
 end
 
 
-Plots.@userplot Nyquistplot
+
+@userplot Nyquistplot
 @doc """`fig = nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
@@ -264,8 +299,8 @@ nyquistplot
                     linestyle := :dash
                     linecolor := :black
                     label := ""
-                    Plots.@series (C,S)
-                    Plots.@series (C-1,S)
+                    @series (C,S)
+                    @series (C-1,S)
                 end
 
             end
