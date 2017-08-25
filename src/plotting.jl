@@ -190,7 +190,7 @@ function nyquistplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; neg=fa
 
                 if si == length(systems)
                     v = linspace(0,2π,100)
-                    S,C = sin(v),cos(v)
+                    S,C = sin.(v),cos.(v)
                     Plots.plot!(fig,C,S,l=:dash,c=:black, lab="", subplot=s2i(i,j))
                     Plots.plot!(fig,C-1,S,l=:dash,c=:red, grid=true, lab="", subplot=s2i(i,j))
                     # neg && Plots.plot!(fig[i, j],redata, -imdata, args...)
@@ -256,26 +256,26 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
     nw = length(w)
 
     # Gain circle functions
-    angle(x)        = unwrap(atan2(imag(x),real(x)))
-    RadM(m)         = abs(m/(m^2-1))
-    CentreM(m)      = m^2/(1-m^2)
-    Ny(mdb,t)       = CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
-    Niϕ(mdb,t)      = rad2deg((angle(Ny(mdb,t))))
-    Ni_Ga(mdb,t)    = 20.*log10(abs(Ny(mdb,t)))
+    angle(x)        = @. unwrap(atan2(imag(x),real(x)))
+    RadM(m)         = @. abs(m/(m^2-1))
+    CentreM(m)      = @. m^2/(1-m^2)
+    Ny(mdb,t)       = @. CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
+    Niϕ(mdb,t)      = @. rad2deg((angle(Ny(mdb,t))))
+    Ni_Ga(mdb,t)    = @. 20.*log10(abs(Ny(mdb,t)))
 
     # Phase circle functions
-    Radϕ(ϕ)         = 1./(2.*abs(sind(ϕ)))
-    Nyℜ(ϕ,t)        = -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
-    Nyℑ(ϕ,t)        = 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
-    Niϕϕ(ϕ,t)       = rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*floor(ϕ/360)
-    Ni_Gaϕ(ϕ,t)     = 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
-    Ni_La(ϕ)        = 0.090*10^(ϕ/60)
+    Radϕ(ϕ)         = @. 1./(2.*abs(sind(ϕ)))
+    Nyℜ(ϕ,t)        = @. -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
+    Nyℑ(ϕ,t)        = @. 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
+    Niϕϕ(ϕ,t)       = @. rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*floor(ϕ/360)
+    Ni_Gaϕ(ϕ,t)     = @. 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
+    Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
     fig             = Plots.plot()
     megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
     filter!(x-> !isnan(x), megaangles)
-    PCyc            = Set{Int}(floor(Int,megaangles/360))
+    PCyc            = Set{Int}(floor.(Int,megaangles/360))
     PCyc            = sort(collect(PCyc))
 
     #  Gain circles
