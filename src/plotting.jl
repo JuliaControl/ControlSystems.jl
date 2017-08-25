@@ -88,43 +88,63 @@ lsimplot
     end
 end
 
+@userplot Stepplot
+@userplot Impulseplot
 
-for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
-    funcname = Symbol("$(func)plot")
-    @eval begin
-        function $funcname{T<:LTISystem}(systems::Vector{T}, Ts_list::Vector, Tf::Real; kwargs...)
-            if !_same_io_dims(systems...)
-                error("All systems must have the same input/output dimensions")
-            end
-            ny, nu = size(systems[1])
-            fig = Plots.plot(layout=(ny,nu))
-            titles = fill("", 1, ny*nu)
-            s2i(i,j) = sub2ind((ny,nu),i,j)
-            for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
-                t = 0:Ts:Tf
-                y = ($func)(s, t)[1]
-                for i=1:ny
-                    for j=1:nu
-                        ydata = reshape(y[:, i, j], size(t, 1))
-                        style = iscontinuous(s) ? :path : :steppost
-                        ttext = (nu > 1 && i==1) ? $title*" from: u($j) " : $title
-                        titles[s2i(i,j)] = ttext
-                        ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)": "Amplitude"
-                        Plots.plot!(fig, t, ydata, l=style, xlabel="Time (s)", ylabel=ytext, subplot=s2i(i,j), lab="\$G_\{$(si)\}\$"; getStyleSys(si,length(systems))..., kwargs...)
+for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse Response", Impulseplot))
+    funcname = Symbol(func,"plot")
+
+    @recipe function f(p::typ)
+        systems = p.args[1]
+        if !isa(systems, AbstractArray)
+            systems = [systems]
+        end
+        if length(p.args) < 2
+            Ts_list, Tf = _default_time_data(systems)
+        elseif length(p.args) == 2
+            Ts_list = _default_Ts.(systems)
+            Tf = p.args[2]
+        else
+            Ts_list, Tf = p.args[2:3]
+        end
+        if !_same_io_dims(systems...)
+            error("All systems must have the same input/output dimensions")
+        end
+        ny, nu = size(systems[1])
+        layout := (ny,nu)
+        titles = fill("", 1, ny*nu)
+        title --> titles
+        s2i(i,j) = sub2ind((ny,nu),i,j)
+        for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
+            t = 0:Ts:Tf
+            y = func(s, t)[1]
+            styledict = getStyleSys(si,length(systems))
+            for i=1:ny
+                for j=1:nu
+                    ydata = reshape(y[:, i, j], size(t, 1))
+                    style = iscontinuous(s) ? :path : :steppost
+                    ttext = (nu > 1 && i==1) ? title*" from: u($j) " : title
+                    titles[s2i(i,j)] = ttext
+                    ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)": "Amplitude"
+                    @series begin
+                        seriestype := style
+                        xlabel --> "Time (s)"
+                        ylabel --> ytext
+                        subplot := s2i(i,j)
+                        label --> "\$G_\{$(si)\}\$"
+                        linestyle --> styledict[:l]
+                        linecolor --> styledict[:c]
+                        t, ydata
                     end
                 end
             end
-            Plots.plot!(fig, title=titles)
-            return fig
         end
-        $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real; kwargs...) =
-        $funcname(systems, map(_default_Ts, systems), Tf; kwargs...)
-        $funcname{T<:LTISystem}(systems::Vector{T}; kwargs...) =
-        $funcname(systems, _default_time_data(systems)...; kwargs...)
+    end
+    @eval begin
         $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector; kwargs...) =
         $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end]; kwargs...)
-        $funcname(sys::LTISystem, args...; kwargs...) = $funcname(LTISystem[sys], args...; kwargs...)
     end
+
 end
 
 @doc """`fig = stepplot(sys, args...)`, `stepplot(LTISystem[sys1, sys2...], args...)`
