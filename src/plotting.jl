@@ -210,7 +210,7 @@ optionally provided.
 
 `kwargs` is sent as argument to plot.""" ->
 nyquistplot
-Plots.@recipe function nyquistplot(p::Nyquistplot)
+@recipe function nyquistplot(p::Nyquistplot)
     systems = p.args[1]
     if isa(systems,LTISystem)
         systems = [systems]
@@ -230,7 +230,7 @@ Plots.@recipe function nyquistplot(p::Nyquistplot)
             for i=1:ny
                 redata      = re_resp[:, i, j]
                 imdata      = im_resp[:, i, j]
-                Plots.@series begin
+                @series begin
                     ylims      := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                     xlims      := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title       --> "Nyquist plot from: u($j)"
