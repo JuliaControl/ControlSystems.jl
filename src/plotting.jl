@@ -401,7 +401,7 @@ nicholsplot
     Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
-    @show megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
+    megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     PCyc            = Set{Int}(round.(Int,megaangles/360)) |> collect |> sort
 
