@@ -4,7 +4,7 @@ println("Generating plots")
 
 plotsDir = (pwd()[end-3:end] == "docs") ? "build/plots" : "docs/build/plots"
 mkdir(plotsDir)
-Plots.pyplot()
+Plots.gr()
 
 
 # PID design functions
@@ -76,7 +76,7 @@ pidplots(P,:gof,;kps=kp,kis=ki, ω= logspace(-2,2,500))
 Plots.savefig(plotsDir*"/pidplotgof1.svg")
 
 kp = linspace(-1,1,8) # Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
-ki = sqrt(1-kp.^2)/10
+ki = sqrt.(1-kp.^2)./10
 pidplots(P,:nyquist,;kps=kp,kis=ki)
 Plots.savefig(plotsDir*"/pidplotsnyquist2.svg")
 pidplots(P,:gof,;kps=kp,kis=ki)

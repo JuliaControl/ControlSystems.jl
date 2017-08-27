@@ -11,8 +11,8 @@ C_222_d = ss([-5 -3; 2 -9], [1 0; 0 2], eye(2), eye(2))
 macro test_c2d(ex, sys_sol, mat_sol)
     quote
         sys, mat = $ex
-        @test_approx_eq sys $sys_sol
-        @test_approx_eq mat $mat_sol
+        @test sys ≈ $sys_sol
+        @test mat ≈ $mat_sol
     end
 end
 @test c2d(ss(4*eye(2)), 0.5, :zoh) == (ss(4*eye(2), 0.5), zeros(0, 2))

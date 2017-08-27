@@ -193,7 +193,7 @@ See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
 function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0, doplot = true)
     Pv      = squeeze(freqresp(P,ω)[1],(2,3))
-    r       = abs(Pv)
+    r       = abs.(Pv)
     phi     = angle(Pv)
     kp      = -cos(phi)./r
     ki      = kd*ω.^2 - ω.*sin(phi)./r
@@ -205,7 +205,7 @@ function stabregionPID(P::AbstractString, ω = logspace(-3,1); kd=0, doplot = tr
     Pe      = parse(P)
     Pf(s)   = eval(:(s -> $(Pe)))(s)
     Pv      = Pf(im*ω)
-    r       = abs(Pv)
+    r       = abs.(Pv)
     phi     = angle(Pv)
     kp      = -cos(phi)./r
     ki      = kd*ω.^2 - ω.*sin(phi)./r
@@ -228,7 +228,7 @@ See also `pidplots`, `stabregionPID`
 function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
 Pw = P(im*ωp)[1]
 ϕp = angle(Pw)
-rp = abs(Pw)
+rp = abs.(Pw)
 
 if phasemargin > 0
     ϕl = deg2rad(-180+phasemargin)

@@ -65,12 +65,12 @@ end
 @doc """`ss(A,B,C,D[, Ts, statenames=..., inputnames=..., outputnames=...]) -> sys`
 
 Create a state-space model.
-This is a continuous-time model if Ts is omitted or set to 0. 
-Otherwise, this is a discrete-time model with sampling period Ts. 
+This is a continuous-time model if Ts is omitted or set to 0.
+Otherwise, this is a discrete-time model with sampling period Ts.
 Set Ts=-1 for a discrete-time model with unspecified sampling period.
 
-State, input and output names: each can be either a vector of strings (one string per dimension), 
-or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify 
+State, input and output names: each can be either a vector of strings (one string per dimension),
+or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify
 the coordinates for each dimension (e.g. "x1", "x2", ...).
 
 `sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
@@ -114,7 +114,7 @@ ss(sys::LTISystem) = convert(StateSpace, sys)
 # Create a random statespace system
 function rss(nx::Int, nu::Int=1, ny::Int=1, feedthrough::Bool=true)
     Q = randn(nx, nx)
-    A = Q*diagm(-100*abs(randn(nx)))*Q'
+    A = Q*diagm(-100*abs.(randn(nx)))*Q'
     B = randn(nx, nu)
     C = randn(ny, nx)
     if feedthrough

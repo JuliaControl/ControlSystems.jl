@@ -3,6 +3,7 @@ export vecarray, run_tests, test_approx_eq
 
 using ControlSystems
 using Base.Test
+import Base.isapprox
 
 # Length not defined for StateSpace, so use custom function
 function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
@@ -17,7 +18,7 @@ function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bst
     for field in valfields
         mata = getfield(va, field)
         matb = getfield(vb, field)
-        diff = max(diff, maximum(abs(mata - matb)))
+        diff = max(diff, maximum(abs.(mata - matb)))
     end
     if !isnan(Eps) && !(diff <= Eps)
         sdiff = string("|", astr, " - ", bstr, "| <= ", Eps)
@@ -35,7 +36,7 @@ Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, b
 
 Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
 
-
+#Base.isapprox{T<:Number,N}(x::Array{T,N}, y::Array{T,N}; atol=sqrt(eps())) = all(abs.(x.-y) .< atol)
 
 function run_tests(my_tests)
   @testset "All tests" begin

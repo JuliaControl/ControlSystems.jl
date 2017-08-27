@@ -231,9 +231,9 @@ function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, cont
         dsys, x0map = c2d(sys, dt, :foh)
     end
     n = size(t, 1)
-    x = Array(T, size(sys.A, 1), n)
-    u = Array(T, n)
-    y = Array(T, n)
+    x = Array{T}(size(sys.A, 1), n)
+    u = Array{T}(n)
+    y = Array{T}(n)
     for i=1:n
         x[:,i] = x0
         y[i] = (sys.C*x0 + sys.D*u[i])[1]

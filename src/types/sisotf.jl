@@ -92,23 +92,23 @@ end
 +(t1::SisoRational, t2::SisoRational) = SisoRational(t1.num*t2.den + t2.num*t1.den, t1.den*t2.den)
 +(t::SisoRational, n::Real) = SisoRational(t.num + n*t.den, t.den)
 +(n::Real, t::SisoRational) = t + n
-.+(t::SisoRational, n::Real) = t + n
-.+(n::Real, t::SisoRational) = t + n
+#.+(t::SisoRational, n::Real) = t + n
+#.+(n::Real, t::SisoRational) = t + n
 
 -(t1::SisoRational, t2::SisoRational) = SisoRational(t1.num*t2.den - t2.num*t1.den, t1.den*t2.den)
 -(n::Real, t::SisoRational) = SisoRational(n*t.den - t.num, t.den)
 -(t::SisoRational, n::Real) = +(t, -n)
-.-(t::SisoRational, n::Real) = -(t, n)
-.-(n::Real, t::SisoRational) = -(n, t)
+#.-(t::SisoRational, n::Real) = -(t, n)
+#.-(n::Real, t::SisoRational) = -(n, t)
 
 -(t::SisoRational) = SisoRational(-t.num, t.den)
 
 *(t1::SisoRational, t2::SisoRational) = SisoRational(t1.num*t2.num, t1.den*t2.den)
 *(t::SisoRational, n::Real) = SisoRational(t.num*n, t.den)
 *(n::Real, t::SisoRational) = *(t, n)
-.*(t1::SisoRational, t2::SisoRational) = *(t1, t2)
-.*(t::SisoRational, n::Real) = *(t, n)
-.*(n::Real, t::SisoRational) = *(t, n)
+#.*(t1::SisoRational, t2::SisoRational) = *(t1, t2)
+#.*(t::SisoRational, n::Real) = *(t, n)
+#.*(n::Real, t::SisoRational) = *(t, n)
 
 /(n::Real, t::SisoRational) = SisoRational(n*t.den, t.num)
 /(t::SisoRational, n::Real) = t*(1/n)

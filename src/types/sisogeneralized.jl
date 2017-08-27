@@ -36,12 +36,21 @@ pole(t::SisoGeneralized) = error("pole is not implemented for generalized transf
 tzero(t::SisoGeneralized) = error("tzero is not implemented for generalized transferfunctions")
 
 #This makes sure that the function can compile once
+#Didn't work in julia 0.6 so we now only have inefficient version
 function _preprocess_for_freqresp(sys::SisoGeneralized)
-    _f = eval(:(s -> $(sys.expr)))
+    sys
 end
 
 evalfr(f::Function, freq) = f(freq)
-evalfr(sys::SisoGeneralized, freq) = _preprocess_for_freqresp(sys)(freq)
+#evalfr(sys::SisoGeneralized, freq) = _preprocess_for_freqresp(sys)(freq)
+
+function evalfr(sys::SisoGeneralized, freq)
+    _f = eval(:(s -> $(sys.expr)))
+    eval(Expr(:call,
+        function()
+          return _f(freq)
+        end))
+end
 
 function lsimabstract(sys::SisoGeneralized, uin, dt, Tend)
     #TODO make sure U and P are of equal length, fix input arguments, Tend results in half time, make sure u interp is using Tend
@@ -52,8 +61,9 @@ function lsimabstract(sys::SisoGeneralized, uin, dt, Tend)
     omega = linspace(-pi/dt, pi/dt, 2N+1)
     u = [uin; zeros(N)]
     U = fft(u)
-    Pf = _preprocess_for_freqresp(sys)
-    P = Complex{Float64}[evalfr(Pf, omega[i]*im) for i in 1:2N]
+    #Pf = _preprocess_for_freqresp(sys)
+    #P = Complex{Float64}[evalfr(Pf, omega[i]*im) for i in 1:2N]
+    P = evalfr(sys, omega[1:2N]*im)
     y = real(ifft(fftshift(P).*U))
     t = dt*(0:N-1)
     y[1:N]
