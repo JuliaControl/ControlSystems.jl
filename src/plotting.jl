@@ -263,7 +263,6 @@ end
         grid      --> true
         xscale    --> :log10
         yguide    --> "Phase (deg)"
-        subplot := 2
         xguide    --> "Frequency (rad/s)"
         x := w; y := phasedata
         ()
