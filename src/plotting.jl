@@ -48,11 +48,13 @@ not specified, a zero vector is used.
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.
-
-`kwargs` is sent as argument to Plots.plot.""" ->
+""" ->
 lsimplot
 
 @recipe function lsimplot(p::Lsimplot; method=nothing)
+    if length(p.args) < 3
+        error("Wrong number of arguments")
+    end
     systems,u,t = p.args[1:3]
 
     if !isa(systems,AbstractArray)
@@ -402,8 +404,7 @@ nicholsplot
 
     megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
     filter!(x-> !isnan(x), megaangles)
-    PCyc            = Set{Int}(floor.(Int,megaangles/360))
-    PCyc            = sort(collect(PCyc))
+    PCyc            = Set{Int}(round.(Int,megaangles/360)) |> collect |> sort
 
     #  Gain circles
     for k=Gains
@@ -411,6 +412,7 @@ nicholsplot
         GVals   =Ni_Ga(k,0:0.1:360)
         for l in PCyc
             @series begin
+                linewidth := 1
                 linecolor --> getColor(k)
                 grid --> false
                 if text
@@ -432,6 +434,7 @@ nicholsplot
     for k=Phi
         if abs(sind(k))<1e-3
             @series begin
+                linewidth := 1
                 linecolor := Colors.RGB(0.75*[1, 1, 1]...)
                 [k,k],[-110,25]
             end
@@ -444,6 +447,7 @@ nicholsplot
             end
         else
             @series begin
+                linewidth := 1
                 linecolor := Colors.RGB(0.75*[1,1,1]...)
                 Niϕϕ(k,T2),Ni_Gaϕ(k,T2)
             end
@@ -463,10 +467,10 @@ nicholsplot
         title --> "Nichols chart"
         grid --> false
         legend --> false
+        xguide --> "Phase [deg]"
+        yguide --> "Magnitude [dB]"
 
     end
-    dKwargs = Dict(kwargs)
-    LW = "linewidth" ∈ keys(dKwargs) ? pop!(dKwargs,"linewidth") : 2
 
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
     for (sysi,s) = enumerate(systems)
@@ -476,7 +480,7 @@ nicholsplot
         mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
         @series begin
-            linewidth = LW
+            linewidth --> 2
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
             linecolor --> styledict[:c]
