@@ -319,14 +319,17 @@ end
 
 
 @userplot Nyquistplot
-@doc """`fig = nyquistplot(sys; kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; kwargs...)`
+@doc """`fig = nyquistplot(sys; gaincircles=true, kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)`
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
+`gaincircles` plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are
+the sensitivity and complementary sensitivity functions.
+
 `kwargs` is sent as argument to plot.""" ->
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot)
+@recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
     systems = p.args[1]
     if !isa(systems,AbstractArray)
         systems = [systems]
@@ -347,25 +350,33 @@ nyquistplot
                 redata      = re_resp[:, i, j]
                 imdata      = im_resp[:, i, j]
                 @series begin
-                    ylims      := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims      := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
-                    title       --> "Nyquist plot from: u($j)"
-                    yguide      --> "To: y($i)"
-                    subplot    := s2i(i,j)
-                    label       --> "\$G_\{$(si)\}\$"
-                    styledict   = getStyleSys(si,length(systems))
-                    linestyle   --> styledict[:l]
-                    linecolor   --> styledict[:c]
+                    ylims   := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                    xlims   := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                    title --> "Nyquist plot from: u($j)"
+                    yguide --> "To: y($i)"
+                    subplot := s2i(i,j)
+                    label --> "\$G_\{$(si)\}\$"         
+                    styledict = getStyleSys(si,length(systems))
+                    linestyle --> styledict[:l]
+                    linecolor --> styledict[:c]
                     (redata, imdata)
                 end
-                if si == length(systems)
+                # Plot rings
+                if gaincircles && si == length(systems)
                     v = linspace(0,2π,100)
                     S,C = sin.(v),cos.(v)
-                    linestyle := :dash
-                    linecolor := :black
-                    label := ""
-                    @series (C,S)
-                    @series (C-1,S)
+                    @series begin
+                        label := ""
+                        linestyle := :dash
+                        linecolor := :black
+                        (C,S)
+                    end
+                    @series begin
+                        label := ""
+                        linestyle := :dash
+                        linecolor := :black
+                        (C-1,S)
+                    end
                 end
 
             end
