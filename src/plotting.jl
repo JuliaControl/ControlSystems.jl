@@ -59,11 +59,9 @@ function getLogTicks(x)
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
-            minorText = [L"." for t in minorText]#fill!(minorText, L" ")
+            minorText = [L" " for t in minorText]#fill!(minorText, L" ")
         end
         perm = sortperm([major; minor])
-        @show major, minor
-        @show majorText, minorText
         return [major; minor][perm], [majorText; minorText][perm]
 
     else
@@ -355,7 +353,7 @@ nyquistplot
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot := s2i(i,j)
-                    label --> "\$G_\{$(si)\}\$"         
+                    label --> "\$G_\{$(si)\}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
