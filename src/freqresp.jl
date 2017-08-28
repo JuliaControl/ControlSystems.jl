@@ -1,8 +1,8 @@
-@doc """H, w, = freqresp(sys, w)
+@doc """sys_fr = freqresp(sys, w)
 
-Evaluate the frequency response
+Evaluate the frequency response of a linear system
 
-`H(iw) = C*((iwI -A)^-1)*B + D`
+`w -> C*((iw*im -A)^-1)*B + D`
 
 of system `sys` over the frequency vector `w`.""" ->
 function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
@@ -17,19 +17,23 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     end
     #Evil but nessesary type instability here
     sys = _preprocess_for_freqresp(sys)
-    resp = Array{Complex128}(nw, ny, nu)
+    sys_fr = Array{Complex128}(nw, ny, nu)
     for i=1:nw
         # TODO : This doesn't actually take advantage of Hessenberg structure
         # for statespace version.
-        resp[i, :, :] = evalfr(sys, s[i])
+        sys_fr[i, :, :] = evalfr(sys, s[i])
     end
-    return resp, w
+    return sys_fr
 end
 
 # Implements algorithm found in:
 # Laub, A.J., "Efficient Multivariable Frequency Response Computations",
 # IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
 function _preprocess_for_freqresp(sys::StateSpace)
+    if isempty(sys.A) # hessfact does not work for empty matrices
+        return sys
+    end
+
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
     F = hessfact(A)
     H = F[:H]::Matrix{Float64}
@@ -110,7 +114,7 @@ at frequencies `w`
 
 `mag` and `phase` has size `(length(w), ny, nu)`""" ->
 function bode(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)[1]
+    resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
@@ -122,7 +126,7 @@ at frequencies `w`
 
 `re` and `im` has size `(length(w), ny, nu)`""" ->
 function nyquist(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)[1]
+    resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
 nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
@@ -134,7 +138,7 @@ frequencies `w`
 
 `sv` has size `(length(w), max(ny, nu))`""" ->
 function sigma(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)[1]
+    resp = freqresp(sys, w)
     nw, ny, nu = size(resp)
     sv = Array{Float64}(nw, min(ny, nu))
     for i=1:nw

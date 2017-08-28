@@ -18,6 +18,21 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test evalfr(G, -1) ≈ [0.0 -0.3; 0.0 0.4]
 @test evalfr(G, 0) ≈ [0.0 0.0; 0.2 1/3]
 
+
+## Freqresp
+w = logspace(-1,1)
+
+H1 = tf(1)
+G1 = ss(1)
+@test freqresp(G1, w) == ones(Complex128, length(w), 1, 1)
+@test freqresp(H1, w) == ones(Complex128, length(w), 1, 1)
+
+H2 = tf(1, [1,1])
+G2 = ss(-1, 1, 1, 0)
+@test freqresp(G2, w) == reshape(1./(1 + im*w), length(w), 1, 1)
+@test freqresp(H2, w) == reshape(1./(1 + im*w), length(w), 1, 1)
+
+
 ## Shortcut notation for evalfr ##
 F = tf([1],[1,0.5],-1)
 omega = 2
