@@ -126,6 +126,19 @@ end
 
 @userplot Stepplot
 @userplot Impulseplot
+"""
+    stepplot(sys[, Tf[,  Ts]])
+Plot step response of `sys` with optional final time `Tf` and discretization time `Ts`.
+If not defined, suitable values are chosen based on `sys`.
+"""
+stepplot
+
+"""
+    impulseplot(sys[, Tf[,  Ts]])
+Plot step response of `sys` with optional final time `Tf` and discretization time `Ts`.
+If not defined, suitable values are chosen based on `sys`.
+"""
+impulseplot
 
 for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse Response", Impulseplot))
     funcname = Symbol(func,"plot")
@@ -141,7 +154,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
             Ts_list = _default_Ts.(systems)
             Tf = p.args[2]
         else
-            Ts_list, Tf = p.args[2:3]
+            Tf, Ts_list = p.args[2:3]
         end
         if !_same_io_dims(systems...)
             error("All systems must have the same input/output dimensions")
@@ -175,10 +188,6 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                 end
             end
         end
-    end
-    @eval begin
-        $funcname{T<:LTISystem}(systems::Vector{T}, t::AbstractVector; kwargs...) =
-        $funcname(systems, repmat([t[2] - t[1]], length(systems)), t[end]; kwargs...)
     end
 
 end
@@ -449,41 +458,52 @@ nicholsplot
     Radϕ(ϕ)         = @. 1./(2.*abs(sind(ϕ)))
     Nyℜ(ϕ,t)        = @. -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
     Nyℑ(ϕ,t)        = @. 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
-    Niϕϕ(ϕ,t)       = @. rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*floor(ϕ/360)
+    Niϕϕ(ϕ,t)       = @. rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*(round(ϕ/360,RoundToZero)+(t<0))
     Ni_Gaϕ(ϕ,t)     = @. 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
     Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
     megaangles      = vcat(map(s -> 180/π*angle(squeeze(freqresp(s, w)[1],(2,3))), systems)...)
     filter!(x-> !isnan(x), megaangles)
+    extremeangles = extrema(megaangles)
+    extremeangles
+    extremeangles = floor(extremeangles[1]/180)*180, ceil(extremeangles[2]/180)*180
     PCyc            = Set{Int}(round.(Int,megaangles/360)) |> collect |> sort
+    # PCyc            = extremeangles[1]:pInc:extremeangles[2]
+
+    # yticks := (Float64[],String[])
+    yguide --> "Open-loop gain [dB]"
+    xguide --> "Open-loop phase [deg]"
 
     #  Gain circles
     for k=Gains
-        ϕVals   =Niϕ(k,0:0.1:360)
-        GVals   =Ni_Ga(k,0:0.1:360)
+        ϕVals   =Niϕ(k,-180:1:180)
+        GVals   =Ni_Ga(k,-180:1:180)
         for l in PCyc
             @series begin
                 linewidth := 1
                 linecolor --> getColor(k)
                 grid --> false
                 if text
-                    offset  = (l+1)*360
+                    offset  = (l+1)
                     TextX   = Niϕ(k,210)+offset
                     TextY   = Ni_Ga(k,210)
                     annotation := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
                 end
-                ϕVals+l*360,GVals
+                ϕVals+l,GVals
             end
         end
     end
 
     #  Phase circles
-    Phi=PCyc[1]*360:pInc:PCyc[end]*360
-    T1=logspace(-4,log10(180),300)
-    T2=[T1; 360-flipdim(T1,1)]
+    PCycbottom = (PCyc[1] < 0 ? PCyc[1]*360 : (PCyc[1]-1)*360)
+    PCyctop = (PCyc[end] < 0 ? (PCyc[end]+1)*360 : (PCyc[end])*360)
 
-    for k=Phi
+    Phi=(PCycbottom):pInc:(PCyctop)
+    T1 = logspace(-4,log10(180),300)
+    T2 = [T1; 360-flipdim(T1,1)]
+
+    for k=(Phi+180)
         if abs(sind(k))<1e-3
             @series begin
                 linewidth := 1
@@ -512,9 +532,8 @@ nicholsplot
                 TextY=Ni_Gaϕ(k,-Ni_La(Offset))
             end
         end
-
+        TextX
         annotation := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
-
 
         title --> "Nichols chart"
         grid --> false
@@ -524,13 +543,15 @@ nicholsplot
 
     end
 
+    extremas = extrema(Gains)
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
     for (sysi,s) = enumerate(systems)
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
         ℜdata               = squeeze(ℜresp, (2,3))
         ℑdata               = squeeze(ℑresp, (2,3))
         mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
-        angles              = 180/π*angle(im*ℑdata.+ℜdata)
+        angles              = 180/π*angle(im*ℑdata.+ℜdata) |> unwrap
+        extremas = extrema([extremas..., extrema(mag)...])
         @series begin
             linewidth --> 2
             styledict = getStyleSys(sysi,length(systems))
@@ -539,7 +560,9 @@ nicholsplot
             angles, mag
         end
     end
-
+    ylims --> extremas
+    xlims --> extrema(PCyc*360)
+    nothing
 
 end
 
