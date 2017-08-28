@@ -52,15 +52,19 @@ function getLogTicks(x)
         if Plots.backend() != Plots.GRBackend()
             minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
         else
-            minorText = ["\$$j\\cdot10^{$(round(Int64,i))}\$" for i = (min-1):(max+1) for j = 2:9]
+            minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
         end
+
         ind       = find(minimum(x) .<= minor .<= maximum(x))
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
             minorText = [L"." for t in minorText]#fill!(minorText, L" ")
         end
-        return [major; minor], [majorText; minorText]
+        perm = sortperm([major; minor])
+        @show major, minor
+        @show majorText, minorText
+        return [major; minor][perm], [majorText; minorText][perm]
 
     else
         return major, majorText
@@ -219,6 +223,7 @@ bodeplot
     s2i(i,j) = sub2ind((nu,(plotphase?2:1)*ny),j,i)
     layout := ((plotphase?2:1)*ny,nu)
     nw = length(w)
+    xticks --> getLogTicks(w)
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -226,7 +231,6 @@ bodeplot
             mag = 20*log10.(mag)
         end
 
-        xticks --> getLogTicks(w)
 
         xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
