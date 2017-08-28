@@ -16,9 +16,9 @@ function getStyleSys(i,Nsys)
     return Dict(:c => c, :l => styles[istyle])
 end
 
-_PlotScale = "dB"
-_PlotScaleFunc = :identity
-_PlotScaleStr = "(dB)"
+_PlotScale = "log10"
+_PlotScaleFunc = :log10
+_PlotScaleStr = ""
 
 @doc """`setPlotScale(str)`
 
@@ -35,6 +35,38 @@ function setPlotScale(str::AbstractString)
     global _PlotScale, _PlotScaleFunc, _PlotScaleStr
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
+
+function getLogTicks(x)
+    major_minor_limit = 6
+    minor_text_limit  = 8
+    min               = ceil(log10(minimum(x)))
+    max               = floor(log10(maximum(x)))
+    major             = 10.^collect(min:max)
+    if Plots.backend() != Plots.GRBackend()
+        majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
+    else
+        majorText = ["10^{$(round(Int64,i))}" for i = min:max]
+    end
+    if max - min < major_minor_limit
+        minor     = [j*10^i for i = (min-1):(max+1) for j = 2:9]
+        if Plots.backend() != Plots.GRBackend()
+            minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
+        else
+            minorText = ["\$$j\\cdot10^{$(round(Int64,i))}\$" for i = (min-1):(max+1) for j = 2:9]
+        end
+        ind       = find(minimum(x) .<= minor .<= maximum(x))
+        minor     = minor[ind]
+        minorText = minorText[ind]
+        if length(minor) > minor_text_limit
+            minorText = [L"." for t in minorText]#fill!(minorText, L" ")
+        end
+        return [major; minor], [majorText; minorText]
+
+    else
+        return major, majorText
+    end
+end
+
 
 @userplot Lsimplot
 
@@ -194,6 +226,8 @@ bodeplot
             mag = 20*log10.(mag)
         end
 
+        xticks --> getLogTicks(w)
+
         xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
             for i=1:ny
@@ -208,10 +242,13 @@ bodeplot
                     grid      --> true
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
+                    if _PlotScale != "dB"
+                        yticks    --> getLogTicks(magdata)
+                    end
                     xguide    --> xlab
+                    yguide    --> "Magnitude $_PlotScaleStr"
                     subplot := s2i((plotphase?(2i-1):i),j)
                     title     --> "Bode plot from: u($j)"
-                    yguide    --> "Magnitude $_PlotScaleStr"
                     label     --> "\$G_\{$(si)\}\$"
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
@@ -243,10 +280,12 @@ end
     seriestype := :path
     primary := false
     @series begin
-        grid      --> true
-        yscale    --> :log10
-        xscale    --> :log10
-        yguide    --> "Magnitude"
+        grid   --> true
+        yscale --> :log10
+        xscale --> :log10
+        yguide --> "Magnitude"
+        xticks --> getLogTicks(w)
+        yticks --> getLogTicks(magdata)
         x := w; y := magdata
         ()
     end
@@ -260,10 +299,11 @@ end
     seriestype := :path
     primary := false
     @series begin
-        grid      --> true
-        xscale    --> :log10
-        yguide    --> "Phase (deg)"
-        xguide    --> "Frequency (rad/s)"
+        grid   --> true
+        xscale --> :log10
+        yguide --> "Phase (deg)"
+        xguide --> "Frequency (rad/s)"
+        xticks --> getLogTicks(w)
         x := w; y := phasedata
         ()
     end
