@@ -19,6 +19,7 @@ export  LTISystem,
         dkalman,
         covar,
         norm,
+        norminf,
         gram,
         ctrb,
         obsv,
@@ -63,7 +64,7 @@ export  LTISystem,
         denpoly
 
 import Plots
-import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, call, convert
+import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
 include("types/lti.jl")
 include("types/transferfunction.jl")

@@ -52,9 +52,9 @@ Compute the zeros, poles, and gains of system `sys`.
 `k` : Matrix{Float64}, (ny x nu)""" ->
 function zpkdata(sys::LTISystem)
     ny, nu = size(sys)
-    zs = Array(Vector{Complex128}, ny, nu)
-    ps = Array(Vector{Complex128}, ny, nu)
-    ks = Array(Float64, ny, nu)
+    zs = Array{Vector{Complex128}}(ny, nu)
+    ps = Array{Vector{Complex128}}(ny, nu)
+    ks = Array{Float64}(ny, nu)
     for j = 1:nu
         for i = 1:ny
             zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
@@ -96,11 +96,11 @@ function damp(sys::LTISystem)
         Ts = sys.Ts == -1 ? 1 : sys.Ts
         ps = log(ps)/Ts
     end
-    Wn = abs(ps)
+    Wn = abs.(ps)
     order = sortperm(Wn)
     Wn = Wn[order]
     ps = ps[order]
-    ζ = -cos(angle(ps))
+    ζ = -cos.(angle.(ps))
     return Wn, ζ, ps
 end
 
@@ -205,7 +205,7 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, 
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Float64[]
+            A = B = Cbar = Dbar = Array{Float64,2}(0,0)
             break
         end
         # Update System
@@ -233,7 +233,7 @@ end
 function fastrank(A::Matrix{Float64}, meps::Float64)
     n, m = size(A, 1, 2)
     if n*m == 0     return 0    end
-    norms = Array(Float64, n)
+    norms = Array{Float64}(n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end
@@ -300,7 +300,7 @@ function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, a
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
         fi = [fi;NaN][idx]
-        pm, idx = findmin([abs(pm);Inf])
+        pm, idx = findmin([abs.(pm);Inf])
         wpm = [wpm;NaN][idx]
         if full
             if !isnan(fi) #fi may be NaN, fullPhase is a scalar

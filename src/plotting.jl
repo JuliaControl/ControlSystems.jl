@@ -82,8 +82,8 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
             end
             ny, nu = size(systems[1])
             fig = Plots.plot(layout=(ny,nu))
-            titles = fill("", ny*nu)
-            s2i(i,j) = sub2ind((ny,nu),j,i)
+            titles = fill("", 1, ny*nu)
+            s2i(i,j) = sub2ind((ny,nu),i,j)
             for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
                 t = 0:Ts:Tf
                 y = ($func)(s, t)[1]
@@ -98,7 +98,7 @@ for (func, title) = ((:step, "Step Response"), (:impulse, "Impulse Response"))
                     end
                 end
             end
-            Plots.plot!(fig, title=titles')
+            Plots.plot!(fig, title=titles)
             return fig
         end
         $funcname{T<:LTISystem}(systems::Vector{T}, Tf::Real; kwargs...) =
@@ -140,7 +140,7 @@ function bodeplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; plotphase
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
         if _PlotScale == "dB"
-            mag = 20*log10(mag)
+            mag = 20*log10.(mag)
         end
         xlab = plotphase ? "" : "Frequency (rad/s)"
         for j=1:nu
@@ -334,7 +334,7 @@ function nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector;
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
         ℜdata               = squeeze(ℜresp, (2,3))
         ℑdata               = squeeze(ℑresp, (2,3))
-        mag                 = 20*log10(sqrt(ℜdata.^2 + ℑdata.^2))
+        mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
         Plots.plot!(fig,angles, mag; linewidth = LW, getStyleSys(sysi,length(systems))..., kwargs...)
     end
@@ -362,7 +362,7 @@ function sigmaplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs..
     for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
         if _PlotScale == "dB"
-            sv = 20*log10(sv)
+            sv = 20*log10.(sv)
         end
         for i in 1:size(sv, 2)
             Plots.plot!(fig, w, sv[:, i], xscale=:log10, yscale=_PlotScaleFunc; getStyleSys(si,length(systems))..., kwargs...)
@@ -389,7 +389,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
     s2i(i,j) = sub2ind((ny,nu),j,i)
-    titles = Array(AbstractString,nu,ny,2,2)
+    titles = Array{AbstractString}(nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
     titles[:,:,2,1] = "Pm: "
     titles[:,:,1,2] = "Wgm: "
@@ -399,7 +399,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
                 if _PlotScale == "dB"
-                    mag = 20*log10(1./gm)
+                    mag = 20*log10.(1./gm)
                     oneLine = 0
                 else
                     mag = 1./gm
@@ -488,12 +488,11 @@ Gang-of-Four plot.
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
     S,D,N,T = gangoffour(P,C)
     fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
-    lower = plotphase ? 3 : 2
-    s2i(i,j) = sub2ind((2,(plotphase?4:2)),j,i)
-    Plots.plot!(fig,title="\$S = 1/(1+PC)\$", subplot=s2i(1,1))
-    Plots.plot!(fig,title="\$D = P/(1+PC)\$", subplot=s2i(1,2))
-    Plots.plot!(fig,title="\$N = C/(1+PC)\$", subplot=s2i(lower,1))
-    Plots.plot!(fig,title="\$T = PC/(1+PC\$)", subplot=s2i(lower,2))
+    titles = fill("", 1, plotphase ? 8 : 4)
+    # Empty titles on phase
+    titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
+    titles[titleIdx] = ["\$S = 1/(1+PC)\$", "\$D = P/(1+PC)\$", "\$N = C/(1+PC)\$", "\$T = PC/(1+PC\$)"]
+    Plots.plot!(fig, title = titles)
     return fig
 end
 

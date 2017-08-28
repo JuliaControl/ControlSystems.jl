@@ -6,7 +6,7 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
     mat = t.matrix
     # TODO : These are added due to scoped for blocks, but is a hack. This
     # could be much cleaner.
-    Ac = Bc = Cc = Dc = A = B = C = D = Array(Float64, 0, 0)
+    Ac = Bc = Cc = Dc = A = B = C = D = Array{Float64}(0, 0)
     for i=1:nu
         for j=1:ny
             a, b, c, d = siso_tf_to_ss(mat[j, i])
@@ -46,7 +46,7 @@ function siso_tf_to_ss(t::SisoRational)
     tnum = num(t)
     tden = den(t)
     len = length(tden)
-    d = Array(Float64, 1, 1)
+    d = Array{Float64}(1, 1)
     d[1] = tnum[1]
 
     if len==1 || tnum == zero(Poly{Float64})
@@ -86,9 +86,9 @@ function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
     ny = size(C,1)
 
     # Compute the transformation matrix
-    mag_A = abs(A)
-    mag_B = maximum([abs(B)  zeros(S, nx, 1)], 2)
-    mag_C = maximum([abs(C); zeros(S, 1, nx)], 1)
+    mag_A = abs.(A)
+    mag_B = maximum([abs.(B)  zeros(S, nx, 1)], 2)
+    mag_C = maximum([abs.(C); zeros(S, 1, nx)], 1)
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation
@@ -145,7 +145,7 @@ function ss2tf(A, B, C, D, Ts = 0; inputnames = "", outputnames = "")
     ubernum = Matrix{Vector}(ny,nu)
     uberden = Matrix{Vector}(ny,nu)
     for i = 1:nu, j=1:ny
-        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:], D[j,i])
+        ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:]', D[j,i])
     end
     tf(ubernum,uberden, Ts, inputnames=inputnames, outputnames=outputnames)
 end
@@ -163,7 +163,7 @@ zpk(sys::StateSpace) = zpk(ss2tf(sys))
 function charpoly(A)
     λ = eigvals(A);
     p = reduce(*,ControlSystems.Poly([1.]), ControlSystems.Poly[ControlSystems.Poly([1, -λᵢ]) for λᵢ in λ]);
-    if maximum(imag(p[:])./(1+abs(real(p[:])))) < sqrt(eps())
+    if maximum(imag.(p[:])./(1+abs.(real.(p[:])))) < sqrt(eps())
         for i = 1:length(p)
             p[i] = real(p[i])
         end

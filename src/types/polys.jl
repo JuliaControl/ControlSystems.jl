@@ -10,11 +10,11 @@ Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 immutable Poly{T<:Number}
     a::Vector{T}
     nzfirst::Int #for effiencicy, track the first non-zero index
-    function Poly(a::Vector{T})
+    function Poly{S}(a::Vector{S}) where S
         la = length(a)
         i = 0
         for i = 1:la
-            if abs(a[i]) > 2*eps(T)  break  end
+            if abs(a[i]) > 2*eps(S)  break  end
         end
         new(a, i)
     end
@@ -82,7 +82,7 @@ end
 *(c::Number, p::Poly) = Poly(c * p.a[p.nzfirst:end])
 *(p::Poly, c::Number) = Poly(c * p.a[p.nzfirst:end])
 /(p::Poly, c::Number) = Poly(p.a[p.nzfirst:end] / c)
-./(p::Poly, c::Number) = /(p, c)
+#./(p::Poly, c::Number) = /(p, c)
 -(p::Poly) = Poly(-p.a[p.nzfirst:end])
 
 -(p::Poly, c::Number) = +(p, -c)
@@ -111,7 +111,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = Array(R, n)
+        a = Array{R}(n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] + p2[i]
         end
@@ -119,7 +119,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = Array(R, m)
+        a = Array{R}(m)
         for i = 1:n
             a[m-n+i] = p1[i] + p2[m-n+i]
         end
@@ -135,7 +135,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = Array(R, n)
+        a = Array{R}(n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] - p2[i]
         end
@@ -143,7 +143,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = Array(R, m)
+        a = Array{R}(m)
         for i = 1:n
             a[m-n+i] = p1[i] - p2[m-n+i]
         end

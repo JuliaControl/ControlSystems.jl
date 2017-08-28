@@ -1,8 +1,9 @@
 module TestPlots
 using CustomTest
+using Base.Test
 using ControlSystems, Plots
 using VisualRegressionTests, ControlExamplePlots
-
+gr()
 default(show=false)
 
 funcs, refs, eps = getexamples()

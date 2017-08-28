@@ -21,6 +21,6 @@ end
 deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
     latest = "master",
-    julia = "0.4",
+    julia = "0.5",
     deps = myDeps
 )

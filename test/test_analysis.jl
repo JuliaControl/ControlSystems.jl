@@ -1,5 +1,6 @@
 module TestAnalysis
 using CustomTest
+using Base.Test
 using ControlSystems
 
 ## TZERO ##
@@ -19,7 +20,7 @@ D = [1 0;
      1 0]
 
 ex_3 = ss(A, B, C, D)
-@test_approx_eq tzero(ex_3) [0.3411639019140099 + 1.161541399997252im,
+@test tzero(ex_3) ≈ [0.3411639019140099 + 1.161541399997252im,
                              0.3411639019140099 - 1.161541399997252im,
                              0.9999999999999999 + 0.0im,
                              -0.6823278038280199 + 0.0im]
@@ -38,7 +39,7 @@ C = [1 0 0 0 0;
      0 1 0 0 0]
 D = zeros(2, 2)
 ex_4 = ss(A, B, C, D)
-@test_approx_eq tzero(ex_4) [-0.06467751189940692,-0.3680512036036696]
+@test tzero(ex_4) ≈ [-0.06467751189940692,-0.3680512036036696]
 
 # Example 5
 s = tf("s")
@@ -72,12 +73,12 @@ C = [0 0 0 1 0 0]
 D = [0]
 ex_8 = ss(A, B, C, D)
 # TODO : there may be a way to improve the precision of this example.
-@test_approx_eq_eps tzero(ex_8) [-1.0, -1.0] 1e-7
+@test tzero(ex_8) ≈ [-1.0, -1.0] atol=1e-7
 
 # Example 9
 ex_9 = (s - 20)/s^15
-@test_approx_eq tzero(ex_9) [20.0]
-@test_approx_eq tzero(ss(ex_9)) [20.0]
+@test tzero(ex_9) ≈ [20.0]
+@test tzero(ss(ex_9)) ≈ [20.0]
 
 # Example 11
 A = [-2 -6 3 -7 6;
@@ -94,16 +95,16 @@ D = [0 0;
      0 0;
      0 0]
 ex_11 = ss(A, B, C, D)
-@test_approx_eq tzero(ex_11) [4.0, -3.0]
+@test tzero(ex_11) ≈ [4.0, -3.0]
 
 # Test for multiple zeros, siso tf
 sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
-@test_approx_eq tzero(sys) [-1.0, -im, im, 3.0, 0.0]
+@test tzero(sys) ≈ [-1.0, -im, im, 3.0, 0.0]
 
 ## POLE ##
-@test_approx_eq pole(sys) [-1.0, 4.0, -4.0]
-@test_approx_eq pole([sys sys]) [-1.0, 4.0, -4.0, -1.0, 4.0, -4.0]
-@test_approx_eq pole(ex_11) eig(ex_11.A)[1]
+@test pole(sys) ≈ [-1.0, 4.0, -4.0]
+@test pole([sys sys]) ≈ [-1.0, 4.0, -4.0, -1.0, 4.0, -4.0]
+@test pole(ex_11) ≈ eig(ex_11.A)[1]
 
 @test_approx_eq pole(ex_8) [-3.383889568918823 + 0.000000000000000im
                             -2.199935841931115 + 0.000000000000000im
@@ -127,7 +128,7 @@ macro test_array_vecs_eps(a, b, tol)
     quote
         @test size($a) == size($b)
         for (res, sol) = zip($a, $b)
-            @test_approx_eq_eps sortcomplex(res) sol $tol
+            @test isapprox(sortcomplex(res), sol, atol=$tol)
         end
     end
 end
@@ -151,8 +152,8 @@ z, p, k = zpkdata(G)
 ## GAIN ## #Gain is confusing when referring to zpkdata. Test dcgain instead
 @test [dcgain(H[1, 1]) dcgain(H[1, 2]); dcgain(H[2, 1]) dcgain(H[2, 2])] ≈ [0 0; 0.2 1/3]
 @test [dcgain(G[1, 1]) dcgain(G[1, 2]); dcgain(G[2, 1]) dcgain(G[2, 2])] ≈ [0 0; 0.2 1/3]
-@test_err dcgain(H)
-@test_err dcgain(G)
+@test_throws ErrorException dcgain(H)
+@test_throws ErrorException dcgain(G)
 
 ## MARKOVPARAM ##
 @test markovparam(G, 0) == [0.0 0.0; 1.0 0.0]
@@ -160,10 +161,10 @@ z, p, k = zpkdata(G)
 @test markovparam(G, 2) == [0.0 -3.0; 20.0 -12.0]
 
 ## DAMP ##
-@test_approx_eq damp(sys)[1] [1.0, 4.0, 4.0]
-@test_approx_eq damp(sys)[2] [1.0, -1.0, 1.0]
-@test_approx_eq damp(ex_11)[1] [1.0, 1.0, 2.0, 2.0, 3.0]
-@test_approx_eq damp(ex_11)[2] [1.0, -1.0, -1.0, 1.0, -1.0]
+@test damp(sys)[1] ≈ [1.0, 4.0, 4.0]
+@test damp(sys)[2] ≈ [1.0, -1.0, 1.0]
+@test damp(ex_11)[1] ≈ [1.0, 1.0, 2.0, 2.0, 3.0]
+@test damp(ex_11)[2] ≈ [1.0, -1.0, -1.0, 1.0, -1.0]
 
 ## DAMPREPORT ##
 @test sprint(dampreport, sys) == (

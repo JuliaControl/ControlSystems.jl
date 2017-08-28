@@ -1,4 +1,4 @@
-abstract SisoTf
+abstract type SisoTf end
 include("polys.jl")
 include("sisotf.jl")
 include("sisozpk.jl")
@@ -12,10 +12,10 @@ type TransferFunction{S<:SisoTf} <: LTISystem
     Ts::Float64
     nu::Int
     ny::Int
-    inputnames::Vector{UTF8String}
-    outputnames::Vector{UTF8String}
-    function TransferFunction{T<:SisoTf}(matrix::Matrix{T}, Ts::Float64,
-            inputnames::Vector{UTF8String}, outputnames::Vector{UTF8String})
+    inputnames::Vector{String}
+    outputnames::Vector{String}
+    function TransferFunction{T}(matrix::Matrix{T}, Ts::Float64,
+            inputnames::Vector{String}, outputnames::Vector{String}) where T<:SisoTf
         # Validate size of input and output names
         ny, nu = size(matrix)
         if size(inputnames, 1) != nu
@@ -81,7 +81,6 @@ Base.convert(::Type{SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, c
 
 Base.convert(::Type{SisoRational}, sys::SisoGeneralized) = SisoRational(sys.expr)
 Base.convert(::Type{SisoZpk}, sys::SisoGeneralized) = convert(SisoZpk, SisoRational(sys.expr))
-Base.convert(::Type{TransferFunction{SisoZpk}}, s::TransferFunction) = zpk(s)
 
 #Just default SisoTf to SisoRational
 SisoTf(args...) = SisoRational(args...)
@@ -109,13 +108,17 @@ tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 *(a::SisoTf, b::SisoTf)  = *(promote(a,b)...)
 +(a::SisoTf, b::SisoTf)  = +(promote(a,b)...)
 -(a::SisoTf, b::SisoTf)  = -(promote(a,b)...)
-.*(a::SisoTf, b::SisoTf) = .*(promote(a,b)...)
-.+(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
-.-(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
+#.*(a::SisoTf, b::SisoTf) = .*(promote(a,b)...)
+#.+(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
+#.-(a::SisoTf, b::SisoTf) = .+(promote(a,b)...)
 
 ==(a::SisoTf, b::SisoTf) = ==(promote(a,b)...)
 !=(a::SisoTf, b::SisoTf) = !(a==b)
 isapprox(a::SisoTf, b::SisoTf; kwargs...) = isapprox(promote(a,b)...; kwargs...)
+
+# Promote_op types
+Base.promote_op{T<:SisoTf}(::Any, ::Type{T}, ::Type{T}) = T
+
 #####################################################################
 ##                      Constructor Functions                      ##
 #####################################################################
@@ -147,7 +150,7 @@ function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0
     if (ny, nu) != size(den, 1, 2)
         error("num and den dimensions must match")
     end
-    matrix = Array(SisoRational, ny, nu)
+    matrix = Array{SisoRational}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoRational(num[o, i], den[o, i])
@@ -188,7 +191,7 @@ function zpk{T<:Vector,S<:Vector}(z::VecOrMat{T}, p::VecOrMat{S}, k::VecOrMat, T
     if (ny, nu) != size(p, 1, 2) || (ny, nu) != size(k, 1, 2)
         error("s, p, and k kdimensions must match")
     end
-    matrix = Array(SisoZpk, ny, nu)
+    matrix = Array{SisoZpk}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoZpk(z[o, i], p[o, i], k[o, i])
@@ -202,7 +205,7 @@ end
 
 function zpk(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array(SisoZpk, tf.ny, tf.nu)
+    matrix = Array{SisoZpk}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(SisoZpk, oldmat[i])
     end
@@ -211,7 +214,7 @@ end
 
 function tf(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array(SisoRational, tf.ny, tf.nu)
+    matrix = Array{SisoRational}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(SisoRational, oldmat[i])
     end
@@ -230,7 +233,7 @@ Other uses:
 """ ->
 function tfg(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array(SisoGeneralized, tf.ny, tf.nu)
+    matrix = Array{SisoGeneralized}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(SisoGeneralized, oldmat[i])
     end
@@ -250,7 +253,7 @@ zpk(z::Vector, p::Vector, k::Real, Ts::Real=0; kwargs...) =
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array(SisoRational, ny, nu)
+    matrix = Array{SisoRational}(ny, nu)
     for i in eachindex(gain)
         matrix[i] = SisoRational([gain[i]], [1])
     end
@@ -262,7 +265,7 @@ end
 
 function zpk(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array(SisoZpk, ny, nu)
+    matrix = Array{SisoZpk}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoZpk([],[], gain[o, i])
@@ -293,7 +296,7 @@ zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 
 function tfg(systems::Array, Ts::Real=0; kwargs...)
     ny, nu = size(systems, 1, 2)
-    matrix = Array(SisoGeneralized, ny, nu)
+    matrix = Array{SisoGeneralized}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoGeneralized(systems[o, i])
@@ -319,11 +322,12 @@ function Base.getindex(t::TransferFunction, inds...)
     if size(inds, 1) != 2
         error("Must specify 2 indices to index TransferFunction model")
     end
-    rows, cols = inds
-    mat = Array(eltype(t.matrix), length(rows), length(cols))
+    rows, cols = ControlSystems.index2range(inds...)
+    T = eltype(t.matrix)
+    mat = Array{T}(length(rows), length(cols))
     mat[:, :] = t.matrix[rows, cols]
-    innames = UTF8String[t.inputnames[i] for i in cols]
-    outnames = UTF8String[t.outputnames[i] for i in rows]
+    innames = String[t.inputnames[i] for i in cols]
+    outnames = String[t.outputnames[i] for i in rows]
     return TransferFunction(mat, t.Ts, innames, outnames)
 end
 
@@ -397,14 +401,14 @@ function +(t1::TransferFunction, t2::TransferFunction)
     elseif all(t2.inputnames .== "") || (t1.inputnames == t2.inputnames)
         inputnames = t1.inputnames
     else
-        inputnames = fill(UTF8String(""),t1.ny)
+        inputnames = fill(String(""),t1.ny)
     end
     if all(t1.outputnames .== "")
         outputnames = t2.outputnames
     elseif all(t2.outputnames .== "") || (t1.outputnames == t2.outputnames)
         outputnames = t1.outputnames
     else
-        outputnames = fill(UTF8String(""),t1.nu)
+        outputnames = fill(String(""),t1.nu)
     end
     t1, t2 = promote(t1, t2)
     matrix = t1.matrix + t2.matrix

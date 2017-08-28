@@ -1,5 +1,6 @@
 module TestGeneralizedTF
 using CustomTest
+using Base.Test
 using ControlSystems
 
 # CONTINUOUS
