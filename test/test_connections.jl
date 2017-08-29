@@ -1,4 +1,4 @@
-
+@testset "test_connections" begin
 ## STATE SPACE ##
 # CONTINUOUS
 C_111 = ss([1], [2], [3], [4])
@@ -32,9 +32,6 @@ D_022 = ss(4*eye(2), 0.005)
 @test parallel(C_111, C_211) == C_111 + C_211
 
 # Errors
-macro test_err(ex)
-    :(@test_throws ErrorException $ex)
-end
 @test_throws ErrorException [C_111 D_111]                 # Sampling time mismatch
 @test_throws ErrorException [C_111; D_111]                # Sampling time mismatch
 @test_throws ErrorException append(C_111, D_111)          # Sampling time mismatch
@@ -124,3 +121,4 @@ arr3[1] = ss(0); arr3[2] = ss(1); arr3[3] = ss(2)
 
 #This might fail depending on if minreal is used or not
 @test (Czpk_211+1) ≈ (Ctf_211+1)
+end

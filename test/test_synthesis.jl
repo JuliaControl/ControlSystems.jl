@@ -1,4 +1,4 @@
-
+@testset "test_synthesis" begin
 P = tf(1,[1,1])
 C = tf([1,1],[1,0])
 L = P*C
@@ -19,3 +19,4 @@ T = [1]
 
 @test_throws ErrorException feedback(ss(1),ss(1))
 @test_throws ErrorException feedback(ss(eye(2), ones(2,2), ones(1,2),0))
+end

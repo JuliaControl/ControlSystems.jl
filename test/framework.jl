@@ -36,7 +36,7 @@ function run_tests(my_tests)
     @testset "All tests" begin
         for test in my_tests
             println(test)
-            @testset "$test" begin include("$(test).jl") end
+            include("$(test).jl")
         end
     end
 end
@@ -53,4 +53,24 @@ vecarray{T}(ny::Int,nx::Int, args::AbstractArray{T}...) = vecarray(T, ny, nx, ar
 function vecarray(ny::Int,nx::Int, args::AbstractArray...)
     args2 = promote(args...)
     vecarray(eltype(args2[1]), ny, nx, args2...)
+end
+
+# Sort a complex vector by real, breaking ties with imag
+sortcomplex(a) = sort!(sort(a, by=imag), alg=MergeSort, by=real)
+# Compare each vector in an array of vectors
+macro test_array_vecs_eps(a, b, tol)
+    quote
+        @test size($(esc(a))) == size($(esc(b)))
+        for (res, sol) = zip($(esc(a)), $(esc(b)))
+            @test isapprox(sortcomplex(res), sol, atol=$(esc(tol)))
+        end
+    end
+end
+
+macro test_c2d(ex, sys_sol, mat_sol)
+    quote
+        sys, mat = $(esc(ex))
+        @test sys ≈ $(esc(sys_sol))
+        @test mat ≈ $(esc(mat_sol))
+    end
 end

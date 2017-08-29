@@ -1,3 +1,4 @@
+@testset "test_matrix_comps" begin
 A = [-0.21 0.2; 0.2 -0.21]
 B = 0.01*eye(2)
 C = eye(2)
@@ -31,3 +32,4 @@ D2 = eye(2)
 
 # Discrete system can have direct term
 @test covar(ss(A,B,C,D2,0.1),W) ≈ [1.00011010837831 -1.0098377309782909e-5; -1.0098377309782909e-5 1.00011010837831]
+end

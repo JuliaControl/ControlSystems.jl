@@ -7,7 +7,7 @@
 # dims: "nxnuny"
 # feedthrough: append "_d" if `D` is present
 # names: append "_n" if some inputs/outputs/states are named
-
+@testset "test_statespace" begin
 # SCALARS
 a_2 = [-5 -3; 2 -9]
 CS_111 = ss(-5, 2, 3, [0])
@@ -60,6 +60,7 @@ C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
 @test 1 - C_222 == ss([-5 -3; 2 -9],[1 0; 0 2],[-1 -0; -0 -1],[1 1; 1 1])
 @test D_111 - D_211 == ss([-0.5 0 0; 0 0.2 -0.8; 0 -0.8 0.07],[2; 1; 2],
         [3 -1 -0],[0], 0.005)
+
 
 # Multiplication
 @test C_111 * C_221 == ss([-5 2 0; 0 -5 -3; 0 2 -9],
@@ -129,3 +130,4 @@ D_diffTs = ss([1], [2], [3], [4], 0.1)
 @test_throws ErrorException ss([1], [2], [3 4], [1])      # I/0 dim mismatch
 @test_throws ErrorException ss([1], [2], [3], [4], -0.1)  # Negative samping time
 @test_throws ErrorException ss(eye(2), eye(2), eye(2), [0]) # Dimension mismatch
+end

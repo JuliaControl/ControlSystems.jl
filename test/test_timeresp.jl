@@ -1,4 +1,4 @@
-
+@testset "test_timeresp" begin
 
 A = [0 1; 0 0]
 B = [0;1]
@@ -81,3 +81,4 @@ y, t2, x = step(G, 2)
 
 #Make sure t was never changed
 @test t0 == t
+end

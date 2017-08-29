@@ -1,4 +1,4 @@
-
+@testset "test_freqresp" begin
 ## EVALFR ##
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
 G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
@@ -53,3 +53,4 @@ mag, mag, ws2 = bode(sys2)
 @test maximum(ws2) >= 5max(p,z)
 @test minimum(ws2) <= 0.2min(p,z)
 @test length(ws2) > 100
+end

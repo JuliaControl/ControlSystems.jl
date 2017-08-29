@@ -1,4 +1,4 @@
-
+@testset "test_linalg" begin
 a = [-3 2;1 1]
 b = [0  1]'
 c = [1 -1]
@@ -123,3 +123,4 @@ constant = T[1]/res_diag[1]
 @test all(diag(T) == res_diag * constant)
 @test P == eye(3)
 @test B ≈ [1.0 1.5625 1.220703125; 0.64 1.0 0.78125; 0.8192 1.28 1.0]
+end

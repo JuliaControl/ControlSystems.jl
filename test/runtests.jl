@@ -20,10 +20,10 @@ my_tests = ["test_statespace",
 
 run_tests(my_tests)
 
-# try
-#     Pkg.installed("ControlExamplePlots")
-#     @testset "test_plots" include("test_plots.jl")
-# catch
-#     warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
-#     Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
-# end
+try
+    Pkg.installed("ControlExamplePlots")
+    @testset "test_plots" include("test_plots.jl")
+catch
+    warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
+    Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
+end
