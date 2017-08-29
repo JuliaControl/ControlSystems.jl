@@ -233,7 +233,7 @@ end
 *(n::Real, s::StateSpace) = *(s, n)
 
 ## DIVISION ##
-/(s1::StateSpace, s2::StateSpace) = s1*(1/s2)
+/(s1::StateSpace, s2::StateSpace) = s1*inv(s2)
 
 function /(n::Real, s::StateSpace)
     # Ensure s.D is invertible
@@ -245,6 +245,8 @@ function /(n::Real, s::StateSpace)
     return StateSpace(s.A - s.B*Dinv*s.C, s.B*Dinv, -n*Dinv*s.C, n*Dinv, s.Ts,
             s.statenames, s.outputnames, s.inputnames)
 end
+
+Base.inv(s::StateSpace) = 1/s
 
 /(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C/n, s.D/n, s.Ts,
         s.statenames, s.inputnames, s.outputnames)

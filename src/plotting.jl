@@ -20,6 +20,7 @@ _PlotScale = "dB"
 _PlotScaleFunc = :identity
 _PlotScaleStr = "(dB)"
 
+
 @doc """`setPlotScale(str)`
 
 Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
