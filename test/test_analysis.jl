@@ -113,7 +113,10 @@ poles = [-3.383889568918823 + 0.000000000000000im
                             -0.083309192664918 + 0.487701968391972im
                             -0.083309192664918 - 0.487701968391972im]
 approxin(el,col) = reduce(|,false,el.≈col)
-@test all(approxin(p,poles) for p in pole(ex_8))
+# Compares the computed poles with the expected poles
+# TODO: Improve the test for testing equalifity of sets of complex numbers
+# i.e. simplify and handle doubles.
+@test all(approxin(p,poles) for p in pole(ex_8)) && all(approxin(p,pole(ex_8)) for p in poles)
 
 ex_12 = ss(-3, 2, 1, 2)
 @test_approx_eq pole(ex_12) [-3]
