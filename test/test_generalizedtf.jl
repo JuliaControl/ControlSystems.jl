@@ -1,7 +1,4 @@
-module TestGeneralizedTF
-using CustomTest
-using Base.Test
-using ControlSystems
+@testset "test_generalizedtf" begin
 
 # CONTINUOUS
 C_011 = tfg("(s+2)")

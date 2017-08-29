@@ -1,7 +1,4 @@
-module TestTimeResp
-using CustomTest
-using Base.Test
-using ControlSystems
+@testset "test_timeresp" begin
 
 A = [0 1; 0 0]
 B = [0;1]

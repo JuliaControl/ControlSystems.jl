@@ -1,11 +1,12 @@
-module TestPlots
-using CustomTest
-using Base.Test
+
+module PlotTests
 using ControlSystems, Plots
 using VisualRegressionTests, ControlExamplePlots
+using Base.Test
 gr()
 default(show=false)
 
+@testset "test_plots" begin
 funcs, refs, eps = getexamples()
 # Make it easier to pass tests on different systems
 # Set to a factor 2 of common errors
@@ -34,5 +35,6 @@ res = genplots(funcs, refs, eps=eps, popup=false)
 @test  res[9] |> success
 #"pzmap.png"
 @test  res[10] |> success
+end
 
 end

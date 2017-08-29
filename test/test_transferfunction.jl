@@ -1,8 +1,4 @@
-module TestTransferFunction
-using CustomTest
-using Base.Test
-using ControlSystems
-
+@testset "test_transferfunction" begin
 # Naming convention:
 # ------------------
 # {type}_{dims}
