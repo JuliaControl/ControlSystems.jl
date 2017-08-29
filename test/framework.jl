@@ -32,6 +32,15 @@ Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) =
 #Base.isapprox{T<:Number,N}(x::Array{T,N}, y::Array{T,N}; atol=sqrt(eps())) = all(abs.(x.-y) .< atol)
 
 
+function run_tests(my_tests)
+    @testset "All tests" begin
+        for test in my_tests
+            println(test)
+            @testset "$test" begin include("$(test).jl") end
+        end
+    end
+end
+
 function vecarray(T::Type, ny::Int,nx::Int, args::AbstractArray...)
     if ny*nx != length(args)
         error("Number of vectors must fit dimensions")

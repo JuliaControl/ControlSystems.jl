@@ -3,21 +3,22 @@ using Base.Test
 import Base.isapprox
 include("framework.jl")
 
-@testset "test_statespace" begin include("test_statespace.jl") end
-@testset "test_transferfunction" begin include("test_transferfunction.jl") end
-@testset "test_generalizedtf" begin include("test_generalizedtf.jl") end
-@testset "test_zpk" begin include("test_zpk.jl") end
-@testset "test_analysis" begin include("test_analysis.jl") end
-@testset "test_connections" begin include("test_connections.jl") end
-@testset "test_discrete" begin include("test_discrete.jl") end
-@testset "test_linalg" begin include("test_linalg.jl") end
-@testset "test_simplification" begin include("test_simplification.jl") end
-@testset "test_freqresp" begin include("test_freqresp.jl") end
-@testset "test_synthesis" begin include("test_synthesis.jl") end
-@testset "test_matrix_comps" begin include("test_matrix_comps.jl") end
-@testset "test_timeresp" begin include("test_timeresp.jl") end
-@testset "test_conversion" begin include("test_conversion.jl") end
+my_tests = ["test_statespace",
+            "test_transferfunction",
+            "test_generalizedtf",
+            "test_zpk",
+            "test_analysis",
+            "test_connections",
+            "test_discrete",
+            "test_linalg",
+            "test_simplification",
+            "test_freqresp",
+            "test_synthesis",
+            "test_matrix_comps",
+            "test_timeresp",
+            "test_conversion"]
 
+run_tests(my_tests)
 
 # try
 #     Pkg.installed("ControlExamplePlots")
