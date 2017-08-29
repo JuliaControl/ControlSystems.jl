@@ -95,16 +95,42 @@ end
 @userplot Rlocusplot
 @deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
+function getpoles(G,K)
+    poles = map(k -> pole(feedback(G,tf(k))), K)
+    cat(2,poles...)'
+end
+
+@require OrdinaryDiffEq begin
+function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles with an adaptive method
+    P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
+    Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
+    f          = (k,y) -> Complex128.(Polynomials.roots(k[1]*P+Q))
+    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.),(0.,K[end]))
+    integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
+    poleout    = Vector{Vector{Complex128}}()
+    for i in integrator
+       push!(poleout,integrator.k[1])
+    end
+    poleout = hcat(poleout...)'
+end
+
+end
+
 """
-`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
+    rlocusplot(P::LTISystem, K)
+Computes and plots the root locus of the SISO LTISystem P with
+a negative feedback loop and feedback gains `K`, if `K` is not provided,
+linspace(1e-6,500,10000) is used.
+If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffEq`), `rlocusplot` will use an adaptive step-size algorithm to
+select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
 rlocus
 @recipe function rlocus(p::Rlocusplot; K=Float64[])
     P = p.args[1]
     K = isempty(K) ? linspace(1e-6,500,10000) : K
     Z = tzero(P)
-    poles = map(k -> pole(feedback(P,tf(k))), K)
-    poles = cat(2,poles...)'
+
+    poles = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
@@ -116,6 +142,7 @@ rlocus
         legend --> false
         ylims  --> ylim
         xlims  --> xlim
+        label := ""
         redata, imdata
     end
     @series begin
