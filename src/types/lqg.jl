@@ -11,7 +11,10 @@ Initializes an LQG object. This object can be used to contruct an LQG controller
 `LQG(P,Q1,Q2,R1,R2; qQ=0, qR=0, integrator=false)` Supply all weighting and covariance matrices as well as optional loop-transfer recovery gains. The boolean `integrator` indicates whether or not the system will be augmented with constant input disturbances to introduce integral action.
 
 `LQG(P, qQ, qR; integrator=false)`  if called like this, where `qQ,qR` are scalars, the weighting matrices will be
-`Q1 = qQ^2 C'C,  Q2 = I,  R1 = qR^2 B B',  R2 = I`
+`Q1 = qQ² ⋅ C'C`
+`Q2 = I`
+`R1 = qR² ⋅ B B'`
+`R2 = I`
 
 # Fields
 
