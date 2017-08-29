@@ -192,16 +192,6 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
 
 end
 
-@doc """`fig = stepplot(sys, args...)`, `stepplot(LTISystem[sys1, sys2...], args...)`
-
-Plot the `step` response of the `LTISystem`(s). A final time `Tf` or a
-time vector `t` can be optionally provided.""" -> stepplot
-
-@doc """`fig = impulseplot(sys, args...)`, `impulseplot(LTISystem[sys1, sys2...], args...)`
-
-Plot the `impulse` response of the `LTISystem`(s). A final time `Tf` or a
-time vector `t` can be optionally provided.""" -> impulseplot
-
 
 @userplot Bodeplot
 ## FREQUENCY PLOTS ##
@@ -468,7 +458,7 @@ nicholsplot
     extremeangles = extrema(megaangles)
     extremeangles
     extremeangles = floor(extremeangles[1]/180)*180, ceil(extremeangles[2]/180)*180
-    @show PCyc            = Set{Int}(floor.(Int,megaangles/360)) |> collect |> sort
+    PCyc            = Set{Int}(floor.(Int,megaangles/360)) |> collect |> sort
     # PCyc            = extremeangles[1]:pInc:extremeangles[2]
 
     # yticks := (Float64[],String[])
