@@ -141,6 +141,28 @@ end
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
 
+#Efficient implementations
+function feedback{T<:SisoRational}(L::TransferFunction{T})
+    if size(L) != (1,1)
+        error("MIMO TransferFunction inversion isn't implemented yet")
+    end
+    P = numpoly(L)
+    Q = denpoly(L)
+    #Extract polynomials and create P/(P+Q)
+    tf(P[1][:],(P+Q)[1][:], Ts=L.Ts)
+end
+
+function ControlSystems.feedback{T<:ControlSystems.SisoZpk}(L::TransferFunction{T})
+    if size(L) != (1,1)
+        error("MIMO TransferFunction inversion isn't implemented yet")
+    end
+    numer = num(L.matrix[1])
+    k = L.matrix[1].k
+    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1])
+    kden = denpol[1]
+    #Extract polynomials and create P/(P+Q)
+    zpk(numer,ControlSystems.roots(denpol), k/kden, Ts=L.Ts)
+end
 
 """
 `feedback(sys)`
