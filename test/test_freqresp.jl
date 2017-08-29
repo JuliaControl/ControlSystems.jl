@@ -1,7 +1,3 @@
-module TestFreqResp
-using CustomTest
-using Base.Test
-using ControlSystems
 
 ## EVALFR ##
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
@@ -57,4 +53,3 @@ mag, mag, ws2 = bode(sys2)
 @test maximum(ws2) >= 5max(p,z)
 @test minimum(ws2) <= 0.2min(p,z)
 @test length(ws2) > 100
-end

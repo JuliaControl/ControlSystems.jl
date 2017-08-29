@@ -1,7 +1,3 @@
-module TestAnalysis
-using CustomTest
-using Base.Test
-using ControlSystems
 
 ## TZERO ##
 # Examples from the Emami-Naeini & Van Dooren Paper
@@ -169,5 +165,3 @@ z, p, k = zpkdata(G)
 "|  2.000e+00    |  -1.000e+00   |  2.000e+00    |  -5.000e-01   |\n"*
 "|  -2.000e+00   |  1.000e+00    |  2.000e+00    |  5.000e-01    |\n"*
 "|  3.000e+00    |  -1.000e+00   |  3.000e+00    |  -3.333e-01   |\n")
-
-end

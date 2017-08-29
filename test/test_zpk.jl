@@ -1,7 +1,3 @@
-module TestZpk
-using CustomTest
-using Base.Test
-using ControlSystems
 
 # Naming convention:
 # ------------------
@@ -111,4 +107,3 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException zpk("z")                   # z creation can't be continuous
 # Remove this when inferec is implemented
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
-end

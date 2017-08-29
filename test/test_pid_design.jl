@@ -1,11 +1,4 @@
-module TestAnalysis
-using CustomTest
-using Base.Test
-using ControlSystems
-
-
 @test stabregionPID("exp(-sqrt(s))", logspace(-3,3), kd=1)[2][1] ≈ -1.022356911142034
-
 
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))

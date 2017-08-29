@@ -1,7 +1,4 @@
-module TestStateSpace
-using CustomTest
-using Base.Test
-using ControlSystems
+
 # Naming convention:
 # ------------------
 # {type}[S]_{dims}[_d][_n]
@@ -40,7 +37,7 @@ D_222_d = ss(da_2, [1 0; 0 2], eye(2), eye(2), 0.005)
 D_022 = ss(4*eye(2), 0.005)
 
 # Definition of input, output and state names
-C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2), 
+C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
   statenames=["i","u"],inputnames=String("e"),outputnames="theta")
 
 # TESTS
@@ -132,4 +129,3 @@ D_diffTs = ss([1], [2], [3], [4], 0.1)
 @test_throws ErrorException ss([1], [2], [3 4], [1])      # I/0 dim mismatch
 @test_throws ErrorException ss([1], [2], [3], [4], -0.1)  # Negative samping time
 @test_throws ErrorException ss(eye(2), eye(2), eye(2), [0]) # Dimension mismatch
-end

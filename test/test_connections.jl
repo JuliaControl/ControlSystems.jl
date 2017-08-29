@@ -1,7 +1,3 @@
-module TestConnections
-using CustomTest
-using Base.Test
-using ControlSystems
 
 ## STATE SPACE ##
 # CONTINUOUS
@@ -128,4 +124,3 @@ arr3[1] = ss(0); arr3[2] = ss(1); arr3[3] = ss(2)
 
 #This might fail depending on if minreal is used or not
 @test (Czpk_211+1) ≈ (Ctf_211+1)
-end

@@ -1,8 +1,3 @@
-module TestTransferFunction
-using CustomTest
-using Base.Test
-using ControlSystems
-
 # Naming convention:
 # ------------------
 # {type}_{dims}
@@ -130,4 +125,3 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
-end
