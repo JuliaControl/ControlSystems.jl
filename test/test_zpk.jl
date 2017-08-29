@@ -1,8 +1,4 @@
-module TestZpk
-using CustomTest
-using Base.Test
-using ControlSystems
-
+@testset "test_zpk" begin
 # Naming convention:
 # ------------------
 # {type}_{dims}

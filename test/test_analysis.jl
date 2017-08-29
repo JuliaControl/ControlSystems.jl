@@ -1,8 +1,4 @@
-module TestAnalysis
-using CustomTest
-using Base.Test
-using ControlSystems
-
+@testset "test_analysis" begin
 ## TZERO ##
 # Examples from the Emami-Naeini & Van Dooren Paper
 # Example 3
@@ -107,17 +103,7 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 @test pole(ex_11) ≈ eig(ex_11.A)[1]
 
 ## ZPKDATA ##
-# Sort a complex vector by real, breaking ties with imag
-sortcomplex(a) = sort!(sort(a, by=imag), alg=MergeSort, by=real)
-# Compare each vector in an array of vectors
-macro test_array_vecs_eps(a, b, tol)
-    quote
-        @test size($a) == size($b)
-        for (res, sol) = zip($a, $b)
-            @test isapprox(sortcomplex(res), sol, atol=$tol)
-        end
-    end
-end
+
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
 G = ss(H)
 sol_z = vecarray(Complex128, 2, 2, Complex128[], Complex128[0.0 + 0.0im],
@@ -169,5 +155,4 @@ z, p, k = zpkdata(G)
 "|  2.000e+00    |  -1.000e+00   |  2.000e+00    |  -5.000e-01   |\n"*
 "|  -2.000e+00   |  1.000e+00    |  2.000e+00    |  5.000e-01    |\n"*
 "|  3.000e+00    |  -1.000e+00   |  3.000e+00    |  -3.333e-01   |\n")
-
 end

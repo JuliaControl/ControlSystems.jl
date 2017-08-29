@@ -1,7 +1,4 @@
-module TestStateSpace
-using CustomTest
-using Base.Test
-using ControlSystems
+
 # Naming convention:
 # ------------------
 # {type}[S]_{dims}[_d][_n]
@@ -10,7 +7,7 @@ using ControlSystems
 # dims: "nxnuny"
 # feedthrough: append "_d" if `D` is present
 # names: append "_n" if some inputs/outputs/states are named
-
+@testset "test_statespace" begin
 # SCALARS
 a_2 = [-5 -3; 2 -9]
 CS_111 = ss(-5, 2, 3, [0])
@@ -40,7 +37,7 @@ D_222_d = ss(da_2, [1 0; 0 2], eye(2), eye(2), 0.005)
 D_022 = ss(4*eye(2), 0.005)
 
 # Definition of input, output and state names
-C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2), 
+C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
   statenames=["i","u"],inputnames=String("e"),outputnames="theta")
 
 # TESTS
@@ -63,6 +60,7 @@ C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
 @test 1 - C_222 == ss([-5 -3; 2 -9],[1 0; 0 2],[-1 -0; -0 -1],[1 1; 1 1])
 @test D_111 - D_211 == ss([-0.5 0 0; 0 0.2 -0.8; 0 -0.8 0.07],[2; 1; 2],
         [3 -1 -0],[0], 0.005)
+
 
 # Multiplication
 @test C_111 * C_221 == ss([-5 2 0; 0 -5 -3; 0 2 -9],

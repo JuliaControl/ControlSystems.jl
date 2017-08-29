@@ -1,8 +1,4 @@
-module TestSynthesis
-using CustomTest
-using Base.Test
-using ControlSystems
-
+@testset "test_synthesis" begin
 P = tf(1,[1,1])
 C = tf([1,1],[1,0])
 L = P*C
@@ -19,9 +15,8 @@ T = [1]
 @test isapprox(numpoly(minreal(feedback(L),1e-5))[1].a, numpoly(tf(1,[1,1]))[1].a)# This test is ugly, but numerical stability is poor for minreal
 @test feedback2dof(B,A,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
 @test feedback2dof(P,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
-@test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5) 
+@test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
 
 @test_throws ErrorException feedback(ss(1),ss(1))
 @test_throws ErrorException feedback(ss(eye(2), ones(2,2), ones(1,2),0))
-
 end
