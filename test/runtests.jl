@@ -1,6 +1,7 @@
-include("framework.jl")
-using CustomTest
+using ControlSystems
 using Base.Test
+import Base.isapprox
+include("framework.jl")
 
 my_tests = ["test_statespace",
             "test_transferfunction",
@@ -17,12 +18,13 @@ my_tests = ["test_statespace",
             "test_timeresp",
             "test_conversion"]
 
+
 try
     Pkg.installed("ControlExamplePlots")
     push!(my_tests, "test_plots")
 catch
     warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
-            Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
+    Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
 end
 
 run_tests(my_tests)
