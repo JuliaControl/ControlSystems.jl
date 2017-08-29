@@ -16,12 +16,12 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     u = ones(size(t))
     x0 = zeros(nx, 1)
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0, :zoh)
+        y, t, x = lsim(sys, u, t, x0=x0, method=:zoh)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0, :zoh)
+            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, method=:zoh)
         end
     end
     return y, t, x
@@ -57,12 +57,12 @@ function impulse(sys::StateSpace, t::AbstractVector)
         u[1] = 1/sys.Ts
     end
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0s, :zoh)
+        y, t, x = lsim(sys, u, t, x0=x0s, method=:zoh)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0s[:,i], :zoh)
+            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0s[:,i], method=:zoh)
         end
     end
     return y, t, x
@@ -77,18 +77,18 @@ impulse(sys::LTISystem, Tf::Real) = impulse(sys, _default_time_vector(sys, Tf))
 impulse(sys::LTISystem) = impulse(sys, _default_time_vector(sys))
 impulse(sys::TransferFunction, t::AbstractVector) = impulse(ss(sys), t)
 
-@doc """`y, t, x = lsim(sys, u, t[, x0, method])`
+@doc """`y, t, x = lsim(sys, u, t; x0, method])`
 
-`y, t, x, uout = lsim(sys, u::Function, t[, x0, method])`
+`y, t, x, uout = lsim(sys, u::Function, t; x0, method)`
 
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
 a zero vector is used.
 
-`y`, `x`, `uout` has time in the first dimension.
+`y`, `x`, `uout` has time in the first dimension. Initial state `x0` defaults to zero.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.
+`method` parameter can be specified as either `:zoh` or `:foh`, default depends on system smoothnes.
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
@@ -111,7 +111,7 @@ y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
 """ ->
-function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
+function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=_issmooth(u) ? :foh : :zoh)
     ny, nu = size(sys)
     nx = sys.nx
@@ -141,7 +141,10 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector,
     return y, t, x
 end
 
-function lsim(sys::StateSpace, u::Function, t::AbstractVector,
+@deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
+@deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
+
+function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = sys.nx
@@ -170,7 +173,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector,
     return y, t, x, uout
 end
 
-lsim(sys::TransferFunction, u, t, args...) = lsim(ss(sys), u, t, args...)
+lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
 
 function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
     ny, nu = size(sys)
