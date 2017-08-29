@@ -98,6 +98,7 @@ end
 """
 `rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
 """
+rlocus
 @recipe function rlocus(p::Rlocusplot; K=Float64[])
     P = p.args[1]
     K = isempty(K) ? linspace(1e-6,500,10000) : K
