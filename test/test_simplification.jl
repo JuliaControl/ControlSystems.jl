@@ -21,6 +21,6 @@ sysmin = minreal(sys)
 t = 0:0.1:10
 y1,x1 = step(sys,t)[[1,3]]
 y2,x2 = step(sysmin,t)[[1,3]]
-@test_approx_zero sum(y1.-y2) # Test that the output from the two systems are the same
+@test_approx_zero norm(y1.-y2) # Test that the output from the two systems are the same
 
 end
