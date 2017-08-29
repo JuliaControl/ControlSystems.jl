@@ -17,7 +17,7 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     end
     #Evil but nessesary type instability here
     sys = _preprocess_for_freqresp(sys)
-    resp = Array{Complex{eltype(w)}}(nw, ny, nu)
+    sys_fr = Array{Complex{eltype(w)}}(nw, ny, nu)
     for i=1:nw
         # TODO : This doesn't actually take advantage of Hessenberg structure
         # for statespace version.
