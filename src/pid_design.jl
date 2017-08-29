@@ -217,11 +217,11 @@ If `P` is a string (e.g. "exp(-sqrt(s))", the stability of feedback loops using 
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
 function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0, doplot = true)
-    Pv      = squeeze(freqresp(P,ω)[1],(2,3))
-    r       = abs.(Pv)
-    phi     = angle(Pv)
-    kp      = -cos(phi)./r
-    ki      = kd*ω.^2 - ω.*sin(phi)./r
+    Pv  = squeeze(freqresp(P,ω)[1],(2,3))
+    r   = abs.(Pv)
+    phi = angle(Pv)
+    kp  = -cos(phi)./r
+    ki  = kd*ω.^2 - ω.*sin(phi)./r
     Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$P, \\quad k_d = $(round(kd,4))\$"), kp, ki
 end
 
@@ -251,25 +251,25 @@ If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and on
 See also `pidplots`, `stabregionPID`
 """
 function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
-Pw = P(im*ωp)[1]
-ϕp = angle(Pw)
-rp = abs.(Pw)
+    Pw = P(im*ωp)[1]
+    ϕp = angle(Pw)
+    rp = abs.(Pw)
 
-if phasemargin > 0
-    ϕl = deg2rad(-180+phasemargin)
-else
-    ϕl = ϕl == 0 ? ϕp : ϕl
-end
-rl = rl == 0 ? rp : rl
+    if phasemargin > 0
+        ϕl = deg2rad(-180+phasemargin)
+    else
+        ϕl = ϕl == 0 ? ϕp : ϕl
+    end
+    rl = rl == 0 ? rp : rl
 
-kp = rl/rp*cos(ϕp-ϕl)
-ki = rl*ωp/rp*sin(ϕp-ϕl)
+    kp = rl/rp*cos(ϕp-ϕl)
+    ki = rl*ωp/rp*sin(ϕp-ϕl)
 
-C = pid(kp=kp, ki=ki)
+    C = pid(kp=kp, ki=ki)
 
-if doplot
-    gangoffourplot(P,[tf(1),C])
-    nyquistplot([P, P*C])
-end
-return kp,ki,C
+    if doplot
+        gangoffourplot(P,[tf(1),C])
+        nyquistplot([P, P*C])
+    end
+    return kp,ki,C
 end
