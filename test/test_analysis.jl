@@ -102,6 +102,25 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 @test pole([sys sys]) ≈ [-1.0, 4.0, -4.0, -1.0, 4.0, -4.0]
 @test pole(ex_11) ≈ eig(ex_11.A)[1]
 
+poles = [-3.383889568918823 + 0.000000000000000im
+                            -2.199935841931115 + 0.000000000000000im
+                            -0.624778101910111 + 1.343371895589931im
+                            -0.624778101910111 - 1.343371895589931im
+                            -0.083309192664918 + 0.487701968391972im
+                            -0.083309192664918 - 0.487701968391972im]
+approxin(el,col) = reduce(|,false,el.≈col)
+# Compares the computed poles with the expected poles
+# TODO: Improve the test for testing equalifity of sets of complex numbers
+# i.e. simplify and handle doubles.
+@test all(approxin(p,poles) for p in pole(ex_8)) && all(approxin(p,pole(ex_8)) for p in poles)
+
+ex_12 = ss(-3, 2, 1, 2)
+@test_approx_eq pole(ex_12) [-3]
+
+ex_13 = ss([-1 1; 0 -1], [0; 1], [1 0], 0)
+@test_approx_eq pole(ex_13) [-1, -1]
+
+
 ## ZPKDATA ##
 
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
