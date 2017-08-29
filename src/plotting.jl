@@ -21,6 +21,7 @@ _PlotScaleFunc = :log10
 _PlotScaleStr = ""
 
 
+
 @doc """`setPlotScale(str)`
 
 Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
