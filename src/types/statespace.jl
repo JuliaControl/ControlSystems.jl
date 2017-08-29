@@ -101,9 +101,10 @@ end
 # Function for creation of static gain
 function ss(D::Array, Ts::Real=0; kwargs...)
     ny, nu = size(D, 1, 2)
-    A = [0]
-    B = zeros(1, nu)
-    C = zeros(ny, 1)
+    A = zeros(0, 0)
+    B = zeros(0, nu)
+    C = zeros(ny, 0)
+
     return ss(A, B, C, D, Ts, kwargs...)
 end
 ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts, kwargs...)
@@ -247,7 +248,6 @@ function /(n::Real, s::StateSpace)
 end
 
 Base.inv(s::StateSpace) = 1/s
-
 /(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C/n, s.D/n, s.Ts,
         s.statenames, s.inputnames, s.outputnames)
 
@@ -330,9 +330,9 @@ end
 function diagonalize(s::StateSpace, digits = 12)
     r = x -> round(x,digits)
     S,V = eig(s.A)
-    A = V\s.A*V     |> r
-    B = V\s.B       |> r
-    C = s.C*V       |> r
-    D = s.D         |> r
+    A = V\s.A*V     .|> r
+    B = V\s.B       .|> r
+    C = s.C*V       .|> r
+    D = s.D         .|> r
     return ss(A,B,C,D)
 end
