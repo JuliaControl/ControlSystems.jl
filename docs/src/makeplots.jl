@@ -6,6 +6,22 @@ plotsDir = (pwd()[end-3:end] == "docs") ? "build/plots" : "docs/build/plots"
 mkdir(plotsDir)
 Plots.gr()
 
+# LQG design
+h = 0.1
+A = [1 h; 0 1]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0, h)
+Q = eye(2)
+R = eye(1)
+L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(t,x)  = -L*x + 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
+t=0:h:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+Plots.savefig(plotsDir*"/lqrplot.svg")
 
 # PID design functions
 P = tf(1,[1,1])^4

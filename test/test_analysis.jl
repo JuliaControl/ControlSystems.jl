@@ -115,10 +115,10 @@ approxin(el,col) = reduce(|,false,el.≈col)
 @test all(approxin(p,poles) for p in pole(ex_8)) && all(approxin(p,pole(ex_8)) for p in poles)
 
 ex_12 = ss(-3, 2, 1, 2)
-@test_approx_eq pole(ex_12) [-3]
+@test pole(ex_12) ≈ [-3]
 
 ex_13 = ss([-1 1; 0 -1], [0; 1], [1 0], 0)
-@test_approx_eq pole(ex_13) [-1, -1]
+@test pole(ex_13) ≈ [-1, -1]
 
 
 ## ZPKDATA ##
