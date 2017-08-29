@@ -11,13 +11,13 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     # Create imaginary freq vector s
     if !iscontinuous(sys)
         Ts = sys.Ts == -1 ? 1.0 : sys.Ts
-        s = exp(w*im*Ts)
+        s = exp.(w.*(im*Ts))
     else
         s = im*w
     end
     #Evil but nessesary type instability here
     sys = _preprocess_for_freqresp(sys)
-    resp = Array{Complex128}(nw, ny, nu)
+    resp = Array{Complex{eltype(w)}}(nw, ny, nu)
     for i=1:nw
         # TODO : This doesn't actually take advantage of Hessenberg structure
         # for statespace version.
@@ -55,7 +55,7 @@ For many values of `x`, use `freqresp` instead.
 function evalfr(sys::StateSpace, s::Number)
     S = promote_type(typeof(s), Float64)
     try
-        R = Diagonal(S[s for i=1:sys.nx]) - sys.A
+        R = s*I - sys.A
         sys.D + sys.C*((R\sys.B)::Matrix{S})  # Weird type stability issue
     catch
         fill(convert(S, Inf), size(sys))
