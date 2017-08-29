@@ -1,6 +1,8 @@
 
+module PlotTests
 using ControlSystems, Plots
 using VisualRegressionTests, ControlExamplePlots
+using Base.Test
 gr()
 default(show=false)
 
@@ -33,4 +35,6 @@ res = genplots(funcs, refs, eps=eps, popup=false)
 @test  res[9] |> success
 #"pzmap.png"
 @test  res[10] |> success
+end
+
 end
