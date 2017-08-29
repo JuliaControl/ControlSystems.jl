@@ -92,20 +92,45 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
 
 end
 
+@userplot Rlocusplot
+@deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
+
 """
 `rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
 """
-function rlocus(P::LTISystem, K=[])
+@recipe function rlocus(p::Rlocusplot; K=Float64[])
+    P = p.args[1]
     K = isempty(K) ? linspace(1e-6,500,10000) : K
     Z = tzero(P)
-    poles = map(k -> pole(k*P/(1+k*P)), K)
+    poles = map(k -> pole(feedback(P,tf(k))), K)
     poles = cat(2,poles...)'
-    redata = real(poles)
-    imdata = imag(poles)
+    redata = real.(poles)
+    imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
     xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
-    Plots.plot(redata, imdata, legend=false,ylims=ylim, xlims=xlim)
-    Plots.scatter!(real(Z), imag(Z), m=:c)
+    title --> "Root locus"
+    xguide --> "Re(roots)"
+    yguide --> "Im(roots)"
+    @series begin
+        legend --> false
+        ylims  --> ylim
+        xlims  --> xlim
+        redata, imdata
+    end
+    @series begin
+        seriestype := :scatter
+        markershape --> :circle
+        markersize --> 10
+        label --> "Zeros"
+        real.(Z), imag.(Z)
+    end
+    @series begin
+        seriestype := :scatter
+        markershape --> :xcross
+        markersize --> 10
+        label --> "Open-loop poles"
+        redata[1,:], imdata[1,:]
+    end
 end
 
 """
