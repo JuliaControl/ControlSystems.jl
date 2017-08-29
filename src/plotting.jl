@@ -463,7 +463,7 @@ nicholsplot
     Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
-    megaangles      = vcat(map(s -> 180/π*angle(vec(freqresp(s, w)[1])), systems)...)
+    megaangles      = vcat(map(s -> 180/π*angle(vec(freqresp(s, w))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     extremeangles = extrema(megaangles)
     extremeangles
