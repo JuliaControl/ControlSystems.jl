@@ -74,3 +74,7 @@ macro test_c2d(ex, sys_sol, mat_sol)
         @test mat ≈ $(esc(mat_sol))
     end
 end
+
+
+approxin(el,col;kwargs...) = reduce(|,false,isapprox.(el,col;kwargs...))
+approxsetequal(s1,s2;kwargs...) = all(approxin(p,s1;kwargs...) for p in s2) && all(approxin(p,s2;kwargs...) for p in s1)

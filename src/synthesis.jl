@@ -63,15 +63,12 @@ function kalman(sys::StateSpace, R1,R2)
 end
 
 """
-`G = lqg(A,B,C,D, Q1, Q2, R1, R2)`
+    `G = lqg(A,B,C,D, Q1, Q2, R1, R2)`
+    `G = lqg(sys, Q1, Q2, R1, R2)`
+Returns an LQG object, see `LQG`
 
-`G = lqg(sys, Q1, Q2, R1, R2)`
-
-calls `lqr` and `kalman` and forms the closed-loop system
-
-returns an LQG object, see `LQG`
-
-See also `lqgi`
+Calls [`lqr`](@ref) and [`kalman`](@ref) and forms the closed-loop system
+See also [`lqgi`](@ref)
 """
 function lqg(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
     n = size(A,1)
@@ -87,12 +84,12 @@ function lqg(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
     Dc=zeros(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
-    return LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
+    return LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
 
 end
 
-function lqg(sys, Q1, Q2, R1, R2)
-    lqg(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2)
+function lqg(sys, Q1, Q2, R1, R2; kwargs...)
+    lqg(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2; kwargs...)
 end
 
 function lqg(G::LQG)
@@ -134,11 +131,11 @@ function lqgi(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
     Dc=zeros(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
-    LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
+    LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
 end
 
-function lqgi(sys, Q1, Q2, R1, R2)
-    lqgi(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2)
+function lqgi(sys, Q1, Q2, R1, R2; kwargs...)
+    lqgi(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2; kwargs...)
 end
 
 @doc """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`

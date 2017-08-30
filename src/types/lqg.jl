@@ -64,7 +64,9 @@ Q1 = 10eye(4)
 Q2 = 1eye(2)
 R1 = 1eye(6)
 R2 = 1eye(2)
+# Initialize LQG object
 Ginit = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
+# Populate LQG object, calculate closed-loop
 G = lqg(Ginit)
 
 Gcl = G[:cl]
@@ -78,7 +80,9 @@ stepplot(Gcl)
 ```julia
 qQ = 10
 qR = 10
+# Initialize LQG object
 Ginit = LQG(qQ, qR, integrator=true)
+# Populate LQG object, calculate closed-loop
 G = lqg(Ginit)
 
 Gcl = G[:cl]
@@ -102,10 +106,10 @@ type LQG
     integrator::Bool
 end
 
-LQG(P,Q1::AbstractMatrix,Q2::AbstractMatrix,R1::AbstractMatrix,R2::AbstractMatrix; qQ=0, qR=0, sysc=ss(0), L=Matrix(), K=Matrix(), integrator=false) =
+LQG(P,Q1::AbstractMatrix,Q2::AbstractMatrix,R1::AbstractMatrix,R2::AbstractMatrix; qQ=0, qR=0, sysc=ss(0), L=Matrix(0,0), K=Matrix(0,0), integrator=false) =
 LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, L, K, integrator)
 
-function LQG(P, qQ::Real, qR::Real; sysc=ss(0), L=Matrix(), K=Matrix(), integrator=false)
+function LQG(P, qQ::Real, qR::Real; sysc=ss(0), L=Matrix(0,0), K=Matrix(0,0), integrator=false)
     m = size(P.B,2)
     p = size(P.C,1)
     n = size(P.A,1)
@@ -113,7 +117,7 @@ function LQG(P, qQ::Real, qR::Real; sysc=ss(0), L=Matrix(), K=Matrix(), integrat
     LQG(P,0eye(n),eye(m),0eye(nr),eye(p), qQ, qR, sysc, L, K, integrator)
 end
 
-function LQG(P,Q1::AbstractVector,Q2::AbstractVector,R1::AbstractVector,R2::AbstractVector; qQ=0, qR=0, sysc=ss(0), L=Matrix(), K=Matrix(), integrator=false)
+function LQG(P,Q1::AbstractVector,Q2::AbstractVector,R1::AbstractVector,R2::AbstractVector; qQ=0, qR=0, sysc=ss(0), L=Matrix(0,0), K=Matrix(0,0), integrator=false)
     Q1 = diagm(Q1)
     Q2 = diagm(Q2)
     R1 = diagm(R1)
@@ -190,20 +194,21 @@ function Base.getindex(G::LQG, s)
     error("The symbol $s does not have a function associated with it.")
 end
 
+Base.:(==)(G1::LQG, G2::LQG) = G1.K == G2.K && G1.L == G2.L && G1.P == G2.P && G1.sysc == G2.sysc
 
 
-
+plot(G::LQG) = gangoffourplot(G)
 function gangoffour(G::LQG)
     return G[:S], G[:PS], G[:CS], G[:T]
 end
 
-function gangoffourplot(G::LQG, args...)
+function gangoffourplot(G::LQG; kwargs...)
     S,D,N,T = gangoffour(G)
-    f1 = sigmaplot(S, args...); Plots.plot!(title="\$S = 1/(1+PC)\$")
-    f2 = sigmaplot(D, args...); Plots.plot!(title="\$D = P/(1+PC)\$")
-    f3 = sigmaplot(N, args...); Plots.plot!(title="\$N = C/(1+PC)\$")
-    f4 = sigmaplot(T, args...); Plots.plot!(title="\$T = PC/(1+PC\$)")
-    Plots.subplot(f1,f2,f3,f4)
+    f1 = sigmaplot(S, show=false, kwargs...); Plots.plot!(title="\$S = 1/(1+PC)\$")
+    f2 = sigmaplot(D, show=false, kwargs...); Plots.plot!(title="\$D = P/(1+PC)\$")
+    f3 = sigmaplot(N, show=false, kwargs...); Plots.plot!(title="\$N = C/(1+PC)\$")
+    f4 = sigmaplot(T, show=false, kwargs...); Plots.plot!(title="\$T = PC/(1+PC\$)")
+    Plots.plot(f1,f2,f3,f4)
 end
 
 
