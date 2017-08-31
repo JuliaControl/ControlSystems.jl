@@ -76,9 +76,8 @@ P = K/(s*((J*s + b)*(L*s + R) + K^2))
 CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
-stepplot(CLs);
-# Add legend. This is specific to the PyPlot back-end, see documentation for more info.
-PyPlot.legend(["Kp = 1", "Kp = 5", "Kp = 15"]);
+# Any keyword arguments supported in Plots.jl can be supplied
+stepplot(CLs, label=["Kp = 1", "Kp = 5", "Kp = 15"])
 ```
 
 ![StepResponse](/example/step_response.png)
