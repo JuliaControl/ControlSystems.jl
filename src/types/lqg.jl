@@ -67,7 +67,7 @@ stepplot(Gcl)
 ```
 
 """
-type LQG
+struct LQG
     P::StateSpace
     Q1::AbstractMatrix
     Q2::AbstractMatrix

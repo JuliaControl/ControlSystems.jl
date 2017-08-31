@@ -321,7 +321,11 @@ end
 """
 function minreal(s::StateSpace, tol=sqrt(eps()))
     s = baltrunc(s, atol=tol, rtol = 0)[1]
-    diagonalize(s)
+    try
+        return diagonalize(s)
+    catch
+        error("Minreal only implemented for diagonalizable systems.")
+    end
 end
 
 """
@@ -330,9 +334,13 @@ end
 function diagonalize(s::StateSpace, digits = 12)
     r = x -> round(x,digits)
     S,V = eig(s.A)
-    A = V\s.A*V     .|> r
-    B = V\s.B       .|> r
-    C = s.C*V       .|> r
-    D = s.D         .|> r
-    return ss(A,B,C,D)
+    try
+        A = V\s.A*V     .|> r
+        B = V\s.B       .|> r
+        C = s.C*V       .|> r
+        D = s.D         .|> r
+        return ss(A,B,C,D)
+    catch e
+        error("System not diagonalizable", e)
+    end
 end
