@@ -8,6 +8,7 @@ export  LTISystem,
         tfg,
         zpk,
         ss2tf,
+        LQG,
         # Linear Algebra
         balance,
         care,
@@ -17,6 +18,8 @@ export  LTISystem,
         dlqr,
         kalman,
         dkalman,
+        lqg,
+        lqgi,
         covar,
         norm,
         norminf,
@@ -29,6 +32,7 @@ export  LTISystem,
         sminreal,
         minreal,
         balreal,
+        baltrunc,
         # Stability Analysis
         isstable,
         pole,
@@ -70,6 +74,7 @@ include("types/lti.jl")
 include("types/transferfunction.jl")
 include("types/statespace.jl")
 include("types/tf2ss.jl")
+include("types/lqg.jl")
 
 include("connections.jl")
 include("discrete.jl")

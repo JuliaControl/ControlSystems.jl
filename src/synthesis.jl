@@ -12,6 +12,8 @@ For the continuous time model `dx = Ax + Bu`.
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
 
+See also `LQG`
+
 Usage example:
 ```julia
 A = [0 1; 0 0]
@@ -39,6 +41,8 @@ end
 
 Calculate the optimal Kalman gain
 
+See also `LQG`
+
 """ ->
 kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
 
@@ -58,6 +62,7 @@ function kalman(sys::StateSpace, R1,R2)
     end
 end
 
+
 @doc """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = K*x[k]` that
@@ -66,6 +71,8 @@ minimizes the cost function:
 J = sum(x'Qx + u'Ru, 0, inf).
 
 For the discrte time model `x[k+1] = Ax[k] + Bu[k]`.
+
+See also `lqg`
 
 Usage example:
 ```julia
@@ -119,24 +126,24 @@ end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p
 function acker(A,B,P)
-  n = length(P)
-  #Calculate characteristic polynomial
-  poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
-  q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
-  for i = n:-1:0
-      q += A^(n-i)*poly[i+1]
-  end
-  S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
-  for i = 0:(n-1)
-      S[:,i+1] = A^i*B
-  end
-  return [zeros(1,n-1) 1]*(S\q)
+    n = length(P)
+    #Calculate characteristic polynomial
+    poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
+    q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
+    for i = n:-1:0
+        q += A^(n-i)*poly[i+1]
+    end
+    S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
+    for i = 0:(n-1)
+        S[:,i+1] = A^i*B
+    end
+    return [zeros(1,n-1) 1]*(S\q)
 end
 
 
 """
-`feedback(L)` Return L/(1+L)
-`feedback(P,C)` Return PC/(1+PC)
+`feedback(L)` Returns L/(1+L)
+`feedback(P,C)` Returns PC/(1+PC)
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
@@ -198,6 +205,6 @@ end
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
     tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
- end
+end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

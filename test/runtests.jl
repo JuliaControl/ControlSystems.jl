@@ -4,6 +4,7 @@ import Base.isapprox
 include("framework.jl")
 
 my_tests = ["test_statespace",
+            "test_lqg",
             "test_transferfunction",
             "test_generalizedtf",
             "test_zpk",

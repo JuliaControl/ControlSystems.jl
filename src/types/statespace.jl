@@ -104,6 +104,7 @@ function ss(D::Array, Ts::Real=0; kwargs...)
     A = zeros(0, 0)
     B = zeros(0, nu)
     C = zeros(ny, 0)
+
     return ss(A, B, C, D, Ts, kwargs...)
 end
 ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts, kwargs...)
@@ -233,7 +234,7 @@ end
 *(n::Real, s::StateSpace) = *(s, n)
 
 ## DIVISION ##
-/(s1::StateSpace, s2::StateSpace) = s1*(1/s2)
+/(s1::StateSpace, s2::StateSpace) = s1*inv(s2)
 
 function /(n::Real, s::StateSpace)
     # Ensure s.D is invertible
@@ -246,6 +247,7 @@ function /(n::Real, s::StateSpace)
             s.statenames, s.outputnames, s.inputnames)
 end
 
+Base.inv(s::StateSpace) = 1/s
 /(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C/n, s.D/n, s.Ts,
         s.statenames, s.inputnames, s.outputnames)
 
@@ -305,5 +307,40 @@ function Base.show(io::IO, s::StateSpace)
         print(io, "Continuous-time state-space model")
     else
         print(io, "Discrete-time state-space model")
+    end
+end
+
+
+
+#####################################################################
+##                        Other  Functions                         ##
+#####################################################################
+
+"""
+`minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
+"""
+function minreal(s::StateSpace, tol=sqrt(eps()))
+    s = baltrunc(s, atol=tol, rtol = 0)[1]
+    try
+        return diagonalize(s)
+    catch
+        error("Minreal only implemented for diagonalizable systems.")
+    end
+end
+
+"""
+`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal. The result is rounded to `digits` decimal points.
+"""
+function diagonalize(s::StateSpace, digits = 12)
+    r = x -> round(x,digits)
+    S,V = eig(s.A)
+    try
+        A = V\s.A*V     .|> r
+        B = V\s.B       .|> r
+        C = s.C*V       .|> r
+        D = s.D         .|> r
+        return ss(A,B,C,D)
+    catch e
+        error("System not diagonalizable", e)
     end
 end
