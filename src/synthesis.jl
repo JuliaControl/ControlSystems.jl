@@ -12,7 +12,7 @@ For the continuous time model `dx = Ax + Bu`.
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
 
-See also `lqg`
+See also `LQG`
 
 Usage example:
 ```julia
@@ -41,7 +41,7 @@ end
 
 Calculate the optimal Kalman gain
 
-See also `lqg`
+See also `LQG`
 
 """ ->
 kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
@@ -62,81 +62,6 @@ function kalman(sys::StateSpace, R1,R2)
     end
 end
 
-"""
-    `G = lqg(A,B,C,D, Q1, Q2, R1, R2)`
-    `G = lqg(sys, Q1, Q2, R1, R2)`
-Returns an LQG object, see `LQG`
-
-Calls [`lqr`](@ref) and [`kalman`](@ref) and forms the closed-loop system
-See also [`lqgi`](@ref)
-"""
-function lqg(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
-    n = size(A,1)
-    m = size(B,2)
-    p = size(C,1)
-    L = lqr(A, B, Q1+qQ*C'C, Q2)
-    K = kalman(A, C, R1+qR*B*B', R2)
-
-    # Controller system
-    Ac=A-B*L-K*C+K*D*L
-    Bc=K
-    Cc=L
-    Dc=zeros(D')
-    sysc = ss(Ac,Bc,Cc,Dc)
-
-    return LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
-
-end
-
-function lqg(sys, Q1, Q2, R1, R2; kwargs...)
-    lqg(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2; kwargs...)
-end
-
-function lqg(G::LQG)
-    f = G.integrator ? lqgi : lqg
-    f(G.P.A, G.P.B, G.P.C, G.P.D, G.Q1, G.Q2, G.R1, G.R2, qQ=G.qQ, qR=G.qR)
-end
-
-"""
-`G = lqgi(A,B,C,D, Q1, Q2, R1, R2)`
-
-`G = lqgi(sys, Q1, Q2, R1, R2)`
-
-Adds a model of a constant disturbance on the inputs to the system described by `A,B,C,D`,
-calls `lqr` and `kalman` and forms the closed-loop system. The resulting controller will have intregral action.
-
-returns an LQG object, see `LQG`
-
-See also `lqg`
-"""
-function lqgi(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0)
-    n = size(A,1)
-    m = size(B,2)
-    p = size(C,1)
-
-    # Augment with disturbance model
-    Ae = [A B; zeros(m,n+m)]
-    Be = [B;zeros(m,m)]
-    Ce = [C zeros(p,m)]
-    De = D
-
-    L = lqr(A, B, Q1+qQ*C'C, Q2)
-    Le = [L eye(m)]
-    K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
-
-    # Controller system
-    Ac=Ae-Be*Le-K*Ce+K*De*Le
-    Bc=K
-    Cc=Le
-    Dc=zeros(D')
-    sysc = ss(Ac,Bc,Cc,Dc)
-
-    LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
-end
-
-function lqgi(sys, Q1, Q2, R1, R2; kwargs...)
-    lqgi(sys.A,sys.B,sys.C,sys.D,Q1,Q2,R1,R2; kwargs...)
-end
 
 @doc """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
 

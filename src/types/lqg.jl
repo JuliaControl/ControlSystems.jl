@@ -2,61 +2,53 @@
 import Base.getindex
 
 """
-Initializes an LQG object. This object can be used to contruct an LQG controller.
+    G = LQG(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false)
+    G = LQG(sys, args...; kwargs...)
 
-# Constructors
+Return an LQG object that describes the closed control loop around the process `sys=ss(A,B,C,D)`
+where the controller is of LQG-type. The controller is specified by weight matrices `R1,R2`
+that penalizes state deviations and control signal variance respectively, and covariance
+matrices `Q1,Q2` which specify state drift and measurement covariance respectively.
+This constructor calls [`lqr`](@ref) and [`kalman`](@ref) and forms the closed-loop system.
 
-`LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, L, K, integrator)` This is mainly used inside the toolbox
+If `integrator=true`, the resulting controller will have intregral action.
+This is achieved by adding a model of a constant disturbance on the inputs to the system
+described by `A,B,C,D`.
 
-`LQG(P,Q1,Q2,R1,R2; qQ=0, qR=0, integrator=false)` Supply all weighting and covariance matrices as well as optional loop-transfer recovery gains. The boolean `integrator` indicates whether or not the system will be augmented with constant input disturbances to introduce integral action.
-
-`LQG(P, qQ, qR; integrator=false)`  if called like this, where `qQ,qR` are scalars, the weighting matrices will be
-`Q1 = qQ² ⋅ C'C`
-`Q2 = I`
-`R1 = qR² ⋅ B B'`
-`R2 = I`
+`qQ` and `qR` can be set to incorporate loop transfer recovery, i.e.,
+```julia
+L = lqr(A, B, Q1+qQ*C'C, Q2)
+K = kalman(A, C, R1+qR*B*B', R2)
+```
 
 # Fields
-
 When the LQG-object is populated by the lqg-function, the following fields have been made available
-
-`L` is the feedback matrix, such that `A-BL` is stable. Note that the length of the state vector (and the width of L) is increased by the number of inputs if the option `integrator=true`.
-
-`K` is the kalman gain such that `A-KC` is stable
-
-`sysc` is a dynamical system describing the controller `u=L*inv(A-BL-KC+KDL)Ky`
+- `L` is the feedback matrix, such that `A-BL` is stable. Note that the length of the state vector (and the width of L) is increased by the number of inputs if the option `integrator=true`.
+- `K` is the kalman gain such that `A-KC` is stable
+- `sysc` is a dynamical system describing the controller `u=L*inv(A-BL-KC+KDL)Ky`
 
 # Functions
+Several other properties of the object are accessible with the indexing function `getindex()`
+and are called with the syntax `G[:function]`. The available functions are
+(some have many alternative names, separated with / )
 
-Several other properties of the object are accessible with the indexing function `getindex()` and are called with the syntax `G[:function]`. The available functions are (some have many alternative names, separated with / )
-
-`G[:cl] / G[:closedloop]` is the closed-loop system, including observer, from reference to output, precompensated to have static gain 1 (`u = −Lx + lᵣr`).
-
-`G[:S] / G[:Sin]` Input sensitivity function
-
-`G[:T] / G[:Tin]` Input complementary sensitivity function
-
-`G[:Sout]` Output sensitivity function
-
-`G[:Tout]` Output complementary sensitivity function
-
-`G[:CS]` The transfer function from measurement noise to control signal
-
-`G[:DS]` The transfer function from input load disturbance to output
-
-`G[:lt] / G[:looptransfer] / G[:loopgain]  =  PC`
-
-`G[:rd] / G[:returndifference]  =  I + PC`
-
-`G[:sr] / G[:stabilityrobustness]  =  I + inv(PC)`
-
-`G[:sysc] / G[:controller]` Returns the controller as a StateSpace-system
+-`G[:cl] / G[:closedloop]` is the closed-loop system, including observer, from reference to output, precompensated to have static gain 1 (`u = −Lx + lᵣr`).
+-`G[:S] / G[:Sin]` Input sensitivity function
+-`G[:T] / G[:Tin]` Input complementary sensitivity function
+-`G[:Sout]` Output sensitivity function
+-`G[:Tout]` Output complementary sensitivity function
+-`G[:CS]` The transfer function from measurement noise to control signal
+-`G[:DS]` The transfer function from input load disturbance to output
+-`G[:lt] / G[:looptransfer] / G[:loopgain]  =  PC`
+-`G[:rd] / G[:returndifference]  =  I + PC`
+-`G[:sr] / G[:stabilityrobustness]  =  I + inv(PC)`
+-`G[:sysc] / G[:controller]` Returns the controller as a StateSpace-system
 
 It is also possible to access all fileds using the `G[:symbol]` syntax, the fields are `P
 ,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
 
-# Usage example
-## Specifying everything
+# Example
+
 ```julia
 qQ = 1
 qR = 1
@@ -64,10 +56,8 @@ Q1 = 10eye(4)
 Q2 = 1eye(2)
 R1 = 1eye(6)
 R2 = 1eye(2)
-# Initialize LQG object
-Ginit = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
-# Populate LQG object, calculate closed-loop
-G = lqg(Ginit)
+
+G = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
 
 Gcl = G[:cl]
 T = G[:T]
@@ -76,21 +66,6 @@ sigmaplot([S,T],logspace(-3,3,1000))
 stepplot(Gcl)
 ```
 
-## Lazy method
-```julia
-qQ = 10
-qR = 10
-# Initialize LQG object
-Ginit = LQG(qQ, qR, integrator=true)
-# Populate LQG object, calculate closed-loop
-G = lqg(Ginit)
-
-Gcl = G[:cl]
-T = G[:T]
-S = G[:S]
-sigmaplot([S,T],logspace(-3,3,1000))
-stepplot(Gcl)
-```
 """
 type LQG
     P::StateSpace
@@ -106,24 +81,69 @@ type LQG
     integrator::Bool
 end
 
-LQG(P,Q1::AbstractMatrix,Q2::AbstractMatrix,R1::AbstractMatrix,R2::AbstractMatrix; qQ=0, qR=0, sysc=ss(0), L=Matrix(0,0), K=Matrix(0,0), integrator=false) =
-LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, L, K, integrator)
+# Provide some constructors
+function LQG(A,B,C,D,Q1::AbstractMatrix,Q2::AbstractMatrix,R1::AbstractMatrix,R2::AbstractMatrix; qQ=0, qR=0, integrator=false)
+    integrator ? _LQGi(A,B,C,D,Q1,Q2,R1,R2, qQ, qR) : _LQG(A,B,C,D,Q1,Q2,R1,R2, qQ, qR)
+end # (1) Dispatches to final
 
-function LQG(P, qQ::Real, qR::Real; sysc=ss(0), L=Matrix(0,0), K=Matrix(0,0), integrator=false)
-    m = size(P.B,2)
-    p = size(P.C,1)
-    n = size(P.A,1)
-    nr = n + integrator ? m : 0
-    LQG(P,0eye(n),eye(m),0eye(nr),eye(p), qQ, qR, sysc, L, K, integrator)
-end
-
-function LQG(P,Q1::AbstractVector,Q2::AbstractVector,R1::AbstractVector,R2::AbstractVector; qQ=0, qR=0, sysc=ss(0), L=Matrix(0,0), K=Matrix(0,0), integrator=false)
+function LQG(A,B,C,D,Q1::AbstractVector,Q2::AbstractVector,R1::AbstractVector,R2::AbstractVector; qQ=0, qR=0, integrator=false)
     Q1 = diagm(Q1)
     Q2 = diagm(Q2)
     R1 = diagm(R1)
     R2 = diagm(R2)
-    LQG(P,Q1,Q2,R1,R2, qQ, qR, sysc, L, K, integrator)
+    integrator ? _LQGi(A,B,C,D,Q1,Q2,R1,R2, qQ, qR) : _LQG(A,B,C,D,Q1,Q2,R1,R2, qQ, qR)
+end # (2) Dispatches to final
+
+# (3) For conveniece of sending a sys, dispatches to (1/2)
+LQG(sys::LTISystem, args...; kwargs...) = LQG(sys.A,sys.B,sys.C,sys.D,args...; kwargs...)
+
+
+
+# This function does the actual initialization in the standard case withput integrator
+function _LQG(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
+    n = size(A,1)
+    m = size(B,2)
+    p = size(C,1)
+    L = lqr(A, B, Q1+qQ*C'C, Q2)
+    K = kalman(A, C, R1+qR*B*B', R2)
+
+    # Controller system
+    Ac=A-B*L-K*C+K*D*L
+    Bc=K
+    Cc=L
+    Dc=zeros(D')
+    sysc = ss(Ac,Bc,Cc,Dc)
+
+    return LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
 end
+
+
+# This function does the actual initialization in the integrator case
+function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
+    n = size(A,1)
+    m = size(B,2)
+    p = size(C,1)
+
+    # Augment with disturbance model
+    Ae = [A B; zeros(m,n+m)]
+    Be = [B;zeros(m,m)]
+    Ce = [C zeros(p,m)]
+    De = D
+
+    L = lqr(A, B, Q1+qQ*C'C, Q2)
+    Le = [L eye(m)]
+    K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
+
+    # Controller system
+    Ac=Ae-Be*Le-K*Ce+K*De*Le
+    Bc=K
+    Cc=Le
+    Dc=zeros(D')
+    sysc = ss(Ac,Bc,Cc,Dc)
+
+    LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
+end
+
 
 function Base.getindex(G::LQG, s)
     s == :A && return G.P.A
