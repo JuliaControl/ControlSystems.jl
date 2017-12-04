@@ -97,7 +97,7 @@ end
 
 function getpoles(G,K)
     poles = map(k -> pole(feedback(G,tf(k))), K)
-    cat(2,poles...)'
+    cat(2,poles...)', K
 end
 
 @require OrdinaryDiffEq begin
@@ -108,10 +108,13 @@ function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles 
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     poleout    = Vector{Vector{Complex128}}()
+    ts    = Vector{Float64}()
     for i in integrator
        push!(poleout,integrator.k[1])
+       push!(ts,integrator.t[1])
     end
     poleout = hcat(poleout...)'
+    poleout, ts
 end
 
 end
@@ -129,8 +132,7 @@ rlocus
     P = p.args[1]
     K = isempty(K) ? linspace(1e-6,500,10000) : K
     Z = tzero(P)
-
-    poles = getpoles(P,K)
+    poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
@@ -138,10 +140,12 @@ rlocus
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
+    form(k, p) = @sprintf("%.4f", k) * "  pole=" * @sprintf("%.3f%+.3fim", real(p), imag(p))
     @series begin
         legend --> false
         ylims  --> ylim
         xlims  --> xlim
+        hover := "K=" .* form.(K,poles)
         label := ""
         redata, imdata
     end
