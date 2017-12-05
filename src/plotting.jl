@@ -358,6 +358,7 @@ nyquistplot
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
+                    hover --> [@sprintf("ω = %.3f", w) for w in w]
                     (redata, imdata)
                 end
                 # Plot rings
@@ -549,6 +550,7 @@ nicholsplot
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
             linecolor --> styledict[:c]
+            hover --> [@sprintf("ω = %.3f", w) for w in w]
             angles, mag
         end
     end
