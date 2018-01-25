@@ -11,7 +11,10 @@ L = lqr(sys,Q,R)
 u(i,x) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0=x0)
+y, t, x, uout = lsim(sys,u,t,x0=x0) # Continuous time
+@test sum(abs.(x[end,:])) < eps()
+
+y, t, x, uout = lsim(c2d(sys,0.1)[1],u,t,x0=x0) # Discrete time
 @test sum(abs.(x[end,:])) < eps()
 
 #Do a manual simulation with uout

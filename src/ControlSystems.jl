@@ -57,6 +57,11 @@ export  LTISystem,
         step,
         impulse,
         lsim,
+        solve,
+        Simulator,
+        OutputFeedbackSimulator,
+        StateFeedbackSimulator,
+        GainSchedulingSimulator,
         # Frequency Response
         freqresp,
         evalfr,
@@ -67,7 +72,7 @@ export  LTISystem,
         numpoly,
         denpoly
 
-using Plots, LaTeXStrings, Requires
+using Plots, LaTeXStrings, Requires, OrdinaryDiffEq
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
 include("types/lti.jl")
@@ -83,6 +88,7 @@ include("simplification.jl")
 include("synthesis.jl")
 include("analysis.jl")
 include("timeresp.jl")
+include("simulators.jl")
 include("freqresp.jl")
 include("utilities.jl")
 include("plotting.jl")

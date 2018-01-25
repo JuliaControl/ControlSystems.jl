@@ -199,7 +199,7 @@ reference(t,x) = 1.
 end
 ```
 """
-function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}) where Tu <: LTISystem where Tc <: Function
+function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=identity) where Tu <: LTISystem where Tc <: Function
     controllers = ss.(controllers)
     s = Simulator(P)
     pinds = 1:P.nx # Indices of plant-state derivative
@@ -223,7 +223,7 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
         c = controllers[index] # Active controller
         cind = P.nx + (index == 1 ? 1 : sum(c->c.nx, controllers[1:index-1])) # Get index of first controller state
         u = c.C*x[cind:cind+c.nx-1] + c.D*et # Form control signal
-        der[pinds] .+= s.P.B*u # Add input from active controller to system dynamics
+        der[pinds] .+= inputfun(s.P.B*u) # Add input from active controller to system dynamics
         der
     end
     GainSchedulingSimulator(s,f,y,r,e,controllers,conditions)

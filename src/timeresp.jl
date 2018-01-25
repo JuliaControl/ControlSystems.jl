@@ -86,12 +86,10 @@ a zero vector is used.
 
 `y`, `x`, `uout` has time in the first dimension. Initial state `x0` defaults to zero.
 
-Continuous time systems are discretized before simulation. By default, the
-method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`, default depends on system smoothnes.
+Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized before simulation. For a lower level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
-If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
+If `u` is a function, then `u(i,x)` (`u(t,x)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
 To simulate a unit step, use `(i,x)-> 1`, for a ramp, use `(i,x)-> i*h`, for a step at `t=5`, use (i,x)-> (i*h >= 5) etc.
 
 Usage example:
@@ -164,11 +162,17 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
             end
             dsys = sys
         end
+        x,uout = ltitr(dsys.A, dsys.B, u, length(t), map(Float64,x0))
     else
-        dsys, x0map = c2d(sys, dt, :foh)
-        x0 = x0map*[x0; u(1,x0)]
+        s = Simulator(sys, u)
+        sol = solve(s, x0, (t[1],t[end]), Tsit5())
+        xT = sol(t)
+        x = xT.'
+        uout = Array{eltype(x)}(sys.nu, length(t))
+        for t in t
+            uout[t,:] = u(t,xT[:,i])
+        end
     end
-    x,uout = ltitr(dsys.A, dsys.B, u, length(t), map(Float64,x0))
     y = (sys.C*(x.') + sys.D*(uout.')).'
     return y, t, x, uout
 end
