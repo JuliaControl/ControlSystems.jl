@@ -80,8 +80,34 @@ y, t2, x = step(G, 2)
 @test y ≈ [zeros(3); ones(4)] atol=1e-14
 @test t2 ≈ 0:0.3:1.8 atol=1e-14
 
-
-
 #Make sure t was never changed
 @test t0 == t
+
+
+@testset "Simulators" begin
+
+P              = tf(1,[2.,1])^2*tf(1,[5.,1]) # Process model
+h              = 0.1                         # Sample time (only used for plots)
+Tf             = 20                          # Length of experiments (seconds)
+t              = 0:h:Tf                      # Time vector
+Ps             = ss(P)                       # State-space representation of process model
+reference(t,x) = 1.;                         # Reference generator (step function)
+s              = Simulator(Ps)
+x0             = [0.,0,0]                    # Initial state
+tspan          = (0.0,Tf)
+
+
+# Verify that gain scheduled controller two identical controllers give same result as single controller
+conditions  = [(x,y,r) -> true]
+controllers = [pid(kp=1, ki=1, kd=1)]
+gs    = GainSchedulingSimulator(Ps, reference, controllers, conditions)
+sol  = solve(gs, x0, tspan, Tsit5())
+controllers  = [pid(kp=1, ki=1, kd=1), pid(kp=1, ki=1, kd=1)]
+conditions   = [(x,y,r) -> y[1] < 0.5, (x,y,r) -> y[1] >= 0.5]
+gs2          = GainSchedulingSimulator(Ps, reference, controllers, conditions)
+sol2         = solve(gs2, x0, tspan, Tsit5())
+@test sol(t)[1:3,:] ≈ sol2(t)[1:3,:]
+
+end
+
 end

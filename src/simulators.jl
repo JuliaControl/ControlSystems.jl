@@ -199,8 +199,7 @@ reference(t,x) = 1.
 end
 ```
 """
-function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=identity) where Tu <: LTISystem where Tc <: Function
-    controllers = ss.(controllers)
+function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=identity) where Tu <: StateSpace where Tc <: Function
     s = Simulator(P)
     pinds = 1:P.nx # Indices of plant-state derivative
     r = (t,x) -> ri(t,x[pinds])
@@ -209,26 +208,30 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
     e = (t,x) -> r(t,x) .- y(t,x)
     f = function(t,x)
         xyr = (x[pinds],y(t,x),r(t,x))
-        index = length(controllers) > 1 ? findfirst(c->c(xyr...), conditions) : 1
+        index = findfirst(c->c(xyr...), conditions)
+        @assert index > 0 "No condition returned true"
         der = similar(x)
         der[pinds] = P.A*x[pinds] # System dynamics
         et = e(t,x)
         ind = P.nx+1 # First index of currently updated controller
         for c in controllers
-            c.nx == 0 && continue
-            inds = ind:ind+c.nx-1 # Controller indices
-            der[inds] = c.A*x[inds] + c.B*et # Controller state derivatives
+            c.nx == 0 && continue # Gain only, no states
+            inds = ind:(ind+c.nx-1) # Controller indices
+            der[inds] = c.A*x[inds] + c.B*et # Controller dynamics, driven by error
             ind += c.nx
         end
         c = controllers[index] # Active controller
-        cind = P.nx + (index == 1 ? 1 : sum(c->c.nx, controllers[1:index-1])) # Get index of first controller state
-        u = c.C*x[cind:cind+c.nx-1] + c.D*et # Form control signal
-        der[pinds] .+= inputfun(s.P.B*u) # Add input from active controller to system dynamics
+        cind = P.nx + (index == 1 ? 1 : 1+sum(i->controllers[i].nx, 1:index-1)) # Get index of first controller state
+        u = c.C*x[cind:(cind+c.nx-1)] + c.D*et # Form control signal
+        der[pinds] .+= inputfun(P.B*u) # Add input from active controller to system dynamics
         der
     end
     GainSchedulingSimulator(s,f,y,r,e,controllers,conditions)
 end
 
+function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=identity) where Tu <: LTISystem where Tc <: Function
+    GainSchedulingSimulator(P,ri,ss.(controllers),conditions; inputfun=inputfun)
+end
 # ============================================================================================
 
 """
