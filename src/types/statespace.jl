@@ -2,11 +2,11 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type StateSpace <: LTISystem
-    A::Matrix{Float64}
-    B::Matrix{Float64}
-    C::Matrix{Float64}
-    D::Matrix{Float64}
+type StateSpace{MT} <: LTISystem where MT <: AbstractMatrix{<:Number}
+    A::MT
+    B::MT
+    C::MT
+    D::MT
     Ts::Float64
     nx::Int
     nu::Int
@@ -15,10 +15,10 @@ type StateSpace <: LTISystem
     inputnames::Vector{String}
     outputnames::Vector{String}
 
-    function StateSpace(A::Matrix{Float64}, B::Matrix{Float64},
-            C::Matrix{Float64}, D::Matrix{Float64}, Ts::Float64,
+    function StateSpace{MT}(A::MT, B::MT,
+            C::MT, D::MT, Ts::Float64,
             statenames::Vector{String}, inputnames::Vector{String},
-            outputnames::Vector{String})
+            outputnames::Vector{String}) where MT <: AbstractMatrix{<:Number}
         nx = size(A, 1)
         nu = size(B, 2)
         ny = size(C, 1)
@@ -47,16 +47,17 @@ type StateSpace <: LTISystem
             error("Ts must be either a positive number, 0
                    (continuous system), or -1 (unspecified)")
         end
-        new(A, B, C, D, Ts, nx, nu, ny, statenames, inputnames, outputnames)
+        new{MT}(A, B, C, D, Ts, nx, nu, ny, statenames, inputnames, outputnames)
     end
 end
 
-function StateSpace(A::Array, B::Array, C::Array, D::Array, Ts::Real,
+function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real,
         statenames::Vector{String}, inputnames::Vector{String},
         outputnames::Vector{String})
         T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-    return StateSpace(Tmat(A,T), Tmat(B,T), Tmat(C,T),
-            Tmat(D,T), map(Float64, Ts), statenames, inputnames, outputnames)
+        @assert (typeof(Tmat(A,T)) == typeof(Tmat(B,T)) == typeof(Tmat(C,T)) == typeof(Tmat(D,T)))
+        return StateSpace{Matrix{T}}(Tmat(A,T), Tmat(B,T), Tmat(C,T),
+            Tmat(D,T), Float64(Ts), statenames, inputnames, outputnames)
 end
 
 #####################################################################

@@ -54,6 +54,8 @@ Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 
 Base.zero(::Type{SisoRational}) = SisoRational(zero(Poly{Vector{Float64}}), one(Poly{Vector{Float64}}))
 Base.zero(::SisoRational) = Base.zero(SisoRational)
+Base.eltype{T}(::SisoRational{T}) = eltype(T)
+Base.eltype{T}(::Type{SisoRational{T}}) = eltype(T)
 
 Base.length(t::SisoRational) = max(length(t.num), length(t.den))
 

@@ -17,7 +17,7 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
                 Cc = blkdiag(Cc, c)
                 Dc = vcat(Dc, d)
             else
-                Ac, Bc, Cc, Dc = (a, b, c, d)
+                Ac, Bc, Cc, Dc = a, b, c, d
             end
         end
         if i > 1
@@ -27,7 +27,7 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
             C = hcat(C, Cc)
             D = hcat(D, Dc)
         else
-            A, B, C, D = (Ac, Bc, Cc, Dc)
+            A, B, C, D = Ac, Bc, Cc, Dc
         end
     end
     A, B, C = balance_statespace(A, B, C)[1:3]
@@ -80,16 +80,15 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 """
-function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
-        C::Matrix{S}, perm::Bool=false)
+function balance_statespace(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, perm::Bool=false) where T <: Union{AbstractFloat, Integer}
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)
 
     # Compute the transformation matrix
     mag_A = abs.(A)
-    mag_B = maximum([abs.(B)  zeros(S, nx, 1)], 2)
-    mag_C = maximum([abs.(C); zeros(S, 1, nx)], 1)
+    mag_B = max.(abs.(B), 0)
+    mag_C = max.(abs.(C), 0)
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation
@@ -99,6 +98,9 @@ function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
 
     return A, B, C, T
 end
+
+# Fallback mehod for systems with exotic matrices (i.e. TrackedArrays)
+balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, args...) = A,B,C,I
 
 function balance_statespace(sys::StateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)

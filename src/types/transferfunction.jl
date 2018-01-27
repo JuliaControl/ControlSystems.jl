@@ -144,7 +144,7 @@ Other uses:
 `tf(sys)`: Convert `sys` to `tf` form.
 
 `tf("s")`, `tf("z")`: Create the continous transferfunction `s`.""" ->
-function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
+function tf{T<:Vector{<:Number}, S<:Vector{<:Number}}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
     if (ny, nu) != size(den, 1, 2)
@@ -440,8 +440,8 @@ function *(t1::TransferFunction, t2::TransferFunction)
     elseif t1.Ts != t2.Ts
         error("Sampling time mismatch")
     end
-    T = promote_type(eltype(t1.matrix), eltype(t2.matrix))
-    matrix = T.(t1.matrix)*T.(t2.matrix)
+    T = promote_type(eltype(eltype(t1.matrix)), eltype(eltype(t2.matrix)))
+    matrix = convert(Matrix{SisoRational{Vector{T}}}, *(promote(t1.matrix,t2.matrix)...))
     return TransferFunction(matrix, t1.Ts, t2.inputnames, t1.outputnames)
 end
 
