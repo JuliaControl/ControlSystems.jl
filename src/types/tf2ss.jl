@@ -6,7 +6,7 @@ function Base.convert(::Type{StateSpace}, t::TransferFunction)
     mat = t.matrix
     # TODO : These are added due to scoped for blocks, but is a hack. This
     # could be much cleaner.
-    Ac = Bc = Cc = Dc = A = B = C = D = Array{Float64}(0, 0)
+    Ac = Bc = Cc = Dc = A = B = C = D = Array{eltype(mat)}(0, 0)
     for i=1:nu
         for j=1:ny
             a, b, c, d = siso_tf_to_ss(mat[j, i])
@@ -42,24 +42,25 @@ Base.promote_rule{T<:Real}(::Type{StateSpace}, ::Type{T}) = StateSpace
 siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
 function siso_tf_to_ss(t::SisoRational)
+    T = eltype(t.den)
     t = normalize_tf(t)
     tnum = num(t)
     tden = den(t)
     len = length(tden)
-    d = Array{Float64}(1, 1)
+    d = Array{T}(1, 1)
     d[1] = tnum[1]
 
-    if len==1 || tnum == zero(Poly{Float64})
-        a = zeros(0, 0)
-        b = zeros(0, 1)
-        c = zeros(1, 0)
+    if len==1 || tnum == zero(Poly{Vector{T}})
+        a = zeros(T, 0, 0)
+        b = zeros(T, 0, 1)
+        c = zeros(T, 1, 0)
     else
         tden = tden[2:end]
         a = [-tden' ; eye(len - 2, len - 1)]
         b = eye(len - 1, 1)
         c = tnum[2:len]' - d * tden[:]'
     end
-    return float64mat(a), float64mat(b), float64mat(c), d
+    return Tmat(a,T), Tmat(b,T), Tmat(c,T), d
 end
 
 function normalize_tf(t::SisoRational)
@@ -82,8 +83,8 @@ This is not the same as finding a balanced realization with equal and diagonal o
 function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
         C::Matrix{S}, perm::Bool=false)
     nx = size(A, 1)
-    nu = size(B,2)
-    ny = size(C,1)
+    nu = size(B, 2)
+    ny = size(C, 1)
 
     # Compute the transformation matrix
     mag_A = abs.(A)

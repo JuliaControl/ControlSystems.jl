@@ -150,7 +150,7 @@ function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0
     if (ny, nu) != size(den, 1, 2)
         error("num and den dimensions must match")
     end
-    matrix = Array{SisoRational}(ny, nu)
+    matrix = Array{SisoRational{T}}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoRational(num[o, i], den[o, i])
@@ -214,9 +214,10 @@ end
 
 function tf(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array{SisoRational}(tf.ny, tf.nu)
+    T = SisoRational{typeof(tf.matrix)}
+    matrix = Array{T}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
-        matrix[i] = convert(SisoRational, oldmat[i])
+        matrix[i] = convert(T, oldmat[i])
     end
     return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
@@ -242,8 +243,10 @@ end
 
 zpk(sys::TransferFunction{SisoGeneralized}) = zpk(tf(sys))
 
-tf(num::Vector, den::Vector, Ts::Real=0; kwargs...) =
-    tf(reshape(Vector[num], 1, 1), reshape(Vector[den], 1, 1), Ts; kwargs...)
+function tf(num::Vector{T1}, den::Vector{T2}, Ts::Real=0; kwargs...) where {T1,T2}
+    T = promote_type(T1,T2)
+    tf(reshape(Vector{T}[T.(num)], 1, 1), reshape(Vector{T}[T.(den)], 1, 1), Ts; kwargs...)
+end
 
 tf(num::Real, den::Vector, Ts::Real=0; kwargs...) = tf([num], den, Ts; kwargs...)
 
@@ -253,9 +256,9 @@ zpk(z::Vector, p::Vector, k::Real, Ts::Real=0; kwargs...) =
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array{SisoRational}(ny, nu)
+    matrix = Array{SisoRational{typeof(gain)}}(ny, nu)
     for i in eachindex(gain)
-        matrix[i] = SisoRational([gain[i]], [1])
+        matrix[i] = SisoRational([gain[i]], [one(eltype(gain))])
     end
     kvs = Dict(kwargs)
     inputnames = validate_names(kvs, :inputnames, nu)
@@ -437,7 +440,8 @@ function *(t1::TransferFunction, t2::TransferFunction)
     elseif t1.Ts != t2.Ts
         error("Sampling time mismatch")
     end
-    matrix = t1.matrix*t2.matrix
+    T = promote_type(eltype(t1.matrix), eltype(t2.matrix))
+    matrix = T.(t1.matrix)*T.(t2.matrix)
     return TransferFunction(matrix, t1.Ts, t2.inputnames, t1.outputnames)
 end
 

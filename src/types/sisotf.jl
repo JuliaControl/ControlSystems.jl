@@ -1,18 +1,22 @@
 ## User should just use TransferFunction
-immutable SisoRational <: SisoTf
-    num::Poly{Float64}
-    den::Poly{Float64}
-    function SisoRational(num::Poly{Float64}, den::Poly{Float64})
+struct SisoRational{VT<:AbstractVector{<: Number}} <: SisoTf
+    num::Poly{VT}
+    den::Poly{VT}
+    function SisoRational(num::Poly{VT}, den::Poly{VT}) where VT <: AbstractVector{<: Number}
         if all(den == zero(den))
             error("Zero denominator")
         elseif all(num == zero(num))
             # The numerator is zero, make the denominator 1
             den = one(den)
         end
-        new(num, den)
+        new{VT}(num, den)
     end
 end
-SisoRational(num::Vector, den::Vector) = SisoRational(Poly(map(Float64,num)), Poly(map(Float64,den)))
+SisoRational(num::Vector{T}, den::Vector{T}) where T <: Number = SisoRational(Poly(num), Poly(den))
+function SisoRational(num::Poly{T1}, den::Poly{T2}) where T1 <: AbstractVector{<: Number} where T2 <: AbstractVector{<: Number}
+    T = promote_type(eltype(T1),eltype(T2))
+    SisoRational(Poly(map(T,num.a)), Poly(map(T,den.a)))
+end
 
 function minreal(sys::SisoRational, eps::Real=sqrt(eps()))
     return SisoRational(minreal(SisoZpk(sys), eps))
@@ -48,21 +52,21 @@ end
 Base.promote_rule{T<:Real}(::Type{SisoRational}, ::Type{T}) = SisoRational
 Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 
-Base.zero(::Type{SisoRational}) = SisoRational(zero(Poly{Float64}), one(Poly{Float64}))
+Base.zero(::Type{SisoRational}) = SisoRational(zero(Poly{Vector{Float64}}), one(Poly{Vector{Float64}}))
 Base.zero(::SisoRational) = Base.zero(SisoRational)
 
 Base.length(t::SisoRational) = max(length(t.num), length(t.den))
 
 function Base.num(t::SisoRational)
     lt = length(t)
-    n = zeros(lt)
+    n = zeros(eltype(t.num), lt)
     n[(lt - length(t.num) + 1):end] = t.num[:]
     return n
 end
 
 function Base.den(t::SisoRational)
     lt = length(t)
-    d = zeros(lt)
+    d = zeros(eltype(t.den), lt)
     d[(lt - length(t.den) + 1):end] = t.den[:]
     return d
 end

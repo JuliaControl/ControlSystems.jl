@@ -7,24 +7,24 @@ Base.eps{T}(::Type{T}) = zero(T)
 Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
 Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 
-immutable Poly{T<:Number}
-    a::Vector{T}
+struct Poly{VT<:AbstractVector{<: Number}}
+    a::VT
     nzfirst::Int #for effiencicy, track the first non-zero index
-    function Poly{S}(a::Vector{S}) where S
+    function Poly(a)
         la = length(a)
-        i = 0
+        local i
         for i = 1:la
-            if abs(a[i]) > 2*eps(S)  break  end
+            if abs(a[i]) > 2*eps(eltype(VT))  break  end
         end
         new(a, i)
     end
 end
 
-Poly{T<:Number}(a::Vector{T}) = Poly{T}(a)
+Poly{VT<:AbstractVector{<: Number}}(a::VT) = Poly{VT}(a)
 
-Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(Vector{T}, p.a))
+Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(T, p.a))
 Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}
-Base.eltype{T}(::Poly{T}) = T
+Base.eltype{T}(::Poly{T}) = eltype(T)
 
 Base.length(p::Poly) = length(p.a) - p.nzfirst + 1
 Base.endof(p::Poly) = length(p)
@@ -36,10 +36,10 @@ Base.setindex!(p::Poly, v, i) = (p.a[i - 1 + p.nzfirst] = v)
 
 Base.copy(p::Poly) = Poly(copy(p.a[p.nzfirst:end]))
 
-Base.zero{T}(p::Poly{T}) = Poly([zero(T)])
-Base.zero{T}(::Type{Poly{T}}) = Poly([zero(T)])
-Base.one{T}(p::Poly{T}) = Poly([one(T)])
-Base.one{T}(::Type{Poly{T}}) = Poly([one(T)])
+Base.zero{T}(p::Poly{T}) = Poly(zeros(eltype(T),1))
+Base.zero{T}(::Type{Poly{T}}) = Poly(zeros(eltype(T),1))
+Base.one{T}(p::Poly{T}) = Poly(ones(eltype(T),1))
+Base.one{T}(::Type{Poly{T}}) = Poly(ones(eltype(T),1))
 
 function Base.show(io::IO, p::Poly)
     print(io,"Poly(")
@@ -49,7 +49,8 @@ end
 
 Base.print(io::IO, p::Poly) = print_poly(io, p)
 
-function print_poly{T}(io::IO, p::Poly{T}, var=:x)
+function print_poly{VT}(io::IO, p::Poly{VT}, var=:x)
+    T = eltype(VT)
     n = length(p)
     if n == 1
         print(io, p[1])
@@ -111,7 +112,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = Array{R}(n)
+        a = R(n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] + p2[i]
         end
@@ -119,7 +120,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = Array{R}(m)
+        a = R(m)
         for i = 1:n
             a[m-n+i] = p1[i] + p2[m-n+i]
         end
@@ -135,7 +136,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = Array{R}(n)
+        a = R(n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] - p2[i]
         end
@@ -143,7 +144,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = Array{R}(m)
+        a = R(m)
         for i = 1:n
             a[m-n+i] = p1[i] - p2[m-n+i]
         end
@@ -159,9 +160,9 @@ function *{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n == 0 || m == 0
-        return Poly(R[])
+        return Poly(R)
     end
-    a = zeros(R, n+m-1)
+    a = zeros(eltype(R), n+m-1)
     for i = 1:length(p1)
         for j = 1:length(p2)
             a[i+j-1] += p1[i] * p2[j]
@@ -187,7 +188,7 @@ function isapprox(p1::Poly, p2::Poly; kwargs...)
 end
 
 function polyval{T}(p::Poly{T}, x::Number)
-    R = promote_type(T, typeof(x))
+    R = promote_type(eltype(T), typeof(x))
     lenp = length(p)
     if lenp == 0
         return zero(R)
@@ -202,7 +203,7 @@ end
 
 # compute the roots of a polynomial
 function roots{T}(p::Poly{T})
-    R = promote_type(T, Float64)
+    R = promote_type(eltype(T), Float64)
     num_zeros = 0
     if length(p) == 0
         return zeros(R, 0)

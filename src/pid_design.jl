@@ -7,12 +7,12 @@ Calculates and returns a PID controller on transfer function form.
 
 `C = pid(; kp=0, ki=0; kd=0, time=false, series=false)`
 """
-function pid(; kp=0, ki=0, kd=0, time=false, series=false)
+function pid(; kp=0., ki=0., kd=0., time=false, series=false)
     s = tf("s")
     if series
-        return time ? kp*(1 + 1/(ki*s) + kd*s) : kp*(1 + ki/s + kd*s)
+        return time ? kp*(one(kp) + one(kp)/(ki*s) + kd*s) : kp*(one(kp) + ki/s + kd*s)
     else
-        return time ? kp + 1/(ki*s) + kd*s : kp + ki/s + kd*s
+        return time ? kp + one(kp)/(ki*s) + kd*s : kp + ki/s + kd*s
     end
 end
 

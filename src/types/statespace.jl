@@ -54,8 +54,9 @@ end
 function StateSpace(A::Array, B::Array, C::Array, D::Array, Ts::Real,
         statenames::Vector{String}, inputnames::Vector{String},
         outputnames::Vector{String})
-    return StateSpace(float64mat(A), float64mat(B), float64mat(C),
-            float64mat(D), map(Float64, Ts), statenames, inputnames, outputnames)
+        T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+    return StateSpace(Tmat(A,T), Tmat(B,T), Tmat(C,T),
+            Tmat(D,T), map(Float64, Ts), statenames, inputnames, outputnames)
 end
 
 #####################################################################
@@ -87,13 +88,14 @@ end
 
 # Function for accepting scalars
 function ss(A::Union{Real,Array}, B::Union{Real,Array}, C::Union{Real,Array}, D::Union{Real,Array}, args...; kwargs...)
-    A = float64mat(A)
-    B = float64mat(B)
-    C = float64mat(C)
+    T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+    A = Tmat(A, T)
+    B = Tmat(B, T)
+    C = Tmat(C, T)
     if D == 0
-        D = zeros(size(C,1),size(B,2))
+        D = zeros(T, size(C,1),size(B,2))
     else
-        D = float64mat(D)
+        D = Tmat(D, T)
     end
     ss(A, B, C, D, args..., kwargs...)
 end
@@ -101,9 +103,9 @@ end
 # Function for creation of static gain
 function ss(D::Array, Ts::Real=0; kwargs...)
     ny, nu = size(D, 1, 2)
-    A = zeros(0, 0)
-    B = zeros(0, nu)
-    C = zeros(ny, 0)
+    A = zeros(eltype(D), 0, 0)
+    B = zeros(eltype(D), 0, nu)
+    C = zeros(eltype(D), ny, 0)
 
     return ss(A, B, C, D, Ts, kwargs...)
 end
