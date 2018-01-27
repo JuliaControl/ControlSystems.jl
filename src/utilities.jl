@@ -48,13 +48,13 @@ end
 ## Helpers (not public) ##
 
 # Convert the argument to a Matrix{Float64}
-function float64mat(A::Vector)
+function Tmat(A::Vector)
     A = reshape(A, size(A, 1), 1)
-    return float64mat(A)
+    return Tmat(A)
 end
-float64mat(A::Matrix) = map(Float64,A)
-float64mat(A::Matrix{Float64}) = A
-float64mat(A::Real) = float64mat([A])
+Tmat(A::Matrix, T = Float64) = map(T,A)
+Tmat(A::Matrix{Float64}) = A
+Tmat(A::Real) = Tmat([A])
 
 # Ensures the metadata for an LTISystem is valid
 function validate_names(kwargs, key, n)

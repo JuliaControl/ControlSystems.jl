@@ -42,24 +42,25 @@ locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
 function impulse(sys::StateSpace, t::AbstractVector)
+    T = eltype(sys.A)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = (x,i) -> i == t[1] ? ones(nu)/sys.Ts : zeros(nu)
+    u = (x,i) -> i == t[1] ? ones(T,nu)/sys.Ts : zeros(T,nu)
     if iscontinuous(sys)
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
-        imp_sys = ss(sys.A, zeros(nx, 1), sys.C, zeros(ny, 1))
+        imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
         imp_sys = sys
-        x0s = zeros(nx, nu)
+        x0s = zeros(T, nx, nu)
     end
     if nu == 1
         y, t, x,_ = lsim(sys, u, t, x0=x0s)
     else
-        x = Array{Float64}(lt, nx, nu)
-        y = Array{Float64}(lt, ny, nu)
+        x = Array{T}(lt, nx, nu)
+        y = Array{T}(lt, ny, nu)
         for i=1:nu
             y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0s[:,i])
         end
