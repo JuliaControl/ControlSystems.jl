@@ -80,6 +80,7 @@ include("types/transferfunction.jl")
 include("types/statespace.jl")
 include("types/tf2ss.jl")
 include("types/lqg.jl")
+include("types/promotion.jl")
 
 include("connections.jl")
 include("discrete.jl")

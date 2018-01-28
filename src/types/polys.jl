@@ -22,10 +22,6 @@ end
 
 Poly{VT<:AbstractNumberVector}(a::VT) = Poly{VT}(a)
 
-Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(T, p.a))
-Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}
-Base.eltype{T}(::Poly{T}) = eltype(T)
-
 Base.length(p::Poly) = length(p.a) - p.nzfirst + 1
 Base.endof(p::Poly) = length(p)
 deg(p::Poly) = length(p) - 1
@@ -36,10 +32,6 @@ Base.setindex!(p::Poly, v, i) = (p.a[i - 1 + p.nzfirst] = v)
 
 Base.copy(p::Poly) = Poly(copy(p.a[p.nzfirst:end]))
 
-Base.zero{T}(p::Poly{T}) = Poly(zeros(eltype(T),1))
-Base.zero{T}(::Type{Poly{T}}) = Poly(zeros(eltype(T),1))
-Base.one{T}(p::Poly{T}) = Poly(ones(eltype(T),1))
-Base.one{T}(::Type{Poly{T}}) = Poly(ones(eltype(T),1))
 
 function Base.show(io::IO, p::Poly)
     print(io,"Poly(")
