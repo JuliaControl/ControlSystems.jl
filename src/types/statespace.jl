@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type StateSpace{MT} <: LTISystem where MT <: AbstractMatrix{<:Number}
+type StateSpace{MT} <: LTISystem where MT <: AbstractNumberMatrix
     A::MT
     B::MT
     C::MT
@@ -18,7 +18,7 @@ type StateSpace{MT} <: LTISystem where MT <: AbstractMatrix{<:Number}
     function StateSpace{MT}(A::MT, B::MT,
             C::MT, D::MT, Ts::Float64,
             statenames::Vector{String}, inputnames::Vector{String},
-            outputnames::Vector{String}) where MT <: AbstractMatrix{<:Number}
+            outputnames::Vector{String}) where MT <: AbstractNumberMatrix
         nx = size(A, 1)
         nu = size(B, 2)
         ny = size(C, 1)

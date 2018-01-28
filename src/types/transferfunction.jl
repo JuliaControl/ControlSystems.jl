@@ -35,6 +35,9 @@ TransferFunction{T<:SisoTf}(matrix::Matrix{T}, args...) = TransferFunction{T}(ma
 
 +{T<:Real}(a::TransferFunction, b::AbstractVecOrMat{T}) = +(promote(a,b)...)
 
+Base.eltype{T}(::Type{TransferFunction{T}}) = T
+Base.eltype{T}(t::TransferFunction{T}) = T
+
 Base.promote_rule{S<:SisoTf,T<:Real}(::Type{TransferFunction{S}}, ::Type{T}) = TransferFunction{S}
 Base.promote_rule{S<:SisoTf,T<:Real}(::Type{TransferFunction{S}}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = TransferFunction{S}
 
@@ -75,6 +78,7 @@ function Base.convert(::Type{SisoRational}, sys::SisoZpk)
     den = prod(zp2polys(sys.p))
     return SisoRational(num, den)
 end
+
 
 Base.convert(::Type{SisoGeneralized}, sys::SisoRational) = SisoGeneralized(sprint(print_compact, sys))
 Base.convert(::Type{SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, convert(SisoRational, sys))
@@ -144,9 +148,10 @@ Other uses:
 `tf(sys)`: Convert `sys` to `tf` form.
 
 `tf("s")`, `tf("z")`: Create the continous transferfunction `s`.""" ->
-function tf{T<:Vector{<:Number}, S<:Vector{<:Number}}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
+function tf{T1<:Vector, T2<:Vector}(num::VecOrMat{T1}, den::VecOrMat{T2}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
+    T = promote_type(T1,T2)
     if (ny, nu) != size(den, 1, 2)
         error("num and den dimensions must match")
     end
@@ -234,9 +239,10 @@ Other uses:
 """ ->
 function tfg(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array{SisoGeneralized}(tf.ny, tf.nu)
+    ST = SisoGeneralized{Vector{eltype(tf.matrix)}}
+    matrix = Matrix{ST}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
-        matrix[i] = convert(SisoGeneralized, oldmat[i])
+        matrix[i] = convert(ST, oldmat[i])
     end
     return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
@@ -256,7 +262,7 @@ zpk(z::Vector, p::Vector, k::Real, Ts::Real=0; kwargs...) =
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array{SisoRational{typeof(gain)}}(ny, nu)
+    matrix = Matrix{SisoRational{Vector{eltype(gain)}}}(ny, nu)
     for i in eachindex(gain)
         matrix[i] = SisoRational([gain[i]], [one(eltype(gain))])
     end
@@ -299,7 +305,8 @@ zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 
 function tfg(systems::Array, Ts::Real=0; kwargs...)
     ny, nu = size(systems, 1, 2)
-    matrix = Array{SisoGeneralized}(ny, nu)
+    T = promote_type(eltype.(systems)...)
+    matrix = Matrix{SisoRational{Vector{T}}}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoGeneralized(systems[o, i])

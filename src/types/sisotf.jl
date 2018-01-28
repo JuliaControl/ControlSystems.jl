@@ -1,8 +1,8 @@
 ## User should just use TransferFunction
-struct SisoRational{VT<:AbstractVector{<: Number}} <: SisoTf
+struct SisoRational{VT<:AbstractNumberVector} <: SisoTf
     num::Poly{VT}
     den::Poly{VT}
-    function SisoRational(num::Poly{VT}, den::Poly{VT}) where VT <: AbstractVector{<: Number}
+    function SisoRational(num::Poly{VT}, den::Poly{VT}) where VT <: AbstractNumberVector
         if all(den == zero(den))
             error("Zero denominator")
         elseif all(num == zero(num))
@@ -12,8 +12,8 @@ struct SisoRational{VT<:AbstractVector{<: Number}} <: SisoTf
         new{VT}(num, den)
     end
 end
-SisoRational(num::Vector{T}, den::Vector{T}) where T <: Number = SisoRational(Poly(num), Poly(den))
-function SisoRational(num::Poly{T1}, den::Poly{T2}) where T1 <: AbstractVector{<: Number} where T2 <: AbstractVector{<: Number}
+SisoRational(num::Vector, den::Vector) = SisoRational(Poly(num), Poly(den))
+function SisoRational(num::Poly{T1}, den::Poly{T2}) where T1 <: AbstractNumberVector where T2 <: AbstractNumberVector
     T = promote_type(eltype(T1),eltype(T2))
     SisoRational(Poly(map(T,num.a)), Poly(map(T,den.a)))
 end
@@ -50,10 +50,12 @@ function print_compact(io::Base.IO, t::SisoRational, var=:s)
 end
 
 Base.promote_rule{T<:Real}(::Type{SisoRational}, ::Type{T}) = SisoRational
+Base.promote_rule{T1,T2}(::Type{SisoRational{T1}},::Type{SisoRational{T2}}) = SisoRational{promote_type(T1,T2)}
+
 Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 
-Base.zero(::Type{SisoRational}) = SisoRational(zero(Poly{Vector{Float64}}), one(Poly{Vector{Float64}}))
-Base.zero(::SisoRational) = Base.zero(SisoRational)
+Base.zero{T}(::Type{SisoRational{T}}) = SisoRational(zero(Poly{T}), one(Poly{T}))
+Base.zero{T}(::SisoRational{T}) = Base.zero(SisoRational{T})
 Base.eltype{T}(::SisoRational{T}) = eltype(T)
 Base.eltype{T}(::Type{SisoRational{T}}) = eltype(T)
 
