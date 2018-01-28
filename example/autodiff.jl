@@ -1,4 +1,4 @@
-using ControlSystems
+using ControlSystems, OrdinaryDiffEq
 p0          = [1., 1., 1.]             # optimeringsvariabel
 K(kp,ki,kd) = pid(kp=kp, ki=ki, kd=kd) # K regulator, s Laplacevariabel (alltihop är i kontinuerlig tid)
 K(p)        = K(p...)
@@ -6,7 +6,7 @@ K(p)        = K(p...)
 ζ  = 0.3
 ω  = 1.; ω² = ω^2
 P  = tf(ω²,[1, 2ζ*ω, ω²])^2 # LTI-process, tillhandahålls av användaren
-P = c2d(P,h)[1]
+# P = c2d(P,h)[1]
 Ω  = logspace(-3,3,100) # vektor med vinkelfrekvenser för utvärdering av bivillkor, tillhandahålls av användaren
 h  = 0.5
 Tf = 30.

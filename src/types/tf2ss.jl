@@ -1,46 +1,3 @@
-function Base.convert(::Type{StateSpace}, t::TransferFunction)
-    if !isproper(t)
-        error("System is improper, a state-space representation is impossible")
-    end
-    ny, nu = size(t)
-    mat = t.matrix
-    # TODO : These are added due to scoped for blocks, but is a hack. This
-    # could be much cleaner.
-    Ac = Bc = Cc = Dc = A = B = C = D = Array{eltype(mat)}(0, 0)
-    for i=1:nu
-        for j=1:ny
-            a, b, c, d = siso_tf_to_ss(mat[j, i])
-            if j > 1
-                # vcat
-                Ac = blkdiag(Ac, a)
-                Bc = vcat(Bc, b)
-                Cc = blkdiag(Cc, c)
-                Dc = vcat(Dc, d)
-            else
-                Ac, Bc, Cc, Dc = a, b, c, d
-            end
-        end
-        if i > 1
-            # hcat
-            A = blkdiag(A, Ac)
-            B = blkdiag(B, Bc)
-            C = hcat(C, Cc)
-            D = hcat(D, Dc)
-        else
-            A, B, C, D = Ac, Bc, Cc, Dc
-        end
-    end
-    A, B, C = balance_statespace(A, B, C)[1:3]
-    return ss(A, B, C, D, t.Ts, inputnames=t.inputnames, outputnames=t.outputnames)
-end
-
-Base.convert(::Type{StateSpace}, t::Real) = ss(t)
-
-function Base.promote_rule(::Type{T}, ::Type{P})  where T <: StateSpace where P <: TransferFunction{<:SisoTf}
-     T
- end
-Base.promote_rule{T}(::Type{StateSpace{T}}, ::Type{<:Real}) = StateSpace{T}
-
 siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
 function siso_tf_to_ss(t::SisoRational)
@@ -64,7 +21,6 @@ function siso_tf_to_ss(t::SisoRational)
     end
     return Tmat(a,T), Tmat(b,T), Tmat(c,T), d
 end
-
 function normalize_tf(t::SisoRational)
     d = t.den[1]
     return SisoTf(t.num/d, t.den/d)
@@ -149,8 +105,8 @@ end
 
 function ss2tf(A, B, C, D, Ts = 0; inputnames = "", outputnames = "")
     nu,ny = size(B,2),size(C,1)
-    ubernum = Matrix{Vector}(ny,nu)
-    uberden = Matrix{Vector}(ny,nu)
+    ubernum = Matrix{Vector{eltype(A)}}(ny,nu)
+    uberden = Matrix{Vector{eltype(A)}}(ny,nu)
     for i = 1:nu, j=1:ny
         ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:]', D[j,i])
     end
@@ -169,8 +125,9 @@ zpk(sys::StateSpace) = zpk(ss2tf(sys))
 
 function charpoly(A)
     λ = eigvals(A);
-    p = reduce(*,ControlSystems.Poly([1.]), ControlSystems.Poly[ControlSystems.Poly([1, -λᵢ]) for λᵢ in λ]);
-    if maximum(imag.(p[:])./(1+abs.(real.(p[:])))) < sqrt(eps())
+    I = one(eltype(A))
+    p = reduce(*,ControlSystems.Poly([I]), ControlSystems.Poly[ControlSystems.Poly([I, -λᵢ]) for λᵢ in λ]);
+    if maximum(imag.(p[:])./(I+abs.(real.(p[:])))) < sqrt(eps(eltype(A)))
         for i = 1:length(p)
             p[i] = real(p[i])
         end

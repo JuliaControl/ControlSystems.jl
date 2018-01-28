@@ -143,15 +143,6 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
     println(io, denstr)
 end
 
-Base.eltype{T}(::Type{SisoZpk{T}}) = eltype(T)
-Base.eltype{T}(t::SisoZpk{T}) = eltype(T)
-
-Base.promote_rule{T<:SisoZpk}(::Type{T}, ::Type{<:Real}) = T
-Base.convert(::Type{<:SisoZpk}, b::Real) = SisoZpk([], [], b)
-
-Base.zero(::Type{<:SisoZpk}) = SisoZpk([],[],0.0)
-Base.zero(::SisoZpk) = Base.zero(SisoZpk)
-
 Base.length(t::SisoZpk) = max(length(t.z), length(t.p))
 
 

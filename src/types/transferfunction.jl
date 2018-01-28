@@ -35,66 +35,7 @@ TransferFunction{T<:SisoTf}(matrix::Matrix{T}, args...) = TransferFunction{T}(ma
 
 +{T<:Real}(a::TransferFunction, b::AbstractVecOrMat{T}) = +(promote(a,b)...)
 
-Base.eltype{T}(::Type{TransferFunction{T}}) = T
-Base.eltype{T}(t::TransferFunction{T}) = T
 
-Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Type{T}) = S
-Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = S
-
-Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b])
-Base.convert{T<:Real}(::Type{TransferFunction{SisoRational}}, b::T) = tf(b)
-Base.convert{T<:Real}(::Type{<:TransferFunction{<:SisoZpk}}, b::T) = zpk(b)
-Base.convert{T<:Real}(::Type{TransferFunction{SisoGeneralized}}, b::T) = tfg(b)
-
-Base.convert(::Type{TransferFunction{SisoZpk}}, s::TransferFunction) = zpk(s)
-Base.convert(::Type{TransferFunction{SisoRational}}, s::TransferFunction) = tf(s)
-Base.convert(::Type{TransferFunction{SisoGeneralized}}, s::TransferFunction) = tfg(s)
-
-Base.promote_rule{T <: TransferFunction{<:SisoZpk}}(::Type{<:TransferFunction{<:SisoRational}}, ::Type{T}) = T
-Base.promote_rule{T <: TransferFunction{<:SisoGeneralized}}(::Type{<:TransferFunction{<:SisoTf}}, ::Type{T}) = T
-Base.promote_rule{T <: SisoZpk}(::Type{<:SisoRational}, ::Type{T}) = T
-Base.promote_rule{T <: SisoGeneralized}(::Type{<:SisoTf}, ::Type{T}) = T
-
-function Base.promote_rule(::Type{T}, ::Type{P})  where T <: SisoZpk where P <: SisoZpk
-     SisoZpk{promote_type(eltype(T), eltype(P))}
- end
-
-function Base.convert{T<:Real}(::Type{<:TransferFunction}, b::VecOrMat{T})
-    r = Array{TransferFunction,2}(size(b,2),1)
-    for j=1:size(b,2)
-        r[j] = vcat(map(k->convert(TransferFunction,k),b[:,j])...)
-    end
-    hcat(r...)
-end
-
-function Base.convert(::Type{<:SisoZpk}, sys::SisoRational)
-    if length(sys.num) == 0
-        return SisoZpk([],[],0)
-    elseif all(sys.den == zero(sys.den))
-        error("Zero denominator, this should not be possible")
-    else
-        return SisoZpk(roots(sys.num),roots(sys.den),sys.num[1]/sys.den[1])
-    end
-end
-
-function Base.convert(::Type{<:SisoRational}, sys::SisoZpk)
-    num = prod(zp2polys(sys.z))*sys.k
-    den = prod(zp2polys(sys.p))
-    return SisoRational(num, den)
-end
-
-
-Base.convert(::Type{SisoGeneralized}, sys::SisoRational) = SisoGeneralized(sprint(print_compact, sys))
-Base.convert(::Type{SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, convert(SisoRational, sys))
-
-Base.convert(::Type{SisoRational}, sys::SisoGeneralized) = SisoRational(sys.expr)
-Base.convert(::Type{SisoZpk}, sys::SisoGeneralized) = convert(SisoZpk, SisoRational(sys.expr))
-
-#Just default SisoTf to SisoRational
-SisoTf(args...) = SisoRational(args...)
-Base.convert(::Type{ControlSystems.SisoTf}, b::Real) = Base.convert(ControlSystems.SisoRational, b)
-Base.zero(::Type{SisoTf}) = zero(SisoRational)
-Base.zero(::SisoTf) = zero(SisoRational)
 
 tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 #####################################################################
@@ -124,8 +65,7 @@ tzero(sys::SisoTf) = error("tzero is not implemented for type $(typeof(sys))")
 !=(a::SisoTf, b::SisoTf) = !(a==b)
 isapprox(a::SisoTf, b::SisoTf; kwargs...) = isapprox(promote(a,b)...; kwargs...)
 
-# Promote_op types
-Base.promote_op{T<:SisoTf}(::Any, ::Type{T}, ::Type{T}) = T
+
 
 #####################################################################
 ##                      Constructor Functions                      ##
@@ -295,7 +235,7 @@ function zpk(gain::Array, Ts::Real=0; kwargs...)
 end
 
 tf(gain::Real, Ts::Real=0; kwargs...) = tf([gain], Ts; kwargs...)
-zpk(k::Real, Ts::Real=0; kwargs...) = zpk([], [], k, Ts; kwargs...)
+zpk(k::Real, Ts::Real=0; kwargs...) = zpk(eltype(k)[], eltype(k)[], k, Ts; kwargs...)
 
 # Function for creation of 's' or 'z' var
 function tf(var::AbstractString)
