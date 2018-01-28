@@ -54,6 +54,8 @@ Base.promote_rule{T1,T2}(::Type{SisoRational{T1}},::Type{SisoRational{T2}}) = Si
 
 Base.convert(::Type{SisoRational}, b::Real) = SisoRational([b], [1])
 
+Base.convert{T1}(::Type{SisoRational{Vector{T1}}}, t::SisoRational) =  SisoRational(Poly(T1.(t.num.a)),Poly(T1.(t.den.a)))
+
 Base.zero{T}(::Type{SisoRational{T}}) = SisoRational(zero(Poly{T}), one(Poly{T}))
 Base.zero{T}(::SisoRational{T}) = Base.zero(SisoRational{T})
 Base.eltype{T}(::SisoRational{T}) = eltype(T)

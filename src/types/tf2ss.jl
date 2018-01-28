@@ -36,8 +36,10 @@ end
 
 Base.convert(::Type{StateSpace}, t::Real) = ss(t)
 
-Base.promote_rule{T<:SisoTf}(::Type{StateSpace}, ::Type{TransferFunction{T}}) = StateSpace
-Base.promote_rule{T<:Real}(::Type{StateSpace}, ::Type{T}) = StateSpace
+function Base.promote_rule(::Type{StateSpace{T}}, ::Type{TransferFunction{P}})  where T <: AbstractNumberMatrix where P <: SisoTf
+     StateSpace{T}
+ end
+Base.promote_rule{T}(::Type{StateSpace{T}}, ::Type{<:Real}) = StateSpace{T}
 
 siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
@@ -122,7 +124,9 @@ See also `balance_statespace`, `balance`
 function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bool=false)
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    S = diag(balance([A B; C zeros(size(C*B))], false)[1])
+    T = [A B; C zeros(size(C*B))]
+    size(T,1) == size(T,2) || (T = [T; zeros(size(T,2)-size(T,1),size(T,2))])
+    S = diag(balance(T, false)[1])
     Sx = S[1:nx]
     Sio = S[nx+1]
     # Compute permutation of x (if requested)

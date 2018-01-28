@@ -208,7 +208,7 @@ function roots{T}(p::Poly{T})
     if length(p) == 0
         return zeros(R, 0)
     end
-    while abs(p[end-num_zeros]) <= 2*eps(T)
+    while abs(p[end-num_zeros]) <= 2*eps(R)
         if num_zeros == length(p)-1
             return zeros(R, 0)
         end
