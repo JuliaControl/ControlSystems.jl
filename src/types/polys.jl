@@ -7,7 +7,7 @@ Base.eps{T}(::Type{T}) = zero(T)
 Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
 Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 
-struct Poly{VT<:AbstractVector{<: Number}}
+struct Poly{VT<:AbstractNumberVector}
     a::VT
     nzfirst::Int #for effiencicy, track the first non-zero index
     function Poly(a)
@@ -20,7 +20,7 @@ struct Poly{VT<:AbstractVector{<: Number}}
     end
 end
 
-Poly{VT<:AbstractVector{<: Number}}(a::VT) = Poly{VT}(a)
+Poly{VT<:AbstractNumberVector}(a::VT) = Poly{VT}(a)
 
 Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(T, p.a))
 Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}

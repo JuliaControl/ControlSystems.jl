@@ -76,19 +76,9 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test size(C_222[1,[]]) == (1,0)
 
 # Printing
-res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2.0s + 3.0\n-----------"*
-       "------\ns^2 + 8.0s + 15.0\n\nInput 1 to Output 2\ns^2 + 2.0s + 3.0\n-"*
-       "----------------\ns^2 + 8.0s + 15.0\n\nInput 2 to Output 1\n     s + "*
-       "2.0\n-----------------\ns^2 + 8.0s + 15.0\n\nInput 2 to Output 2\n   "*
-       "  s + 2.0\n-----------------\ns^2 + 8.0s + 15.0\n\nContinuous-time"*
-       " transfer function model")
+res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to Output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
 @test sprint(show, C_222) == res
-res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
-       "------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-"*
-       "----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + "*
-       "2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n   "*
-       "  z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 "*
-       "(seconds)\nDiscrete-time transfer function model")
+res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
 @test sprint(show, D_222) == res
 
 # Type stability Continuous-time
