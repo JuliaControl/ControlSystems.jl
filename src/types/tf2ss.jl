@@ -36,8 +36,8 @@ end
 
 Base.convert(::Type{StateSpace}, t::Real) = ss(t)
 
-function Base.promote_rule(::Type{StateSpace{T}}, ::Type{TransferFunction{P}})  where T <: AbstractNumberMatrix where P <: SisoTf
-     StateSpace{T}
+function Base.promote_rule(::Type{T}, ::Type{P})  where T <: StateSpace where P <: TransferFunction{<:SisoTf}
+     T
  end
 Base.promote_rule{T}(::Type{StateSpace{T}}, ::Type{<:Real}) = StateSpace{T}
 

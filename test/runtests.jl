@@ -20,12 +20,12 @@ my_tests = ["test_statespace",
             "test_conversion"]
 
 
-try
-    Pkg.installed("ControlExamplePlots")
-    push!(my_tests, "test_plots")
-catch
-    warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
-    Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
-end
+# try
+#     Pkg.installed("ControlExamplePlots")
+#     push!(my_tests, "test_plots")
+# catch
+#     warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
+#     Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
+# end
 
 run_tests(my_tests)
