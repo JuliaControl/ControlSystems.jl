@@ -1,20 +1,23 @@
 RealOrComplex = Union{Real,Complex}
 
 ## User should just use TransferFunction
-immutable SisoZpk <: SisoTf
-    z::Vector{Complex{Float64}}
-    p::Vector{Complex{Float64}}
+immutable SisoZpk{VT} <: SisoTf where VT <:AbstractVector{<:Complex}
+    z::VT
+    p::VT
     k::Float64
-    function SisoZpk(z::Vector{Complex{Float64}}, p::Vector{Complex{Float64}}, k::Float64)
+    function SisoZpk{VT}(z::VT, p::VT, k::Float64) where VT <:AbstractVector{<:Complex}
         if k == zero(k)
             p = []
             z = []
         end
-        new(z, p, k)
+        new{VT}(z, p, k)
     end
 end
 
-SisoZpk{T<:RealOrComplex,S<:RealOrComplex}(z::AbstractArray{T}, p::AbstractArray{S}, k::Real) = SisoZpk(Complex128[z...], Complex128[p...], Float64(k))
+function SisoZpk{T1<:RealOrComplex,T2<:RealOrComplex}(z::AbstractArray{T1}, p::AbstractArray{T2}, k::Real)
+    T = promote_type(eltype(z),eltype(p),Complex128)
+     SisoZpk{Vector{T}}(T[z...], T[p...], Float64(k))
+ end
 
 # Taking care of empty vectors being of type Any
 function SisoZpk(z::AbstractArray, p::AbstractArray, k::Real)
@@ -68,7 +71,7 @@ tzero(sys::SisoZpk) = num(sys)
 pole(sys::SisoZpk) = den(sys)
 
 function zp2polys(vec)
-    polys = Array{Poly{Float64},1}(0)
+    polys = Array{Poly{Vector{Float64}},1}(0)
     polesiLeft = Set(1:length(vec))
     while length(polesiLeft) > 0
         p = vec[pop!(polesiLeft)]
@@ -140,10 +143,13 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
     println(io, denstr)
 end
 
-Base.promote_rule{T<:Real}(::Type{SisoZpk}, ::Type{T}) = SisoZpk
-Base.convert(::Type{SisoZpk}, b::Real) = SisoZpk([], [], b)
+Base.eltype{T}(::Type{SisoZpk{T}}) = eltype(T)
+Base.eltype{T}(t::SisoZpk{T}) = eltype(T)
 
-Base.zero(::Type{SisoZpk}) = SisoZpk([],[],0.0)
+Base.promote_rule{T<:SisoZpk}(::Type{T}, ::Type{<:Real}) = T
+Base.convert(::Type{<:SisoZpk}, b::Real) = SisoZpk([], [], b)
+
+Base.zero(::Type{<:SisoZpk}) = SisoZpk([],[],0.0)
 Base.zero(::SisoZpk) = Base.zero(SisoZpk)
 
 Base.length(t::SisoZpk) = max(length(t.z), length(t.p))

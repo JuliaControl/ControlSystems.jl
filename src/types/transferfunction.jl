@@ -35,24 +35,31 @@ TransferFunction{T<:SisoTf}(matrix::Matrix{T}, args...) = TransferFunction{T}(ma
 
 +{T<:Real}(a::TransferFunction, b::AbstractVecOrMat{T}) = +(promote(a,b)...)
 
-Base.promote_rule{S<:SisoTf,T<:Real}(::Type{TransferFunction{S}}, ::Type{T}) = TransferFunction{S}
-Base.promote_rule{S<:SisoTf,T<:Real}(::Type{TransferFunction{S}}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = TransferFunction{S}
+Base.eltype{T}(::Type{TransferFunction{T}}) = T
+Base.eltype{T}(t::TransferFunction{T}) = T
+
+Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Type{T}) = S
+Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = S
 
 Base.convert{T<:Real}(::Type{TransferFunction}, b::T) = tf([b])
 Base.convert{T<:Real}(::Type{TransferFunction{SisoRational}}, b::T) = tf(b)
-Base.convert{T<:Real}(::Type{TransferFunction{SisoZpk}}, b::T) = zpk(b)
+Base.convert{T<:Real}(::Type{<:TransferFunction{<:SisoZpk}}, b::T) = zpk(b)
 Base.convert{T<:Real}(::Type{TransferFunction{SisoGeneralized}}, b::T) = tfg(b)
 
 Base.convert(::Type{TransferFunction{SisoZpk}}, s::TransferFunction) = zpk(s)
 Base.convert(::Type{TransferFunction{SisoRational}}, s::TransferFunction) = tf(s)
 Base.convert(::Type{TransferFunction{SisoGeneralized}}, s::TransferFunction) = tfg(s)
 
-Base.promote_rule(::Type{TransferFunction{SisoRational}}, ::Type{TransferFunction{SisoZpk}}) = TransferFunction{SisoZpk}
-Base.promote_rule{T<:SisoTf}(::Type{TransferFunction{T}}, ::Type{TransferFunction{SisoGeneralized}}) = TransferFunction{SisoGeneralized}
-Base.promote_rule(::Type{SisoRational}, ::Type{SisoZpk}) = SisoZpk
-Base.promote_rule{T<:SisoTf}(::Type{T}, ::Type{SisoGeneralized}) = SisoGeneralized
+Base.promote_rule{T <: TransferFunction{<:SisoZpk}}(::Type{<:TransferFunction{<:SisoRational}}, ::Type{T}) = T
+Base.promote_rule{T <: TransferFunction{<:SisoGeneralized}}(::Type{<:TransferFunction{<:SisoTf}}, ::Type{T}) = T
+Base.promote_rule{T <: SisoZpk}(::Type{<:SisoRational}, ::Type{T}) = T
+Base.promote_rule{T <: SisoGeneralized}(::Type{<:SisoTf}, ::Type{T}) = T
 
-function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
+function Base.promote_rule(::Type{T}, ::Type{P})  where T <: SisoZpk where P <: SisoZpk
+     SisoZpk{promote_type(eltype(T), eltype(P))}
+ end
+
+function Base.convert{T<:Real}(::Type{<:TransferFunction}, b::VecOrMat{T})
     r = Array{TransferFunction,2}(size(b,2),1)
     for j=1:size(b,2)
         r[j] = vcat(map(k->convert(TransferFunction,k),b[:,j])...)
@@ -60,7 +67,7 @@ function Base.convert{T<:Real}(::Type{TransferFunction}, b::VecOrMat{T})
     hcat(r...)
 end
 
-function Base.convert(::Type{SisoZpk}, sys::SisoRational)
+function Base.convert(::Type{<:SisoZpk}, sys::SisoRational)
     if length(sys.num) == 0
         return SisoZpk([],[],0)
     elseif all(sys.den == zero(sys.den))
@@ -70,11 +77,12 @@ function Base.convert(::Type{SisoZpk}, sys::SisoRational)
     end
 end
 
-function Base.convert(::Type{SisoRational}, sys::SisoZpk)
+function Base.convert(::Type{<:SisoRational}, sys::SisoZpk)
     num = prod(zp2polys(sys.z))*sys.k
     den = prod(zp2polys(sys.p))
     return SisoRational(num, den)
 end
+
 
 Base.convert(::Type{SisoGeneralized}, sys::SisoRational) = SisoGeneralized(sprint(print_compact, sys))
 Base.convert(::Type{SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, convert(SisoRational, sys))
@@ -144,9 +152,10 @@ Other uses:
 `tf(sys)`: Convert `sys` to `tf` form.
 
 `tf("s")`, `tf("z")`: Create the continous transferfunction `s`.""" ->
-function tf{T<:Vector{<:Number}, S<:Vector{<:Number}}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
+function tf{T1<:Vector, T2<:Vector}(num::VecOrMat{T1}, den::VecOrMat{T2}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
+    T = promote_type(T1,T2)
     if (ny, nu) != size(den, 1, 2)
         error("num and den dimensions must match")
     end
@@ -185,13 +194,14 @@ Other uses:
 `tf(sys)`: Convert `sys` to `tf` form.
 
 `tf("s")`: Create the transferfunction `s`.""" ->
-function zpk{T<:Vector,S<:Vector}(z::VecOrMat{T}, p::VecOrMat{S}, k::VecOrMat, Ts::Real=0; kwargs...)
+function zpk{T1<:Vector,T2<:Vector}(z::VecOrMat{T1}, p::VecOrMat{T2}, k::VecOrMat, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(z, 1, 2)
     if (ny, nu) != size(p, 1, 2) || (ny, nu) != size(k, 1, 2)
         error("s, p, and k kdimensions must match")
     end
-    matrix = Array{SisoZpk}(ny, nu)
+    T = promote_type(T1,T2,Vector{Complex128})
+    matrix = Array{SisoZpk{T}}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoZpk(z[o, i], p[o, i], k[o, i])
@@ -205,9 +215,10 @@ end
 
 function zpk(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array{SisoZpk}(tf.ny, tf.nu)
+    T = SisoZpk{typeof(tf.matrix)}
+    matrix = Array{T}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
-        matrix[i] = convert(SisoZpk, oldmat[i])
+        matrix[i] = convert(T, oldmat[i])
     end
     return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
@@ -234,9 +245,10 @@ Other uses:
 """ ->
 function tfg(tf::TransferFunction)
     oldmat = tf.matrix
-    matrix = Array{SisoGeneralized}(tf.ny, tf.nu)
+    ST = SisoGeneralized{Vector{eltype(tf.matrix)}}
+    matrix = Matrix{ST}(tf.ny, tf.nu)
     for i in eachindex(oldmat)
-        matrix[i] = convert(SisoGeneralized, oldmat[i])
+        matrix[i] = convert(ST, oldmat[i])
     end
     return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
 end
@@ -250,13 +262,15 @@ end
 
 tf(num::Real, den::Vector, Ts::Real=0; kwargs...) = tf([num], den, Ts; kwargs...)
 
-zpk(z::Vector, p::Vector, k::Real, Ts::Real=0; kwargs...) =
-    zpk(reshape(Vector[z], 1, 1), reshape(Vector[p], 1, 1), reshape([k],1,1), Ts; kwargs...)
+function zpk(z::Vector{T1}, p::Vector{T2}, k::Real, Ts::Real=0; kwargs...) where {T1,T2}
+    T = promote_type(T1,T2)
+    zpk(reshape(Vector{T}[T.(z)], 1, 1), reshape(Vector{T}[T.(p)], 1, 1), reshape([k],1,1), Ts; kwargs...)
+end
 
 # Function for creation of static gain
 function tf(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array{SisoRational{typeof(gain)}}(ny, nu)
+    matrix = Matrix{SisoRational{Vector{eltype(gain)}}}(ny, nu)
     for i in eachindex(gain)
         matrix[i] = SisoRational([gain[i]], [one(eltype(gain))])
     end
@@ -299,7 +313,7 @@ zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 
 function tfg(systems::Array, Ts::Real=0; kwargs...)
     ny, nu = size(systems, 1, 2)
-    matrix = Array{SisoGeneralized}(ny, nu)
+    matrix = Matrix{SisoRational{Vector{Float64}}}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoGeneralized(systems[o, i])
