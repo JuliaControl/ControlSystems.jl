@@ -142,8 +142,8 @@ end
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-function tzero(A::Matrix{BlasNumber}, B::Matrix{BlasNumber}, C::Matrix{BlasNumber},
-        D::Matrix{BlasNumber})
+function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber},
+        D::Matrix{<:BlasNumber})
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
