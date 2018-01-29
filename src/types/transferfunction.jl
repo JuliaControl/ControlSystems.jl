@@ -155,8 +155,10 @@ end
 
 function zpk(t1::TransferFunction)
     oldmat = t1.matrix
-    T = SisoZpk{eltype(eltype(t1.matrix))}
-    matrix = Array{T}(t1.ny, t1.nu)
+    vectype = eltype(eltype(t1.matrix))
+    numbertype = promote_type(eltype(vectype), Complex128)
+    T = SisoZpk{Vector{numbertype}} # TODO: should ideally not hard code Vector
+    matrix = Matrix{T}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(T, oldmat[i])
     end
@@ -203,7 +205,17 @@ end
 tf(num::Real, den::Vector, Ts::Real=0; kwargs...) = tf([num], den, Ts; kwargs...)
 
 function zpk(z::Vector{T1}, p::Vector{T2}, k::Real, Ts::Real=0; kwargs...) where {T1,T2}
-    T = promote_type(T1,T2)
+    T = if T1 == Any
+        if T2 == Any
+            promote_type(typeof(k), Complex128)
+        else
+            T2
+        end
+    elseif T2 == Any
+        T1
+    else
+        promote_type(T1,T2)
+    end
     zpk(reshape(Vector{T}[T.(z)], 1, 1), reshape(Vector{T}[T.(p)], 1, 1), reshape([k],1,1), Ts; kwargs...)
 end
 
