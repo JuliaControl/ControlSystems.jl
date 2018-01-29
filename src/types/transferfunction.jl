@@ -153,24 +153,24 @@ function zpk{T1<:Vector,T2<:Vector}(z::VecOrMat{T1}, p::VecOrMat{T2}, k::VecOrMa
     return TransferFunction(matrix, Float64(Ts), inputnames, outputnames)
 end
 
-function zpk(tf::TransferFunction)
-    oldmat = tf.matrix
-    T = SisoZpk{typeof(tf.matrix)}
-    matrix = Array{T}(tf.ny, tf.nu)
+function zpk(t1::TransferFunction)
+    oldmat = t1.matrix
+    T = SisoZpk{eltype(eltype(t1.matrix))}
+    matrix = Array{T}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(T, oldmat[i])
     end
-    return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
+    return TransferFunction(matrix, t1.Ts, copy(t1.inputnames), copy(t1.outputnames))
 end
 
-function tf(tf::TransferFunction)
-    oldmat = tf.matrix
-    T = SisoRational{typeof(tf.matrix)}
-    matrix = Array{T}(tf.ny, tf.nu)
+function tf(t1::TransferFunction)
+    oldmat = t1.matrix
+    T = SisoRational{eltype(eltype(t1.matrix))}
+    matrix = Array{T}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(T, oldmat[i])
     end
-    return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
+    return TransferFunction(matrix, t1.Ts, copy(t1.inputnames), copy(t1.outputnames))
 end
 
 @doc """ `sys = tfg(tf::LTISystem), `tfg(s::AbstractString)`, `tfg(exp::Expr)`, `tfg(::Array)`
@@ -183,14 +183,14 @@ Other uses:
 
 `tfg(sys)`: Convert `sys` to `tfg` form.
 """ ->
-function tfg(tf::TransferFunction)
-    oldmat = tf.matrix
-    ST = SisoGeneralized{Vector{eltype(tf.matrix)}}
-    matrix = Matrix{ST}(tf.ny, tf.nu)
+function tfg(t1::TransferFunction)
+    oldmat = t1.matrix
+    ST = SisoGeneralized{Vector{eltype(eltype(t1.matrix))}}
+    matrix = Matrix{ST}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(ST, oldmat[i])
     end
-    return TransferFunction(matrix, tf.Ts, copy(tf.inputnames), copy(tf.outputnames))
+    return TransferFunction(matrix, t1.Ts, copy(t1.inputnames), copy(t1.outputnames))
 end
 
 zpk(sys::TransferFunction{SisoGeneralized}) = zpk(tf(sys))
@@ -394,8 +394,9 @@ function *(t1::TransferFunction, t2::TransferFunction)
     elseif t1.Ts != t2.Ts
         error("Sampling time mismatch")
     end
-    T = promote_type(eltype(eltype(t1.matrix)), eltype(eltype(t2.matrix)))
-    matrix = convert(Matrix{SisoRational{Vector{T}}}, *(promote(t1.matrix,t2.matrix)...))
+    # @show promote_type(t1, t2)
+    T = promote_type(eltype(t1.matrix), eltype(t2.matrix))
+    matrix = convert(Matrix{T}, *(promote(t1.matrix,t2.matrix)...))
     return TransferFunction(matrix, t1.Ts, t2.inputnames, t1.outputnames)
 end
 

@@ -24,38 +24,3 @@ y2,x2 = step(sysmin,t)[[1,3]]
 @test sum(abs2,y1.-y2) < √(eps()) # Test that the output from the two systems are the same
 
 end
-
-@testset "test_promotion" begin
-P = tf(1)
-s = ss(1)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_rule(TP,Ts) == Ts
-
-P = tf(1.)
-s = ss(1.)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_rule(Ts,TP) == Ts
-
-
-P = tf(1.)
-s = ss(1)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_rule(Ts,TP) == typeof(ss(1.))
-
-
-P = zpk(1)
-s = ss(1)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_rule(Ts,TP) == Ts
-
-P = zpk(1)
-P2 = zpk(1.)
-TP = typeof(P)
-TP2 = typeof(P2)
-@test promote_rule(TP,TP2) == TP2
-
-end

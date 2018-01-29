@@ -72,7 +72,7 @@ export  LTISystem,
         numpoly,
         denpoly
 
-using Plots, LaTeXStrings, Requires, OrdinaryDiffEq
+using Plots, LaTeXStrings, Requires, OrdinaryDiffEq, IterTools
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
 include("types/lti.jl")
