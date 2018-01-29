@@ -7,16 +7,16 @@ Base.eps{T}(::Type{T}) = zero(T)
 Base.eps{F<:AbstractFloat}(x::Type{F}) = Base.eps(F)
 Base.eps{T}(x::Type{Complex{T}}) = eps(T)
 
-struct Poly{VT<:AbstractNumberVector}
+struct Poly{VT <: AbstractNumberVector}
     a::VT
     nzfirst::Int #for effiencicy, track the first non-zero index
-    function Poly(a)
+    function Poly{VT}(a::VT) where VT <: AbstractNumberVector
         la = length(a)
         local i
         for i = 1:la
             if abs(a[i]) > 2*eps(eltype(VT))  break  end
         end
-        new(a, i)
+        new{VT}(a, i)
     end
 end
 
