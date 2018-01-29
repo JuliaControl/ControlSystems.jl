@@ -176,7 +176,7 @@ end
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{BlasNumber}, B::Matrix{BlasNumber}, C::Matrix{BlasNumber}, D::Matrix{BlasNumber}, meps::BlasNumber)
+function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber}, D::Matrix{<:BlasNumber}, meps::BlasNumber)
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D

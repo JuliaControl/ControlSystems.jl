@@ -15,7 +15,7 @@ immutable SisoZpk{VT} <: SisoTf where VT <:AbstractVector{<:Complex}
 end
 
 function SisoZpk{T1<:RealOrComplex,T2<:RealOrComplex}(z::AbstractArray{T1}, p::AbstractArray{T2}, k::Real)
-    T = promote_type(eltype(z),eltype(p),Complex128)
+    T = promote_type(primitivetype(z),primitivetype(p),Complex128)
      SisoZpk{Vector{T}}(T[z...], T[p...], Float64(k))
  end
 

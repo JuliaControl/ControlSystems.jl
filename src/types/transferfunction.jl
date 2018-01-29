@@ -156,7 +156,7 @@ end
 function zpk(t1::TransferFunction)
     oldmat = t1.matrix
     vectype = eltype(eltype(t1.matrix))
-    numbertype = promote_type(eltype(vectype), Complex128)
+    numbertype = promote_type(primitivetype(t1), Complex128)
     T = SisoZpk{Vector{numbertype}} # TODO: should ideally not hard code Vector
     matrix = Matrix{T}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
@@ -187,7 +187,7 @@ Other uses:
 """ ->
 function tfg(t1::TransferFunction)
     oldmat = t1.matrix
-    ST = SisoGeneralized{Vector{eltype(eltype(t1.matrix))}}
+    ST = SisoGeneralized{Vector{primitivetype(t1.matrix)}}
     matrix = Matrix{ST}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(ST, oldmat[i])
