@@ -81,7 +81,8 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
     T = [A B; C zeros(size(C*B))]
-    size(T,1) == size(T,2) || (T = [T; zeros(size(T,2)-size(T,1),size(T,2))])
+    size(T,1) < size(T,2) && (T = [T; zeros(size(T,2)-size(T,1),size(T,2))])
+    size(T,1) > size(T,2) && (T = [T zeros(size(T,1),size(T,1)-size(T,2))])
     S = diag(balance(T, false)[1])
     Sx = S[1:nx]
     Sio = S[nx+1]

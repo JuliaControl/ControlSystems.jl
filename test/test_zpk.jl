@@ -24,10 +24,10 @@ z = zpk("z", 0.005)
 
 # TESTS
 # Constructors
-@test s == zpk([0], [], 1)
-@test z == zpk([0], [], 1, 0.005)
-@test C_022 == zpk(vecarray(Int64, 2, 2, [], [], [], []), vecarray(Int64, 2, 2, [], [], [], []), [4 0; 0 4])
-@test D_022 == zpk(vecarray(2, 2, [], [], [], []), vecarray(2, 2, [], [], [], []), [4 0; 0 4], 0.005)
+@test s == zpk([0], Int64[], 1)
+@test z == zpk([0], Int64[], 1, 0.005)
+@test C_022 == zpk(vecarray(Int64, 2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(Int64, 2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4])
+@test D_022 == zpk(vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4], 0.005)
 @test C_022 == [zpk(4) 0;0 4]
 #TODO We might want to fix this
 #@test D_022 == [zpk(4, 0.005) 0;0 4])
@@ -72,16 +72,16 @@ zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
 @test C_222[1,1] == zpk(tf([1, 2, 3], [1, 8, 15]))
 @test C_222[1:1,1] == zpk(tf([1, 2, 3], [1, 8, 15]))
 @test C_222[1,1:2] == C_221
-@test size(C_222[1,[]]) == (1,0)
+@test size(C_222[1,Int64[]]) == (1,0)
 
 # Test that number of poles matter
-@test !(zpk([],[1,1],1) == zpk([],[1],1))
+@test !(zpk(Int64[],[1,1],1) == zpk(Int64[],[1],1))
 # TODO test printing when it is implemented better
 
 # Type stability Continuous and discrete time
 @test eltype(fill(zpk("s"),2)) <: TransferFunction
 @test eltype(fill(zpk([1],[1,1],1),2)) <: TransferFunction
-@test eltype(fill(zpk([],[1,1],1.0),2)) <: TransferFunction
+@test eltype(fill(zpk(Int64[],[1,1],1.0),2)) <: TransferFunction
 @test eltype(fill(zpk([1 2; 3 4],0.001),2)) <: TransferFunction
 @test eltype(fill(zpk(1)+zpk(2),2)) <: TransferFunction
 @test eltype(fill(zpk(1,0.005)/zpk(2, 0.005),2)) <: TransferFunction

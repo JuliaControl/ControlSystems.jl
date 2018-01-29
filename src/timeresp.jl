@@ -42,7 +42,7 @@ locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
 function impulse(sys::StateSpace, t::AbstractVector)
-    T = eltype(sys.A)
+    T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
@@ -185,7 +185,7 @@ function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
         error("u must be of size (length(t), nu)")
     end
     ny, nu = size(sys)
-    y = Array{Float64}(length(t),ny)
+    y = Array{promote_type(Float64, typeof(u), typeof(t))}(length(t),ny)
     for i = 1:nu
         for o = 1:ny
             dt = Float64(t[2]-t[1])
