@@ -93,7 +93,7 @@ end
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
 function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
-    if promote_type(map(e->typeof(e),systems)...) <: TransferFunction
+    if promote_type(typeof.(systems)...) <: TransferFunction
         vcat(map(e->convert(TransferFunction,e),systems)...)
     else
         cat(1,systems...)

@@ -1,35 +1,75 @@
 Base.eltype{T}(::Poly{T}) = eltype(T)
+Base.eltype{T}(::TransferFunction{T}) = T
 Base.eltype{T}(::Type{TransferFunction{T}}) = T
-Base.eltype{T}(t::TransferFunction{T}) = T
-Base.eltype{T}(::Type{SisoZpk{T}}) = eltype(T)
-Base.eltype{T}(t::SisoZpk{T}) = eltype(T)
-Base.eltype{T}(::SisoRational{T}) = eltype(T)
-Base.eltype{T}(::Type{SisoRational{T}}) = eltype(T)
+Base.eltype{T}(::SisoZpk{T}) = T
+Base.eltype{T}(::Type{SisoZpk{T}}) = T
+Base.eltype{T}(::SisoRational{T}) = T
+Base.eltype{T}(::Type{SisoRational{T}}) = T
+Base.eltype{T}(::StateSpace{T}) = T
 Base.eltype{T}(::Type{StateSpace{T}}) = T
-Base.eltype{T}(t::StateSpace{T}) = T
+
+Base.promote_rule(::Type{StateSpace}, ::Type{StateSpace}) = StateSpace
+Base.promote_rule(::Type{TransferFunction}, ::Type{StateSpace}) = StateSpace
+Base.promote_rule(::Type{SisoZpk}, ::Type{StateSpace}) = StateSpace
+Base.promote_rule(::Type{SisoRational}, ::Type{StateSpace}) = StateSpace
+Base.promote_rule(::Type{SisoTf}, ::Type{StateSpace}) = StateSpace
+
+Base.promote_rule(::Type{TransferFunction}, ::Type{TransferFunction}) = TransferFunction
+Base.promote_rule(::Type{SisoZpk}, ::Type{TransferFunction}) = TransferFunction
+Base.promote_rule(::Type{SisoRational}, ::Type{TransferFunction}) = TransferFunction
+Base.promote_rule(::Type{SisoTf}, ::Type{TransferFunction}) = TransferFunction
+
+Base.promote_rule(::Type{SisoZpk}, ::Type{SisoZpk}) = SisoZpk
+Base.promote_rule(::Type{SisoRational}, ::Type{SisoZpk}) = SisoZpk
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoZpk}) = SisoZpk
+
+Base.promote_rule(::Type{SisoRational}, ::Type{SisoRational}) = SisoRational
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoRational}) = SisoRational
+
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoTf}) = SisoTf
+
+Base.promote_rule(::Type{SisoTf}, ::Type{SisoGeneralized}) = SisoGeneralized
+
+
 
 Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}
-Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Type{T}) = S
-Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = S
-Base.promote_rule{T <: TransferFunction{<:SisoZpk}}(::Type{<:TransferFunction{<:SisoRational}}, ::Type{T}) = T
-Base.promote_rule{T <: TransferFunction{<:SisoGeneralized}}(::Type{<:TransferFunction{<:SisoTf}}, ::Type{T}) = T
-Base.promote_rule{T <: SisoZpk}(::Type{<:SisoRational}, ::Type{T}) = T
-Base.promote_rule{T <: SisoGeneralized}(::Type{<:SisoTf}, ::Type{T}) = T
+Base.promote_rule{S<:TransferFunction{<:SisoTf}}(::Type{S}, ::Type{<:Real}) = S
 Base.promote_rule{T<:SisoZpk}(::Type{T}, ::Type{<:Real}) = T
-Base.promote_rule{T<:Real}(::Type{SisoRational}, ::Type{T}) = SisoRational
-Base.promote_rule{T1,T2}(::Type{SisoRational{T1}},::Type{SisoRational{T2}}) = SisoRational{promote_type(T1,T2)}
+Base.promote_rule{T}(::Type{SisoRational{T}}, ::Type{<:Real}) = SisoRational{T}
 Base.promote_rule{T}(::Type{StateSpace{T}}, ::Type{<:Real}) = StateSpace{T}
+Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = S
 
-for Ty in [StateSpace, TransferFunction, SisoZpk]
-    @eval function Base.promote_rule(::Type{T}, ::Type{P})  where T <: $(Ty) where P <: $(Ty)
-        $(Ty){promote_type(eltype(T), eltype(P))}
+Base.promote_rule(::Type{TransferFunction{SisoRational}}, ::Type{TransferFunction{SisoZpk}}) = TransferFunction{SisoZpk}
+Base.promote_rule(::Type{TransferFunction{<:SisoTf}}, ::Type{TransferFunction{<:SisoGeneralized}}) = TransferFunction{SisoGeneralized}
+
+
+function Base.promote_rule(::Type{T}, ::Type{P})  where T <: StateSpace where P <: TransferFunction{<:SisoTf}
+    S = promote_type(eltype(eltype(eltype(P))), eltype(eltype(T)))
+    StateSpace{Matrix{S}}
+end
+
+# Base.promote_rule{T <: TransferFunction{<:SisoZpk}}(::Type{<:TransferFunction{<:SisoRational}}, ::Type{T}) = T
+# Base.promote_rule{T <: TransferFunction{<:SisoGeneralized}}(::Type{<:TransferFunction{<:SisoTf}}, ::Type{T}) = T
+# Base.promote_rule{T <: SisoZpk}(::Type{<:SisoRational}, ::Type{T}) = T
+# Base.promote_rule{T <: SisoGeneralized}(::Type{<:SisoTf}, ::Type{T}) = T
+# Base.promote_rule{T1,T2}(::Type{SisoRational{T1}},::Type{SisoRational{T2}}) = SisoRational{promote_type(T1,T2)}
+
+for (T1,T2) in subsets([StateSpace, TransferFunction, SisoTf, SisoZpk], 2)
+    @eval function Base.promote_rule{T1c<:$T1,T2c<:$T2}(::Type{T1c}, ::Type{T2c})
+        @show upper_type = promote_type($T1, $T2)
+        @show inner_type = promote_type(eltype(T1c), eltype(T2c))
+        upper_type{inner_type}
     end
 end
 
-function Base.promote_rule(::Type{T}, ::Type{P})  where T <: StateSpace where P <: TransferFunction{<:SisoTf}
-    S = promote_type(eltype(eltype(P)), eltype(eltype(T)))
-    StateSpace{Matrix{S}}
+for T1 in [StateSpace, TransferFunction, SisoTf, SisoZpk]
+    @eval function Base.promote_rule{T1c<:$T1,T2c<:$T1}(::Type{T1c}, ::Type{T2c})
+        @show upper_type = $T1
+        @show inner_type = promote_type(eltype(T1c), eltype(T2c))
+        upper_type{inner_type}
+    end
 end
+
 
 
 Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(T, p.a))
@@ -43,10 +83,10 @@ Base.convert(::Type{<:TransferFunction{<:SisoRational}}, s::TransferFunction) = 
 Base.convert(::Type{<:TransferFunction{<:SisoGeneralized}}, s::TransferFunction) = tfg(s)
 
 
-function Base.convert{T<:Real}(::Type{<:TransferFunction}, b::VecOrMat{T})
-    r = Array{TransferFunction,2}(size(b,2),1)
+function Base.convert{T<:Real,S}(::Type{<:TransferFunction{S}}, b::VecOrMat{T})
+    @show r = Matrix{TransferFunction{S}}(size(b,2),1)
     for j=1:size(b,2)
-        r[j] = vcat(map(k->convert(TransferFunction,k),b[:,j])...)
+        r[j] = vcat(map(k->convert(TransferFunction{S},k),b[:,j])...)
     end
     hcat(r...)
 end
