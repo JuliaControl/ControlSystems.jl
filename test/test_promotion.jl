@@ -23,7 +23,7 @@ P = zpk(1)
 s = ss(1)
 TP = typeof(P)
 Ts = typeof(s)
-@test promote_type(Ts,TP) == Ts
+@test promote_type(Ts,TP) == typeof(ss(1.))
 
 P = zpk(1)
 P2 = zpk(1.)

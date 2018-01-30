@@ -235,14 +235,14 @@ end
 # ============================================================================================
 
 """
-    sol = solve(s::AbstractSimulator, x0, tspan, args...; kwargs...)
+    sol = solve(s::AbstractSimulator, x0, tspan, solver = Tsit5(), args...; kwargs...)
 Simulate the system represented by `s` from initial state `x0` over time span `tspan = (t0,tf)`.
-`args` and `kwargs` are sent to the `solve` function from `OrdinaryDiffEq`
+`args` and `kwargs` are sent to the `solve` function from `OrdinaryDiffEq`. The `solver` defaults to [`Tsit5()`](http://docs.juliadiffeq.org/stable/solvers/ode_solve.html)
 
 See also `Simulator` `OutputFeedbackSimulator` `StateFeedbackSimulator` `GainSchedulingSimulator` `lsim`
 """
-DiffEqBase.solve(s::AbstractSimulator, x0, tspan, args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan),args...; kwargs...)
-DiffEqBase.solve(s::GainSchedulingSimulator, x0, tspan, args...; kwargs...) = solve(ODEProblem(s.f,vcat(x0, zeros(sum(c->c.nx, s.controllers))),tspan),args...; kwargs...)
+DiffEqBase.solve(s::AbstractSimulator, x0, tspan, solver = Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan), solver, args...; kwargs...)
+DiffEqBase.solve(s::GainSchedulingSimulator, x0, tspan, solver = Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,vcat(x0, zeros(sum(c->c.nx, s.controllers))),tspan), solver, args...; kwargs...)
 
 function jacobian(s::AbstractSimulator, x, u)
     error("Not yet implemented")

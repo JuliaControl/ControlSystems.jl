@@ -155,7 +155,7 @@ end
 
 function zpk(t1::TransferFunction)
     oldmat = t1.matrix
-    vectype = eltype(eltype(t1.matrix))
+    vectype = primitivetype(t1)
     numbertype = promote_type(primitivetype(t1), Complex128)
     T = SisoZpk{Vector{numbertype}} # TODO: should ideally not hard code Vector
     matrix = Matrix{T}(t1.ny, t1.nu)
@@ -167,7 +167,7 @@ end
 
 function tf(t1::TransferFunction)
     oldmat = t1.matrix
-    T = SisoRational{eltype(eltype(t1.matrix))}
+    T = SisoRational{Vector{primitivetype(t1)}}
     matrix = Array{T}(t1.ny, t1.nu)
     for i in eachindex(oldmat)
         matrix[i] = convert(T, oldmat[i])
@@ -234,7 +234,7 @@ end
 
 function zpk(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array{SisoZpk}(ny, nu)
+    matrix = Array{SisoZpk{Vector{promote_type(Complex128,primitivetype(gain))}}}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoZpk([],[], gain[o, i])
@@ -265,7 +265,7 @@ zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 
 function tfg(systems::Array, Ts::Real=0; kwargs...)
     ny, nu = size(systems, 1, 2)
-    matrix = Matrix{SisoRational{Vector{Float64}}}(ny, nu)
+    matrix = Matrix{SisoGeneralized}(ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoGeneralized(systems[o, i])
@@ -406,7 +406,6 @@ function *(t1::TransferFunction, t2::TransferFunction)
     elseif t1.Ts != t2.Ts
         error("Sampling time mismatch")
     end
-    # @show promote_type(t1, t2)
     T = promote_type(eltype(t1.matrix), eltype(t2.matrix))
     matrix = convert(Matrix{T}, *(promote(t1.matrix,t2.matrix)...))
     return TransferFunction(matrix, t1.Ts, t2.inputnames, t1.outputnames)

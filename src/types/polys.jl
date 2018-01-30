@@ -14,7 +14,7 @@ struct Poly{VT <: AbstractNumberVector}
         la = length(a)
         local i
         for i = 1:la
-            if abs(a[i]) > 2*eps(eltype(VT))  break  end
+            if abs(a[i]) > 2*eps(primitivetype(VT))  break  end
         end
         new{VT}(a, i)
     end
@@ -42,7 +42,7 @@ end
 Base.print(io::IO, p::Poly) = print_poly(io, p)
 
 function print_poly{VT}(io::IO, p::Poly{VT}, var=:x)
-    T = eltype(VT)
+    T = primitivetype(VT)
     n = length(p)
     if n == 1
         print(io, p[1])
@@ -104,7 +104,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = zeros(eltype(R), n)
+        a = zeros(primitivetype(R), n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] + p2[i]
         end
@@ -112,7 +112,7 @@ function +{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = zeros(eltype(R), m)
+        a = zeros(primitivetype(R), m)
         for i = 1:n
             a[m-n+i] = p1[i] + p2[m-n+i]
         end
@@ -128,7 +128,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
     n = length(p1)
     m = length(p2)
     if n > m
-        a = zeros(eltype(R), n)
+        a = zeros(primitivetype(R), n)
         for i = 1:m
             a[n-m+i] = p1[n-m+i] - p2[i]
         end
@@ -136,7 +136,7 @@ function -{T,S}(p1::Poly{T}, p2::Poly{S})
             a[i] = p1[i]
         end
     else
-        a = zeros(eltype(R), m)
+        a = zeros(primitivetype(R), m)
         for i = 1:n
             a[m-n+i] = p1[i] - p2[m-n+i]
         end
@@ -154,7 +154,7 @@ function *{T,S}(p1::Poly{T}, p2::Poly{S})
     if n == 0 || m == 0
         return Poly(R)
     end
-    a = zeros(eltype(R), n+m-1)
+    a = zeros(primitivetype(R), n+m-1)
     for i = 1:length(p1)
         for j = 1:length(p2)
             a[i+j-1] += p1[i] * p2[j]
@@ -180,7 +180,7 @@ function isapprox(p1::Poly, p2::Poly; kwargs...)
 end
 
 function polyval{T}(p::Poly{T}, x::Number)
-    R = promote_type(eltype(T), typeof(x))
+    R = promote_type(primitivetype(T), typeof(x))
     lenp = length(p)
     if lenp == 0
         return zero(R)
@@ -195,7 +195,7 @@ end
 
 # compute the roots of a polynomial
 function roots{T}(p::Poly{T})
-    R = promote_type(eltype(T), Float64)
+    R = promote_type(primitivetype(T), Float64)
     num_zeros = 0
     if length(p) == 0
         return zeros(R, 0)

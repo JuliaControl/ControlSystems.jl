@@ -1,28 +1,39 @@
-Base.eltype{T}(::Poly{T}) = eltype(T)
-Base.eltype{T}(::TransferFunction{T}) = T
+Base.eltype{T}(::Type{Poly{T}}) = T
 Base.eltype{T}(::Type{TransferFunction{T}}) = T
-Base.eltype{T}(::SisoZpk{T}) = T
 Base.eltype{T}(::Type{SisoZpk{T}}) = T
-Base.eltype{T}(::SisoRational{T}) = T
 Base.eltype{T}(::Type{SisoRational{T}}) = T
-Base.eltype{T}(::StateSpace{T}) = T
 Base.eltype{T}(::Type{StateSpace{T}}) = T
 
-primitivetype{T}(::Poly{T}) = primitivetype(T)
-primitivetype{T}(::TransferFunction{T}) = primitivetype(T)
+
+primitivetype{T}(::Type{Poly{T}}) = primitivetype(T)
 primitivetype{T}(::Type{TransferFunction{T}}) = primitivetype(T)
-primitivetype{T}(::SisoZpk{T}) = primitivetype(T)
 primitivetype{T}(::Type{SisoZpk{T}}) = primitivetype(T)
-primitivetype{T}(::SisoRational{T}) = primitivetype(T)
 primitivetype{T}(::Type{SisoRational{T}}) = primitivetype(T)
-primitivetype{T}(::StateSpace{T}) = primitivetype(T)
+primitivetype(::Type{SisoGeneralized}) = Float64
 primitivetype{T}(::Type{StateSpace{T}}) = primitivetype(T)
-
-primitivetype{T<:Number}(::T) = T
-primitivetype{T,N}(::AbstractArray{T,N}) = primitivetype(T)
-
 primitivetype{T<:Number}(::Type{T}) = T
 primitivetype{T,N,P<:AbstractArray{T,N}}(::Type{P}) = primitivetype(T)
+primitivetype(x) = primitivetype(typeof(x)) # Fallback method
+primitivetype{T}(::Type{T}) = T # Catch all
+
+
+arraytype{T}(::Type{Poly{T}}) = arraytype(T)
+arraytype{T}(::Type{TransferFunction{T}}) = arraytype(T)
+arraytype{T}(::Type{SisoZpk{T}}) = arraytype(T)
+arraytype{T}(::Type{SisoRational{T}}) = arraytype(T)
+arraytype{T}(::Type{StateSpace{T}}) = arraytype(T)
+
+arraytype{T<:Number}(::Type{T}) = T
+arraytype{T,N,P<:AbstractArray{T,N}}(::Type{P}) = P
+arraytype(x) = arraytype(typeof(x)) # Fallback method
+arraytype{T}(::Type{T}) = T # Catch all
+
+responsetype{T<:Real}(::Type{T}) = T
+responsetype{T<:Complex}(::Type{T}) = promote_type(T.types...)
+responsetype(x) = typeof(x) # Fallback method
+responsetype{T}(::Type{T}) = T # Catch all
+
+primitivereal(x) = responsetype(primitivetype(x))
 
 # Abstract type pyramid =============================================================
 Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}
@@ -64,46 +75,16 @@ Base.promote_rule(::Type{TransferFunction{SisoTf}}, ::Type{TransferFunction{Siso
 
 
 function Base.promote_rule{T<:StateSpace,P<:TransferFunction}(::Type{T}, ::Type{P})  #where T <: StateSpace where P <: TransferFunction
-    S = promote_type(eltype(eltype(eltype(P))), eltype(eltype(T))) # TODO: this is not correct for P <: zpk, in which case the StateSpace system gets complex matrices
+    S = promote_type(primitivereal(P), primitivereal(T)) # TODO: this is not correct for P <: zpk, in which case the StateSpace system gets complex matrices
     StateSpace{Matrix{S}}
 end
 
 
 function Base.promote_rule{T1c<:SisoZpk,T2c<:SisoRational}(::Type{T1c}, ::Type{T2c})
-    @show upper_type = promote_type(T1, T2)
-    @show inner_type = promote_type(eltype(T1c), eltype(T2c))
+    upper_type = SisoZpk
+    inner_type = promote_type(arraytype(T1c), arraytype(T2c))
     upper_type{inner_type}
 end
-
-# Base.promote_rule{T <: TransferFunction{<:SisoZpk}}(::Type{<:TransferFunction{<:SisoRational}}, ::Type{T}) = T
-# Base.promote_rule{T <: TransferFunction{<:SisoGeneralized}}(::Type{<:TransferFunction{<:SisoTf}}, ::Type{T}) = T
-# Base.promote_rule{T <: SisoZpk}(::Type{<:SisoRational}, ::Type{T}) = T
-# Base.promote_rule{T <: SisoGeneralized}(::Type{<:SisoTf}, ::Type{T}) = T
-# Base.promote_rule{T1,T2}(::Type{SisoRational{T1}},::Type{SisoRational{T2}}) = SisoRational{promote_type(T1,T2)}
-
-# for (T1,T2) in subsets([StateSpace, TransferFunction], 2)
-#     @eval function Base.promote_rule{T1c<:$T1,T2c<:$T2}(::Type{T1c}, ::Type{T2c})
-#         @show upper_type = promote_type($T1, $T2)
-#         @show inner_type = promote_type(eltype(T1c), eltype(T2c))
-#         upper_type{inner_type}
-#     end
-# end
-#
-# for (T1,T2) in subsets([SisoTf, SisoZpk], 2)
-#     @eval function Base.promote_rule{T1c<:$T1,T2c<:$T2}(::Type{T1c}, ::Type{T2c})
-#         @show upper_type = promote_type($T1, $T2)
-#         @show inner_type = promote_type(eltype(T1c), eltype(T2c))
-#         upper_type{inner_type}
-#     end
-# end
-#
-# for T1 in [StateSpace, TransferFunction, SisoTf, SisoZpk]
-#     @eval function Base.promote_rule{T1c<:$T1,T2c<:$T1}(::Type{T1c}, ::Type{T2c})
-#         @show upper_type = $T1
-#         @show inner_type = promote_type(eltype(T1c), eltype(T2c))
-#         upper_type{inner_type}
-#     end
-# end
 
 
 

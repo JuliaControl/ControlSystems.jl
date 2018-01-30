@@ -99,14 +99,14 @@ tspan          = (0.0,Tf)
 
 # Verify that gain scheduled controller two identical controllers give same result as single controller
 conditions  = [(x,y,r) -> true]
-controllers = [pid(kp=1, ki=1, kd=1)]
+controllers = [pid(kp=1., ki=1., kd=1.)]
 gs    = GainSchedulingSimulator(Ps, reference, controllers, conditions)
-sol  = solve(gs, x0, tspan, Tsit5())
-controllers  = [pid(kp=1, ki=1, kd=1), pid(kp=1, ki=1, kd=1)]
+sol  = solve(gs, x0, tspan)
+controllers  = [pid(kp=1., ki=1., kd=1.), pid(kp=1., ki=1., kd=1.)]
 conditions   = [(x,y,r) -> y[1] < 0.5, (x,y,r) -> y[1] >= 0.5]
 gs2          = GainSchedulingSimulator(Ps, reference, controllers, conditions)
-sol2         = solve(gs2, x0, tspan, Tsit5())
-@test sol(t)[1:3,:] ≈ sol2(t)[1:3,:]
+sol2         = solve(gs2, x0, tspan)
+@test all(abs.(sol(t)[1:3,:] .- sol2(t)[1:3,:]) .< 1e-4)
 
 end
 

@@ -14,7 +14,7 @@ struct SisoRational{VT<:AbstractNumberVector} <: SisoTf
 end
 SisoRational(num::Vector, den::Vector) = SisoRational(Poly(num), Poly(den))
 function SisoRational(num::Poly{T1}, den::Poly{T2}) where T1 <: AbstractNumberVector where T2 <: AbstractNumberVector
-    T = promote_type(eltype(T1),eltype(T2))
+    T = promote_type(primitivetype(T1),primitivetype(T2))
     SisoRational(Poly(map(T,num.a)), Poly(map(T,den.a)))
 end
 
@@ -54,14 +54,14 @@ Base.length(t::SisoRational) = max(length(t.num), length(t.den))
 
 function Base.num(t::SisoRational)
     lt = length(t)
-    n = zeros(eltype(t.num), lt)
+    n = zeros(primitivetype(t), lt)
     n[(lt - length(t.num) + 1):end] = t.num[:]
     return n
 end
 
 function Base.den(t::SisoRational)
     lt = length(t)
-    d = zeros(eltype(t.den), lt)
+    d = zeros(primitivetype(t), lt)
     d[(lt - length(t.den) + 1):end] = t.den[:]
     return d
 end
