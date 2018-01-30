@@ -66,9 +66,6 @@ p = best_candidate(res2)
 using ReverseDiff
 ReverseDiff.gradient(costfun, p)
 
-
-evalsol(res::Optim.MultivariateOptimizationResults) = evalsol(Optim.minimizer(res))
-evalsol(res::BlackBoxOptim.OptimizationResults) = evalsol(best_candidate(res))
 function evalsol(p::Vector)
     C     = K(p)
     S     = 1/(1+P*C)
@@ -89,3 +86,6 @@ function evalsol(p::Vector)
     plot!([Ω[1],Ω[end]], [Mt,Mt], c = :purple, l=:dash, subplot=2)
     gui()
 end
+
+evalsol(res::Optim.MultivariateOptimizationResults) = evalsol(Optim.minimizer(res))
+evalsol(res::BlackBoxOptim.OptimizationResults) = evalsol(best_candidate(res))

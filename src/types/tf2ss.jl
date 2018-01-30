@@ -1,7 +1,7 @@
 siso_tf_to_ss(t::SisoTf) = siso_tf_to_ss(convert(SisoRational, t))
 
 function siso_tf_to_ss(t::SisoRational)
-    T = eltype(t.den)
+    T = primitivetype(t)
     t = normalize_tf(t)
     tnum = num(t)
     tden = den(t)
@@ -89,7 +89,7 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     # Compute permutation of x (if requested)
     pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
-    T = zeros(R, nx, nx)
+    T = zeros(promote_type(R, Float64), nx, nx)
     T[pvec, :] = Sio * diagm(1./Sx)
     return T
 end
@@ -106,8 +106,9 @@ end
 
 function ss2tf(A, B, C, D, Ts = 0; inputnames = "", outputnames = "")
     nu,ny = size(B,2),size(C,1)
-    ubernum = Matrix{Vector{eltype(A)}}(ny,nu)
-    uberden = Matrix{Vector{eltype(A)}}(ny,nu)
+    T = promote_type(primitivetype(A), Float64) # Int SS is not well represented by Int tf
+    ubernum = Matrix{Vector{T}}(ny,nu)
+    uberden = Matrix{Vector{T}}(ny,nu)
     for i = 1:nu, j=1:ny
         ubernum[j,i],uberden[j,i] = sisoss2tf(A, B[:,i], C[j,:]', D[j,i])
     end
@@ -126,9 +127,10 @@ zpk(sys::StateSpace) = zpk(ss2tf(sys))
 
 function charpoly(A)
     λ = eigvals(A);
-    I = one(eltype(A))
+    T = promote_type(primitivetype(A), Float64)
+    I = one(T)
     p = reduce(*,ControlSystems.Poly([I]), ControlSystems.Poly[ControlSystems.Poly([I, -λᵢ]) for λᵢ in λ]);
-    if maximum(imag.(p[:])./(I+abs.(real.(p[:])))) < sqrt(eps(eltype(A)))
+    if maximum(imag.(p[:])./(I+abs.(real.(p[:])))) < sqrt(eps(T))
         for i = 1:length(p)
             p[i] = real(p[i])
         end
