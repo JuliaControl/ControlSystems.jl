@@ -36,4 +36,14 @@ TP2 = typeof(P2)
 @test promote_type(typeof(tf(1)), typeof(tf(1))) == typeof(tf(1))
 @test promote_type(typeof(ss(1)), typeof(ss(1))) == typeof(ss(1))
 # @test promote_type(typeof(tfg("1")), typeof(tfg("1"))) == typeof(tfg("1"))
+
+@test promote(ss(1), ss(1.)) == (ss(1.), ss(1.))
+@test promote(ss(1), tf(1.)) == (ss(1.), ss(1.))
+@test promote(ss(1), zpk(1.)) == (ss(1.), ss(1.))
+@test promote(zpk(1), tf(1.)) == (zpk(1.), zpk(1.))
+@test promote(tf([1 + im]), tf([1.])) == (tf([1. + im]), tf([1. + 0*im]))
+@test promote(zpk(1), tf(1)) == (zpk(1.), zpk(1.))
+@test promote(ss(1), ss([1.*im])) == (ss([1+0*im]),ss([1.*im]))
+@test promote(ss(1), tf([1.*im])) == (ss([1+0*im]),ss([1.*im]))
+
 end

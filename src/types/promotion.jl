@@ -38,25 +38,25 @@ primitivereal(x) = responsetype(primitivetype(x))
 # Abstract type pyramid =============================================================
 Base.promote_rule{T, S}(::Type{Poly{T}}, ::Type{Poly{S}}) = Poly{promote_type(T, S)}
 
-Base.promote_rule(::Type{StateSpace}, ::Type{StateSpace}) = StateSpace
+Base.promote_rule{T,S}(::Type{StateSpace{T}}, ::Type{StateSpace{S}}) = StateSpace{promote_type(T, S)}
 Base.promote_rule(::Type{TransferFunction}, ::Type{StateSpace}) = StateSpace
 Base.promote_rule(::Type{SisoTf}, ::Type{StateSpace}) = StateSpace
 Base.promote_rule(::Type{SisoZpk}, ::Type{StateSpace}) = StateSpace
 Base.promote_rule(::Type{SisoRational}, ::Type{StateSpace}) = StateSpace
 
-Base.promote_rule(::Type{TransferFunction}, ::Type{TransferFunction}) = TransferFunction
+Base.promote_rule{T,S}(::Type{TransferFunction{T}}, ::Type{TransferFunction{S}}) = TransferFunction{promote_type(T, S)}
 Base.promote_rule(::Type{SisoTf}, ::Type{TransferFunction}) = TransferFunction
 Base.promote_rule(::Type{SisoZpk}, ::Type{TransferFunction}) = TransferFunction
 Base.promote_rule(::Type{SisoRational}, ::Type{TransferFunction}) = TransferFunction
 
-Base.promote_rule(::Type{SisoTf}, ::Type{SisoTf}) = SisoTf
+# Base.promote_rule{T,S}(::Type{SisoTf{T}}, ::Type{SisoTf{S}}) = SisoTf{promote_type(T, S)}
 Base.promote_rule(::Type{SisoZpk}, ::Type{SisoTf}) = SisoTf
 Base.promote_rule(::Type{SisoRational}, ::Type{SisoTf}) = SisoTf
 
-Base.promote_rule(::Type{SisoZpk}, ::Type{SisoZpk}) = SisoZpk
+Base.promote_rule{T,S}(::Type{SisoZpk{T}}, ::Type{SisoZpk{S}}) = SisoZpk{promote_type(T, S)}
 Base.promote_rule(::Type{SisoRational}, ::Type{SisoZpk}) = SisoZpk
 
-Base.promote_rule(::Type{SisoRational}, ::Type{SisoRational}) = SisoRational
+Base.promote_rule{T,S}(::Type{SisoRational{T}}, ::Type{SisoRational{S}}) = SisoRational{promote_type(T, S)}
 
 Base.promote_rule(::Type{SisoTf}, ::Type{SisoGeneralized}) = SisoGeneralized # ??
 
@@ -69,7 +69,7 @@ Base.promote_rule{T}(::Type{StateSpace{T}}, ::Type{<:Real}) = StateSpace{T}
 Base.promote_rule{S<:TransferFunction{<:SisoTf},T<:Real}(::Type{S}, ::Union{Type{Array{T,2}},Type{Array{T,1}}}) = S
 
 
-# Concrete promotions
+# Less abstract promotions
 Base.promote_rule(::Type{TransferFunction{SisoRational}}, ::Type{TransferFunction{SisoZpk}}) = TransferFunction{SisoZpk}
 Base.promote_rule(::Type{TransferFunction{SisoTf}}, ::Type{TransferFunction{SisoGeneralized}}) = TransferFunction{SisoGeneralized}
 
@@ -86,6 +86,15 @@ function Base.promote_rule{T1c<:SisoZpk,T2c<:SisoRational}(::Type{T1c}, ::Type{T
     upper_type{inner_type}
 end
 
+
+
+# @show siso_type = promote_type(eltype.(systems)...)
+# if isleaftype(siso_type)
+#     siso_type = siso_type.name.wrapper
+# end
+# # array_type = promote_type(arraytype.(systems)...)
+# # mat = hcat([(e->convert(siso_type{array_type}, e)).(s.matrix) for s in systems]...)
+# @show promote_type([s.matrix for s in systems]...)
 
 
 Base.convert{T}(::Type{Poly{T}}, p::Poly) = Poly(convert(T, p.a))
@@ -109,7 +118,7 @@ end
 
 function Base.convert(::Type{<:SisoZpk}, sys::SisoRational)
     if length(sys.num) == 0
-        return SisoZpk([],[],0)
+        return SisoZpk(primitivetype(sys)[],primitivetype(sys)[],0)
     elseif all(sys.den == zero(sys.den))
         error("Zero denominator, this should not be possible")
     else
@@ -127,9 +136,9 @@ Base.convert(::Type{<:SisoGeneralized}, sys::SisoRational) = SisoGeneralized(spr
 Base.convert(::Type{<:SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, convert(SisoRational, sys))
 Base.convert(::Type{<:SisoRational}, sys::SisoGeneralized) = SisoRational(sys.expr)
 Base.convert(::Type{<:SisoZpk}, sys::SisoGeneralized) = convert(SisoZpk, SisoRational(sys.expr))
-Base.convert(::Type{<:ControlSystems.SisoTf}, b::Real) = Base.convert(ControlSystems.SisoRational, b)
-Base.convert(::Type{<:SisoZpk}, b::Real) = SisoZpk([], [], b)
-Base.convert(::Type{<:SisoRational}, b::Real) = SisoRational([b], [1])
+Base.convert(::Type{<:SisoTf}, b::Real) = Base.convert(SisoRational, b)
+Base.convert{T<:Real}(::Type{<:SisoZpk}, b::T) = SisoZpk(T[], T[], b)
+Base.convert{T<:Real}(::Type{<:SisoRational}, b::T) = SisoRational([b], [one(T)])
 Base.convert{T1}(::Type{SisoRational{Vector{T1}}}, t::SisoRational) =  SisoRational(Poly(T1.(t.num.a)),Poly(T1.(t.den.a)))
 Base.convert(::Type{<:StateSpace}, t::Real) = ss(t)
 
@@ -169,6 +178,10 @@ function Base.convert(::Type{<:StateSpace}, t::TransferFunction)
     return ss(A, B, C, D, t.Ts, inputnames=t.inputnames, outputnames=t.outputnames)
 end
 
+function Base.convert{T<:AbstractNumberMatrix}(::Type{StateSpace{T}}, s::StateSpace)
+    AT = promote_type(T, arraytype(s))
+    StateSpace{AT}(AT(s.A),AT(s.B),AT(s.C),AT(s.D), s.Ts, s.statenames, s.inputnames, s.outputnames)
+end
 
 Base.zero{T}(p::Poly{T}) = Poly(zeros(eltype(T),1))
 Base.zero{T}(::Type{Poly{T}}) = Poly(zeros(eltype(T),1))
@@ -183,7 +196,7 @@ SisoTf(args...) = SisoRational(args...)
 
 Base.zero(::Type{<:SisoTf}) = zero(SisoRational)
 Base.zero(::SisoTf) = zero(SisoRational)
-Base.zero(::Type{<:SisoZpk}) = SisoZpk([],[],0.0)
+Base.zero(::Type{<:SisoZpk}) = SisoZpk(Float64[],Float64[],0.0)
 Base.zero(::SisoZpk) = Base.zero(SisoZpk)
 Base.zero{T}(::Type{SisoRational{T}}) = SisoRational(zero(Poly{T}), one(Poly{T}))
 Base.zero{T}(::SisoRational{T}) = Base.zero(SisoRational{T})

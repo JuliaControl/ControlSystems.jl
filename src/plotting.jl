@@ -208,7 +208,7 @@ bodeplot
 @recipe function bodeplot(p::Bodeplot; plotphase=true)
     systems = p.args[1]
     if !isa(systems, AbstractArray)
-        systems = [systems]
+        systems = typeof(systems)[systems]
     end
     if length(p.args) >= 2
         w = p.args[2]

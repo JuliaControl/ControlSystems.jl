@@ -234,10 +234,11 @@ end
 
 function zpk(gain::Array, Ts::Real=0; kwargs...)
     ny, nu = size(gain, 1, 2)
-    matrix = Array{SisoZpk{Vector{promote_type(Complex128,primitivetype(gain))}}}(ny, nu)
+    T = promote_type(Complex128,primitivetype(gain))
+    matrix = Array{SisoZpk{Vector{T}}}(ny, nu)
     for o=1:ny
         for i=1:nu
-            matrix[o, i] = SisoZpk([],[], gain[o, i])
+            matrix[o, i] = SisoZpk(T[],T[], gain[o, i])
         end
     end
     kvs = Dict(kwargs)

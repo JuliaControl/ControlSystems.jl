@@ -95,13 +95,13 @@ end
 @userplot Rlocusplot
 @deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
-function getpoles(G,K)
-    poles = map(k -> pole(feedback(G,tf(k))), K)
-    cat(2,poles...)'
-end
+# function getpoles(G,K)
+#     poles = map(k -> pole(feedback(G,tf(k))), K)
+#     cat(2,poles...)'
+# end
 
 
-function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles with an adaptive method
+function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
     P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
     Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
     f          = (k,y) -> Complex128.(Polynomials.roots(k[1]*P+Q))
