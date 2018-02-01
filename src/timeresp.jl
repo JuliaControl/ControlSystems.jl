@@ -2,7 +2,7 @@
 
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
-@doc """`[y, t, x] = step(sys[, Tf])` or `[y, t, x] = step(sys[, t])`
+@doc """`y, t, x = step(sys[, Tf])` or `y, t, x = step(sys[, t])`
 
 Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
@@ -13,15 +13,15 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = ones(size(t))
+    u = (x,t)->ones(nu)
     x0 = zeros(nx, 1)
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0=x0, method=:zoh)
+        y, t, x, _ = lsim(sys, u, t, x0=x0)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, method=:zoh)
+            y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0)
         end
     end
     return y, t, x
@@ -34,7 +34,7 @@ Base.step(sys::LTISystem, Tf::Real) = step(sys, _default_time_vector(sys, Tf))
 Base.step(sys::LTISystem) = step(sys, _default_time_vector(sys))
 Base.step(sys::TransferFunction, t::AbstractVector) = step(ss(sys), t::AbstractVector)
 
-@doc """`[y, t, x] = impulse(sys[, Tf])` or `[y, t, x] = impulse(sys[, t])`
+@doc """`y, t, x = impulse(sys[, Tf])` or `y, t, x = impulse(sys[, t])`
 
 Calculate the impulse response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
@@ -45,7 +45,7 @@ function impulse(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = zeros(size(t))
+    u = (x,i) -> i == t[1] ? ones(nu)/sys.Ts : zeros(nu)
     if iscontinuous(sys)
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
@@ -54,15 +54,14 @@ function impulse(sys::StateSpace, t::AbstractVector)
     else
         imp_sys = sys
         x0s = zeros(nx, nu)
-        u[1] = 1/sys.Ts
     end
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0=x0s, method=:zoh)
+        y, t, x,_ = lsim(sys, u, t, x0=x0s)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0s[:,i], method=:zoh)
+            y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0s[:,i])
         end
     end
     return y, t, x
@@ -89,8 +88,8 @@ a zero vector is used.
 Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized before simulation. For a lower level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
-If `u` is a function, then `u(i,x)` (`u(t,x)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(i,x)-> 1`, for a ramp, use `(i,x)-> i*h`, for a step at `t=5`, use (i,x)-> (i*h >= 5) etc.
+If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
+To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a step at `t=5`, use (x,i)-> (i*h >= 5) etc.
 
 Usage example:
 ```julia
@@ -102,7 +101,7 @@ Q = eye(2)
 R = eye(1)
 L = lqr(sys,Q,R)
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
@@ -134,7 +133,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         dsys, x0map = c2d(sys, dt, :foh)
         x0 = x0map*[x0; u[1:1,:].']
     end
-    x = ltitr(dsys.A, dsys.B, map(Float64,u), map(Float64,x0))
+    x = ltitr(dsys.A, dsys.B, Float64.(u), Float64.(x0))
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
@@ -143,7 +142,7 @@ end
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
 function lsim(sys::StateSpace, u::Function, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
+        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
     if length(x0) != nx
@@ -162,7 +161,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
             end
             dsys = sys
         end
-        x,uout = ltitr(dsys.A, dsys.B, u, length(t), map(Float64,x0))
+        x,uout = ltitr(dsys.A, dsys.B, u, length(t), Float64.(x0))
     else
         s = Simulator(sys, u)
         sol = solve(s, x0, (t[1],t[end]), Tsit5())
@@ -173,7 +172,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
             uout[t,:] = u(t,xT[:,i])
         end
     end
-    y = (sys.C*(x.') + sys.D*(uout.')).'
+    y = (sys.C*(xT) + sys.D*(uout.')).'
     return y, t, x, uout
 end
 
@@ -202,7 +201,7 @@ end
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
-If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
+If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """ ->
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
@@ -223,7 +222,7 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, iters::Int,
 
     for i=1:iters
         x[:,i] = x0
-        uout[:,i] = u(i,x0)
+        uout[:,i] = u(x0,i)
         x0 = A * x0 + B * uout[:,i]
     end
     return x.', uout.'
