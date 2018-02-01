@@ -34,9 +34,9 @@ os             = OutputFeedbackSimulator(P,reference,e->K*e)
 x0             = [0.,0]
 tspan          = (0.0,Tf)
 sol            = solve(s, x0, tspan, Tsit5())
-plot(t, s.y(t, sol)[:], lab="Open loop step response")
+plot(t, s.y(sol, t)[:], lab="Open loop step response")
 sol            = solve(os, x0, tspan, Tsit5())
-plot!(t, os.y(t, sol)[:], lab="P controller K="*string(K))
+plot!(t, os.y(sol, t)[:], lab="P controller K="*string(K))
 ```
 """
 function Simulator(P::StateSpace, u = (x,t) -> 0)
@@ -84,7 +84,7 @@ os             = OutputFeedbackSimulator(P,reference,e->K*e)
 x0             = [0.,0]
 tspan          = (0.0,Tf)
 sol            = solve(os, x0, tspan, Tsit5())
-plot(t, os.y(t, sol)', lab="P controller K="*string(K))
+plot(t, os.y(sol, t)', lab="P controller K="*string(K))
 ```
 """
 function OutputFeedbackSimulator(P,r,fb)
@@ -176,7 +176,7 @@ reference(x,t) = 1.
     x0     = [0.,0]
     tspan  = (0.0,Tf)
     sol    = solve(os, x0, tspan, Tsit5())
-    plot(t, os.y(t, sol)[:], lab="P controller", show=false)
+    plot(t, os.y(sol, t)[:], lab="P controller", show=false)
 
 
     controllers = [pid(kp=5, ki=1)]
@@ -185,7 +185,7 @@ reference(x,t) = 1.
     x0          = [0.,0]
     gs          = GainSchedulingSimulator(Ps, reference, controllers, conditions)
     sol         = solve(gs, x0, tspan, Tsit5())
-    plot!(t, gs.y(t, sol)[:], lab="PI controller", show=false)
+    plot!(t, gs.y(sol, t)[:], lab="PI controller", show=false)
 
 
     controllers = [pid(kp=kp1, ki=ki1), pid(kp=kp2, ki=ki2)]
@@ -194,7 +194,7 @@ reference(x,t) = 1.
     x0          = [0.,0]
     gs          = GainSchedulingSimulator(Ps, reference, controllers, conditions)
     sol         = solve(gs, x0, tspan, Tsit5())
-    plot!(t, gs.y(t, sol)[:], lab="Gain scheduled controller", ylims=(0,1.5), show=false)
+    plot!(t, gs.y(sol, t)[:], lab="Gain scheduled controller", ylims=(0,1.5), show=false)
     plot!([tspan...], [th, th], lab="Threshold", c=:black, l=:dash)
 end
 ```
@@ -203,7 +203,7 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
     s = Simulator(P)
     pinds = 1:P.nx # Indices of plant-state derivative
     r = (x,t) -> ri(t,x[pinds])
-    y = (x,t) -> s.y(t,x[pinds])
+    y = (x,t) -> s.y(x[pinds],t)
     (T::typeof(y))(sol::ODESolution,t) = P.C*sol(t)[pinds,:]
     e = (x,t) -> r(x,t) .- y(x,t)
     f = function(x,p,t)
