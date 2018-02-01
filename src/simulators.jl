@@ -202,7 +202,7 @@ end
 function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=(u,t)->u) where Tu <: StateSpace where Tc <: Function
     s = Simulator(P)
     pinds = 1:P.nx # Indices of plant-state derivative
-    r = (x,t) -> ri(t,x[pinds])
+    r = (x,t) -> ri(x[pinds],t)
     y = (x,t) -> s.y(x[pinds],t)
     (T::typeof(y))(sol::ODESolution,t) = P.C*sol(t)[pinds,:]
     e = (x,t) -> r(x,t) .- y(x,t)
