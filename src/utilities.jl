@@ -48,12 +48,12 @@ end
 ## Helpers (not public) ##
 
 # Convert the argument to a Matrix{T}
-function Tmat(A::Vector, T)
+function to_matrix(T, A::Vector)
     A = reshape(A, size(A, 1), 1)
-    return Tmat(A, T)
+    return to_matrix(T,A)
 end
-Tmat(A::AbstractMatrix, T) = map(T,A)
-Tmat(A::Real, T) = Tmat([A], T)
+to_matrix(T, A::AbstractMatrix) = map(T,A)
+to_matrix(T, A::Real) = to_matrix(T, [A])
 
 # Ensures the metadata for an LTISystem is valid
 function validate_names(kwargs, key, n)

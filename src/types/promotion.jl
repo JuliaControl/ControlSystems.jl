@@ -4,7 +4,11 @@ Base.eltype{T}(::Type{SisoZpk{T}}) = T
 Base.eltype{T}(::Type{SisoRational{T}}) = T
 Base.eltype{T}(::Type{StateSpace{T}}) = T
 
-
+"""
+    primitivetype(T)
+Return the underlying numerical scalar type of composite LTISystem type `T`, e.g., `primitivetype(ss(1.)) == Float64`
+If `T` is not a type, return `primitivetype(typeof(T))`
+"""
 primitivetype{T}(::Type{Poly{T}}) = primitivetype(T)
 primitivetype{T}(::Type{TransferFunction{T}}) = primitivetype(T)
 primitivetype{T}(::Type{SisoZpk{T}}) = primitivetype(T)
@@ -16,7 +20,11 @@ primitivetype{T,N,P<:AbstractArray{T,N}}(::Type{P}) = primitivetype(T)
 primitivetype(x) = primitivetype(typeof(x)) # Fallback method
 primitivetype{T}(::Type{T}) = T # Catch all
 
-
+"""
+    arraytype(T)
+Return the underlying array type of composite LTISystem type `T`, e.g., `arraytype(ss(1.)) == Matrix{Float64}`
+If `T` is not a type, return `arraytype(typeof(T))`
+"""
 arraytype{T}(::Type{Poly{T}}) = arraytype(T)
 arraytype{T}(::Type{TransferFunction{T}}) = arraytype(T)
 arraytype{T}(::Type{SisoZpk{T}}) = arraytype(T)
@@ -28,11 +36,19 @@ arraytype{T,N,P<:AbstractArray{T,N}}(::Type{P}) = P
 arraytype(x) = arraytype(typeof(x)) # Fallback method
 arraytype{T}(::Type{T}) = T # Catch all
 
+"""
+    responsetype(T)
+Return the numerical type of the time-response for composite LTISystem type `T`, e.g., `responsetype(ss(1.)) == Float64`
+If `T` is not a type, return `responsetype(typeof(T))`
+"""
 responsetype{T<:Real}(::Type{T}) = T
 responsetype{T<:Complex}(::Type{T}) = promote_type(T.types...)
 responsetype(x) = typeof(x) # Fallback method
 responsetype{T}(::Type{T}) = T # Catch all
 
+"""
+    primitivereal(x) = responsetype(primitivetype(x))
+"""
 primitivereal(x) = responsetype(primitivetype(x))
 
 # Abstract type pyramid =============================================================

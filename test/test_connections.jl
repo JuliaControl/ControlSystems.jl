@@ -110,6 +110,10 @@ arr3 = Array{typeof(ss(0.)),1}(3)
 arr3[1] = ss(0.); arr3[2] = ss(1.); arr3[3] = ss(2.)
 @test [0., zpk(1), ss(2.)] == arr3
 
+arr4 = Array{typeof(ss(0)),1}(3)
+arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
+@test [0., zpk(1), ss(2)] == arr4
+
 @test Czpk_111 ≈ Ctf_111
 @test Czpk_211 ≈ Ctf_211
 @test Czpk_212 ≈ Ctf_212

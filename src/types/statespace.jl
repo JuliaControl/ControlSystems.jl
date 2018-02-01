@@ -55,9 +55,9 @@ function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::Abs
         statenames::Vector{String}, inputnames::Vector{String},
         outputnames::Vector{String})
         T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-        @assert (typeof(Tmat(A,T)) == typeof(Tmat(B,T)) == typeof(Tmat(C,T)) == typeof(Tmat(D,T)))
-        return StateSpace{Matrix{T}}(Tmat(A,T), Tmat(B,T), Tmat(C,T),
-            Tmat(D,T), Float64(Ts), statenames, inputnames, outputnames)
+        @assert (typeof(to_matrix(T, A)) == typeof(to_matrix(T, B)) == typeof(to_matrix(T, C)) == typeof(to_matrix(T, D)))
+        return StateSpace{Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C),
+            to_matrix(T, D), Float64(Ts), statenames, inputnames, outputnames)
 end
 
 #####################################################################
@@ -90,13 +90,13 @@ end
 # Function for accepting scalars
 function ss(A::Union{Real,Array}, B::Union{Real,Array}, C::Union{Real,Array}, D::Union{Real,Array}, args...; kwargs...)
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-    A = Tmat(A, T)
-    B = Tmat(B, T)
-    C = Tmat(C, T)
+    A = to_matrix(T, A)
+    B = to_matrix(T, B)
+    C = to_matrix(T, C)
     if D == 0
         D = zeros(T, size(C,1),size(B,2))
     else
-        D = Tmat(D, T)
+        D = to_matrix(T, D)
     end
     ss(A, B, C, D, args..., kwargs...)
 end

@@ -19,7 +19,7 @@ function siso_tf_to_ss(t::SisoRational)
         b = eye(len - 1, 1)
         c = tnum[2:len]' - d * tden[:]'
     end
-    return Tmat(a,T), Tmat(b,T), Tmat(c,T), d
+    return to_matrix(T, a), to_matrix(T, b), to_matrix(T, c), d
 end
 function normalize_tf(t::SisoRational)
     d = t.den[1]
