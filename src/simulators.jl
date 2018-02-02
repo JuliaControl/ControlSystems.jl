@@ -42,8 +42,8 @@ plot!(t, os.y(sol, t)[:], lab="P controller K="*string(K))
 function Simulator(P::StateSpace, u = (x,t) -> 0)
     @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
     f = (x,p,t) -> P.A*x + P.B*u(x,t)
-    y = (x,t) -> P.C*x
-    (T::typeof(y))(sol::ODESolution,t) = P.C*sol(t)
+    y(x,t) = P.C*x
+    y(sol::ODESolution,t) = P.C*sol(t)
     Simulator(P, f, y)
 end
 
@@ -203,8 +203,8 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
     s = Simulator(P)
     pinds = 1:P.nx # Indices of plant-state derivative
     r = (x,t) -> ri(x[pinds],t)
-    y = (x,t) -> s.y(x[pinds],t)
-    (T::typeof(y))(sol::ODESolution,t) = P.C*sol(t)[pinds,:]
+    y(x,t) = s.y(x[pinds],t)
+    y(sol::ODESolution,t) = P.C*sol(t)[pinds,:]
     e = (x,t) -> r(x,t) .- y(x,t)
     f = function(x,p,t)
         xyr = (x[pinds],y(x,t),r(x,t))
