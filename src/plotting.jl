@@ -103,7 +103,7 @@ lsimplot
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    layout := (ny,1)
+    layout --> (ny,1)
     s2i(i,j) = sub2ind((ny,1),j,i)
     for (si,s) in enumerate(systems)
         s = systems[si]
@@ -116,7 +116,7 @@ lsimplot
                 xguide  --> "Time (s)"
                 yguide  --> ytext
                 title   --> "System Response"
-                subplot := s2i(1,i)
+                subplot --> s2i(1,i)
                 label     --> "\$G_\{$(si)\}\$"
                 linestyle --> styledict[:l]
                 linecolor --> styledict[:c]
@@ -162,7 +162,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
             error("All systems must have the same input/output dimensions")
         end
         ny, nu = size(systems[1])
-        layout := (ny,nu)
+        layout --> (ny,nu)
         titles = fill("", 1, ny*nu)
         title --> titles
         s2i(i,j) = sub2ind((ny,nu),i,j)
@@ -181,7 +181,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                         seriestype := style
                         xlabel --> "Time (s)"
                         ylabel --> ytext
-                        subplot := s2i(i,j)
+                        subplot --> s2i(i,j)
                         label --> "\$G_\{$(si)\}\$"
                         linestyle --> styledict[:l]
                         linecolor --> styledict[:c]
@@ -220,7 +220,7 @@ bodeplot
     end
     ny, nu = size(systems[1])
     s2i(i,j) = sub2ind((nu,(plotphase?2:1)*ny),j,i)
-    layout := ((plotphase?2:1)*ny,nu)
+    layout --> ((plotphase?2:1)*ny,nu)
     nw = length(w)
     xticks --> getLogTicks(w)
 
@@ -250,7 +250,7 @@ bodeplot
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
-                    subplot := s2i((plotphase?(2i-1):i),j)
+                    subplot --> s2i((plotphase?(2i-1):i),j)
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_\{$(si)\}\$"
                     linestyle --> styledict[:l]
@@ -264,7 +264,7 @@ bodeplot
                     grid      --> true
                     xscale    --> :log10
                     yguide    --> "Phase (deg)"
-                    subplot := s2i(2i,j)
+                    subplot --> s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_\{$(si)\}\$"
                     linestyle --> styledict[:l]
@@ -339,7 +339,7 @@ nyquistplot
     ny, nu = size(systems[1])
     w = length(p.args) < 2 ?  _default_freq_vector(systems, :nyquist) : p.args[2]
     nw = length(w)
-    layout := (ny,nu)
+    layout --> (ny,nu)
     s2i(i,j) = sub2ind((ny,nu),j,i)
     # Ensure that `axes` is always a matrix of handles
     for (si,s) = enumerate(systems)
@@ -353,7 +353,7 @@ nyquistplot
                     xlims   := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
-                    subplot := s2i(i,j)
+                    subplot --> s2i(i,j)
                     label --> "\$G_\{$(si)\}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
@@ -734,7 +734,7 @@ function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotpha
     titles = fill("", 1, plotphase ? 8 : 4)
     # Empty titles on phase
     titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
-    titles[titleIdx] = ["\$S = 1/(1+PC)\$", "\$D = P/(1+PC)\$", "\$N = C/(1+PC)\$", "\$T = PC/(1+PC\$)"]
+    titles[titleIdx] = ["S = 1/(1+PC)", "D = P/(1+PC)", "N = C/(1+PC)", "T = PC/(1+PC)"]
     Plots.plot!(fig, title = titles)
     return fig
 end
