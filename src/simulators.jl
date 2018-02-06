@@ -150,6 +150,7 @@ struct GainSchedulingSimulator <: AbstractSimulator
     e
     controllers::Vector{StateSpace}
     conditions::Vector{T} where T <: Function
+    feedforward::Vector{Float64}
 end
 """
     GainSchedulingSimulator(P,r,controllers::AbstractVector{LTISystem},conditions::AbstractVector{Function (x,y,r)->Bool}; inputfun=(u,t)->u)
@@ -199,7 +200,9 @@ reference(x,t) = 1.
 end
 ```
 """
-function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=(u,t)->u) where Tu <: StateSpace where Tc <: Function
+function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc};
+    inputfun=(u,t)->u,
+    feedforward=zeros(length(controllers))) where Tu <: StateSpace where Tc <: Function
     s = Simulator(P)
     pinds = 1:P.nx # Indices of plant-state derivative
     r = (x,t) -> ri(x[pinds],t)
@@ -211,7 +214,6 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
         index = findfirst(c->c(xyr...), conditions)
         @assert index > 0 "No condition returned true"
         der = similar(x)
-        der[pinds] = P.A*x[pinds] # System dynamics
         et = e(x,t)
         ind = P.nx+1 # First index of currently updated controller
         for c in controllers
@@ -222,15 +224,18 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
         end
         c = controllers[index] # Active controller
         cind = P.nx + (index == 1 ? 1 : 1+sum(i->controllers[i].nx, 1:index-1)) # Get index of first controller state
-        u = c.C*x[cind:(cind+c.nx-1)] + c.D*et # Form control signal
+        der[pinds] = P.A*x[pinds] # System dynamics
+        u = c.C*x[cind:(cind+c.nx-1)] + c.D*et + feedforward[index] # Form control signal
         der[pinds] .+= inputfun(P.B*u,t) # Add input from active controller to system dynamics
         der
     end
-    GainSchedulingSimulator(s,f,y,r,e,controllers,conditions)
+    GainSchedulingSimulator(s,f,y,r,e,controllers,conditions,feedforward)
 end
 
-function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc}; inputfun=(u,t)->u) where Tu <: LTISystem where Tc <: Function
-    GainSchedulingSimulator(P,ri,ss.(controllers),conditions; inputfun=inputfun)
+function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc};
+    inputfun=(u,t)->u,
+    feedforward=zeros(length(controllers))) where Tu <: LTISystem where Tc <: Function
+    GainSchedulingSimulator(P,ri,ss.(controllers),conditions; inputfun=inputfun, feedforward=feedforward)
 end
 # ============================================================================================
 
