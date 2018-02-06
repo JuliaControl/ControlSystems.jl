@@ -156,7 +156,7 @@ function feedback{T<:SisoRational}(L::TransferFunction{T})
     P = numpoly(L)
     Q = denpoly(L)
     #Extract polynomials and create P/(P+Q)
-    tf(P[1][:],(P+Q)[1][:], Ts=L.Ts)
+    tf(P[1][:],(P+Q)[1][:], L.Ts)
 end
 
 function ControlSystems.feedback{T<:ControlSystems.SisoZpk}(L::TransferFunction{T})
@@ -168,7 +168,7 @@ function ControlSystems.feedback{T<:ControlSystems.SisoZpk}(L::TransferFunction{
     denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1])
     kden = denpol[1]
     #Extract polynomials and create P/(P+Q)
-    zpk(numer,ControlSystems.roots(denpol), k/kden, Ts=L.Ts)
+    zpk(numer,ControlSystems.roots(denpol), k/kden, L.Ts)
 end
 
 """
