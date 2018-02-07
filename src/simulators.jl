@@ -41,7 +41,7 @@ plot!(t, os.y(sol, t)[:], lab="P controller K="*string(K))
 """
 function Simulator(P::StateSpace, u = (x,t) -> 0)
     @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
-    f = (x,p,t) -> P.A*x + P.B*u(x,t)
+    f = (dx,x,p,t) -> dx .= P.A*x .+ P.B*u(x,t)
     y(x,t) = P.C*x
     y(sol::ODESolution,t) = P.C*sol(t)
     Simulator(P, f, y)
@@ -92,7 +92,7 @@ function OutputFeedbackSimulator(P,r,fb)
     e = (x,t) -> r(x,t) .- s.y(x,t)
     u = (x,t) -> fb(e(x,t))
     s = Simulator(P,u)
-    f = (x,p,t) -> s.P.A*x + s.P.B*u(x,t)
+    f = (dx,x,p,t) -> dx .= s.P.A*x .+ s.P.B*u(x,t)
     OutputFeedbackSimulator(s,f,s.y,r,u,e)
 end
 
@@ -125,7 +125,7 @@ function StateFeedbackSimulator(P,r,fb)
     e = (x,t) -> r(x,t) .- x
     u = (x,t) -> fb(e(x,t))
     s = Simulator(P,u)
-    f = (x,p,t) -> s.P.A*x + s.P.B*u(x,t)
+    f = (dx,x,p,t) -> dx .= s.P.A*x .+ s.P.B*u(x,t)
     StateFeedbackSimulator(s,f,s.y,r,u,e)
 end
 
@@ -209,11 +209,10 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
     y(x,t) = s.y(x[pinds],t)
     y(sol::ODESolution,t) = P.C*sol(t)[pinds,:]
     e = (x,t) -> r(x,t) .- y(x,t)
-    f = function(x,p,t)
+    f = function(der,x,p,t)
         xyr = (x[pinds],y(x,t),r(x,t))
         index = findfirst(c->c(xyr...), conditions)
         @assert index > 0 "No condition returned true"
-        der = similar(x)
         et = e(x,t)
         ind = P.nx+1 # First index of currently updated controller
         for c in controllers
