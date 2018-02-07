@@ -42,7 +42,7 @@ plot!(t, os.y(sol, t)[:], lab="P controller K="*string(K))
 function Simulator(P::StateSpace, u = (x,t) -> 0)
     @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
     f = (dx,x,p,t) -> dx .= P.A*x .+ P.B*u(x,t)
-    y(x,t) = P.C*x
+    y(x,t) = P.C*x .+ P.D*u(x,t)
     y(sol::ODESolution,t) = P.C*sol(t)
     Simulator(P, f, y)
 end
@@ -153,51 +153,13 @@ struct GainSchedulingSimulator <: AbstractSimulator
     feedforward::Vector{Float64}
 end
 """
-    GainSchedulingSimulator(P,r,controllers::AbstractVector{LTISystem},conditions::AbstractVector{Function (x,y,r)->Bool}; inputfun=(u,t)->u)
+    GainSchedulingSimulator(P,r,controllers::AbstractVector{LTISystem},conditions::AbstractVector{Function (x,y,r)->Bool}; inputfun=(u,t)->u, feedforward=zeros())
 `r` is a function (x,t)-> reference signal
 `controllers` is a list of LTIsystems representing the controllers
 `conditions` is a list of function that accepts state, output and reference and returns a Bool indicating which controller is active. At least one function should return true for every input. If more than one condition is true, the index of the first condition in the list is chosen.
+´feedforward´ is a vector of constants that are added to the control signal calculated by the active controller, i.e., `u = C*x + D*e + feedforward[active_index]`
 
-# Example:
-This example relies on `InteractNext.jl` for interactivity. If InteracNext is not installed and configured, manually select values for `kp1,ki1,kp2,ki2` and remove the `@manipulate` block.
-```julia
-using ControlSystems, OrdinaryDiffEq, InteractNext
-
-P              = tf(1,[2,1])^2
-h              = 0.1
-Tf             = 20
-t              = 0:h:Tf
-Ps             = ss(P)
-K              = 5
-reference(x,t) = 1.
-
-@manipulate for kp1 = slider(linspace(0,20,50), label="kp1", value=5), ki1 = slider(linspace(0,20,50), label="ki1", value=1), kp2 = slider(linspace(0,20,50), label="kp2", value=5), ki2 = slider(linspace(0,20,50), label="ki2", value=1), th = linspace(0,1,10)
-    s      = Simulator(Ps)
-    os     = OutputFeedbackSimulator(Ps,reference,e->5e)
-    x0     = [0.,0]
-    tspan  = (0.0,Tf)
-    sol    = solve(os, x0, tspan, Tsit5())
-    plot(t, os.y(sol, t)[:], lab="P controller", show=false)
-
-
-    controllers = [pid(kp=5, ki=1)]
-    conditions  = [(x,y,r) -> y[1] < 0.5, (x,y,r) -> y[1] >= 0.5]
-    tspan       = (0.0,Tf)
-    x0          = [0.,0]
-    gs          = GainSchedulingSimulator(Ps, reference, controllers, conditions)
-    sol         = solve(gs, x0, tspan, Tsit5())
-    plot!(t, gs.y(sol, t)[:], lab="PI controller", show=false)
-
-
-    controllers = [pid(kp=kp1, ki=ki1), pid(kp=kp2, ki=ki2)]
-    conditions  = [(x,y,r) -> y[1] < th, (x,y,r) -> y[1] >= th]
-    tspan       = (0.0,Tf)
-    x0          = [0.,0]
-    gs          = GainSchedulingSimulator(Ps, reference, controllers, conditions)
-    sol         = solve(gs, x0, tspan, Tsit5())
-    plot!(t, gs.y(sol, t)[:], lab="Gain scheduled controller", ylims=(0,1.5), show=false)
-    plot!([tspan...], [th, th], lab="Threshold", c=:black, l=:dash)
-end
+For a usage example, see notebook in example folder.
 ```
 """
 function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions::AbstractVector{Tc};
@@ -239,11 +201,11 @@ end
 # ============================================================================================
 
 """
-    sol = solve(s::AbstractSimulator, x0, tspan, solver = Tsit5(), args...; kwargs...)
+    sol = solve(s::AbstractSimulator, x0, tspan,  args...; kwargs...)
 Simulate the system represented by `s` from initial state `x0` over time span `tspan = (t0,tf)`.
-`args` and `kwargs` are sent to the `solve` function from `OrdinaryDiffEq`. The `solver` defaults to [`Tsit5()`](http://docs.juliadiffeq.org/stable/solvers/ode_solve.html)
+`args` and `kwargs` are sent to the `solve` function from `OrdinaryDiffEq`, e.g., `solve(s, x0, tspan,  Tsit5(), reltol=1e-5)` solves the problem with solver [`Tsit5()`](http://docs.juliadiffeq.org/stable/solvers/ode_solve.html) and relative tolerance 1e-5.
 
 See also `Simulator` `OutputFeedbackSimulator` `StateFeedbackSimulator` `GainSchedulingSimulator` `lsim`
 """
-DiffEqBase.solve(s::AbstractSimulator, x0, tspan, solver = Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan), solver, args...; kwargs...)
-DiffEqBase.solve(s::GainSchedulingSimulator, x0, tspan, solver = Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,vcat(x0, zeros(sum(c->c.nx, s.controllers))),tspan), solver, args...; kwargs...)
+DiffEqBase.solve(s::AbstractSimulator, x0, tspan, args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan), args...; kwargs...)
+DiffEqBase.solve(s::GainSchedulingSimulator, x0, tspan, args...; kwargs...) = solve(ODEProblem(s.f,vcat(x0, zeros(sum(c->c.nx, s.controllers))),tspan), args...; kwargs...)
