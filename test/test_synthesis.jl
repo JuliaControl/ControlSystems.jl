@@ -1,6 +1,6 @@
 @testset "test_synthesis" begin
-P = tf(1,[1,1])
-C = tf([1,1],[1,0])
+P = tf(1.,[1.,1])
+C = tf([1.,1],[1.,0])
 L = P*C
 Lsys = ss(L)
 
@@ -11,7 +11,7 @@ R = [1,1]
 S = [1]
 T = [1]
 
-@test isapprox(minreal(feedback(P,C),1e-5), minreal(feedback(L),1e-5))
+@test isapprox(minreal(feedback(P,C),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5)
 @test isapprox(numpoly(minreal(feedback(L),1e-5))[1].a, numpoly(tf(1,[1,1]))[1].a)# This test is ugly, but numerical stability is poor for minreal
 @test feedback2dof(B,A,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
 @test feedback2dof(P,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])

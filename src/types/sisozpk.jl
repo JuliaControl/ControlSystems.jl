@@ -42,7 +42,6 @@ function minreal(sys::SisoZpk, eps::Real)
     newZ = copy(sys.z)
     newP = Vector{Complex{Float64}}()
     doubles = Vector{Int64}()
-    newZ = copy(sys.z)
     for  p in sys.p
         if !isempty(newZ)
             val, zi = findmin(abs.(p-newZ))
@@ -75,9 +74,17 @@ function zp2polys(vec)
     polesiLeft = Set(1:length(vec))
     while length(polesiLeft) > 0
         p = vec[pop!(polesiLeft)]
-        if abs(imag(p)) < sqrt(eps())
+        if abs(imag(p)) <= (abs(real(p))+1)*sqrt(eps())
             push!(polys,Poly(float([1, -real(p)])))
         else
+            if isempty(polesiLeft)
+                warn("Possibly inaccurate result detected while converting poles to polynomials. Please consider converting your systems to state-space form for better accuracy.")
+                if imag(p) > (abs(real(p))+1)*sqrt(sqrt(eps()))
+                    error("Could not find conjugate to pole $p")
+                end
+                push!(polys,Poly(float([1, -real(p)])))
+                break
+            end
             polesiLeftVec = [i for i in polesiLeft]
             polesTest = Complex128[vec[polesiLeftVec]...]
             val, i = findmin(abs.(polesTest-conj(p)))
