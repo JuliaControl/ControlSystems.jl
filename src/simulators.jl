@@ -186,8 +186,9 @@ function GainSchedulingSimulator(P,ri,controllers::AbstractVector{Tu},conditions
         c = controllers[index] # Active controller
         cind = P.nx + (index == 1 ? 1 : 1+sum(i->controllers[i].nx, 1:index-1)) # Get index of first controller state
         der[pinds] = P.A*x[pinds] # System dynamics
-        u = c.C*x[cind:(cind+c.nx-1)] + c.D*et + feedforward[index] # Form control signal
-        der[pinds] .+= inputfun(P.B*u,t) # Add input from active controller to system dynamics
+        u = c.C*x[cind:(cind+c.nx-1)] .+ c.D*et .+ feedforward[index] # Form control signal
+        size(inputfun(P.B*u,t)), size(der[pinds])
+        der[pinds] .+= vec(inputfun(P.B*u,t)) # Add input from active controller to system dynamics
         der
     end
     GainSchedulingSimulator(s,f,y,r,e,controllers,conditions,feedforward)
