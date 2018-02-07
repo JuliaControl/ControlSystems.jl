@@ -143,10 +143,10 @@ end
 
 """
 `feedback(L)` Returns L/(1+L)
-`feedback(P,C)` Returns PC/(1+PC)
+`feedback(P1,P2)` Returns P1/(1+P1*P2)
 """
 feedback(L::TransferFunction) = L/(1+L)
-feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
+feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
 #Efficient implementations
 function feedback{T<:SisoRational}(L::TransferFunction{T})
