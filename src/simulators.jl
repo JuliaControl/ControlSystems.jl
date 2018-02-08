@@ -208,5 +208,5 @@ Simulate the system represented by `s` from initial state `x0` over time span `t
 
 See also `Simulator` `OutputFeedbackSimulator` `StateFeedbackSimulator` `GainSchedulingSimulator` `lsim`
 """
-DiffEqBase.solve(s::AbstractSimulator, x0, tspan, args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan), args...; kwargs...)
-DiffEqBase.solve(s::GainSchedulingSimulator, x0, tspan, args...; kwargs...) = solve(ODEProblem(s.f,vcat(x0, zeros(sum(c->c.nx, s.controllers))),tspan), args...; kwargs...)
+DiffEqBase.solve(s::AbstractSimulator, x0, tspan, solver=Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan), solver, args...; kwargs...)
+DiffEqBase.solve(s::GainSchedulingSimulator, x0, tspan, solver=Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,vcat(x0, zeros(sum(c->c.nx, s.controllers))),tspan), solver, args...; kwargs...)
