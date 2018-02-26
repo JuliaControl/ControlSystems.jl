@@ -106,11 +106,11 @@ end
 
 function evalfr(sys::SisoZpk, s::Number)
     S = promote_type(typeof(s), Float64)
-    den = reduce(*, (poly->polyval(poly, s)).(zp2polys(sys.p)))
+    den = prod(s-a for a in sys.p)
     if den == zero(S)
         return convert(S, Inf)
     else
-        num = reduce(*, (poly->polyval(poly, s)).(zp2polys(sys.z)))
+        num = prod(s-b for b in sys.z)
         num, typeof(num), zp2polys(sys.z)
         return sys.k*num/den
     end
