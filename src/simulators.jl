@@ -41,8 +41,9 @@ plot!(t, os.y(sol, t)[:], lab="P controller K="*string(K))
 """
 function Simulator(P::StateSpace, u = (x,t) -> 0)
     @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
+    @assert all(P.D .== 0) "Can not simulate systems with direct term D != 0"
     f = (dx,x,p,t) -> dx .= P.A*x .+ P.B*u(x,t)
-    y(x,t) = P.C*x .+ P.D*u(x,t)
+    y(x,t) = P.C*x #.+ P.D*u(x,t)
     y(sol::ODESolution,t) = P.C*sol(t)
     Simulator(P, f, y)
 end
