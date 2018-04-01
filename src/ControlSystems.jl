@@ -77,7 +77,9 @@ using Plots, LaTeXStrings, Requires, OrdinaryDiffEq, IterTools
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
 include("types/lti.jl")
+include("types/namedsystem.jl")
 include("types/transferfunction.jl")
+include("types/hessenberg.jl")
 include("types/statespace.jl")
 include("types/tf2ss.jl")
 include("types/lqg.jl")

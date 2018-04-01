@@ -55,32 +55,6 @@ end
 to_matrix(T, A::AbstractMatrix) = map(T,A)
 to_matrix(T, A::Real) = to_matrix(T, [A])
 
-# Ensures the metadata for an LTISystem is valid
-function validate_names(kwargs, key, n)
-    names = get(kwargs, key, "")
-    if names == ""
-        return fill(String(""), n)
-    elseif isa(names, Vector) && eltype(names) <: AbstractString
-        return String[names[i] for i = 1:n]
-    elseif isa(names, AbstractString)
-        return String[names * "$i" for i = 1:n]
-    else
-        error("$key must be of type `AbstractString` or Vector{AbstractString}")
-    end
-end
-
-# Format the metadata for printing
-function format_names(names::Vector{String}, default::AbstractString, unknown::AbstractString)
-    n = size(names, 1)
-    if all(names .== "")
-        return String[default * string(i) for i=1:n]
-    else
-        for (i, n) in enumerate(names)
-            names[i] = String((n == "") ? unknown : n)
-        end
-        return names
-    end
-end
 
 function unwrap!(M::Array, dim=1)
     alldims(i) = [ n==dim ? i : (1:size(M,n)) for n in 1:ndims(M) ]

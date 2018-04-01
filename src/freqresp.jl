@@ -15,15 +15,19 @@ function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     else
         s = im*w
     end
-    #Evil but nessesary type instability here
-    sys = _preprocess_for_freqresp(sys)
     T = promote_type(primitivetype(sys), Complex128)
     sys_fr = Array{T}(nw, ny, nu)
-    for i=1:nw
-        # TODO : This doesn't actually take advantage of Hessenberg structure
-        # for statespace version.
-        sys_fr[i, :, :] = evalfr(sys, s[i])
+    try # Try in case hessfact doesnt work
+        sys2 = _preprocess_for_freqresp(sys)
+        for i=1:nw
+            sys_fr[i, :, :] = evalfr(sys2, s[i])
+        end
+    catch # Same code again (without prepare) to avoid type instablility
+        for i=1:nw
+            sys_fr[i, :, :] = evalfr(sys, s[i])
+        end
     end
+
     return sys_fr
 end
 
@@ -31,18 +35,13 @@ end
 # Laub, A.J., "Efficient Multivariable Frequency Response Computations",
 # IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
 function _preprocess_for_freqresp(sys::StateSpace)
-    if isempty(sys.A) # hessfact does not work for empty matrices
-        return sys
-    end
-
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
     F = hessfact(A)
-    H = F[:H]::Matrix{Float64}
-    T = full(F[:Q])
-    P = C*T
-    Q = T\B
-    StateSpace(H, Q, P, D, sys.Ts, sys.statenames, sys.inputnames,
-        sys.outputnames)
+    H = F[:H]::typeof(A)
+    Q = F[:Q]::Base.LinAlg.HessenbergQ{eltype(A), typeof(A)}
+    C2 = C*Q
+    B2 = Q\B
+    HessenbergSS(H, B2, C2, D)
 end
 
 function _preprocess_for_freqresp(sys::TransferFunction)

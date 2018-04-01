@@ -11,14 +11,8 @@ type StateSpace{MT} <: LTISystem where MT <: AbstractNumberMatrix
     nx::Int
     nu::Int
     ny::Int
-    statenames::Vector{String}
-    inputnames::Vector{String}
-    outputnames::Vector{String}
 
-    function StateSpace{MT}(A::MT, B::MT,
-            C::MT, D::MT, Ts::Float64,
-            statenames::Vector{String}, inputnames::Vector{String},
-            outputnames::Vector{String}) where MT <: AbstractNumberMatrix
+    function StateSpace{MT}(A::MT, B::MT, C::MT, D::MT, Ts::Float64) where MT <: AbstractNumberMatrix
         nx = size(A, 1)
         nu = size(B, 2)
         ny = size(C, 1)
@@ -34,30 +28,20 @@ type StateSpace{MT} <: LTISystem where MT <: AbstractNumberMatrix
         elseif ny != size(D, 1)
             error("D must have the same row size as C")
         end
-        # Validate names of state, input, and output
-        if size(statenames, 1) != nx
-            error("Must have same number of statenames as states")
-        elseif size(inputnames, 1) != nu
-            error("Must have same number of inputnames as inputs")
-        elseif size(outputnames, 1) != ny
-            error("Must have same number of outputnames as outputs")
-        end
+
         # Validate sampling time
         if Ts < 0 && Ts != -1
             error("Ts must be either a positive number, 0
                    (continuous system), or -1 (unspecified)")
         end
-        new{MT}(A, B, C, D, Ts, nx, nu, ny, statenames, inputnames, outputnames)
+        new{MT}(A, B, C, D, Ts, nx, nu, ny)
     end
 end
 
-function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real,
-        statenames::Vector{String}, inputnames::Vector{String},
-        outputnames::Vector{String})
+function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
         T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
         @assert (typeof(to_matrix(T, A)) == typeof(to_matrix(T, B)) == typeof(to_matrix(T, C)) == typeof(to_matrix(T, D)))
-        return StateSpace{Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C),
-            to_matrix(T, D), Float64(Ts), statenames, inputnames, outputnames)
+        return StateSpace{Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C), to_matrix(T, D), Float64(Ts))
 end
 
 #####################################################################
@@ -80,11 +64,11 @@ function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0; kwargs...)
     # Check the kwargs for metadata
     nu = size(B, 2)
     ny, nx = size(C, 1, 2)
-    kvs = Dict(kwargs)
-    statenames = validate_names(kvs, :statenames, nx)
-    inputnames = validate_names(kvs, :inputnames, nu)
-    outputnames = validate_names(kvs, :outputnames, ny)
-    return StateSpace(A, B, C, D, Ts, statenames, inputnames, outputnames)
+    # kvs = Dict(kwargs)
+    # statenames = validate_names(kvs, :statenames, nx)
+    # inputnames = validate_names(kvs, :inputnames, nu)
+    # outputnames = validate_names(kvs, :outputnames, ny)
+    return StateSpace(A, B, C, D, Ts)
 end
 
 # Function for accepting scalars
@@ -135,8 +119,7 @@ end
 
 ## EQUALITY ##
 function ==(s1::StateSpace, s2::StateSpace)
-    fields = [:Ts, :nx, :ny, :nu, :A, :B, :C, :D, :inputnames, :outputnames,
-            :statenames]
+    fields = [:Ts, :nx, :ny, :nu, :A, :B, :C, :D]
     for field in fields
         if getfield(s1, field) != getfield(s2, field)
             return false
@@ -148,14 +131,8 @@ end
 ## Approximate ##
 function isapprox(s1::StateSpace, s2::StateSpace)
     fieldsApprox = [:Ts, :nx, :ny, :nu, :A, :B, :C, :D]
-    fieldsEqual = [:inputnames, :outputnames, :statenames]
     for field in fieldsApprox
         if !(getfield(s1, field) ≈ getfield(s2, field))
-            return false
-        end
-    end
-    for field in fieldsEqual
-        if getfield(s1, field) != getfield(s2, field)
             return false
         end
     end
@@ -177,29 +154,10 @@ function +(s1::StateSpace, s2::StateSpace)
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
 
-    # Naming strategy: If only one sys is named, use that. If the names are the
-    # same, use them. If the names conflict, then they are ignored, and the
-    # default "" is used.
-    statenames = [s1.statenames; s2.statenames]
-    if all(s1.inputnames .== "")
-        inputnames = s2.inputnames
-    elseif all(s2.inputnames .== "") || (s1.inputnames == s2.inputnames)
-        inputnames = s1.inputnames
-    else
-        inputnames = fill(String(""),s1.ny)
-    end
-    if all(s1.outputnames .== "")
-        outputnames = s2.outputnames
-    elseif all(s2.outputnames .== "") || (s1.outputnames == s2.outputnames)
-        outputnames = s1.outputnames
-    else
-        outputnames = fill(String(""),s1.nu)
-    end
-    return StateSpace(A, B, C, D, s1.Ts, statenames, inputnames, outputnames)
+    return StateSpace(A, B, C, D, s1.Ts)
 end
 
-+(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C, s.D .+ n, s.Ts,
-        s.statenames, s.inputnames, s.outputnames)
++(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C, s.D .+ n, s.Ts)
 +(n::Real, s::StateSpace) = +(s, n)
 
 ## SUBTRACTION ##
@@ -208,8 +166,7 @@ end
 -(n::Real, s::StateSpace) = +(-s, n)
 
 ## NEGATION ##
--(s::StateSpace) = StateSpace(s.A, s.B, -s.C, -s.D, s.Ts, s.statenames,
-        s.inputnames, s.outputnames)
+-(s::StateSpace) = StateSpace(s.A, s.B, -s.C, -s.D, s.Ts)
 
 ## MULTIPLICATION ##
 function *(s1::StateSpace, s2::StateSpace)
@@ -227,13 +184,10 @@ function *(s1::StateSpace, s2::StateSpace)
     C = [s1.C   s1.D*s2.C;]
     D = [s1.D*s2.D;]
 
-    statenames = [s1.statenames; s2.statenames]
-    return StateSpace(A, B, C, D, s1.Ts, statenames, s2.inputnames,
-            s1.outputnames)
+    return StateSpace(A, B, C, D, s1.Ts)
 end
 
-*(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C*n, s.D*n, s.Ts,
-        s.statenames, s.inputnames, s.outputnames)
+*(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C*n, s.D*n, s.Ts)
 *(n::Real, s::StateSpace) = *(s, n)
 
 ## DIVISION ##
@@ -246,13 +200,11 @@ function /(n::Real, s::StateSpace)
     catch
         error("D isn't invertible")
     end
-    return StateSpace(s.A - s.B*Dinv*s.C, s.B*Dinv, -n*Dinv*s.C, n*Dinv, s.Ts,
-            s.statenames, s.outputnames, s.inputnames)
+    return StateSpace(s.A - s.B*Dinv*s.C, s.B*Dinv, -n*Dinv*s.C, n*Dinv, s.Ts)
 end
 
 Base.inv(s::StateSpace) = 1/s
-/(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C/n, s.D/n, s.Ts,
-        s.statenames, s.inputnames, s.outputnames)
+/(s::StateSpace, n::Real) = StateSpace(s.A, s.B, s.C/n, s.D/n, s.Ts)
 
 #####################################################################
 ##                       Indexing Functions                        ##
@@ -266,8 +218,7 @@ function Base.getindex(s::StateSpace, inds...)
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = ControlSystems.index2range(inds...)
-    return StateSpace([s.A;], [s.B[:, cols];], [s.C[rows, :];], [s.D[rows, cols];],
-            s.Ts, [s.statenames;], [s.inputnames[cols];], [s.outputnames[rows];])
+    return StateSpace([s.A;], [s.B[:, cols];], [s.C[rows, :];], [s.D[rows, cols];], s.Ts)
 end
 
 #####################################################################
@@ -285,13 +236,13 @@ end
 
 Base.print(io::IO, s::StateSpace) = show(io, s)
 
-function Base.show(io::IO, s::StateSpace)
+function Base.show(io::IO, s::Union{T,NamedSystem{T}}) where {T<:StateSpace}
     # Compose the name vectors
-    inputs = format_names(s.inputnames, "u", "?")
-    outputs = format_names(s.outputnames, "y", "?")
+    inputs = format_names(inputnames(s), "u", "?")
+    outputs = format_names(outputnames(s), "y", "?")
     println(io, "StateSpace:")
     if s.nx > 0
-        states = format_names(s.statenames, "x", "?")
+        states = format_names(fill("", s.nx), "x", "?")
         println(io, "A = \n", _string_mat_with_headers(s.A, states, states))
         println(io, "B = \n", _string_mat_with_headers(s.B, inputs, states))
         println(io, "C = \n", _string_mat_with_headers(s.C, states, outputs))
