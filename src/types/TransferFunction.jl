@@ -61,6 +61,10 @@ function Base.copy(G::TransferFunction)
     return TransferFunction(copy(G.matrix), G.Ts)
 end
 
+
+numpoly(G::TransferFunction) = map(numpoly, G.matrix)
+denpoly(G::TransferFunction) = map(denpoly, G.matrix)
+
 @doc """`tf = minreal(tf::TransferFunction, eps=sqrt(eps()))`
 
 Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros """ ->
@@ -76,13 +80,8 @@ end
 
 Returns `true` if the `TransferFunction` is proper. This means that order(den)
 \>= order(num))""" ->
-function isproper(t::TransferFunction)
-    for s in t.matrix
-        if length(num(s)) > length(den(s))
-            return false
-        end
-    end
-    return true
+function isproper(G::TransferFunction)
+    return all(isproper(f) for f in G.matrix)
 end
 #####################################################################
 ##                         Math Operators                          ##
@@ -102,7 +101,7 @@ end
 ## Approximate ##
 function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
     G1, G2 = promote(G1, G2)
-    fieldsApprox = [:Ts, :ny, :nu, :matrix]
+    fieldsApprox = [:Ts, :matrix]
     for field in fieldsApprox
         if !(isapprox(getfield(G1, field), getfield(G2, field); kwargs...))
             return false
@@ -128,13 +127,13 @@ function +(G1::TransferFunction, G2::TransferFunction)
     return TransferFunction(matrix, G1.Ts)
 end
 
-+(G::TransferFunction, n::Real) = TransferFunction(G.matrix + n, G.Ts)
-+(n::Real, G::TransferFunction) = +(G, n)
++(G::TransferFunction, n::Number) = TransferFunction(G.matrix + n, G.Ts)
++(n::Number, G::TransferFunction) = +(G, n)
 
 ## SUBTRACTION ##
--(n::Real, G::TransferFunction) = TransferFunction(n - G.matrix, G.Ts)
+-(n::Number, G::TransferFunction) = TransferFunction(n - G.matrix, G.Ts)
 -(G1::TransferFunction, G2::TransferFunction) = +(G1, -G2)
--(G::TransferFunction, n::Real) = +(G, -n)
+-(G::TransferFunction, n::Number) = +(G, -n)
 
 ## NEGATION ##
 -(G::TransferFunction) = TransferFunction(-G.matrix, G.Ts)
@@ -147,16 +146,22 @@ function *(G1::TransferFunction, G2::TransferFunction)
     elseif G1.Ts != G2.Ts
         error("Sampling time mismatch")
     end
-    T = promote_type(eltype(G1.matrix), eltype(G2.matrix))
-    matrix = convert(Matrix{T}, G1.matrix) * convert(Matrix{T}, G2.matrix)
-    return TransferFunction(matrix, G1.Ts)
+    S = promote_type(eltype(G1), eltype(G2)) # FIXME: Should be done analogusly to +
+
+    #matrix = convert(Matrix{S}, G1.matrix) * convert(Matrix{S}, G2.matrix)
+    G1, G2 = promote(G1, G2)
+
+    matrix = G1.matrix * G2.matrix
+    convert(Matrix{S}, matrix)
+
+    return TransferFunction{S}(matrix, G1.Ts)
 end
 
-*(G::TransferFunction, n::Real) = TransferFunction(n*G.matrix, G.Ts)
-*(n::Real, G::TransferFunction) = *(G, n)
+*(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.Ts)
+*(n::Number, G::TransferFunction) = *(G, n)
 
 ## DIVISION ##
-function /(n::Real, G::TransferFunction)
+function /(n::Number, G::TransferFunction)
     if issiso(G)
         matrix = reshape([n/G.matrix[1,1]], 1, 1)
     else
@@ -164,7 +169,7 @@ function /(n::Real, G::TransferFunction)
     end
     return TransferFunction(matrix, G.Ts)
 end
-/(G::TransferFunction, n::Real) = G*(1/n)
+/(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
 
 #####################################################################

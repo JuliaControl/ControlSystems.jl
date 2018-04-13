@@ -37,8 +37,7 @@ D_222_d = ss(da_2, [1 0; 0 2], eye(2), eye(2), 0.005)
 D_022 = ss(4*eye(2), 0.005)
 
 # Definition of input, output and state names
-C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
-  statenames=["i","u"],inputnames=String("e"),outputnames="theta")
+C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2))
 
 # TESTS
 # Contstuct with scalars
@@ -86,10 +85,18 @@ C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2),
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
-# Naming signals
-@test C_222_d_n.statenames == String["i","u"]
-@test C_222_d_n.inputnames == String["e1","e2"]
-@test C_222_d_n.outputnames == String["theta1","theta2"]
+
+A = [-1.0 -2.0; 0.0 -1.0]
+B = [0.0; -2.0]
+C = [1.0 1.0]
+D = 0.0
+sys = ss(A, B, C, D)
+
+@test sys + 1.0 == ss(A, B, C, D + 1.0)
+@test 2.0 + sys == ss(A, B, C, D + 2.0)
+
+@test -sys == ss(A, B, C, D + 2.0)
+
 
 # Printing
 res = ("StateSpace:\nA = \n          x1      x2 \n  x1   -5.0    -3.0  \n  x2"*

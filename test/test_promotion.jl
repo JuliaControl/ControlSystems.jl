@@ -1,36 +1,35 @@
 @testset "test_promotion" begin
-P = tf(1)
-s = ss(1)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_type(TP,Ts) == Ts
+G = tf(1)
+sys = ss(1)
+TG = typeof(G)
+Tsys = typeof(sys)
+@test promote_type(Tsys,TG) == Tsys
 
-P = tf(1.)
-s = ss(1.)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_type(Ts,TP) == Ts
-
-
-P = tf(1.)
-s = ss(1)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_type(Ts,TP) == typeof(ss(1.))
+G = tf(1.)
+sys = ss(1.)
+TG = typeof(G)
+Tsys = typeof(sys)
+@test promote_type(Tsys,TG) == Tsys
 
 
-P = zpk(1)
-s = ss(1)
-TP = typeof(P)
-Ts = typeof(s)
-@test promote_type(Ts,TP) == typeof(ss(1.))
+G = tf(1.)
+sys = ss(1)
+TG = typeof(G)
+Tsys = typeof(sys)
+@test promote_type(Tsys,TG) == typeof(ss(1.))
 
-P = zpk(1)
-P2 = zpk(1.)
-TP = typeof(P)
-TP2 = typeof(P2)
-@test promote_type(TP,TP2) == TP2
 
+G = zpk(1)
+sys = ss(1)
+TG = typeof(G)
+Tsys = typeof(sys)
+@test promote_type(Tsys,TG) == typeof(ss(1.))
+
+G1 = zpk(1)
+G2 = zpk(1.)
+TG1 = typeof(G1)
+TG2 = typeof(G2)
+@test promote_type(TG1,TG2) == TG2
 
 @test promote_type(typeof(zpk(1)), typeof(zpk(1))) == typeof(zpk(1))
 @test promote_type(typeof(tf(1)), typeof(tf(1))) == typeof(tf(1))

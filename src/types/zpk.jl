@@ -38,12 +38,21 @@ function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::Real=0.0) w
     return zpk(fill(z, 1, 1), fill(p, 1, 1), fill(k, 1, 1), Ts)
 end
 
-function zpk(G::TransferFunction)
-    numbertype = promote_type(primitivetype(G), Complex128)
-    T = SisoZpk{numbertype} # TODO: should ideally not hard code Vector
-    Gnew_matrix = Matrix{T}(G.ny, G.nu)
-    for i in eachindex(oldmat)
-        Gnew_matrix[i] = convert(T, G.matrix[i])
-    end
-    return TransferFunction(Gnew_matrix, G.Ts)
+function zpk(gain::Matrix{T}, Ts::Real=0; kwargs...) where {T <: Number}
+    TR = promote_type(Complex128,T)
+    ny, nu = size(gain)
+    matrix = [SisoZpk{T, TR}(TR[],TR[], gain[o, i]) for o=1:ny, i=1:nu]
+    return TransferFunction{SisoZpk{T,TR}}(matrix, Ts)
 end
+
+zpk(k::Real, Ts::Real=0) = zpk(eltype(k)[], eltype(k)[], k, Ts)
+
+zpk(sys::StateSpace) = zpk(convert(TransferFunction{SisoRational}, sys))
+
+function zpk(G::TransferFunction)
+    S = typeof(convert(SisoZpk, one(eltype(G)))) # Some extra hassle since SisoZpk has two numeric arguments
+    convert(TransferFunction{S}, G)
+end
+
+zpk(var::AbstractString) = zpk(tf(var))
+zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))

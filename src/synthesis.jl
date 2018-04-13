@@ -159,16 +159,16 @@ function feedback{T<:SisoRational}(L::TransferFunction{T})
     tf(P[1][:],(P+Q)[1][:], L.Ts)
 end
 
-function ControlSystems.feedback{T<:ControlSystems.SisoZpk}(L::TransferFunction{T})
+function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
     if size(L) != (1,1)
         error("MIMO TransferFunction inversion isn't implemented yet")
     end
     numer = num(L.matrix[1])
     k = L.matrix[1].k
-    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1])
+    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1]) # TODO: Chcek indexing into polynomials
     kden = denpol[1]
     #Extract polynomials and create P/(P+Q)
-    zpk(numer,ControlSystems.roots(denpol), k/kden, L.Ts)
+    zpk(numer, roots(denpol), k/kden, L.Ts)
 end
 
 """

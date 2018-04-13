@@ -34,8 +34,7 @@ z = tf("z", 0.005)
 
 # Addition
 @test C_111 + C_111 == tf([2,14,20], [1,10,25])
-@test C_222 + C_222 ==
-tf(vecarray(2, 2, [2,20,68,108,90], [0,2,20,62,60],
+@test C_222 + C_222 == tf(vecarray(2, 2, [2,20,68,108,90], [0,2,20,62,60],
               [2,20,68,108,90], [0,2,20,62,60]),
   vecarray(2, 2, [1,16,94,240,225], [1,16,94,240,225],
               [1,16,94,240,225], [1,16,94,240,225]))
@@ -45,10 +44,8 @@ tf(vecarray(2, 2, [2,20,68,108,90], [0,2,20,62,60],
 
 # Subtraction
 @test C_111 - C_211 == tf([0,3,18,15], [1,13,55,75])
-@test 1 - C_222 == tf(vecarray(2, 2, [0,6,12], [1,7,13], [0,6,12], [1,7,13]),
-  vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
-@test D_111 - D_211 - tf([0,0.3,-2.55,1.2], [1,-0.7,-0.05,0.075], 0.005) ==
-    tf([0], [1], 0.005)
+@test 1 - C_222 == tf(vecarray(2, 2, [0,6,12], [1,7,13], [0,6,12], [1,7,13]), vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
+@test D_111 - D_211 - tf([0,0.3,-2.55,1.2], [1,-0.7,-0.05,0.075], 0.005) == tf([0.0], [1], 0.005)
 
 # Multiplication
 @test C_111 * C_221 == tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
@@ -80,6 +77,10 @@ res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2s + 3\n-------------\ns^2
 @test sprint(show, C_222) == res
 res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
 @test sprint(show, D_222) == res
+
+
+@test tf(zpk([1.0 2; 3 4])) == tf([1 2; 3 4])
+
 
 # Type stability Continuous-time
 @test eltype(fill(tf("s"),2)) <: TransferFunction

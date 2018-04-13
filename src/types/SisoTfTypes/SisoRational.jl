@@ -4,7 +4,7 @@ struct SisoRational{T} <: SisoTf{T}
     den::Poly{T}
     function SisoRational{T}(num::Poly{T}, den::Poly{T}) where T <: Number
         if all(den == zero(den))
-            error("Zero denominator")
+            error("Cannot create SisoRational with zero denominator")
         elseif all(num == zero(num))
             # The numerator is zero, make the denominator 1
             den = one(den)
@@ -32,6 +32,8 @@ Base.one(::Type{SisoRational{T}}) where T = SisoRational{T}([one(T)], [one(T)])
 
 Base.one(f::SisoRational) = one(typeof(f))
 Base.zero(f::SisoRational) = zero(typeof(f))
+
+isproper(f::SisoRational) = (length(f.num) <= length(f.den))
 
 function minreal(sys::SisoRational, eps::Real=sqrt(eps()))
     return SisoRational(minreal(SisoZpk(sys), eps))

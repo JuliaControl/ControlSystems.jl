@@ -53,7 +53,7 @@ get_D(sys::StateSpace) = sys.D
 
 get_Ts(sys::StateSpace) = sys.Ts
 
-get_ssdata(sys::StateSpace) = get_A(sys), get_B(sys), get_C(sys), get_D(sys)
+ssdata(sys::StateSpace) = get_A(sys), get_B(sys), get_C(sys), get_D(sys)
 
 # Funtions for number of intputs, outputs and states
 ninputs(sys::StateSpace) = size(get_D(sys), 2)
@@ -61,71 +61,18 @@ noutputs(sys::StateSpace) = size(get_D(sys), 1)
 nstates(sys::StateSpace) = size(get_A(sys), 1)
 
 #####################################################################
-##                      Constructor Functions                      ##
-#####################################################################
-
-@doc """`ss(A,B,C,D[, Ts, statenames=..., inputnames=..., outputnames=...]) -> sys`
-
-Create a state-space model.
-This is a continuous-time model if Ts is omitted or set to 0.
-Otherwise, this is a discrete-time model with sampling period Ts.
-Set Ts=-1 for a discrete-time model with unspecified sampling period.
-
-State, input and output names: each can be either a vector of strings (one string per dimension),
-or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify
-the coordinates for each dimension (e.g. "x1", "x2", ...).
-
-`sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
-function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)
-    # Check the kwargs for metadata
-    nu = size(B, 2)
-    ny, nx = size(C, 1, 2)
-    return StateSpace(A, B, C, D, Ts)
-end
-
-# Function for accepting scalars
-function ss(A::Union{Real,Array}, B::Union{Real,Array}, C::Union{Real,Array}, D::Union{Real,Array}, Ts::Real=0)
-    T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-    A = to_matrix(T, A)
-    B = to_matrix(T, B)
-    C = to_matrix(T, C)
-    if D == 0
-        D = fill(zero(T), size(C,1), size(B,2))
-    else
-        D = to_matrix(T, D)
-    end
-    ss(A, B, C, D, Ts)
-end
-
-# Function for creation of static gain
-function ss(D::Array{T}, Ts::Real=0) where {T<:Number}
-    ny, nu = size(D, 1, 2)
-    A = fill(zero(T), 0, 0)
-    B = fill(zero(T), 0, nu)
-    C = fill(zero(T), ny, 0)
-
-    return ss(A, B, C, D, Ts)
-end
-ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts)
-
-# ss(sys) converts to StateSpace
-ss(sys::LTISystem) = convert(StateSpace, sys)
-
-#####################################################################
 ##                         Math Operators                          ##
 #####################################################################
 
 ## EQUALITY ##
-function ==(s1::StateSpace, s2::StateSpace)
-    return all(getfield(s1, f) == getfield(s2, f) for f in fieldnames(StateSpace))
+function ==(sys1::StateSpace, sys2::StateSpace)
+    return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(StateSpace))
 end
 
 ## Approximate ##
-function isapprox(s1::StateSpace, s2::StateSpace)
-    fieldsApprox = [:Ts, :nx, :ny, :nu, :A, :B, :C, :D]
-    fieldsEqual = [:inputnames, :outputnames, :statenames]
-    return all(s1.f ≈ s2.f for f in fieldnames(fieldsApprox)) &&
-           all(s1.f == s2.f for f in fieldnames(fieldsApprox))
+function isapprox(sys1::StateSpace, sys2::StateSpace)
+    fieldsApprox = [:A, :B, :C, :D, :Ts]
+    return all(sys1.f ≈ sys2.f for f in fieldnames(fieldsApprox))
 end
 
 ## ADDITION ##
@@ -137,8 +84,8 @@ function +(s1::StateSpace{T,MT}, s2::StateSpace{T,MT}) where {T, MT}
         error("Sampling time mismatch")
     end
 
-    A = [s1.A                   fill(zero(T), s1.nx, s2.nx);
-         fill(zero(T), s2.nx, s1.nx)        s2.A]
+    A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
+         fill(zero(T), nstates(s2), nstates(s1))        s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
@@ -146,13 +93,13 @@ function +(s1::StateSpace{T,MT}, s2::StateSpace{T,MT}) where {T, MT}
     return StateSpace(A, B, C, D, s1.Ts)
 end
 
-+(sys::StateSpace, n::Real) = StateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.Ts)
-+(n::Real, sys::StateSpace) = +(s, n)
++(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.Ts)
++(n::Number, sys::StateSpace) = +(sys, n)
 
 ## SUBTRACTION ##
 -(sys1::StateSpace, sys2::StateSpace) = +(sys1, -sys2)
--(sys::StateSpace, n::Real) = +(sys, -n)
--(n::Real, sys::StateSpace) = +(-sys, n)
+-(sys::StateSpace, n::Number) = +(sys, -n)
+-(n::Number, sys::StateSpace) = +(-sys, n)
 
 ## NEGATION ##
 -(sys::StateSpace) = StateSpace(sys.A, sys.B, -sys.C, -sys.D, sys.Ts)
@@ -176,15 +123,15 @@ function *(sys1::StateSpace{T,MT}, sys2::StateSpace{T,MT}) where {T, MT}
     return StateSpace{T,MT}(A, B, C, D, sys2.Ts)
 end
 
-*(sys::StateSpace, n::Real) = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
-*(n::Real, sys::StateSpace) = *(sys, n)
+*(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
+*(n::Number, sys::StateSpace) = *(sys, n)
 
 ## DIVISION ##
 /(sys1::StateSpace, sys2::StateSpace) = sys1*inv(sys2)
 
-function /(n::Real, sys::StateSpace)
+function /(n::Number, sys::StateSpace)
     # Ensure s.D is invertible
-    A, B, C, D = get_ssdata(sys)
+    A, B, C, D = ssdata(sys)
     Dinv = try
         inv(D)
     catch
@@ -194,7 +141,9 @@ function /(n::Real, sys::StateSpace)
 end
 
 Base.inv(sys::StateSpace) = 1/sys
-/(sys::StateSpace, n::Real) = StateSpace(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
+/(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
+
+
 
 #####################################################################
 ##                       Indexing Functions                        ##
@@ -259,5 +208,39 @@ function Base.show(io::IO, sys::StateSpace)
         print(io, "Continuous-time state-space model")
     else
         print(io, "Discrete-time state-space model")
+    end
+end
+
+
+
+
+"""
+`minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
+"""
+function minreal(s::StateSpace, tol=sqrt(eps()))
+    s = baltrunc(s, atol=tol, rtol = 0)[1]
+    try
+        return diagonalize(s)
+    catch
+        error("Minreal only implemented for diagonalizable systems.")
+    end
+end
+
+
+
+"""
+`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal. The result is rounded to `digits` decimal points.
+"""
+function diagonalize(s::StateSpace, digits = 12)
+    r = x -> round(x,digits)
+    S,V = eig(s.A)
+    try
+        A = V\s.A*V     .|> r
+        B = V\s.B       .|> r
+        C = s.C*V       .|> r
+        D = s.D         .|> r
+        return ss(A,B,C,D)
+    catch e
+        error("System not diagonalizable", e)
     end
 end

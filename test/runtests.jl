@@ -4,21 +4,21 @@ import Base.isapprox
 include("framework.jl")
 
 my_tests = ["test_statespace",
-            "test_lqg",
             "test_transferfunction",
-            "test_generalizedtf",
             "test_zpk",
-            "test_analysis",
+            "test_generalizedtf",
             "test_promotion",
             "test_connections",
             "test_discrete",
+            "test_conversion",
             "test_linalg",
             "test_simplification",
             "test_freqresp",
-            "test_synthesis",
-            "test_matrix_comps",
             "test_timeresp",
-            "test_conversion"]
+            "test_analysis",
+            "test_matrix_comps",
+            "test_lqg",
+            "test_synthesis"]
 
 
 try

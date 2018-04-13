@@ -79,6 +79,7 @@ zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
 # TODO test printing when it is implemented better
 
 # Type stability Continuous and discrete time
+# QUESTION: why not use typeof instead of eltype(fill())
 @test eltype(fill(zpk("s"),2)) <: TransferFunction
 @test eltype(fill(zpk([1],[1,1],1),2)) <: TransferFunction
 @test eltype(fill(zpk(Int64[],[1,1],1.0),2)) <: TransferFunction
@@ -88,6 +89,8 @@ zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
 @test eltype(fill(zpk(1)+1,2)) <: TransferFunction
 
 @test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
+
+zpk(tf([1 2; 3 4])) == zpk([1 2; 3 4])
 
 # Errors
 @test_throws ErrorException C_111 + C_222             # Dimension mismatch

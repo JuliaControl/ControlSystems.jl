@@ -37,8 +37,8 @@ end
 Base.zero(::Type{SisoZpk{T}}) where T = SisoZpk{T}(T[], T[], zero(T))
 Base.one(::Type{SisoZpk{T}}) where T = SisoZpk{T}(T[], T[], one(T))
 
-Base.zero(::Type{SisoZpk{T,TR}}) where {TR, T<:TR} = SisoZpk{T,TR}(TR[], TR[], zero(T))
-Base.one(::Type{SisoZpk{T,TR}}) where {TR, T<:TR} = SisoZpk{T,TR}(TR[], TR[], one(T))
+Base.zero(::Type{SisoZpk{T,TR}}) where {T, TR} = SisoZpk{T,TR}(TR[], TR[], zero(T))
+Base.one(::Type{SisoZpk{T,TR}}) where {T, TR} = SisoZpk{T,TR}(TR[], TR[], one(T))
 
 Base.one(f::SisoZpk) = one(typeof(f))
 Base.zero(f::SisoZpk) = zero(typeof(f))
@@ -48,15 +48,41 @@ Base.zero(f::SisoZpk) = zero(typeof(f))
 tzero(sys::SisoZpk) = f.z # Do minreal first?,
 pole(sys::SisoZpk) = f.p # Do minreal first?
 
-numpoly(f::SisoZpk) = prod(roots2real_poly_factors(f.z))
-denpoly(f::SisoZpk) = prod(roots2real_poly_factors(f.p))
+numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z)) # QUESTION: Include f.k?
+denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
+
+numpoly(f::SisoZpk) = prod(roots2complex_poly_factors(f.z))
+denpoly(f::SisoZpk) = prod(roots2complex_poly_factors(f.p))
 
 num(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
 den(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
 
+isproper(f::SisoZpk) = (length(f.z) <= length(f.p))
 
 # Will not be able to create complex polynomials without type instability
 
+
+function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
+    newZ = copy(sys.z)
+    newP = Vector{TR}(0)
+
+    for  p in sys.p
+        if isempty(newZ)
+            break
+        end
+
+        distance, zi = findmin(abs.(p-newZ))
+
+        println("$distance, $zi")
+
+        if distance < eps
+            deleteat!(newZ, zi)
+        else
+            push!(newP, p)
+        end
+    end
+    SisoZpk{T, TR}(newZ, newP, sys.k)
+end
 
 # If TR is Complex and T is Real, check that every pole is matched to its conjugate
 function check_real(r_vec::AbstractVector{Complex})
@@ -85,10 +111,10 @@ function evalfr(sys::SisoZpk, s::Number)
         return convert(S, Inf)
     else
         num = prod(s-b for b in sys.z)
-        num, typeof(num), zp2polys(sys.z)
         return sys.k*num/den
     end
 end
+
 
 function poly_factors2string(poly_factors)
     if length(poly_factors) == 0
@@ -130,45 +156,49 @@ end
 
 
 
-==(t1::SisoZpk, t2::SisoZpk) = (t1-t2).k == 0.0
-function isapprox(t1::SisoZpk, t2::SisoZpk; rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
-    tdiff = t1 - t2
-    isapprox(tdiff.k, 0, atol=atol, rtol=rtol)
+==(f1::SisoZpk, f2::SisoZpk) = (f1-f2).k == 0.0
+function isapprox(f1::SisoZpk, f2::SisoZpk; rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
+    fdiff = f1 - f2
+    isapprox(fdiff.k, 0, atol=atol, rtol=rtol)
 end
 
-function +(t1::SisoZpk, t2::SisoZpk)
-  numPoly = t1.k*prod(zp2polys(t1.z))*prod(zp2polys(t2.p))+t2.k*prod(zp2polys(t2.z))*prod(zp2polys(t1.p))
+function +(f1::SisoZpk, f2::SisoZpk)
+  numPoly = numpoly(f1)*denpoly(f2) + numpoly(f2)*denpoly(f1)
   z = roots(numPoly)
+  TR = eltype(z)
   if length(numPoly) > 0
-      k = numPoly[1]
-      p = [t1.p;t2.p]
+      k = numPoly[end]
+      p = convert(Vector{TR}, [f1.p;f2.p])
   else
       k = 0
-      p = []
+      p = TR[]
   end
   SisoZpk(z,p,k)
 end
 
-+(t::SisoZpk, n::Real) = t + SisoZpk([],[],n)
-+(n::Real, t::SisoZpk) = SisoZpk([],[],n) + t
+
++(f::SisoZpk, n::T) where {T<:Number} = f + SisoZpk{T,T}(T[],T[],n)
++(n::Number, f::SisoZpk) = f + n
 #.+(t::SisoZpk, n::Real) = t + n
 #.+(n::Real, t::SisoZpk) = t + n
 
 -(t1::SisoZpk, t2::SisoZpk) = +(t1,-t2)
--(n::Real, t::SisoZpk) = SisoZpk([],[],n) - t
+-(n::T, f::SisoZpk) where {T<:Number} = SisoZpk{T,T}(T[],T[],n) - f
 -(t::SisoZpk, n::Real) = +(t, -n)
 #.-(t::SisoZpk, n::Real) = -(t, n)
 #.-(n::Real, t::SisoZpk) = -(n, t)
 
--(t::SisoZpk) = SisoZpk(t.z, t.p, -t.k)
 
-*(t1::SisoZpk, t2::SisoZpk) = SisoZpk([t1.z;t2.z], [t1.p;t2.p], t1.k*t2.k)
-*(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k*n)
-*(n::Real, t::SisoZpk) = *(t, n)
-#.*(t1::SisoZpk, t2::SisoZpk) = *(t1, t2)
+-(f::SisoZpk) = SisoZpk(f.z, f.p, -f.k)
+
+
+*(f1::SisoZpk, f2::SisoZpk) = SisoZpk([f1.z;f2.z], [f1.p;f2.p], f1.k*f2.k)
+*(f::SisoZpk, n::Number) = SisoZpk(f.z, f.p, f.k*n)
+*(n::Number, f::SisoZpk) = *(f, n)
+#.*(f1::SisoZpk, f2::SisoZpk) = *(f1, f2)
 #.*(t::SisoZpk, n::Real) = *(t, n)
 #.*(n::Real, t::SisoZpk) = *(t, n)
 
-/(n::Real, t::SisoZpk) = SisoZpk(t.p, t.z, n/t.k)
-/(t::SisoZpk, n::Real) = SisoZpk(t.z, t.p, t.k/n)
-/(t1::SisoZpk, t2::SisoZpk) = t1*(1/t2)
+/(n::Number, f::SisoZpk) = SisoZpk(f.p, f.z, n/f.k)
+/(f::SisoZpk, n::Number) = SisoZpk(f.z, f.p, f.k/n)
+/(f1::SisoZpk, f2::SisoZpk) = f1*(1/f2)

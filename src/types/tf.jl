@@ -32,6 +32,13 @@ function tf(D::AbstractArray{T}, Ts::Real=0.0) where {T<:Number}
 end
 tf(n::Real, Ts::Real=0; kwargs...) = tf([n], Ts; kwargs...)
 
+tf(sys::StateSpace) = convert(TransferFunction, sys) # NOTE: Would perhaps like to write TransferFunction{SisoRational}, but couldn't get this to work...
+
+function tf(G::TransferFunction)
+    T = numeric_type(G)
+    convert(TransferFunction{SisoRational{T}}, G)
+end
+
 # Function for creation of 's' or 'z' var
 function tf(var::AbstractString)
     var != "s" && error("var must be 's' for continuous time tf.")
