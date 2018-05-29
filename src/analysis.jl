@@ -164,7 +164,7 @@ function tzero(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
         nf = size(A, 1)
         m = size(D, 2)
         Af = ([A B] * W)[1:nf, 1:nf]
-        Bf = ([Matrix{Float64}(I,nf,nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+        Bf = ([I fill(0,nf, m)] * W)[1:nf, 1:nf]
         zs = eig(Af, Bf)[1]
     else
         zs = Float64[]
@@ -210,10 +210,10 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, 
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(n, m); zeros(m, n) Matrix{Float64}(I,m,m)]
+        Vm = [V zeros(n, m); zeros(m, n) I]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(n, sigma) ; zeros(sigma, n) Matrix{Float64}(I,sigma,sigma)]
+            Vs = [V' zeros(n, sigma) ; zeros(sigma, n) I]
         else
             M = [A B]
             Vs = V'
