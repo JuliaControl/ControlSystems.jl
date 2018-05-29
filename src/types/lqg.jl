@@ -52,10 +52,10 @@ It is also possible to access all fileds using the `G[:symbol]` syntax, the fiel
 ```julia
 qQ = 1
 qR = 1
-Q1 = 10eye(4)
-Q2 = 1eye(2)
-R1 = 1eye(6)
-R2 = 1eye(2)
+Q1 = 10Matrix{Float64}(I,4,4)
+Q2 = 1Matrix{Float64}(I,2,2)
+R1 = 1Matrix{Float64}(I,6,6)
+R2 = 1Matrix{Float64}(I,2,2)
 
 G = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
 
@@ -131,7 +131,7 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     De = D
 
     L = lqr(A, B, Q1+qQ*C'C, Q2)
-    Le = [L eye(m)]
+    Le = [L Matrix{Float64}(I,m,m)]
     K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
 
     # Controller system
@@ -193,11 +193,11 @@ function Base.getindex(G::LQG, s)
         Bcl = Bcl/(P.C*inv(P.B*L[:,1:n]-P.A)*P.B) # B*lᵣ # Always normalized with nominal plant static gain
         return syscl = ss(Acl,Bcl,Ccl,0)
     elseif s ∈ [:Sin, :S] # Sensitivity function
-        return feedback(ss(eye(m)),PC)
+        return feedback(ss(Matrix{Float64}(I,m,m)),PC)
     elseif s ∈ [:Tin, :T] # Complementary sensitivity function
         return feedback(PC)
     elseif s == :Sout # Sensitivity function, output
-        return feedback(ss(eye(m)),sysc*P)
+        return feedback(ss(Matrix{Float64}(I,m,m)),sysc*P)
     elseif s == :Tout # Complementary sensitivity function, output
         return feedback(sysc*P)
     elseif s == :PS # Load disturbance to output
@@ -207,9 +207,9 @@ function Base.getindex(G::LQG, s)
     elseif s ∈ [:lt, :looptransfer, :loopgain]
         return PC
     elseif s ∈ [:rd, :returndifference]
-        return  ss(eye(p)) + PC
+        return  ss(Matrix{Float64}(I,p,p)) + PC
     elseif s ∈ [:sr, :stabilityrobustness]
-        return  ss(eye(p)) + inv(PC)
+        return  ss(Matrix{Float64}(I,p,p)) + inv(PC)
     end
     error("The symbol $s does not have a function associated with it.")
 end

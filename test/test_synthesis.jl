@@ -18,5 +18,5 @@ T = [1]
 @test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
 
 @test_throws ErrorException feedback(ss(1),ss(1))
-@test_throws ErrorException feedback(ss(eye(2), fill(1,2,2), fill(1,1,2),0))
+@test_throws ErrorException feedback(ss(Matrix{Float64}(I,2,2), fill(1,2,2), fill(1,1,2),0))
 end
