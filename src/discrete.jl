@@ -278,7 +278,7 @@ end
 function zpconv(a,r,b,s)
     d = length(a)+length(r)-length(b)-length(s)
     if d > 0
-        b = [zeros(d);b]
+        b = [fill(0,d);b]
     end
     conv(a,r) + conv(b,s)
 end

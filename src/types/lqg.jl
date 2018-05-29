@@ -126,8 +126,8 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
 
     # Augment with disturbance model
     Ae = [A B; zeros(m,n+m)]
-    Be = [B;zeros(m,m)]
-    Ce = [C zeros(p,m)]
+    Be = [B;fill(0,m,m)]
+    Ce = [C fill(0,p,m)]
     De = D
 
     L = lqr(A, B, Q1+qQ*C'C, Q2)
@@ -179,17 +179,17 @@ function Base.getindex(G::LQG, s)
     # Extract interesting values
     if G.integrator # Augment with disturbance model
         A = [A B; zeros(m,n+m)]
-        B = [B;zeros(m,m)]
-        C = [C zeros(p,m)]
+        B = [B;fill(0,m,m)]
+        C = [C fill(0,p,m)]
         D = D
     end
 
     PC = P*sysc # Loop gain
 
     if s ∈ [:cl, :closedloop, :ry] # Closed-loop system
-        Acl = [A-B*L B*L; zeros(A) A-K*C]
-        Bcl = [B; zeros(B)]
-        Ccl = [C zeros(C)]
+        Acl = [A-B*L B*L; fill(0,size(A)) A-K*C]
+        Bcl = [B; fill(0,size(B))]
+        Ccl = [C fill(0,size(C))]
         Bcl = Bcl/(P.C*inv(P.B*L[:,1:n]-P.A)*P.B) # B*lᵣ # Always normalized with nominal plant static gain
         return syscl = ss(Acl,Bcl,Ccl,0)
     elseif s ∈ [:Sin, :S] # Sensitivity function

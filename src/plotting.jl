@@ -642,7 +642,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
                     #Plot the phase margins
                     Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab="", subplot=s2i(2i,j); getStyleSys(si,length(systems))...)
                     #Plot the line at 360*k
-                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
+                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*fill(1,2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
                 end
                 titles[j,i,2,1] *=  "["*join([@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([@sprintf("%2.2f",v) for v in wpm],", ")*"] "

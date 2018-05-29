@@ -59,7 +59,7 @@ function lsimabstract(sys::SisoGeneralized, uin, dt, Tend)
     T = Tend
     dw = pi/T
     omega = linspace(-pi/dt, pi/dt, 2N+1)
-    u = [uin; zeros(N)]
+    u = [uin; fill(0,N)]
     U = fft(u)
     #Pf = _preprocess_for_freqresp(sys)
     #P = Complex{Float64}[evalfr(Pf, omega[i]*im) for i in 1:2N]

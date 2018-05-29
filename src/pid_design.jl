@@ -43,9 +43,9 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         kps, kis, kds = kp, ki, kd
     else
         n = max(length(kps), length(kis), length(kds))
-        kps = kps == 0 ? zeros(n) : kps
-        kis = kis == 0 ? zeros(n) : kis
-        kds = kds == 0 ? zeros(n) : kds
+        kps = kps == 0 ? fill(0,n) : kps
+        kis = kis == 0 ? fill(0,n) : kis
+        kds = kds == 0 ? fill(0,n) : kds
     end
     ω   = ω   == 0 ? logspace(-3,3,500) : ω
 
