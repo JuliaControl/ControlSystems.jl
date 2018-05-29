@@ -55,14 +55,14 @@ Base.length(t::SisoRational) = max(length(t.num), length(t.den))
 
 function Base.num(t::SisoRational)
     lt = length(t)
-    n = fill(0,lt)
+    n = fill(0.,lt)
     n[(lt - length(t.num) + 1):end] = t.num[:]
     return n
 end
 
 function Base.den(t::SisoRational)
     lt = length(t)
-    d = fill(0,lt)
+    d = fill(0.,lt)
     d[(lt - length(t.den) + 1):end] = t.den[:]
     return d
 end

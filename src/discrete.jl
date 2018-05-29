@@ -23,10 +23,10 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [I fill(0,nx, nu)]
+        x0map = [Matrix(I,nx,nx) fill(0,nx, nu)]
     elseif method == :foh
         M = expm([A*Ts B*Ts fill(0,nx, nu);
-            fill(0,nu, nx + nu) I;
+            fill(0,nu, nx + nu) Matrix(I,nu,nu);
             fill(0,nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -34,7 +34,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [I -M2]
+        x0map = [Matrix(I,nx,nx) -M2]
     elseif method == :tustin || method == :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else

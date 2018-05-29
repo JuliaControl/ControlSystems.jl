@@ -210,10 +210,10 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, 
         end
         # Update System
         n, m = size(B)
-        Vm = [V fill(0,n, m); fill(0,m, n) I]
+        Vm = [V zeros(n, m); zeros(m, n) eye(m)]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' fill(0,n, sigma) ; fill(0,sigma, n) I]
+            Vs = [V' zeros(n, sigma) ; zeros(sigma, n) eye(sigma)]
         else
             M = [A B]
             Vs = V'
