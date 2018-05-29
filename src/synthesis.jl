@@ -94,7 +94,7 @@ plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 """ ->
 function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
-    K = (B'*S*B + R)\(B'S*A)
+    K = (B'*S*B + R)\Matrix((B'S)*A) # TODO: remove Matrix for julia v0.7
     return K
 end
 

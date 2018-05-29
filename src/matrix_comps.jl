@@ -39,7 +39,7 @@ http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """ ->
 function dare(A, B, Q, R)
     G = try
-        B*inv(R)*B'
+        B*(inv(R)*B')
     catch
         error("R must be non-singular.")
     end
