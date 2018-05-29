@@ -14,7 +14,7 @@ function Base.step(sys::StateSpace, t::AbstractVector)
     ny, nu = size(sys)
     nx = sys.nx
     u = ones(size(t))
-    x0 = zeros(nx, 1)
+    x0 = fill(0,nx, 1)
     if nu == 1
         y, t, x = lsim(sys, u, t, x0=x0, method=:zoh)
     else
@@ -49,11 +49,11 @@ function impulse(sys::StateSpace, t::AbstractVector)
     if iscontinuous(sys)
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
-        imp_sys = ss(sys.A, zeros(nx, 1), sys.C, zeros(ny, 1))
+        imp_sys = ss(sys.A, fill(0,nx, 1), sys.C, fill(0,ny, 1))
         x0s = sys.B
     else
         imp_sys = sys
-        x0s = zeros(nx, nu)
+        x0s = fill(0,nx, nu)
         u[1] = 1/sys.Ts
     end
     if nu == 1

@@ -101,9 +101,9 @@ end
 # Function for creation of static gain
 function ss(D::Array, Ts::Real=0; kwargs...)
     ny, nu = size(D, 1, 2)
-    A = zeros(0, 0)
-    B = zeros(0, nu)
-    C = zeros(ny, 0)
+    A = fill(0,0, 0)
+    B = fill(0,0, nu)
+    C = fill(0,ny, 0)
 
     return ss(A, B, C, D, Ts, kwargs...)
 end
@@ -121,7 +121,7 @@ function rss(nx::Int, nu::Int=1, ny::Int=1, feedthrough::Bool=true)
     if feedthrough
         D = randn(ny, nu)
     else
-        D = zeros(ny, nu)
+        D = fill(0,ny, nu)
     end
     return ss(A, B, C, D)
 end

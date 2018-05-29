@@ -137,7 +137,7 @@ function acker(A,B,P)
     for i = 0:(n-1)
         S[:,i+1] = A^i*B
     end
-    return [zeros(1,n-1) 1]*(S\q)
+    return [fill(0,1,n-1) 1]*(S\q)
 end
 
 

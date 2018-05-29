@@ -50,9 +50,9 @@ function siso_tf_to_ss(t::SisoRational)
     d[1] = tnum[1]
 
     if len==1 || tnum == zero(Poly{Float64})
-        a = zeros(0, 0)
-        b = zeros(0, 1)
-        c = zeros(1, 0)
+        a = fill(0,0, 0)
+        b = fill(0,0, 1)
+        c = fill(0,1, 0)
     else
         tden = tden[2:end]
         a = [-tden' ; eye(len - 2, len - 1)]
@@ -87,8 +87,8 @@ function balance_statespace{S}(A::Matrix{S}, B::Matrix{S},
 
     # Compute the transformation matrix
     mag_A = abs.(A)
-    mag_B = maximum([abs.(B)  zeros(S, nx, 1)], 2)
-    mag_C = maximum([abs.(C); zeros(S, 1, nx)], 1)
+    mag_B = maximum([abs.(B)  fill(zero(S), nx, 1)], 2)
+    mag_C = maximum([abs.(C); fill(zero(S), 1, nx)], 1)
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation
@@ -125,7 +125,7 @@ function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bo
     # Compute permutation of x (if requested)
     pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
-    T = zeros(R, nx, nx)
+    T = fill(zero(R), nx, nx)
     T[pvec, :] = Sio * diagm(1./Sx)
     return T
 end

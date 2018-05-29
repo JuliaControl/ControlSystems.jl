@@ -125,7 +125,7 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     p = size(C,1)
 
     # Augment with disturbance model
-    Ae = [A B; zeros(m,n+m)]
+    Ae = [A B; fill(0,m,n+m)]
     Be = [B;fill(0,m,m)]
     Ce = [C fill(0,p,m)]
     De = D
@@ -178,7 +178,7 @@ function Base.getindex(G::LQG, s)
 
     # Extract interesting values
     if G.integrator # Augment with disturbance model
-        A = [A B; zeros(m,n+m)]
+        A = [A B; fill(0,m,n+m)]
         B = [B;fill(0,m,m)]
         C = [C fill(0,p,m)]
         D = D

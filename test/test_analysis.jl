@@ -33,7 +33,7 @@ B = [0.0  0.139e-2;
      0.0  -0.534e-5]
 C = [1 0 0 0 0;
      0 1 0 0 0]
-D = zeros(2, 2)
+D = fill(0,2, 2)
 ex_4 = ss(A, B, C, D)
 @test tzero(ex_4) ≈ [-0.06467751189940692,-0.3680512036036696]
 
@@ -54,7 +54,7 @@ ex_6 = ss(A, B, C, D)
 @test tzero(ex_6) == Float64[]
 
 # Example 7
-ex_7 = ss(zeros(2, 2), [0 1]', [-1 0], [0])
+ex_7 = ss(fill(0,2, 2), [0 1]', [-1 0], [0])
 @test tzero(ex_7) == Float64[]
 
 # Example 8

@@ -108,7 +108,7 @@ function obsv(A, C)
     if n != size(C, 2)
         error("C must have the same number of columns as A")
     end
-    res = zeros(n*ny, n)
+    res = fill(0,n*ny, n)
     res[1:ny, :] = C
     for i=1:n-1
         res[(1 + i*ny):(1 + i)*ny, :] = res[((i - 1)*ny + 1):i*ny, :] * A
@@ -131,7 +131,7 @@ function ctrb(A, B)
     if n != size(B, 1)
         error("B must have the same number of rows as A")
     end
-    res = zeros(n, n*nu)
+    res = fill(0,n, n*nu)
     res[:, 1:nu] = B
     for i=1:n-1
         res[:, (1 + i*nu):(1 + i)*nu] = A * res[:, ((i - 1)*nu + 1):i*nu]

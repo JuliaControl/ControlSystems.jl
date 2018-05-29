@@ -18,23 +18,23 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     nx = sys.nx
     if method == :zoh
         M = expm([A*Ts  B*Ts;
-            zeros(nu, nx + nu)])
+            fill(0,nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [Matrix{Float64}(I,nx,nx) zeros(nx, nu)]
+        x0map = [I fill(0,nx, nu)]
     elseif method == :foh
-        M = expm([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) Matrix{Float64}(I,nu,nu);
-            zeros(nu, nx + 2*nu)])
+        M = expm([A*Ts B*Ts fill(0,nx, nu);
+            fill(0,nu, nx + nu) I;
+            fill(0,nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
         Ad = M[1:nx, 1:nx]
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [Matrix{Float64}(I,nx,nx) -M2]
+        x0map = [I -M2]
     elseif method == :tustin || method == :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else
@@ -129,7 +129,7 @@ function dab(a,b,c)
         return
     end
     nr = nc - ns
-    c = nb-nr > 1 ? [zeros(nb-nr-1); c] : c
+    c = nb-nr > 1 ? [fill(0,nb-nr-1); c] : c
     nc = length(c)
     nr = nc - ns
     if nr < 1
@@ -137,9 +137,9 @@ function dab(a,b,c)
         s = c/b
         return
     end
-    b = [zeros(nr-nb+1); b]
-    za = zeros(nr-1)
-    zb = zeros(ns-1)
+    b = [fill(0,nr-nb+1); b]
+    za = fill(0,nr-1)
+    zb = fill(0,ns-1)
     ma = toeplitz([a; za],[a[1]; za])
     mb = toeplitz([b; zb],[b[1]; zb])
     m = [ma mb]
@@ -158,7 +158,7 @@ end
 function toeplitz(c,r)
     nc = length(c)
     nr = length(r)
-    A  = zeros(nc, nr)
+    A  = fill(0,nc, nr)
     A[:,1] = c
     A[1,:] = r
     for i in 2:nr
