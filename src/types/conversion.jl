@@ -34,11 +34,9 @@ function Base.convert(::Type{StateSpace{T1, MT}}, b::T2) where {T1, MT, T2<:Numb
     return StateSpace{T1,MT}(A,B,C,D,Ts)
 end
 
-#Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoGeneralized}}, b::T) = tfg(b)
 
 #Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, s::TransferFunction) = zpk(s)
 #Base.convert(::Type{<:TransferFunction{<:SisoRational}}, s::TransferFunction) = tf(s)
-#Base.convert(::Type{<:TransferFunction{<:SisoGeneralized}}, s::TransferFunction) = tfg(s)
 
 #
 # function Base.convert{T<:Real,S<:TransferFunction}(::Type{S}, b::VecOrMat{T})

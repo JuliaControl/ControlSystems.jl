@@ -34,7 +34,6 @@ TG2 = typeof(G2)
 @test promote_type(typeof(zpk(1)), typeof(zpk(1))) == typeof(zpk(1))
 @test promote_type(typeof(tf(1)), typeof(tf(1))) == typeof(tf(1))
 @test promote_type(typeof(ss(1)), typeof(ss(1))) == typeof(ss(1))
-# @test promote_type(typeof(tfg("1")), typeof(tfg("1"))) == typeof(tfg("1"))
 
 @test promote(ss(1), ss(1.)) == (ss(1.), ss(1.))
 @test promote(ss(1), tf(1.)) == (ss(1.), ss(1.))

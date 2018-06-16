@@ -49,26 +49,6 @@ Continuous-time transfer function model
 
 The transfer functions created using this method will be of type `TransferFunction{SisoZpk}`.
 
-## tfg - Generalized Representation
-If you want to work with transfer functions that are not rational functions, it is possible to use the `tfg` representation
-```julia
-tfg(str::String), tfg(str::Expr)
-```
-This function will either convert `str` to an expression or directly accept an `Expr` and create a transfer function.
-### Example:
-```julia
-tfg("1/((s+1)*exp(-sqrt(s)))")
-
-## output
-
-TransferFunction:
-1/((s+1)*exp(-sqrt(s)))
-
-Continuous-time transfer function model
-```
-The transfer functions created using this method will be of type `TransferFunction{SisoGeneralized}`.
-This type will work with some functions like `bodeplot, stepplot` but not others ,like `poles`.
-
 ## Converting between types
 It is sometime useful to convert one representation to another, this is possible using the same functions, for example
 ```julia

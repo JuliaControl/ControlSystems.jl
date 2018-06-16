@@ -6,7 +6,6 @@ include("framework.jl")
 my_tests = ["test_statespace",
             "test_transferfunction",
             "test_zpk",
-            "test_generalizedtf",
             "test_promotion",
             "test_connections",
             "test_discrete",

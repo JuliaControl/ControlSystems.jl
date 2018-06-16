@@ -7,7 +7,6 @@ export  LTISystem,
         TransferFunction,
         ss,
         tf,
-        tfg,
         zpk,
         ss2tf,
         LQG,
@@ -99,7 +98,6 @@ include("types/StateSpace.jl")
 # Convenience constructors
 include("types/tf.jl")
 include("types/zpk.jl")
-include("types/tfg.jl")
 include("types/ss.jl")
 
 include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?

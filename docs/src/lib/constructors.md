@@ -16,6 +16,5 @@ sminreal
 ss
 ss2tf
 tf
-tfg
 zpk
 ```
