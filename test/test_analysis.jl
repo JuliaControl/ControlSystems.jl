@@ -132,12 +132,12 @@ sol_p = vecarray(Complex128, 2, 2, Complex128[], Complex128[-0.5 - 3.12249899919
         Complex128[-5.0 + 0.0im], Complex128[-6.0 + 0.0im])
 sol_k = [0.0 3.0; 1.0 2.0]
 z, p, k = zpkdata(H)
-@test_array_vecs_eps z sol_z 2*eps(Complex128)
-@test_array_vecs_eps p sol_p 2*eps(Complex128)
+@test_array_vecs_eps z sol_z 2*eps(Float64)
+@test_array_vecs_eps p sol_p 2*eps(Float64)
 @test k == sol_k
 z, p, k = zpkdata(G)
-@test_array_vecs_eps z sol_z 10*eps(Complex128)
-@test_array_vecs_eps p sol_p 10*eps(Complex128)
+@test_array_vecs_eps z sol_z 10*eps(Float64)
+@test_array_vecs_eps p sol_p 10*eps(Float64)
 @test k == sol_k
 
 ## GAIN ## #Gain is confusing when referring to zpkdata. Test dcgain instead

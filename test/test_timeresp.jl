@@ -130,7 +130,7 @@ reference(x,t) = [1.]
 s              = Simulator(P, reference)
 x0             = [0.,0]
 tspan          = (0.0,Tf)
-sol            = solve(s, x0, tspan, Tsit5())
+sol            = solve(s, x0, tspan, OrdinaryDiffEq.Tsit5())
 @test step(P,t)[3] ≈ reduce(hcat,sol.(t))'
 end
 
