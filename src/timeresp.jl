@@ -26,9 +26,6 @@ function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
     end
     return y, t, x
 end
-function Base.step(sys::TransferFunction{<:SisoGeneralized}, t::AbstractVector, kwargs...)
-    lsim(sys, ones(length(t), ninputs(sys)), t, kwargs...)
-end
 
 Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(sys, Tf); kwargs...)
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
@@ -67,11 +64,6 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
         end
     end
     return y, t, x
-end
-function impulse(sys::TransferFunction{<:SisoGeneralized}, t::AbstractVector; kwags...)
-    u = zeros(length(t), ninputs(sys))
-    u[1,:] = 1/(t[2]-t[1])
-    lsim(sys::TransferFunction{SisoGeneralized}, u, t)
 end
 
 impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(sys, Tf); kwags...)
@@ -182,21 +174,6 @@ end
 
 lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
 
-function lsim(sys::TransferFunction{<:SisoGeneralized}, u, t)
-    ny, nu = size(sys)
-    if !any(size(u) .== [(length(t), nu) (length(t),)])
-        error("u must be of size (length(t), nu)")
-    end
-    ny, nu = size(sys)
-    y = Array{promote_type(Float64, typeof(u), typeof(t))}(length(t),ny)
-    for i = 1:nu
-        for o = 1:ny
-            dt = Float64(t[2]-t[1])
-            y[:,o] += lsimabstract(sys.matrix[o,i], u[:,i], dt, t[end])
-        end
-    end
-    return y, t
-end
 
 @doc """`ltitr(A, B, u[,x0])`
 
@@ -261,7 +238,6 @@ function _default_Ts(sys::LTISystem)
     return Ts
 end
 
-_default_Ts(sys::TransferFunction{<:SisoGeneralized}) = 0.07
 
 #TODO a reasonable check
 _issmooth(u::Function) = false

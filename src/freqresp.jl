@@ -171,11 +171,6 @@ _default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
         LTISystem[sys], plot)
 
 
-# NOTE: ???
-# _default_freq_vector{T<:TransferFunction{SisoGeneralized}}(sys::Vector{T}, plot::Symbol) =
-#     logspace(-2,2,400)
-# _default_freq_vector(sys::TransferFunction{SisoGeneralized} , plot::Symbol) =
-#     logspace(-2,2,400)
 
 
 function _bounds_and_features(sys::LTISystem, plot::Symbol)

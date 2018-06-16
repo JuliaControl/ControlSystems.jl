@@ -89,7 +89,6 @@ abstract type SisoTf{T<:Number} end
 include("types/TransferFunction.jl")
 include("types/SisoTfTypes/SisoZpk.jl")
 include("types/SisoTfTypes/SisoRational.jl")
-include("types/SisoTfTypes/SisoGeneralized.jl")
 include("types/SisoTfTypes/promotion.jl")
 include("types/SisoTfTypes/conversion.jl")
 

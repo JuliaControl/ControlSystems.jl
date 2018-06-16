@@ -77,8 +77,6 @@ Base.promote_rule(::Type{SisoRational{T1}}, ::Type{T2}) where {T1, T2<:Number} =
 
 # Less abstract promotions
 #Base.promote_rule(::Type{TransferFunction{SisoRational}}, ::Type{TransferFunction{SisoZpk}}) = TransferFunction{SisoZpk} # NOTE: Is this what we want?
-#Base.promote_rule(::Type{TransferFunction{SisoTf}}, ::Type{TransferFunction{SisoGeneralized}}) = TransferFunction{SisoGeneralized}
-
 
 
 

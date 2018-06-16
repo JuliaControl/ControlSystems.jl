@@ -1,7 +1,3 @@
-# Base.convert(::Type{<:SisoGeneralized}, sys::SisoRational) = SisoGeneralized(sprint(print_compact, sys))
-# Base.convert(::Type{<:SisoGeneralized}, sys::SisoZpk) = convert(SisoGeneralized, convert(SisoRational, sys))
-# Base.convert(::Type{<:SisoRational}, sys::SisoGeneralized) = SisoRational(sys.expr)
-# Base.convert(::Type{<:SisoZpk}, sys::SisoGeneralized) = convert(SisoZpk, SisoRational(sys.expr))
 # Base.convert(::Type{<:SisoTf}, b::Real) = Base.convert(SisoRational, b)
 # Base.convert{T<:Real}(::Type{<:SisoZpk}, b::T) = SisoZpk(T[], T[], b)
 # Base.convert{T<:Real}(::Type{<:SisoRational}, b::T) = SisoRational([b], [one(T)])
