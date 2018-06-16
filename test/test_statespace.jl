@@ -89,34 +89,23 @@ C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2))
 A = [-1.0 -2.0; 0.0 -1.0]
 B = [0.0; -2.0]
 C = [1.0 1.0]
-D = 0.0
+D = 1.0
 sys = ss(A, B, C, D)
 
 @test sys + 1.0 == ss(A, B, C, D + 1.0)
 @test 2.0 + sys == ss(A, B, C, D + 2.0)
 
-@test -sys == ss(A, B, C, D + 2.0)
+@test -sys == ss(A, B, -C, -D)
 
 
 # Printing
-res = ("StateSpace:\nA = \n          x1      x2 \n  x1   -5.0    -3.0  \n  x2"*
-       "    2.0    -9.0  \nB = \n         u1     u2 \n  x1   1.0    0.0  \n"*
-       "  x2   0.0    2.0  \nC = \n         x1     x2 \n  y1   1.0    0.0  \n"*
-       "  y2   0.0    1.0  \nD = \n         u1     u2 \n  y1   0.0    0.0  \n"*
-       "  y2   0.0    0.0  \n\nContinuous-time state-space model")
+res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nA = \n -5.0  -3.0\n  2.0  -9.0\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nContinuous-time state-space model")
 @test sprint(show, C_222) == res
-res = ("StateSpace:\nA = \n          x1      x2 \n  x1    0.2    -0.8  \n  x2"*
-       "   -0.8     0.07 \nB = \n         u1     u2 \n  x1   1.0    0.0  \n"*
-       "  x2   0.0    2.0  \nC = \n         x1     x2 \n  y1   1.0    0.0  \n"*
-       "  y2   0.0    1.0  \nD = \n         u1     u2 \n  y1   0.0    0.0  \n"*
-       "  y2   0.0    0.0  \n\nSample Time: 0.005 (seconds)\n"*
-       "Discrete-time state-space model")
+res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model")
 @test sprint(show, D_222) == res
-res = ("StateSpace:\nD = \n         u1     u2 \n  y1   4.0    0.0  \n  y2  "*
-       " 0.0    4.0  \n\nStatic gain")
+res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nStatic gain")
 @test sprint(show, C_022) == res
-res = ("StateSpace:\nD = \n         u1     u2 \n  y1   4.0    0.0  \n  y2  "*
-       " 0.0    4.0  \n\nSample Time: 0.005 (seconds)\nStatic gain")
+res = "ControlSystems.StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nStatic gain"
 @test sprint(show, D_022) == res
 
 # Errors
