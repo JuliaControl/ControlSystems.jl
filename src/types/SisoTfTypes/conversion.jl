@@ -38,4 +38,4 @@ end
 
 
 
-Base.convert(::Type{S}, b) where {T, S <: SisoTf{T}} = convert(b, T)*one(S)
+Base.convert(::Type{S}, b) where {T, S <: SisoTf{T}} = convert(T, b)*one(S)

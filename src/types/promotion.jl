@@ -51,8 +51,23 @@ Base.promote_rule(::Type{TransferFunction{S1}}, ::Type{TransferFunction{S2}}) wh
 Base.promote_rule(::Type{TransferFunction{S}}, ::Type{T2}) where {S<:SisoTf, T2<:Number} =
     TransferFunction{promote_type(S, T2)}
 
+# TODO Figure out a better way
+function Base.promote_rule(::Type{StateSpace{T1, MT}}, ::Type{T2}) where {T1, MT, T2<:Number}
+    NewMT = Base.promote_op(*, MT, T2)
+    StateSpace{eltype(NewMT), NewMT}
+end
 
 #Base.promote_rule{S<:TransferFunction{<:SisoTf}}(::Type{S}, ::Type{<:Real}) = S
+
+# We want this, but not possible, so hardcode for SisoTypes
+#Base.promote_rule(::Type{S}, ::Type{T2}) where {T1, S<:SisoTf{T1}, T2<:Number} = S{promote_type(T1, T2)}
+
+function Base.promote_rule(::Type{SisoZpk{T1,C2}}, ::Type{T2}) where {T1, C2, T2<:Number}
+    GainType = promote_type(T1, T2)
+    return SisoZpk{GainType, complex(GainType)}
+end
+Base.promote_rule(::Type{SisoRational{T1}}, ::Type{T2}) where {T1, T2<:Number} = SisoRational{promote_type(T1,T2)}
+#Base.promote_rule(::Type{StateSpace{T1, MT}}, ::Type{T2}) where {T1, T2<:Number} = SisoRational{promote_type(T1,T2)}
 
 #Base.promote_rule{T<:SisoZpk}(::Type{T}, ::Type{<:Real}) = T
 #Base.promote_rule{T}(::Type{SisoRational{T}}, ::Type{<:Real}) = SisoRational{T}

@@ -15,6 +15,7 @@
 #     StateSpace{AT}(AT(s.A),AT(s.B),AT(s.C),AT(s.D), s.Ts, s.statenames, s.inputnames, s.outputnames)
 # end
 
+# TODO Fix these to use proper constructors
 # NOTE: no real need to convert numbers to transfer functions, have addition methods..
 # How to convert a number to either Continuous or Discrete transfer function
 # In this case it would be motivated with a "Static" Type
@@ -23,6 +24,15 @@ Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoRational}}, b::T) = tf(b
 Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoZpk}}, b::T) = zpk(b)
 Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoRational{T}}}, b::Number) = tf(T(b))
 Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoZpk{T}}}, b::Number) = zpk(T(b))
+
+function Base.convert(::Type{StateSpace{T1, MT}}, b::T2) where {T1, MT, T2<:Number}
+    A = convert(MT, fill(zero(T1), (0,0)))
+    B = convert(MT, fill(zero(T1), (0,1)))
+    C = convert(MT, fill(zero(T1), (1,0)))
+    D = convert(MT, fill(convert(T1, b), (1,1)))
+    Ts = 0.0
+    return StateSpace{T1,MT}(A,B,C,D,Ts)
+end
 
 #Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoGeneralized}}, b::T) = tfg(b)
 

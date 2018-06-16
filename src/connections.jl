@@ -121,18 +121,17 @@ Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
 
 # TODO: Fix this
-function Base.hcat(systems::Union{Number,AbstractVecOrMat{<:Number},TransferFunction}...)
-    if Base.promote_typeof(systems...) <: TransferFunction
-        hcat(map(e->convert(TransferFunction,e),systems)...)
+function Base.hcat(systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+    S = Base.promote_typeof(systems...)
+    if S <: LTISystem
+        hcat(map(e->convert(S,e),systems)...)
     else
         cat(Val{2},systems...)
     end
 end
 
 
-
-
-function Base.hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},TransferFunction}...)
+function Base.hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
     T = Base.promote_typeof(systems...)
     nbr = length(rows)  # number of block rows
     rs = Array{T,1}(nbr)
