@@ -11,7 +11,7 @@ Compute the dcgain of system `sys`.
 
 equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
 function dcgain(sys::LTISystem)
-    return sys.Ts > 0 ? evalfr(sys, 1) : evalfr(sys, 0)
+    return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
 @doc """`markovparam(sys, n)`
