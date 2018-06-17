@@ -24,15 +24,20 @@ function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
     TR = complex(T)
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), T(k))
 end
-function SisoZpk(z::AbstractArray{TZ}, p::AbstractArray{TP}, k::T) where {T<:Number, TZ<:Number, TP<:Number} # NOTE: is this constructor really needed?
-      TR = promote_type(TZ,TP,T)
-      # Should check if roots matches up
+function SisoZpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T) where {T<:Number, TZ<:Number, TP<:Number} # NOTE: is this constructor really needed?
+    TR = promote_type(TZ,TP,T)
+    # Could check if complex roots come with their conjugates,
+    # i.e., if the SisoZpk corresponds to a real-valued system
 
-      if TR <: Complex && T <: Real
-          check_real # Only throws an error
-      end
-      SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), k)
+    if TR <: Complex && T <: Real
+        @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
+        @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
+    end
+    SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), k)
 end
+
+
+
 
 Base.zero(::Type{SisoZpk{T}}) where T = SisoZpk{T}(T[], T[], zero(T))
 Base.one(::Type{SisoZpk{T}}) where T = SisoZpk{T}(T[], T[], one(T))
@@ -63,43 +68,68 @@ isproper(f::SisoZpk) = (length(f.z) <= length(f.p))
 
 
 function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
+    if length(sys.p) == 0
+        return sys
+    end
+
     newZ = copy(sys.z)
     newP = Vector{TR}(0)
 
-    for  p in sys.p
+    pidx = 1
+    p = sys.p[pidx]
+    while true
         if isempty(newZ)
+            push!(newP, p)
+        else
+            distance, zidx = findmin(abs.(p-newZ))
+
+            if distance < eps
+                if imag(p) == 0 && imag(newZ[zidx]) != 0
+                    newZ[zidx+1] = real(newZ[zidx+1])
+                end
+                if imag(newZ[zidx]) == 0 && imag(p) != 0
+                    pidx += 1
+                    p = real(sys.p[pidx])
+                    deleteat!(newZ, zidx)
+                    continue
+                end
+                deleteat!(newZ, zidx)
+            else
+                push!(newP, p)
+            end
+        end
+
+        pidx += 1
+        if pidx > length(sys.p)
             break
         end
-
-        distance, zi = findmin(abs.(p-newZ))
-
-        println("$distance, $zi")
-
-        if distance < eps
-            deleteat!(newZ, zi)
-        else
-            push!(newP, p)
-        end
+        p = sys.p[pidx]
     end
     SisoZpk{T, TR}(newZ, newP, sys.k)
 end
 
-# If TR is Complex and T is Real, check that every pole is matched to its conjugate
-function check_real(r_vec::AbstractVector{Complex})
-    for k=1:length(r_vec)
+``` If TR is Complex and T is Real, check that every pole is matched to its conjugate
+# this assumes that the compelx poles are ordered as they are output by the LAPACK
+# routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)```
+# FIXME: Perhaps move to some other file with auxilliary functions,
+# the name could also be imporoved. Perhaps this functionality can be found in some other package.
+function check_real(r_vec::AbstractVector{<:Complex})
+    k = 1
+    while k <= length(r_vec)
         if isreal(r_vec[k])
-            continue
-        elseif k == length(r_vec)
-            error("No match found")
-        elseif conj(r_vec[k]) == r_vec[k+1]
-            k=k+1
-            continue
-        else #
-            # findfirst(conj(r_vec[k]), r_vec[k+1:end])
-            # if no element found, throw error
-            # r_vec[k+1] = conjuagte
+            # Do nothing
+        else
+            if k == length(r_vec) # Element is complex and there is no more elements to match up with
+                return false
+            elseif conj(r_vec[k]) == r_vec[k+1] # Element is complex and succeeding element is its conjugate
+                k=k+1
+            else
+                return false
+            end
         end
+        k += 1
     end
+    return true
 end
 
 
@@ -162,18 +192,23 @@ function isapprox(f1::SisoZpk, f2::SisoZpk; rtol::Real=sqrt(eps()), atol::Real=s
     isapprox(fdiff.k, 0, atol=atol, rtol=rtol)
 end
 
-function +(f1::SisoZpk, f2::SisoZpk)
-  numPoly = numpoly(f1)*denpoly(f2) + numpoly(f2)*denpoly(f1)
-  z = roots(numPoly)
-  TR = eltype(z)
-  if length(numPoly) > 0
-      k = numPoly[end]
-      p = convert(Vector{TR}, [f1.p;f2.p])
-  else
-      k = 0
-      p = TR[]
-  end
-  SisoZpk(z,p,k)
+function +(f1::SisoZpk{T1,TR1}, f2::SisoZpk{T2,TR2}) where {T1<:Number,T2<:Number,TR1<:Number,TR2<:Number}
+    numPoly = numpoly(f1)*denpoly(f2) + numpoly(f2)*denpoly(f1)
+
+    TR = promote_type(TR1, TR2)
+    z = convert(Vector{TR}, roots(numPoly))
+    if length(numPoly) > 0
+        k = numPoly[end]
+        p = convert(Vector{TR}, [f1.p;f2.p])
+    else
+        k = 0
+        p = TR[]
+    end
+
+    # FIXME:
+    # Threshold for pole-zero cancellation should depend on the roots of the system
+    # Note the difference between continuous and discrete-time systems...
+    minreal(SisoZpk(z,p,k), sqrt(eps()))
 end
 
 

@@ -45,6 +45,24 @@ function zpk(gain::Matrix{T}, Ts::Real=0; kwargs...) where {T <: Number}
     return TransferFunction{SisoZpk{T,TR}}(matrix, Ts)
 end
 
+function zpk(z::AbstractVector, p::AbstractVector, k::T) where {T<:Number} # To be able to send in empty vectors [] of type Any
+    if eltype(z) == Any && eltype(p) == Any
+        @assert z == []
+        @assert p == []
+        return zpk(T[], T[], k)
+    elseif eltype(z) == Any
+        @assert z == []
+        TR = eltype(p)
+        return zpk(TR[], p, k)
+    elseif eltype(p) == Any
+        @assert p == []
+        TR = eltype(z)
+        return zpk(z, TR[], k)
+    else
+        error("Non numeric vectors must be empty.")
+    end
+end
+
 zpk(k::Real, Ts::Real=0) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
 zpk(sys::StateSpace) = zpk(convert(TransferFunction{SisoRational}, sys))

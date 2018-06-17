@@ -176,7 +176,7 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
-Base.print(io::IO, G::TransferFunction) = show(io, t)
+Base.print(io::IO, G::TransferFunction) = show(io, G)
 
 function Base.show(io::IO, G::TransferFunction)
     # Compose the name vectors
