@@ -67,9 +67,10 @@ zpk(k::Real, Ts::Real=0) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
 zpk(sys::StateSpace) = zpk(convert(TransferFunction{SisoRational}, sys))
 
-function zpk(G::TransferFunction)
-    S = typeof(convert(SisoZpk, one(eltype(G)))) # Some extra hassle since SisoZpk has two numeric arguments
-    convert(TransferFunction{S}, G)
+# We can neither guarantee
+function zpk(G::TransferFunction{S}) where {T1, S<:SisoTf{T1}}
+    Tnew = typeof(one(T1)/one(T1))
+    convert(TransferFunction{SisoZpk{Tnew, complex(Tnew)}}, G)
 end
 
 zpk(var::AbstractString) = zpk(tf(var))

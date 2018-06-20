@@ -110,9 +110,9 @@ end
 
 # FIXME: Perhaps move to some other file with auxilliary functions,
 # the name could also be imporoved. Perhaps this functionality can be found in some other package.
-``` If TR is Complex and T is Real, check that every pole is matched to its conjugate
+""" If TR is Complex and T is Real, check that every pole is matched to its conjugate
     this assumes that the compelx poles are ordered as they are output by the LAPACK
-    routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)```
+    routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)"""
 function check_real(r_vec::AbstractVector{<:Complex})
     k = 1
     while k <= length(r_vec)
@@ -146,20 +146,20 @@ function evalfr(sys::SisoZpk, s::Number)
 end
 
 
-function poly_factors2string(poly_factors)
+function poly_factors2string(poly_factors, var)
     if length(poly_factors) == 0
         str = "1.0"
     elseif length(poly_factors) == 1
-        str = sprint(printpoly, poly_factors[1])
+        str = sprint(printpolyfun(var), poly_factors[1])
     else
-        str = reduce(*,"",["("*sprint(printpoly, z)*")" for z in poly_factors])
+        str = reduce(*,"",["("*sprint(printpolyfun(var), z)*")" for z in poly_factors])
     end
 end
 
 # TODO: add print function for complex coefficient polynomial factors
 function print_siso(io::IO, t::SisoZpk, var=:s)
-    numstr = poly_factors2string(roots2real_poly_factors(t.z))
-    denstr = poly_factors2string(roots2real_poly_factors(t.p))
+    numstr = poly_factors2string(roots2real_poly_factors(t.z), var)
+    denstr = poly_factors2string(roots2real_poly_factors(t.p), var)
 
     # Figure out the length of the separating line
     len_num = length(numstr)

@@ -57,6 +57,10 @@ function Base.promote_rule(::Type{StateSpace{T1, MT}}, ::Type{T2}) where {T1, MT
     StateSpace{eltype(NewMT), NewMT}
 end
 
+Base.promote_rule(::Type{TransferFunction{SisoZpk{T1,TR1}}}, ::Type{M2}) where {T1, TR1, T2, M2<:AbstractMatrix{T2}} = TransferFunction{SisoZpk{T1, promote_type(TR1, T2)}}
+
+Base.promote_rule(::Type{TransferFunction{SisoRational{T1}}}, ::Type{M2}) where {T1, T2, M2<:AbstractMatrix{T2}} = TransferFunction{SisoRational{promote_type(T1, T2)}}
+
 #Base.promote_rule{S<:TransferFunction{<:SisoTf}}(::Type{S}, ::Type{<:Real}) = S
 
 # We want this, but not possible, so hardcode for SisoTypes

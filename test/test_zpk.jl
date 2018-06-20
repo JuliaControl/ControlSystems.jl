@@ -128,7 +128,7 @@ zpk(tf([1 2; 3 4])) == zpk([1 2; 3 4])
 @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 - C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 * C_111             # Sampling time mismatch
-D_diffTs = zpk(tf([1.0], [2], 0.1))
+D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException D_111 + D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 - D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 * D_diffTs          # Sampling time mismatch
@@ -140,6 +140,6 @@ D_diffTs = zpk(tf([1.0], [2], 0.1))
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 
 
-@test_broken D_diffTs = zpk(tf([1], [2], 0.1)) # The mix of int and float do not go well together
-@test_broken zpk([-0.5], [], 1) # FIXME: This gives an system of type Int..
+@test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{ControlSystems.SisoZpk{Float64,Complex{Float64}}}
+@test typeof(zpk([-0.5], [], 1)) == TransferFunction{ControlSystems.SisoZpk{Int,Float64}}
 end

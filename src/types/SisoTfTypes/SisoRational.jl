@@ -39,10 +39,10 @@ function minreal(sys::SisoRational, eps::Real=sqrt(eps()))
     return SisoRational(minreal(SisoZpk(sys), eps))
 end
 
-function print_siso(io::IO, f::SisoRational, var)
+function print_siso(io::IO, f::SisoRational, var=:s)
     # Convert the numerator and denominator to strings
-    numstr = sprint(printpoly, f.num)
-    denstr = sprint(printpoly, f.den)
+    numstr = sprint(printpolyfun(var), f.num)
+    denstr = sprint(printpolyfun(var), f.den)
 
     # Figure out the length of the separating line
     len_num = length(numstr)
@@ -60,6 +60,7 @@ function print_siso(io::IO, f::SisoRational, var)
     println(io, denstr)
 end
 
+# TODO is this working?
 function print_compact(io::Base.IO, f::SisoRational, var)
     numstr = sprint(print_poly, f.num)
     denstr = sprint(print_poly, f.den)

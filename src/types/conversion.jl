@@ -15,11 +15,14 @@
 # NOTE: no real need to convert numbers to transfer functions, have addition methods..
 # How to convert a number to either Continuous or Discrete transfer function
 # In this case it would be motivated with a "Static" Type
-Base.convert{T<:Number}(::Type{<:TransferFunction}, b::T) = tf([b])
-Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoRational}}, b::T) = tf(b)
-Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoZpk}}, b::T) = zpk(b)
-Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoRational{T}}}, b::Number) = tf(T(b))
-Base.convert{T<:Number}(::Type{<:TransferFunction{<:SisoZpk{T}}}, b::Number) = zpk(T(b))
+# Base.convert(::Type{<:TransferFunction}, b::Number) = tf([b])
+# Base.convert(::Type{<:TransferFunction{<:SisoRational}}, b::Number) = tf(b)
+# Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, b::Number) = zpk(b)
+Base.convert(::Type{<:TransferFunction{<:SisoRational{T}}}, b::Number) where {T<:Number} = tf(T(b))
+Base.convert(::Type{<:TransferFunction{<:SisoZpk{T, TR}}}, b::Number) where {T<:Number, TR} = zpk(T(b))
+
+Base.convert(::Type{<:TransferFunction{<:SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {T1, TR1, T2<:Number} = zpk(T1.(b))
+Base.convert(::Type{<:TransferFunction{<:SisoRational{T1}}}, b::AbstractMatrix{T2}) where {T1, T2<:Number} = tf(T1.(b))
 
 function Base.convert(::Type{StateSpace{T1, MT}}, b::T2) where {T1, MT, T2<:Number}
     A = convert(MT, fill(zero(T1), (0,0)))
