@@ -27,7 +27,7 @@
 # NOTE: Is the below thing correct always?
 Base.promote_rule(::Type{StateSpace{T1,MT1}}, ::Type{StateSpace{T2,MT2}}) where {T1,T2,MT1,MT2} = StateSpace{promote_type(T1, T2),promote_type(MT1, MT2)}
 
-function Base.promote_rule(::Type{TransferFunction{<:SisoTf{T1}}}, ::Type{StateSpace{T2,MT}}) where {T1,T2,MT}
+function Base.promote_rule(::Type{TransferFunction{S1}}, ::Type{StateSpace{T2,MT}}) where {T1,S1<:SisoTf{T1},T2,MT}
     StateSpace{promote_type(T1, T2),promote_type(Matrix{T1},MT)}
 end
 # NOTE: Perhaps should try to keep matrix structure?

@@ -108,11 +108,11 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
     SisoZpk{T, TR}(newZ, newP, sys.k)
 end
 
+# FIXME: Perhaps move to some other file with auxilliary functions,
+# the name could also be imporoved. Perhaps this functionality can be found in some other package.
 ``` If TR is Complex and T is Real, check that every pole is matched to its conjugate
     this assumes that the compelx poles are ordered as they are output by the LAPACK
     routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)```
-# FIXME: Perhaps move to some other file with auxilliary functions,
-# the name could also be imporoved. Perhaps this functionality can be found in some other package.
 function check_real(r_vec::AbstractVector{<:Complex})
     k = 1
     while k <= length(r_vec)

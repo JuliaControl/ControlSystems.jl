@@ -116,7 +116,7 @@ z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
 @test eltype(fill(zpk(1,0.005)/zpk(2, 0.005),2)) <: TransferFunction
 @test eltype(fill(zpk(1)+1,2)) <: TransferFunction
 
-
+@test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
 
 zpk(tf([1 2; 3 4])) == zpk([1 2; 3 4])
 
@@ -140,7 +140,6 @@ D_diffTs = zpk(tf([1.0], [2], 0.1))
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 
 
-@test_broken eltype([tf(1,1), zpk(1,1)]) <: TransferFunction # Something with the SisoTf conversion, the test itself is also probalby wrong
 @test_broken D_diffTs = zpk(tf([1], [2], 0.1)) # The mix of int and float do not go well together
 @test_broken zpk([-0.5], [], 1) # FIXME: This gives an system of type Int..
 end

@@ -23,7 +23,7 @@ G = zpk(1)
 sys = ss(1)
 TG = typeof(G)
 Tsys = typeof(sys)
-@test promote_type(Tsys,TG) == typeof(ss(1.))
+@test promote_type(Tsys,TG) == typeof(ss(1))
 
 G1 = zpk(1)
 G2 = zpk(1.)

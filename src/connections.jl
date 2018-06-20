@@ -29,7 +29,7 @@ function append(systems::StateSpace...)
     B = blkdiag([s.B for s in systems]...)
     C = blkdiag([s.C for s in systems]...)
     D = blkdiag([s.D for s in systems]...)
-    return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
+    return StateSpace(A, B, C, D, Ts)
 end
 
 function append(systems::TransferFunction...)
