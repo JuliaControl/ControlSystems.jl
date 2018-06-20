@@ -95,26 +95,26 @@ function isapprox(f1::SisoRational, f2::SisoRational; rtol::Real=sqrt(eps()), at
 end
 
 +(f1::SisoRational, f2::SisoRational) = SisoRational(f1.num*f2.den + f2.num*f1.den, f1.den*f2.den)
-+(f::SisoRational, n::Real) = SisoRational(f.num + n*f.den, f.den)
-+(n::Real, f::SisoRational) = f + n
-#.+(f::SisoRational, n::Real) = t + n
-#.+(n::Real, f::SisoRational) = t + n
++(f::SisoRational, n::Number) = SisoRational(f.num + n*f.den, f.den)
++(n::Number, f::SisoRational) = f + n
+#.+(f::SisoRational, n::Number) = t + n
+#.+(n::Number, f::SisoRational) = t + n
 
 -(f1::SisoRational, f2::SisoRational) = SisoRational(f1.num*f2.den - f2.num*f1.den, f1.den*f2.den)
--(n::Real, f::SisoRational) = SisoRational(n*f.den - f.num, f.den)
--(f::SisoRational, n::Real) = +(f, -n)
-#.-(f::SisoRational, n::Real) = -(t, n)
-#.-(n::Real, f::SisoRational) = -(n, t)
+-(n::Number, f::SisoRational) = SisoRational(n*f.den - f.num, f.den)
+-(f::SisoRational, n::Number) = +(f, -n)
+#.-(f::SisoRational, n::Number) = -(t, n)
+#.-(n::Number, f::SisoRational) = -(n, t)
 
 -(f::SisoRational) = SisoRational(-f.num, f.den)
 
 *(f1::SisoRational, f2::SisoRational) = SisoRational(f1.num*f2.num, f1.den*f2.den)
-*(f::SisoRational, n::Real) = SisoRational(f.num*n, f.den)
-*(n::Real, f::SisoRational) = *(f, n)
+*(f::SisoRational, n::Number) = SisoRational(f.num*n, f.den)
+*(n::Number, f::SisoRational) = *(f, n)
 #.*(f1::SisoRational, f2::SisoRational) = *(f1, f2)
-#.*(f::SisoRational, n::Real) = *(f, n)
-#.*(n::Real, f::SisoRational) = *(f, n)
+#.*(f::SisoRational, n::Number) = *(f, n)
+#.*(n::Number, f::SisoRational) = *(f, n)
 
-/(n::Real, f::SisoRational) = SisoRational(n*f.den, f.num)
-/(f::SisoRational, n::Real) = f*(1/n)
+/(n::Number, f::SisoRational) = SisoRational(n*f.den, f.num)
+/(f::SisoRational, n::Number) = f*(1/n)
 /(f1::SisoRational, f2::SisoRational) = f1*(1/f2)

@@ -214,14 +214,14 @@ end
 
 +(f::SisoZpk, n::T) where {T<:Number} = f + SisoZpk{T,T}(T[],T[],n)
 +(n::Number, f::SisoZpk) = f + n
-#.+(t::SisoZpk, n::Real) = t + n
-#.+(n::Real, t::SisoZpk) = t + n
+#.+(t::SisoZpk, n::Number) = t + n
+#.+(n::Number, t::SisoZpk) = t + n
 
 -(t1::SisoZpk, t2::SisoZpk) = +(t1,-t2)
 -(n::T, f::SisoZpk) where {T<:Number} = SisoZpk{T,T}(T[],T[],n) - f
--(t::SisoZpk, n::Real) = +(t, -n)
-#.-(t::SisoZpk, n::Real) = -(t, n)
-#.-(n::Real, t::SisoZpk) = -(n, t)
+-(t::SisoZpk, n::Number) = +(t, -n)
+#.-(t::SisoZpk, n::Number) = -(t, n)
+#.-(n::Number, t::SisoZpk) = -(n, t)
 
 
 -(f::SisoZpk) = SisoZpk(f.z, f.p, -f.k)
@@ -231,8 +231,8 @@ end
 *(f::SisoZpk, n::Number) = SisoZpk(f.z, f.p, f.k*n)
 *(n::Number, f::SisoZpk) = *(f, n)
 #.*(f1::SisoZpk, f2::SisoZpk) = *(f1, f2)
-#.*(t::SisoZpk, n::Real) = *(t, n)
-#.*(n::Real, t::SisoZpk) = *(t, n)
+#.*(t::SisoZpk, n::Number) = *(t, n)
+#.*(n::Number, t::SisoZpk) = *(t, n)
 
 /(n::Number, f::SisoZpk) = SisoZpk(f.p, f.z, n/f.k)
 /(f::SisoZpk, n::Number) = SisoZpk(f.z, f.p, f.k/n)
