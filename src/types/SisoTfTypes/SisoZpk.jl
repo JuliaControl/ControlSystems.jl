@@ -25,7 +25,7 @@ function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), T(k))
 end
 function SisoZpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T) where {T<:Number, TZ<:Number, TP<:Number} # NOTE: is this constructor really needed?
-    TR = promote_type(TZ,TP,T)
+    TR = promote_type(TZ,TP)
     # Could check if complex roots come with their conjugates,
     # i.e., if the SisoZpk corresponds to a real-valued system
 
@@ -50,8 +50,8 @@ Base.zero(f::SisoZpk) = zero(typeof(f))
 
 
 # tzero is not meaningful for transfer function element? But both zero and zeros are taken...
-tzero(sys::SisoZpk) = f.z # Do minreal first?,
-pole(sys::SisoZpk) = f.p # Do minreal first?
+tzero(f::SisoZpk) = f.z # Do minreal first?,
+pole(f::SisoZpk) = f.p # Do minreal first?
 
 numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z))
 denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
@@ -198,14 +198,19 @@ end
 function +(f1::SisoZpk{T1,TR1}, f2::SisoZpk{T2,TR2}) where {T1<:Number,T2<:Number,TR1<:Number,TR2<:Number}
     numPoly = numpoly(f1)*denpoly(f2) + numpoly(f2)*denpoly(f1)
 
-    TR = promote_type(TR1, TR2)
-    z = convert(Vector{TR}, roots(numPoly))
+    TRtmp = promote_type(TR1, TR2)
+    # Calculating roots can make integers floats
+    TRnew = Base.promote_op(/, TRtmp, TRtmp)
+    z = convert(Vector{TRnew}, roots(numPoly))
+    #TODO gains could remain integers, but numerical precision inhibits this
+    Ttmp = promote_type(T1,T2)
+    Tnew = Base.promote_op(/, Ttmp, Ttmp)
     if length(numPoly) > 0
-        k = numPoly[end]
-        p = convert(Vector{TR}, [f1.p;f2.p])
+        k = convert(Tnew, numPoly[end])
+        p = convert(Vector{TRnew}, [f1.p;f2.p])
     else
-        k = 0
-        p = TR[]
+        k = zero(Tnew)
+        p = TRnew[]
     end
 
     # FIXME:
@@ -231,6 +236,7 @@ end
 
 
 *(f1::SisoZpk, f2::SisoZpk) = SisoZpk([f1.z;f2.z], [f1.p;f2.p], f1.k*f2.k)
+
 *(f::SisoZpk, n::Number) = SisoZpk(f.z, f.p, f.k*n)
 *(n::Number, f::SisoZpk) = *(f, n)
 #.*(f1::SisoZpk, f2::SisoZpk) = *(f1, f2)

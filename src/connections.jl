@@ -43,7 +43,15 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
-function Base.vcat(systems::StateSpace...)
+macro sys(ex)
+    if ex.head == :vcat
+        # vcat or hvcat
+    elseif ex.head == :hcat
+        # hcat only
+    end
+end
+
+function vcatsys(systems::StateSpace...)
     # Perform checks
     nu = systems[1].nu
     if !all(s.nu == nu for s in systems)
@@ -61,7 +69,7 @@ function Base.vcat(systems::StateSpace...)
     return StateSpace(A, B, C, D, Ts)
 end
 
-function Base.vcat(systems::TransferFunction...)
+function vcatsys(systems::TransferFunction...)
     # Perform checks
     nu = systems[1].nu
     if !all(s.nu == nu for s in systems)
@@ -75,9 +83,9 @@ function Base.vcat(systems::TransferFunction...)
     return TransferFunction(mat, Ts)
 end
 
-Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
+vcatsys(systems::LTISystem...) = vcat(promote(systems...)...)
 
-function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
+function vcatsys{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
     if Base.promote_typeof(systems...) <: TransferFunction
         vcat(map(e->convert(TransferFunction,e),systems)...)
     else
@@ -85,7 +93,7 @@ function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
     end
 end
 
-function Base.hcat(systems::StateSpace...)
+function hcatsys(systems::StateSpace...)
     # Perform checks
     ny = systems[1].ny
     if !all(s.ny == ny for s in systems)
@@ -103,7 +111,7 @@ function Base.hcat(systems::StateSpace...)
     return StateSpace(A, B, C, D, Ts)
 end
 
-function Base.hcat(systems::TransferFunction...)
+function hcatsys(systems::TransferFunction...)
     # Perform checks
     ny = systems[1].ny
     if !all(s.ny == ny for s in systems)
@@ -117,30 +125,30 @@ function Base.hcat(systems::TransferFunction...)
     return TransferFunction(mat, Ts)
 end
 
-Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
+hcatsys(systems::LTISystem...) = hcat(promote(systems...)...)
 
 
 # TODO: Fix this
-function Base.hcat(systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+function hcatsys(systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
     S = Base.promote_typeof(systems...)
     if S <: LTISystem
-        hcat(map(e->convert(S,e),systems)...)
+        hcatsys(map(e->convert(S,e),systems)...)
     else
         cat(Val{2},systems...)
     end
 end
 
 
-function Base.hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+function hvcatsys(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
     T = Base.promote_typeof(systems...)
     nbr = length(rows)  # number of block rows
     rs = Array{T,1}(nbr)
     a = 1
     for i = 1:nbr
-        rs[i] = hcat(convert.(T,systems[a:a-1+rows[i]])...)
+        rs[i] = hcatsys(convert.(T,systems[a:a-1+rows[i]])...)
         a += rows[i]
     end
-    vcat(rs...)
+    vcatsys(rs...)
 end
 
 # function _get_common_sampling_time(sys_vec::Union{AbstractVector{LTISystem},AbstractVecOrMat{<:Number},Number})
