@@ -7,24 +7,11 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 @doc """`dcgain(sys)`
 
-Compute the gain of SISO system `sys`.""" ->
-function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
-    !issiso(sys) && error("Gain only defined for siso systems")
-    return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
-end
-
-@doc """`dcgain(sys)`
-
 Compute the dcgain of system `sys`.
 
 equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
-function dcgain(sys::TransferFunction)
-    !issiso(sys) && error("Gain only defined for siso systems")
-    if sys.Ts > 0
-        return map(s->sum(s.num.a)/sum(s.den.a), sys.matrix)
-    end
-
-    return map(s -> s.num[end]/s.den[end], sys.matrix)
+function dcgain(sys::LTISystem)
+    return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
 @doc """`markovparam(sys, n)`
@@ -78,12 +65,13 @@ function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
     return _zpk_kern(s)
 end
 
-function _zpk_kern(s::SisoRational)
-  return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+function _zpk_kern(f::SisoRational)
+    f_zpk = convert(SisoZpk, f)
+    return f_zpk.z, f_zpk.p, f_zpk.k
 end
 
-function _zpk_kern(s::SisoZpk)
-    return s.z, s.p, s.k
+function _zpk_kern(f::SisoZpk)
+    return f.z, f.p, f.k
 end
 
 @doc """`Wn, zeta, ps = damp(sys)`

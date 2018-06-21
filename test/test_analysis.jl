@@ -95,11 +95,11 @@ ex_11 = ss(A, B, C, D)
 
 # Test for multiple zeros, siso tf
 sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
-@test tzero(sys) ≈ [-1.0, -im, im, 3.0, 0.0]
+@test tzero(sys) ≈ [3.0, -1.0, im, -im, 0.0]
 
 ## POLE ##
-@test pole(sys) ≈ [-1.0, 4.0, -4.0]
-@test pole([sys sys]) ≈ [-1.0, 4.0, -4.0, -1.0, 4.0, -4.0]
+@test pole(sys) ≈ [4.0, -4.0, -1.0]
+@test pole([sys sys]) ≈ [4.0, -4.0, -1.0, 4.0, -4.0, -1.0]
 @test pole(ex_11) ≈ eig(ex_11.A)[1]
 
 poles = [-3.383889568918823 + 0.000000000000000im
@@ -132,19 +132,17 @@ sol_p = vecarray(Complex128, 2, 2, Complex128[], Complex128[-0.5 - 3.12249899919
         Complex128[-5.0 + 0.0im], Complex128[-6.0 + 0.0im])
 sol_k = [0.0 3.0; 1.0 2.0]
 z, p, k = zpkdata(H)
-@test_array_vecs_eps z sol_z 2*eps(Complex128)
-@test_array_vecs_eps p sol_p 2*eps(Complex128)
+@test_array_vecs_eps z sol_z 2*eps(Float64)
+@test_array_vecs_eps p sol_p 2*eps(Float64)
 @test k == sol_k
 z, p, k = zpkdata(G)
-@test_array_vecs_eps z sol_z 10*eps(Complex128)
-@test_array_vecs_eps p sol_p 10*eps(Complex128)
+@test_array_vecs_eps z sol_z 10*eps(Float64)
+@test_array_vecs_eps p sol_p 10*eps(Float64)
 @test k == sol_k
 
 ## GAIN ## #Gain is confusing when referring to zpkdata. Test dcgain instead
 @test [dcgain(H[1, 1]) dcgain(H[1, 2]); dcgain(H[2, 1]) dcgain(H[2, 2])] ≈ [0 0; 0.2 1/3]
 @test [dcgain(G[1, 1]) dcgain(G[1, 2]); dcgain(G[2, 1]) dcgain(G[2, 2])] ≈ [0 0; 0.2 1/3]
-@test_throws ErrorException dcgain(H)
-@test_throws ErrorException dcgain(G)
 
 ## MARKOVPARAM ##
 @test markovparam(G, 0) == [0.0 0.0; 1.0 0.0]
@@ -159,19 +157,19 @@ z, p, k = zpkdata(G)
 
 ## DAMPREPORT ##
 @test sprint(dampreport, sys) == (
-"|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
-"|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
-"+---------------+---------------+---------------+---------------+\n"*
-"|  -1.000e+00   |  1.000e+00    |  1.000e+00    |  1.000e+00    |\n"*
-"|  4.000e+00    |  -1.000e+00   |  4.000e+00    |  -2.500e-01   |\n"*
-"|  -4.000e+00   |  1.000e+00    |  4.000e+00    |  2.500e-01    |\n")
+     "|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
+     "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
+     "+---------------+---------------+---------------+---------------+\n"*
+     "|  -1.000e+00   |  1.000e+00    |  1.000e+00    |  1.000e+00    |\n"*
+     "|  4.000e+00    |  -1.000e+00   |  4.000e+00    |  -2.500e-01   |\n"*
+     "|  -4.000e+00   |  1.000e+00    |  4.000e+00    |  2.500e-01    |\n")
 @test sprint(dampreport, ex_11) == (
-"|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
-"|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
-"+---------------+---------------+---------------+---------------+\n"*
-"|  -1.000e+00   |  1.000e+00    |  1.000e+00    |  1.000e+00    |\n"*
-"|  1.000e+00    |  -1.000e+00   |  1.000e+00    |  -1.000e+00   |\n"*
-"|  2.000e+00    |  -1.000e+00   |  2.000e+00    |  -5.000e-01   |\n"*
-"|  -2.000e+00   |  1.000e+00    |  2.000e+00    |  5.000e-01    |\n"*
-"|  3.000e+00    |  -1.000e+00   |  3.000e+00    |  -3.333e-01   |\n")
+     "|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
+     "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
+     "+---------------+---------------+---------------+---------------+\n"*
+     "|  -1.000e+00   |  1.000e+00    |  1.000e+00    |  1.000e+00    |\n"*
+     "|  1.000e+00    |  -1.000e+00   |  1.000e+00    |  -1.000e+00   |\n"*
+     "|  2.000e+00    |  -1.000e+00   |  2.000e+00    |  -5.000e-01   |\n"*
+     "|  -2.000e+00   |  1.000e+00    |  2.000e+00    |  5.000e-01    |\n"*
+     "|  3.000e+00    |  -1.000e+00   |  3.000e+00    |  -3.333e-01   |\n")
 end

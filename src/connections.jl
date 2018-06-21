@@ -1,18 +1,18 @@
 # Model interconnections
 
 @doc """
-`series(s1::LTISystem, s2::LTISystem)`
+`series(sys1::LTISystem, sys2::LTISystem)`
 
-Connect systems in series, equivalent to `s2*s1`
+Connect systems in series, equivalent to `sys2*sys1`
 """ ->
-series(s1::LTISystem, s2::LTISystem) = s2*s1
+series(sys1::LTISystem, sys2::LTISystem) = sys2*sys1
 
 @doc """
-`series(s1::LTISystem, s2::LTISystem)`
+`series(sys1::LTISystem, sys2::LTISystem)`
 
-Connect systems in parallel, equivalent to `s2+s1`
+Connect systems in parallel, equivalent to `sys2+sys1`
 """ ->
-parallel(s1::LTISystem, s2::LTISystem) = s1 + s2
+parallel(sys1::LTISystem, sys2::LTISystem) = sys1 + sys2
 
 append() = LTISystem[]
 @doc """
@@ -22,28 +22,23 @@ Append systems in block diagonal form
 """ ->
 function append(systems::StateSpace...)
     Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
+    if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
     A = blkdiag([s.A for s in systems]...)
     B = blkdiag([s.B for s in systems]...)
     C = blkdiag([s.C for s in systems]...)
     D = blkdiag([s.D for s in systems]...)
-    states = vcat([s.statenames for s in systems]...)
-    outputs = vcat([s.outputnames for s in systems]...)
-    inputs = vcat([s.inputnames for s in systems]...)
-    return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
+    return StateSpace(A, B, C, D, Ts)
 end
 
 function append(systems::TransferFunction...)
     Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
+    if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
     mat = blkdiag([s.matrix for s in systems]...)
-    inputs = vcat([s.inputnames for s in systems]...)
-    outputs = vcat([s.outputnames for s in systems]...)
-    return TransferFunction(mat, Ts, inputs, outputs)
+    return TransferFunction(mat, Ts)
 end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
@@ -51,49 +46,39 @@ append(systems::LTISystem...) = append(promote(systems...)...)
 function Base.vcat(systems::StateSpace...)
     # Perform checks
     nu = systems[1].nu
-    if !all([s.nu == nu for s in systems])
+    if !all(s.nu == nu for s in systems)
         error("All systems must have same input dimension")
     end
     Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
+    if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
     A = blkdiag([s.A for s in systems]...)
     B = vcat([s.B for s in systems]...)
     C = blkdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
-    states = vcat([s.statenames for s in systems]...)
-    outputs = vcat([s.outputnames for s in systems]...)
-    inputs = systems[1].inputnames
-    if !all([s.inputnames == inputs for s in systems])
-        inputs = fill(String(""),size(inputs, 1))
-    end
-    return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
+
+    return StateSpace(A, B, C, D, Ts)
 end
 
 function Base.vcat(systems::TransferFunction...)
     # Perform checks
     nu = systems[1].nu
-    if !all([s.nu == nu for s in systems])
+    if !all(s.nu == nu for s in systems)
         error("All systems must have same input dimension")
     end
     Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
+    if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
     mat = vcat([s.matrix for s in systems]...)
-    outputs = vcat([s.outputnames for s in systems]...)
-    inputs = systems[1].inputnames
-    if !all([s.inputnames == inputs for s in systems])
-        inputs = fill(String(""),size(inputs, 1))
-    end
-    return TransferFunction(mat, Ts, inputs, outputs)
+    return TransferFunction(mat, Ts)
 end
 
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
 function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
-    if promote_type(typeof.(systems)...) <: TransferFunction
+    if Base.promote_typeof(systems...) <: TransferFunction
         vcat(map(e->convert(TransferFunction,e),systems)...)
     else
         cat(1,systems...)
@@ -103,55 +88,87 @@ end
 function Base.hcat(systems::StateSpace...)
     # Perform checks
     ny = systems[1].ny
-    if !all([s.ny == ny for s in systems])
+    if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
     Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
+    if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
     A = blkdiag([s.A for s in systems]...)
     B = blkdiag([s.B for s in systems]...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
-    states = vcat([s.statenames for s in systems]...)
-    inputs = vcat([s.inputnames for s in systems]...)
-    outputs = systems[1].outputnames
-    if !all([s.outputnames == outputs for s in systems])
-        outputs = fill(String(""),size(outputs, 1))
-    end
-    return StateSpace(A, B, C, D, Ts, states, inputs, outputs)
+
+    return StateSpace(A, B, C, D, Ts)
 end
 
 function Base.hcat(systems::TransferFunction...)
     # Perform checks
     ny = systems[1].ny
-    if !all([s.ny == ny for s in systems])
+    if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
     Ts = systems[1].Ts
-    if !all([s.Ts == Ts for s in systems])
+    if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
     mat = hcat([s.matrix for s in systems]...)
-    inputs = vcat([s.inputnames for s in systems]...)
-    outputs = systems[1].outputnames
-    if !all([s.outputnames == outputs for s in systems])
-        outputs = fill(String(""),size(outputs, 1))
-    end
-    return TransferFunction(mat, Ts, inputs, outputs)
+    return TransferFunction(mat, Ts)
 end
 
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
-function Base.hcat{T<:Real}(systems::Union{T,VecOrMat{T},TransferFunction}...)
-    if promote_type(map(e->typeof(e),systems)...) <: TransferFunction
-        hcat(map(e->convert(TransferFunction,e),systems)...)
+
+# TODO: Fix this
+function Base.hcat(systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+    S = Base.promote_typeof(systems...)
+    if S <: LTISystem
+        hcat(map(e->convert(S,e),systems)...)
     else
-        cat(2,systems...)
+        cat(Val{2},systems...)
     end
 end
 
+
+function Base.hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+    T = Base.promote_typeof(systems...)
+    nbr = length(rows)  # number of block rows
+    rs = Array{T,1}(nbr)
+    a = 1
+    for i = 1:nbr
+        rs[i] = hcat(convert.(T,systems[a:a-1+rows[i]])...)
+        a += rows[i]
+    end
+    vcat(rs...)
+end
+
+# function _get_common_sampling_time(sys_vec::Union{AbstractVector{LTISystem},AbstractVecOrMat{<:Number},Number})
+#     Ts = -1.0 # Initalize corresponding to undefined sampling time
+#
+#     for sys in sys_vec
+#         if !all(s.Ts == Ts for s in systems])
+#             error("Sampling time mismatch")
+#         end
+#     end
+#
+# end
+
+
+# function Base.hcat{T<:Number}(systems::Union{T,AbstractVecOrMat{T},TransferFunction}...)
+#     S = promote_type(map(e->typeof(e),systems)...) # TODO: Should be simplified
+#
+#     idx_first_tf = findfirst(e -> isa(e, TransferFunction), systems)
+#     Ts = sys_tuple[idx_first_tf].Ts
+#
+#     if S <: TransferFunction
+#         hcat(map(e->convert(TransferFunction,e),systems)...)
+#     else
+#         cat(2,systems...)
+#     end
+# end
+
+# TODO: could use cat([1,2], mats...) instead
 # Empty definition to get rid of warning
 Base.blkdiag() = []
 function Base.blkdiag(mats::Matrix...)

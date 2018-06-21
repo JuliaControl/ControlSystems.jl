@@ -1,11 +1,12 @@
 module ControlSystems
 
+const BlasNumber = Union{Base.LinAlg.BlasFloat, Base.LinAlg.BlasInt} # QUESTION: WHy include BlasInt, why not include BlasComplex?
+
 export  LTISystem,
         StateSpace,
         TransferFunction,
         ss,
         tf,
-        tfg,
         zpk,
         ss2tf,
         LQG,
@@ -60,9 +61,6 @@ export  LTISystem,
         lsim,
         solve,
         Simulator,
-        OutputFeedbackSimulator,
-        StateFeedbackSimulator,
-        GainSchedulingSimulator,
         # Frequency Response
         freqresp,
         evalfr,
@@ -73,28 +71,55 @@ export  LTISystem,
         numpoly,
         denpoly
 
-using Plots, LaTeXStrings, Requires, OrdinaryDiffEq, IterTools
+
+# QUESTION: are these used? LaTeXStrings, Requires, IterTools
+using Polynomials, OrdinaryDiffEq, Plots
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
-include("types/lti.jl")
-include("types/transferfunction.jl")
-include("types/statespace.jl")
-include("types/tf2ss.jl")
-include("types/lqg.jl")
-include("types/promotion.jl")
+abstract type AbstractSystem end
 
+include("types/Lti.jl")
+
+abstract type SisoTf{T<:Number} end
+
+# Transfer functions and tranfer function elemements
+include("types/TransferFunction.jl")
+include("types/SisoTfTypes/polyprint.jl")
+include("types/SisoTfTypes/SisoZpk.jl")
+include("types/SisoTfTypes/SisoRational.jl")
+include("types/SisoTfTypes/promotion.jl")
+include("types/SisoTfTypes/conversion.jl")
+
+include("types/StateSpace.jl")
+
+# Convenience constructors
+include("types/tf.jl")
+include("types/zpk.jl")
+include("types/ss.jl")
+
+include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
+
+include("utilities.jl")
+
+include("types/promotion.jl")
+include("types/conversion.jl")
 include("connections.jl")
-include("discrete.jl")
+
+# Analysis
+include("freqresp.jl")
+include("timeresp.jl")
+
 include("matrix_comps.jl")
 include("simplification.jl")
-include("synthesis.jl")
+
+include("discrete.jl")
 include("analysis.jl")
-include("timeresp.jl")
+include("synthesis.jl")
+
 include("simulators.jl")
-include("freqresp.jl")
-include("utilities.jl")
-include("plotting.jl")
 include("pid_design.jl")
+
+
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

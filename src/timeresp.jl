@@ -26,9 +26,6 @@ function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
     end
     return y, t, x
 end
-function Base.step(sys::TransferFunction{SisoGeneralized}, t::AbstractVector, kwargs...)
-    lsim(sys, ones(length(t), sys.nu), t, kwargs...)
-end
 
 Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(sys, Tf); kwargs...)
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
@@ -57,7 +54,7 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
         imp_sys = sys
         x0s = zeros(T, nx, nu)
     end
-    if nu == 1
+    if nu == 1 # Why two cases # QUESTION: Not type stable?
         y, t, x,_ = lsim(sys, u, t, x0=x0s[:], method=method)
     else
         x = Array{T}(lt, nx, nu)
@@ -67,11 +64,6 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
         end
     end
     return y, t, x
-end
-function impulse(sys::TransferFunction{SisoGeneralized}, t::AbstractVector; kwags...)
-    u = zeros(length(t), sys.nu)
-    u[1,:] = 1/(t[2]-t[1])
-    lsim(sys::TransferFunction{SisoGeneralized}, u, t)
 end
 
 impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(sys, Tf); kwags...)
@@ -117,13 +109,14 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
 
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
-    elseif !(size(u) in [(length(t), nu) (length(t),)])
+    end
+    if !(size(u) in [(length(t), nu) (length(t),)])
         error("u must be of size (length(t), nu)")
     end
 
     dt = Float64(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
+        if iscontinuous(sys) # Looks strange to check iscontinuous again
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -169,7 +162,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         s = Simulator(sys, u)
         sol = solve(s, T.(x0), (t[1],t[end]), Tsit5())
         x = sol(t)'
-        uout = Array{eltype(x)}(length(t), sys.nu)
+        uout = Array{eltype(x)}(length(t), ninputs(sys))
         for (i,ti) in enumerate(t)
             uout[i,:] = u(x[i,:],ti)'
         end
@@ -178,23 +171,9 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
     return y, t, x, uout
 end
 
+
 lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
 
-function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
-    ny, nu = size(sys)
-    if !any(size(u) .== [(length(t), nu) (length(t),)])
-        error("u must be of size (length(t), nu)")
-    end
-    ny, nu = size(sys)
-    y = Array{promote_type(Float64, typeof(u), typeof(t))}(length(t),ny)
-    for i = 1:nu
-        for o = 1:ny
-            dt = Float64(t[2]-t[1])
-            y[:,o] += lsimabstract(sys.matrix[o,i], u[:,i], dt, t[end])
-        end
-    end
-    return y, t
-end
 
 @doc """`ltitr(A, B, u[,x0])`
 
@@ -259,7 +238,6 @@ function _default_Ts(sys::LTISystem)
     return Ts
 end
 
-_default_Ts(sys::TransferFunction{SisoGeneralized}) = 0.07
 
 #TODO a reasonable check
 _issmooth(u::Function) = false
