@@ -426,7 +426,7 @@ function /(n::Real, t::TransferFunction)
     return TransferFunction(matrix, t.Ts, t.outputnames, t.inputnames)
 end
 /(t::TransferFunction, n::Real) = t*(1/n)
-/(t1::TransferFunction, t2::TransferFunction) = t1*(1/t2)
+/(t1::TransferFunction, t2::TransferFunction) = t1*(one(primitivereal(t2))/t2)
 
 #####################################################################
 ##                        Display Functions                        ##
