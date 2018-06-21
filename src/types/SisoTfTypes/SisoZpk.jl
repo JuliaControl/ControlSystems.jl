@@ -53,10 +53,10 @@ Base.zero(f::SisoZpk) = zero(typeof(f))
 tzero(sys::SisoZpk) = f.z # Do minreal first?,
 pole(sys::SisoZpk) = f.p # Do minreal first?
 
-numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z)) # QUESTION: Include f.k?
+numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z))
 denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
 
-numpoly(f::SisoZpk) = prod(roots2complex_poly_factors(f.z))
+numpoly(f::SisoZpk) = f.k*prod(roots2complex_poly_factors(f.z))
 denpoly(f::SisoZpk) = prod(roots2complex_poly_factors(f.p))
 
 num(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
@@ -156,11 +156,14 @@ function poly_factors2string(poly_factors, var)
     end
 end
 
-# TODO: add print function for complex coefficient polynomial factors
 function print_siso(io::IO, t::SisoZpk, var=:s)
-    numstr = poly_factors2string(roots2real_poly_factors(t.z), var)
-    denstr = poly_factors2string(roots2real_poly_factors(t.p), var)
-
+    if typeof(t.k) <: Real
+        numstr = poly_factors2string(roots2real_poly_factors(t.z), var)
+        denstr = poly_factors2string(roots2real_poly_factors(t.p), var)
+    else
+        numstr = poly_factors2string(roots2complex_poly_factors(t.z), var)
+        denstr = poly_factors2string(roots2complex_poly_factors(t.p), var)
+    end
     # Figure out the length of the separating line
     len_num = length(numstr)
     len_den = length(denstr)
