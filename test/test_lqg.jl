@@ -4,7 +4,7 @@
 
 w = logspace(-5,5,1000)
 s = tf("s")
-P = [1/(s+1) 2/(s+3); 1/(s+1) 1/(s+1)]
+P = @sys [1/(s+1) 2/(s+3); 1/(s+1) 1/(s+1)]
 sys = ss(P)
 sysmin = minreal(sys)
 A,B,C,D = sys.A,sys.B,sys.C,sys.D

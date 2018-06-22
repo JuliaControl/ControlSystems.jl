@@ -48,6 +48,7 @@ export  LTISystem,
         delaymargin,
         gangoffour,
         # Connections
+        @sys,
         append,
         series,
         parallel,

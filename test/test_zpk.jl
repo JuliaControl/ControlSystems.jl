@@ -10,7 +10,7 @@ C_111 = zpk([-2],[-5],1)
 C_211 = zpk([-1+sqrt(2)im,-1-sqrt(2)im], [-5,-3],1)
 C_212 = zpk(vecarray(2, 1, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(2, 1, [-5,-3], [-5,-3]), [1;1])
 C_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2, [-5,-3], [-5,-3]), [1 1])
-C_222 = [C_221; C_221]
+C_222 = @sys [C_221; C_221]
 C_022 = zpk(4eye(2))
 s = zpk("s")
 
@@ -18,7 +18,7 @@ s = zpk("s")
 D_111 = zpk([-2], [0.5], 1, 0.005)
 D_211 = zpk([-1+sqrt(2)im,-1-sqrt(2)im], [-0.3, 0.5], 1, 0.005)
 D_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2, [-0.3, 0.5], [-0.3, 0.5]), [1 1], 0.005)
-D_222 = [D_221; D_221]
+D_222 = @sys [D_221; D_221]
 D_022 = zpk(4eye(2), 0.005)
 z = zpk("z", 0.005)
 
@@ -28,7 +28,7 @@ z = zpk("z", 0.005)
 @test z == zpk([0], Int64[], 1, 0.005)
 @test C_022 == zpk(vecarray(Int64, 2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(Int64, 2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4])
 @test D_022 == zpk(vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4], 0.005)
-@test C_022 == [zpk(4) 0;0 4]
+@test C_022 == @sys [zpk(4) 0;0 4]
 #TODO We might want to fix this
 #@test D_022 == [zpk(4, 0.005) 0;0 4])
 
@@ -124,7 +124,7 @@ zpk(tf([1 2; 3 4])) == zpk([1 2; 3 4])
 @test_throws ErrorException C_111 + C_222             # Dimension mismatch
 @test_throws ErrorException C_111 - C_222             # Dimension mismatch
 @test_throws ErrorException C_111 * C_222             # Dimension mismatch
-@test_throws ErrorException [s 0; 1]                  # Dimension mismatch
+@test_throws ErrorException @sys [s 0; 1]                  # Dimension mismatch
 @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 - C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 * C_111             # Sampling time mismatch
@@ -137,7 +137,7 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException zpk("z", 0)                # z creation can't be continuous
 @test_throws ErrorException zpk("z")                   # z creation can't be continuous
 # Remove this when inferec is implemented
-@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
+@test_throws ErrorException @sys [z 0]                     # Sampling time mismatch (inferec could be implemented)
 
 
 @test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{ControlSystems.SisoZpk{Float64,Complex{Float64}}}

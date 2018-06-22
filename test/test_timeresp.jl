@@ -38,7 +38,7 @@ yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
 
 #Test step and impulse Continuous
 t0 = 0:0.05:2
-systf = [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
+systf = @sys [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
 sysss = ss([-1 0 0; 0 -2 -1; 0 1 0], [1 0; 0 1; 0 0], [1 0 0; 0 1 -1], 0)
 yreal = zeros(length(t0), 2, 2)
 xreal = zeros(length(t0), 3, 2)
@@ -71,7 +71,7 @@ xreal[:,3,2] = exp.(-t).*t
 
 #Test step and impulse Discrete
 t0 = 0:0.05:2
-systf = [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
+systf = @sys [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
 sysss = ss([-1 0 0; 0 -2 -1; 0 1 0], [1 0; 0 1; 0 0], [1 0 0; 0 1 -1], 0)
 yreal = zeros(length(t0), 2, 2)
 xreal = zeros(length(t0), 3, 2)

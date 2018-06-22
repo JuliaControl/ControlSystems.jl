@@ -43,13 +43,56 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
+"""
+`@sys [...]`
+
+Create a system with multiple inputs and outputs from blocks.
+
+2-input 1 output:
+
+`@sys [tf([1],[1,1]) 1]`
+
+1-input 3 output:
+
+`@sys [2; tf([1],[1,1]); 10.0]`
+
+2 input 2 output
+
+`s = tf("s")`
+
+`@sys [1/s 1/(s+1); 1 s/(1+s)]`
+"""
 macro sys(ex)
     if ex.head == :vcat
         # vcat or hvcat
+        #if any(arg -> arg.head == :row, ex.args)
+            #hvcat
+            rows = hcatsysex.(ex.args)
+            return esc(Expr(:call, vcatsys, rows...))
+        #else
+        #    #vcat
+        #    Expr(:call, vcat, ex.args...)
+        #end
     elseif ex.head == :hcat
         # hcat only
+        return esc(hcatsysex(ex))
+    else
+        :(error("Undexpected argument to @sys, expected `vcat` or `hcat`"))
     end
 end
+
+function hcatsysex(ex::Expr)
+    if ex.head == :hcat
+        return Expr(:call, ControlSystems.hcatsys, ex.args...)
+    elseif ex.head == :row
+        return Expr(:call, ControlSystems.hcatsys, ex.args...)
+    else
+        return ex
+    end
+end
+
+hcatsysex(ex) = ex
+
 
 function vcatsys(systems::StateSpace...)
     # Perform checks
@@ -85,11 +128,13 @@ end
 
 vcatsys(systems::LTISystem...) = vcat(promote(systems...)...)
 
-function vcatsys{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
-    if Base.promote_typeof(systems...) <: TransferFunction
-        vcat(map(e->convert(TransferFunction,e),systems)...)
+function vcatsys(systems::Union{VecOrMat{<:Number},<:Number,TransferFunction}...)
+    S = Base.promote_typeof(systems...)
+    if S <: TransferFunction
+        # Use internal function to create big system
+        vcatsys(map(e->convert(S,e),systems)...)
     else
-        cat(1,systems...)
+        vcat(systems...)
     end
 end
 
@@ -129,27 +174,28 @@ hcatsys(systems::LTISystem...) = hcat(promote(systems...)...)
 
 
 # TODO: Fix this
-function hcatsys(systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+function hcatsys(systems::Union{<:Number,AbstractVecOrMat{<:Number},LTISystem}...)
     S = Base.promote_typeof(systems...)
     if S <: LTISystem
+        # Use internal function to create big system
         hcatsys(map(e->convert(S,e),systems)...)
     else
-        cat(Val{2},systems...)
+        hcat(systems...)
     end
 end
 
 
-function hvcatsys(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
-    T = Base.promote_typeof(systems...)
-    nbr = length(rows)  # number of block rows
-    rs = Array{T,1}(nbr)
-    a = 1
-    for i = 1:nbr
-        rs[i] = hcatsys(convert.(T,systems[a:a-1+rows[i]])...)
-        a += rows[i]
-    end
-    vcatsys(rs...)
-end
+# function hvcatsys(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+#     T = Base.promote_typeof(systems...)
+#     nbr = length(rows)  # number of block rows
+#     rs = Array{T,1}(nbr)
+#     a = 1
+#     for i = 1:nbr
+#         rs[i] = hcatsys(convert.(T,systems[a:a-1+rows[i]])...)
+#         a += rows[i]
+#     end
+#     vcatsys(rs...)
+# end
 
 # function _get_common_sampling_time(sys_vec::Union{AbstractVector{LTISystem},AbstractVecOrMat{<:Number},Number})
 #     Ts = -1.0 # Initalize corresponding to undefined sampling time
