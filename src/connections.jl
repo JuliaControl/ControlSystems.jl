@@ -43,58 +43,7 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
-"""
-`@sys [...]`
-
-Create a system with multiple inputs and outputs from blocks.
-
-2-input 1 output:
-
-`@sys [tf([1],[1,1]) 1]`
-
-1-input 3 output:
-
-`@sys [2; tf([1],[1,1]); 10.0]`
-
-2 input 2 output
-
-`s = tf("s")`
-
-`@sys [1/s 1/(s+1); 1 s/(1+s)]`
-"""
-macro sys(ex)
-    if ex.head == :vcat
-        # vcat or hvcat
-        #if any(arg -> arg.head == :row, ex.args)
-            #hvcat
-            rows = hcatsysex.(ex.args)
-            return esc(Expr(:call, vcatsys, rows...))
-        #else
-        #    #vcat
-        #    Expr(:call, vcat, ex.args...)
-        #end
-    elseif ex.head == :hcat
-        # hcat only
-        return esc(hcatsysex(ex))
-    else
-        :(error("Undexpected argument to @sys, expected `vcat` or `hcat`"))
-    end
-end
-
-function hcatsysex(ex::Expr)
-    if ex.head == :hcat
-        return Expr(:call, ControlSystems.hcatsys, ex.args...)
-    elseif ex.head == :row
-        return Expr(:call, ControlSystems.hcatsys, ex.args...)
-    else
-        return ex
-    end
-end
-
-hcatsysex(ex) = ex
-
-
-function vcatsys(systems::StateSpace...)
+function Base.vcat(systems::StateSpace...)
     # Perform checks
     nu = systems[1].nu
     if !all(s.nu == nu for s in systems)
@@ -112,7 +61,7 @@ function vcatsys(systems::StateSpace...)
     return StateSpace(A, B, C, D, Ts)
 end
 
-function vcatsys(systems::TransferFunction...)
+function Base.vcat(systems::TransferFunction...)
     # Perform checks
     nu = systems[1].nu
     if !all(s.nu == nu for s in systems)
@@ -126,19 +75,9 @@ function vcatsys(systems::TransferFunction...)
     return TransferFunction(mat, Ts)
 end
 
-vcatsys(systems::LTISystem...) = vcat(promote(systems...)...)
+Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
-function vcatsys(systems::Union{VecOrMat{<:Number},<:Number,TransferFunction}...)
-    S = Base.promote_typeof(systems...)
-    if S <: TransferFunction
-        # Use internal function to create big system
-        vcatsys(map(e->convert(S,e),systems)...)
-    else
-        vcat(systems...)
-    end
-end
-
-function hcatsys(systems::StateSpace...)
+function Base.hcat(systems::StateSpace...)
     # Perform checks
     ny = systems[1].ny
     if !all(s.ny == ny for s in systems)
@@ -156,7 +95,7 @@ function hcatsys(systems::StateSpace...)
     return StateSpace(A, B, C, D, Ts)
 end
 
-function hcatsys(systems::TransferFunction...)
+function Base.hcat(systems::TransferFunction...)
     # Perform checks
     ny = systems[1].ny
     if !all(s.ny == ny for s in systems)
@@ -170,31 +109,26 @@ function hcatsys(systems::TransferFunction...)
     return TransferFunction(mat, Ts)
 end
 
-hcatsys(systems::LTISystem...) = hcat(promote(systems...)...)
+Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
-
-# TODO: Fix this
-function hcatsys(systems::Union{<:Number,AbstractVecOrMat{<:Number},LTISystem}...)
-    S = Base.promote_typeof(systems...)
-    if S <: LTISystem
-        # Use internal function to create big system
-        hcatsys(map(e->convert(S,e),systems)...)
-    else
-        hcat(systems...)
-    end
+function Base.cat_t(::Type{Val{1}}, T::Type{<:LTISystem}, X...)
+        vcat(convert.(T, X)...)
 end
 
+function Base.cat_t(::Type{Val{2}}, T::Type{<:LTISystem}, X...)
+        hcat(convert.(T, X)...)
+end
 
-# function hvcatsys(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+# function hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
 #     T = Base.promote_typeof(systems...)
 #     nbr = length(rows)  # number of block rows
 #     rs = Array{T,1}(nbr)
 #     a = 1
 #     for i = 1:nbr
-#         rs[i] = hcatsys(convert.(T,systems[a:a-1+rows[i]])...)
+#         rs[i] = hcat(convert.(T,systems[a:a-1+rows[i]])...)
 #         a += rows[i]
 #     end
-#     vcatsys(rs...)
+#     vcat(rs...)
 # end
 
 # function _get_common_sampling_time(sys_vec::Union{AbstractVector{LTISystem},AbstractVecOrMat{<:Number},Number})

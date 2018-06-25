@@ -14,6 +14,10 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
             p = TR[]
             z = TR[]
         end
+        if TR <: Complex && T <: Real
+            @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
+            @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
+        end
         new{T,TR}(z, p, k)
     end
 end

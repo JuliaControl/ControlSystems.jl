@@ -10,7 +10,7 @@ C_111 = tf([1, 2], [1, 5])
 C_211 = tf([1, 2, 3], [1, 8, 15])
 C_212 = tf(vecarray(2, 1,[1, 2, 3], [1, 2]), vecarray(2, 1, [1, 8, 15], [1, 8, 15]))
 C_221 = tf(vecarray(1, 2,[1, 2, 3], [1, 2]), vecarray(1, 2, [1, 8, 15], [1, 8, 15]))
-C_222 = @sys [C_221; C_221]
+C_222 = [C_221; C_221]
 C_022 = tf(4*eye(2))
 s = tf("s")
 
@@ -18,7 +18,7 @@ s = tf("s")
 D_111 = tf([1, 2], [1, -0.5], 0.005)
 D_211 = tf([1, 2, 3], [1, -0.2, -0.15], 0.005)
 D_221 = tf(vecarray(1, 2, [1, 2, 3], [1, 2]), vecarray(1, 2, [1, -0.2, -0.15], [1, -0.2, -0.15]), 0.005)
-D_222 = @sys [D_221; D_221]
+D_222 = [D_221; D_221]
 D_022 = tf(4*eye(2), 0.005)
 z = tf("z", 0.005)
 
@@ -28,7 +28,7 @@ z = tf("z", 0.005)
 @test z == tf([1, 0], [1], 0.005)
 @test C_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]))
 @test D_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]), 0.005)
-@test C_022 == @sys [tf(4) 0;0 4]
+@test C_022 == [tf(4) 0;0 4]
 @test C_022 == tf([4 0;0 4])
 @test D_022 == tf([4 0;0 4], 0.005)
 
@@ -106,7 +106,7 @@ res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n--------------
 @test_throws ErrorException C_111 + C_222             # Dimension mismatch
 @test_throws ErrorException C_111 - C_222             # Dimension mismatch
 @test_throws ErrorException C_111 * C_222             # Dimension mismatch
-@test_throws ErrorException @sys [s 0; 1]                  # Dimension mismatch
+@test_throws ErrorException [s 0; 1]                  # Dimension mismatch
 @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 - C_111             # Sampling time mismatch
 @test_throws ErrorException D_111 * C_111             # Sampling time mismatch
@@ -118,5 +118,5 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException tf("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous
-@test_throws ErrorException @sys [z 0]                     # Sampling time mismatch (inferec could be implemented)
+@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 end
