@@ -154,8 +154,8 @@ function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::Abstr
 
     # Compute the transformation matrix
     mag_A = abs.(A)
-    mag_B = max.(abs.(B), 0)
-    mag_C = max.(abs.(C), 0)
+    mag_B = max.(abs.(B), zero(P))
+    mag_C = max.(abs.(C), zero(P))
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation
@@ -166,8 +166,9 @@ function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::Abstr
     return A, B, C, T
 end
 
+#TODO Throw a warning here at least?
 # Fallback mehod for systems with exotic matrices (i.e. TrackedArrays)
-balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, args...) = A,B,C,I
+balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false) = A,B,C,I
 
 function balance_statespace(sys::StateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
@@ -186,7 +187,7 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 See also `balance_statespace`, `balance`
 """
-function balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bool=false)
+function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasNumber}
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
     T = [A B; C zeros(size(C*B))]
@@ -209,10 +210,7 @@ balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,s
 @doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")`
 
 Convert a `StateSpace` realization to a `TransferFunction`""" ->
-function convert(::Type{TransferFunction}, sys::StateSpace)
-    #T = promote_type(primitivetype(A), Float64) # Int SS is not well represented by Int tf, (should actually be possible..)
-    T0 = numeric_type(sys)
-    T = typeof(sqrt(one(T0))) # NOTE: Reasonable?
+function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) where {T<:Number}
     matrix = Matrix{SisoRational{T}}(size(sys))
 
     A, B, C, D = ssdata(sys)
@@ -228,6 +226,10 @@ function convert(::Type{TransferFunction}, sys::StateSpace)
     TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
 end
 
+function convert(::Type{TransferFunction}, sys::StateSpace{T0}) where {T0<:Number}
+    T = typeof(one(T0)/one(T0))
+    convert(TransferFunction{SisoRational{T}}, sys)
+end
 
 
 
@@ -236,14 +238,11 @@ end
 # algorithm for the computation of the # characteristic polynomial of a general square matrix.
 function charpoly(A::AbstractMatrix{<:Complex})
     Λ = eigvals(A)
-    T = promote_type(eltype(A), Complex128)
 
     return prod(roots2complex_poly_factors(Λ)) # Compute the polynomial factors directly?
 end
 function charpoly(A::AbstractMatrix{<:Real})
     Λ = eigvals(A)
-    T = promote_type(eltype(A), Float64)
-
     return prod(roots2real_poly_factors(Λ))
 end
 

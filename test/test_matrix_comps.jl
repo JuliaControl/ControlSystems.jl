@@ -13,6 +13,10 @@ sysr, G = balreal(sys)
 sysb,T = ControlSystems.balance_statespace(sys)
 Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
+@test Ab*T ≈ T*A
+@test Bb ≈ T*B
+@test Cb*T ≈ C
+
 @test sysb.A ≈ Ab
 
 @test ControlSystems.balance_transform(A,B,C) ≈ ControlSystems.balance_transform(sys)
@@ -32,4 +36,26 @@ D2 = eye(2)
 
 # Discrete system can have direct term
 @test covar(ss(A,B,C,D2,0.1),W) ≈ [1.00011010837831 -1.0098377309782909e-5; -1.0098377309782909e-5 1.00011010837831]
+
+# TODO test in Julia 0.7 to see if supported
+# # Test special matrices
+# As = sparse(A)
+# Bs = sparse(B)
+# Cs = sparse(C)
+# Asb,Bsb,Csb,Ts = ControlSystems.balance_statespace(As,Bs,Cs) #Error no LAPACK function
+#
+# @test Abs*Ts ≈ Ts*As
+# @test Bbs ≈ Ts*Bs
+# @test Cbs*Ts ≈ Cs
+
+# Test special values
+Ar = rationalize.(A)
+Br = rationalize.(B)
+Cr = rationalize.(C)
+Arb,Brb,Crb,Tr = ControlSystems.balance_statespace(Ar,Br,Cr)
+
+@test Arb*Tr ≈ Tr*Ar
+@test Brb ≈ Tr*Br
+@test Crb*Tr ≈ Cr
+
 end
