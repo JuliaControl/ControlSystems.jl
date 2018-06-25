@@ -77,14 +77,6 @@ end
 
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
-function Base.vcat{T<:Real}(systems::Union{VecOrMat{T},T,TransferFunction}...)
-    if Base.promote_typeof(systems...) <: TransferFunction
-        vcat(map(e->convert(TransferFunction,e),systems)...)
-    else
-        cat(1,systems...)
-    end
-end
-
 function Base.hcat(systems::StateSpace...)
     # Perform checks
     ny = systems[1].ny
@@ -119,29 +111,25 @@ end
 
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
-
-# TODO: Fix this
-function Base.hcat(systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
-    S = Base.promote_typeof(systems...)
-    if S <: LTISystem
-        hcat(map(e->convert(S,e),systems)...)
-    else
-        cat(Val{2},systems...)
-    end
+function Base.cat_t(::Type{Val{1}}, T::Type{<:LTISystem}, X...)
+        vcat(convert.(T, X)...)
 end
 
-
-function Base.hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
-    T = Base.promote_typeof(systems...)
-    nbr = length(rows)  # number of block rows
-    rs = Array{T,1}(nbr)
-    a = 1
-    for i = 1:nbr
-        rs[i] = hcat(convert.(T,systems[a:a-1+rows[i]])...)
-        a += rows[i]
-    end
-    vcat(rs...)
+function Base.cat_t(::Type{Val{2}}, T::Type{<:LTISystem}, X...)
+        hcat(convert.(T, X)...)
 end
+
+# function hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
+#     T = Base.promote_typeof(systems...)
+#     nbr = length(rows)  # number of block rows
+#     rs = Array{T,1}(nbr)
+#     a = 1
+#     for i = 1:nbr
+#         rs[i] = hcat(convert.(T,systems[a:a-1+rows[i]])...)
+#         a += rows[i]
+#     end
+#     vcat(rs...)
+# end
 
 # function _get_common_sampling_time(sys_vec::Union{AbstractVector{LTISystem},AbstractVecOrMat{<:Number},Number})
 #     Ts = -1.0 # Initalize corresponding to undefined sampling time

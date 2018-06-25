@@ -7,7 +7,7 @@ script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
     - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
     #- julia -e 'ENV["PYTHON"] = ""; Pkg.clone("PyPlot"); Pkg.build("PyPlot")'
-    - julia -e 'Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git");'
+    #- julia -e 'Pkg.clone("https://github.com/JuliaControl/ControlExamplePlots.jl.git");'
     - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
 after_success:
     - julia -e 'cd(Pkg.dir("ControlSystems")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'

@@ -16,5 +16,3 @@ function Base.promote_rule(::Type{SisoZpk{T1,TR1}}, ::Type{T2}) where {T1<:Numbe
     # TODO Not obvious that we want to promote to complex poles?
     SisoZpk{Tnew, TRnew}
 end
-
-Base.promote_op(::Any, ::Type{T}, ::Type{T}) where {T<:SisoTf} = T

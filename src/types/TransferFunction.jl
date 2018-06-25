@@ -122,7 +122,6 @@ function +(G1::TransferFunction, G2::TransferFunction)
         error("Sampling time mismatch")
     end
 
-    G1, G2 = promote(G1, G2)
     matrix = G1.matrix + G2.matrix
     return TransferFunction(matrix, G1.Ts)
 end
@@ -146,15 +145,10 @@ function *(G1::TransferFunction, G2::TransferFunction)
     elseif G1.Ts != G2.Ts
         error("Sampling time mismatch")
     end
-    S = promote_type(eltype(G1), eltype(G2)) # FIXME: Should be done analogusly to +
-
-    #matrix = convert(Matrix{S}, G1.matrix) * convert(Matrix{S}, G2.matrix)
-    G1, G2 = promote(G1, G2)
 
     matrix = G1.matrix * G2.matrix
-    convert(Matrix{S}, matrix)
 
-    return TransferFunction{S}(matrix, G1.Ts)
+    return TransferFunction{eltype(matrix)}(matrix, G1.Ts)
 end
 
 *(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.Ts)

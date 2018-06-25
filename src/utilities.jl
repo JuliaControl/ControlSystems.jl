@@ -38,7 +38,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
             end
 
             if k == length(roots) || r != conj(roots[k+1])
-                error("Found pole without matching conjugate.")
+                throw(AssertionError("Found pole without matching conjugate."))
             end
 
             push!(poly_factors,Poly{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))
