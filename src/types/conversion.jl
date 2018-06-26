@@ -18,20 +18,22 @@
 # Base.convert(::Type{<:TransferFunction}, b::Number) = tf([b])
 # Base.convert(::Type{<:TransferFunction{<:SisoRational}}, b::Number) = tf(b)
 # Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, b::Number) = zpk(b)
-Base.convert(::Type{<:TransferFunction{<:SisoRational{T}}}, b::Number) where {T<:Number} = tf(T(b))
-Base.convert(::Type{<:TransferFunction{<:SisoZpk{T, TR}}}, b::Number) where {T<:Number, TR} = zpk(T(b))
 
 Base.convert(::Type{<:TransferFunction{<:SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {T1, TR1, T2<:Number} = zpk(T1.(b))
 Base.convert(::Type{<:TransferFunction{<:SisoRational{T1}}}, b::AbstractMatrix{T2}) where {T1, T2<:Number} = tf(T1.(b))
-
-function Base.convert(::Type{StateSpace{T1, MT}}, b::T2) where {T1, MT, T2<:Number}
-    A = convert(MT, fill(zero(T1), (0,0)))
-    B = convert(MT, fill(zero(T1), (0,1)))
-    C = convert(MT, fill(zero(T1), (1,0)))
-    D = convert(MT, fill(convert(T1, b), (1,1)))
+function convert(::Type{StateSpace{T,MT}}, D::AbstractMatrix{<:Number}) where {T, MT}
+    (ny, nu) = size(D)
+    A = MT(fill(zero(T), (0,0)))
+    B = MT(fill(zero(T), (0,nu)))
+    C = MT(fill(zero(T), (ny,0)))
+    D = convert(MT, D)
     Ts = 0.0
-    return StateSpace{T1,MT}(A,B,C,D,Ts)
+    return StateSpace{T,MT}(A,B,C,D,Ts)
 end
+
+Base.convert(::Type{<:TransferFunction{<:SisoRational{T}}}, b::Number) where {T} = tf(T(b))
+Base.convert(::Type{<:TransferFunction{<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b))
+Base.convert(::Type{StateSpace{T, MT}}, b::Number) where {T, MT} = convert(StateSpace{T, MT}, fill(b, (1,1)))
 
 
 #Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, s::TransferFunction) = zpk(s)
