@@ -62,15 +62,14 @@ function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
 end
 
 
-function Base.convert(::Type{<:StateSpace}, G::TransferFunction)
+function Base.convert(::Type{<:StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
 
     # TODO : These are added due to scoped for blocks, but is a hack. This
     # could be much cleaner.
-    T0 = numeric_type(G)
-    T = typeof(one(T0) / one(T0))
+    T = Base.promote_op(/, T0, T0)
 
     Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(0, 0)
     for i=1:ninputs(G)
@@ -103,9 +102,8 @@ end
 siso_tf_to_ss(f::SisoTf) = siso_tf_to_ss(convert(SisoRational, f))
 
 # Conversion to statespace on controllable canonical form
-function siso_tf_to_ss(f::SisoRational)
-    T0 = numeric_type(f)
-    T = typeof(one(T0)/one(T0))
+function siso_tf_to_ss(f::SisoRational{T0}) where {T0<:Number}
+    T = Base.promote_op(/,T0,T0)
 
     num0, den0 = Base.num(f), Base.den(f)
     # Normalize the numerator and denominator
