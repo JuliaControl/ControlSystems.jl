@@ -161,6 +161,15 @@ function poly_factors2string(poly_factors, var)
     end
 end
 
+function _printcoefficient(nbr::Number)
+    nbr_string = string(nbr)
+    if contains(nbr_string, " + ") || contains(nbr_string, " - ")
+        return "($nbr_string)"
+    else
+        return nbr_string
+    end
+end
+
 function print_siso(io::IO, t::SisoZpk, var=:s)
     if typeof(t.k) <: Real
         numstr = poly_factors2string(roots2real_poly_factors(t.z), var)
@@ -181,7 +190,7 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
         denstr = "$(repeat(" ", div(dashcount - len_den, 2)))$denstr"
     end
 
-    gainstr = string(t.k)
+    gainstr = _printcoefficient(t.k)
     #Add spaces to account for gain string
     numstr = " "^(length(gainstr))*numstr
     denstr = " "^(length(gainstr))*denstr
