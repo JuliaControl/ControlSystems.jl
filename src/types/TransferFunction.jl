@@ -45,14 +45,14 @@ ninputs(G::TransferFunction) = size(G.matrix, 2)
 Base.ndims(::TransferFunction) = 2
 Base.size(G::TransferFunction) = size(G.matrix)
 Base.size(G::TransferFunction, d) = size(G.matrix, d)
+Base.eltype(::Type{S}) where {S<:TransferFunction} = S
 
-function Base.getindex(G::TransferFunction, inds...)
+function Base.getindex(G::TransferFunction{S}, inds...) where {S<:SisoTf}
     if size(inds, 1) != 2
         error("Must specify 2 indices to index TransferFunction model")
     end
     rows, cols = index2range(inds...)
-    T = eltype(G.matrix)
-    mat = Matrix{T}(length(rows), length(cols))
+    mat = Matrix{S}(length(rows), length(cols))
     mat[:, :] = G.matrix[rows, cols]
     return TransferFunction(mat, G.Ts)
 end

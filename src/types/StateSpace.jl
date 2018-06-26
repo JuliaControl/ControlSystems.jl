@@ -151,13 +151,14 @@ Base.inv(sys::StateSpace) = 1/sys
 Base.ndims(::StateSpace) = 2 # NOTE: Also for SISO systems?
 Base.size(sys::StateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(get_D(sys))
 Base.size(sys::StateSpace, d) = d <= 2 ? size(sys)[d] : 1
+Base.eltype(::Type{S}) where {S<:StateSpace} = S
 
 function Base.getindex(sys::StateSpace, inds...)
     if size(inds, 1) != 2
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
-    return StateSpace([sys.A;], [sys.B[:, cols];], [sys.C[rows, :];], [sys.D[rows, cols];], sys.Ts)
+    return StateSpace(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.Ts)
 end
 
 #####################################################################
