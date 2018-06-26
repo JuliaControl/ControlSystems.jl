@@ -150,4 +150,10 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 
 #This might fail depending on if minreal is used or not
 @test (Czpk_211+1) ≈ (Ctf_211+1)
+
+
+
+@test_broken [D_111 1.0] # Concatenation of discrete system with constant
+@test_broken [D_222 fill(1.5, 2, 2)] # Concatenation of discrete system with matrix
+
 end

@@ -138,14 +138,15 @@ end
 
 
 
-function evalfr(sys::SisoZpk, s::Number)
-    S = promote_type(typeof(s), Float64)
-    den = prod(s-a for a in sys.p)
-    if den == zero(S)
-        return convert(S, Inf)
+function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
+    T0 = promote_type(T2, TR)
+    T = promote_type(T1, Base.promote_op(/, T0, T0))
+    den = reduce(*, one(T0), s-a for a in f.p) # Default to one
+    if den == zero(T0)
+        return convert(T, Inf)
     else
-        num = prod(s-b for b in sys.z)
-        return sys.k*num/den
+        num = reduce(*, one(T0), s-b for b in f.z)
+        return f.k*num/den
     end
 end
 

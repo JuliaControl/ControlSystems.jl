@@ -23,7 +23,7 @@ D = zeros(1,1);
 sys = ss(A,B,C,D)
 sys2 = convert(TransferFunction, sys)
 w = 10.0 .^ range(-2,2,50)
-@test_broken freqresp(sys, w) ≈ freqresp(sys2, w)
+@test freqresp(sys, w) ≈ freqresp(sys2, w)
 csort = v -> sort(v, lt = (x,y) -> abs(x) < abs(y))
 @test csort(pole(zpk(sys2))) ≈ [1+im, -2.0-3im]
 

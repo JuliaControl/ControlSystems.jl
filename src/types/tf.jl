@@ -18,7 +18,7 @@ function tf(num::AbstractVector{T1}, den::AbstractVector{T2}, Ts::Real=0.0) wher
     T = promote_type(T1, T2)
     return TransferFunction{SisoRational{T}}(fill(SisoRational{T}(num, den), 1, 1), Ts)
 end
-tf(num::Real, den::Vector, Ts::Real=0.0) = tf([num], den, Ts)
+tf(num::Number, den::Vector, Ts::Real=0.0) = tf([num], den, Ts)
 
 # Cases for just static gain
 function tf(D::AbstractArray{T}, Ts::Real=0.0) where {T<:Number}
@@ -30,7 +30,7 @@ function tf(D::AbstractArray{T}, Ts::Real=0.0) where {T<:Number}
     end
     return TransferFunction{SisoRational{T}}(matrix, Float64(Ts))
 end
-tf(n::Real, Ts::Real=0; kwargs...) = tf([n], Ts; kwargs...)
+tf(n::Number, Ts::Real=0; kwargs...) = tf([n], Ts; kwargs...)
 
 tf(sys::StateSpace) = convert(TransferFunction, sys) # NOTE: Would perhaps like to write TransferFunction{SisoRational}, but couldn't get this to work...
 

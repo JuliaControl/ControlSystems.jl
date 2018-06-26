@@ -39,10 +39,11 @@ function _preprocess_for_freqresp(sys::StateSpace)
     if isempty(sys.A) # hessfact does not work for empty matrices
         return sys
     end
+    TT = promote_type(numeric_type(sys), Float64)
 
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
     F = hessfact(A)
-    H = F[:H]::Matrix{Float64}
+    H = F[:H]::Matrix{TT}
     T = full(F[:Q])
     P = C*T
     Q = T\B
