@@ -73,7 +73,7 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Polynomials, OrdinaryDiffEq, Plots
+using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
 abstract type AbstractSystem end
@@ -118,6 +118,8 @@ include("synthesis.jl")
 
 include("simulators.jl")
 include("pid_design.jl")
+
+include("plotting.jl")
 
 
 
