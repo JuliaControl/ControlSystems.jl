@@ -143,10 +143,10 @@ end
 
 """
 `feedback(L)` Returns L/(1+L)
-`feedback(P,C)` Returns PC/(1+PC)
+`feedback(P1,P2)` Returns P1/(1+P1*P2)
 """
 feedback(L::TransferFunction) = L/(1+L)
-feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
+feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
 #Efficient implementations
 function feedback{T<:SisoRational}(L::TransferFunction{T})
@@ -156,19 +156,19 @@ function feedback{T<:SisoRational}(L::TransferFunction{T})
     P = numpoly(L)
     Q = denpoly(L)
     #Extract polynomials and create P/(P+Q)
-    tf(P[1][:],(P+Q)[1][:], Ts=L.Ts)
+    tf(P[1][:],(P+Q)[1][:], L.Ts)
 end
 
-function ControlSystems.feedback{T<:ControlSystems.SisoZpk}(L::TransferFunction{T})
+function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
     if size(L) != (1,1)
         error("MIMO TransferFunction inversion isn't implemented yet")
     end
     numer = num(L.matrix[1])
     k = L.matrix[1].k
-    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1])
+    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1]) # TODO: Chcek indexing into polynomials
     kden = denpol[1]
     #Extract polynomials and create P/(P+Q)
-    zpk(numer,ControlSystems.roots(denpol), k/kden, Ts=L.Ts)
+    zpk(numer, roots(denpol), k/kden, L.Ts)
 end
 
 """

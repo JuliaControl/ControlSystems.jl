@@ -115,7 +115,7 @@ ninf, fpeak = norminf(D_static, tol=tolHinf)
 
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
-T, P, B = ControlSystems.balance(A)
+T, P, B = balance(A)
 # The scaling is BLAS dependent. However, the ratio should be the same on all
 # machines. We just need to check that T == res * constant
 res_diag = [512, 8, 0.0625]

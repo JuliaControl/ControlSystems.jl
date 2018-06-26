@@ -24,17 +24,18 @@ z = tf("z", 0.005)
 
 # TESTS
 # Constructors
-@test s == tf([1, 0], [1])
-@test z == tf([1, 0], [1], 0.005)
-@test C_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]))
-@test D_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]), 0.005)
-@test C_022 == [tf(4) 0;0 4]
-@test C_022 == tf([4 0;0 4])
-@test D_022 == tf([4 0;0 4], 0.005)
+@assume s == tf([1, 0], [1])
+@assume z == tf([1, 0], [1], 0.005)
+@assume C_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]))
+@assume D_022 == tf(vecarray(2, 2, [4], [0], [0], [4]), vecarray(2, 2, [1], [1], [1], [1]), 0.005)
+@assume C_022 == [tf(4) 0;0 4]
+@assume C_022 == tf([4 0;0 4])
+@assume D_022 == tf([4 0;0 4], 0.005)
 
 # Addition
-@test C_111 + C_111 == tf([2,14,20], [1,10,25])
-@test C_222 + C_222 == tf(vecarray(2, 2, [2,20,68,108,90], [0,2,20,62,60],
+@assume C_111 + C_111 == tf([2,14,20], [1,10,25])
+@assume C_222 + C_222 ==
+tf(vecarray(2, 2, [2,20,68,108,90], [0,2,20,62,60],
               [2,20,68,108,90], [0,2,20,62,60]),
   vecarray(2, 2, [1,16,94,240,225], [1,16,94,240,225],
               [1,16,94,240,225], [1,16,94,240,225]))
@@ -44,9 +45,10 @@ z = tf("z", 0.005)
 
 # Subtraction
 @test C_111 - C_211 == tf([0,3,18,15], [1,13,55,75])
-@test 1 - C_222 == tf(vecarray(2, 2, [0,6,12], [1,7,13], [0,6,12], [1,7,13]), vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
-# We are not doing enough to identify zero numerator here
-@test_broken D_111 - D_211 - tf([0,0.3,-2.55,1.2], [1,-0.7,-0.05,0.075], 0.005) == tf([0.0], [1], 0.005)
+@test 1 - C_222 == tf(vecarray(2, 2, [0,6,12], [1,7,13], [0,6,12], [1,7,13]),
+  vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
+@test D_111 - D_211 - tf([0,0.3,-2.55,1.2], [1,-0.7,-0.05,0.075], 0.005) ==
+    tf([0], [1], 0.005)
 
 # Multiplication
 @test C_111 * C_221 == tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
@@ -55,8 +57,7 @@ z = tf("z", 0.005)
   vecarray(2, 1, [1,13,55,75], [1,13,55,75]))
 @test 4*C_222 == tf(vecarray(2, 2, [4,8,12], [0,4,8], [4,8,12], [0,4,8]),
   vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
- # We are not doing enough to identify zero numerator here
-@test_broken D_111 * D_221 - tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
+@test D_111 * D_221 - tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
   vecarray(1, 2, [1,-0.7,-0.05,0.075], [1.0,-0.7,-0.05,0.075]), 0.005) ==
 tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 
@@ -74,20 +75,11 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
-# Errors
-@test_throws ErrorException tf(vecarray(1, 1, [1,7,13,15]),
-   vecarray(2, 1, [1,10,31,30], [1,10,31,30]))
-
-
 # Printing
 res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to Output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
-@test_broken sprint(show, C_222) == res
+@test sprint(show, C_222) == res
 res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
-@test_broken sprint(show, D_222) == res
-
-
-@test tf(zpk([1.0 2; 3 4])) == tf([1 2; 3 4])
-
+@test sprint(show, D_222) == res
 
 # Type stability Continuous-time
 @test eltype(fill(tf("s"),2)) <: TransferFunction

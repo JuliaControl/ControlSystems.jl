@@ -1,4 +1,4 @@
-@testset "test_zpk" begin
+#@testset "test_zpk" begin
 # Naming convention:
 # ------------------
 # {type}_{dims}
@@ -32,34 +32,22 @@ z = zpk("z", 0.005)
 #TODO We might want to fix this
 #@test D_022 == [zpk(4, 0.005) 0;0 4])
 
-# Test constructors with empty matrices of type Any
-@test zpk([-1.0], [], 1.0) == zpk([-1.0], Float64[], 1.0)
-@test zpk([], [-1.0], 1.0) == zpk(Float64[], [-1.0], 1.0)
-@test zpk([], [], 1.0) == zpk(Float64[], Float64[], 1.0)
-@test zpk([], [1.0+im,1.0-im], 1.0) == zpk(Complex128[], [1.0+im,1.0-im], 1.0)
-
-
-
 #TODO improve polynomial accuracy se these are equal
 # Addition
 @test C_111 + C_111 ≈ zpk([-2,-5], [-5,-5], 2)
 @test C_222 + C_222 ≈
-  zpk(vecarray(2, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2], [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(2, 2, [-5,-3], [-5,-3], [-5,-3], [-5,-3]), [2 2;2 2])
+zpk(vecarray(2, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2], [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(2, 2, [-5,-3], [-5,-3], [-5,-3], [-5,-3]), [2 2;2 2])
 z1 = [-2.5+sqrt(9-2.5^2)im, -2.5-sqrt(9-2.5^2)im]
 z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
-
-
 @test C_222 + 1 ≈ zpk(vecarray(2, 2, z1, z2, z1, z2), vecarray(2, 2, [-3, -5], [-3, -5], [-3, -5], [-3, -5]), [2 1; 2 1])
 @test D_111 + D_111 ≈ zpk([-2],[0.5],2,0.005)
 
 # Subtraction
-@test C_111 - C_211 ≈ zpk([-1], [-5,-3.0], 3.0)
-@test minreal(zpk(tf([0,3.0,18,15], [1,13,55,75])), 1e-6) ≈ zpk([-1.0], [-5,-3.0], 3.0)
-
+@test C_111 - C_211 ≈ zpk(tf([0,3,18,15], [1,13,55,75]))
 @test 1 - C_222 ≈ zpk(tf(vecarray(2, 2, [0,6,12], [1,7,13], [0,6,12], [1,7,13]),
   vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15])))
 @test D_111 - D_211 - zpk(tf([0,0.3,-2.55,1.2], [1,-0.7,-0.05,0.075], 0.005)) ≈
-  zpk(tf([0], [1], 0.005))
+    zpk(tf([0], [1], 0.005))
 
 # Multiplication
 @test C_111 * C_221 ≈ zpk(tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
@@ -70,7 +58,7 @@ z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
   vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15])))
 @test D_111 * D_221 - zpk(tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
   vecarray(1, 2, [1,-0.7,-0.05,0.075], [1.0,-0.7,-0.05,0.075]), 0.005)) ≈
-  zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
+zpk(tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005))
 
 # Division
 @test 1/C_111 ≈ zpk(tf([1,5], [1,2]))
@@ -81,8 +69,8 @@ z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
 # Indexing
 @test size(C_222) == (2, 2)
 @test size(C_212) == (2, 1)
-@test C_222[1,1] ≈ zpk(tf([1, 2, 3], [1, 8, 15]))
-@test C_222[1:1,1] ≈ zpk(tf([1, 2, 3], [1, 8, 15]))
+@test C_222[1,1] == zpk(tf([1, 2, 3], [1, 8, 15]))
+@test C_222[1:1,1] == zpk(tf([1, 2, 3], [1, 8, 15]))
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,Int64[]]) == (1,0)
 
@@ -90,24 +78,7 @@ z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
 @test !(zpk(Int64[],[1,1],1) == zpk(Int64[],[1],1))
 # TODO test printing when it is implemented better
 
-# Tests of minreal
-@test minreal(zpk([-5.0], [-5.0, -5.0], 1.0)) == zpk(Float64[], [-5.0], 1.0)
-@test minreal(zpk([-1.0, -2.0], [-2.0, -2.0], 1.0)) == zpk([-1.0], [-2.0], 1.0)
-
-# Tests of minreal (roudning and cancelling complex roots with real roots)
-@test minreal(zpk([-2.0+1e-10im,-2.0-1e-10im], [-2.0], 1.0)) == zpk([-2.0], Float64[], 1.0)
-@test minreal(zpk([-2.0], [-2.0+1e-10im,-2.0-1e-10im], 1.0)) == zpk(Float64[], [-2.0], 1.0)
-@test minreal(zpk([-1.0, -2.0, -2.0+1e-10im,-2.0-1e-10im], [-2.0, -2.0], 1.0)) == zpk([-1.0, -2.0], Float64[], 1.0)
-@test minreal(zpk([-1.0, -2.0+1e-10im,-2.0-1e-10im,-2.0], [-2.0, -2.0], 1.0)) == zpk([-1.0, -2.0], Float64[], 1.0)
-@test minreal(zpk([-2.0, -2.0], [-1.0, -2.0, -2.0+1e-10im,-2.0-1e-10im], 1.0)) ==  zpk(Float64[], [-1.0, -2.0], 1.0)
-@test minreal(zpk([-2.0, -2.0], [-1.0, -2.0+1e-10im,-2.0-1e-10im,-2.0], 1.0)) == zpk(Float64[], [-1.0, -2.0], 1.0)
-
-# Test of minreal (systems with no poles / no zeros)
-@test minreal(zpk([-1.0, -2.0], Float64[], 2.5)) == zpk([-1.0, -2.0], Float64[], 2.5)
-@test minreal(zpk(Float64[], [-1.0, -2.0], 2.5)) == zpk(Float64[], [-1.0, -2.0], 2.5)
-
 # Type stability Continuous and discrete time
-# QUESTION: why not use typeof instead of eltype(fill())
 @test eltype(fill(zpk("s"),2)) <: TransferFunction
 @test eltype(fill(zpk([1],[1,1],1),2)) <: TransferFunction
 @test eltype(fill(zpk(Int64[],[1,1],1.0),2)) <: TransferFunction
@@ -117,8 +88,6 @@ z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
 @test eltype(fill(zpk(1)+1,2)) <: TransferFunction
 
 @test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
-
-zpk(tf([1 2; 3 4])) == zpk([1 2; 3 4])
 
 # Errors
 @test_throws ErrorException C_111 + C_222             # Dimension mismatch
@@ -138,8 +107,4 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException zpk("z")                   # z creation can't be continuous
 # Remove this when inferec is implemented
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
-
-
-@test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{ControlSystems.SisoZpk{Float64,Complex{Float64}}}
-@test typeof(zpk([-0.5], [], 1)) == TransferFunction{ControlSystems.SisoZpk{Int,Float64}}
-end
+#end

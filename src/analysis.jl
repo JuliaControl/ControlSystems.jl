@@ -7,24 +7,11 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 @doc """`dcgain(sys)`
 
-Compute the gain of SISO system `sys`.""" ->
-function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
-    !issiso(sys) && error("Gain only defined for siso systems")
-    return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
-end
-
-@doc """`dcgain(sys)`
-
 Compute the dcgain of system `sys`.
 
 equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
-function dcgain(sys::TransferFunction)
-    !issiso(sys) && error("Gain only defined for siso systems")
-    if sys.Ts > 0
-        return map(s->sum(s.num.a)/sum(s.den.a), sys.matrix)
-    end
-
-    return map(s -> s.num[end]/s.den[end], sys.matrix)
+function dcgain(sys::LTISystem)
+    return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
 @doc """`markovparam(sys, n)`
@@ -78,12 +65,13 @@ function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
     return _zpk_kern(s)
 end
 
-function _zpk_kern(s::SisoRational)
-  return roots(s.num), roots(s.den), s.num[1]/s.den[1]
+function _zpk_kern(f::SisoRational)
+    f_zpk = convert(SisoZpk, f)
+    return f_zpk.z, f_zpk.p, f_zpk.k
 end
 
-function _zpk_kern(s::SisoZpk)
-    return s.z, s.p, s.k
+function _zpk_kern(f::SisoZpk)
+    return f.z, f.p, f.k
 end
 
 @doc """`Wn, zeta, ps = damp(sys)`
@@ -142,8 +130,8 @@ end
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-function tzero(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
-        D::Matrix{Float64})
+function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber},
+        D::Matrix{<:BlasNumber})
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
@@ -176,7 +164,7 @@ end
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, D::Matrix{Float64}, meps::Float64)
+function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber}, D::Matrix{<:BlasNumber}, meps::BlasNumber)
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
@@ -230,10 +218,10 @@ end
 
 # Determine the number of non-zero rows, with meps as a tolerance. For an
 # upper-triangular matrix, this is a good proxy for determining the row-rank.
-function fastrank(A::Matrix{Float64}, meps::Float64)
+function fastrank(A::AbstractMatrix, meps::Real)
     n, m = size(A, 1, 2)
     if n*m == 0     return 0    end
-    norms = Array{Float64}(n)
+    norms = Vector{eltype(A)}(n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end
@@ -256,11 +244,11 @@ function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMa
     vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
     if allMargins
         for val in vals
-            eval(:($val = Array{Array{Float64,1}}($ny,$nu)))
+            eval(:($val = Array{Array{eltype(sys),1}}($ny,$nu)))
         end
     else
         for val in vals
-            eval(:($val = Array{Float64,2}($ny,$nu)))
+            eval(:($val = Array{eltype(sys),2}($ny,$nu)))
         end
     end
     for j=1:nu
@@ -337,8 +325,8 @@ end
 
 function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
-    n =  Array{Float64,1}(length(w)) #Nbr of crossed
-    ph = Array{Float64,1}(length(w)) #Residual
+    n =  Vector{eltype(w)}(length(w)) #Nbr of crossed
+    ph = Vector{eltype(w)}(length(w)) #Residual
     for i = eachindex(w) #Found no easier way to do this
         n[i], ph[i] = fldmod(phase[i]+180,360)#+180
     end
@@ -346,8 +334,8 @@ function _allPhaseCrossings(w, phase)
 end
 
 function _findCrossings(w, n, res)
-    wcross = Array{Float64,1}()
-    tcross = Array{Float64,1}()
+    wcross = Vector{eltype(w)}()
+    tcross = Vector{eltype(w)}()
     for i in 1:(length(w)-1)
         if res[i] == 0
             wcross = [wcross; w[i]]

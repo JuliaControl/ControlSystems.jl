@@ -2,80 +2,73 @@
 
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
-@doc """`[y, t, x] = step(sys[, Tf])` or `[y, t, x] = step(sys[, t])`
+@doc """`y, t, x = step(sys[, Tf])` or `y, t, x = step(sys[, t])`
 
 Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
-function Base.step(sys::StateSpace, t::AbstractVector)
+function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = ones(size(t))
-    x0 = zeros(nx, 1)
+    u = (x,t)->[one(eltype(t))]
+    x0 = zeros(nx)
     if nu == 1
-        y, t, x = lsim(sys, u, t, x0=x0, method=:zoh)
+        y, tout, x, _ = lsim(sys, u, t, x0=x0, method=method)
     else
         x = Array{Float64}(lt, nx, nu)
         y = Array{Float64}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, method=:zoh)
+            y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0, method=method)
         end
     end
     return y, t, x
 end
-function Base.step(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
-    lsim(sys, ones(length(t), sys.nu), t)
-end
 
-Base.step(sys::LTISystem, Tf::Real) = step(sys, _default_time_vector(sys, Tf))
-Base.step(sys::LTISystem) = step(sys, _default_time_vector(sys))
-Base.step(sys::TransferFunction, t::AbstractVector) = step(ss(sys), t::AbstractVector)
+Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(sys, Tf); kwargs...)
+Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
+Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t::AbstractVector; kwargs...)
 
-@doc """`[y, t, x] = impulse(sys[, Tf])` or `[y, t, x] = impulse(sys[, t])`
+@doc """`y, t, x = impulse(sys[, Tf])` or `y, t, x = impulse(sys[, t])`
 
 Calculate the impulse response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
-function impulse(sys::StateSpace, t::AbstractVector)
+function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
+    T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = zeros(size(t))
-    if iscontinuous(sys)
+    if iscontinuous(sys) #&& method == :cont
+        u = (x,i) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
-        imp_sys = ss(sys.A, zeros(nx, 1), sys.C, zeros(ny, 1))
+        imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
+        u = (x,i) -> i == t[1] ? [one(T)]/sys.Ts : [zero(T)]
         imp_sys = sys
-        x0s = zeros(nx, nu)
-        u[1] = 1/sys.Ts
+        x0s = zeros(T, nx, nu)
     end
-    if nu == 1
-        y, t, x = lsim(sys, u, t, x0=x0s, method=:zoh)
+    if nu == 1 # Why two cases # QUESTION: Not type stable?
+        y, t, x,_ = lsim(sys, u, t, x0=x0s[:], method=method)
     else
-        x = Array{Float64}(lt, nx, nu)
-        y = Array{Float64}(lt, ny, nu)
+        x = Array{T}(lt, nx, nu)
+        y = Array{T}(lt, ny, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0s[:,i], method=:zoh)
+            y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0s[:,i], method=method)
         end
     end
     return y, t, x
 end
-function impulse(sys::TransferFunction{SisoGeneralized}, t::AbstractVector)
-    u = zeros(length(t), sys.nu)
-    u[1,:] = 1/(t[2]-t[1])
-    lsim(sys::TransferFunction{SisoGeneralized}, u, t)
-end
 
-impulse(sys::LTISystem, Tf::Real) = impulse(sys, _default_time_vector(sys, Tf))
-impulse(sys::LTISystem) = impulse(sys, _default_time_vector(sys))
-impulse(sys::TransferFunction, t::AbstractVector) = impulse(ss(sys), t)
+impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(sys, Tf); kwags...)
+impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
+impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
 @doc """`y, t, x = lsim(sys, u, t; x0, method])`
 
@@ -86,13 +79,11 @@ a zero vector is used.
 
 `y`, `x`, `uout` has time in the first dimension. Initial state `x0` defaults to zero.
 
-Continuous time systems are discretized before simulation. By default, the
-method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`, default depends on system smoothnes.
+Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized before simulation. For a lower level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
-If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u(t,x) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(i,x)-> 1`, for a ramp, use `(i,x)-> i*h`, for a step at `t=5`, use (i,x)-> (i*h >= 5) etc.
+If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
+To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a step at `t=5`, use (x,i)-> (i*h >= 5) etc.
 
 Usage example:
 ```julia
@@ -104,7 +95,7 @@ Q = eye(2)
 R = eye(1)
 L = lqr(sys,Q,R)
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
@@ -112,19 +103,20 @@ plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
 """ ->
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=_issmooth(u) ? :foh : :zoh)
+        x0::VecOrMat=zeros(sys.nx), method::Symbol=_issmooth(u) ? :foh : :zoh)
     ny, nu = size(sys)
     nx = sys.nx
 
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
-    elseif !(size(u) in [(length(t), nu) (length(t),)])
+    end
+    if !(size(u) in [(length(t), nu) (length(t),)])
         error("u must be of size (length(t), nu)")
     end
 
     dt = Float64(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
+        if iscontinuous(sys) # Looks strange to check iscontinuous again
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -136,7 +128,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         dsys, x0map = c2d(sys, dt, :foh)
         x0 = x0map*[x0; u[1:1,:].']
     end
-    x = ltitr(dsys.A, dsys.B, map(Float64,u), map(Float64,x0))
+    x = ltitr(dsys.A, dsys.B, Float64.(u), Float64.(x0))
     y = (sys.C*(x.') + sys.D*(u.')).'
     return y, t, x
 end
@@ -145,16 +137,17 @@ end
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
 function lsim(sys::StateSpace, u::Function, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
+        x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
-    elseif size(u(1,x0)) != (nu,) && size(u(1,x0)) != (nu,1)
+    elseif size(u(x0,1)) != (nu,) && size(u(x0,1)) != (nu,1)
         error("return value of u must be of size nu")
     end
+    T = promote_type(Float64, eltype(x0))
 
-    dt = Float64(t[2] - t[1])
+    dt = T(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
@@ -164,32 +157,23 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
             end
             dsys = sys
         end
+        x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
-        dsys, x0map = c2d(sys, dt, :foh)
-        x0 = x0map*[x0; u(1,x0)]
+        s = Simulator(sys, u)
+        sol = solve(s, T.(x0), (t[1],t[end]), Tsit5())
+        x = sol(t)'
+        uout = Array{eltype(x)}(length(t), ninputs(sys))
+        for (i,ti) in enumerate(t)
+            uout[i,:] = u(x[i,:],ti)'
+        end
     end
-    x,uout = ltitr(dsys.A, dsys.B, u, length(t), map(Float64,x0))
     y = (sys.C*(x.') + sys.D*(uout.')).'
     return y, t, x, uout
 end
 
+
 lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
 
-function lsim(sys::TransferFunction{SisoGeneralized}, u, t)
-    ny, nu = size(sys)
-    if !any(size(u) .== [(length(t), nu) (length(t),)])
-        error("u must be of size (length(t), nu)")
-    end
-    ny, nu = size(sys)
-    y = Array{Float64}(length(t),ny)
-    for i = 1:nu
-        for o = 1:ny
-            dt = Float64(t[2]-t[1])
-            y[:,o] += lsimabstract(sys.matrix[o,i], u[:,i], dt, t[end])
-        end
-    end
-    return y, t
-end
 
 @doc """`ltitr(A, B, u[,x0])`
 
@@ -198,10 +182,10 @@ end
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
-If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
+If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """ ->
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
-        x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
+        x0::VecOrMat{T}=zeros(T, size(A, 1)))
     n = size(u, 1)
     x = Array{T}(size(A, 1), n)
     for i=1:n
@@ -212,14 +196,15 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
 end
 
 
-function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, iters::Int,
-    x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
+function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, t,
+    x0::VecOrMat{T}=zeros(T, size(A, 1)))
+    iters = length(t)
     x = Array{T}(size(A, 1), iters)
     uout = Array{T}(size(B, 2), iters)
 
     for i=1:iters
         x[:,i] = x0
-        uout[:,i] = u(i,x0)
+        uout[:,i] = u(x0,t[i])
         x0 = A * x0 + B * uout[:,i]
     end
     return x.', uout.'
@@ -253,7 +238,6 @@ function _default_Ts(sys::LTISystem)
     return Ts
 end
 
-_default_Ts(sys::TransferFunction{SisoGeneralized}) = 0.07
 
 #TODO a reasonable check
 _issmooth(u::Function) = false
