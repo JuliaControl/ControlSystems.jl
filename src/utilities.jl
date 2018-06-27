@@ -48,8 +48,8 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 
     return poly_factors
 end
-
-function roots2complex_poly_factors(roots::Vector{T}) where T <: Number
+# This function should hande both Complex as well as symbolic types
+function roots2poly_factors(roots::Vector{T}) where T <: Number
     return [Poly{T}([-r, 1]) for r in roots]
 end
 

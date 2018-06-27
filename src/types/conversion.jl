@@ -236,10 +236,10 @@ end
 
 # TODO: Could perhaps be made more accurate. See: An accurate and efficient
 # algorithm for the computation of the # characteristic polynomial of a general square matrix.
-function charpoly(A::AbstractMatrix{<:Complex})
+function charpoly(A::AbstractMatrix{<:Number})
     Λ = eigvals(A)
 
-    return prod(roots2complex_poly_factors(Λ)) # Compute the polynomial factors directly?
+    return prod(roots2poly_factors(Λ)) # Compute the polynomial factors directly?
 end
 function charpoly(A::AbstractMatrix{<:Real})
     Λ = eigvals(A)

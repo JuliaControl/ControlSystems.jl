@@ -60,8 +60,8 @@ pole(f::SisoZpk) = f.p # Do minreal first?
 numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z))
 denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
 
-numpoly(f::SisoZpk) = f.k*prod(roots2complex_poly_factors(f.z))
-denpoly(f::SisoZpk) = prod(roots2complex_poly_factors(f.p))
+numpoly(f::SisoZpk) = f.k*prod(roots2poly_factors(f.z))
+denpoly(f::SisoZpk) = prod(roots2poly_factors(f.p))
 
 num(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
 den(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
@@ -161,9 +161,12 @@ function poly_factors2string(poly_factors, var)
     end
 end
 
+""" Heurisitc function that tries to add parentheses when printing the coeffcient
+    for systems on zpk form. Should at least handle the following types
+    Measurment, Dual, Sym. """
 function _printcoefficient(nbr::Number)
     nbr_string = string(nbr)
-    if contains(nbr_string, " + ") || contains(nbr_string, " - ")
+    if contains(nbr_string, " + ") || contains(nbr_string, " - ") || contains(nbr_string, " ± ")
         return "($nbr_string)"
     else
         return nbr_string
@@ -175,8 +178,8 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
         numstr = poly_factors2string(roots2real_poly_factors(t.z), var)
         denstr = poly_factors2string(roots2real_poly_factors(t.p), var)
     else
-        numstr = poly_factors2string(roots2complex_poly_factors(t.z), var)
-        denstr = poly_factors2string(roots2complex_poly_factors(t.p), var)
+        numstr = poly_factors2string(roots2poly_factors(t.z), var)
+        denstr = poly_factors2string(roots2poly_factors(t.p), var)
     end
     # Figure out the length of the separating line
     len_num = length(numstr)

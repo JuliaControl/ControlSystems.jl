@@ -65,12 +65,11 @@ end
 
 zpk(k::Real, Ts::Real=0) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
-zpk(sys::StateSpace) = zpk(tf(sys)) # FIXME: probably better with direct conversion 
+zpk(sys::StateSpace) = zpk(tf(sys)) # FIXME: probably better with direct conversion
 
-# We can neither guarantee
-function zpk(G::TransferFunction{S}) where {T1, S<:SisoTf{T1}}
-    Tnew = typeof(one(T1)/one(T1))
-    convert(TransferFunction{SisoZpk{Tnew, complex(Tnew)}}, G)
+function zpk(G::TransferFunction{S}) where {T0, S<:SisoTf{T0}}
+    T = typeof(one(T0)/one(T0))
+    convert(TransferFunction{SisoZpk{T, complex(T)}}, G)
 end
 
 zpk(var::AbstractString) = zpk(tf(var))

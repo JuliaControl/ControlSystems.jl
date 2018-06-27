@@ -40,7 +40,7 @@ end
 
 function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
         # TODO: change back in 0.7 T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-        T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+        T = promote_type(promote_type(eltype(A),eltype(B)), promote_type(eltype(C),eltype(D)))
         @assert (typeof(to_matrix(T, A)) == typeof(to_matrix(T, B)) == typeof(to_matrix(T, C)) == typeof(to_matrix(T, D)))
         return StateSpace{T,Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C),
             to_matrix(T, D), Float64(Ts))
