@@ -65,7 +65,7 @@ end
 
 zpk(k::Real, Ts::Real=0) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
-zpk(sys::StateSpace) = zpk(convert(TransferFunction{SisoRational}, sys))
+zpk(sys::StateSpace) = zpk(tf(sys)) # FIXME: probably better with direct conversion 
 
 # We can neither guarantee
 function zpk(G::TransferFunction{S}) where {T1, S<:SisoTf{T1}}
