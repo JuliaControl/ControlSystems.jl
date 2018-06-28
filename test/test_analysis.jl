@@ -99,7 +99,7 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 
 ## POLE ##
 @test pole(sys) ≈ [4.0, -4.0, -1.0]
-@test pole([sys sys]) ≈ [4.0, -4.0, -1.0, 4.0, -4.0, -1.0]
+@test_broken pole([sys sys]) ≈ [4.0, -4.0, -1.0] # Issue #81
 @test pole(ex_11) ≈ eig(ex_11.A)[1]
 
 poles = [-3.383889568918823 + 0.000000000000000im

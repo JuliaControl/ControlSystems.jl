@@ -64,20 +64,20 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """ ->
-function evalfr(sys::StateSpace, s::Number)
-    S = promote_type(typeof(s), Float64)
+function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
+    T = promote_type(T0, typeof(s), Float64)
     try
         R = s*I - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{S})  # Weird type stability issue
+        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
     catch
-        fill(convert(S, Inf), size(sys))
+        fill(convert(T, Inf), size(sys))
     end
 end
 
 function evalfr(G::TransferFunction, s::Number)
-    S = promote_type(typeof(s), Float64)
+    T = promote_type(numeric_type(G), typeof(s), Float64)
 
-    fr = Array{S}(size(G))
+    fr = Array{T}(size(G))
     for j = 1:ninputs(G)
         for i = 1:noutputs(G)
             fr[i, j] = evalfr(G.matrix[i, j], s)
