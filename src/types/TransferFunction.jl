@@ -1,4 +1,4 @@
-type TransferFunction{S<:SisoTf} <: LTISystem
+type TransferFunction{S<:SisoTf{T2} where T2} <: LTISystem
     matrix::Matrix{S}
     Ts::Float64
     nu::Int

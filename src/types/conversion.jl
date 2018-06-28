@@ -61,8 +61,12 @@ function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
     return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
 end
 
+function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
+    T = Base.promote_op(/,T0,T0)
+    convert(StateSpace{T,Matrix{T}}, G)
+end
 
-function Base.convert(::Type{<:StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
+function Base.convert(::Type{StateSpace{T1,MT}}, G::TransferFunction{<:SisoTf{T0}}) where {T1<:Number, MT<:AbstractArray{T1}, T0<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -96,7 +100,7 @@ function Base.convert(::Type{<:StateSpace}, G::TransferFunction{<:SisoTf{T0}}) w
         end
     end
     # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
-    return ss(A, B, C, D, G.Ts)
+    return StateSpace{T1,MT}(A, B, C, D, G.Ts)
 end
 
 siso_tf_to_ss(f::SisoTf) = siso_tf_to_ss(convert(SisoRational, f))
@@ -226,12 +230,70 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
     TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
 end
 
-function convert(::Type{TransferFunction}, sys::StateSpace{T0}) where {T0<:Number}
+function convert(::Type{TransferFunction{SisoRational}}, sys::StateSpace{T0}) where {T0<:Number}
     T = typeof(one(T0)/one(T0))
     convert(TransferFunction{SisoRational{T}}, sys)
 end
 
+convert(::Type{TransferFunction}, sys::StateSpace) = convert(TransferFunction{SisoRational}, sys)
 
+function convert(::Type{TransferFunction{SisoZpk}}, sys::StateSpace{T0}) where {T0<:Number}
+    T = typeof(one(T0)/one(T0))
+    convert(TransferFunction{SisoZpk{T,complex(T)}}, sys)
+end
+
+function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace{T0}) where {T<:Number, TR<:Number, T0<:Number}
+    z, p, k = zpkdata(sys)
+    TransferFunction{SisoZpk{T,TR}}(z, p, k)
+end
+
+
+@doc """`z, p, k = zpkdata(sys)`
+
+Compute the zeros, poles, and gains of system `sys`.
+
+### Returns
+`z` : Matrix{Vector{Complex128}}, (ny x nu)
+
+`p` : Matrix{Vector{Complex128}}, (ny x nu)
+
+`k` : Matrix{Float64}, (ny x nu)""" ->
+function zpkdata(sys::LTISystem)
+    ny, nu = size(sys)
+    zs = Array{Vector{Complex128}}(ny, nu)
+    ps = Array{Vector{Complex128}}(ny, nu)
+    ks = Array{Float64}(ny, nu)
+    for j = 1:nu
+        for i = 1:ny
+            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
+        end
+    end
+    return zs, ps, ks
+end
+
+function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
+    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu:iu], sys.C[iy:iy, :])
+    D = sys.D[iy:iy, iu:iu]
+    z = tzero(A, B, C, D)
+    nx = size(A, 1)
+    nz = length(z)
+    k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
+    return z, eigvals(A), k
+end
+
+function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
+    s = sys.matrix[iy, iu]
+    return _zpk_kern(s)
+end
+
+function _zpk_kern(f::SisoRational)
+    f_zpk = convert(SisoZpk, f)
+    return f_zpk.z, f_zpk.p, f_zpk.k
+end
+
+function _zpk_kern(f::SisoZpk)
+    return f.z, f.p, f.k
+end
 
 
 # TODO: Could perhaps be made more accurate. See: An accurate and efficient

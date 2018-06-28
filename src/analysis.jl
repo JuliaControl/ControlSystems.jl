@@ -27,53 +27,6 @@ function markovparam(sys::StateSpace, n::Integer)
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
 
-@doc """`z, p, k = zpkdata(sys)`
-
-Compute the zeros, poles, and gains of system `sys`.
-
-### Returns
-`z` : Matrix{Vector{Complex128}}, (ny x nu)
-
-`p` : Matrix{Vector{Complex128}}, (ny x nu)
-
-`k` : Matrix{Float64}, (ny x nu)""" ->
-function zpkdata(sys::LTISystem)
-    ny, nu = size(sys)
-    zs = Array{Vector{Complex128}}(ny, nu)
-    ps = Array{Vector{Complex128}}(ny, nu)
-    ks = Array{Float64}(ny, nu)
-    for j = 1:nu
-        for i = 1:ny
-            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
-        end
-    end
-    return zs, ps, ks
-end
-
-function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
-    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu:iu], sys.C[iy:iy, :])
-    D = sys.D[iy:iy, iu:iu]
-    z = tzero(A, B, C, D)
-    nx = size(A, 1)
-    nz = length(z)
-    k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
-    return z, eigvals(A), k
-end
-
-function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
-    s = sys.matrix[iy, iu]
-    return _zpk_kern(s)
-end
-
-function _zpk_kern(f::SisoRational)
-    f_zpk = convert(SisoZpk, f)
-    return f_zpk.z, f_zpk.p, f_zpk.k
-end
-
-function _zpk_kern(f::SisoZpk)
-    return f.z, f.p, f.k
-end
-
 @doc """`Wn, zeta, ps = damp(sys)`
 
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
