@@ -357,7 +357,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
                   zeros(sys.nx,sys.nx)      eye(sys.nx)]
             M = [ eye(sys.nx)                              zeros(sys.nx,sys.nx);
                   sys.C'*(eye(sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
-            zs = eig(L,M)[1]  # generalized eigenvalues
+            zs = eigvals(L,M)  # generalized eigenvalues
             # are there eigenvalues on the unit circle?
             omegaps = angle.(zs[ (abs.(abs.(zs)-1) .<= approxcirc) .& (imag(zs).>=0)])
             sort!(omegaps)

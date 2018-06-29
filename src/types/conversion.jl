@@ -61,20 +61,25 @@ function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
     return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
 end
 
+function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
+#    T = Base.promote_op(/,T0,T0)
+    convert(StateSpace{T0,Matrix{T0}}, G)
+end
 
-function Base.convert(::Type{<:StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
+
+function Base.convert(::Type{StateSpace{T,MT}}, G::TransferFunction) where {T<:Number, MT<:AbstractArray{T}}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
 
     # TODO : These are added due to scoped for blocks, but is a hack. This
     # could be much cleaner.
-    T = Base.promote_op(/, T0, T0)
+    #T = Base.promote_op(/, T0, T0)
 
     Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(0, 0)
     for i=1:ninputs(G)
         for j=1:noutputs(G)
-            a, b, c, d = siso_tf_to_ss(G.matrix[j, i])
+            a, b, c, d = siso_tf_to_ss(T, G.matrix[j, i])
             if j > 1
                 # vcat
                 Ac = blkdiag(Ac, a)
@@ -96,19 +101,19 @@ function Base.convert(::Type{<:StateSpace}, G::TransferFunction{<:SisoTf{T0}}) w
         end
     end
     # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
-    return ss(A, B, C, D, G.Ts)
+    return StateSpace{T,MT}(A, B, C, D, G.Ts)
 end
 
-siso_tf_to_ss(f::SisoTf) = siso_tf_to_ss(convert(SisoRational, f))
+siso_tf_to_ss(T::Type, f::SisoTf) = siso_tf_to_ss(T, convert(SisoRational, f))
 
 # Conversion to statespace on controllable canonical form
-function siso_tf_to_ss(f::SisoRational{T0}) where {T0<:Number}
-    T = Base.promote_op(/,T0,T0)
+function siso_tf_to_ss(T::Type, f::SisoRational)
 
     num0, den0 = Base.num(f), Base.den(f)
-    # Normalize the numerator and denominator
-    num = num0 / den0[1]
-    den = den0 / den0[1]
+    # Normalize the numerator and denominator,
+    # QUESTION: Do we need this? otherwise we could convert Int-tf to Int-ss
+    num = num0# / den0[1]
+    den = den0# / den0[1]
 
     N = length(den) - 1 # The order of the rational function f
 
@@ -126,7 +131,7 @@ function siso_tf_to_ss(f::SisoRational{T0}) where {T0<:Number}
         B = fill(zero(T), N, 1)
         B[end] = one(T)
 
-        C = Matrix{T}(1, N)
+        C = fill(zero(T), 1, N)
         C[1:min(N, length(num))] = reverse(num)[1:min(N, length(num))]
         C[:] -= bN * reverse(den)[1:end-1] # Can index into polynomials at greater inddices than their length
     end
@@ -207,9 +212,8 @@ end
 balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
-@doc """`sys = ss2tf(s::StateSpace)`, ` sys = ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")`
+convert(::Type{TransferFunction}, sys::StateSpace) = convert(TransferFunction{SisoRational}, sys)
 
-Convert a `StateSpace` realization to a `TransferFunction`""" ->
 function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) where {T<:Number}
     matrix = Matrix{SisoRational{T}}(size(sys))
 
@@ -225,13 +229,37 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
     end
     TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
 end
-
-function convert(::Type{TransferFunction}, sys::StateSpace{T0}) where {T0<:Number}
+function convert(::Type{TransferFunction{SisoRational}}, sys::StateSpace{T0}) where {T0<:Number}
     T = typeof(one(T0)/one(T0))
     convert(TransferFunction{SisoRational{T}}, sys)
 end
 
 
+function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where {T<:Number, TR <: Number}
+    matrix = Matrix{SisoZpk{T,TR}}(size(sys))
+
+    A, B, C, D = ssdata(sys)
+
+    for j=1:noutputs(sys), i=1:ninputs(sys)
+        z, p, k = siso_ss_to_zpk(sys, i, j)
+        matrix[i, j] = SisoZpk{T,TR}(z, p, k)
+    end
+    TransferFunction{SisoZpk{T,TR}}(matrix, get_Ts(sys))
+end
+function convert(::Type{TransferFunction{SisoZpk}}, sys::StateSpace{T0}) where {T0<:Number}
+    T = typeof(one(T0)/one(T0))
+    convert(TransferFunction{SisoZpk{T,complex(T)}}, sys)
+end
+
+function siso_ss_to_zpk(sys, i, j)
+    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, j:j], sys.C[i:i, :])
+    D = sys.D[i:i, j:j]
+    z = tzero(A, B, C, D)
+    nx = size(A, 1)
+    nz = length(z)
+    k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
+    return z, eigvals(A), k
+end
 
 
 # TODO: Could perhaps be made more accurate. See: An accurate and efficient

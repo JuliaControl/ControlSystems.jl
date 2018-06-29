@@ -100,7 +100,7 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 ## POLE ##
 @test pole(sys) ≈ [4.0, -4.0, -1.0]
 @test_broken pole([sys sys]) ≈ [4.0, -4.0, -1.0] # Issue #81
-@test pole(ex_11) ≈ eig(ex_11.A)[1]
+@test pole(ex_11) ≈ eigvals(ex_11.A)
 
 poles = [-3.383889568918823 + 0.000000000000000im
                             -2.199935841931115 + 0.000000000000000im
@@ -172,4 +172,12 @@ z, p, k = zpkdata(G)
      "|  2.000e+00    |  -1.000e+00   |  2.000e+00    |  -5.000e-01   |\n"*
      "|  -2.000e+00   |  1.000e+00    |  2.000e+00    |  5.000e-01    |\n"*
      "|  3.000e+00    |  -1.000e+00   |  3.000e+00    |  -3.333e-01   |\n")
+
+
+# Example 5.5 from http://www.control.lth.se/media/Education/EngineeringProgram/FRTN10/2017/e05_both.pdf
+G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
+@test_broken length(pole(G)) == 1
+@test length(tzero(G)) == 1
+@test_broken size(minreal(ss(G)).A) == fill(2.0, 1, 1)
+
 end

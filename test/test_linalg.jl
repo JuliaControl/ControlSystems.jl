@@ -35,7 +35,7 @@ s = tf("s")
 f_C_211 = (s+2)*(s+3)/((s+4)*(s+5))
 # biquad passband
 omega0 = 52.0; Q = 10
-f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1 );
+f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1)
 
 C_22tf = [0 tf([3,0],[1,1,10]);tf([1,1],[1,5]) tf(2,[1,6])]
 
@@ -90,7 +90,7 @@ ninf, fpeak = norminf(C_732, tol=tolHinf)
 @test ninf ≈ 4.899135403568278 atol=(10*tolHinf)
 @test fpeak ≈ 6.112977387441163 atol=1e-6
 @test norm(f_C_211, Inf, tol=tolHinf) ≈ 1.0 atol=(2*tolHinf)
-@test norminf(f_C_211_bis, tol=tolHinf)[2] ≈ 52.0
+@test norminf(f_C_211_bis, tol=tolHinf)[2] ≈ 1.0
 @test norm(1/(s-1), Inf, tol=tolHinf) ≈ 1.0  # unstable system
 
 ninf, fpeak = norminf(C_22tf, tol=tolHinf)
