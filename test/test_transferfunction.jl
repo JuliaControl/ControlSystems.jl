@@ -32,6 +32,22 @@ z = tf("z", 0.005)
 @test C_022 == tf([4 0;0 4])
 @test D_022 == tf([4 0;0 4], 0.005)
 
+# Test equality
+@test tf([1,2], [2,3,4]) == tf(2*[1,2], 2*[2,3,4])
+@test tf([1.0], [2.0,3.0]) == tf(π*[1.0], π*[2.0,3.0])
+@test tf([1.0+2.0im], [2.0+im,3.0]) == tf((π+im)*[1+2.0im], (π+im)*[2.0+im,3.0])
+
+# Test approximate equlity
+# rtol should just be on the order of ϵ, no particular reason that exactly ϵ
+# would work, but apparently it does
+ϵ = 1e-14
+@test tf([1,2], [2,3,4]) != tf(2*[1,2], (2+ϵ)*[2,3,4])
+@test tf([1,2], [2,3,4]) ≈   tf(2*[1,2], (2+ϵ)*[2,3,4]) rtol=ϵ
+@test tf([1.0], [2.0,3.0]) != tf((π+ϵ)*[1.0], π*[2.0,3.0])
+@test tf([1.0], [2.0,3.0]) ≈ tf((π+ϵ)*[1.0], π*[2.0,3.0]) rtol=ϵ
+@test tf([1.0+2.0im], [2.0+im,3.0]) != tf((π+(1+ϵ)im)*[1+2.0im], (π+ϵ+im)*[2.0+(1+ϵ*im),3.0])
+@test tf([1.0+2.0im], [2.0+im,3.0]) ≈ tf((π+(1+ϵ)im)*[1+2.0im], (π+ϵ+im)*[2.0+(1+ϵ)*im,3.0]) rtol=ϵ
+
 # Addition
 @test C_111 + C_111 == tf([2,14,20], [1,10,25])
 @test C_222 + C_222 == tf(vecarray(2, 2, [2,20,68,108,90], [0,2,20,62,60],

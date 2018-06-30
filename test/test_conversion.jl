@@ -1,5 +1,6 @@
 @testset "test_conversion" begin
 
+# Easy second order system
 sys1 = ss([-1 0;1 1],[1;0],[1 1],0)
 G1 = tf([1,0],[1,0,-1])
 H1 = zpk([0.0], [-1, 1.0], 1.0)
@@ -18,22 +19,34 @@ w = 10.0 .^ range(-2,2,50)
 @test zpk(G1) == H1
 @test zpk(H1) == H1
 
-#Direct term was previously missing
-sys2 = ss([-1 0;1 1],[1;0],[1 1],1)
-G2 = tf([1,1,-1],[1,0,-1])
+# With direct term second order system
+sys2 = ss([-2.5 0;1 1.5],[1;3],[1 2],2.5)
+G2 = tf([2.5, 9.5, 6.125],[1, 1, -3.75])
+H2 = zpk([-2.97703296142690, -0.82296703857310], [1.5, -2.5], 2.5)
 
-sys3 = ss([0 1;1 0],[0;1],[1 1],0)
-G3 = tf([1,1],[1,0,-1])
+w = 10.0 .^ range(-2,2,50)
 
-#Test ss2tf
-@test tf(sys2) ≈ G2 atol=1e-15
-@test tf(sys3) ≈ G3 atol=1e-15
+@test ss(sys2) == sys2
+@test freqresp(ss(G2), w) ≈ freqresp(sys2, w) rtol=1e-15
+@test freqresp(ss(H2), w) ≈ freqresp(sys2, w) rtol=1e-15
 
-#Test TransferFunction -> StateSpace
-#ss is not unique so go back and forth
-@test G2 ≈ tf(ss(G2)) atol=1e-15
-@test G3 ≈ tf(ss(G3)) atol=1e-15
+@test tf(sys2) ≈ G2 rtol=1e-15
+@test tf(G2) == G2
+@test tf(H2) ≈ G2 rtol=1e-15
 
+@test zpk(sys2) ≈ H2 rtol=1e-15
+@test zpk(G2) ≈ H2 rtol=1e-15
+@test zpk(H2) == H2
+
+# Non-proper system
+G3 = tf([4.0, 1, 5],[2, 3])
+H3 = zpk([(-1+im*sqrt(79))/8, (-1-im*sqrt(79))/8], [-3/2], 2)
+
+@test tf(G3) == G3
+@test tf(H3) ≈ G3 rtol=1e-2
+
+@test zpk(G3) ≈ H3 rtol=1e-15
+@test zpk(H3) == H3
 
 # Test complex 1
 A = [1.0 + im 1; 0 -2-3im]
@@ -67,7 +80,25 @@ w = 10.0 .^ range(-2,2,50)
 @test zpk(G4) ≈ H4 rtol=1e-15
 @test zpk(H4) == H4
 
+# Test conversion of Int system with direct term
+w = [0.5, 1, 1.5, 2.0]
+G = tf([2, 3],[5, 1])
+@test freqresp(ss(G), w) ≈ freqresp(G, w)
 
+
+sys2 = ss([-1 0;1 1],[1;0],[1 1],1)
+G2 = tf([1,1,-1],[1,0,-1])
+sys3 = ss([0 1;1 0],[0;1],[1 1],0)
+G3 = tf([1,1],[1,0,-1])
+
+#Test ss2tf
+@test tf(sys2) ≈ G2 atol=1e-15
+@test tf(sys3) ≈ G3 atol=1e-15
+
+#Test TransferFunction -> StateSpace
+#ss is not unique so go back and forth
+@test G2 ≈ tf(ss(G2)) atol=1e-15
+@test G3 ≈ tf(ss(G3)) atol=1e-15
 
 
 ## Test some rather trivial conversions of numeric types

@@ -62,8 +62,8 @@ function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
 end
 
 function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
-#    T = Base.promote_op(/,T0,T0)
-    convert(StateSpace{T0,Matrix{T0}}, G)
+    T = Base.promote_op(/,T0,T0)
+    convert(StateSpace{T,Matrix{T}}, G)
 end
 
 
@@ -111,9 +111,9 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
 
     num0, den0 = Base.num(f), Base.den(f)
     # Normalize the numerator and denominator,
-    # QUESTION: Do we need this? otherwise we could convert Int-tf to Int-ss
-    num = num0# / den0[1]
-    den = den0# / den0[1]
+    # To allow realization of transfer functions that are proper, but now strictly proper
+    num = num0 / den0[1]
+    den = den0 / den0[1]
 
     N = length(den) - 1 # The order of the rational function f
 

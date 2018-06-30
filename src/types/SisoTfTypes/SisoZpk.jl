@@ -1,10 +1,7 @@
+# FIXME: Add some condition to guarantee that: TR <: Union(T, complex(T)) !
+
 # T the numeric type of the transfer function
 # TR the type of the roots
-
-# NOTE: Real is not a subtype of complex...
-
-# Add some condition like: TR <: Union(T, complex(T)) ?
-
 struct SisoZpk{T,TR<:Number} <: SisoTf{T}
     z::Vector{TR}
     p::Vector{TR}

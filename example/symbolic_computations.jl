@@ -38,6 +38,7 @@ sys = ss([1 a; a 1], [0; 1], [1 0], 0)
 s = tf("s")
 G = (s/(5a)) / ((s/a)^2 + s/(5a) + 1)
 
+
 # Simple conversions
 @edit zpk(sys)
 tf(sys)
@@ -72,9 +73,14 @@ maximum([subs(sys_fr_mag, w => r) for r in real_roots])
 
 
 # Compute the impulse resonse of some systems (on statespace form)
-impulse(sys1)[1]
-simplify(impulse(ss(sys2))[1])
+impulse(sys)[1]
+simplify(impulse(ss(G))[1])
 
 rosenbrock = [1/(s+1) 1/(s+a); 1/(s+1) 1/(s+1)]
 ss(rosenbrock)
 impulse(ss(rosenbrock))
+
+
+# Analytic impulse response
+sys2 = ss([-2.5 0;1 1.5],[1;3],[1 2],Sym(2.5))
+impulse(sys2)[1]

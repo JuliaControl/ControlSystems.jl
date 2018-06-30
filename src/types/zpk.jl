@@ -19,13 +19,15 @@ Other uses:
 `tf(sys)`: Convert `sys` to `tf` form.
 
 `tf("s")`: Create the transferfunction `s`.""" ->
-function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T}, Ts::Real=0.0) where {T<:Number, TZ<:Number, TP<:Number}
+function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::Real=0.0) where {T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
     if !(size(z, 1, 2) == size(p, 1, 2) == size(k, 1, 2))
         error("Dimensions for s, p, and k must match")
     end
 
-    TR = promote_type(TZ,TP) # FIXME: Include Complex128
+    TR = promote_type(T0,TZ,TP)
+    T = promote_type(T0, real(TR)) # Ensuring this avoids many problems, e.g., with SisoZpk{Int64,Complex128}
+
     matrix = Array{SisoZpk{T, TR}}(size(z,1), size(z,2)) # TODO: make this nicer
     for o=1:size(z,1)
         for i=1:size(z,2)

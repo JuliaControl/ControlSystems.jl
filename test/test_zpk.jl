@@ -141,5 +141,5 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 
 
 @test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{ControlSystems.SisoZpk{Float64,Complex{Float64}}}
-@test typeof(zpk([-0.5], [], 1)) == TransferFunction{ControlSystems.SisoZpk{Int,Float64}}
+@test typeof(zpk([-0.5], [], 1)) == TransferFunction{ControlSystems.SisoZpk{Float64,Float64}}
 end
