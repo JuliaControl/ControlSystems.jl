@@ -188,13 +188,13 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h;kwargs...)
+function c2d(G::TransferFunction{S}, h;kwargs...) where {S}
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys,h,kwargs...)[1]
-    return ss2tf(sysd)
+    sysd = c2d(sys, h, kwargs...)[1]
+    return convert(TransferFunction, sysd)
 end
 
 

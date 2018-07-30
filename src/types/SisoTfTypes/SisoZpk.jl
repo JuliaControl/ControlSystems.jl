@@ -1,10 +1,7 @@
+# FIXME: Add some condition to guarantee that: TR <: Union(T, complex(T)) !
+
 # T the numeric type of the transfer function
 # TR the type of the roots
-
-# NOTE: Real is not a subtype of complex...
-
-# Add some condition like: TR <: Union(T, complex(T)) ?
-
 struct SisoZpk{T,TR<:Number} <: SisoTf{T}
     z::Vector{TR}
     p::Vector{TR}
@@ -60,8 +57,8 @@ pole(f::SisoZpk) = f.p # Do minreal first?
 numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z))
 denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
 
-numpoly(f::SisoZpk) = f.k*prod(roots2complex_poly_factors(f.z))
-denpoly(f::SisoZpk) = prod(roots2complex_poly_factors(f.p))
+numpoly(f::SisoZpk) = f.k*prod(roots2poly_factors(f.z))
+denpoly(f::SisoZpk) = prod(roots2poly_factors(f.p))
 
 num(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
 den(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
@@ -138,14 +135,15 @@ end
 
 
 
-function evalfr(sys::SisoZpk, s::Number)
-    S = promote_type(typeof(s), Float64)
-    den = prod(s-a for a in sys.p)
-    if den == zero(S)
-        return convert(S, Inf)
+function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
+    T0 = promote_type(T2, TR)
+    T = promote_type(T1, Base.promote_op(/, T0, T0))
+    den = reduce(*, one(T0), s-a for a in f.p) # Default to one
+    if den == zero(T0)
+        return convert(T, Inf)
     else
-        num = prod(s-b for b in sys.z)
-        return sys.k*num/den
+        num = reduce(*, one(T0), s-b for b in f.z)
+        return f.k*num/den
     end
 end
 
@@ -160,13 +158,25 @@ function poly_factors2string(poly_factors, var)
     end
 end
 
+""" Heurisitc function that tries to add parentheses when printing the coeffcient
+    for systems on zpk form. Should at least handle the following types
+    Measurment, Dual, Sym. """
+function _printcoefficient(nbr::Number)
+    nbr_string = string(nbr)
+    if contains(nbr_string, " + ") || contains(nbr_string, " - ") || contains(nbr_string, " ± ")
+        return "($nbr_string)"
+    else
+        return nbr_string
+    end
+end
+
 function print_siso(io::IO, t::SisoZpk, var=:s)
     if typeof(t.k) <: Real
         numstr = poly_factors2string(roots2real_poly_factors(t.z), var)
         denstr = poly_factors2string(roots2real_poly_factors(t.p), var)
     else
-        numstr = poly_factors2string(roots2complex_poly_factors(t.z), var)
-        denstr = poly_factors2string(roots2complex_poly_factors(t.p), var)
+        numstr = poly_factors2string(roots2poly_factors(t.z), var)
+        denstr = poly_factors2string(roots2poly_factors(t.p), var)
     end
     # Figure out the length of the separating line
     len_num = length(numstr)
@@ -180,7 +190,7 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
         denstr = "$(repeat(" ", div(dashcount - len_den, 2)))$denstr"
     end
 
-    gainstr = string(t.k)
+    gainstr = _printcoefficient(t.k)
     #Add spaces to account for gain string
     numstr = " "^(length(gainstr))*numstr
     denstr = " "^(length(gainstr))*denstr

@@ -20,7 +20,7 @@ function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)
 end
 
 # Function for accepting scalars
-function ss(A::Union{Real,Array}, B::Union{Real,Array}, C::Union{Real,Array}, D::Union{Real,Array}, Ts::Real=0)
+function ss(A::Union{Number,Array}, B::Union{Number,Array}, C::Union{Number,Array}, D::Union{Number,Array}, Ts::Real=0)
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     A = to_matrix(T, A)
     B = to_matrix(T, B)
@@ -42,7 +42,7 @@ function ss(D::Array{T}, Ts::Real=0) where {T<:Number}
 
     return ss(A, B, C, D, Ts)
 end
-ss(d::Real, Ts::Real=0; kwargs...) = ss([d], Ts)
+ss(d::Number, Ts::Real=0; kwargs...) = ss([d], Ts)
 
 # ss(sys) converts to StateSpace
 ss(sys::LTISystem) = convert(StateSpace, sys)

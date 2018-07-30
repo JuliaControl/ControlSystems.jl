@@ -38,40 +38,13 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)""" ->
 function zpkdata(sys::LTISystem)
-    ny, nu = size(sys)
-    zs = Array{Vector{Complex128}}(ny, nu)
-    ps = Array{Vector{Complex128}}(ny, nu)
-    ks = Array{Float64}(ny, nu)
-    for j = 1:nu
-        for i = 1:ny
-            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
-        end
-    end
+    G = convert(TransferFunction{SisoZpk}, sys)
+
+    zs = getfield.(G.matrix, :z)
+    ps = getfield.(G.matrix, :p)
+    ks = getfield.(G.matrix, :k)
+
     return zs, ps, ks
-end
-
-function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
-    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu:iu], sys.C[iy:iy, :])
-    D = sys.D[iy:iy, iu:iu]
-    z = tzero(A, B, C, D)
-    nx = size(A, 1)
-    nz = length(z)
-    k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
-    return z, eigvals(A), k
-end
-
-function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
-    s = sys.matrix[iy, iu]
-    return _zpk_kern(s)
-end
-
-function _zpk_kern(f::SisoRational)
-    f_zpk = convert(SisoZpk, f)
-    return f_zpk.z, f_zpk.p, f_zpk.k
-end
-
-function _zpk_kern(f::SisoZpk)
-    return f.z, f.p, f.k
 end
 
 @doc """`Wn, zeta, ps = damp(sys)`
@@ -153,7 +126,8 @@ function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:Bla
         m = size(D, 2)
         Af = ([A B] * W)[1:nf, 1:nf]
         Bf = ([eye(nf) zeros(nf, m)] * W)[1:nf, 1:nf]
-        zs = eig(Af, Bf)[1]
+        zs = eigvals(Af, Bf)
+        _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
         zs = Float64[]
     end

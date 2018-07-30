@@ -88,11 +88,11 @@ function evalfr(f::SisoRational{T}, s::Number) where T
     end
 end
 
-==(f1::SisoRational, f2::SisoRational) = (f1.num == f2.num && f1.den == f2.den) # NOTE: Not in analogy with how it's done for SisoZpk
+==(f1::SisoRational, f2::SisoRational) = (f1.num * f2.den[1] == f2.num * f1.den[1] && f1.den * f2.den[1] == f2.den * f1.den[1]) # NOTE: Not in analogy with how it's done for SisoZpk
 
 # We might want to consider alowing scaled num and den as equal
 function isapprox(f1::SisoRational, f2::SisoRational; rtol::Real=sqrt(eps()), atol::Real=0)
-    isapprox(f1.num,f2.num, rtol=rtol, atol=atol) && isapprox(f1.den, f2.den, rtol=rtol, atol=atol)
+    isapprox(f1.num * f2.den[1], f2.num * f1.den[1], rtol=rtol, atol=atol) && isapprox(f1.den * f2.den[1], f2.den * f1.den[1], rtol=rtol, atol=atol)
 end
 
 +(f1::SisoRational, f2::SisoRational) = SisoRational(f1.num*f2.den + f2.num*f1.den, f1.den*f2.den)

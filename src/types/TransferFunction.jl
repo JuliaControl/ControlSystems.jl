@@ -1,9 +1,9 @@
-type TransferFunction{S<:SisoTf} <: LTISystem
+type TransferFunction{S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
     Ts::Float64
     nu::Int
     ny::Int
-    function TransferFunction{T}(matrix::Matrix{T}, Ts::Real=0) where T<:SisoTf
+    function TransferFunction{S}(matrix::Matrix{S}, Ts::Real=0) where {S}
         # Validate size of input and output names
         ny, nu = size(matrix)
         # Validate sampling time
@@ -11,11 +11,11 @@ type TransferFunction{S<:SisoTf} <: LTISystem
             error("Ts must be either a positive number, 0
                 (continuous system), or -1 (unspecified)")
         end
-        return new{T}(matrix, Ts, nu, ny)
+        return new{S}(matrix, Ts, nu, ny)
     end
 end
-function TransferFunction(matrix::Matrix{T}, Ts::Float64=0) where {T <: SisoTf}
-    return TransferFunction{T}(matrix, Ts)
+function TransferFunction(matrix::Matrix{S}, Ts::Float64=0) where {T<:Number, S<:SisoTf{T}}
+    return TransferFunction{S}(matrix, Ts)
 end
 
 noutputs(G::TransferFunction) = size(G.matrix, 1)

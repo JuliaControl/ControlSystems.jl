@@ -24,24 +24,24 @@ function Base.convert(::Type{SisoRational{T}}, f::SisoRational) where {T<:Number
 end
 
 function Base.convert(::Type{SisoRational{T1}}, f::SisoZpk{T2,TR}) where {T1<:Number, T2<:Number,TR<:Number}
-    if one(T2) === complex(one(T2)) # Is complex type
-        num = prod(roots2complex_poly_factors(f.z))*f.k
-        den = prod(roots2complex_poly_factors(f.p))
-    else
+    if T2 <: Real
         num = prod(roots2real_poly_factors(f.z))*f.k
         den = prod(roots2real_poly_factors(f.p))
+    else
+        num = prod(roots2poly_factors(f.z))*f.k
+        den = prod(roots2poly_factors(f.p))
     end
     return SisoRational{T1}(num, den)
 end
 
 function Base.convert(::Type{SisoRational}, f::SisoZpk{T1,TR}) where {T1<:Number, TR<:Number}
-    if one(T1) === complex(one(T1)) # Is complex type
-        convert(SisoRational{promote_type(T1,TR)}, f)
-    else
+    if T1 <: Real
         T = promote_type(T1,typeof(real(one(TR))))
         # Alternative version if T1 rich enough
         # T = T1
         convert(SisoRational{T}, f)
+    else
+        convert(SisoRational{promote_type(T1,TR)}, f)
     end
 end
 

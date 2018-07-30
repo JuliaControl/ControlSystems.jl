@@ -48,9 +48,36 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 
     return poly_factors
 end
-
-function roots2complex_poly_factors(roots::Vector{T}) where T <: Number
+# This function should hande both Complex as well as symbolic types
+function roots2poly_factors(roots::Vector{T}) where T <: Number
     return [Poly{T}([-r, 1]) for r in roots]
+end
+
+
+""" Typically LAPACK returns a vector with, e.g., eigenvalues to a real matrix,
+    they are paired up in exact conjugate pairs. This fact is used in some places
+    for working with zpk representations of LTI systems. eigvals(A) returns a
+    on this form, however, for generalized eigenvalues there is a small numerical
+    discrepancy, which breaks some functions. This function fixes small
+    discrepancies in the conjugate pairs."""
+function _fix_conjugate_pairs!(v::AbstractVector{<:Complex})
+    k = 1
+    while k <= length(v) - 1
+        if isreal(v[k])
+            # Do nothing
+        else
+            if isapprox(v[k], conj(v[k+1]), rtol=1e-15)
+                z = (v[k] + conj(v[k+1]))/2
+                v[k] = z
+                v[k+1] = conj(z)
+                k += 1
+            end
+        end
+        k += 1
+    end
+end
+function _fix_conjugate_pairs!(v::AbstractVector{<:Real})
+    nothing
 end
 
 # Should probably try to get rif of this function...

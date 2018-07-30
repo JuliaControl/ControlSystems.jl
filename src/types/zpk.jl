@@ -19,13 +19,15 @@ Other uses:
 `tf(sys)`: Convert `sys` to `tf` form.
 
 `tf("s")`: Create the transferfunction `s`.""" ->
-function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T}, Ts::Real=0.0) where {T<:Number, TZ<:Number, TP<:Number}
+function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::Real=0.0) where {T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
     if !(size(z, 1, 2) == size(p, 1, 2) == size(k, 1, 2))
         error("Dimensions for s, p, and k must match")
     end
 
-    TR = promote_type(TZ,TP) # FIXME: Include Complex128
+    TR = promote_type(T0,TZ,TP)
+    T = promote_type(T0, real(TR)) # Ensuring this avoids many problems, e.g., with SisoZpk{Int64,Complex128}
+
     matrix = Array{SisoZpk{T, TR}}(size(z,1), size(z,2)) # TODO: make this nicer
     for o=1:size(z,1)
         for i=1:size(z,2)
@@ -65,12 +67,11 @@ end
 
 zpk(k::Real, Ts::Real=0) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
-zpk(sys::StateSpace) = zpk(convert(TransferFunction{SisoRational}, sys))
+zpk(sys::StateSpace) = zpk(tf(sys)) # FIXME: probably better with direct conversion
 
-# We can neither guarantee
-function zpk(G::TransferFunction{S}) where {T1, S<:SisoTf{T1}}
-    Tnew = typeof(one(T1)/one(T1))
-    convert(TransferFunction{SisoZpk{Tnew, complex(Tnew)}}, G)
+function zpk(G::TransferFunction{S}) where {T0, S<:SisoTf{T0}}
+    T = typeof(one(T0)/one(T0))
+    convert(TransferFunction{SisoZpk{T, complex(T)}}, G)
 end
 
 zpk(var::AbstractString) = zpk(tf(var))
