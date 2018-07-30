@@ -77,11 +77,12 @@ numpoly(f::SisoRational) = f.num
 tzero(f::SisoRational) = roots(f.num)
 pole(f::SisoRational) = roots(f.den)
 
-function evalfr(f::SisoRational, s::Number)
-    S = promote_type(typeof(s), Float64)
+function evalfr(f::SisoRational{T}, s::Number) where T
+    S = promote_type(T,typeof(s), Float64)
+    # S = typeof(s)
     den = polyval(f.den, s)
     if den == zero(S)
-        convert(S, Inf)
+        convert(S,Inf)
     else
         polyval(f.num, s)/den
     end
