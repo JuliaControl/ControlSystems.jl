@@ -74,7 +74,7 @@ function evalfr(sys::StateSpace, s::Number)
 end
 
 function evalfr(G::TransferFunction, s::Number)
-    S = promote_type(typeof(s), Float64)
+    S = promote_type(numeric_type(G), typeof(s), Float64)
 
     fr = Array{S}(size(G))
     for j = 1:ninputs(G)
