@@ -1,4 +1,4 @@
-function Base.convert(::Type{SisoZpk{T,TR}}, f::SisoRational) where {T<:Number, TR<:Number}
+function Base.convert(::Type{SisoZpk{T,TR}}, f::SisoRational{T2}) where {T<:Number, TR<:Number, T2<:Number}
     if length(f.num) == 0
         return SisoZpk(TR[],TR[],0)
     elseif all(f.den == zero(f.den))
@@ -7,9 +7,9 @@ function Base.convert(::Type{SisoZpk{T,TR}}, f::SisoRational) where {T<:Number, 
 
     return SisoZpk{T,TR}(roots(f.num), roots(f.den), f.num[end]/f.den[end]) # NOTE: polynomials are stored with increasing coefficient orders
 end
-function Base.convert(::Type{<:SisoZpk}, f::SisoRational)
-    T = numeric_type(f)
-    TR = promote_type(T, Complex128) # Borde vara typen för roots(f.z)
+
+function Base.convert(::Type{<:SisoZpk}, f::SisoRational{T}) where {T<:Number}
+    TR = complex(Base.promote_op(/, T, T)) # Type of roots(f.z)
     Base.convert(SisoZpk{T,TR}, f)
 end
 
@@ -19,23 +19,31 @@ function Base.convert(::Type{SisoZpk{T,TR}}, f::SisoZpk) where {T<:Number, TR<:N
 end
 
 
-function Base.convert(::Type{<:SisoRational{T}}, f::SisoRational) where T
+function Base.convert(::Type{SisoRational{T}}, f::SisoRational) where {T<:Number}
     return SisoRational{T}(convert(Poly{T}, f.num), convert(Poly{T}, f.den))
 end
 
-function Base.convert(::Type{<:SisoRational}, f::SisoZpk)
-    T = numeric_type(f)
-    if isreal(one(T)) # FIXME: This probably doesn't do the trick
-        num = prod(roots2real_poly_factors(f.z))*f.k
-        den = prod(roots2real_poly_factors(f.p))
-    else
+function Base.convert(::Type{SisoRational{T1}}, f::SisoZpk{T2,TR}) where {T1<:Number, T2<:Number,TR<:Number}
+    if one(T2) === complex(one(T2)) # Is complex type
         num = prod(roots2complex_poly_factors(f.z))*f.k
         den = prod(roots2complex_poly_factors(f.p))
+    else
+        num = prod(roots2real_poly_factors(f.z))*f.k
+        den = prod(roots2real_poly_factors(f.p))
     end
-
-    return SisoRational{T}(num, den)
+    return SisoRational{T1}(num, den)
 end
 
+function Base.convert(::Type{SisoRational}, f::SisoZpk{T1,TR}) where {T1<:Number, TR<:Number}
+    if one(T1) === complex(one(T1)) # Is complex type
+        convert(SisoRational{promote_type(T1,TR)}, f)
+    else
+        T = promote_type(T1,typeof(real(one(TR))))
+        # Alternative version if T1 rich enough
+        # T = T1
+        convert(SisoRational{T}, f)
+    end
+end
 
 
 Base.convert(::Type{S}, b::T2) where {T1, S <: SisoTf{T1}, T2<:Number} = convert(T1, b)*one(S)

@@ -74,6 +74,11 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
+# Errors
+@test_throws ErrorException tf(vecarray(1, 1, [1,7,13,15]),
+   vecarray(2, 1, [1,10,31,30], [1,10,31,30]))
+
+
 # Printing
 res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to Output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
 @test_broken sprint(show, C_222) == res

@@ -1,3 +1,5 @@
+# Are only really needed for cases when we accept general LTISystem
+# we should either use them consistently, with a good definition, or remove them
 numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
@@ -6,8 +8,6 @@ numeric_type(::Type{TransferFunction{S}}) where S = numeric_type(S)
 numeric_type(::Type{<:StateSpace{T}}) where T = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
-Base.eltype(::Type{TransferFunction{S}}) where S = S
-Base.eltype(G::TransferFunction) = eltype(typeof(G))
 
 to_matrix(T, A::Vector) = Matrix{T}(reshape(A, length(A), 1))
 to_matrix(T, A::AbstractMatrix) = Matrix{T}(A)
@@ -38,7 +38,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
             end
 
             if k == length(roots) || r != conj(roots[k+1])
-                error("Found pole without matching conjugate.")
+                throw(AssertionError("Found pole without matching conjugate."))
             end
 
             push!(poly_factors,Poly{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))

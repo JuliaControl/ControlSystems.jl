@@ -52,7 +52,8 @@ Dtf_111 = tf([1, 2], [1, 5], 0.005)
 Dtf_211 = tf([1, 2, 3], [1, 8, 15], 0.005)
 Dtf_212 = tf(vecarray(2, 1, [1, 2, 3], [1, 2]), vecarray(2, 1, [1, 8, 15], [1, 8, 15]), 0.005)
 Dtf_221 = tf(vecarray(1, 2, [1, 2, 3], [1, 2]), vecarray(1, 2, [1, 8, 15], [1, 8, 15]), 0.005)
-Dtf_222 = [Dtf_221; Dtf_221]; Dtf_222.Ts = 0.005
+Dtf_222 = [Dtf_221; Dtf_221];
+Dtf_222.Ts = 0.005
 Dtf_022 = tf(4*eye(2), 0.005)
 
 s = tf("s")
@@ -90,6 +91,30 @@ s = tf("s")
 @test [D_111 Dtf_221] == [D_111 ss(Dtf_221)]
 @test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
 @test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
+
+
+# hcat and vcat for StateSpace and Matrix
+A = [-1.1 -1.2; -1.3 -1.4]
+B = [1 2; 3 4]
+C = [5 6; 7 8]
+D = [1 0; 0 1]
+P = ss(A, B, C, D)
+@test [P fill(2.5, 2, 1)] == ss(A, [B fill(0, 2, 1)], C, [D fill(2.5, 2, 1)])
+@test [fill(2.5, 2, 1) P] == ss(A, [fill(0, 2, 1) B], C, [fill(2.5, 2, 1) D])
+@test [P; fill(2.5, 1, 2)] == ss(A, B, [C; fill(0, 1, 2)], [D; fill(2.5, 1, 2)])
+@test [fill(2.5, 1, 2); P] == ss(A, B, [fill(0, 1, 2); C], [fill(2.5, 1, 2); D])
+
+# hcat and vcat for StateSpace and Number
+P = ss(-1.0, 2.0, 3.0, 4.0)
+@test [P 2.5] == ss(-1.0, [2.0 0.0], 3.0, [4.0 2.5])
+@test [2.5 P] == ss(-1.0, [0.0 2.0], 3.0, [2.5 4.0])
+@test [P; 2.5] == ss(-1.0, 2.0, [3.0; 0.0], [4.0; 2.5])
+@test [2.5; P] == ss(-1.0, 2.0, [0.0; 3.0], [2.5; 4.0])
+
+@test [2.5 P 3.5] == ss(-1.0, [0.0 2.0 0.0], 3.0, [2.5 4.0 3.5])
+@test [2.5; P; 3.5] == ss(-1.0, 2.0, [0.0; 3.0; 0.0], [2.5; 4.0; 3.5])
+
+
 
 # Combination tfRational and sisoZpk
 Czpk_111 = zpk([-2],[-5],1)
