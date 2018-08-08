@@ -1,7 +1,5 @@
 using Polynomials
 
-const BlasNumber = Union{Base.LinAlg.BlasFloat, Base.LinAlg.BlasInt}
-
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op, num, den
 
 

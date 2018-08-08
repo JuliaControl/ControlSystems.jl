@@ -1,7 +1,5 @@
 module ControlSystems
 
-const BlasNumber = Union{Base.LinAlg.BlasFloat, Base.LinAlg.BlasInt} # QUESTION: WHy include BlasInt, why not include BlasComplex?
-
 export  LTISystem,
         StateSpace,
         TransferFunction,
@@ -75,6 +73,7 @@ export  LTISystem,
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
+import Base.LinAlg: BlasFloat
 
 abstract type AbstractSystem end
 

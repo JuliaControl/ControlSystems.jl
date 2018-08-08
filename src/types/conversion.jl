@@ -152,7 +152,7 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 """
-function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::AbstractMatrix{P}, perm::Bool=false) where P <: BlasNumber
+function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::AbstractMatrix{P}, perm::Bool=false) where P <: BlasFloat
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)

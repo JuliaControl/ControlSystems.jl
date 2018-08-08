@@ -2,6 +2,7 @@
 
 Compute the poles of system `sys`.""" ->
 pole(sys::StateSpace) = eigvals(sys.A)
+# TODO wrong for MIMO
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
@@ -103,8 +104,8 @@ end
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber},
-        D::Matrix{<:BlasNumber})
+function tzero(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat},
+        D::Matrix{<:BlasFloat})
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
@@ -134,18 +135,20 @@ function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:Bla
     return zs
 end
 
+reduce_sys(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}, meps::BlasFloat) =
+    reduce_sys(promote(A,B,C,D)...)
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber}, D::Matrix{<:BlasNumber}, meps::BlasNumber)
+function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps::BlasFloat) where T <: BlasFloat
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
     end
     while true
         # Compress rows of D
-        U = full(qrfact(D)[:Q], thin=false)::Matrix{Float64}
+        U = full(qrfact(D)[:Q], thin=false)::Matrix{T}
         D = U'*D
         C = U'*C
         sigma = fastrank(D, meps)
@@ -157,7 +160,7 @@ function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{
         end
 
         # Compress columns of Ctilde
-        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{Float64}
+        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{T}
         V = flipdim(V,2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
@@ -167,7 +170,7 @@ function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Array{Float64,2}(0,0)
+            A = B = Cbar = Dbar = Matrix{T}(0,0)
             break
         end
         # Update System
