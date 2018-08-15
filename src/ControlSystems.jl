@@ -79,7 +79,7 @@ abstract type AbstractSystem end
 
 include("types/Lti.jl")
 
-abstract type SisoTf{T<:Number} end
+include("types/SisoTf.jl")
 
 # Transfer functions and tranfer function elemements
 include("types/TransferFunction.jl")

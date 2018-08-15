@@ -272,13 +272,47 @@ all_fuctions_types = [
 
 
 ss1matrix(T) = (T[-1 1; 0 1], T[1 0;0 1], T[1 0], fill(T(0),1,2))
-args = [
-    (Float32, Dict(
-        "statespace" => StateSpace{Float32, Matrix{Float32}}(ss1matrix(Float32)..., 0),
-        "tf" => ,
-        "zpk" =>,
-        )
+ss2matrix(T) = (T[-3 1; 0 1], T[1 0;0 1], T[1 0], fill(T(0),1,2))
 
+tf1matrix(T) = [SisoRational{T}([1,-1],[1,0,-1]) SisoRational{T}([1,],[1,0,-1])]
+tf2matrix(T) = [SisoRational{T}([1,-1],[1,2,-3]) SisoRational{T}([1,],[1,2,-3])]
+
+zpk1matrix(T) = [SisoZpk{T,Complex{T}}([-1,],[1, -1],1) SisoZpk{T,Complex{T}}([],[1,-1],1)]
+zpk2matrix(T) = [SisoZpk{T,Complex{T}}([-1,],[-3, 1],1) SisoZpk{T,Complex{T}}([],[-3,1],1)]
+
+systemsdict(T) = Dict(
+    "statespace1" => StateSpace{T, Matrix{T}}(ss1matrix(T)..., 0),
+    "statespace2" => StateSpace{T, Matrix{T}}(ss2matrix(T)..., 0),
+    "tf1" => TransferFunction{SisoRational{T}}(tf1matrix(T), 0),
+    "tf2" => TransferFunction{SisoRational{T}}(tf2matrix(T), 0),
+    "zpk1" => TransferFunction{SisoZpk{T,Complex{T}}}(zpk1matrix(T), 0),
+    "zpk1" => TransferFunction{SisoZpk{T,Complex{T}}}(zpk2matrix(T), 0),
+    )
+
+# (ss1 +0im, ss2 +im*ss1,
+#  tf1 +0im, tf2 +im*tf2,
+#  zpk1+0im, zpk1+im*zpk2 )
+systemsdict_complex(T) = Dict(
+        "statespace1" => StateSpace{Complex{T}, Matrix{Complex{T}}}(
+            (ss1matrix(T) .+ 0 .* im.*ss1matrix(T))..., 0),
+        "statespace2" => StateSpace{Complex{T}, Matrix{Complex{T}}}(
+            (ss2matrix(T) .+ 1 .* im.*ss1matrix(T))..., 0),
+        "tf1" => TransferFunction{SisoRational{Complex{T}}}(
+            (tf1matrix(T) .+ 0 .* im.*tf1matrix(T)), 0),
+        "tf2" => TransferFunction{SisoRational{Complex{T}}}(
+            (tf2matrix(T) .+ 1 .* im.*tf1matrix(T)), 0),
+        # "zpk1" => TransferFunction{SisoZpk{T,Complex{T}}}(
+        #     (zpk1matrix(T) .+ 0 .* im.*zpk1matrix(T))..., 0),
+        # "zpk1" => TransferFunction{SisoZpk{T,Complex{T}}}(
+        #     (zpk2matrix(T) .+ 1 .* im.*zpk1matrix(T))..., 0),
+    )
+
+args = [
+    (Float32, systemsdict(Float32)),
+    (Float64, systemsdict(Float64)),
+    (Int, systemsdict(Int)),
+    (Complex{Float32}, systemsdict_complex(Float32)),
+    (Complex{Float64}, systemsdict_complex(Float64)),
 ]
 # NOTE
 # Test isleaftype(Base.code_typed(f, typeof(args))[1][2])
