@@ -192,7 +192,7 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 See also `balance_statespace`, `balance`
 """
-function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasNumber}
+function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasFloat}
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
     T = [A B; C zeros(size(C*B))]
@@ -222,9 +222,10 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
     # The following follows from the matrix inversion lemma:
     # det(X + uᵀv) = det(X)(1 + vᵀX⁻¹u), or
     # det((sI-A)+BC) = det(sI-A)(1 + C(si-A)⁻¹B)
+    # C(si-A)⁻¹B) + D = 1/det(sI-A) * (det((sI-A)+BC) - I + D*det(sI-A))
     charpolyA = charpoly(A)
     for i=1:ninputs(sys), j=1:noutputs(sys)
-        num = charpoly(A-B*C) - charpolyA + D[j, i]*charpolyA
+        num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
     TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))

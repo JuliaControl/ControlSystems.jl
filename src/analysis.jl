@@ -104,8 +104,9 @@ end
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-function tzero(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat},
-        D::Matrix{<:BlasFloat})
+tzero(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}) =
+    tzero(promote(A,B,C,D)...)
+function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:BlasFloat
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
@@ -113,13 +114,13 @@ function tzero(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasF
     meps = 10*eps()*norm([A B; C D])
     A, B, C, D = reduce_sys(A, B, C, D, meps)
     A, B, C, D = reduce_sys(A', C', B', D', meps)
-    if isempty(A)   return Float64[]    end
+    if isempty(A)   return complex(T)[]    end
 
     # Compress cols of [C D] to [0 Df]
     mat = [C D]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
-    W = full(qrfact(mat')[:Q], thin=false)::Matrix{Float64}
+    W = full(qrfact(mat')[:Q], thin=false)::Matrix{T}
     W = flipdim(W,2)
     mat = mat*W
     if fastrank(mat', meps) > 0
@@ -130,13 +131,13 @@ function tzero(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasF
         zs = eigvals(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
-        zs = Float64[]
+        zs = complex(T)[]
     end
     return zs
 end
 
 reduce_sys(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}, meps::BlasFloat) =
-    reduce_sys(promote(A,B,C,D)...)
+    reduce_sys(promote(A,B,C,D)..., meps)
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
@@ -340,11 +341,11 @@ function delaymargin(G::LTISystem)
     if G.nu + G.ny > 2
         error("delaymargin only supports SISO systems")
     end
-    m   = margin(G,allMargins=true)
-    ϕₘ,i= findmin(m[4])
-    ϕₘ *= π/180
-    ωϕₘ = m[3][i]
-    dₘ  = ϕₘ/ωϕₘ
+    m     = margin(G,allMargins=true)
+    ϕₘ, i = findmin(m[4])
+    ϕₘ   *= π/180
+    ωϕₘ   = m[3][i]
+    dₘ    = ϕₘ/ωϕₘ
     if G.Ts > 0
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
@@ -375,7 +376,9 @@ function gangoffour(P::TransferFunction,C::TransferFunction)
     return S, D, N, T
 end
 
+
 function gangoffour(P::AbstractVector, C::AbstractVector)
+    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
         error("gangoffour only supports SISO systems")
     end
@@ -389,10 +392,12 @@ function gangoffour(P::AbstractVector, C::AbstractVector)
 end
 
 function gangoffour(P::TransferFunction, C::AbstractVector)
+    Base.depwarn("Deprecrated use of gangoffour(::TransferFunction, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     gangoffour(fill(P,length(C)), C)
 end
 
 function gangoffour(P::AbstractVector, C::TransferFunction)
+    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::TransferFunction), use `broadcast` and `zip` instead", :gangoffour)
     gangoffour(P, fill(C,length(P)))
 end
 

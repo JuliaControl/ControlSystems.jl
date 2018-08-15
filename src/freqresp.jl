@@ -6,7 +6,6 @@ Evaluate the frequency response of a linear system
 
 of system `sys` over the frequency vector `w`.""" ->
 function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
-
     # Create imaginary freq vector s
     if !iscontinuous(sys)
         Ts = sys.Ts == -1 ? 1.0 : sys.Ts
@@ -15,7 +14,7 @@ function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
         s_vec = im*w_vec
     end
 
-    T = promote_type(numeric_type(sys), Complex128, S)
+    T = promote_type(numeric_type(sys), Complex64, S)
     sys_fr = Array{T}(length(w_vec), noutputs(sys), ninputs(sys))
 
     if isa(sys, StateSpace)
@@ -65,7 +64,7 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 For many values of `x`, use `freqresp` instead.
 """ ->
 function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
-    T = promote_type(T0, typeof(s), Float64)
+    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     try
         R = s*I - sys.A
         sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
@@ -74,9 +73,8 @@ function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
     end
 end
 
-function evalfr(G::TransferFunction, s::Number)
-    T = promote_type(numeric_type(G), typeof(s), Float64)
-
+function evalfr(G::TransferFunction{<:SisoTf{T0}}, s::Number) where {T0}
+    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     fr = Array{T}(size(G))
     for j = 1:ninputs(G)
         for i = 1:noutputs(G)
