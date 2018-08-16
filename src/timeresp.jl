@@ -101,7 +101,7 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=_issmooth(u) ? :foh : :zoh)
     ny, nu = size(sys)
