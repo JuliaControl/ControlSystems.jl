@@ -1,7 +1,7 @@
 @doc """`pole(sys)`
 
 Compute the poles of system `sys`.""" ->
-pole(sys::StateSpace) = eigvals(sys.A)
+pole(sys::StateSpace) = eigvals(sys.A) .+ 0im # To make eigvals type stable
 # TODO wrong for MIMO
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")

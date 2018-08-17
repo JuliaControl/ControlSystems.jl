@@ -67,13 +67,10 @@ covar => (     1,  (
     ((BlasFloat,), (T) -> Tuple{StateSpace{T}, Matrix{T}}, (T) -> Matrix{T}),
                 ), "Base.lyap"),
 norm => (      1,  (
-    ((Real,), (T) -> Tuple{CustomLTISystem{T}, Real}, (T) ->  begin
-                        T2 = promote_type(Float32, typeof(one(T)/norm(one(T))))
-                        return  Tuple{T2,T2}
-                    end ),
+    ((Real,), (T) -> Tuple{CustomLTISystem{T}, Real}, (T) ->  promote_type(Float32, typeof(one(T)/norm(one(T)))) ),
                 ), "svdvals, eigvals, type unstable?, unlear if working with complex"),
 norminf => (   1,  (
-    ((Real,), (T) -> Tuple{CustomLTISystem{T}, Real}, (T) ->  begin
+    ((Real,), (T) -> Tuple{CustomLTISystem{T}}, (T) ->  begin
                         T2 = promote_type(Float32, typeof(one(T)/norm(one(T))))
                         return  Tuple{T2,T2}
                     end ),
@@ -83,11 +80,11 @@ gram => (      1,  (
                 ), "Base.lyap, dlyap"),
 ctrb => (      1,  (
     ((Number,), (T) -> NTuple{2, AbstractMatrix{T}}, (T) -> Matrix{T}),
-    ((Number,), (T) -> StateSpace{T}, (T) -> Matrix{T}),
+    ((Number,), (T) -> Tuple{StateSpace{T}}, (T) -> Matrix{T}),
                 ), ""),
 obsv => (      1,  (
     ((Number,), (T) -> NTuple{2, AbstractMatrix{T}}, (T) -> Matrix{T}),
-    ((Number,), (T) -> StateSpace{T}, (T) -> Matrix{T}),
+    ((Number,), (T) -> Tuple{StateSpace{T}}, (T) -> Matrix{T}),
                 ), ""),
 # TODO Fix acker
 place => (     1,  (
@@ -99,17 +96,17 @@ reduce_sys => (1,  (
     ((BlasFloat,), (T) -> Tuple{Matrix{T},Matrix{T},Matrix{T},Matrix{T},BlasFloat}, (T) -> Matrix{T}),
                 ), "qrfact"),
 sminreal => (  1,  (
-    ((Number,), (T) -> StateSpace{T}, (T) -> StateSpace{T}, ""),
+    ((Number,), (T) -> Tuple{StateSpace{T}}, (T) -> StateSpace{T}, ""),
                 ), ""),
 # TODO try to be more specific here, intype=outtype
 minreal => (   1,  (
     ((Number,), (T) -> Tuple{CustomLTISystem{T}, Real}, (T) -> CustomLTISystem{T}),
                 ), "eigvals (Polynomials.roots)"),
 balreal => (   1,  (
-    ((BlasFloat,), (T) -> StateSpace{T}, (T) -> Tuple{StateSpace{T}, Matrix{T}}),
+    ((BlasFloat,), (T) -> Tuple{StateSpace{T}}, (T) -> Tuple{StateSpace{T}, Matrix{T}}),
                 ), "gram, chol, inv"),
 baltrunc => (  1,  (
-    ((BlasFloat,), (T) -> StateSpace{T}, (T) -> Tuple{StateSpace{T}, Matrix{T}}),
+    ((BlasFloat,), (T) -> Tuple{StateSpace{T}}, (T) -> Tuple{StateSpace{T}, Matrix{T}}),
                 ), "balreal"),
 # # Stability Analysis
 # (isstable,  1,  (
@@ -273,6 +270,8 @@ sigma => ( 1,  (
 
 ss1matrix(T) = (T[-1 1; 0 1], T[1 0;0 1], T[1 0], fill(T(0),1,2))
 ss2matrix(T) = (T[-3 1; 0 1], T[1 0;0 1], T[1 0], fill(T(0),1,2))
+ss3matrix(T) = (T[-1 1; 0 -1], T[1 0;0 1], T[1 0], fill(T(0),1,2))
+ss4matrix(T) = (T[-1 1; 0 -1], reshape(T[0,1],2,1), T[1 0], fill(T(0),1,1))
 
 tf1matrix(T) = [SisoRational{T}([1,-1],[1,0,-1]) SisoRational{T}([1,],[1,0,-1])]
 tf2matrix(T) = [SisoRational{T}([1,-1],[1,2,-3]) SisoRational{T}([1,],[1,2,-3])]
@@ -283,6 +282,8 @@ zpk2matrix(T) = [SisoZpk{T,Complex{T}}([-1,],[-3, 1],1) SisoZpk{T,Complex{T}}([]
 systemsdict(T,dt=0) = Dict(
     "statespace1" => StateSpace{T, Matrix{T}}(ss1matrix(T)..., dt),
     "statespace2" => StateSpace{T, Matrix{T}}(ss2matrix(T)..., dt),
+    "statespace3" => StateSpace{T, Matrix{T}}(ss3matrix(T)..., dt), # stable mimo
+    "statespace4" => StateSpace{T, Matrix{T}}(ss4matrix(T)..., dt), # stable siso
     "tf1" => TransferFunction{SisoRational{T}}(tf1matrix(T), dt),
     "tf2" => TransferFunction{SisoRational{T}}(tf2matrix(T), dt),
     "zpk1" => TransferFunction{SisoZpk{T,Complex{T}}}(zpk1matrix(T), dt),
@@ -317,47 +318,73 @@ sysoftypes = [
 
 valsdict = Dict(
     "tvec1" => collect(1:100),
-    "freqvec1" => logspace(-1,1,50)
+    "freqvec1" => logspace(-1,1,50),
+    "covarmat1" => [1 2; 2 1] ,
 )
+
+
 
 # Not able to infer type-stability without this
 function infer_type(fun, args, kwargs...)
     dummy_call(fun, args, kwargs...) = fun(args...; kwargs...)
-    return Base.code_typed(dummy_call, typeof((fun, args, kwargs...)))[1][2]
+    return Base.return_types(dummy_call, typeof((fun, args, kwargs...)))[1]
+    #return Base.code_typed(dummy_call, typeof((fun, args, kwargs...)))[1][2]
 end
 
-function run_test(sysoftypes, all_fuctions_types)
-    for (fun, kwargs) in [(step, Dict(:method=>:zoh)),
-                          (freqresp, Dict()),
-                          (bode, Dict()),
-                          (nyquist, Dict()),
-                          (sigma, Dict())]
-        for (T, sysdict) in sysoftypes
-            fun_defs = all_fuctions_types[fun]
-            found_fun_def = false
-            for (Tset,inT,outT) in fun_defs[2]
-                if Tuple{(T,)...} <: Tuple{Tset...} # Check that this T is allowed for function
-                    found_fun_def = true
-                    for (key,sys) in sysdict        # Get a candidate system
-                        argin = (sys, real(T).(valsdict["tvec1"]))
-                        if isa(argin, inT(T))       # Check if we support this system with argin
-                            out = fun(argin...; kwargs...)
-                            out_T_actual = typeof(out)
-                            #@test out_T_actual <: outT(T)
-                            if ! (out_T_actual <: outT(T))  # Check output against expected output type
-                                println("In fun=$fun, T=$T, Tset=$Tset, syskey=$key, typeof(sys) = $(typeof(sys))\ngot\n$(out_T_actual)\nbut expected\n$(outT(T))")
-                            end
-                            inferT = infer_type(fun, argin, kwargs...)
-                            #@test isleaftype(inferT)
-                            if !isleaftype(inferT)          # Check type stability
-                                println("In fun=$fun, T=$T, Tset=$Tset, typeof(sys) = $(typeof(sys))\n Type instability, got\n $inferT")
+timevec1(T) = (real(T).(valsdict["tvec1"]),)
+covarmat1(T) = (real(T).(valsdict["covarmat1"]))
+
+functions_and_args = [
+    (step,      timevec1,       Dict(:method=>:zoh), nothing),
+    (freqresp,  timevec1,       Dict(), nothing),
+    (bode,      timevec1,       Dict(), nothing),
+    (nyquist,   timevec1,       Dict(), nothing),
+    (sigma,     timevec1,       Dict(), nothing),
+    (covar,     covarmat1,      Dict(), nothing),
+    (norm,      (T) -> (2,) ,   Dict(), nothing),
+    (norm,      (T) -> (Inf,),  Dict(), nothing),
+    (norminf,   (T) -> (),      Dict(), nothing),
+    (gram,      (T) -> (:c,),   Dict(), isstable),
+    (gram,      (T) -> (:o,),   Dict(), isstable),
+    (ctrb,      (T) -> (),      Dict(), nothing),
+    (obsv,      (T) -> (),      Dict(), nothing)
+]
+
+function run_test(sysoftypes, all_fuctions_types, functions_and_args)
+    @testset "Testing type stability" begin
+        @testset "for function: $fun" for
+            (fun, argfun, kwargs, requrement) in functions_and_args
+            @testset "with T=$T" for (T, sysdict) in sysoftypes
+                fun_defs = all_fuctions_types[fun]
+                found_fun_def = false
+                for (Tset,inT,outT) in fun_defs[2]
+                    if Tuple{(T,)...} <: Tuple{Tset...} # Check that this T is allowed for function
+                        found_fun_def = true
+                        for (key,sys) in sysdict        # Get a candidate system
+                            argin = (sys, argfun(T)...)
+                            if requrement == nothing || requrement(sys) # Test if function supports system
+                                if isa(argin, inT(T))       # Check if we support this system with argin
+                                    @testset "with sys=$key of tyope?$(typeof(sys))" begin
+                                        out = fun(argin...; kwargs...)
+                                        out_T_actual = typeof(out)
+                                        @test out_T_actual <: outT(T)
+                                        if ! (out_T_actual <: outT(T))  # Check output against expected output type
+                                            println("In fun=$fun, T=$T, Tset=$Tset, syskey=$key, typeof(sys) = $(typeof(sys))\ngot\n$(out_T_actual)\nbut expected\n$(outT(T))")
+                                        end
+                                        inferT = infer_type(fun, argin, kwargs...)
+                                        @test isleaftype(inferT)
+                                        if !isleaftype(inferT)          # Check type stability
+                                            println("In fun=$fun, T=$T, Tset=$Tset, typeof(sys) = $(typeof(sys))\n Type instability, got\n $inferT")
+                                        end
+                                    end
+                                end
                             end
                         end
                     end
                 end
-            end
-            if !found_fun_def
-                println("No definition found for $fun with T=$T")
+                if !found_fun_def
+                    println("No definition found for $fun with T=$T")
+                end
             end
         end
     end
