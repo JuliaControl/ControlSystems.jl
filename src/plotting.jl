@@ -117,7 +117,7 @@ lsimplot
                 yguide  --> ytext
                 title   --> "System Response"
                 subplot := s2i(1,i)
-                label     --> "\$G_\{$(si)\}\$"
+                label     --> "\$G_{$(si)}\$"
                 linestyle --> styledict[:l]
                 linecolor --> styledict[:c]
                 t,  y[:, i]
@@ -182,7 +182,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                         xlabel --> "Time (s)"
                         ylabel --> ytext
                         subplot := s2i(i,j)
-                        label --> "\$G_\{$(si)\}\$"
+                        label --> "\$G_{$(si)}\$"
                         linestyle --> styledict[:l]
                         linecolor --> styledict[:c]
                         t, ydata
@@ -252,7 +252,7 @@ bodeplot
                     yguide    --> "Magnitude $_PlotScaleStr"
                     subplot := s2i((plotphase?(2i-1):i),j)
                     title     --> "Bode plot from: u($j)"
-                    label     --> "\$G_\{$(si)\}\$"
+                    label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
                     w, magdata
@@ -266,7 +266,7 @@ bodeplot
                     yguide    --> "Phase (deg)"
                     subplot := s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
-                    label     --> "\$G_\{$(si)\}\$"
+                    label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
                     w, phasedata
@@ -354,7 +354,7 @@ nyquistplot
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot := s2i(i,j)
-                    label --> "\$G_\{$(si)\}\$"
+                    label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
