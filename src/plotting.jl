@@ -25,7 +25,7 @@ _PlotScaleStr = ""
 @doc """`setPlotScale(str)`
 
 Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
-`str` should be either `"dB"` or `"log10"`.""" ->
+`str` should be either `"dB"` or `"log10"`."""
 function setPlotScale(str::AbstractString)
     if str == "dB"
         plotSettings = (str, :identity, "(dB)")
@@ -84,7 +84,7 @@ not specified, a zero vector is used.
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.
-""" ->
+"""
 lsimplot
 
 @recipe function lsimplot(p::Lsimplot; method=nothing)
@@ -202,7 +202,7 @@ end
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`kwargs` is sent as argument to Plots.plot.""" ->
+`kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
 @recipe function bodeplot(p::Bodeplot; plotphase=true)
@@ -326,7 +326,7 @@ optionally provided.
 `gaincircles` plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are
 the sensitivity and complementary sensitivity functions.
 
-`kwargs` is sent as argument to plot.""" ->
+`kwargs` is sent as argument to plot."""
 nyquistplot
 @recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
     systems = p.args[1]
@@ -415,7 +415,7 @@ This function is based on code subject to the two-clause BSD licence
 Copyright 2011 Will Robertson
 Copyright 2011 Philipp Allgeuer
 
-""" ->
+"""
 nicholsplot
 @recipe function nicholsplot(p::Nicholsplot;
     text     = true,
@@ -568,7 +568,7 @@ nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwa
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
-`kwargs` is sent as argument to Plots.plot.""" ->
+`kwargs` is sent as argument to Plots.plot."""
 sigmaplot
 @recipe function sigmaplot(p::Sigmaplot)
     systems, w = p.args[1:2]
@@ -606,7 +606,7 @@ sigmaplot(sys::LTISystem, args...; kwargs...) = sigmaplot([sys], args...; kwargs
 Plot all the amplitude and phase margins of the system(s) `sys`.
 A frequency vector `w` can be optionally provided.
 
-`kwargs` is sent as argument to Plots.plot.""" ->
+`kwargs` is sent as argument to Plots.plot."""
 function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
@@ -680,7 +680,7 @@ _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 @userplot Pzmap
 @doc """`fig = pzmap(fig, system, args...; kwargs...)`
 
-Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.""" ->
+Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command."""
 pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
@@ -727,7 +727,7 @@ pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 Gang-of-Four plot.
 
-`kwargs` is sent as argument to Plots.plot.""" ->
+`kwargs` is sent as argument to Plots.plot."""
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
     S,D,N,T = gangoffour(P,C)
     fig = bodeplot(LTISystem[[S[i] D[i]; N[i] T[i]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)

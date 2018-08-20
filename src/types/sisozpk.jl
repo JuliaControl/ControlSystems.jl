@@ -56,11 +56,11 @@ function minreal(sys::SisoZpk, eps::Real)
     SisoZpk(newZ, newP, sys.k)
 end
 
-function Base.num(t::SisoZpk)
+function num(t::SisoZpk)
     return copy(t.z)
 end
 
-function Base.den(t::SisoZpk)
+function den(t::SisoZpk)
     return copy(t.p)
 end
 

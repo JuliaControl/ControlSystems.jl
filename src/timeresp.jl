@@ -8,7 +8,7 @@ Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
 function Base.step(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
@@ -40,7 +40,7 @@ Calculate the impulse response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
 function impulse(sys::StateSpace, t::AbstractVector)
     lt = length(t)
     ny, nu = size(sys)
@@ -110,7 +110,7 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=_issmooth(u) ? :foh : :zoh)
     ny, nu = size(sys)
@@ -199,7 +199,7 @@ Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
 If `u` is a function, then `u(i,x)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
-""" ->
+"""
 function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0::VecOrMat{T}=zeros(T, size(A, 1), 1))
     n = size(u, 1)

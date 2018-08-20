@@ -30,8 +30,8 @@ Base.zero(::Type{SisoGeneralized}) = SisoGeneralized(0)
 Base.zero(::SisoGeneralized) = Base.zero(SisoGeneralized)
 
 Base.length(t::SisoGeneralized) = error("length is not implemented for generalized transferfunctions")
-Base.num(t::SisoGeneralized) = error("num is not implemented for generalized transferfunctions")
-Base.den(t::SisoGeneralized) = error("den is not implemented for generalized transferfunctions")
+num(t::SisoGeneralized) = error("num is not implemented for generalized transferfunctions")
+den(t::SisoGeneralized) = error("den is not implemented for generalized transferfunctions")
 pole(t::SisoGeneralized) = error("pole is not implemented for generalized transferfunctions")
 tzero(t::SisoGeneralized) = error("tzero is not implemented for generalized transferfunctions")
 

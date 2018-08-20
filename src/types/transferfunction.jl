@@ -143,7 +143,7 @@ Other uses:
 
 `tf(sys)`: Convert `sys` to `tf` form.
 
-`tf("s")`, `tf("z")`: Create the continous transferfunction `s`.""" ->
+`tf("s")`, `tf("z")`: Create the continous transferfunction `s`."""
 function tf{T<:Vector, S<:Vector}(num::VecOrMat{T}, den::VecOrMat{S}, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)
@@ -184,7 +184,7 @@ Other uses:
 
 `tf(sys)`: Convert `sys` to `tf` form.
 
-`tf("s")`: Create the transferfunction `s`.""" ->
+`tf("s")`: Create the transferfunction `s`."""
 function zpk{T<:Vector,S<:Vector}(z::VecOrMat{T}, p::VecOrMat{S}, k::VecOrMat, Ts::Real=0; kwargs...)
     # Validate input and output dimensions match
     ny, nu = size(z, 1, 2)
@@ -230,7 +230,7 @@ Example: `tfg("1/exp(-sqrt(s))")`, `tfg(["1/exp(-sqrt(s))"), "1/(s+1)])`, `tfg(:
 Other uses:
 
 `tfg(sys)`: Convert `sys` to `tfg` form.
-""" ->
+"""
 function tfg(tf::TransferFunction)
     oldmat = tf.matrix
     matrix = Array{SisoGeneralized}(tf.ny, tf.nu)
@@ -340,7 +340,7 @@ end
 
 @doc """`tf = minreal(tf::TransferFunction, eps=sqrt(eps()))`
 
-Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros """ ->
+Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros """
 function minreal(t::TransferFunction, eps::Real=sqrt(eps()))
     matrix = similar(t.matrix)
     for i = eachindex(t.matrix)

@@ -30,7 +30,7 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function lqr(A, B, Q, R)
     S = care(A, B, Q, R)
     K = R\B'*S
@@ -43,7 +43,7 @@ Calculate the optimal Kalman gain
 
 See also `LQG`
 
-""" ->
+"""
 kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
 
 function lqr(sys::StateSpace, Q, R)
@@ -91,7 +91,7 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
     K = (B'*S*B + R)\Matrix((B'S)*A) # TODO: remove Matrix for julia v0.7
@@ -102,13 +102,13 @@ end
 
 Calculate the optimal Kalman gain for discrete time systems
 
-""" ->
+"""
 dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
 
 @doc """`place(A, B, p)`, `place(sys::StateSpace, p)`
 
 Calculate gain matrix `K` such that
-the poles of `(A-BK)` in are in `p`""" ->
+the poles of `(A-BK)` in are in `p`"""
 function place(A, B, p)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")

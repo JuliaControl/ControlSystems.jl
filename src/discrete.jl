@@ -8,7 +8,7 @@ Convert the continuous system `sys` into a discrete system with sample time
 
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
-`x0_discrete = x0map*[x0; u0]`""" ->
+`x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     if !iscontinuous(sys)
         error("sys must be a continuous time system")
@@ -206,7 +206,7 @@ a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.""" ->
+`method` parameter can be specified as either `:zoh` or `:foh`."""
 function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
     x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
     ny, nu = size(sys)
