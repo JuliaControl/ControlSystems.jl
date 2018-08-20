@@ -100,7 +100,7 @@ function getpoles(G,K)
     cat(2,poles...)'
 end
 
-@require OrdinaryDiffEq begin
+using OrdinaryDiffEq
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles with an adaptive method
     P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
     Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
@@ -114,7 +114,6 @@ function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles 
     poleout = hcat(poleout...)'
 end
 
-end
 
 """
     rlocusplot(P::LTISystem, K)

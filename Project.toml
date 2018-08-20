@@ -1,0 +1,5 @@
+[deps]
+Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"

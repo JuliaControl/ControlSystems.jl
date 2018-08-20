@@ -111,7 +111,7 @@ lsimplot
         styledict = getStyleSys(si,length(systems))
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
-            ytext = (ny > 1) ? "Amplitude to: y($i)": "Amplitude"
+            ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> ytext
