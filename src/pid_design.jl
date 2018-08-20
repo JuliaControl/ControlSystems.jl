@@ -43,9 +43,9 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         kps, kis, kds = kp, ki, kd
     else
         n = max(length(kps), length(kis), length(kds))
-        kps = kps == 0 ? zeros(n) : kps
-        kis = kis == 0 ? zeros(n) : kis
-        kds = kds == 0 ? zeros(n) : kds
+        kps = kps == 0 ? fill(0,n) : kps
+        kis = kis == 0 ? fill(0,n) : kis
+        kds = kds == 0 ? fill(0,n) : kds
     end
     ω   = ω   == 0 ? logspace(-3,3,500) : ω
 
@@ -100,7 +100,7 @@ function getpoles(G,K)
     cat(2,poles...)'
 end
 
-@require OrdinaryDiffEq begin
+using OrdinaryDiffEq
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles with an adaptive method
     P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
     Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
@@ -114,7 +114,6 @@ function getpoles(G, K) # If OrdinaryDiffEq is installed, we overrides getpoles 
     poleout = hcat(poleout...)'
 end
 
-end
 
 """
     rlocusplot(P::LTISystem, K)
@@ -235,7 +234,7 @@ process with transfer function P(s)
 The PID controller is assumed to be on the form kp +ki/s +kd s
 
 The curve is found by analyzing
-P(s)\*C(s) = -1 ⟹\n
+P(s)*C(s) = -1 ⟹\n
 |PC| = |P| |C| = 1\n
 arg(P) + arg(C) = -π
 

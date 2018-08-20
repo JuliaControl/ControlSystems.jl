@@ -161,7 +161,7 @@ function *{T,S}(p1::Poly{T}, p2::Poly{S})
     if n == 0 || m == 0
         return Poly(R[])
     end
-    a = zeros(R, n+m-1)
+    a = fill(zero(R), n+m-1)
     for i = 1:length(p1)
         for j = 1:length(p2)
             a[i+j-1] += p1[i] * p2[j]
@@ -205,19 +205,19 @@ function roots{T}(p::Poly{T})
     R = promote_type(T, Float64)
     num_zeros = 0
     if length(p) == 0
-        return zeros(R, 0)
+        return fill(zero(R), 0)
     end
     while abs(p[end-num_zeros]) <= 2*eps(T)
         if num_zeros == length(p)-1
-            return zeros(R, 0)
+            return fill(zero(R), 0)
         end
         num_zeros += 1
     end
     n = length(p)-num_zeros-1
     if n < 1
-        return zeros(R, length(p)-1)
+        return fill(zero(R), length(p)-1)
     end
-    companion = zeros(R, n, n)
+    companion = fill(zero(R), n, n)
     a0 = p[end-num_zeros]
     for i = 1:n-1
         companion[1,i] = -p[end-num_zeros-i] / a0
@@ -225,7 +225,7 @@ function roots{T}(p::Poly{T})
     end
     companion[1,end] = -p[1] / a0
     D,V = eig(companion)
-    r = zeros(eltype(D),length(p)-1)
+    r = fill(zero(eltype(D)),length(p)-1)
     r[1:n] = 1./D
     return r
 end

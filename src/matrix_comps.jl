@@ -6,7 +6,7 @@ defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
-""" ->
+"""
 function care(A, B, Q, R)
     G = try
         B*inv(R)*B'
@@ -36,10 +36,10 @@ are non-singular.
 Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
-""" ->
+"""
 function dare(A, B, Q, R)
     G = try
-        B*inv(R)*B'
+        B*(inv(R)*B')
     catch
         error("R must be non-singular.")
     end
@@ -67,7 +67,7 @@ end
 
 Compute the solution "X" to the discrete Lyapunov equation
 "AXA' - X + Q = 0".
-""" ->
+"""
 function dlyap(A, Q)
     lhs = kron(A, conj(A))
     lhs = eye(size(lhs, 1)) - lhs
@@ -79,7 +79,7 @@ end
 
 Compute the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian. If `opt` is `:o`, computes the observability
-grammian.""" ->
+grammian."""
 function gram(sys::StateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
@@ -101,14 +101,14 @@ Compute the observability matrix for the system described by `(A, C)` or `sys`.
 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
-`gram(sys, :o)` is positive definite.""" ->
+`gram(sys, :o)` is positive definite."""
 function obsv(A, C)
     n = size(A, 1)
     ny = size(C, 1)
     if n != size(C, 2)
         error("C must have the same number of columns as A")
     end
-    res = zeros(n*ny, n)
+    res = fill(0,n*ny, n)
     res[1:ny, :] = C
     for i=1:n-1
         res[(1 + i*ny):(1 + i)*ny, :] = res[((i - 1)*ny + 1):i*ny, :] * A
@@ -124,14 +124,14 @@ Compute the controllability matrix for the system described by `(A, B)` or
 
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
-checking if `gram(sys, :c)` is positive definite.""" ->
+checking if `gram(sys, :c)` is positive definite."""
 function ctrb(A, B)
     n = size(A, 1)
     nu = size(B, 2)
     if n != size(B, 1)
         error("B must have the same number of rows as A")
     end
-    res = zeros(n, n*nu)
+    res = fill(0,n, n*nu)
     res[:, 1:nu] = B
     for i=1:n-1
         res[:, (1 + i*nu):(1 + i)*nu] = A * res[:, ((i - 1)*nu + 1):i*nu]
@@ -147,7 +147,7 @@ white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac de
 
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
-(D*W*D.' .!= 0) for contunuous systems.""" ->
+(D*W*D.' .!= 0) for contunuous systems."""
 function covar(sys::StateSpace, W::StridedMatrix)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
     if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
@@ -204,7 +204,7 @@ of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-2
 For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
-""" ->
+"""
 function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
     if p == 2
         return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
@@ -241,7 +241,7 @@ of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-2
 For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
-""" ->
+"""
 function norminf(sys::StateSpace; tol=1e-6)
     if sys.Ts == 0
         return normLinf_twoSteps_ct(sys,tol)
@@ -383,7 +383,7 @@ end
 
 Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
-transformation will only scale, and not permute `A`.""" ->
+transformation will only scale, and not permute `A`."""
 function balance(A, perm::Bool=true)
     n = Base.LinAlg.checksquare(A)
     B = copy(A)

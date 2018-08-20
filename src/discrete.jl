@@ -8,7 +8,7 @@ Convert the continuous system `sys` into a discrete system with sample time
 
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
-`x0_discrete = x0map*[x0; u0]`""" ->
+`x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     if !iscontinuous(sys)
         error("sys must be a continuous time system")
@@ -18,23 +18,23 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     nx = sys.nx
     if method == :zoh
         M = expm([A*Ts  B*Ts;
-            zeros(nu, nx + nu)])
+            fill(0,nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [eye(nx) zeros(nx, nu)]
+        x0map = [Matrix(I,nx,nx) fill(0,nx, nu)]
     elseif method == :foh
-        M = expm([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) eye(nu);
-            zeros(nu, nx + 2*nu)])
+        M = expm([A*Ts B*Ts fill(0,nx, nu);
+            fill(0,nu, nx + nu) Matrix(I,nu,nu);
+            fill(0,nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
         Ad = M[1:nx, 1:nx]
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [eye(nx) -M2]
+        x0map = [Matrix(I,nx,nx) -M2]
     elseif method == :tustin || method == :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else
@@ -129,7 +129,7 @@ function dab(a,b,c)
         return
     end
     nr = nc - ns
-    c = nb-nr > 1 ? [zeros(nb-nr-1); c] : c
+    c = nb-nr > 1 ? [fill(0,nb-nr-1); c] : c
     nc = length(c)
     nr = nc - ns
     if nr < 1
@@ -137,9 +137,9 @@ function dab(a,b,c)
         s = c/b
         return
     end
-    b = [zeros(nr-nb+1); b]
-    za = zeros(nr-1)
-    zb = zeros(ns-1)
+    b = [fill(0,nr-nb+1); b]
+    za = fill(0,nr-1)
+    zb = fill(0,ns-1)
     ma = toeplitz([a; za],[a[1]; za])
     mb = toeplitz([b; zb],[b[1]; zb])
     m = [ma mb]
@@ -158,7 +158,7 @@ end
 function toeplitz(c,r)
     nc = length(c)
     nr = length(r)
-    A  = zeros(nc, nr)
+    A  = fill(0,nc, nr)
     A[:,1] = c
     A[1,:] = r
     for i in 2:nr
@@ -206,7 +206,7 @@ a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.""" ->
+`method` parameter can be specified as either `:zoh` or `:foh`."""
 function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
     x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
     ny, nu = size(sys)
@@ -278,7 +278,7 @@ end
 function zpconv(a,r,b,s)
     d = length(a)+length(r)-length(b)-length(s)
     if d > 0
-        b = [zeros(d);b]
+        b = [fill(0,d);b]
     end
     conv(a,r) + conv(b,s)
 end

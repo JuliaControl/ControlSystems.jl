@@ -4,8 +4,8 @@ A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0)
-Q = eye(2)
-R = eye(1)
+Q = Matrix{Float64}(I,2,2)
+R = Matrix{Float64}(I,1,1)
 L = lqr(sys,Q,R)
 
 u(i,x) = -L*x # Form control law
@@ -25,7 +25,7 @@ sysd = c2d(sys, 0.1)[1]
 # Create the closed loop system
 sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
-yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
+yd, td, xd = lsim(sysdfb, fill(0,501), t, x0=x0)
 
 @test y ≈ yd
 @test x ≈ xd
@@ -66,15 +66,15 @@ xreal[:,3,2] = exp.(-t).*t
 
 
 #Step response of discrete system with specified final time
-G = tf([1], [1; zeros(3)], 1)
+G = tf([1], [1; fill(0,3)], 1)
 y, t2, x = step(G, 10)
-@test y ≈ [zeros(3); ones(8)] atol=1e-14
+@test y ≈ [fill(0,3); fill(1,8)] atol=1e-14
 @test t2 ≈ 0:1:10 atol=1e-14
 
 #Impulse response of discrete system to final time that is not mulitple of the sample time
-G = tf([1], [1; zeros(3)], 0.3)
+G = tf([1], [1; fill(0,3)], 0.3)
 y, t2, x = step(G, 2)
-@test y ≈ [zeros(3); ones(4)] atol=1e-14
+@test y ≈ [fill(0,3); fill(1,4)] atol=1e-14
 @test t2 ≈ 0:0.3:1.8 atol=1e-14
 
 

@@ -20,8 +20,8 @@ A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0)
-Q = eye(2)
-R = eye(1)
+Q = Matrix{Float64}(I,2,2)
+R = Matrix{Float64}(I,1,1)
 L = lqr(sys,Q,R)
 
 u(t,x) = -L*x # Form control law,
@@ -30,7 +30,7 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function lqr(A, B, Q, R)
     S = care(A, B, Q, R)
     K = R\B'*S
@@ -43,7 +43,7 @@ Calculate the optimal Kalman gain
 
 See also `LQG`
 
-""" ->
+"""
 kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
 
 function lqr(sys::StateSpace, Q, R)
@@ -81,8 +81,8 @@ A = [1 h; 0 1]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0, h)
-Q = eye(2)
-R = eye(1)
+Q = Matrix{Float64}(I,2,2)
+R = Matrix{Float64}(I,1,1)
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(t,x) = -L*x # Form control law,
@@ -91,10 +91,10 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
-    K = (B'*S*B + R)\(B'S*A)
+    K = (B'*S*B + R)\Matrix((B'S)*A) # TODO: remove Matrix for julia v0.7
     return K
 end
 
@@ -102,13 +102,13 @@ end
 
 Calculate the optimal Kalman gain for discrete time systems
 
-""" ->
+"""
 dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
 
 @doc """`place(A, B, p)`, `place(sys::StateSpace, p)`
 
 Calculate gain matrix `K` such that
-the poles of `(A-BK)` in are in `p`""" ->
+the poles of `(A-BK)` in are in `p`"""
 function place(A, B, p)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")
@@ -137,7 +137,7 @@ function acker(A,B,P)
     for i = 0:(n-1)
         S[:,i+1] = A^i*B
     end
-    return [zeros(1,n-1) 1]*(S\q)
+    return [fill(0,1,n-1) 1]*(S\q)
 end
 
 

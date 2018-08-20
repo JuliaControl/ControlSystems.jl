@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type StateSpace <: LTISystem
+mutable struct StateSpace <: LTISystem
     A::Matrix{Float64}
     B::Matrix{Float64}
     C::Matrix{Float64}
@@ -73,7 +73,7 @@ State, input and output names: each can be either a vector of strings (one strin
 or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify
 the coordinates for each dimension (e.g. "x1", "x2", ...).
 
-`sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
+`sys = ss(D[, Ts, ...])` specifies a static gain matrix D."""
 function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0; kwargs...)
     # Check the kwargs for metadata
     nu = size(B, 2)
@@ -101,9 +101,9 @@ end
 # Function for creation of static gain
 function ss(D::Array, Ts::Real=0; kwargs...)
     ny, nu = size(D, 1, 2)
-    A = zeros(0, 0)
-    B = zeros(0, nu)
-    C = zeros(ny, 0)
+    A = fill(0,0, 0)
+    B = fill(0,0, nu)
+    C = fill(0,ny, 0)
 
     return ss(A, B, C, D, Ts, kwargs...)
 end
@@ -121,7 +121,7 @@ function rss(nx::Int, nu::Int=1, ny::Int=1, feedthrough::Bool=true)
     if feedthrough
         D = randn(ny, nu)
     else
-        D = zeros(ny, nu)
+        D = fill(0,ny, nu)
     end
     return ss(A, B, C, D)
 end

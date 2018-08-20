@@ -4,7 +4,7 @@ Evaluate the frequency response of a linear system
 
 `w -> C*((iw*im -A)^-1)*B + D`
 
-of system `sys` over the frequency vector `w`.""" ->
+of system `sys` over the frequency vector `w`."""
 function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
     ny, nu = size(sys)
     nw = length(w)
@@ -55,7 +55,7 @@ _preprocess_for_freqresp(sys::SisoTf) = sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
-""" ->
+"""
 function evalfr(sys::StateSpace, s::Number)
     S = promote_type(typeof(s), Float64)
     try
@@ -88,7 +88,7 @@ Notation for frequency response evaluation.
 - F(s) evaluates the continuous-time transfer function F at s.
 - F(omega,true) evaluates the discrete-time transfer function F at i*Ts*omega
 - F(z,false) evaluates the discrete-time transfer function F at z
-""" ->
+"""
 function (sys::TransferFunction)(s)
     evalfr(sys,s)
 end
@@ -112,7 +112,7 @@ end
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
-`mag` and `phase` has size `(length(w), ny, nu)`""" ->
+`mag` and `phase` has size `(length(w), ny, nu)`"""
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
@@ -124,7 +124,7 @@ bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`
 
-`re` and `im` has size `(length(w), ny, nu)`""" ->
+`re` and `im` has size `(length(w), ny, nu)`"""
 function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
@@ -136,7 +136,7 @@ nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
 Compute the singular values of the frequency response of system `sys` at
 frequencies `w`
 
-`sv` has size `(length(w), max(ny, nu))`""" ->
+`sv` has size `(length(w), max(ny, nu))`"""
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     nw, ny, nu = size(resp)

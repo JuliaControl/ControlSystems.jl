@@ -1,13 +1,13 @@
 @doc """`pole(sys)`
 
-Compute the poles of system `sys`.""" ->
+Compute the poles of system `sys`."""
 pole(sys::StateSpace) = eigvals(sys.A)
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 @doc """`dcgain(sys)`
 
-Compute the gain of SISO system `sys`.""" ->
+Compute the gain of SISO system `sys`."""
 function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
     !issiso(sys) && error("Gain only defined for siso systems")
     return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
@@ -17,7 +17,7 @@ end
 
 Compute the dcgain of system `sys`.
 
-equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
+equal to G(0) for continuous-time systems and G(1) for discrete-time systems."""
 function dcgain(sys::TransferFunction)
     !issiso(sys) && error("Gain only defined for siso systems")
     if sys.Ts > 0
@@ -34,7 +34,7 @@ as the following:
 
 `h(0) = D`
 
-`h(n) = C*A^(n-1)*B`""" ->
+`h(n) = C*A^(n-1)*B`"""
 function markovparam(sys::StateSpace, n::Integer)
     n < 0 && error("n must be >= 0")
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
@@ -49,7 +49,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `p` : Matrix{Vector{Complex128}}, (ny x nu)
 
-`k` : Matrix{Float64}, (ny x nu)""" ->
+`k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
     ny, nu = size(sys)
     zs = Array{Vector{Complex128}}(ny, nu)
@@ -89,7 +89,7 @@ end
 @doc """`Wn, zeta, ps = damp(sys)`
 
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
-poles, `ps`, of `sys`""" ->
+poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if !iscontinuous(sys)
@@ -107,7 +107,7 @@ end
 @doc """`dampreport(sys)`
 
 Display a report of the poles, damping ratio, natural frequency, and time
-constant of the system `sys`""" ->
+constant of the system `sys`"""
 function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
     t_const = 1./(Wn.*zeta)
@@ -127,7 +127,7 @@ dampreport(sys::LTISystem) = dampreport(STDOUT, sys)
 @doc """`tzero(sys)`
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
-realization, these are also the transmission zeros.""" ->
+realization, these are also the transmission zeros."""
 function tzero(sys::TransferFunction)
     if issiso(sys)
         return tzero(sys.matrix[1,1])
@@ -164,7 +164,7 @@ function tzero(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
         nf = size(A, 1)
         m = size(D, 2)
         Af = ([A B] * W)[1:nf, 1:nf]
-        Bf = ([eye(nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+        Bf = ([I fill(0,nf, m)] * W)[1:nf, 1:nf]
         zs = eig(Af, Bf)[1]
     else
         zs = Float64[]
@@ -369,7 +369,7 @@ end
 
 @doc """`dₘ = delaymargin(G::LTISystem)`
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     if G.nu + G.ny > 2
@@ -398,7 +398,7 @@ Given a transfer function describing the Plant `P` and a transferfunction descri
 
 `T = PC/(1+PC)` Complementary sensitivity function
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function gangoffour(P::TransferFunction,C::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
@@ -450,7 +450,7 @@ computes the four transfer functions in the Gang-of-Four and the transferfunctio
 
 `RE = F/(1+P*C)`
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
         error("gof only supports SISO systems")
