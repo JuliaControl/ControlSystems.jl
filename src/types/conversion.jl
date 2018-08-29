@@ -224,7 +224,7 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
     # det((sI-A)+BC) = det(sI-A)(1 + C(si-A)⁻¹B)
     charpolyA = charpoly(A)
     for i=1:ninputs(sys), j=1:noutputs(sys)
-        num = charpoly(A-B*C) - charpolyA + D[j, i]*charpolyA
+        num = charpoly(A-B[:,i]*C[j,:]') - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
     TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
