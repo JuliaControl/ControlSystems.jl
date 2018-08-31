@@ -10,7 +10,7 @@ default(show=false)
 funcs, refs, eps = getexamples()
 # Make it easier to pass tests on different systems
 # Set to a factor 2 of common errors
-eps = [0.15, 0.015, 0.1, 0.01, 0.01, 0.02, 0.01, 0.15, 0.15, 0.01, 0.01]
+eps = [0.15, 0.05, 0.4, 0.04, 0.04, 0.04, 0.04, 0.15, 0.15, 0.04, 0.04]
 res = genplots(funcs, refs, eps=eps, popup=false)
 
 ##Explicit enumeration for simpler debugging
