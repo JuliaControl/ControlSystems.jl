@@ -1,3 +1,5 @@
+sudo: required
+
 language: julia
 julia:
   - 0.6
