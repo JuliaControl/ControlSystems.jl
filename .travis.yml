@@ -3,17 +3,21 @@ sudo: required
 language: julia
 julia:
   - 0.6
+  
 notifications:
     email: false
+
 before_install:
     - sudo apt-get update -qq
-    - sudo apt-get install -qq texlive-latex-base
+    - sudo apt-get install -qq texlive-latex-base dvipng
+
 script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
     - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
     #- julia -e 'ENV["PYTHON"] = ""; Pkg.clone("PyPlot"); Pkg.build("PyPlot")'
     - julia -e 'Pkg.clone("https://github.com/jacobhuesman/ControlExamplePlots.jl.git");'
     - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
+
 after_success:
     - julia -e 'cd(Pkg.dir("ControlSystems")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
     - julia -e 'Pkg.clone("https://github.com/MichaelHatherly/Documenter.jl")'
