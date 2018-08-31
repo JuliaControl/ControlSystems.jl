@@ -461,10 +461,10 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
-Base.print(io::IO, t::TransferFunction; precision::Int=-1) = show(io, t, precision=precision)
-Base.print(t::TransferFunction; precision::Int=-1) = show(t, precision=precision)
+Base.print(io::IO, t::TransferFunction, precision::Int=-1) = show(io, t, precision)
+Base.print(t::TransferFunction, precision::Int=-1) = show(t, precision)
 
-function Base.show(io::IO, t::TransferFunction; precision::Int=-1)
+function Base.show(io::IO, t::TransferFunction, precision::Int=-1)
     # Compose the name vectors
     inputs = format_names(t.inputnames, "Input ", "?")
     outputs = format_names(t.outputnames, "Output ", "?")
@@ -493,4 +493,4 @@ function Base.show(io::IO, t::TransferFunction; precision::Int=-1)
         print(io, "\nDiscrete-time transfer function model")
     end
 end
-Base.show(t::TransferFunction; precision::Int=-1) = show(STDOUT, t, precision=precision)
+Base.show(t::TransferFunction, precision::Int=-1) = show(STDOUT, t, precision)
