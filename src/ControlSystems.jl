@@ -65,9 +65,12 @@ export  LTISystem,
         sigma,
         # utilities
         numpoly,
-        denpoly
+        denpoly,
+        # display
+        show,
+        print
 
-using Plots, LaTeXStrings, Requires
+using Plots, LaTeXStrings, Requires, Formatting
 import Base: +, -, *, /, (./), (==), (.+), (.-), (.*), (!=), isapprox, convert, promote_op
 
 include("types/lti.jl")

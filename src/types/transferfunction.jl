@@ -461,9 +461,36 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
-Base.print(io::IO, t::TransferFunction) = show(io, t)
+@doc """`print(io::IO, t::TransferFunction, precision::Int=-1)`
 
-function Base.show(io::IO, t::TransferFunction)
+Print a string representation of the transfer function:
+
+`io`: the `IO` stream to print to
+
+`t`: the transfer function
+
+`precision`: the precision to round each number to (default is 5)
+
+Other uses:
+
+`print(t::TransferFunction, precision::Int=-1)`: prints to `STDOUT`""" ->
+Base.print(io::IO, t::TransferFunction, precision::Int=-1) = show(io, t, precision)
+Base.print(t::TransferFunction, precision::Int=-1) = show(t, precision)
+
+@doc """`show(io::IO, t::TransferFunction, precision::Int=-1)`
+
+Print a string representation of the transfer function:
+
+`io`: the `IO` stream to print to
+
+`t`: the transfer function
+
+`precision`: the precision to round each number to (default is 5)
+
+Other uses:
+
+`show(t::TransferFunction, precision::Int=-1)`: prints to `STDOUT`""" ->
+function Base.show(io::IO, t::TransferFunction, precision::Int=-1)
     # Compose the name vectors
     inputs = format_names(t.inputnames, "Input ", "?")
     outputs = format_names(t.outputnames, "Output ", "?")
@@ -474,7 +501,7 @@ function Base.show(io::IO, t::TransferFunction)
             if !issiso(t)
                 println(io, inputs[i], " to ", outputs[o])
             end
-                print_siso(io, t.matrix[o, i], tftype)
+            print_siso(io, t.matrix[o, i], tftype, precision)
             if !(i == t.nu && o == t.ny)
                 print(io, "\n")
             end
@@ -492,3 +519,4 @@ function Base.show(io::IO, t::TransferFunction)
         print(io, "\nDiscrete-time transfer function model")
     end
 end
+Base.show(t::TransferFunction, precision::Int=-1) = show(STDOUT, t, precision)

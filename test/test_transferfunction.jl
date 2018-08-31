@@ -75,21 +75,115 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
-# Printing
-res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2.0s + 3.0\n-----------"*
-       "------\ns^2 + 8.0s + 15.0\n\nInput 1 to Output 2\ns^2 + 2.0s + 3.0\n-"*
-       "----------------\ns^2 + 8.0s + 15.0\n\nInput 2 to Output 1\n     s + "*
-       "2.0\n-----------------\ns^2 + 8.0s + 15.0\n\nInput 2 to Output 2\n   "*
-       "  s + 2.0\n-----------------\ns^2 + 8.0s + 15.0\n\nContinuous-time"*
-       " transfer function model")
+# Printing (default, specific precision, zpk)
+res = ("TransferFunction:\n"*
+       "Input 1 to Output 1\n"*
+       "s^2 + 2*s + 3\n"*
+       "--------------\n"*
+       "s^2 + 8*s + 15\n"*
+       "\n"*
+       "Input 1 to Output 2\n"*
+       "s^2 + 2*s + 3\n"*
+       "--------------\n"*
+       "s^2 + 8*s + 15\n"*
+       "\n"*
+       "Input 2 to Output 1\n"*
+       "    s + 2\n"*
+       "--------------\n"*
+       "s^2 + 8*s + 15\n"*
+       "\n"*
+       "Input 2 to Output 2\n"*
+       "    s + 2\n"*
+       "--------------\n"*
+       "s^2 + 8*s + 15\n"*
+       "\n"*
+       "Continuous-time transfer function model")
 @test sprint(show, C_222) == res
-res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------"*
-       "------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-"*
-       "----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + "*
-       "2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n   "*
-       "  z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 "*
-       "(seconds)\nDiscrete-time transfer function model")
+res = ("TransferFunction:\n"*
+       "Input 1 to Output 1\n"*
+       "  z^2 + 2*z + 3\n"*
+       "------------------\n"*
+       "z^2 - 0.2*z - 0.15\n"*
+       "\n"*
+       "Input 1 to Output 2\n"*
+       "  z^2 + 2*z + 3\n"*
+       "------------------\n"*
+       "z^2 - 0.2*z - 0.15\n"*
+       "\n"*
+       "Input 2 to Output 1\n"*
+       "      z + 2\n"*
+       "------------------\n"*
+       "z^2 - 0.2*z - 0.15\n"*
+       "\n"*
+       "Input 2 to Output 2\n"*
+       "      z + 2\n"*
+       "------------------\n"*
+       "z^2 - 0.2*z - 0.15\n"*
+       "\n"*
+       "Sample Time: 0.005 (seconds)\n"*
+       "Discrete-time transfer function model")
 @test sprint(show, D_222) == res
+res = ("TransferFunction:\n"*
+       "Input 1 to Output 1\n"*
+       "  s^2 + 2*s + 3\n"*
+       "-----------------\n"*
+       "s^2 + 8*s + 2e+01\n"*
+       "\n"*
+       "Input 1 to Output 2\n"*
+       "  s^2 + 2*s + 3\n"*
+       "-----------------\n"*
+       "s^2 + 8*s + 2e+01\n"*
+       "\n"*
+       "Input 2 to Output 1\n"*
+       "      s + 2\n"*
+       "-----------------\n"*
+       "s^2 + 8*s + 2e+01\n"*
+       "\n"*
+       "Input 2 to Output 2\n"*
+       "      s + 2\n"*
+       "-----------------\n"*
+       "s^2 + 8*s + 2e+01\n"*
+       "\n"*
+       "Continuous-time transfer function model")
+@test sprint(show, C_222, 1) == res
+res = ("TransferFunction:\n"*
+       "Input 1 to Output 1\n"*
+       "  z^2 + 2*z + 3\n"*
+       "-----------------\n"*
+       "z^2 - 0.2*z - 0.1\n"*
+       "\n"*
+       "Input 1 to Output 2\n"*
+       "  z^2 + 2*z + 3\n"*
+       "-----------------\n"*
+       "z^2 - 0.2*z - 0.1\n"*
+       "\n"*
+       "Input 2 to Output 1\n"*
+       "      z + 2\n"*
+       "-----------------\n"*
+       "z^2 - 0.2*z - 0.1\n"*
+       "\n"*
+       "Input 2 to Output 2\n"*
+       "      z + 2\n"*
+       "-----------------\n"*
+       "z^2 - 0.2*z - 0.1\n"*
+       "\n"*
+       "Sample Time: 0.005 (seconds)\n"*
+       "Discrete-time transfer function model")
+@test sprint(show, D_222, 1) == res
+res = ("TransferFunction:\n"*
+       "              s - 1.12345\n"*
+       "4.45678--------------------------\n"*
+       "       (s - 3.67891)(s - 2.54321)\n"*
+       "\n"*
+       "Continuous-time transfer function model")
+@test sprint(show, zpk([1.12345], [2.54321;3.67891], 4.45678)) == res
+res = ("TransferFunction:\n"*
+       "        s - 1.1\n"*
+       "4.5------------------\n"*
+       "   (s - 3.7)(s - 2.5)\n"*
+       "\n"*
+       "Continuous-time transfer function model")
+@test sprint(show, zpk([1.12345], [2.54321;3.67891], 4.45678), 2) == res
 
 # Type stability Continuous-time
 @test eltype(fill(tf("s"),2)) <: TransferFunction

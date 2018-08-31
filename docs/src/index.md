@@ -20,12 +20,12 @@ Depth = 1
 ## Functions
 
 ```@contents
-Pages = ["lib/constructors.md", "lib/plotting.md"]
+Pages = ["lib/constructors.md", "lib/plotting.md", "lib/display.md"]
 ```
 
 ## Documentation Index
 
 ```@index
-Pages = ["lib/constructors.md", "lib/plotting.md", "lib/syntheis.md", "lib/timefreqresponse.md", "lib/analysis.md"]
+Pages = ["lib/constructors.md", "lib/plotting.md", "lib/syntheis.md", "lib/timefreqresponse.md", "lib/analysis.md", "lib/display.md"]
 Depth = 1
 ```
