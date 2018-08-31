@@ -9,7 +9,7 @@ notifications:
 
 before_install:
     - sudo apt-get update -qq
-    - sudo apt-get install -qq texlive-latex-base dvipng libqt5widgets5
+    - sudo apt-get install -qq texlive-latex-base dvipng libqt5widgets5 libqt5network5
 
 script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
