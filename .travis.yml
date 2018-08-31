@@ -3,7 +3,7 @@ sudo: required
 language: julia
 julia:
   - 0.6
-  
+
 notifications:
     email: false
 
@@ -15,7 +15,8 @@ script:
     - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
     - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
     #- julia -e 'ENV["PYTHON"] = ""; Pkg.clone("PyPlot"); Pkg.build("PyPlot")'
-    - julia -e 'Pkg.clone("https://github.com/jacobhuesman/ControlExamplePlots.jl.git");'
+    - julia -e 'Pkg.clone("https://github.com/jacobhuesman/ControlExamplePlots.jl.git")'
+    - julia -e 'Pkg.checkout("ControlExamplePlots", "revert_lsimgen")'
     - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
 
 after_success:
