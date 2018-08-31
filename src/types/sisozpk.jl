@@ -105,19 +105,19 @@ function evalfr(sys::SisoZpk, s::Number)
     end
 end
 
-function print_siso(io::IO, t::SisoZpk, var=:s)
+function print_siso(io::IO, t::SisoZpk, var=:s, precision::Int=-1)
     zpolys = zp2polys(t.z)
     ppolys = zp2polys(t.p)
     # Convert the numerator and denominator to strings
     if length(zpolys) < 2
-        numstr = ( length(zpolys) == 0 ) ? "1.0" : sprint(print_poly, zpolys[1], var)
+        numstr = ( length(zpolys) == 0 ) ? "1.0" : sprint(print_poly, zpolys[1], var, precision)
     else
-        numstr = reduce(*,"",["("*sprint(print_poly, z, var)*")" for z in zpolys])
+        numstr = reduce(*,"",["("*sprint(print_poly, z, var, precision)*")" for z in zpolys])
     end
     if length(ppolys) < 2
-        denstr = ( length(ppolys) == 0 ) ? "1.0" : sprint(print_poly, ppolys[1], var)
+        denstr = ( length(ppolys) == 0 ) ? "1.0" : sprint(print_poly, ppolys[1], var, precision)
     else
-        denstr = reduce(*,"",["("*sprint(print_poly, p, var)*")" for p in ppolys])
+        denstr = reduce(*,"",["("*sprint(print_poly, p, var, precision)*")" for p in ppolys])
     end
     # Figure out the length of the separating line
     len_num = length(numstr)
@@ -131,7 +131,8 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
         denstr = "$(repeat(" ", div(dashcount - len_den, 2)))$denstr"
     end
 
-    gainstr = string(t.k)
+    pformat = precision >= 0 ? string(".", precision, "g") : "g"
+    gainstr = format(t.k, conversion=pformat)
     #Add spaces to account for gain string
     numstr = " "^(length(gainstr))*numstr
     denstr = " "^(length(gainstr))*denstr

@@ -49,10 +49,11 @@ end
 
 Base.print(io::IO, p::Poly) = print_poly(io, p)
 
-function print_poly{T}(io::IO, p::Poly{T}, var=:x)
+function print_poly{T}(io::IO, p::Poly{T}, var=:x, precision::Int=-1)
+    pformat = precision >= 0 ? string(".", precision, "g") : "g"
     n = length(p)
     if n == 1
-        print(io, p[1])
+        print(io, format(p[1], conversion=pformat))
     else
         for j = 1:n
             pj = p[j]
@@ -63,11 +64,14 @@ function print_poly{T}(io::IO, p::Poly{T}, var=:x)
                 else
                     real(pj) < 0 ? print(io," - ") : print(io," + ")
                 end
+                exp = n-j
                 #Print pj if pj is the last coefficient, or pj is not identically 1
                 if j == n || abs(magpj - 1) > 2*eps(T)
-                    print(io, magpj)
+                    print(io, format(magpj, conversion=pformat))
+                    if exp > 0
+                        print(io, "*")
+                    end
                 end
-                exp = n-j
                 if exp > 0
                     print(io, var)
                     if exp > 1
