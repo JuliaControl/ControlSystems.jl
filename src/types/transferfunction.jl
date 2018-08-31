@@ -461,9 +461,35 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
+@doc """`print(io::IO, t::TransferFunction, precision::Int=-1)`
+
+Print a string representation of the transfer function:
+
+`io`: the `IO` stream to print to
+
+`t`: the transfer function
+
+`precision`: the precision to round each number to (default is 5)
+
+Other uses:
+
+`print(t::TransferFunction, precision::Int=-1)`: prints to `STDOUT`""" ->
 Base.print(io::IO, t::TransferFunction, precision::Int=-1) = show(io, t, precision)
 Base.print(t::TransferFunction, precision::Int=-1) = show(t, precision)
 
+@doc """`show(io::IO, t::TransferFunction, precision::Int=-1)`
+
+Print a string representation of the transfer function:
+
+`io`: the `IO` stream to print to
+
+`t`: the transfer function
+
+`precision`: the precision to round each number to (default is 5)
+
+Other uses:
+
+`show(t::TransferFunction, precision::Int=-1)`: prints to `STDOUT`""" ->
 function Base.show(io::IO, t::TransferFunction, precision::Int=-1)
     # Compose the name vectors
     inputs = format_names(t.inputnames, "Input ", "?")
