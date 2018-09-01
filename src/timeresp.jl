@@ -184,8 +184,8 @@ If `x0` is not provided, a zero-vector is used.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """ ->
-function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
-        x0::VecOrMat{T}=zeros(T, size(A, 1)))
+function ltitr(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
+        x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
     n = size(u, 1)
     x = Array{T}(size(A, 1), n)
     for i=1:n
@@ -196,8 +196,8 @@ function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
 end
 
 
-function ltitr{T}(A::Matrix{T}, B::Matrix{T}, u::Function, t,
-    x0::VecOrMat{T}=zeros(T, size(A, 1)))
+function ltitr(A::Matrix{T}, B::Matrix{T}, u::Function, t,
+    x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
     iters = length(t)
     x = Array{T}(size(A, 1), iters)
     uout = Array{T}(size(B, 2), iters)

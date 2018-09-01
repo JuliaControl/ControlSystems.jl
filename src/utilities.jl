@@ -106,6 +106,6 @@ outs = index2range(ind1, ind2)
 Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
 index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
-index2range{T<:Number}(ind::T) = ind:ind
-index2range{T<:AbstractArray}(ind::T) = ind
+index2range(ind::T) where {T<:Number} = ind:ind
+index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind

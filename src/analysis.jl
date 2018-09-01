@@ -221,7 +221,7 @@ If `!allMargins`, return only the smallest margin
 If `full` return also `fullPhase`
 
 """
-function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
+function margin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
     ny, nu = size(sys)
     vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
     if allMargins
@@ -250,7 +250,7 @@ end
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 """
-function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
+function sisomargin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")

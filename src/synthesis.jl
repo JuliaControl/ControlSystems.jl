@@ -149,7 +149,7 @@ feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
 #Efficient implementations
-function feedback{T<:SisoRational}(L::TransferFunction{T})
+function feedback(L::TransferFunction{T}) where T<:SisoRational
     if size(L) != (1,1)
         error("MIMO TransferFunction inversion isn't implemented yet")
     end

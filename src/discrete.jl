@@ -206,8 +206,8 @@ a zero vector is used.
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`.""" ->
-function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
-    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
+function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
+    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh) where T
     ny, nu = size(sys)
 
     nx = sys.nx

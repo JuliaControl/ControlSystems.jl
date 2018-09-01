@@ -111,7 +111,7 @@ lsimplot
         styledict = getStyleSys(si,length(systems))
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
-            ytext = (ny > 1) ? "Amplitude to: y($i)": "Amplitude"
+            ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> ytext
@@ -176,7 +176,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     style = iscontinuous(s) ? :path : :steppost
                     ttext = (nu > 1 && i==1) ? title*" from: u($j) " : title
                     titles[s2i(i,j)] = ttext
-                    ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)": "Amplitude"
+                    ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
                         seriestype := style
                         xlabel --> "Time (s)"
@@ -219,8 +219,8 @@ bodeplot
         error("All systems must have the same input/output dimensions")
     end
     ny, nu = size(systems[1])
-    s2i(i,j) = sub2ind((nu,(plotphase?2:1)*ny),j,i)
-    layout --> ((plotphase?2:1)*ny,nu)
+    s2i(i,j) = sub2ind((nu,(plotphase ? 2 : 1)*ny),j,i)
+    layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
     xticks --> getLogTicks(w)
 
@@ -250,7 +250,7 @@ bodeplot
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
-                    subplot --> s2i((plotphase?(2i-1):i),j)
+                    subplot --> s2i((plotphase ? (2i-1) : i),j)
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_\{$(si)\}\$"
                     linestyle --> styledict[:l]
@@ -558,7 +558,7 @@ nicholsplot
 
 end
 
-nicholsplot{T<:LTISystem}(systems::Vector{T};kwargs...) =
+nicholsplot(systems::Vector{T};kwargs...) where {T<:LTISystem} =
 nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
 nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwargs...)
 
@@ -597,7 +597,7 @@ sigmaplot
         end
     end
 end
-sigmaplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+sigmaplot(systems::Vector{T}; kwargs...) where {T<:LTISystem} =
 sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
 sigmaplot(sys::LTISystem, args...; kwargs...) = sigmaplot([sys], args...; kwargs...)
 
@@ -607,7 +607,7 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to Plots.plot.""" ->
-function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
+function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:LTISystem
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
@@ -657,7 +657,7 @@ function marginplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs.
     end
     return fig
 end
-marginplot{T<:LTISystem}(systems::Vector{T}; kwargs...) =
+marginplot(systems::Vector{T}; kwargs...) where {T<:LTISystem} =
 marginplot(systems, _default_freq_vector(systems, :bode); kwargs...)
 marginplot(sys::LTISystem, args...; kwargs...) = marginplot([sys], args...; kwargs...)
 
@@ -669,7 +669,7 @@ function _same_io_dims(systems::LTISystem...)
     return all(s -> s == sizes[1], sizes)
 end
 
-function _default_time_data{T<:LTISystem}(systems::Vector{T})
+function _default_time_data(systems::Vector{T}) where T<:LTISystem
     sample_times = [_default_Ts(i) for i in systems]
     Tf = 100*maximum(sample_times)
     return sample_times, Tf

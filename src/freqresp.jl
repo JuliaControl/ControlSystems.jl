@@ -158,7 +158,7 @@ function sigma(sys::LTISystem, w::AbstractVector)
 end
 sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, :sigma))
 
-function _default_freq_vector{T<:LTISystem}(systems::Vector{T}, plot::Symbol)
+function _default_freq_vector(systems::Vector{T}, plot::Symbol) where T<:LTISystem
     min_pt_per_dec = 60
     min_pt_total = 200
     nsys = length(systems)

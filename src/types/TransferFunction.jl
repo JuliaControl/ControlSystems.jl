@@ -1,4 +1,4 @@
-type TransferFunction{S<:SisoTf{T} where T} <: LTISystem
+mutable struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
     Ts::Float64
     nu::Int
@@ -110,7 +110,7 @@ function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
     return true
 end
 
-function isapprox{T<:SisoTf, S<:SisoTf}(G1::Array{T}, G2::Array{S}; kwargs...)
+function isapprox(G1::Array{T}, G2::Array{S}; kwargs...) where {T<:SisoTf, S<:SisoTf}
     reduce(&, [isapprox(G1[i], G2[i]; kwargs...) for i in eachindex(G1)])
 end
 
