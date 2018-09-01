@@ -16,7 +16,7 @@ script:
     - julia -e 'Pkg.clone(pwd()); Pkg.build("ControlSystems")'
     #- julia -e 'ENV["PYTHON"] = ""; Pkg.clone("PyPlot"); Pkg.build("PyPlot")'
     - julia -e 'Pkg.clone("https://github.com/jacobhuesman/ControlExamplePlots.jl.git")'
-    - julia -e 'Pkg.checkout("ControlExamplePlots", "revert_lsimgen")'
+    - julia -e 'Pkg.checkout("ControlExamplePlots", "fix_and_update")'
     - julia -e 'Pkg.test("ControlSystems"; coverage=true)'
 
 after_success:
