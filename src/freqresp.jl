@@ -106,9 +106,15 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
     end
 end
 
-function (sys::TransferFunction)(s::AbstractVector, map_to_unit_circle::Bool)
+function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
-    freqresp(sys,s)
+    vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
+    # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
+    out = Array{eltype(eltype(vals)),3}(length(z_or_omegas), size(sys)...)
+    for i in 1:length(vals)
+        out[i,:,:] .= vals[i]
+    end
+    return out
 end
 
 @doc """`mag, phase, w = bode(sys[, w])`

@@ -69,7 +69,18 @@ resp3 = reshape((1-im)*(2 + im*(w-1))./(1 + im*(w-1)), length(w), 1, 1)
 F = tf([1],[1,0.5],-1)
 omega = 2
 z = 0.5(1+im)
-@test F(omega,true)[1] == 1/(exp(-im*2)+0.5)
+# This test is not correct if we dont have a sample time
+# @test_throws F(omega,true)[1] == 1/(exp(-im*2)+0.5)
+@test F(z,false)[1] == 1/(z+0.5)
+@test_throws ErrorException F(z,true)
+
+F = [tf([1],[1,0.5],2.0) 3*tf([1],[1,0.5],2.0)]
+omegas = [1,2]
+z = 0.5(1+im)
+@test F(omegas[1],true) ≈ [1 3].*1/(exp(im*2)+0.5) atol=1e-14
+@test F(omegas[2],true) == [1 3].*1/(exp(2*im*2)+0.5)
+@test F(omegas,true) ≈ [k/(exp(omega*im*2)+0.5) for omega=omegas, o=1:1, k=[1,3]] atol=1e-14
+@test F(omegas,false) ≈ [k/(omega+0.5) for omega=omegas, o=1:1, k=[1,3]] atol=1e-14
 @test F(z,false)[1] == 1/(z+0.5)
 @test_throws ErrorException F(z,true)
 
