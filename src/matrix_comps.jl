@@ -412,7 +412,7 @@ function balance(A, perm::Bool=true)
     return S, P, B
 end
 
-function cswap!{T<:Number}(i::Integer, j::Integer, X::StridedMatrix{T})
+function cswap!(i::Integer, j::Integer, X::StridedMatrix{T}) where T<:Number
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end

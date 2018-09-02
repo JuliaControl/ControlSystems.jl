@@ -48,7 +48,7 @@ function vecarray(T::Type, ny::Int,nx::Int, args::AbstractArray...)
     array = reshape(collect(Array{T,1},args),nx,ny)
     permutedims(array,[2,1])
 end
-vecarray{T}(ny::Int,nx::Int, args::AbstractArray{T}...) = vecarray(T, ny, nx, args...)
+vecarray(ny::Int,nx::Int, args::AbstractArray{T}...) where {T} = vecarray(T, ny, nx, args...)
 
 function vecarray(ny::Int,nx::Int, args::AbstractArray...)
     args2 = promote(args...)
