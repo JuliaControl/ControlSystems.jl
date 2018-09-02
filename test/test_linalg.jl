@@ -35,7 +35,7 @@ s = tf("s")
 f_C_211 = (s+2)*(s+3)/((s+4)*(s+5))
 # biquad passband
 omega0 = 52.0; Q = 10
-f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1 );
+f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1)
 
 C_22tf = [0 tf([3,0],[1,1,10]);tf([1,1],[1,5]) tf(2,[1,6])]
 
@@ -86,36 +86,38 @@ D_static = ss([0.704473 1.56483; -1.6661 -2.16041], 0.07)
 tolHinf = 1e-12
 @test norm(C_212, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
 @test norm(C_222, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
-ninf, fpeak = norminf(C_732, tol=tolHinf)
-@test ninf ≈ 4.899135403568278 atol=(10*tolHinf)
-@test fpeak ≈ 6.112977387441163 atol=1e-6
+Ninf, ω_peak = norminf(C_732, tol=tolHinf)
+@test Ninf ≈ 4.899135403568278 atol=(10*tolHinf)
+@test ω_peak ≈ 6.112977387441163 atol=1e-6
 @test norm(f_C_211, Inf, tol=tolHinf) ≈ 1.0 atol=(2*tolHinf)
-@test norminf(f_C_211_bis, tol=tolHinf)[2] ≈ 52.0
+Ninf, ω_peak =  norminf(f_C_211_bis, tol=tolHinf)
+@test Ninf ≈ 1.0
+@test ω_peak ≈ 52.0
 @test norm(1/(s-1), Inf, tol=tolHinf) ≈ 1.0  # unstable system
 
-ninf, fpeak = norminf(C_22tf, tol=tolHinf)
-@test ninf ≈ 3.014974550173459 atol=(10*tolHinf)
-@test fpeak ≈ 3.162123338668049 atol=1e-8
+Ninf, ω_peak = norminf(C_22tf, tol=tolHinf)
+@test Ninf ≈ 3.014974550173459 atol=(10*tolHinf)
+@test ω_peak ≈ 3.162123338668049 atol=1e-8
 
-ninf, fpeak = norminf(D_221, tol=tolHinf)
-@test ninf ≈ 17.794697451669421 atol=(20*tolHinf)
-@test fpeak ≈ 0 atol=1e-8
-ninf, fpeak = norminf(D_422, tol=tolHinf)
-@test ninf ≈ 3.360351099392252 atol=(10*tolHinf)
-@test fpeak ≈ 8.320643111730551 atol=1e-8
-ninf, fpeak = norminf(D_311, tol=tolHinf)
-@test ninf ≈ 4.458729529942810 atol=(10*tolHinf)
-@test fpeak ≈ 11.878021287349698 atol=1e-6
-ninf, fpeak = norminf(C_static, tol=tolHinf)
-@test ninf ≈ 1.760164138376307 atol=1e-12
-@test fpeak ≈ 0 atol=1e-12
-ninf, fpeak = norminf(D_static, tol=tolHinf)
-@test ninf ≈ 3.205246234285972 atol=1e-12
-@test fpeak ≈ 0 atol=1e-12
+Ninf, ω_peak = norminf(D_221, tol=tolHinf)
+@test Ninf ≈ 17.794697451669421 atol=(20*tolHinf)
+@test ω_peak ≈ 0 atol=1e-8
+Ninf, ω_peak = norminf(D_422, tol=tolHinf)
+@test Ninf ≈ 3.360351099392252 atol=(10*tolHinf)
+@test ω_peak ≈ 8.320643111730551 atol=1e-8
+Ninf, ω_peak = norminf(D_311, tol=tolHinf)
+@test Ninf ≈ 4.458729529942810 atol=(10*tolHinf)
+@test ω_peak ≈ 11.878021287349698 atol=1e-6
+Ninf, ω_peak = norminf(C_static, tol=tolHinf)
+@test Ninf ≈ 1.760164138376307 atol=1e-12
+@test ω_peak ≈ 0 atol=1e-12
+Ninf, ω_peak = norminf(D_static, tol=tolHinf)
+@test Ninf ≈ 3.205246234285972 atol=1e-12
+@test ω_peak ≈ 0 atol=1e-12
 
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
-T, P, B = ControlSystems.balance(A)
+T, P, B = balance(A)
 # The scaling is BLAS dependent. However, the ratio should be the same on all
 # machines. We just need to check that T == res * constant
 res_diag = [512, 8, 0.0625]

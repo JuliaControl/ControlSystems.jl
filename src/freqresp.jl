@@ -5,24 +5,29 @@ Evaluate the frequency response of a linear system
 `w -> C*((iw*im -A)^-1)*B + D`
 
 of system `sys` over the frequency vector `w`.""" ->
-function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
-    ny, nu = size(sys)
-    nw = length(w)
+function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
     # Create imaginary freq vector s
     if !iscontinuous(sys)
         Ts = sys.Ts == -1 ? 1.0 : sys.Ts
-        s = exp.(w.*(im*Ts))
+        s_vec = exp.(w_vec*(im*Ts))
     else
-        s = im*w
+        s_vec = im*w_vec
     end
-    #Evil but nessesary type instability here
-    sys = _preprocess_for_freqresp(sys)
-    sys_fr = Array{Complex{eltype(w)}}(nw, ny, nu)
-    for i=1:nw
+    Tsys = numeric_type(sys)
+    T = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Complex64, S)
+    sys_fr = Array{T}(length(w_vec), noutputs(sys), ninputs(sys))
+
+    if isa(sys, StateSpace)
+        sys = _preprocess_for_freqresp(sys)
+    end
+
+
+    for i=1:length(s_vec)
         # TODO : This doesn't actually take advantage of Hessenberg structure
         # for statespace version.
-        sys_fr[i, :, :] = evalfr(sys, s[i])
+        sys_fr[i, :, :] .= evalfr(sys, s_vec[i])
     end
+
     return sys_fr
 end
 
@@ -33,22 +38,25 @@ function _preprocess_for_freqresp(sys::StateSpace)
     if isempty(sys.A) # hessfact does not work for empty matrices
         return sys
     end
+    Tsys = numeric_type(sys)
+    TT = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Float32)
 
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
     F = hessfact(A)
-    H = F[:H]::Matrix{Float64}
+    H = F[:H]::Matrix{TT}
     T = full(F[:Q])
     P = C*T
     Q = T\B
-    StateSpace(H, Q, P, D, sys.Ts, sys.statenames, sys.inputnames,
-        sys.outputnames)
+    StateSpace(H, Q, P, D, sys.Ts)
 end
 
-function _preprocess_for_freqresp(sys::TransferFunction)
-    map(sisotf -> _preprocess_for_freqresp(sisotf), sys.matrix)
-end
 
-_preprocess_for_freqresp(sys::SisoTf) = sys
+#_preprocess_for_freqresp(sys::TransferFunction) = sys.matrix
+#function _preprocess_for_freqresp(sys::TransferFunction)
+#    map(sisotf -> _preprocess_for_freqresp(sisotf), sys.matrix)
+#end
+
+#_preprocess_for_freqresp(sys::SisoTf) = sys
 
 @doc """
 `evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
@@ -56,37 +64,33 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """ ->
-function evalfr(sys::StateSpace, s::Number)
-    S = promote_type(typeof(s), Float64)
+function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
+    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     try
         R = s*I - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{S})  # Weird type stability issue
+        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
     catch
-        fill(convert(S, Inf), size(sys))
+        fill(convert(T, Inf), size(sys))
     end
 end
 
-function evalfr(sys::TransferFunction, s::Number)
-    S = promote_type(typeof(s), Float64)
-    mat = sys.matrix
-    ny, nu = size(mat)
-    res = Array{S}(ny, nu)
-    for j = 1:nu
-        for i = 1:ny
-            res[i, j] = evalfr(mat[i, j], s)
+function evalfr(G::TransferFunction{<:SisoTf{T0}}, s::Number) where {T0}
+    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
+    fr = Array{T}(size(G))
+    for j = 1:ninputs(G)
+        for i = 1:noutputs(G)
+            fr[i, j] = evalfr(G.matrix[i, j], s)
         end
     end
-    return res
+    return fr
 end
-
-evalfr(mat::Matrix, s::Number) = map(sys -> evalfr(sys, s), mat)
 
 @doc """
 `F(s)`, `F(omega, true)`, `F(z, false)`
 
 Notation for frequency response evaluation.
 - F(s) evaluates the continuous-time transfer function F at s.
-- F(omega,true) evaluates the discrete-time transfer function F at i*Ts*omega
+- F(omega,true) evaluates the discrete-time transfer function F at exp(i*Ts*omega)
 - F(z,false) evaluates the discrete-time transfer function F at z
 """ ->
 function (sys::TransferFunction)(s)
@@ -102,9 +106,15 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
     end
 end
 
-function (sys::TransferFunction)(s::AbstractVector, map_to_unit_circle::Bool)
+function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
-    freqresp(sys,s)
+    vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
+    # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
+    out = Array{eltype(eltype(vals)),3}(length(z_or_omegas), size(sys)...)
+    for i in 1:length(vals)
+        out[i,:,:] .= vals[i]
+    end
+    return out
 end
 
 @doc """`mag, phase, w = bode(sys[, w])`
@@ -166,10 +176,7 @@ end
 _default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
         LTISystem[sys], plot)
 
-_default_freq_vector{T<:TransferFunction{SisoGeneralized}}(sys::Vector{T}, plot::Symbol) =
-    logspace(-2,2,400)
-_default_freq_vector(sys::TransferFunction{SisoGeneralized} , plot::Symbol) =
-    logspace(-2,2,400)
+
 
 
 function _bounds_and_features(sys::LTISystem, plot::Symbol)

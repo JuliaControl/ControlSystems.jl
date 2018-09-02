@@ -13,9 +13,9 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     if !iscontinuous(sys)
         error("sys must be a continuous time system")
     end
-    A, B, C, D = sys.A, sys.B, sys.C, sys.D
+    A, B, C, D = ssdata(sys)
     ny, nu = size(sys)
-    nx = sys.nx
+    nx = nstates(sys)
     if method == :zoh
         M = expm([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
@@ -40,8 +40,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, Ts, sys.statenames, sys.inputnames,
-        sys.outputnames), x0map
+    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
 end
 
 
@@ -189,13 +188,13 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h;kwargs...)
+function c2d(G::TransferFunction{S}, h;kwargs...) where {S}
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys,h,kwargs...)[1]
-    return ss2tf(sysd)
+    sysd = c2d(sys, h, kwargs...)[1]
+    return convert(TransferFunction, sysd)
 end
 
 

@@ -15,8 +15,26 @@ To install, in the Julia REPL:
 ```julia
 Pkg.add("ControlSystems")
 ```
-
 Note that the latest version of this package requires Julia 0.5. Users of Julia 0.4 should use [v0.1.4](https://github.com/JuliaControl/ControlSystems.jl/tree/v0.1.4) instead.
+
+## News
+### 2018-02-01
+- LTISystem types are now more generic and can hold matrices/vectors of arbitrary type. Examples (partly pseudo-code):
+```julia
+ss(1)
+ss(1.)
+ss(1im)
+ss(ForwardDiff.Dual(1.))
+ss(GPUArray([1]))
+ss(SparseMatrix([1])
+```
+Similar for `tf,zpk` etc.
+- Continuous time systems are simulated with continuous time solvers from `OrdinaryDiffEq.jl`
+- Breaking: `lsim(sys, u::Function)` syntax has changed from `u(t,x)` to `u(x,t)` to be consistent with `OrdinaryDiffEq`
+- Breaking: `feedback(P,C)` no longer returns `feedback(P*C)`. The behavior is changed to `feedback(P1, P2) = P1/(1+P1*P2)`.
+- Type `Simulator` provides lower level interface to continuous time simulation.
+- Example [autodiff.jl](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example/autodiff.jl) provides an illustration of how the new generic types can be used for automatic differentiation of a cost function through the continuous-time solver, which allows for optimization of the cost function w.r.t. PID parameters.
+
 
 ## Documentation
 
