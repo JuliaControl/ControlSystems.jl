@@ -13,8 +13,8 @@ function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
     else
         s_vec = im*w_vec
     end
-
-    T = promote_type(numeric_type(sys), Complex64, S)
+    Tsys = numeric_type(sys)
+    T = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Complex64, S)
     sys_fr = Array{T}(length(w_vec), noutputs(sys), ninputs(sys))
 
     if isa(sys, StateSpace)
@@ -38,7 +38,8 @@ function _preprocess_for_freqresp(sys::StateSpace)
     if isempty(sys.A) # hessfact does not work for empty matrices
         return sys
     end
-    TT = promote_type(numeric_type(sys), Float32)
+    Tsys = numeric_type(sys)
+    TT = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Float32)
 
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
     F = hessfact(A)

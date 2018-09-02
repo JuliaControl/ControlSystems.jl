@@ -1,7 +1,7 @@
 @doc """`pole(sys)`
 
 Compute the poles of system `sys`.""" ->
-pole(sys::StateSpace) = eigvals(sys.A) .+ 0im # To make eigvals type stable
+pole(sys::StateSpace) = eigvals(sys.A)
 # TODO wrong for MIMO
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
@@ -104,14 +104,18 @@ end
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-tzero(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}) =
-    tzero(promote(A,B,C,D)...)
+# Make sure everything is BlasFloat
+function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    tzero(A2, B2, C2, D2)
+end
 function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:BlasFloat
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
     # Compute a good tolerance
-    meps = 10*eps()*norm([A B; C D])
+    meps = 10*eps(T)*norm([A B; C D])
     A, B, C, D = reduce_sys(A, B, C, D, meps)
     A, B, C, D = reduce_sys(A', C', B', D', meps)
     if isempty(A)   return complex(T)[]    end
@@ -176,10 +180,10 @@ function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(n, m); zeros(m, n) eye(m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) eye(T, m)]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(n, sigma) ; zeros(sigma, n) eye(sigma)]
+            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) eye(T, sigma)]
         else
             M = [A B]
             Vs = V'
@@ -292,9 +296,9 @@ margin(system, _default_freq_vector(system, :bode); kwargs...)
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
-    fif = floor(Integer, fi)
-    fic = ceil(Integer, fi)
-    list[fif]+mod(fi,1).*(list[fic]-list[fif])
+    fif = floor.(Integer, fi)
+    fic = ceil.(Integer, fi)
+    list[fif]+mod.(fi,1).*(list[fic]-list[fif])
 end
 
 function _allGainCrossings(w, mag)

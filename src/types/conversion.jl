@@ -175,6 +175,13 @@ end
 # Fallback mehod for systems with exotic matrices (i.e. TrackedArrays)
 balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false) = A,B,C,I
 
+# First try to promote and see of we get BlasFloat, otherwise, fall beack on function above
+function balance_statespace(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number}, perm::Bool=false)
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    balance_statespace(A2, B2, C2, perm)
+end
+
 function balance_statespace(sys::StateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
     return ss(A,B,C,sys.D), T
@@ -195,17 +202,17 @@ See also `balance_statespace`, `balance`
 function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasFloat}
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    T = [A B; C zeros(size(C*B))]
-    size(T,1) < size(T,2) && (T = [T; zeros(size(T,2)-size(T,1),size(T,2))])
-    size(T,1) > size(T,2) && (T = [T zeros(size(T,1),size(T,1)-size(T,2))])
+    T = [A B; C zeros(R, size(C*B))]
+    size(T,1) < size(T,2) && (T = [T; zeros(R, size(T,2)-size(T,1),size(T,2))])
+    size(T,1) > size(T,2) && (T = [T zeros(R, size(T,1),size(T,1)-size(T,2))])
     S = diag(balance(T, false)[1])
     Sx = S[1:nx]
     Sio = S[nx+1]
     # Compute permutation of x (if requested)
     pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
-    T = zeros(promote_type(R, Float64), nx, nx)
-    T[pvec, :] = Sio * diagm(1./Sx)
+    T = zeros(R, nx, nx)
+    T[pvec, :] = Sio * diagm(R(1)./Sx)
     return T
 end
 

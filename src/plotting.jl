@@ -439,7 +439,7 @@ nicholsplot
     nw = length(w)
 
     # Gain circle functions
-    angle(x)        = unwrap(atan2(imag.(x),real.(x)))
+    angle(x)        = unwrap(atan2.(imag.(x),real.(x)))
     RadM(m)         = @. abs(m/(m^2-1))
     CentreM(m)      = @. m^2/(1-m^2)
     Ny(mdb,t)       = @. CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
@@ -730,7 +730,7 @@ Gang-of-Four plot.
 `kwargs` is sent as argument to Plots.plot.""" ->
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
     # Array of (S,D,N,T)
-    S,D,N,T = gangoffour.(P,C)
+    sys = gangoffour.(P,C)
     fig = bodeplot([[sys[i][1] sys[i][2]; sys[i][3] sys[i][4]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
     titles = fill("", 1, plotphase ? 8 : 4)
     # Empty titles on phase
