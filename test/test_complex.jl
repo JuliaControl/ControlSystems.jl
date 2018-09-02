@@ -30,4 +30,6 @@ C_2 = zpk([-1+im], [], 1.0+1im)
 
 @test tf(zpk([-2+im], [-1+im],1+0im)) == tf([1, 2-im], [1, 1-im])
 
+@test 1 / ( tf("s") + 1 + im ) == tf([1], [1, 1+im])
+
 end

@@ -88,6 +88,21 @@ z2 = [-4.5-sqrt(4.5^2-17), -4.5+sqrt(4.5^2-17)]
 
 # Test that number of poles matter
 @test !(zpk(Int64[],[1,1],1) == zpk(Int64[],[1],1))
+
+# Test SispZpk and SisoTf operations
+C_212_tf = tf(C_212)
+C_111_tf = tf(C_111)
+# Add
+@test C_212_tf + C_212 ≈ 2*C_212
+@test C_212 + C_212_tf ≈ 2*C_212
+# Approx
+@test C_212_tf + C_212 ≈ 2*C_212_tf
+# Minus
+@test 2*C_212_tf - C_212 ≈ C_212
+# Multiply
+@test C_212_tf*C_111 ≈ C_212*C_111
+@test C_212_tf*C_111 ≈ C_212_tf*C_111_tf
+
 # TODO test printing when it is implemented better
 
 # Tests of minreal

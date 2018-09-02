@@ -86,9 +86,10 @@ function gram(sys::StateSpace, opt::Symbol)
     end
     func = iscontinuous(sys) ? lyap : dlyap
     if opt == :c
-        return func(sys.A, sys.B*sys.B')
+        # TODO probably remove type check in julia 0.7.0
+        return func(sys.A, sys.B*sys.B')::Array{numeric_type(sys),2} # lyap is type-unstable
     elseif opt == :o
-        return func(sys.A', sys.C'*sys.C)
+        return func(sys.A', sys.C'*sys.C)::Array{numeric_type(sys),2} # lyap is type-unstable
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -260,21 +261,23 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: pair of Float64, namely L∞ norm approximation and frequency fpeak at which it is achieved
+    T = promote_type(numeric_type(sys), Float32)
     if sys.nx == 0  # static gain
-        return (norm(sys.D,2), 0.0)
+        return (norm(sys.D,2), T(0))
     end
     p = pole(sys)
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(map(x->isapprox(x,0.0),real(p)))
     if pidx > 0
-        return (Inf, imag(p[pidx]))
+        return (T(Inf), imag(p[pidx]))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     else
         # Initialization: computation of a lower bound from 3 terms
-        lb = maximum(svdvals(sys.D)); fpeak = Inf
-        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,0)))])
+        lb = maximum(svdvals(sys.D))
+        fpeak = T(Inf)
+        (lb, idx) = findmax([lb, T(maximum((svdvals(evalfr(sys,0)))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
-            fpeak = 0
+            fpeak = T(0)
         end
         if isreal(p)  # only real poles
             omegap = minimum(abs.(p))
@@ -282,7 +285,7 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
             omegap = abs(p[indmax(tmp)])
         end
-        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys, omegap*1im)))])
+        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
             fpeak = omegap
         end
@@ -290,21 +293,21 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
         # Iterations
         iter = 1;
         while iter <= maxIters
-            res = (1+2tol)*lb
-            R = sys.D'*sys.D - res^2*eye(sys.nu)
-            S = sys.D*sys.D' - res^2*eye(sys.ny)
+            res = (1+2*T(tol))*lb
+            R = sys.D'*sys.D - res^2*eye(T, sys.nu)
+            S = sys.D*sys.D' - res^2*eye(T, sys.ny)
             M = sys.A-sys.B*(R\sys.D')*sys.C
             H = [         M              -res*sys.B*(R\sys.B') ;
                    res*sys.C'*(S\sys.C)            -M'            ]
-            omegas = eigvals(H)
+            omegas = eigvals(H) .+ 0im # To make type stable
             omegaps = imag.(omegas[ (abs.(real.(omegas)).<=approximag) .& (imag.(omegas).>=0) ])
             sort!(omegaps)
             if isempty(omegaps)
-                return (1+tol)*lb, fpeak
+                return (1+T(tol))*lb, fpeak
             else  # if not empty, omegaps contains at least two values
                 ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
                 for mval in ms
-                    (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,mval*1im)))])
+                    (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,mval*1im))))]) #TODO remove T() in julia 0.7.0
                     if idx == 2
                         fpeak = mval
                     end
@@ -312,27 +315,29 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             end
             iter += 1
         end
-        println("The computation of the H-infinity norm did not converge in $maxIters iterations")
+        error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
     end
 end
 
 # discrete-time version of normHinf_twoSteps_ct above
 # The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
-function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=1e-8)
+function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
+    T = promote_type(numeric_type(sys), Float32)
     if sys.nx == 0  # static gain
-        return (norm(sys.D,2), 0.0)
+        return (norm(sys.D,2), T(0))
     end
     p = pole(sys)
     # Check first if there is a pole on the unit circle
     pidx = findfirst(map(x->isapprox(x,1.0),abs.(p)))
     if (pidx > 0)
-        return (Inf, angle(p[pidx])/abs(sys.Ts))
+        return (T(Inf), angle(p[pidx])/abs(T(sys.Ts)))
     else
         # Initialization: computation of a lower bound from 3 terms
-        lb = maximum(svdvals(evalfr(sys,1))); fpeak = 0
-        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,-1)))])
+        lb = T(maximum(svdvals(evalfr(sys,1))))  #TODO remove T() in julia 0.7.0
+        fpeak = T(0)
+        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,-1))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
-            fpeak = pi
+            fpeak = T(pi)
         end
 
         p = p[imag(p).>0]
@@ -340,9 +345,9 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
             # find frequency of pôle closest to unit circle
             omegap = angle(p[findmin(abs.(abs.(p)-1))[2]])
         else
-            omegap = pi/2
+            omegap = T(pi)/2
         end
-        (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys, exp(omegap*1im))))])
+        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, exp(omegap*1im)))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
             fpeak = omegap
         end
@@ -350,23 +355,24 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
         # Iterations
         iter = 1;
         while iter <= maxIters
-            res = (1+2tol)*lb
-            R = res^2*eye(sys.nu) - sys.D'*sys.D
+            res = (1+2*T(tol))*lb
+            R = res^2*eye(T, sys.nu) - sys.D'*sys.D
             RinvDt = R\sys.D'
             L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
-                  zeros(sys.nx,sys.nx)      eye(sys.nx)]
-            M = [ eye(sys.nx)                              zeros(sys.nx,sys.nx);
-                  sys.C'*(eye(sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
-            zs = eigvals(L,M)  # generalized eigenvalues
+                  zeros(T, sys.nx,sys.nx)      eye(T, sys.nx)]
+            M = [ eye(T, sys.nx)                              zeros(T, sys.nx,sys.nx);
+                  sys.C'*(eye(T, sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
+            # +0im to make type stable
+            zs = eigvals(L,M) .+ 0im # generalized eigenvalues
             # are there eigenvalues on the unit circle?
             omegaps = angle.(zs[ (abs.(abs.(zs)-1) .<= approxcirc) .& (imag(zs).>=0)])
             sort!(omegaps)
             if isempty(omegaps)
-                return (1+tol)*lb, fpeak/sys.Ts
+                return (1+T(tol))*lb, fpeak/T(sys.Ts)
             else  # if not empty, omegaps contains at least two values
                 ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
                 for mval in ms
-                    (lb, idx) = findmax([lb, maximum(svdvals(evalfr(sys,exp(mval*1im))))])
+                    (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,exp(mval*1im)))))]) #TODO remove T() in julia 0.7.0
                     if idx == 2
                         fpeak = mval
                     end
@@ -374,7 +380,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6,maxIters=1000,approxcirc=
             end
             iter += 1
         end
-        println("The computation of the H-infinity norm did not converge in $maxIters iterations")
+        error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
     end
 end
 

@@ -148,9 +148,9 @@ function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Num
 end
 
 
-function poly_factors2string(poly_factors, var)
+function poly_factors2string(poly_factors::AbstractArray{<:Poly{T}}, var) where T
     if length(poly_factors) == 0
-        str = "1.0"
+        str = sprint(printpolyfun(var), Poly{T}(one(T)))
     elseif length(poly_factors) == 1
         str = sprint(printpolyfun(var), poly_factors[1])
     else
@@ -162,9 +162,11 @@ end
     for systems on zpk form. Should at least handle the following types
     Measurment, Dual, Sym. """
 function _printcoefficient(nbr::Number)
-    nbr_string = string(nbr)
+    # Print type information as in 1.0f0 for Float32
+    # showcompact might be better, but is not consistent with polynomials
+    nbr_string = sprint(show,nbr)
     if contains(nbr_string, " + ") || contains(nbr_string, " - ") || contains(nbr_string, " ± ")
-        return "($nbr_string)"
+        return "(" * nbr_string * ")" # Add parens
     else
         return nbr_string
     end
@@ -203,7 +205,7 @@ end
 
 
 
-==(f1::SisoZpk, f2::SisoZpk) = (f1-f2).k == 0.0
+==(f1::SisoZpk, f2::SisoZpk) = (f1-f2).k == 0
 function isapprox(f1::SisoZpk, f2::SisoZpk; rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
     fdiff = f1 - f2
     isapprox(fdiff.k, 0, atol=atol, rtol=rtol)

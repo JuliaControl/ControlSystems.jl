@@ -78,8 +78,7 @@ tzero(f::SisoRational) = roots(f.num)
 pole(f::SisoRational) = roots(f.den)
 
 function evalfr(f::SisoRational{T}, s::Number) where T
-    S = promote_type(T,typeof(s), Float64)
-    # S = typeof(s)
+    S = promote_op(/, promote_type(T, typeof(s)), promote_type(T, typeof(s)))
     den = polyval(f.den, s)
     if den == zero(S)
         convert(S,Inf)

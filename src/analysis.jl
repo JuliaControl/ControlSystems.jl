@@ -2,6 +2,7 @@
 
 Compute the poles of system `sys`.""" ->
 pole(sys::StateSpace) = eigvals(sys.A)
+# TODO wrong for MIMO
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
@@ -103,22 +104,27 @@ end
 #
 # Note that this returns either Vector{Complex64} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber},
-        D::Matrix{<:BlasNumber})
+# Make sure everything is BlasFloat
+function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    tzero(A2, B2, C2, D2)
+end
+function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:BlasFloat
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
     # Compute a good tolerance
-    meps = 10*eps()*norm([A B; C D])
+    meps = 10*eps(T)*norm([A B; C D])
     A, B, C, D = reduce_sys(A, B, C, D, meps)
     A, B, C, D = reduce_sys(A', C', B', D', meps)
-    if isempty(A)   return Float64[]    end
+    if isempty(A)   return complex(T)[]    end
 
     # Compress cols of [C D] to [0 Df]
     mat = [C D]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
-    W = full(qrfact(mat')[:Q], thin=false)::Matrix{Float64}
+    W = full(qrfact(mat')[:Q], thin=false)::Matrix{T}
     W = flipdim(W,2)
     mat = mat*W
     if fastrank(mat', meps) > 0
@@ -129,23 +135,25 @@ function tzero(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:Bla
         zs = eigvals(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
-        zs = Float64[]
+        zs = complex(T)[]
     end
     return zs
 end
 
+reduce_sys(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}, meps::BlasFloat) =
+    reduce_sys(promote(A,B,C,D)..., meps)
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{<:BlasNumber}, D::Matrix{<:BlasNumber}, meps::BlasNumber)
+function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps::BlasFloat) where T <: BlasFloat
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
     end
     while true
         # Compress rows of D
-        U = full(qrfact(D)[:Q], thin=false)::Matrix{Float64}
+        U = full(qrfact(D)[:Q], thin=false)::Matrix{T}
         D = U'*D
         C = U'*C
         sigma = fastrank(D, meps)
@@ -157,7 +165,7 @@ function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{
         end
 
         # Compress columns of Ctilde
-        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{Float64}
+        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{T}
         V = flipdim(V,2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
@@ -167,15 +175,15 @@ function reduce_sys(A::Matrix{<:BlasNumber}, B::Matrix{<:BlasNumber}, C::Matrix{
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Array{Float64,2}(0,0)
+            A = B = Cbar = Dbar = Matrix{T}(0,0)
             break
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(n, m); zeros(m, n) eye(m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) eye(T, m)]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(n, sigma) ; zeros(sigma, n) eye(sigma)]
+            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) eye(T, sigma)]
         else
             M = [A B]
             Vs = V'
@@ -288,9 +296,9 @@ margin(system, _default_freq_vector(system, :bode); kwargs...)
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
-    fif = floor(Integer, fi)
-    fic = ceil(Integer, fi)
-    list[fif]+mod(fi,1).*(list[fic]-list[fif])
+    fif = floor.(Integer, fi)
+    fic = ceil.(Integer, fi)
+    list[fif]+mod.(fi,1).*(list[fic]-list[fif])
 end
 
 function _allGainCrossings(w, mag)
@@ -337,11 +345,11 @@ function delaymargin(G::LTISystem)
     if G.nu + G.ny > 2
         error("delaymargin only supports SISO systems")
     end
-    m   = margin(G,allMargins=true)
-    ϕₘ,i= findmin(m[4])
-    ϕₘ *= π/180
-    ωϕₘ = m[3][i]
-    dₘ  = ϕₘ/ωϕₘ
+    m     = margin(G,allMargins=true)
+    ϕₘ, i = findmin(m[4])
+    ϕₘ   *= π/180
+    ωϕₘ   = m[3][i]
+    dₘ    = ϕₘ/ωϕₘ
     if G.Ts > 0
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
@@ -372,7 +380,9 @@ function gangoffour(P::TransferFunction,C::TransferFunction)
     return S, D, N, T
 end
 
+
 function gangoffour(P::AbstractVector, C::AbstractVector)
+    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
         error("gangoffour only supports SISO systems")
     end
@@ -386,10 +396,12 @@ function gangoffour(P::AbstractVector, C::AbstractVector)
 end
 
 function gangoffour(P::TransferFunction, C::AbstractVector)
+    Base.depwarn("Deprecrated use of gangoffour(::TransferFunction, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     gangoffour(fill(P,length(C)), C)
 end
 
 function gangoffour(P::AbstractVector, C::TransferFunction)
+    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::TransferFunction), use `broadcast` and `zip` instead", :gangoffour)
     gangoffour(P, fill(C,length(P)))
 end
 

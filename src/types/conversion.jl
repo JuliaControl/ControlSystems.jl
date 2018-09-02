@@ -152,7 +152,7 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 """
-function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::AbstractMatrix{P}, perm::Bool=false) where P <: BlasNumber
+function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::AbstractMatrix{P}, perm::Bool=false) where P <: BlasFloat
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)
@@ -175,6 +175,13 @@ end
 # Fallback mehod for systems with exotic matrices (i.e. TrackedArrays)
 balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false) = A,B,C,I
 
+# First try to promote and see of we get BlasFloat, otherwise, fall beack on function above
+function balance_statespace(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number}, perm::Bool=false)
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    balance_statespace(A2, B2, C2, perm)
+end
+
 function balance_statespace(sys::StateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
     return ss(A,B,C,sys.D), T
@@ -192,20 +199,20 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 See also `balance_statespace`, `balance`
 """
-function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasNumber}
+function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasFloat}
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    T = [A B; C zeros(size(C*B))]
-    size(T,1) < size(T,2) && (T = [T; zeros(size(T,2)-size(T,1),size(T,2))])
-    size(T,1) > size(T,2) && (T = [T zeros(size(T,1),size(T,1)-size(T,2))])
+    T = [A B; C zeros(R, size(C*B))]
+    size(T,1) < size(T,2) && (T = [T; zeros(R, size(T,2)-size(T,1),size(T,2))])
+    size(T,1) > size(T,2) && (T = [T zeros(R, size(T,1),size(T,1)-size(T,2))])
     S = diag(balance(T, false)[1])
     Sx = S[1:nx]
     Sio = S[nx+1]
     # Compute permutation of x (if requested)
     pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
-    T = zeros(promote_type(R, Float64), nx, nx)
-    T[pvec, :] = Sio * diagm(1./Sx)
+    T = zeros(R, nx, nx)
+    T[pvec, :] = Sio * diagm(R(1)./Sx)
     return T
 end
 
@@ -222,9 +229,10 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
     # The following follows from the matrix inversion lemma:
     # det(X + uᵀv) = det(X)(1 + vᵀX⁻¹u), or
     # det((sI-A)+BC) = det(sI-A)(1 + C(si-A)⁻¹B)
+    # C(si-A)⁻¹B) + D = 1/det(sI-A) * (det((sI-A)+BC) - I + D*det(sI-A))
     charpolyA = charpoly(A)
     for i=1:ninputs(sys), j=1:noutputs(sys)
-        num = charpoly(A-B[:,i]*C[j,:]') - charpolyA + D[j, i]*charpolyA
+        num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
     TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
