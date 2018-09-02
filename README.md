@@ -1,6 +1,5 @@
 # ControlSystems.jl
 
-[![ControlSystems](http://pkg.julialang.org/badges/ControlSystems_0.5.svg)](http://pkg.julialang.org/?pkg=ControlSystems)
 [![ControlSystems](http://pkg.julialang.org/badges/ControlSystems_0.6.svg)](http://pkg.julialang.org/?pkg=ControlSystems)
 [![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
 [![Coverage Status](https://coveralls.io/repos/github/JuliaControl/ControlSystems.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaControl/ControlSystems.jl?branch=master)
@@ -18,7 +17,7 @@ Pkg.add("ControlSystems")
 Note that the latest version of this package requires Julia 0.5. Users of Julia 0.4 should use [v0.1.4](https://github.com/JuliaControl/ControlSystems.jl/tree/v0.1.4) instead.
 
 ## News
-### 2018-02-01
+### 2018-09-01
 - LTISystem types are now more generic and can hold matrices/vectors of arbitrary type. Examples (partly pseudo-code):
 ```julia
 ss(1)
@@ -30,6 +29,7 @@ ss(SparseMatrix([1])
 ```
 Similar for `tf,zpk` etc.
 - Continuous time systems are simulated with continuous time solvers from `OrdinaryDiffEq.jl`
+- Freqresp now returns frequencies in the first dimension.
 - Breaking: `lsim(sys, u::Function)` syntax has changed from `u(t,x)` to `u(x,t)` to be consistent with `OrdinaryDiffEq`
 - Breaking: `feedback(P,C)` no longer returns `feedback(P*C)`. The behavior is changed to `feedback(P1, P2) = P1/(1+P1*P2)`.
 - Type `Simulator` provides lower level interface to continuous time simulation.
