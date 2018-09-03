@@ -1,8 +1,9 @@
-@doc """ `zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)`
+@doc """ `zpk(gain, Ts=0), zpk(num, den, k, Ts=0), zpk(sys)`
 
 Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
 
-`sys = k*numerator/denominator`
+`sys::TransferFunction{SisoZpk{T,TR}} = k*numerator/denominator`
+where `T` is the type of `k` and `TR` the type of the zeros/poles, usually Float64 and Complex{Float64}.
 
 `num`: the roots of the numerator polynomial. Either scalar or vector to create SISO systems
 or an array of vectors to create MIMO system.
@@ -16,9 +17,11 @@ or an array of vectors to create MIMO system.
 
 Other uses:
 
-`tf(sys)`: Convert `sys` to `tf` form.
+`zpk(sys)`: Convert `sys` to `zpk` form.
 
-`tf("s")`: Create the transferfunction `s`.""" ->
+`zpk("s")`: Create the transferfunction `s`.
+
+""" ->
 function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::Real=0.0) where {T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
     if !(size(z, 1, 2) == size(p, 1, 2) == size(k, 1, 2))

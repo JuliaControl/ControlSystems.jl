@@ -65,7 +65,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
-        label = "\$k_p = $(round(kp,3)), \\quad k_i = $(round(ki,3)), \\quad k_d = $(round(kd,3))\$"
+        label = "\$k_p\$ = $(round(kp,3)),      \$k_i\$ = $(round(ki,3)),      \$k_d\$ = $(round(kd,3))"
 
         C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
@@ -240,29 +240,27 @@ P(s)\*C(s) = -1 ⟹\n
 arg(P) + arg(C) = -π
 
 
-If `P` is a string (e.g. "exp(-sqrt(s))", the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
+If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
 
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
 function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0, doplot = true)
-    Pv  = squeeze(freqresp(P,ω)[1],(2,3))
+    Pv  = freqresp(P,ω)[:,1,1]
     r   = abs.(Pv)
-    phi = angle(Pv)
-    kp  = -cos(phi)./r
-    ki  = kd*ω.^2 - ω.*sin(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$P, \\quad k_d = $(round(kd,4))\$"), kp, ki
+    phi = angle.(Pv)
+    kp  = -cos.(phi)./r
+    ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd,4))"), kp, ki
 end
 
 
-function stabregionPID(P::AbstractString, ω = logspace(-3,1); kd=0, doplot = true)
-    Pe      = parse(P)
-    Pf(s)   = eval(:(s -> $(Pe)))(s)
-    Pv      = Pf(im*ω)
+function stabregionPID(P::Function, ω = logspace(-3,1); kd=0, doplot = true)
+    Pv      = P.(im*ω)
     r       = abs.(Pv)
-    phi     = angle(Pv)
-    kp      = -cos(phi)./r
-    ki      = kd*ω.^2 - ω.*sin(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$ $(replace(P,".","")), \\quad k_d = $(round(kd,4))\$"), kp, ki
+    phi     = angle.(Pv)
+    kp      = -cos.(phi)./r
+    ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd,4))"), kp, ki
 end
 
 

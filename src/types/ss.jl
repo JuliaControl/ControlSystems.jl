@@ -1,15 +1,14 @@
 # Convenience constructor for creating StateSpace objects
 
-@doc """`ss(A,B,C,D[, Ts, statenames=..., inputnames=..., outputnames=...]) -> sys`
+@doc """`sys = ss(A, B, C, D, Ts=0) -> sys`
 
-Create a state-space model.
+
+Create a state-space model `sys::StateSpace{T, MT<:AbstractMatrix{T}}`
+where `MT` is the type of matrixes `A,B,C,D` and `T` the element type.
+
 This is a continuous-time model if Ts is omitted or set to 0.
 Otherwise, this is a discrete-time model with sampling period Ts.
 Set Ts=-1 for a discrete-time model with unspecified sampling period.
-
-State, input and output names: each can be either a vector of strings (one string per dimension),
-or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify
-the coordinates for each dimension (e.g. "x1", "x2", ...).
 
 `sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
 function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)

@@ -1,3 +1,24 @@
+""" `sys = tf(num, den, Ts=0), sys = tf(gain, Ts=0)`
+
+Create as a fraction of polynomials:
+
+`sys::TransferFunction{SisoRational{T,TR}} = numerator/denominator`
+where T is the type of the coefficients in the polynomial.
+
+`num`: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems
+or an array of vectors to create MIMO system.
+
+`den`: the coefficients of the denominator polynomial. Either vector to create SISO systems
+or an array of vectors to create MIMO system.
+
+`Ts`: Sample time or `0` for continuous system.
+
+Other uses:
+`tf(sys)`: Convert `sys` to `tf` form.
+`tf("s")`, `tf("z")`: Create the continous transferfunction `s`.
+
+See also: `zpk`, `ss`
+"""
 function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}, Ts::Real=0.0) where {T1<:Number, T2<:Number}
     # Validate input and output dimensions match
     ny, nu = size(num, 1, 2)

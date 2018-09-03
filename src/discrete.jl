@@ -147,7 +147,7 @@ function dab(a,b,c)
     end
     co = cond(m)
     co > 1e6 && println("dab: condition number $(co)")
-    rs = c'/(m')
+    rs = (c'/(m'))'
     r = rs[1:nr]
     s = rs[nr+1:nc]
     length(s) > length(r) && warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
