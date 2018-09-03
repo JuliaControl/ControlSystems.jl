@@ -70,7 +70,7 @@ denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros
 will promote system to an appropriate numeric type""" ->
 function minreal(G::TransferFunction, eps::Real=sqrt(eps()))
-    matrix = similar(G.matrix, typeof(minreal(one(first(G.matrix)))))
+    matrix = similar(G.matrix, typeof(minreal(one(first(G.matrix)), eps)))
     for i = eachindex(G.matrix)
         matrix[i] = minreal(G.matrix[i], eps)
     end
