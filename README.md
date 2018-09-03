@@ -14,7 +14,7 @@ To install, in the Julia REPL:
 ```julia
 Pkg.add("ControlSystems")
 ```
-Note that the latest version of this package requires Julia 0.5. Users of Julia 0.4 should use [v0.1.4](https://github.com/JuliaControl/ControlSystems.jl/tree/v0.1.4) instead.
+Note that the latest version of this package requires Julia 0.6. Supporting Julia v0.7 is ongoing.
 
 ## News
 ### 2018-09-01
