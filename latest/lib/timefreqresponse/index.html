@@ -7,20 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <meta name="author" content="JuliaControl">
-  
-  <title>Time and Frequency response - ControlSystems.jl</title>
-  
-
   <link rel="shortcut icon" href="../../img/favicon.ico">
-
-  
+  <title>Time and Frequency response - ControlSystems.jl</title>
   <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
   <link rel="stylesheet" href="../../css/highlight.css">
   <link href="../../assets/Documenter.css" rel="stylesheet">
-
   
   <script>
     // Current page data
@@ -31,11 +25,7 @@
   
   <script src="../../js/jquery-2.1.1.min.js"></script>
   <script src="../../js/modernizr-2.8.3.min.js"></script>
-  <script type="text/javascript" src="../../js/highlight.pack.js"></script>
-  <script src="../../js/theme.js"></script> 
-  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
-  <script src="../../assets/mathjaxhelper.js"></script>
-
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
   
 </head>
 
@@ -55,101 +45,72 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-        <ul class="current">
+	<ul class="current">
+	  
           
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../..">Home</a>
-        
-    </li>
-<li>
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
           
-            <li>
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Examples</span>
     <ul class="subnav">
-    <li><span>Examples</span></li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../../examples/example/">Design</a>
-        
-    </li>
-
-        
+                <li class="">
+                    
+    <a class="" href="../../examples/example/">Design</a>
+                </li>
     </ul>
-<li>
+	    </li>
           
-            <li>
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Guide</span>
     <ul class="subnav">
-    <li><span>Guide</span></li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../../man/introduction/">Introduction</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../../man/creatingtfs/">Creating Transfer Functions</a>
-        
-    </li>
-
-        
+                <li class="">
+                    
+    <a class="" href="../../man/introduction/">Introduction</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../man/creatingtfs/">Creating Transfer Functions</a>
+                </li>
     </ul>
-<li>
+	    </li>
           
-            <li>
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Functions</span>
     <ul class="subnav">
-    <li><span>Functions</span></li>
+                <li class="">
+                    
+    <a class="" href="../constructors/">Constructors</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../analysis/">Analysis</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../synthesis/">Synthesis</a>
+                </li>
+                <li class=" current">
+                    
+    <a class="current" href="./">Time and Frequency response</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l3"><a href="#time-and-frequency-response">Time and Frequency response</a></li>
+    
 
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../constructors/">Constructors</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../analysis/">Analysis</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../synthesis/">Synthesis</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 current">
-        <a class="current" href="./">Time and Frequency response</a>
-        
-            <ul>
-            
-                <li class="toctree-l3"><a href="#time-and-frequency-response">Time and Frequency response</a></li>
-                
-            
-            </ul>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../plotting/">Plotting</a>
-        
-    </li>
-
-        
     </ul>
-<li>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../plotting/">Plotting</a>
+                </li>
+    </ul>
+	    </li>
           
         </ul>
       </div>
@@ -180,9 +141,8 @@
     <li>Time and Frequency response</li>
     <li class="wy-breadcrumbs-aside">
       
-        
-          <a href="https://github.com/JuliaControl/ControlSystems.jl" class="icon icon-github"> Edit on GitHub</a>
-        
+        <a href="https://github.com/JuliaControl/ControlSystems.jl/edit/master/docs/lib/timefreqresponse.md"
+          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -197,7 +157,6 @@
 <li><a href="./#ControlSystems.evalfr"><code>ControlSystems.evalfr</code></a></li>
 <li><a href="./#ControlSystems.freqresp"><code>ControlSystems.freqresp</code></a></li>
 <li><a href="./#ControlSystems.impulse"><code>ControlSystems.impulse</code></a></li>
-<li><a href="./#ControlSystems.lsim"><code>ControlSystems.lsim</code></a></li>
 <li><a href="./#ControlSystems.nyquist"><code>ControlSystems.nyquist</code></a></li>
 </ul>
 <p><a id='Time-and-Frequency-response-1'></a></p>
@@ -235,7 +194,7 @@ step
 
   Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-	  
+      
         </div>
       </div>
 
@@ -243,10 +202,10 @@ step
 
   </div>
 
-<div class="rst-versions" role="note" style="cursor: pointer">
+  <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a href="https://github.com/JuliaControl/ControlSystems.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/JuliaControl/ControlSystems.jl/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
         <span><a href="../synthesis/" style="color: #fcfcfc;">&laquo; Previous</a></span>
@@ -256,6 +215,12 @@ step
       
     </span>
 </div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+      <script src="../../assets/mathjaxhelper.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
 
 </body>
 </html>

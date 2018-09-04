@@ -4,8 +4,24 @@ println("Generating plots")
 
 plotsDir = (pwd()[end-3:end] == "docs") ? "build/plots" : "docs/build/plots"
 mkdir(plotsDir)
-Plots.pyplot()
+Plots.gr()
 
+# LQG design
+h = 0.1
+A = [1 h; 0 1]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0, h)
+Q = eye(2)
+R = eye(1)
+L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(x,t)  = -L*x + 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
+t=0:h:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
+Plots.savefig(plotsDir*"/lqrplot.svg")
 
 # PID design functions
 P = tf(1,[1,1])^4
@@ -53,9 +69,9 @@ Plots.savefig(plotsDir*"/ppstepplot.svg")
 gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
 Plots.savefig(plotsDir*"/ppgofplot.svg")
 
-P1 = "exp(-sqrt(s))"
+P1(s) = exp(-sqrt(s))
 f1 = stabregionPID(P1,logspace(-5,1,1000)); Plots.savefig(plotsDir*"/stab1.svg")
-P2 = "100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2)"
+P2 = s -> 100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2)
 f2 = stabregionPID(P2,logspace(-5,2,1000)); Plots.savefig(plotsDir*"/stab2.svg")
 P3 = tf(1,[1,1])^4
 f3 = stabregionPID(P3,logspace(-5,0,1000)); Plots.savefig(plotsDir*"/stab3.svg")
@@ -76,7 +92,7 @@ pidplots(P,:gof,;kps=kp,kis=ki, ω= logspace(-2,2,500))
 Plots.savefig(plotsDir*"/pidplotgof1.svg")
 
 kp = linspace(-1,1,8) # Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
-ki = sqrt(1-kp.^2)/10
+ki = sqrt.(1-kp.^2)./10
 pidplots(P,:nyquist,;kps=kp,kis=ki)
 Plots.savefig(plotsDir*"/pidplotsnyquist2.svg")
 pidplots(P,:gof,;kps=kp,kis=ki)

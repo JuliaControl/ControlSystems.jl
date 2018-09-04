@@ -7,20 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <meta name="author" content="JuliaControl">
-  
-  <title>Constructors - ControlSystems.jl</title>
-  
-
   <link rel="shortcut icon" href="../../img/favicon.ico">
-
-  
+  <title>Constructors - ControlSystems.jl</title>
   <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
 
   <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
   <link rel="stylesheet" href="../../css/highlight.css">
   <link href="../../assets/Documenter.css" rel="stylesheet">
-
   
   <script>
     // Current page data
@@ -31,11 +25,7 @@
   
   <script src="../../js/jquery-2.1.1.min.js"></script>
   <script src="../../js/modernizr-2.8.3.min.js"></script>
-  <script type="text/javascript" src="../../js/highlight.pack.js"></script>
-  <script src="../../js/theme.js"></script> 
-  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
-  <script src="../../assets/mathjaxhelper.js"></script>
-
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
   
 </head>
 
@@ -55,101 +45,72 @@
       </div>
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-        <ul class="current">
+	<ul class="current">
+	  
           
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="../..">Home</a>
-        
-    </li>
-<li>
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
           
-            <li>
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Examples</span>
     <ul class="subnav">
-    <li><span>Examples</span></li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../../examples/example/">Design</a>
-        
-    </li>
-
-        
+                <li class="">
+                    
+    <a class="" href="../../examples/example/">Design</a>
+                </li>
     </ul>
-<li>
+	    </li>
           
-            <li>
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Guide</span>
     <ul class="subnav">
-    <li><span>Guide</span></li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../../man/introduction/">Introduction</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../../man/creatingtfs/">Creating Transfer Functions</a>
-        
-    </li>
-
-        
+                <li class="">
+                    
+    <a class="" href="../../man/introduction/">Introduction</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../man/creatingtfs/">Creating Transfer Functions</a>
+                </li>
     </ul>
-<li>
+	    </li>
           
-            <li>
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Functions</span>
     <ul class="subnav">
-    <li><span>Functions</span></li>
+                <li class=" current">
+                    
+    <a class="current" href="./">Constructors</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l3"><a href="#constructing-transfer-functions">Constructing transfer functions</a></li>
+    
 
-        
-            
-    <li class="toctree-l1 current">
-        <a class="current" href="./">Constructors</a>
-        
-            <ul>
-            
-                <li class="toctree-l3"><a href="#constructing-transfer-functions">Constructing transfer functions</a></li>
-                
-            
-            </ul>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../analysis/">Analysis</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../synthesis/">Synthesis</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../timefreqresponse/">Time and Frequency response</a>
-        
-    </li>
-
-        
-            
-    <li class="toctree-l1 ">
-        <a class="" href="../plotting/">Plotting</a>
-        
-    </li>
-
-        
     </ul>
-<li>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../analysis/">Analysis</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../synthesis/">Synthesis</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../timefreqresponse/">Time and Frequency response</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../plotting/">Plotting</a>
+                </li>
+    </ul>
+	    </li>
           
         </ul>
       </div>
@@ -180,9 +141,8 @@
     <li>Constructors</li>
     <li class="wy-breadcrumbs-aside">
       
-        
-          <a href="https://github.com/JuliaControl/ControlSystems.jl" class="icon icon-github"> Edit on GitHub</a>
-        
+        <a href="https://github.com/JuliaControl/ControlSystems.jl/edit/master/docs/lib/constructors.md"
+          class="icon icon-github"> Edit on GitHub</a>
       
     </li>
   </ul>
@@ -201,109 +161,24 @@
 <li><a href="./#ControlSystems.series"><code>ControlSystems.series</code></a></li>
 <li><a href="./#ControlSystems.sminreal"><code>ControlSystems.sminreal</code></a></li>
 <li><a href="./#ControlSystems.ss"><code>ControlSystems.ss</code></a></li>
-<li><a href="./#ControlSystems.ss2tf"><code>ControlSystems.ss2tf</code></a></li>
 <li><a href="./#ControlSystems.tf"><code>ControlSystems.tf</code></a></li>
-<li><a href="./#ControlSystems.tfg"><code>ControlSystems.tfg</code></a></li>
 <li><a href="./#ControlSystems.zpk"><code>ControlSystems.zpk</code></a></li>
 </ul>
 <p><a id='Constructing-transfer-functions-1'></a></p>
 <h1 id="constructing-transfer-functions">Constructing transfer functions</h1>
-<p><a id='ControlSystems.append' href='#ControlSystems.append'>#</a>
-<strong><code>ControlSystems.append</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>append(systems::StateSpace...), append(systems::TransferFunction...)</code></p>
-<p>Append systems in block diagonal form</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/connections.jl#L18-L22' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.c2d' href='#ControlSystems.c2d'>#</a>
-<strong><code>ControlSystems.c2d</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>[sysd, x0map] = c2d(sys, Ts, method=:zoh)</code></p>
-<p>Convert the continuous system <code>sys</code> into a discrete system with sample time <code>Ts</code>, using the provided method. Currently only <code>:zoh</code> and <code>:foh</code> are provided.</p>
-<p>Returns the discrete system <code>sysd</code>, and a matrix <code>x0map</code> that transforms the initial conditions to the discrete domain by <code>x0_discrete = x0map*[x0; u0]</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/discrete.jl#L4-L12' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.feedback' href='#ControlSystems.feedback'>#</a>
-<strong><code>ControlSystems.feedback</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>feedback(L)</code> Return L/(1+L) <code>feedback(P,C)</code> Return PC/(1+PC)</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/synthesis.jl#L137-L140' class='documenter-source'>source</a><br></p>
-<p><code>feedback(sys)</code></p>
-<p><code>feedback(sys1,sys2)</code></p>
-<p>Forms the negative feedback interconnection</p>
-<pre><code class="julia">&gt;-+ sys1 +--&gt;
-  |      |
- (-)sys2 +
+<pre><code>append
+c2d
+feedback
+feedback2dof
+minreal
+parallel
+series
+sminreal
+ss
+ss2tf
+tf
+zpk
 </code></pre>
-
-<p>If no second system is given, negative identity feedback is assumed</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/synthesis.jl#L145-L157' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.feedback2dof' href='#ControlSystems.feedback2dof'>#</a>
-<strong><code>ControlSystems.feedback2dof</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>feedback2dof(P,R,S,T)</code> Return <code>BT/(AR+ST)</code> where B and A are the numerator and denomenator polynomials of <code>P</code> respectively <code>feedback2dof(B,A,R,S,T)</code> Return <code>BT/(AR+ST)</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/synthesis.jl#L172-L175' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.minreal' href='#ControlSystems.minreal'>#</a>
-<strong><code>ControlSystems.minreal</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>tf = minreal(tf::TransferFunction, eps=sqrt(eps()))</code></p>
-<p>Create a minimial representation of each transfer function in <code>tf</code> by cancelling poles and zeros </p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/types/transferfunction.jl#L340-L343' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.parallel' href='#ControlSystems.parallel'>#</a>
-<strong><code>ControlSystems.parallel</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>series(s1::LTISystem, s2::LTISystem)</code></p>
-<p>Connect systems in parallel, equivalent to <code>s2+s1</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/connections.jl#L10-L14' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.series' href='#ControlSystems.series'>#</a>
-<strong><code>ControlSystems.series</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>series(s1::LTISystem, s2::LTISystem)</code></p>
-<p>Connect systems in series, equivalent to <code>s2*s1</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/connections.jl#L3-L7' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.sminreal' href='#ControlSystems.sminreal'>#</a>
-<strong><code>ControlSystems.sminreal</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>sminreal(sys)</code></p>
-<p>Compute the structurally minimal realization of the state-space system <code>sys</code>. A structurally minimal realization is one where only states that can be determined to be uncontrollable and unobservable based on the location of 0s in <code>sys</code> are removed.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/simplification.jl#L1-L7' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.ss' href='#ControlSystems.ss'>#</a>
-<strong><code>ControlSystems.ss</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>ss(A,B,C,D[, Ts, statenames=..., inputnames=..., outputnames=...]) -&gt; sys</code></p>
-<p>Create a state-space model. This is a continuous-time model if Ts is omitted or set to 0.  Otherwise, this is a discrete-time model with sampling period Ts.  Set Ts=-1 for a discrete-time model with unspecified sampling period.</p>
-<p>State, input and output names: each can be either a vector of strings (one string per dimension),  or a single string (e.g., "x"). In the latter case, an index is automatically appended to identify  the coordinates for each dimension (e.g. "x1", "x2", ...).</p>
-<p><code>sys = ss(D[, Ts, ...])</code> specifies a static gain matrix D.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/types/statespace.jl#L65-L77' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.ss2tf' href='#ControlSystems.ss2tf'>#</a>
-<strong><code>ControlSystems.ss2tf</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>sys = ss2tf(s::StateSpace)</code>, <code>sys = ss2tf(A, B, C, Ts = 0; inputnames = "", outputnames = "")</code></p>
-<p>Convert a <code>StateSpace</code> realization to a <code>TransferFunction</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/types/tf2ss.jl#L136-L139' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.tf' href='#ControlSystems.tf'>#</a>
-<strong><code>ControlSystems.tf</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>sys = tf(num, den, Ts=0; kwargs...), sys = tf(gain, Ts=0; kwargs...)</code></p>
-<p>Create transfer function as a fraction of polynomials:</p>
-<p><code>sys = numerator/denominator</code></p>
-<p><code>num</code>: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>den</code>: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>Ts</code>: Sample time or <code>0</code> for continuous system.</p>
-<p><code>kwargs</code>: <code>inputnames</code>, <code>outputnames</code>: Arrays of strings representing the inputs and outputs.</p>
-<p>Other uses:</p>
-<p><code>tf(sys)</code>: Convert <code>sys</code> to <code>tf</code> form.</p>
-<p><code>tf("s")</code>, <code>tf("z")</code>: Create the continous transferfunction <code>s</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/types/transferfunction.jl#L126-L147' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.tfg' href='#ControlSystems.tfg'>#</a>
-<strong><code>ControlSystems.tfg</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>sys = tfg(tf::LTISystem),</code>tfg(s::AbstractString)<code>,</code>tfg(exp::Expr)<code>,</code>tfg(::Array)`</p>
-<p>Create generalized transfer function represented by an expression. The variable has to be <code>s</code>.</p>
-<p>Example: <code>tfg("1/exp(-sqrt(s))")</code>, <code>tfg(["1/exp(-sqrt(s))"), "1/(s+1)])</code>, <code>tfg(:(s+1))</code></p>
-<p>Other uses:</p>
-<p><code>tfg(sys)</code>: Convert <code>sys</code> to <code>tfg</code> form.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/types/transferfunction.jl#L224-L234' class='documenter-source'>source</a><br></p>
-<p><a id='ControlSystems.zpk' href='#ControlSystems.zpk'>#</a>
-<strong><code>ControlSystems.zpk</code></strong> &mdash; <em>Function</em>.</p>
-<p><code>zpk(gain, Ts=0; kwargs...), zpk(num, den, k, Ts=0; kwargs...), zpk(sys)</code></p>
-<p>Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.</p>
-<p><code>sys = k*numerator/denominator</code></p>
-<p><code>num</code>: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>den</code>: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.</p>
-<p><code>k</code>: The gain of the system. Obs, this is not the same as <code>dcgain</code>.</p>
-<p><code>Ts</code>: Sample time or <code>0</code> for continuous system.</p>
-<p><code>kwargs</code>: <code>inputnames</code>, <code>outputnames</code>: Arrays of strings representing the inputs and outputs.</p>
-<p>Other uses:</p>
-<p><code>tf(sys)</code>: Convert <code>sys</code> to <code>tf</code> form.</p>
-<p><code>tf("s")</code>: Create the transferfunction <code>s</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/tree/d43aca2f85e4596cc00d651badf10592c687c33b/src/types/transferfunction.jl#L165-L188' class='documenter-source'>source</a><br></p>
               
             </div>
           </div>
@@ -328,7 +203,7 @@
 
   Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
-	  
+      
         </div>
       </div>
 
@@ -336,10 +211,10 @@
 
   </div>
 
-<div class="rst-versions" role="note" style="cursor: pointer">
+  <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a href="https://github.com/JuliaControl/ControlSystems.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/JuliaControl/ControlSystems.jl/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
         <span><a href="../../man/creatingtfs/" style="color: #fcfcfc;">&laquo; Previous</a></span>
@@ -349,6 +224,12 @@
       
     </span>
 </div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+      <script src="../../assets/mathjaxhelper.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
 
 </body>
 </html>
