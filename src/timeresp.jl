@@ -2,13 +2,13 @@
 
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
-@doc """`y, t, x = step(sys[, Tf])` or `y, t, x = step(sys[, t])`
+"""`y, t, x = step(sys[, Tf])` or `y, t, x = step(sys[, t])`
 
 Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
 function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
@@ -31,13 +31,13 @@ Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
 Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t::AbstractVector; kwargs...)
 
-@doc """`y, t, x = impulse(sys[, Tf])` or `y, t, x = impulse(sys[, t])`
+"""`y, t, x = impulse(sys[, Tf])` or `y, t, x = impulse(sys[, t])`
 
 Calculate the impulse response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`""" ->
+`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
 function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
@@ -70,7 +70,7 @@ impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(
 impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
 impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
-@doc """`y, t, x = lsim(sys, u, t; x0, method])`
+"""`y, t, x = lsim(sys, u, t; x0, method])`
 
 `y, t, x, uout = lsim(sys, u::Function, t; x0, method)`
 
@@ -175,7 +175,7 @@ end
 lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
 
 
-@doc """`ltitr(A, B, u[,x0])`
+"""`ltitr(A, B, u[,x0])`
 
 `ltitr(A, B, u::Function, iters[,x0])`
 
@@ -183,7 +183,7 @@ Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
-""" ->
+"""
 function ltitr(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
     n = size(u, 1)

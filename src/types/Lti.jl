@@ -5,25 +5,25 @@ abstract type LTISystem <: AbstractSystem end
 /(sys1::LTISystem, sys2::LTISystem) = /(promote(sys1, sys2)...)
 
 
-@doc """`issiso(sys)`
+"""`issiso(sys)`
 
-Returns `true` if `sys` is SISO, else returns `false`.""" ->
+Returns `true` if `sys` is SISO, else returns `false`."""
 function issiso(sys::LTISystem)
     return ninputs(sys) == 1 && noutputs(sys) == 1
 end
 
 
-@doc """`iscontinuous(sys)`
+"""`iscontinuous(sys)`
 
-Returns `true` if `sys` is continuous, else returns `false`.""" ->
+Returns `true` if `sys` is continuous, else returns `false`."""
 function iscontinuous(sys::LTISystem)
     return sys.Ts == 0
 end
 
 
-@doc """`isstable(sys)`
+"""`isstable(sys)`
 
-Returns `true` if `sys` is stable, else returns `false`.""" ->
+Returns `true` if `sys` is stable, else returns `false`."""
 function isstable(sys::LTISystem)
     if iscontinuous(sys)
         if any(real.(pole(sys)).>=0)

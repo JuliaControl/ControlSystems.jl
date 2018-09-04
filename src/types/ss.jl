@@ -1,6 +1,6 @@
 # Convenience constructor for creating StateSpace objects
 
-@doc """`sys = ss(A, B, C, D, Ts=0) -> sys`
+"""`sys = ss(A, B, C, D, Ts=0) -> sys`
 
 
 Create a state-space model `sys::StateSpace{T, MT<:AbstractMatrix{T}}`
@@ -10,7 +10,7 @@ This is a continuous-time model if Ts is omitted or set to 0.
 Otherwise, this is a discrete-time model with sampling period Ts.
 Set Ts=-1 for a discrete-time model with unspecified sampling period.
 
-`sys = ss(D[, Ts, ...])` specifies a static gain matrix D.""" ->
+`sys = ss(D[, Ts, ...])` specifies a static gain matrix D."""
 function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)
     # Check the kwargs for metadata
     nu = size(B, 2)

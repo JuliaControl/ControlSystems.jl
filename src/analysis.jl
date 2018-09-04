@@ -1,34 +1,34 @@
-@doc """`pole(sys)`
+"""`pole(sys)`
 
-Compute the poles of system `sys`.""" ->
+Compute the poles of system `sys`."""
 pole(sys::StateSpace) = eigvals(sys.A)
 # TODO wrong for MIMO
 pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
-@doc """`dcgain(sys)`
+"""`dcgain(sys)`
 
 Compute the dcgain of system `sys`.
 
-equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
+equal to G(0) for continuous-time systems and G(1) for discrete-time systems."""
 function dcgain(sys::LTISystem)
     return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
-@doc """`markovparam(sys, n)`
+"""`markovparam(sys, n)`
 
 Compute the `n`th markov parameter of state-space system `sys`. This is defined
 as the following:
 
 `h(0) = D`
 
-`h(n) = C*A^(n-1)*B`""" ->
+`h(n) = C*A^(n-1)*B`"""
 function markovparam(sys::StateSpace, n::Integer)
     n < 0 && error("n must be >= 0")
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
 
-@doc """`z, p, k = zpkdata(sys)`
+"""`z, p, k = zpkdata(sys)`
 
 Compute the zeros, poles, and gains of system `sys`.
 
@@ -37,7 +37,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `p` : Matrix{Vector{Complex128}}, (ny x nu)
 
-`k` : Matrix{Float64}, (ny x nu)""" ->
+`k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
     G = convert(TransferFunction{SisoZpk}, sys)
 
@@ -48,10 +48,10 @@ function zpkdata(sys::LTISystem)
     return zs, ps, ks
 end
 
-@doc """`Wn, zeta, ps = damp(sys)`
+"""`Wn, zeta, ps = damp(sys)`
 
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
-poles, `ps`, of `sys`""" ->
+poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if !iscontinuous(sys)
@@ -66,10 +66,10 @@ function damp(sys::LTISystem)
     return Wn, ζ, ps
 end
 
-@doc """`dampreport(sys)`
+"""`dampreport(sys)`
 
 Display a report of the poles, damping ratio, natural frequency, and time
-constant of the system `sys`""" ->
+constant of the system `sys`"""
 function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
     t_const = 1./(Wn.*zeta)
@@ -86,10 +86,10 @@ end
 dampreport(sys::LTISystem) = dampreport(STDOUT, sys)
 
 
-@doc """`tzero(sys)`
+"""`tzero(sys)`
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
-realization, these are also the transmission zeros.""" ->
+realization, these are also the transmission zeros."""
 function tzero(sys::TransferFunction)
     if issiso(sys)
         return tzero(sys.matrix[1,1])
@@ -337,9 +337,9 @@ function _findCrossings(w, n, res)
     wcross, tcross
 end
 
-@doc """`dₘ = delaymargin(G::LTISystem)`
+"""`dₘ = delaymargin(G::LTISystem)`
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     if G.nu + G.ny > 2
@@ -356,7 +356,7 @@ function delaymargin(G::LTISystem)
     dₘ
 end
 
-@doc """`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
+"""`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 
@@ -368,7 +368,7 @@ Given a transfer function describing the Plant `P` and a transferfunction descri
 
 `T = PC/(1+PC)` Complementary sensitivity function
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function gangoffour(P::TransferFunction,C::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
@@ -405,7 +405,7 @@ function gangoffour(P::AbstractVector, C::TransferFunction)
     gangoffour(P, fill(C,length(P)))
 end
 
-@doc """`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
+"""`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
 
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
 computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
@@ -424,7 +424,7 @@ computes the four transfer functions in the Gang-of-Four and the transferfunctio
 
 `RE = F/(1+P*C)`
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
         error("gof only supports SISO systems")

@@ -1,4 +1,4 @@
-@doc """ `zpk(gain, Ts=0), zpk(num, den, k, Ts=0), zpk(sys)`
+""" `zpk(gain, Ts=0), zpk(num, den, k, Ts=0), zpk(sys)`
 
 Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
 
@@ -21,7 +21,7 @@ Other uses:
 
 `zpk("s")`: Create the transferfunction `s`.
 
-""" ->
+"""
 function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::Real=0.0) where {T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
     if !(size(z, 1, 2) == size(p, 1, 2) == size(k, 1, 2))

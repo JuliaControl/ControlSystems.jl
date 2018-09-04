@@ -1,9 +1,9 @@
-@doc """`sminreal(sys)`
+"""`sminreal(sys)`
 
 Compute the structurally minimal realization of the state-space system `sys`. A
 structurally minimal realization is one where only states that can be
 determined to be uncontrollable and unobservable based on the location of 0s in
-`sys` are removed.""" ->
+`sys` are removed."""
 function sminreal(sys::StateSpace)
     A, B, C, inds = struct_ctrb_obsv(sys)
     return StateSpace(A, B, C, sys.D, sys.Ts)

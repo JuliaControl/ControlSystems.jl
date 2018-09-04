@@ -1,10 +1,10 @@
-@doc """sys_fr = freqresp(sys, w)
+"""sys_fr = freqresp(sys, w)
 
 Evaluate the frequency response of a linear system
 
 `w -> C*((iw*im -A)^-1)*B + D`
 
-of system `sys` over the frequency vector `w`.""" ->
+of system `sys` over the frequency vector `w`."""
 function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
     # Create imaginary freq vector s
     if !iscontinuous(sys)
@@ -58,12 +58,12 @@ end
 
 #_preprocess_for_freqresp(sys::SisoTf) = sys
 
-@doc """
+"""
 `evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
-""" ->
+"""
 function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
     T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     try
@@ -85,14 +85,14 @@ function evalfr(G::TransferFunction{<:SisoTf{T0}}, s::Number) where {T0}
     return fr
 end
 
-@doc """
+"""
 `F(s)`, `F(omega, true)`, `F(z, false)`
 
 Notation for frequency response evaluation.
 - F(s) evaluates the continuous-time transfer function F at s.
 - F(omega,true) evaluates the discrete-time transfer function F at exp(i*Ts*omega)
 - F(z,false) evaluates the discrete-time transfer function F at z
-""" ->
+"""
 function (sys::TransferFunction)(s)
     evalfr(sys,s)
 end
@@ -117,36 +117,36 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
     return out
 end
 
-@doc """`mag, phase, w = bode(sys[, w])`
+"""`mag, phase, w = bode(sys[, w])`
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
-`mag` and `phase` has size `(length(w), ny, nu)`""" ->
+`mag` and `phase` has size `(length(w), ny, nu)`"""
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
 
-@doc """`re, im, w = nyquist(sys[, w])`
+"""`re, im, w = nyquist(sys[, w])`
 
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`
 
-`re` and `im` has size `(length(w), ny, nu)`""" ->
+`re` and `im` has size `(length(w), ny, nu)`"""
 function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
 nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
 
-@doc """`sv, w = sigma(sys[, w])`
+"""`sv, w = sigma(sys[, w])`
 
 Compute the singular values of the frequency response of system `sys` at
 frequencies `w`
 
-`sv` has size `(length(w), max(ny, nu))`""" ->
+`sv` has size `(length(w), max(ny, nu))`"""
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     nw, ny, nu = size(resp)

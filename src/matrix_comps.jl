@@ -1,4 +1,4 @@
-@doc """`care(A, B, Q, R)`
+"""`care(A, B, Q, R)`
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
@@ -6,7 +6,7 @@ defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
-""" ->
+"""
 function care(A, B, Q, R)
     G = try
         B*inv(R)*B'
@@ -27,7 +27,7 @@ function care(A, B, Q, R)
     return U21/U11
 end
 
-@doc """`dare(A, B, Q, R)`
+"""`dare(A, B, Q, R)`
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where A and R
@@ -36,7 +36,7 @@ are non-singular.
 Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
-""" ->
+"""
 function dare(A, B, Q, R)
     G = try
         B*inv(R)*B'
@@ -63,11 +63,11 @@ function dare(A, B, Q, R)
     return U21/U11
 end
 
-@doc """`dlyap(A, Q)`
+"""`dlyap(A, Q)`
 
 Compute the solution "X" to the discrete Lyapunov equation
 "AXA' - X + Q = 0".
-""" ->
+"""
 function dlyap(A, Q)
     lhs = kron(A, conj(A))
     lhs = eye(size(lhs, 1)) - lhs
@@ -75,11 +75,11 @@ function dlyap(A, Q)
     return reshape(x, size(Q))
 end
 
-@doc """`gram(sys, opt)`
+"""`gram(sys, opt)`
 
 Compute the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian. If `opt` is `:o`, computes the observability
-grammian.""" ->
+grammian."""
 function gram(sys::StateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
@@ -96,13 +96,13 @@ function gram(sys::StateSpace, opt::Symbol)
     end
 end
 
-@doc """`obsv(A, C)` or `obsv(sys)`
+"""`obsv(A, C)` or `obsv(sys)`
 
 Compute the observability matrix for the system described by `(A, C)` or `sys`.
 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
-`gram(sys, :o)` is positive definite.""" ->
+`gram(sys, :o)` is positive definite."""
 function obsv(A::AbstractMatrix{T}, C::AbstractMatrix{T}) where {T <: Number}
     n = size(A, 1)
     ny = size(C, 1)
@@ -118,14 +118,14 @@ function obsv(A::AbstractMatrix{T}, C::AbstractMatrix{T}) where {T <: Number}
 end
 obsv(sys::StateSpace) = obsv(sys.A, sys.C)
 
-@doc """`ctrb(A, B)` or `ctrb(sys)`
+"""`ctrb(A, B)` or `ctrb(sys)`
 
 Compute the controllability matrix for the system described by `(A, B)` or
 `sys`.
 
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
-checking if `gram(sys, :c)` is positive definite.""" ->
+checking if `gram(sys, :c)` is positive definite."""
 function ctrb(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where {T <: Number}
     n = size(A, 1)
     nu = size(B, 2)
@@ -141,14 +141,14 @@ function ctrb(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where {T <: Number}
 end
 ctrb(sys::StateSpace) = ctrb(sys.A, sys.B)
 
-@doc """`P = covar(sys, W)`
+"""`P = covar(sys, W)`
 
 Calculate the stationary covariance `P = E[y(t)y(t)']` of an lti-model `sys`, driven by gaussian
 white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac delta.
 
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
-(D*W*D.' .!= 0) for contunuous systems.""" ->
+(D*W*D.' .!= 0) for contunuous systems."""
 function covar(sys::StateSpace, W::StridedMatrix)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
     if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
@@ -184,7 +184,7 @@ covar(sys::TransferFunction, W::StridedMatrix) = covar(ss(sys), W)
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
-@doc """
+"""
 `..  norm(sys, p=2; tol=1e-6)`
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
@@ -205,7 +205,7 @@ of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-2
 For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
-""" ->
+"""
 function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
     if p == 2
         return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
@@ -224,7 +224,7 @@ function Base.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
     return Base.norm(ss(sys), p, tol=tol)
 end
 
-@doc """
+"""
 `.. (peakgain, peakgainfrequency) = norminf(sys; tol=1e-6)`
 
 Compute the L∞ norm of the LTI system `sys`, together with the frequency
@@ -242,7 +242,7 @@ of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-2
 For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
-""" ->
+"""
 function norminf(sys::StateSpace; tol=1e-6)
     if sys.Ts == 0
         return normLinf_twoSteps_ct(sys,tol)
@@ -385,11 +385,11 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
 end
 
 
-@doc """`T, B = balance(A[, perm=true])`
+"""`T, B = balance(A[, perm=true])`
 
 Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
-transformation will only scale, and not permute `A`.""" ->
+transformation will only scale, and not permute `A`."""
 function balance(A, perm::Bool=true)
     n = Base.LinAlg.checksquare(A)
     B = copy(A)

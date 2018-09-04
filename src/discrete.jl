@@ -1,14 +1,14 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-@doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
+"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
 
 Convert the continuous system `sys` into a discrete system with sample time
 `Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
 
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
-`x0_discrete = x0map*[x0; u0]`""" ->
+`x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     if !iscontinuous(sys)
         error("sys must be a continuous time system")
@@ -198,14 +198,14 @@ function c2d(G::TransferFunction{S}, h;kwargs...) where {S}
 end
 
 
-@doc """`[y, t, x] = lsima(sys, t[, x0, method])`
+"""`[y, t, x] = lsima(sys, t[, x0, method])`
 
 Calculate the time response of adaptive controller. If `x0` is ommitted,
 a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.""" ->
+`method` parameter can be specified as either `:zoh` or `:foh`."""
 function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
     x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh) where T
     ny, nu = size(sys)

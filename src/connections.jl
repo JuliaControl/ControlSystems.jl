@@ -1,25 +1,25 @@
 # Model interconnections
 
-@doc """
+"""
 `series(sys1::LTISystem, sys2::LTISystem)`
 
 Connect systems in series, equivalent to `sys2*sys1`
-""" ->
+"""
 series(sys1::LTISystem, sys2::LTISystem) = sys2*sys1
 
-@doc """
+"""
 `series(sys1::LTISystem, sys2::LTISystem)`
 
 Connect systems in parallel, equivalent to `sys2+sys1`
-""" ->
+"""
 parallel(sys1::LTISystem, sys2::LTISystem) = sys1 + sys2
 
 append() = LTISystem[]
-@doc """
+"""
 `append(systems::StateSpace...), append(systems::TransferFunction...)`
 
 Append systems in block diagonal form
-""" ->
+"""
 function append(systems::StateSpace...)
     Ts = systems[1].Ts
     if !all(s.Ts == Ts for s in systems)

@@ -14,7 +14,6 @@ parallel
 series
 sminreal
 ss
-ss2tf
 tf
 zpk
 ```
