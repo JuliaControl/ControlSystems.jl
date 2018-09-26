@@ -2,7 +2,7 @@
 module PlotTests
 using ControlSystems, Plots
 using VisualRegressionTests, ControlExamplePlots
-using Base.Test
+using Test
 gr()
 default(show=false)
 

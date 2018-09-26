@@ -53,9 +53,9 @@ The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plot
 
 ```julia
 P1 = "exp(-sqrt(s))"
-f1 = stabregionPID(P1,logspace(-5,1,1000))
+f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)))
 P2 = "100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2)"
-f2 = stabregionPID(P2,logspace(-5,2,1000))
+f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)))
 P3 = tf(1,[1,1])^4
-f3 = stabregionPID(P3,logspace(-5,0,1000))
+f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)))
 ```

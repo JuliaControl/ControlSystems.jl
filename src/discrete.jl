@@ -17,7 +17,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method == :zoh
-        M = expm([A*Ts  B*Ts;
+        M = exp([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
@@ -25,7 +25,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Dd = D
         x0map = [eye(nx) zeros(nx, nu)]
     elseif method == :foh
-        M = expm([A*Ts B*Ts zeros(nx, nu);
+        M = exp([A*Ts B*Ts zeros(nx, nu);
             zeros(nu, nx + nu) eye(nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
@@ -143,14 +143,14 @@ function dab(a,b,c)
     mb = toeplitz([b; zb],[b[1]; zb])
     m = [ma mb]
     if rank(m) < minimum(size(m))
-        warn("Singular problem due to common factors in A and B")
+        @warn("Singular problem due to common factors in A and B")
     end
     co = cond(m)
     co > 1e6 && println("dab: condition number $(co)")
     rs = (c'/(m'))'
     r = rs[1:nr]
     s = rs[nr+1:nc]
-    length(s) > length(r) && warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
+    length(s) > length(r) && @warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
     r,s
 end
 

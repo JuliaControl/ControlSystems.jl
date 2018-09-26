@@ -283,7 +283,7 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             omegap = minimum(abs.(p))
         else  # at least one pair of complex poles
             tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
-            omegap = abs(p[indmax(tmp)])
+            omegap = abs(p[argmax(tmp)])
         end
         (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
@@ -441,7 +441,7 @@ T = Σ1\(U'Q1)
 Pz = T*P*T'
 Qz = inv(T')*Q*inv(T)
 if vecnorm(Pz-Qz) > sqrt(eps())
-    warn("balreal: Result may be inaccurate")
+    @warn("balreal: Result may be inaccurate")
     println("Controllability gramian before transform")
     display(P)
     println("Controllability gramian after transform")

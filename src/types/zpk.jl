@@ -44,7 +44,7 @@ function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::Real=0.0) w
 end
 
 function zpk(gain::Matrix{T}, Ts::Real=0; kwargs...) where {T <: Number}
-    TR = promote_type(Complex128,T)
+    TR = promote_type(ComplexF64,T)
     ny, nu = size(gain)
     matrix = [SisoZpk{T, TR}(TR[],TR[], gain[o, i]) for o=1:ny, i=1:nu]
     return TransferFunction{SisoZpk{T,TR}}(matrix, Ts)

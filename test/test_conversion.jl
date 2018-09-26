@@ -112,8 +112,8 @@ D22 = [1.0 2.0; 3.0 4.0]
 @test convert(TransferFunction{ControlSystems.SisoRational{Float64}}, D22) == tf(D22)
 @test convert(TransferFunction{ControlSystems.SisoRational{Float64}}, b) == tf(b)
 
-@test convert(TransferFunction{ControlSystems.SisoZpk{Float64,Complex128}}, D22) == zpk(D22)
-@test convert(TransferFunction{ControlSystems.SisoZpk{Float64,Complex128}}, b) == zpk(b)
+@test convert(TransferFunction{ControlSystems.SisoZpk{Float64,ComplexF64}}, D22) == zpk(D22)
+@test convert(TransferFunction{ControlSystems.SisoZpk{Float64,ComplexF64}}, b) == zpk(b)
 
 
 # Error, not proper
