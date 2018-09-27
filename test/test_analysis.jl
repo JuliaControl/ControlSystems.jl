@@ -125,11 +125,11 @@ ex_13 = ss([-1 1; 0 -1], [0; 1], [1 0], 0)
 
 H = [tf(0) tf([3, 0],[1, 1, 10]) ; tf([1, 1],[1, 5]) tf([2],[1, 6])]
 G = ss(H)
-sol_z = vecarray(Complex128, 2, 2, Complex128[], Complex128[0.0 + 0.0im],
-        Complex128[-1.0 + 0.0im], Complex128[])
-sol_p = vecarray(Complex128, 2, 2, Complex128[], Complex128[-0.5 - 3.1224989991991996im,
+sol_z = vecarray(ComplexF64, 2, 2, ComplexF64[], ComplexF64[0.0 + 0.0im],
+        ComplexF64[-1.0 + 0.0im], ComplexF64[])
+sol_p = vecarray(ComplexF64, 2, 2, ComplexF64[], ComplexF64[-0.5 - 3.1224989991991996im,
         -0.5 + 3.1224989991991996im],
-        Complex128[-5.0 + 0.0im], Complex128[-6.0 + 0.0im])
+        ComplexF64[-5.0 + 0.0im], ComplexF64[-6.0 + 0.0im])
 sol_k = [0.0 3.0; 1.0 2.0]
 z, p, k = zpkdata(H)
 @test_array_vecs_eps z sol_z 2*eps(Float64)

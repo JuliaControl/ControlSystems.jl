@@ -47,7 +47,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         kis = kis == 0 ? zeros(n) : kis
         kds = kds == 0 ? zeros(n) : kds
     end
-    ω   = ω   == 0 ? logspace(-3,3,500) : ω
+    ω   = ω   == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
 
     getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
@@ -65,7 +65,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
-        label = "\$k_p\$ = $(round(kp,3)),      \$k_i\$ = $(round(ki,3)),      \$k_d\$ = $(round(kd,3))"
+        label = "\$k_p\$ = $(round(kp, digits=3)),      \$k_i\$ = $(round(ki, digits=3)),      \$k_d\$ = $(round(kd, digits=3))"
 
         C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
@@ -104,10 +104,10 @@ end
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
     P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
     Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
-    f          = (y,_,k) -> Complex128.(Polynomials.roots(k[1]*P+Q))
+    f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
-    poleout    = Vector{Vector{Complex128}}()
+    poleout    = Vector{Vector{ComplexF64}}()
     for i in integrator
        push!(poleout,integrator.k[1])
     end
@@ -219,7 +219,7 @@ If an input argument `s` is given, the curve is plotted from `s` to 10, else fro
 See also `Leadlink, leadlinkat`
 """
 function leadlinkcurve(start=1)
-    N = linspace(start,10)
+    N = range(start, stop=10, length=50)
     dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
     Plots.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
 end
@@ -250,17 +250,17 @@ function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0, doplot = tru
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd,4))"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
 end
 
 
-function stabregionPID(P::Function, ω = logspace(-3,1); kd=0, doplot = true)
+function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); kd=0, doplot = true)
     Pv      = P.(im*ω)
     r       = abs.(Pv)
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd,4))"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
 end
 
 

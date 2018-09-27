@@ -76,7 +76,7 @@ function Base.convert(::Type{StateSpace{T,MT}}, G::TransferFunction) where {T<:N
     # could be much cleaner.
     #T = Base.promote_op(/, T0, T0)
 
-    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(0, 0)
+    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(undef, 0, 0)
     for i=1:ninputs(G)
         for j=1:noutputs(G)
             a, b, c, d = siso_tf_to_ss(T, G.matrix[j, i])

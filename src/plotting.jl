@@ -57,7 +57,7 @@ function getLogTicks(x)
             minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
         end
 
-        ind       = find(minimum(x) .<= minor .<= maximum(x))
+        ind       = findall(minimum(x) .<= minor .<= maximum(x))
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit

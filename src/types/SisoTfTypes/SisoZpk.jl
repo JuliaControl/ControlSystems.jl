@@ -74,7 +74,7 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
     end
 
     newZ = copy(sys.z)
-    newP = Vector{TR}(0)
+    newP = Vector{TR}()
 
     pidx = 1
     p = sys.p[pidx]

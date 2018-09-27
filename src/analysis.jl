@@ -83,7 +83,7 @@ function dampreport(io::IO, sys::LTISystem)
         @printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
     end
 end
-dampreport(sys::LTISystem) = dampreport(STDOUT, sys)
+dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 
 """`tzero(sys)`

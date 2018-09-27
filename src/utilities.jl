@@ -25,7 +25,7 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
-    poly_factors = Vector{Poly{T}}(0)
+    poly_factors = Vector{Poly{T}}()
 
     for k=1:length(roots)
         r = roots[k]

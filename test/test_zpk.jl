@@ -36,7 +36,7 @@ z = zpk("z", 0.005)
 @test zpk([-1.0], [], 1.0) == zpk([-1.0], Float64[], 1.0)
 @test zpk([], [-1.0], 1.0) == zpk(Float64[], [-1.0], 1.0)
 @test zpk([], [], 1.0) == zpk(Float64[], Float64[], 1.0)
-@test zpk([], [1.0+im,1.0-im], 1.0) == zpk(Complex128[], [1.0+im,1.0-im], 1.0)
+@test zpk([], [1.0+im,1.0-im], 1.0) == zpk(ComplexF64[], [1.0+im,1.0-im], 1.0)
 
 
 

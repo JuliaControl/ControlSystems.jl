@@ -62,7 +62,7 @@ G = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
 Gcl = G[:cl]
 T = G[:T]
 S = G[:S]
-sigmaplot([S,T],logspace(-3,3,1000))
+sigmaplot([S,T],exp10.(range(-3, stop=3, length=1000)))
 stepplot(Gcl)
 ```
 
