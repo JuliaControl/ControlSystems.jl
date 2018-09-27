@@ -50,6 +50,8 @@ It is also possible to access all fileds using the `G[:symbol]` syntax, the fiel
 # Example
 
 ```julia
+eye(n) = Matrix{Float64}(I,n,n) # For convinience
+
 qQ = 1
 qR = 1
 Q1 = 10eye(4)
@@ -87,10 +89,10 @@ function LQG(A,B,C,D,Q1::AbstractMatrix,Q2::AbstractMatrix,R1::AbstractMatrix,R2
 end # (1) Dispatches to final
 
 function LQG(A,B,C,D,Q1::AbstractVector,Q2::AbstractVector,R1::AbstractVector,R2::AbstractVector; qQ=0, qR=0, integrator=false)
-    Q1 = diagm(Q1)
-    Q2 = diagm(Q2)
-    R1 = diagm(R1)
-    R2 = diagm(R2)
+    Q1 = diagm(0 => Q1)
+    Q2 = diagm(0 => Q2)
+    R1 = diagm(0 => R1)
+    R2 = diagm(0 => R2)
     integrator ? _LQGi(A,B,C,D,Q1,Q2,R1,R2, qQ, qR) : _LQG(A,B,C,D,Q1,Q2,R1,R2, qQ, qR)
 end # (2) Dispatches to final
 
@@ -131,7 +133,7 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     De = D
 
     L = lqr(A, B, Q1+qQ*C'C, Q2)
-    Le = [L eye(m)]
+    Le = [L I]
     K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
 
     # Controller system
@@ -193,11 +195,11 @@ function Base.getindex(G::LQG, s)
         Bcl = Bcl/(P.C*inv(P.B*L[:,1:n]-P.A)*P.B) # B*lᵣ # Always normalized with nominal plant static gain
         return syscl = ss(Acl,Bcl,Ccl,0)
     elseif s ∈ [:Sin, :S] # Sensitivity function
-        return feedback(ss(eye(m)),PC)
+        return feedback(ss(Matrix{numeric_type(PC)}(I, m, m)),PC)
     elseif s ∈ [:Tin, :T] # Complementary sensitivity function
         return feedback(PC)
     elseif s == :Sout # Sensitivity function, output
-        return feedback(ss(eye(m)),sysc*P)
+        return feedback(ss(Matrix{numeric_type(sys_c)}(I, m, m)),sysc*P)
     elseif s == :Tout # Complementary sensitivity function, output
         return feedback(sysc*P)
     elseif s == :PS # Load disturbance to output
@@ -207,9 +209,9 @@ function Base.getindex(G::LQG, s)
     elseif s ∈ [:lt, :looptransfer, :loopgain]
         return PC
     elseif s ∈ [:rd, :returndifference]
-        return  ss(eye(p)) + PC
+        return  ss(Matrix{numeric_type(PC)}(I, p, p)) + PC
     elseif s ∈ [:sr, :stabilityrobustness]
-        return  ss(eye(p)) + inv(PC)
+        return  ss(Matrix{numeric_type(PC)}(I, p, p)) + inv(PC)
     end
     error("The symbol $s does not have a function associated with it.")
 end

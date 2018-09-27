@@ -14,7 +14,7 @@ Set Ts=-1 for a discrete-time model with unspecified sampling period.
 function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)
     # Check the kwargs for metadata
     nu = size(B, 2)
-    ny, nx = size(C, 1, 2)
+    ny, nx = size(C, 1), size(C, 2)
     return StateSpace(A, B, C, D, Ts)
 end
 
@@ -34,7 +34,7 @@ end
 
 # Function for creation of static gain
 function ss(D::Array{T}, Ts::Real=0) where {T<:Number}
-    ny, nu = size(D, 1, 2)
+    ny, nu = size(D, 1), size(D, 2)
     A = fill(zero(T), 0, 0)
     B = fill(zero(T), 0, nu)
     C = fill(zero(T), ny, 0)

@@ -16,12 +16,13 @@ See also `LQG`
 
 Usage example:
 ```julia
+using LinearAlgebra # For identity matrix I
 A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0)
-Q = eye(2)
-R = eye(1)
+Q = I
+R = I
 L = lqr(sys,Q,R)
 
 u(t,x) = -L*x # Form control law,
@@ -76,13 +77,14 @@ See also `lqg`
 
 Usage example:
 ```julia
+using LinearAlgebra # For identity matrix I
 h = 0.1
 A = [1 h; 0 1]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0, h)
-Q = eye(2)
-R = eye(1)
+Q = I
+R = I
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(t,x) = -L*x # Form control law,
@@ -133,11 +135,11 @@ function acker(A,B,P)
     n = length(P)
     #Calculate characteristic polynomial
     poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
-    q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
+    q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
         q += A^(n-i)*poly[i+1]
     end
-    S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
+    S = Array{promote_type(eltype(A),eltype(B),Float64),2}(undef, n,n)
     for i = 0:(n-1)
         S[:,i+1] = A^i*B
     end
@@ -190,7 +192,7 @@ If no second system is given, negative identity feedback is assumed
 """
 function feedback(sys::StateSpace)
     sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(eye(sys.ny)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,ny,ny)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)

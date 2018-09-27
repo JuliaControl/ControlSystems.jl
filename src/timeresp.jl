@@ -18,8 +18,8 @@ function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
     if nu == 1
         y, tout, x, _ = lsim(sys, u, t, x0=x0, method=method)
     else
-        x = Array{Float64}(lt, nx, nu)
-        y = Array{Float64}(lt, ny, nu)
+        x = Array{Float64}(undef, lt, nx, nu)
+        y = Array{Float64}(undef, lt, ny, nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0, method=method)
         end
@@ -57,8 +57,8 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     if nu == 1 # Why two cases # QUESTION: Not type stable?
         y, t, x,_ = lsim(sys, u, t, x0=x0s[:], method=method)
     else
-        x = Array{T}(lt, nx, nu)
-        y = Array{T}(lt, ny, nu)
+        x = Array{T}(undef, lt, nx, nu)
+        y = Array{T}(undef, lt, ny, nu)
         for i=1:nu
             y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0s[:,i], method=method)
         end
@@ -87,12 +87,13 @@ To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a s
 
 Usage example:
 ```julia
+using LinearAlgebra # For identity matrix I
 A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0)
-Q = eye(2)
-R = eye(1)
+Q = I
+R = I
 L = lqr(sys,Q,R)
 
 u(x,t) = -L*x # Form control law,
@@ -126,10 +127,10 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         end
     else
         dsys, x0map = c2d(sys, dt, :foh)
-        x0 = x0map*[x0; u[1:1,:].']
+        x0 = x0map*[x0; transpose(u[1:1,:])]
     end
     x = ltitr(dsys.A, dsys.B, Float64.(u), Float64.(x0))
-    y = (sys.C*(x.') + sys.D*(u.')).'
+    y = transpose(sys.C*transpose(x) + sys.D*transpose(u))
     return y, t, x
 end
 
@@ -162,12 +163,12 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         s = Simulator(sys, u)
         sol = solve(s, T.(x0), (t[1],t[end]), Tsit5())
         x = sol(t)'
-        uout = Array{eltype(x)}(length(t), ninputs(sys))
+        uout = Array{eltype(x)}(undef, length(t), ninputs(sys))
         for (i,ti) in enumerate(t)
             uout[i,:] = u(x[i,:],ti)'
         end
     end
-    y = (sys.C*(x.') + sys.D*(uout.')).'
+    y = transpose(sys.C*transpose(x) + sys.D*transpose(uout))
     return y, t, x, uout
 end
 
@@ -187,27 +188,27 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
 function ltitr(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
         x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
     n = size(u, 1)
-    x = Array{T}(size(A, 1), n)
+    x = Array{T}(undef, size(A, 1), n)
     for i=1:n
         x[:,i] = x0
         x0 = A * x0 + B * u[i,:]
     end
-    return x.'
+    return transpose(x)
 end
 
 
 function ltitr(A::Matrix{T}, B::Matrix{T}, u::Function, t,
     x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
     iters = length(t)
-    x = Array{T}(size(A, 1), iters)
-    uout = Array{T}(size(B, 2), iters)
+    x = Array{T}(undef, size(A, 1), iters)
+    uout = Array{T}(undef, size(B, 2), iters)
 
     for i=1:iters
         x[:,i] = x0
         uout[:,i] = u(x0,t[i])
         x0 = A * x0 + B * uout[:,i]
     end
-    return x.', uout.'
+    return transpose(x), transpose(uout)
 end
 
 # HELPERS:

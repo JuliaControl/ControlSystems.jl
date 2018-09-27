@@ -4,3 +4,6 @@ Polynomials
 LaTeXStrings
 OrdinaryDiffEq
 IterTools
+LinearAlgebra
+Printf
+Colors

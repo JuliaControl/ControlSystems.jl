@@ -17,7 +17,7 @@ function care(A, B, Q, R)
     Z = [A  -G;
         -Q  -A']
 
-    S = schurfact(Z)
+    S = schur(Z)
     S = ordschur(S, real(S.values).<0)
     U = S.Z
 
@@ -53,7 +53,7 @@ function dare(A, B, Q, R)
     Z = [A + G*Ait*Q   -G*Ait;
          -Ait*Q        Ait]
 
-    S = schurfact(Z)
+    S = schur(Z)
     S = ordschur(S, abs.(S.values).<=1)
     U = S.Z
 
@@ -68,9 +68,9 @@ end
 Compute the solution "X" to the discrete Lyapunov equation
 "AXA' - X + Q = 0".
 """
-function dlyap(A, Q)
+function dlyap(A::AbstractMatrix{T}, Q) where T
     lhs = kron(A, conj(A))
-    lhs = eye(size(lhs, 1)) - lhs
+    lhs = Matrix{T}(I, size(lhs, 1), size(lhs, 1)) - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
     return reshape(x, size(Q))
 end
@@ -148,10 +148,10 @@ white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac de
 
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
-(D*W*D.' .!= 0) for contunuous systems."""
-function covar(sys::StateSpace, W::StridedMatrix)
+(D*W*D' .!= 0) for contunuous systems."""
+function covar(sys::StateSpace, W)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
-    if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
+    if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
     if !isstable(sys)
@@ -179,7 +179,7 @@ function covar(sys::StateSpace, W::StridedMatrix)
     return P
 end
 
-covar(sys::TransferFunction, W::StridedMatrix) = covar(ss(sys), W)
+covar(sys::TransferFunction, W) = covar(ss(sys), W)
 
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
@@ -206,9 +206,9 @@ For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """
-function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
+function norm(sys::StateSpace, p::Real=2; tol=1e-6)
     if p == 2
-        return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
+        return sqrt(trace(covar(sys, I)))
     elseif p == Inf
         if sys.Ts == 0
             return normLinf_twoSteps_ct(sys,tol)[1]
@@ -220,8 +220,8 @@ function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
     end
 end
 
-function Base.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
-    return Base.norm(ss(sys), p, tol=tol)
+function norm(sys::TransferFunction, p::Real=2; tol=1e-6)
+    return norm(ss(sys), p, tol=tol)
 end
 
 """
@@ -294,8 +294,8 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
         iter = 1;
         while iter <= maxIters
             res = (1+2*T(tol))*lb
-            R = sys.D'*sys.D - res^2*eye(T, sys.nu)
-            S = sys.D*sys.D' - res^2*eye(T, sys.ny)
+            R = sys.D'*sys.D - res^2*I
+            S = sys.D*sys.D' - res^2*I
             M = sys.A-sys.B*(R\sys.D')*sys.C
             H = [         M              -res*sys.B*(R\sys.B') ;
                    res*sys.C'*(S\sys.C)            -M'            ]
@@ -356,12 +356,12 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
         iter = 1;
         while iter <= maxIters
             res = (1+2*T(tol))*lb
-            R = res^2*eye(T, sys.nu) - sys.D'*sys.D
+            R = res^2*I - sys.D'*sys.D
             RinvDt = R\sys.D'
             L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
-                  zeros(T, sys.nx,sys.nx)      eye(T, sys.nx)]
-            M = [ eye(T, sys.nx)                              zeros(T, sys.nx,sys.nx);
-                  sys.C'*(eye(T, sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
+                  zeros(T, sys.nx,sys.nx)      I]
+            M = [ I                                 zeros(T, sys.nx,sys.nx);
+                  sys.C'*(I+sys.D*RinvDt)*sys.C     L[1:sys.nx,1:sys.nx]']
             # +0im to make type stable
             zs = eigvals(L,M) .+ 0im # generalized eigenvalues
             # are there eigenvalues on the unit circle?
@@ -391,16 +391,16 @@ Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale, and not permute `A`."""
 function balance(A, perm::Bool=true)
-    n = Base.LinAlg.checksquare(A)
+    n = LinearAlgebra.checksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
     ilo, ihi, scaling = LAPACK.gebal!(job, B)
 
-    S = diagm(scaling)
+    S = diagm(0 => scaling)
     for j = 1:(ilo-1)   S[j,j] = 1 end
     for j = (ihi+1):n   S[j,j] = 1 end
 
-    P = eye(Int, n)
+    P = Matrix{Int}(i,n,n)
     if perm
         if ilo > 1
             for j = (ilo-1):-1:1 cswap!(j, round(Int, scaling[j]), P) end
@@ -435,7 +435,7 @@ Q = gram(sys, :o)
 Q1 = chol(Q)
 U,Σ,V = svd(Q1*P*Q1')
 Σ .= sqrt.(Σ)
-Σ1 = diagm(sqrt.(Σ))
+Σ1 = diagm(0 => sqrt.(Σ))
 T = Σ1\(U'Q1)
 
 Pz = T*P*T'
@@ -454,7 +454,7 @@ if vecnorm(Pz-Qz) > sqrt(eps())
     display(Σ)
 end
 
-sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(Σ)
+sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(0 => Σ)
 end
 
 
@@ -481,5 +481,5 @@ function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = t
         D = D/(C*inv(-A)*B)
     end
 
-    return ss(A,B,C,D), diagm(S)
+    return ss(A,B,C,D), diagm(0 => S)
 end

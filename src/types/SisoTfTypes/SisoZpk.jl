@@ -60,8 +60,8 @@ denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
 numpoly(f::SisoZpk) = f.k*prod(roots2poly_factors(f.z))
 denpoly(f::SisoZpk) = prod(roots2poly_factors(f.p))
 
-num(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
-den(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
+numvec(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
+denvec(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
 
 isproper(f::SisoZpk) = (length(f.z) <= length(f.p))
 

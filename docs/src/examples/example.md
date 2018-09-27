@@ -7,13 +7,14 @@ end
 
 # LQR design
 ```julia
+using LinearAlgebra # For identity matrix I
 h       = 0.1
 A       = [1 h; 0 1]
 B       = [0;1]
 C       = [1 0]
 sys     = ss(A,B,C,0, h)
-Q       = eye(2)
-R       = eye(1)
+Q       = I
+R       = I
 L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(t,x)  = -L*x + 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
@@ -28,13 +29,14 @@ plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 
 # LQR design
 ```julia
+using LinearAlgebra # For identity matrix I
 h       = 0.1
 A       = [1 h; 0 1]
 B       = [0;1]
 C       = [1 0]
 sys     = ss(A,B,C,0, h)
-Q       = eye(2)
-R       = eye(1)
+Q       = I
+R       = I
 L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(t,x)  = -L*x + 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5

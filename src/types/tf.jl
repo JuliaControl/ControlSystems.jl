@@ -21,8 +21,8 @@ See also: `zpk`, `ss`
 """
 function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}, Ts::Real=0.0) where {T1<:Number, T2<:Number}
     # Validate input and output dimensions match
-    ny, nu = size(num, 1, 2)
-    if (ny, nu) != size(den, 1, 2)
+    ny, nu = size(num, 1), size(num, 2)
+    if (ny, nu) != (size(den, 1), size(den, 2))
         error("num and den dimensions must match")
     end
 
@@ -43,7 +43,7 @@ tf(num::Number, den::Vector, Ts::Real=0.0) = tf([num], den, Ts)
 
 # Cases for just static gain
 function tf(D::AbstractArray{T}, Ts::Real=0.0) where {T<:Number}
-    ny, nu = size(D, 1, 2)
+    ny, nu = size(D, 1), size(D, 2)
 
     matrix = Matrix{SisoRational{T}}(ny, nu)
     for i in eachindex(D)

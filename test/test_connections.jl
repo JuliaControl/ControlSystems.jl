@@ -125,17 +125,17 @@ Czpk_222 = [Czpk_221; Czpk_221]
 Czpk_022 = [zpk([],[],4) 0; 0 zpk([],[],4)]
 
 #Make sure that we get a vector
-arr = Array{typeof(zpk(tf(1))),1}(2)
+arr = Array{typeof(zpk(tf(1))),1}(undef, 2)
 arr[1] = zpk(tf(1)); arr[2] = zpk(2);
 @test [tf(1), zpk(2)] == arr
-arr2 = Array{typeof(tf(1, 0.1)),1}(2)
+arr2 = Array{typeof(tf(1, 0.1)),1}(undef, 2)
 arr2[1] = tf(1, 0.1); arr2[2] = tf(2, 0.1);
 @test [tf(1, 0.1), tf(2, 0.1)] == arr2
-arr3 = Array{typeof(ss(0.)),1}(3)
+arr3 = Array{typeof(ss(0.)),1}(undef, 3)
 arr3[1] = ss(0.); arr3[2] = ss(1.); arr3[3] = ss(2.)
 @test [0., zpk(1), ss(2.)] == arr3
 
-arr4 = Array{typeof(ss(0)),1}(3)
+arr4 = Array{typeof(ss(0)),1}(undef, 3)
 arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 @test [0., zpk(1), ss(2)] == arr4
 

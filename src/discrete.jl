@@ -17,16 +17,16 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method == :zoh
-        M = expm([A*Ts  B*Ts;
+        M = exp([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [eye(nx) zeros(nx, nu)]
+        x0map = [I zeros(nx, nu)]
     elseif method == :foh
-        M = expm([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) eye(nu);
+        M = exp([A*Ts B*Ts zeros(nx, nu);
+            zeros(nu, nx + nu) I;
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -34,7 +34,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [eye(nx) -M2]
+        x0map = [I -M2]
     elseif method == :tustin || method == :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else
@@ -230,9 +230,9 @@ function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control
         dsys, x0map = c2d(sys, dt, :foh)
     end
     n = size(t, 1)
-    x = Array{T}(size(sys.A, 1), n)
-    u = Array{T}(n)
-    y = Array{T}(n)
+    x = Array{T}(undef, size(sys.A, 1), n)
+    u = Array{T}(undef, n)
+    y = Array{T}(undef, n)
     for i=1:n
         x[:,i] = x0
         y[i] = (sys.C*x0 + sys.D*u[i])[1]

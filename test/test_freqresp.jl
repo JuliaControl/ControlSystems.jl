@@ -88,14 +88,14 @@ z = 0.5(1+im)
 sys = [tf([1,-1], [1,1,1]) 0; 0 tf([1],[1,1])]
 f(s) = [(s-1)./(s.^2+s+1) 0; 0 1./(1+s)]
 ws = logspace(-2,2,50)
-resp = Array{Complex128}(50,2,2)
+resp = Array{Complex128}(undef, 50,2,2)
 for (i,w) in enumerate(ws)
     resp[i,:,:] = f(im*w)
 end
 
 @test bode(sys, ws)[1:2] == (abs.(resp), rad2deg.(angle.(resp)))
 @test nyquist(sys, ws)[1:2] == (real(resp), imag(resp))
-sigs = Array{Float64}(50,2)
+sigs = Array{Float64}(undef, 50,2)
 for i in eachindex(ws)
     sigs[i,:] =  svdvals(resp[i,:,:])
 end

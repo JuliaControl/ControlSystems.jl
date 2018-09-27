@@ -67,9 +67,8 @@ function print_compact(io::Base.IO, f::SisoRational, var)
     println(io, "($numstr)/($denstr)")
 end
 
-
-Base.num(f::SisoRational) = reverse(coeffs(f.num))
-Base.den(f::SisoRational) = reverse(coeffs(f.den))
+numvec(f::SisoRational) = reverse(coeffs(f.num))
+denvec(f::SisoRational) = reverse(coeffs(f.den))
 
 denpoly(f::SisoRational) = f.den
 numpoly(f::SisoRational) = f.num

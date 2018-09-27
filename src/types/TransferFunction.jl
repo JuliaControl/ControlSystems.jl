@@ -1,4 +1,4 @@
-mutable struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
     Ts::Float64
     nu::Int
@@ -61,6 +61,8 @@ function Base.copy(G::TransferFunction)
     return TransferFunction(copy(G.matrix), G.Ts)
 end
 
+numvec(G::TransferFunction) = map(numvec, G.matrix)
+denvec(G::TransferFunction) = map(denvec, G.matrix)
 
 numpoly(G::TransferFunction) = map(numpoly, G.matrix)
 denpoly(G::TransferFunction) = map(denpoly, G.matrix)
@@ -80,7 +82,7 @@ end
 """`isproper(tf)`
 
 Returns `true` if the `TransferFunction` is proper. This means that order(den)
-\>= order(num))"""
+>= order(num))"""
 function isproper(G::TransferFunction)
     return all(isproper(f) for f in G.matrix)
 end
@@ -127,11 +129,11 @@ function +(G1::TransferFunction, G2::TransferFunction)
     return TransferFunction(matrix, G1.Ts)
 end
 
-+(G::TransferFunction, n::Number) = TransferFunction(G.matrix + n, G.Ts)
++(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.Ts)
 +(n::Number, G::TransferFunction) = +(G, n)
 
 ## SUBTRACTION ##
--(n::Number, G::TransferFunction) = TransferFunction(n - G.matrix, G.Ts)
+-(n::Number, G::TransferFunction) = TransferFunction(n .- G.matrix, G.Ts)
 -(G1::TransferFunction, G2::TransferFunction) = +(G1, -G2)
 -(G::TransferFunction, n::Number) = +(G, -n)
 

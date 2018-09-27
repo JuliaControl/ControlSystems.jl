@@ -15,7 +15,7 @@ function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
     end
     Tsys = numeric_type(sys)
     T = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Complex64, S)
-    sys_fr = Array{T}(length(w_vec), noutputs(sys), ninputs(sys))
+    sys_fr = Array{T}(undef, length(w_vec), noutputs(sys), ninputs(sys))
 
     if isa(sys, StateSpace)
         sys = _preprocess_for_freqresp(sys)
@@ -76,7 +76,7 @@ end
 
 function evalfr(G::TransferFunction{<:SisoTf{T0}}, s::Number) where {T0}
     T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
-    fr = Array{T}(size(G))
+    fr = Array{T}(undef, size(G))
     for j = 1:ninputs(G)
         for i = 1:noutputs(G)
             fr[i, j] = evalfr(G.matrix[i, j], s)
@@ -110,7 +110,7 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
-    out = Array{eltype(eltype(vals)),3}(length(z_or_omegas), size(sys)...)
+    out = Array{eltype(eltype(vals)),3}(undef, length(z_or_omegas), size(sys)...)
     for i in 1:length(vals)
         out[i,:,:] .= vals[i]
     end
@@ -150,7 +150,7 @@ frequencies `w`
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     nw, ny, nu = size(resp)
-    sv = Array{Float64}(nw, min(ny, nu))
+    sv = Array{Float64}(undef, nw, min(ny, nu))
     for i=1:nw
         sv[i, :] = svdvals(resp[i, :, :])
     end
@@ -162,7 +162,7 @@ function _default_freq_vector(systems::Vector{T}, plot::Symbol) where T<:LTISyst
     min_pt_per_dec = 60
     min_pt_total = 200
     nsys = length(systems)
-    bounds = Array{Float64}(2, nsys)
+    bounds = Array{Float64}(undef, 2, nsys)
     for i=1:nsys
         # TODO : For now we ignore the feature information. In the future,
         # these can be used to improve the frequency vector near features.

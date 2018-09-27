@@ -72,7 +72,7 @@ Display a report of the poles, damping ratio, natural frequency, and time
 constant of the system `sys`"""
 function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
-    t_const = 1./(Wn.*zeta)
+    t_const = 1 ./ (Wn.*zeta)
     header =
     ("|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
     "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
@@ -80,7 +80,7 @@ function dampreport(io::IO, sys::LTISystem)
     println(io, header)
     for i=eachindex(ps)
         p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-        @printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
+        Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
     end
 end
 dampreport(sys::LTISystem) = dampreport(STDOUT, sys)
@@ -131,7 +131,7 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
         nf = size(A, 1)
         m = size(D, 2)
         Af = ([A B] * W)[1:nf, 1:nf]
-        Bf = ([eye(nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+        Bf = ([I zeros(nf, m)] * W)[1:nf, 1:nf]
         zs = eigvals(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
@@ -180,10 +180,10 @@ function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(T, n, m); zeros(T, m, n) eye(T, m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) I]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) eye(T, sigma)]
+            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) I]
         else
             M = [A B]
             Vs = V'
@@ -223,15 +223,19 @@ If `full` return also `fullPhase`
 """
 function margin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
     ny, nu = size(sys)
-    vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
+
     if allMargins
-        for val in vals
-            eval(:($val = Array{Array{eltype(sys),1}}($ny,$nu)))
-        end
+        wgm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        gm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        wpm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        pm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        fullPhase   = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
     else
-        for val in vals
-            eval(:($val = Array{eltype(sys),2}($ny,$nu)))
-        end
+        wgm         = Array{numeric_type(sys),2}(undef, ny, nu)
+        gm          = Array{numeric_type(sys),2}(undef, ny, nu)
+        wpm         = Array{numeric_type(sys),2}(undef, ny, nu)
+        pm          = Array{numeric_type(sys),2}(undef, ny, nu)
+        fullPhase   = Array{numeric_type(sys),2}(undef, ny, nu)
     end
     for j=1:nu
         for i=1:ny
@@ -259,7 +263,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
     for i = eachindex(wgm)
-        gm[i] = 1./abs(freqresp(sys,[wgm[i]])[1][1])
+        gm[i] = 1 ./ abs(freqresp(sys,[wgm[i]])[1][1])
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)

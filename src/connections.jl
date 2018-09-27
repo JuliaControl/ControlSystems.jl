@@ -25,10 +25,10 @@ function append(systems::StateSpace...)
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
-    A = blkdiag([s.A for s in systems]...)
-    B = blkdiag([s.B for s in systems]...)
-    C = blkdiag([s.C for s in systems]...)
-    D = blkdiag([s.D for s in systems]...)
+    A = blockdiag([s.A for s in systems]...)
+    B = blockdiag([s.B for s in systems]...)
+    C = blockdiag([s.C for s in systems]...)
+    D = blockdiag([s.D for s in systems]...)
     return StateSpace(A, B, C, D, Ts)
 end
 
@@ -37,7 +37,7 @@ function append(systems::TransferFunction...)
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
-    mat = blkdiag([s.matrix for s in systems]...)
+    mat = blockdiag([s.matrix for s in systems]...)
     return TransferFunction(mat, Ts)
 end
 
@@ -53,9 +53,9 @@ function Base.vcat(systems::StateSpace...)
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
-    A = blkdiag([s.A for s in systems]...)
+    A = blockdiag([s.A for s in systems]...)
     B = vcat([s.B for s in systems]...)
-    C = blkdiag([s.C for s in systems]...)
+    C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
 
     return StateSpace(A, B, C, D, Ts)
@@ -87,8 +87,8 @@ function Base.hcat(systems::StateSpace...)
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
     end
-    A = blkdiag([s.A for s in systems]...)
-    B = blkdiag([s.B for s in systems]...)
+    A = blockdiag([s.A for s in systems]...)
+    B = blockdiag([s.B for s in systems]...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
 
@@ -156,16 +156,12 @@ end
 #     end
 # end
 
-# TODO: could use cat([1,2], mats...) instead
-# Empty definition to get rid of warning
-Base.blkdiag() = []
-function Base.blkdiag(mats::Matrix...)
+
+blockdiag(mats::Matrix...) = blockdiag(promote(mats...)...)
+
+function blockdiag(mats::Matrix{T}...) where T
     rows = Int[size(m, 1) for m in mats]
     cols = Int[size(m, 2) for m in mats]
-    T = eltype(mats[1])
-    for ind=1:length(mats)
-        T = promote_type(T, eltype(mats[ind]))
-    end
     res = zeros(T, sum(rows), sum(cols))
     m = 1
     n = 1

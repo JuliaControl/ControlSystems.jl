@@ -76,15 +76,15 @@ function Base.convert(::Type{StateSpace{T,MT}}, G::TransferFunction) where {T<:N
     # could be much cleaner.
     #T = Base.promote_op(/, T0, T0)
 
-    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(0, 0)
+    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(undef, 0, 0)
     for i=1:ninputs(G)
         for j=1:noutputs(G)
             a, b, c, d = siso_tf_to_ss(T, G.matrix[j, i])
             if j > 1
                 # vcat
-                Ac = blkdiag(Ac, a)
+                Ac = blockdiag(Ac, a)
                 Bc = vcat(Bc, b)
-                Cc = blkdiag(Cc, c)
+                Cc = blockdiag(Cc, c)
                 Dc = vcat(Dc, d)
             else
                 Ac, Bc, Cc, Dc = a, b, c, d
@@ -92,8 +92,8 @@ function Base.convert(::Type{StateSpace{T,MT}}, G::TransferFunction) where {T<:N
         end
         if i > 1
             # hcat
-            A = blkdiag(A, Ac)
-            B = blkdiag(B, Bc)
+            A = blockdiag(A, Ac)
+            B = blockdiag(B, Bc)
             C = hcat(C, Cc)
             D = hcat(D, Dc)
         else
@@ -109,7 +109,7 @@ siso_tf_to_ss(T::Type, f::SisoTf) = siso_tf_to_ss(T, convert(SisoRational, f))
 # Conversion to statespace on controllable canonical form
 function siso_tf_to_ss(T::Type, f::SisoRational)
 
-    num0, den0 = Base.num(f), Base.den(f)
+    num0, den0 = numvec(f), denvec(f)
     # Normalize the numerator and denominator,
     # To allow realization of transfer functions that are proper, but now strictly proper
     num = num0 / den0[1]
@@ -125,7 +125,7 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
         B = fill(zero(T), 0, 1)
         C = fill(zero(T), 1, 0)
     else
-        A = diagm(fill(one(T), N-1), 1)
+        A = diagm(0 => fill(one(T), N-1), 1)
         A[end, :] .= -reverse(den)[1:end-1]
 
         B = fill(zero(T), N, 1)
@@ -212,7 +212,7 @@ function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::Abstract
     pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
     T = zeros(R, nx, nx)
-    T[pvec, :] = Sio * diagm(R(1)./Sx)
+    T[pvec, :] = Sio * diagm(0 => R(1)./Sx)
     return T
 end
 

@@ -43,7 +43,7 @@ function getLogTicks(x)
     minor_text_limit  = 8
     min               = ceil(log10(minimum(x)))
     max               = floor(log10(maximum(x)))
-    major             = 10.^collect(min:max)
+    major             = 10 .^ collect(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
@@ -117,7 +117,7 @@ lsimplot
                 yguide  --> ytext
                 title   --> "System Response"
                 subplot --> s2i(1,i)
-                label     --> "\$G_\{$(si)\}\$"
+                label     --> "\$G_\\{$(si)\\}\$"
                 linestyle --> styledict[:l]
                 linecolor --> styledict[:c]
                 t,  y[:, i]
@@ -182,7 +182,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                         xlabel --> "Time (s)"
                         ylabel --> ytext
                         subplot --> s2i(i,j)
-                        label --> "\$G_\{$(si)\}\$"
+                        label --> "\$G_\\{$(si)\\}\$"
                         linestyle --> styledict[:l]
                         linecolor --> styledict[:c]
                         t, ydata
@@ -252,7 +252,7 @@ bodeplot
                     yguide    --> "Magnitude $_PlotScaleStr"
                     subplot --> s2i((plotphase ? (2i-1) : i),j)
                     title     --> "Bode plot from: u($j)"
-                    label     --> "\$G_\{$(si)\}\$"
+                    label     --> "\$G_\\{$(si)\\}\$"
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
                     w, magdata
@@ -266,7 +266,7 @@ bodeplot
                     yguide    --> "Phase (deg)"
                     subplot --> s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
-                    label     --> "\$G_\{$(si)\}\$"
+                    label     --> "\$G_\\{$(si)\\}\$"
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
                     w, phasedata
@@ -354,7 +354,7 @@ nyquistplot
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
-                    label --> "\$G_\{$(si)\}\$"
+                    label --> "\$G_\\{$(si)\\}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
                     linecolor --> styledict[:c]
@@ -444,14 +444,14 @@ nicholsplot
     CentreM(m)      = @. m^2/(1-m^2)
     Ny(mdb,t)       = @. CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
     Niϕ(mdb,t)      = @. rad2deg((angle(Ny(mdb,t))))
-    Ni_Ga(mdb,t)    = @. 20.*log10(abs(Ny(mdb,t)))
+    Ni_Ga(mdb,t)    = @. 20 .* log10(abs(Ny(mdb,t)))
 
     # Phase circle functions
-    Radϕ(ϕ)         = @. 1./(2.*abs(sind(ϕ)))
+    Radϕ(ϕ)         = @. 1 ./ (2 .* abs(sind(ϕ)))
     Nyℜ(ϕ,t)        = @. -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
-    Nyℑ(ϕ,t)        = @. 1./(2.*tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
+    Nyℑ(ϕ,t)        = @. 1 ./ (2 .* tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
     Niϕϕ(ϕ,t)       = @. rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*(round(ϕ/360,RoundToZero)+(0t<0))
-    Ni_Gaϕ(ϕ,t)     = @. 20.*log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
+    Ni_Gaϕ(ϕ,t)     = @. 20 .* log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
     Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
@@ -614,7 +614,7 @@ function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:L
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
     s2i(i,j) = sub2ind((ny,nu),j,i)
-    titles = Array{AbstractString}(nu,ny,2,2)
+    titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] = "Gm: "
     titles[:,:,2,1] = "Pm: "
     titles[:,:,1,2] = "Wgm: "
@@ -624,10 +624,10 @@ function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:L
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
                 if _PlotScale == "dB"
-                    mag = 20*log10.(1./gm)
+                    mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0
                 else
-                    mag = 1./gm
+                    mag = 1 ./ gm
                     oneLine = 1
                 end
                 for k=1:length(wgm)
@@ -636,16 +636,16 @@ function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:L
                 end
                 #Plot gain line at 1
                 Plots.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
-                titles[j,i,1,1] *= "["*join([@sprintf("%2.2f",v) for v in gm],", ")*"] "
-                titles[j,i,1,2] *= "["*join([@sprintf("%2.2f",v) for v in wgm],", ")*"] "
+                titles[j,i,1,1] *= "["*join([Printf.@sprintf("%2.2f",v) for v in gm],", ")*"] "
+                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 for k=1:length(wpm)
                     #Plot the phase margins
                     Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab="", subplot=s2i(2i,j); getStyleSys(si,length(systems))...)
                     #Plot the line at 360*k
                     Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
                 end
-                titles[j,i,2,1] *=  "["*join([@sprintf("%2.2f",v) for v in pm],", ")*"] "
-                titles[j,i,2,2] *=  "["*join([@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
+                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
             end
         end
     end

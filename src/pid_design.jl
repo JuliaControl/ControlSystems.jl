@@ -60,8 +60,8 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     Cs = LTISystem[]
     PCs = LTISystem[]
     Ts  = LTISystem[]
-    labels = Array{String,2}(1,length(kps))
-    colors =  Array{Colors.RGB{Float64},2}(1, length(kps))
+    labels = Array{String,2}(undef, 1,length(kps))
+    colors =  Array{Colors.RGB{Float64},2}(undef, 1, length(kps))
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
@@ -235,8 +235,8 @@ process with transfer function P(s)
 The PID controller is assumed to be on the form kp +ki/s +kd s
 
 The curve is found by analyzing
-P(s)\*C(s) = -1 ⟹\n
-|PC| = |P| |C| = 1\n
+P(s)*C(s) = -1 ⟹
+|PC| = |P| |C| = 1
 arg(P) + arg(C) = -π
 
 

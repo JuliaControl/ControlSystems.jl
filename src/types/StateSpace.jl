@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
+struct StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
     A::MT
     B::MT
     C::MT
@@ -169,20 +169,11 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
-# TODO : this is a very hacky way of handling StateSpace printing.
-# function _string_mat_with_headers(X::Matrix, cols::Vector{String},
-#                                 rows::Vector{String})
-#     mat = [[""] reshape(cols,1,length(cols));
-#            rows X]
-#     p = (io, m) -> Base.showarray(io, m, false, header=false)
-#     return replace(sprint(p, mat), "\"", " ")
-# end
-
 function _string_mat_with_headers(X::Matrix)
     #mat = [[""] reshape(cols,1,length(cols));
     #       rows X]
-    p = (io, m) -> Base.showarray(io, m, false, header=false)
-    return replace(sprint(p, X), "\"", " ")
+    p = (io, m) -> Base.print_matrix(io, m)
+    return replace(sprint(p, X), "\"" => " ")
 end
 
 Base.print(io::IO, sys::StateSpace) = show(io, sys)
