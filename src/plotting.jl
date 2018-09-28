@@ -444,14 +444,14 @@ nicholsplot
     CentreM(m)      = @. m^2/(1-m^2)
     Ny(mdb,t)       = @. CentreM(10^(mdb/20))+RadM(10^(mdb/20)).*(cosd(t)+im.*sind(t))
     Niϕ(mdb,t)      = @. rad2deg((angle(Ny(mdb,t))))
-    Ni_Ga(mdb,t)    = @. 20 .* log10(abs(Ny(mdb,t)))
+    Ni_Ga(mdb,t)    = @. 20 * log10(abs(Ny(mdb,t)))
 
     # Phase circle functions
-    Radϕ(ϕ)         = @. 1 ./ (2 .* abs(sind(ϕ)))
-    Nyℜ(ϕ,t)        = @. -0.5+Radϕ(ϕ).*cosd(t+mod(ϕ,180)-90)
-    Nyℑ(ϕ,t)        = @. 1 ./ (2 .* tand(ϕ))+Radϕ(ϕ).*sind(t+mod(ϕ,180)-90)
+    Radϕ(ϕ)         = @. 1 / (2 * abs(sind(ϕ)))
+    Nyℜ(ϕ,t)        = @. -0.5+Radϕ(ϕ)*cosd(t+mod(ϕ,180)-90)
+    Nyℑ(ϕ,t)        = @. 1 / (2 .* tand(ϕ))+Radϕ(ϕ)*sind(t+mod(ϕ,180)-90)
     Niϕϕ(ϕ,t)       = @. rad2deg((angle(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t))))+360*(round(ϕ/360,RoundToZero)+(0t<0))
-    Ni_Gaϕ(ϕ,t)     = @. 20 .* log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
+    Ni_Gaϕ(ϕ,t)     = @. 20 * log10(abs(Nyℜ(ϕ,t)+im*Nyℑ(ϕ,t)))
     Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 

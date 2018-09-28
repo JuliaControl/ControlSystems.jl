@@ -14,7 +14,7 @@ function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
         s_vec = im*w_vec
     end
     Tsys = numeric_type(sys)
-    T = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Complex64, S)
+    T = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), ComplexF32, S)
     sys_fr = Array{T}(undef, length(w_vec), noutputs(sys), ninputs(sys))
 
     if isa(sys, StateSpace)

@@ -50,7 +50,7 @@ Base.convert(::Type{StateSpace{T, MT}}, b::Number) where {T, MT} = convert(State
 #
 
 function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
-    Gnew_matrix = Matrix{S}(size(G))
+    Gnew_matrix = Matrix{S}(undef, size(G))
     for i in eachindex(G.matrix)
         Gnew_matrix[i] = convert(S, G.matrix[i])
     end
@@ -222,7 +222,7 @@ balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,s
 convert(::Type{TransferFunction}, sys::StateSpace) = convert(TransferFunction{SisoRational}, sys)
 
 function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) where {T<:Number}
-    matrix = Matrix{SisoRational{T}}(size(sys))
+    matrix = Matrix{SisoRational{T}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
 
@@ -244,7 +244,7 @@ end
 
 
 function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where {T<:Number, TR <: Number}
-    matrix = Matrix{SisoZpk{T,TR}}(size(sys))
+    matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
 

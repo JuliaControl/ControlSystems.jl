@@ -400,7 +400,7 @@ function balance(A, perm::Bool=true)
     for j = 1:(ilo-1)   S[j,j] = 1 end
     for j = (ihi+1):n   S[j,j] = 1 end
 
-    P = Matrix{Int}(i,n,n)
+    P = Matrix{Int}(I,n,n)
     if perm
         if ilo > 1
             for j = (ilo-1):-1:1 cswap!(j, round(Int, scaling[j]), P) end

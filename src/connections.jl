@@ -111,11 +111,11 @@ end
 
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
-function Base.cat_t(::Type{Val{1}}, T::Type{<:LTISystem}, X...)
+function Base.cat_t(::Val{1}, T::Type{<:LTISystem}, X...)
         vcat(convert.(T, X)...)
 end
 
-function Base.cat_t(::Type{Val{2}}, T::Type{<:LTISystem}, X...)
+function Base.cat_t(::Val{2}, T::Type{<:LTISystem}, X...)
         hcat(convert.(T, X)...)
 end
 

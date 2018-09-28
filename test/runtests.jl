@@ -1,5 +1,5 @@
 using ControlSystems
-using Base.Test
+using Test, LinearAlgebra
 import Base.isapprox
 include("framework.jl")
 

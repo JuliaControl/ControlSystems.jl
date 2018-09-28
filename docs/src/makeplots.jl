@@ -12,7 +12,7 @@ A = [1 h; 0 1]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0, h)
-Q = Matrix{Float64}(I,2,2n)
+Q = Matrix{Float64}(I,2,2)
 R = Matrix{Float64}(I,1,1)
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 

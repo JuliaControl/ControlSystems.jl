@@ -27,7 +27,7 @@ function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<
     end
 
     T = promote_type(T1,T2)
-    matrix = Matrix{SisoRational{T}}(ny, nu)
+    matrix = Matrix{SisoRational{T}}(undef, ny, nu)
     for o=1:ny
         for i=1:nu
             matrix[o, i] = SisoRational{T}(Vector{T}(num[o, i]), Vector{T}(den[o, i]))
@@ -45,7 +45,7 @@ tf(num::Number, den::Vector, Ts::Real=0.0) = tf([num], den, Ts)
 function tf(D::AbstractArray{T}, Ts::Real=0.0) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
 
-    matrix = Matrix{SisoRational{T}}(ny, nu)
+    matrix = Matrix{SisoRational{T}}(undef, ny, nu)
     for i in eachindex(D)
         matrix[i] = SisoRational{T}([D[i]], [one(T)])
     end

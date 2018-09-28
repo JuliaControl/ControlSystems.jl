@@ -104,10 +104,10 @@ end
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
     P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
     Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
-    f          = (y,_,k) -> Complex128.(Polynomials.roots(k[1]*P+Q))
+    f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
-    poleout    = Vector{Vector{Complex128}}()
+    poleout    = Vector{Vector{ComplexF64}}()
     for i in integrator
        push!(poleout,integrator.k[1])
     end

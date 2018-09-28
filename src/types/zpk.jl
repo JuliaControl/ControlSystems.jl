@@ -29,7 +29,7 @@ function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}
     end
 
     TR = promote_type(T0,TZ,TP)
-    T = promote_type(T0, real(TR)) # Ensuring this avoids many problems, e.g., with SisoZpk{Int64,Complex128}
+    T = promote_type(T0, real(TR)) # Ensuring this avoids many problems, e.g., with SisoZpk{Int64,ComplexF64}
 
     matrix = Array{SisoZpk{T, TR}}(undef, size(z,1), size(z,2)) # TODO: make this nicer
     for o=1:size(z,1)
@@ -44,7 +44,7 @@ function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::Real=0.0) w
 end
 
 function zpk(gain::Matrix{T}, Ts::Real=0; kwargs...) where {T <: Number}
-    TR = promote_type(Complex128,T)
+    TR = promote_type(ComplexF64,T)
     ny, nu = size(gain)
     matrix = [SisoZpk{T, TR}(TR[],TR[], gain[o, i]) for o=1:ny, i=1:nu]
     return TransferFunction{SisoZpk{T,TR}}(matrix, Ts)

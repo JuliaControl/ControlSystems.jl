@@ -101,13 +101,13 @@ sys = ss(A, B, C, D)
 
 
 # Printing
-res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nA = \n -5.0  -3.0\n  2.0  -9.0\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nContinuous-time state-space model")
+res = ("StateSpace{Float64,Array{Float64,2}}\nA = \n -5.0  -3.0\n  2.0  -9.0\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nContinuous-time state-space model")
 @test sprint(show, C_222) == res
-res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model")
+res = ("StateSpace{Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model")
 @test sprint(show, D_222) == res
-res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nStatic gain")
+res = ("StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nStatic gain")
 @test sprint(show, C_022) == res
-res = "ControlSystems.StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nStatic gain"
+res = "StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nStatic gain"
 @test sprint(show, D_022) == res
 
 # Errors

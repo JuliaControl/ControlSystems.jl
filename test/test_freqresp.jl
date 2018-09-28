@@ -22,7 +22,7 @@ w = logspace(-1,1)
 sys1 = ss(1)
 G1 = tf(1)
 H1 = zpk(1)
-resp1 = ones(Complex128, length(w), 1, 1)
+resp1 = ones(ComplexF64, length(w), 1, 1)
 
 @test evalfr(sys1, im*w[1]) == fill(resp1[1], 1, 1)
 @test evalfr(G1, im*w[1]) == fill(resp1[1], 1, 1)
@@ -88,7 +88,7 @@ z = 0.5(1+im)
 sys = [tf([1,-1], [1,1,1]) 0; 0 tf([1],[1,1])]
 f(s) = [(s-1)./(s.^2+s+1) 0; 0 1./(1+s)]
 ws = logspace(-2,2,50)
-resp = Array{Complex128}(undef, 50,2,2)
+resp = Array{ComplexF64}(undef, 50,2,2)
 for (i,w) in enumerate(ws)
     resp[i,:,:] = f(im*w)
 end

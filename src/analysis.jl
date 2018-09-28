@@ -33,9 +33,9 @@ end
 Compute the zeros, poles, and gains of system `sys`.
 
 ### Returns
-`z` : Matrix{Vector{Complex128}}, (ny x nu)
+`z` : Matrix{Vector{ComplexF64}}, (ny x nu)
 
-`p` : Matrix{Vector{Complex128}}, (ny x nu)
+`p` : Matrix{Vector{ComplexF64}}, (ny x nu)
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
@@ -102,7 +102,7 @@ end
 # Emami-Naeini, A. and P. Van Dooren, "Computation of Zeros of Linear
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
-# Note that this returns either Vector{Complex64} or Vector{Float64}
+# Note that this returns either Vector{ComplexF32} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
 function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})

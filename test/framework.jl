@@ -1,5 +1,5 @@
 # Length not defined for StateSpace, so use custom function
-function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
+function Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
     fields = [:Ts, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
     for field in fields
         if getfield(va, field) != getfield(vb, field)
@@ -20,14 +20,14 @@ function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bst
     return true
 end
 
-Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
-    Base.Test.test_approx_eq(va, vb, 1E4*length(va.A)*max(Base.Test.array_eps(va.A),
-    Base.Test.array_eps(vb.A)), astr, bstr)
+Test.test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
+    Test.test_approx_eq(va, vb, 1E4*length(va.A)*max(Test.array_eps(va.A),
+    Test.array_eps(vb.A)), astr, bstr)
 
 # Length not defined for TransferFunction, so use custom function
-Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
+Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
 
-Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
+Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
 
 #Base.isapprox{T<:Number,N}(x::Array{T,N}, y::Array{T,N}; atol=sqrt(eps())) = all(abs.(x.-y) .< atol)
 
