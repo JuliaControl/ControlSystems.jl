@@ -7,7 +7,6 @@
 # dims: "nxnuny"
 # feedthrough: append "_d" if `D` is present
 # names: append "_n" if some inputs/outputs/states are named
-eye_(n) = Matrix{Float64}(I,n,n) # Avoid overloading if exist by mistake
 
 @testset "test_statespace" begin
 # SCALARS
@@ -26,7 +25,7 @@ C_212 = ss(a_2, [1; 2], eye_(2), [0; 0])
 C_221 = ss(a_2, [1 0; 0 2], [1 0], [0 0])
 C_222 = ss(a_2, [1 0; 0 2], eye_(2), zeros(2,2))
 C_222_d = ss(a_2, [1 0; 0 2], eye_(2), eye_(2))
-C_022 = ss(4*eye_(2))
+C_022 = ss(4.0*eye_(2))
 
 # DISCRETE
 da_1 = [-0.5]
@@ -36,7 +35,7 @@ D_211 = ss(da_2, [1; 2], [1 0], [0], 0.005)
 D_221 = ss(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
 D_222 = ss(da_2, [1 0; 0 2], eye_(2), zeros(2,2), 0.005)
 D_222_d = ss(da_2, [1 0; 0 2], eye_(2), eye_(2), 0.005)
-D_022 = ss(4*eye_(2), 0.005)
+D_022 = ss(4.0*eye_(2), 0.005)
 
 # Definition of input, output and state names
 C_222_d_n = ss(a_2, [1 0; 0 2], eye_(2), eye_(2))

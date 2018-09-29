@@ -140,22 +140,22 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
     return zs
 end
 
-reduce_sys(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}, meps::BlasFloat) =
+reduce_sys(A::AbstractMatrix{<:BlasFloat}, B::AbstractMatrix{<:BlasFloat}, C::AbstractMatrix{<:BlasFloat}, D::AbstractMatrix{<:BlasFloat}, meps::BlasFloat) =
     reduce_sys(promote(A,B,C,D)..., meps)
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps::BlasFloat) where T <: BlasFloat
+function reduce_sys(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}, meps::BlasFloat) where T <: BlasFloat
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
     end
     while true
         # Compress rows of D
-        U = full(qrfact(D)[:Q], thin=false)::Matrix{T}
-        D = U'*D
-        C = U'*C
+        U = qr(D).Q
+        D = U'D
+        C = U'C
         sigma = fastrank(D, meps)
         Cbar = C[1:sigma, :]
         Dbar = D[1:sigma, :]
@@ -165,8 +165,8 @@ function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps
         end
 
         # Compress columns of Ctilde
-        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{T}
-        V = flipdim(V,2)
+        V = qr(Ctilde').Q
+        V = reverse(V,dims=2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
@@ -175,7 +175,7 @@ function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Matrix{T}(0,0)
+            A = B = Cbar = Dbar = Matrix{T}(undef, 0,0)
             break
         end
         # Update System
@@ -201,9 +201,9 @@ end
 # Determine the number of non-zero rows, with meps as a tolerance. For an
 # upper-triangular matrix, this is a good proxy for determining the row-rank.
 function fastrank(A::AbstractMatrix, meps::Real)
-    n, m = size(A, 1, 2)
+    n, m = (size(A, 1), size(A, 2))
     if n*m == 0     return 0    end
-    norms = Vector{eltype(A)}(n)
+    norms = Vector{eltype(A)}(undef, n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end

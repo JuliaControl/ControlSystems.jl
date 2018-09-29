@@ -114,7 +114,7 @@ function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
 end
 
 function isapprox(G1::Array{T}, G2::Array{S}; kwargs...) where {T<:SisoTf, S<:SisoTf}
-    reduce(&, [isapprox(G1[i], G2[i]; kwargs...) for i in eachindex(G1)])
+    all(i -> isapprox(G1[i], G2[i]; kwargs...), eachindex(G1))
 end
 
 ## ADDITION ##
@@ -168,6 +168,8 @@ function /(n::Number, G::TransferFunction)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
+
+Base.:^(sys::TransferFunction, p::Integer) = Base.power_by_squaring(sys, p)
 
 #####################################################################
 ##                        Display Functions                        ##

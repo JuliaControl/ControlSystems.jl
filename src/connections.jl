@@ -111,13 +111,18 @@ end
 
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
 
-function Base.cat_t(::Val{1}, T::Type{<:LTISystem}, X...)
+function Base._cat_t(::Val{1}, T::Type{<:LTISystem}, X...)
         vcat(convert.(T, X)...)
 end
 
-function Base.cat_t(::Val{2}, T::Type{<:LTISystem}, X...)
+function Base._cat_t(::Val{2}, T::Type{<:LTISystem}, X...)
         hcat(convert.(T, X)...)
 end
+
+# Used in typed_hvcat
+Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem} = hcat(convert.(T, X)...)
+# Ambiguity
+Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.(T, X)...)
 
 # function hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
 #     T = Base.promote_typeof(systems...)

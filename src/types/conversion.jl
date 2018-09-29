@@ -125,7 +125,7 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
         B = fill(zero(T), 0, 1)
         C = fill(zero(T), 1, 0)
     else
-        A = diagm(0 => fill(one(T), N-1), 1)
+        A = diagm(1 => fill(one(T), N-1))
         A[end, :] .= -reverse(den)[1:end-1]
 
         B = fill(zero(T), N, 1)
@@ -196,13 +196,17 @@ Computes a balancing transformation `T` that attempts to scale the system so
 that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
 If `perm=true`, the states in `A` are allowed to be reordered.
 
+No balancing will be done if `A, B C` are not BLAS compatible
+
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 See also `balance_statespace`, `balance`
 """
-function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasFloat}
+function balance_transform(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    T = [A B; C zeros(R, size(C*B))]
+    R = promote_type(eltype(A), eltype(B), eltype(C), Float32) # Make sure we get at least BlasFloat
+    T = R[A B; C zeros(R, size(C*B))]
+
     size(T,1) < size(T,2) && (T = [T; zeros(R, size(T,2)-size(T,1),size(T,2))])
     size(T,1) > size(T,2) && (T = [T zeros(R, size(T,1),size(T,1)-size(T,2))])
     S = diag(balance(T, false)[1])

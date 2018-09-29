@@ -35,7 +35,7 @@ s = tf("s")
 f_C_211 = (s+2)*(s+3)/((s+4)*(s+5))
 # biquad passband
 omega0 = 52.0; Q = 10
-f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1)
+f_C_211_bis = (s/(Q*omega0)) / ((s/omega0)^2 + s/(Q*omega0) + 1)    # Works again in julia 1.0
 
 C_22tf = [0 tf([3,0],[1,1,10]);tf([1,1],[1,5]) tf(2,[1,6])]
 

@@ -65,8 +65,8 @@ end
 
 """`dlyap(A, Q)`
 
-Compute the solution "X" to the discrete Lyapunov equation
-"AXA' - X + Q = 0".
+Compute the solution `X` to the discrete Lyapunov equation
+`AXA' - X + Q = 0`.
 """
 function dlyap(A::AbstractMatrix{T}, Q) where T
     lhs = kron(A, conj(A))
@@ -87,9 +87,9 @@ function gram(sys::StateSpace, opt::Symbol)
     func = iscontinuous(sys) ? lyap : dlyap
     if opt == :c
         # TODO probably remove type check in julia 0.7.0
-        return func(sys.A, sys.B*sys.B')::Array{numeric_type(sys),2} # lyap is type-unstable
+        return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
     elseif opt == :o
-        return func(sys.A', sys.C'*sys.C)::Array{numeric_type(sys),2} # lyap is type-unstable
+        return func(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -169,8 +169,8 @@ function covar(sys::StateSpace, W)
         directNoise = D*W*D'
         for i in 1:size(C,1)
             if directNoise[i,i] != 0
-                P[i,:] = Inf
-                P[:,i] = Inf
+                P[i,:] .= Inf
+                P[:,i] .= Inf
             end
         end
     else
@@ -206,9 +206,9 @@ For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """
-function norm(sys::StateSpace, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::StateSpace, p::Real=2; tol=1e-6)
     if p == 2
-        return sqrt(trace(covar(sys, I)))
+        return sqrt(tr(covar(sys, I)))
     elseif p == Inf
         if sys.Ts == 0
             return normLinf_twoSteps_ct(sys,tol)[1]
@@ -220,7 +220,7 @@ function norm(sys::StateSpace, p::Real=2; tol=1e-6)
     end
 end
 
-function norm(sys::TransferFunction, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
     return norm(ss(sys), p, tol=tol)
 end
 
@@ -261,14 +261,14 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: pair of Float64, namely L∞ norm approximation and frequency fpeak at which it is achieved
-    T = promote_type(numeric_type(sys), Float32)
+    T = promote_type(numeric_type(sys), Float64)
     if sys.nx == 0  # static gain
-        return (norm(sys.D,2), T(0))
+        return (svdvals(sys.D)[1], T(0))
     end
     p = pole(sys)
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(map(x->isapprox(x,0.0),real(p)))
-    if pidx > 0
+    if !(pidx isa Nothing)
         return (T(Inf), imag(p[pidx]))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     else
@@ -283,7 +283,7 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             omegap = minimum(abs.(p))
         else  # at least one pair of complex poles
             tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
-            omegap = abs(p[indmax(tmp)])
+            omegap = abs(p[argmax(tmp)])    # TODO This is highly suspicious
         end
         (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
@@ -322,14 +322,14 @@ end
 # discrete-time version of normHinf_twoSteps_ct above
 # The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
 function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
-    T = promote_type(numeric_type(sys), Float32)
+    T = promote_type(numeric_type(sys), Float64)
     if sys.nx == 0  # static gain
-        return (norm(sys.D,2), T(0))
+        return (svdvals(sys.D)[1], T(0))
     end
     p = pole(sys)
     # Check first if there is a pole on the unit circle
     pidx = findfirst(map(x->isapprox(x,1.0),abs.(p)))
-    if (pidx > 0)
+    if !(pidx isa Nothing)
         return (T(Inf), angle(p[pidx])/abs(T(sys.Ts)))
     else
         # Initialization: computation of a lower bound from 3 terms
@@ -343,7 +343,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
         p = p[imag(p).>0]
         if ~isempty(p)  # not just real poles
             # find frequency of pôle closest to unit circle
-            omegap = angle(p[findmin(abs.(abs.(p)-1))[2]])
+            omegap = angle(p[findmin(abs.(abs.(p).-1))[2]])
         else
             omegap = T(pi)/2
         end
@@ -365,7 +365,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
             # +0im to make type stable
             zs = eigvals(L,M) .+ 0im # generalized eigenvalues
             # are there eigenvalues on the unit circle?
-            omegaps = angle.(zs[ (abs.(abs.(zs)-1) .<= approxcirc) .& (imag(zs).>=0)])
+            omegaps = angle.(zs[ (abs.(abs.(zs).-1) .<= approxcirc) .& (imag(zs).>=0)])
             sort!(omegaps)
             if isempty(omegaps)
                 return (1+T(tol))*lb, fpeak/T(sys.Ts)
@@ -432,7 +432,7 @@ Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 function balreal(sys::StateSpace)
 P = gram(sys, :c)
 Q = gram(sys, :o)
-Q1 = chol(Q)
+Q1 = cholesky(Q).U
 U,Σ,V = svd(Q1*P*Q1')
 Σ .= sqrt.(Σ)
 Σ1 = diagm(0 => sqrt.(Σ))
@@ -440,7 +440,7 @@ T = Σ1\(U'Q1)
 
 Pz = T*P*T'
 Qz = inv(T')*Q*inv(T)
-if vecnorm(Pz-Qz) > sqrt(eps())
+if norm(Pz-Qz) > sqrt(eps())
     warn("balreal: Result may be inaccurate")
     println("Controllability gramian before transform")
     display(P)

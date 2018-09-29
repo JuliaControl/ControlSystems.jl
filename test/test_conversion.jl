@@ -5,11 +5,14 @@ sys1 = ss([-1 0;1 1],[1;0],[1 1],0)
 G1 = tf([1,0],[1,0,-1])
 H1 = zpk([0.0], [-1, 1.0], 1.0)
 
-w = 10.0 .^ range(-2,2,50)
+w = 10.0 .^ (-2:2:50)
 
 @test ss(sys1) == sys1
 @test freqresp(ss(G1), w) ≈ freqresp(sys1, w) rtol=1e-15
 @test freqresp(ss(H1), w) ≈ freqresp(sys1, w) rtol=1e-15
+
+# Test range in freqresp
+@test freqresp(ss(G1), collect(1:2:10)) == freqresp(ss(G1), collect(1:2:10))
 
 @test tf(sys1) ≈ G1 rtol=1e-15
 @test tf(G1) == G1
@@ -24,7 +27,7 @@ sys2 = ss([-2.5 0;1 1.5],[1;3],[1 2],2.5)
 G2 = tf([2.5, 9.5, 6.125],[1, 1, -3.75])
 H2 = zpk([-2.97703296142690, -0.82296703857310], [1.5, -2.5], 2.5)
 
-w = 10.0 .^ range(-2,2,50)
+w = 10.0 .^ (-2:2:50)
 
 @test ss(sys2) == sys2
 @test freqresp(ss(G2), w) ≈ freqresp(sys2, w) rtol=1e-15
@@ -55,7 +58,7 @@ C = [1 0]
 D = zeros(1,1);
 sys = ss(A,B,C,D)
 sys2 = convert(TransferFunction, sys)
-w = 10.0 .^ range(-2,2,50)
+w = 10.0 .^ (-2:2:50)
 @test freqresp(sys, w) ≈ freqresp(sys2, w)
 csort = v -> sort(v, lt = (x,y) -> abs(x) < abs(y))
 @test csort(pole(zpk(sys2))) ≈ [1+im, -2.0-3im]
@@ -66,7 +69,7 @@ tf(sys4)
 G4 = tf([1.0im,2,-2],[1,-1im,-1+im])
 H4 = zpk([im*(1 + sqrt(1+2im)), im*(1 - sqrt(1+2im))], [-1+im,1], 1.0im)
 
-w = 10.0 .^ range(-2,2,50)
+w = 10.0 .^ (-2:2:50)
 
 @test ss(sys4) == sys4
 @test freqresp(ss(G4), w) ≈ freqresp(sys4, w) rtol=1e-15

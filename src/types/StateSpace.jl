@@ -75,8 +75,7 @@ end
 
 ## Approximate ##
 function isapprox(sys1::StateSpace, sys2::StateSpace)
-    fieldsApprox = [:A, :B, :C, :D, :Ts]
-    return all(sys1.f ≈ sys2.f for f in fieldnames(fieldsApprox))
+    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(StateSpace))
 end
 
 ## ADDITION ##
@@ -147,6 +146,7 @@ end
 Base.inv(sys::StateSpace) = 1/sys
 /(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
 
+Base.:^(sys::StateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 
 
 #####################################################################

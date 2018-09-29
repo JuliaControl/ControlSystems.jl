@@ -12,8 +12,6 @@ Am,Bm,Cm,Dm = sysmin.A,sysmin.B,sysmin.C,sysmin.D
 
 @test approxsetequal(eigvals(Am), [-3,-1,-1])
 
-eye_(n) = Matrix{Float64}(I, n, n)
-
 Q1 = 100 eye_(4)
 Q2 = 1eye_(2)
 R1 = 100eye_(4)

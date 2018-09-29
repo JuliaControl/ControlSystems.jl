@@ -1,7 +1,11 @@
 using ControlSystems
 using Test, LinearAlgebra
 import Base.isapprox
+import SparseArrays: sparse
 include("framework.jl")
+
+# Local definition to make sure we get warings if we use eye
+eye_(n) = Matrix{Int64}(I, n, n)
 
 my_tests = ["test_statespace",
             "test_transferfunction",

@@ -39,10 +39,10 @@ D2 = [1 0; 0 1]
 
 # TODO test in Julia 0.7 to see if supported
 # # Test special matrices
-# As = sparse(A)
-# Bs = sparse(B)
-# Cs = sparse(C)
-# Asb,Bsb,Csb,Ts = ControlSystems.balance_statespace(As,Bs,Cs) #Error no LAPACK function
+As = sparse(A)
+Bs = sparse(B)
+Cs = sparse(C)
+Asb,Bsb,Csb,Ts = ControlSystems.balance_statespace(As,Bs,Cs) #Error no LAPACK function
 #
 # @test Abs*Ts ≈ Ts*As
 # @test Bbs ≈ Ts*Bs
@@ -51,7 +51,7 @@ D2 = [1 0; 0 1]
 # Test special values
 Ar = rationalize.(A)
 Br = rationalize.(B)
-Cr = rationalize.(C)
+Cr = rationalize.(Float64.(C))    # When did ever rationalize work on Int?
 Arb,Brb,Crb,Tr = ControlSystems.balance_statespace(Ar,Br,Cr)
 
 @test Arb*Tr ≈ Tr*Ar

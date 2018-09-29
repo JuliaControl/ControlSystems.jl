@@ -78,6 +78,7 @@ export  LTISystem,
 using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import LinearAlgebra: BlasFloat
+export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 
 abstract type AbstractSystem end

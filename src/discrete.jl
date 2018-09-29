@@ -23,10 +23,10 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [I zeros(nx, nu)]
+        x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
     elseif method == :foh
         M = exp([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) I;
+            zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -34,7 +34,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [I -M2]
+        x0map = [Matrix{Float64}(I, nx, nx)  (-M2)]
     elseif method == :tustin || method == :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else

@@ -67,14 +67,20 @@ macro test_array_vecs_eps(a, b, tol)
     end
 end
 
-macro test_c2d(ex, sys_sol, mat_sol)
-    quote
-        sys, mat = $(esc(ex))
-        @test sys ≈ $(esc(sys_sol))
-        @test mat ≈ $(esc(mat_sol))
+macro test_c2d(ex, sys_sol, mat_sol, op)
+    if op == true
+        quote
+            sys, mat = $(esc(ex))
+            @test sys ≈ $(esc(sys_sol)) && mat ≈ $(esc(mat_sol))
+        end
+    else
+        quote
+            sys, mat = $(esc(ex))
+            @test !(sys ≈ $(esc(sys_sol))) || !(mat ≈ $(esc(mat_sol)))
+        end
     end
 end
 
 
-approxin(el,col;kwargs...) = reduce(|,false,isapprox.(el,col;kwargs...))
+approxin(el,col;kwargs...) = any(colel -> isapprox(el, colel; kwargs...), col)
 approxsetequal(s1,s2;kwargs...) = all(approxin(p,s1;kwargs...) for p in s2) && all(approxin(p,s2;kwargs...) for p in s1)
