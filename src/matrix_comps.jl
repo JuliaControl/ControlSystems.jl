@@ -440,13 +440,8 @@ T = Σ1\(U'Q1)
 
 Pz = T*P*T'
 Qz = inv(T')*Q*inv(T)
-<<<<<<< HEAD
 if norm(Pz-Qz) > sqrt(eps())
-    warn("balreal: Result may be inaccurate")
-=======
-if vecnorm(Pz-Qz) > sqrt(eps())
     @warn("balreal: Result may be inaccurate")
->>>>>>> 09c4bde09bc28a93a68c2c0385724ee1396cbeb3
     println("Controllability gramian before transform")
     display(P)
     println("Controllability gramian after transform")
