@@ -2,7 +2,7 @@
 @testset "test_lqg" begin
 
 
-w = logspace(-5,5,1000)
+w = exp10.(range(-5, stop=5, length=1000))
 s = tf("s")
 P = [1/(s+1) 2/(s+3); 1/(s+1) 1/(s+1)]
 sys = ss(P)

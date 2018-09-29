@@ -143,14 +143,14 @@ function dab(a,b,c)
     mb = toeplitz([b; zb],[b[1]; zb])
     m = [ma mb]
     if rank(m) < minimum(size(m))
-        warn("Singular problem due to common factors in A and B")
+        @warn("Singular problem due to common factors in A and B")
     end
     co = cond(m)
     co > 1e6 && println("dab: condition number $(co)")
     rs = (c'/(m'))'
     r = rs[1:nr]
     s = rs[nr+1:nc]
-    length(s) > length(r) && warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
+    length(s) > length(r) && @warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
     r,s
 end
 

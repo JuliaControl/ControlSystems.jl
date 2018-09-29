@@ -14,7 +14,7 @@ struct_ctrb_obsv(sys::StateSpace) = struct_ctrb_obsv(sys.A, sys.B, sys.C)
 function struct_ctrb_obsv(A::VecOrMat, B::VecOrMat, C::VecOrMat)
     costates = struct_ctrb_states(A, B) .& struct_ctrb_states(A', C')
     if !all(costates)
-        inds = find(costates)
+        inds = findall(costates)
         return A[inds, inds], B[inds, :], C[:, inds], inds
     else
         return A, B, C, [1:size(A, 1);]
@@ -27,7 +27,7 @@ function struct_ctrb_states(A::VecOrMat, B::VecOrMat)
     bitA = A .!= 0
     d_cvec = cvec = any(B .!= 0, 2)
     while any(d_cvec .!= 0)
-        Adcvec = any(bitA[:, find(d_cvec)], 2)
+        Adcvec = any(bitA[:, findall(d_cvec)], 2)
         cvec = cvec .| Adcvec
         d_cvec = Adcvec .& .~cvec
     end

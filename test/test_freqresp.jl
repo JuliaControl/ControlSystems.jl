@@ -17,7 +17,7 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test evalfr(G, 0) ≈ [0.0 0.0; 0.2 1/3]
 
 ## Constant system
-w = logspace(-1,1)
+w = exp10.(range(-1, stop=1, length=50))
 
 sys1 = ss(1)
 G1 = tf(1)
@@ -87,7 +87,7 @@ z = 0.5(1+im)
 ## Test bode, nyquist and sigma
 sys = [tf([1,-1], [1,1,1]) 0; 0 tf([1],[1,1])]
 f(s) = [(s-1)./(s.^2+s+1) 0; 0 1./(1+s)]
-ws = logspace(-2,2,50)
+ws = exp10.(range(-2, stop=2, length=50))
 resp = Array{ComplexF64}(undef, 50,2,2)
 for (i,w) in enumerate(ws)
     resp[i,:,:] = f(im*w)
