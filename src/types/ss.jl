@@ -11,7 +11,7 @@ Otherwise, this is a discrete-time model with sampling period Ts.
 Set Ts=-1 for a discrete-time model with unspecified sampling period.
 
 `sys = ss(D[, Ts, ...])` specifies a static gain matrix D."""
-function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)
+function ss(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real=0)
     # Check the kwargs for metadata
     nu = size(B, 2)
     ny, nx = size(C, 1), size(C, 2)
@@ -19,7 +19,7 @@ function ss(A::Array, B::Array, C::Array, D::Array, Ts::Real=0)
 end
 
 # Function for accepting scalars
-function ss(A::Union{Number,Array}, B::Union{Number,Array}, C::Union{Number,Array}, D::Union{Number,Array}, Ts::Real=0)
+function ss(A::Union{Number,AbstractArray}, B::Union{Number,AbstractArray}, C::Union{Number,AbstractArray}, D::Union{Number,AbstractArray}, Ts::Real=0)
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     A = to_matrix(T, A)
     B = to_matrix(T, B)
@@ -33,7 +33,7 @@ function ss(A::Union{Number,Array}, B::Union{Number,Array}, C::Union{Number,Arra
 end
 
 # Function for creation of static gain
-function ss(D::Array{T}, Ts::Real=0) where {T<:Number}
+function ss(D::AbstractArray{T}, Ts::Real=0) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
     A = fill(zero(T), 0, 0)
     B = fill(zero(T), 0, nu)

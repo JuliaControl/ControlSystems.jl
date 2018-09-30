@@ -37,10 +37,12 @@ struct StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
         new{T, MT}(A, B, C, D, Ts, nx, nu, ny)
     end
 end
+
 function StateSpace{T,MT}(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
         return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)),
             MT(to_matrix(T, D)), Float64(Ts))
 end
+
 function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
         # TODO: change back in 0.7 T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
         T = promote_type(promote_type(eltype(A),eltype(B)), promote_type(eltype(C),eltype(D)))

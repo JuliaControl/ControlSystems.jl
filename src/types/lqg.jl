@@ -113,7 +113,7 @@ function _LQG(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     Ac=A-B*L-K*C+K*D*L
     Bc=K
     Cc=L
-    Dc=zeros(D, size(D,2), size(D,1))
+    Dc=zero(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
     return LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
@@ -140,7 +140,7 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     Ac=Ae-Be*Le-K*Ce+K*De*Le
     Bc=K
     Cc=Le
-    Dc=zeros(D')
+    Dc=zero(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
     LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
@@ -189,9 +189,9 @@ function Base.getindex(G::LQG, s)
     PC = P*sysc # Loop gain
 
     if s ∈ [:cl, :closedloop, :ry] # Closed-loop system
-        Acl = [A-B*L B*L; zeros(A) A-K*C]
-        Bcl = [B; zeros(B)]
-        Ccl = [C zeros(C)]
+        Acl = [A-B*L B*L; zero(A) A-K*C]
+        Bcl = [B; zero(B)]
+        Ccl = [C zero(C)]
         Bcl = Bcl/(P.C*inv(P.B*L[:,1:n]-P.A)*P.B) # B*lᵣ # Always normalized with nominal plant static gain
         return syscl = ss(Acl,Bcl,Ccl,0)
     elseif s ∈ [:Sin, :S] # Sensitivity function

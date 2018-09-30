@@ -10,9 +10,10 @@ numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
 to_matrix(T, A::Vector) = Matrix{T}(reshape(A, length(A), 1))
-to_matrix(T, A::AbstractMatrix) = Matrix{T}(A)
+to_matrix(T, A::AbstractMatrix) = T.(A)  # Fallback
 to_matrix(T, A::Number) = fill(T(A), 1, 1)
-
+# Handle Adjoint Matrices
+to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
 
 
