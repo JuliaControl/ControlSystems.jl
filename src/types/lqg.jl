@@ -113,7 +113,7 @@ function _LQG(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     Ac=A-B*L-K*C+K*D*L
     Bc=K
     Cc=L
-    Dc=zeros(D')
+    Dc=zeros(D, size(D,2), size(D,1))
     sysc = ss(Ac,Bc,Cc,Dc)
 
     return LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)

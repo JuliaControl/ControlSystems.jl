@@ -124,14 +124,14 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
     mat = [C D]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
-    W = full(qrfact(mat')[:Q], thin=false)::Matrix{T}
-    W = flipdim(W,2)
+    W = qr(mat').Q
+    W = reverse(W, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
         nf = size(A, 1)
         m = size(D, 2)
         Af = ([A B] * W)[1:nf, 1:nf]
-        Bf = ([I zeros(nf, m)] * W)[1:nf, 1:nf]
+        Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
         zs = eigvals(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
@@ -180,10 +180,10 @@ function reduce_sys(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatri
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(T, n, m); zeros(T, m, n) I]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) I]
+            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
         else
             M = [A B]
             Vs = V'

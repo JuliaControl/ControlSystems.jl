@@ -192,7 +192,7 @@ If no second system is given, negative identity feedback is assumed
 """
 function feedback(sys::StateSpace)
     sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,ny,ny)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,sys.ny,sys.ny)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)

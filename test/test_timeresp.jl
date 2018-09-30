@@ -1,3 +1,5 @@
+import OrdinaryDiffEq
+
 @testset "test_timeresp" begin
 
 A = [0 1; 0 0]
@@ -45,21 +47,21 @@ xreal = zeros(length(t0), 3, 2)
 
 #Step tf
 y, t, x = step(systf, t0)
-yreal[:,1,1] = 1-exp.(-t)
-yreal[:,2,2] = -1+exp.(-t)+2*exp.(-t).*t
+yreal[:,1,1] = 1 .- exp.(-t)
+yreal[:,2,2] = -1 .+ exp.(-t)+2*exp.(-t).*t
 @test y ≈ yreal atol=1e-4
 #Step ss
 y, t, x = step(sysss, t)
 @test y ≈ yreal atol=1e-4
 xreal[:,1,1] = yreal[:,1,1]
 xreal[:,2,2] = exp.(-t).*t
-xreal[:,3,2] = exp.(-t).*(-t-1) + 1
+xreal[:,3,2] = exp.(-t).*(-t .- 1) .+ 1
 @test x ≈ xreal atol=1e-5
 
 #Impulse tf
 y, t, x = impulse(systf, t)
 yreal[:,1,1] = exp.(-t)
-yreal[:,2,2] = exp.(-t).*(1 - 2.*t)
+yreal[:,2,2] = exp.(-t).*(1 .- 2*t)
 @test y ≈ yreal atol=1e-2
 #Impulse ss
 y, t, x = impulse(sysss, t)
@@ -78,29 +80,29 @@ xreal = zeros(length(t0), 3, 2)
 
 #Step tf
 y, t, x = step(systf, t0, method=:zoh)
-yreal[:,1,1] = 1-exp.(-t)
-yreal[:,2,2] = -1+exp.(-t)+2*exp.(-t).*t
+yreal[:,1,1] = 1 .- exp.(-t)
+yreal[:,2,2] = -1 .+ exp.(-t) + 2*exp.(-t).*t
 @test y ≈ yreal atol=1e-14
 #Step ss
 y, t, x = step(sysss, t, method=:zoh)
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 xreal[:,1,1] = yreal[:,1,1]
 xreal[:,2,2] = exp.(-t).*t
-xreal[:,3,2] = exp.(-t).*(-t-1) + 1
+xreal[:,3,2] = exp.(-t).*(-t .- 1) .+ 1
 @test x ≈ xreal atol=1e-14
 
 #Impulse tf
 y, t, x = impulse(systf, t, method=:zoh)
 yreal[:,1,1] = exp.(-t)
-yreal[:,2,2] = exp.(-t).*(1 - 2.*t)
+yreal[:,2,2] = exp.(-t).*(1 .- 2*t)
 @test y ≈ yreal atol=1e-14
 #Impulse ss
-y, t, x = impulse(sysss, t, method=:zoh)
-@test y ≈ yreal atol=1e-14
+y, t, x = impulse(1.0sysss, t, method=:zoh)
+@test y ≈ yreal atol=1e-13
 xreal[:,1,1] = yreal[:,1,1]
 xreal[:,2,2] = -exp.(-t).*t + exp.(-t)
 xreal[:,3,2] = exp.(-t).*t
-@test x ≈ xreal atol=1e-14
+@test x ≈ xreal atol=1e-13
 
 
 #Step response of discrete system with specified final time

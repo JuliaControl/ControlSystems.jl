@@ -16,7 +16,7 @@ gangofseven
 gram
 margin
 markovparam
-sysnorm
+norm
 obsv
 pole
 sigma

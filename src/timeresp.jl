@@ -247,6 +247,6 @@ _issmooth(u::Function) = false
 function _issmooth(u, thresh::AbstractFloat=0.75)
     u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
     dist = maximum(u) - minimum(u)
-    du = abs.(diff(u))
+    du = abs.(diff(u, dims=1))
     return !isempty(du) && all(maximum(du) <= thresh*dist)
 end

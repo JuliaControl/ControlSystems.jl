@@ -80,6 +80,7 @@ import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
+import DSP: conv
 
 abstract type AbstractSystem end
 
@@ -128,8 +129,6 @@ include("plotting.jl")
 
 @deprecate num numvec
 @deprecate den denvec
-
-# @deprecate norm sysnorm
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

@@ -11,7 +11,7 @@ end
 
 # Determine the structurally controllable and observable realization for the system
 struct_ctrb_obsv(sys::StateSpace) = struct_ctrb_obsv(sys.A, sys.B, sys.C)
-function struct_ctrb_obsv(A::VecOrMat, B::VecOrMat, C::VecOrMat)
+function struct_ctrb_obsv(A::AbstractVecOrMat, B::AbstractVecOrMat, C::AbstractVecOrMat)
     costates = struct_ctrb_states(A, B) .& struct_ctrb_states(A', C')
     if !all(costates)
         inds = findall(costates)
@@ -23,11 +23,11 @@ end
 
 # Compute a bit-vector, expressing whether a state of the pair (A, B) is
 # structurally controllable.
-function struct_ctrb_states(A::VecOrMat, B::VecOrMat)
+function struct_ctrb_states(A::AbstractVecOrMat, B::AbstractVecOrMat)
     bitA = A .!= 0
-    d_cvec = cvec = any(B .!= 0, 2)
+    d_cvec = cvec = vec(any(B .!= 0, dims=2))
     while any(d_cvec .!= 0)
-        Adcvec = any(bitA[:, findall(d_cvec)], 2)
+        Adcvec = vec(any(bitA[:, findall(d_cvec)], dims=2))
         cvec = cvec .| Adcvec
         d_cvec = Adcvec .& .~cvec
     end

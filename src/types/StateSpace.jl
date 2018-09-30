@@ -225,16 +225,16 @@ end
 
 
 """
-`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal. The result is rounded to `digits` decimal points.
+`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal.
 """
 function diagonalize(s::StateSpace, digits = 12)
-    r = x -> round(x,digits)
-    S,V = eig(s.A)
+    r = x -> round(x, digits=digits)
+    S,V = eigen(s.A)
     try
-        A = V\s.A*V     .|> r
-        B = V\s.B       .|> r
-        C = s.C*V       .|> r
-        D = s.D         .|> r
+        A = diagm(0 => S)
+        B = V\s.B
+        C = s.C*V
+        D = s.D
         return ss(A,B,C,D)
     catch e
         error("System not diagonalizable", e)

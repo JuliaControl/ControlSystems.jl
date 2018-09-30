@@ -2,6 +2,7 @@ using ControlSystems
 using Test, LinearAlgebra
 import Base.isapprox
 import SparseArrays: sparse
+import DSP: conv
 include("framework.jl")
 
 # Local definition to make sure we get warings if we use eye

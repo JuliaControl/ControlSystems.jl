@@ -432,7 +432,12 @@ Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 function balreal(sys::StateSpace)
 P = gram(sys, :c)
 Q = gram(sys, :o)
-Q1 = cholesky(Q).U
+
+Q1 = try
+    cholesky(Q).U
+catch
+    throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
+end
 U,Σ,V = svd(Q1*P*Q1')
 Σ .= sqrt.(Σ)
 Σ1 = diagm(0 => sqrt.(Σ))
