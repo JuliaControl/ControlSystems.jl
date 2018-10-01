@@ -70,7 +70,7 @@ Compute the solution `X` to the discrete Lyapunov equation
 """
 function dlyap(A::AbstractMatrix{T}, Q) where T
     lhs = kron(A, conj(A))
-    lhs = Matrix{T}(I, size(lhs, 1), size(lhs, 1)) - lhs
+    lhs = I - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
     return reshape(x, size(Q))
 end

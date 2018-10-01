@@ -102,8 +102,8 @@ end
 
 
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
-    P          = G.matrix[1].num.a |> reverse |> Polynomials.Poly
-    Q          = G.matrix[1].den.a |> reverse |> Polynomials.Poly
+    P          = numpoly(G)[1]
+    Q          = denpoly(G)[1]
     f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
@@ -120,14 +120,14 @@ end
     rlocusplot(P::LTISystem, K)
 Computes and plots the root locus of the SISO LTISystem P with
 a negative feedback loop and feedback gains `K`, if `K` is not provided,
-linspace(1e-6,500,10000) is used.
+range(1e-6,stop=500,length=10000) is used.
 If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffEq`), `rlocusplot` will use an adaptive step-size algorithm to
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
 rlocus
 @recipe function rlocus(p::Rlocusplot; K=Float64[])
     P = p.args[1]
-    K = isempty(K) ? linspace(1e-6,500,10000) : K
+    K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
     Z = tzero(P)
 
     poles = getpoles(P,K)

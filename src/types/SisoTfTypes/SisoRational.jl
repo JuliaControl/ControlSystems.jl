@@ -36,7 +36,8 @@ Base.zero(f::SisoRational) = zero(typeof(f))
 isproper(f::SisoRational) = (length(f.num) <= length(f.den))
 
 function minreal(sys::SisoRational{T}, eps::Real=sqrt(eps())) where T
-    return convert(SisoRational{T}, minreal(convert(SisoZpk,sys), eps))
+    T2 = typeof(zero(T)/one(T))
+    return convert(SisoRational{T2}, minreal(convert(SisoZpk,sys), eps))
 end
 
 function print_siso(io::IO, f::SisoRational, var=:s)

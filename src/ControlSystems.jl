@@ -76,6 +76,7 @@ export  LTISystem,
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
+export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available

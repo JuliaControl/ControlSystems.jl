@@ -201,7 +201,7 @@ end
 # Determine the number of non-zero rows, with meps as a tolerance. For an
 # upper-triangular matrix, this is a good proxy for determining the row-rank.
 function fastrank(A::AbstractMatrix, meps::Real)
-    n, m = (size(A, 1), size(A, 2))
+    n, m = size(A)
     if n*m == 0     return 0    end
     norms = Vector{eltype(A)}(undef, n)
     for i = 1:n
@@ -306,13 +306,13 @@ function interpolate(fi, list)
 end
 
 function _allGainCrossings(w, mag)
-    _findCrossings(w,mag.>1,mag-1)
+    _findCrossings(w,mag.>1,mag.-1)
 end
 
 function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
-    n =  Vector{eltype(w)}(length(w)) #Nbr of crossed
-    ph = Vector{eltype(w)}(length(w)) #Residual
+    n =  Vector{eltype(w)}(undef, length(w)) #Nbr of crossed
+    ph = Vector{eltype(w)}(undef, length(w)) #Residual
     for i = eachindex(w) #Found no easier way to do this
         n[i], ph[i] = fldmod(phase[i]+180,360)#+180
     end
