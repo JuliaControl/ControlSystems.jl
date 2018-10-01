@@ -21,7 +21,7 @@ Pint = tf(1,[1,1])
 Cint = tf([1,1],[1,0])
 Lint = P*C
 
-@test_broken isapprox(minreal(feedback(Pint,Cint),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5)
+@test isapprox(minreal(feedback(Pint,Cint),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5) # TODO consider keeping minreal of Int system Int
 @test isapprox(numpoly(minreal(feedback(Lint),1e-5))[1].a, numpoly(tf(1,[1,1]))[1].a)# This test is ugly, but numerical stability is poor for minreal
 @test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
 
