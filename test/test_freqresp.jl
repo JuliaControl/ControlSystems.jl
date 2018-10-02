@@ -17,12 +17,12 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test evalfr(G, 0) ≈ [0.0 0.0; 0.2 1/3]
 
 ## Constant system
-w = logspace(-1,1)
+w = exp10.(range(-1, stop=1, length=50))
 
 sys1 = ss(1)
 G1 = tf(1)
 H1 = zpk(1)
-resp1 = ones(Complex128, length(w), 1, 1)
+resp1 = ones(ComplexF64, length(w), 1, 1)
 
 @test evalfr(sys1, im*w[1]) == fill(resp1[1], 1, 1)
 @test evalfr(G1, im*w[1]) == fill(resp1[1], 1, 1)
@@ -37,7 +37,7 @@ resp1 = ones(Complex128, length(w), 1, 1)
 sys2 = ss(-1, 1, 1, 1)
 G2 = tf([1, 2], [1,1])
 H2 = zpk([-2], [-1.0], 1.0)
-resp2 = reshape((im*w + 2)./(im*w  + 1), length(w), 1, 1)
+resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
 
 @test evalfr(sys2, im*w[1]) ≈ fill(resp2[1], 1, 1)
 @test evalfr(G2, im*w[1]) == fill(resp2[1], 1, 1)
@@ -52,7 +52,7 @@ resp2 = reshape((im*w + 2)./(im*w  + 1), length(w), 1, 1)
 sys3 = ss(-1+im, 1, (1-im), (1-im))
 G3 = (1-im)*tf([1,2-im], [1,1-im])
 H3 = zpk([-2+im], [-1+im], (1-im))
-resp3 = reshape((1-im)*(2 + im*(w-1))./(1 + im*(w-1)), length(w), 1, 1)
+resp3 = reshape((1 .- im)*(2 .+ im*(w .- 1))./(1 .+ im*(w .- 1)), length(w), 1, 1)
 
 @test evalfr(sys3, im*w[1]) ≈ fill(resp3[1], 1, 1) rtol=1e-16
 @test evalfr(G3, im*w[1]) == fill(resp3[1], 1, 1)
@@ -86,16 +86,16 @@ z = 0.5(1+im)
 
 ## Test bode, nyquist and sigma
 sys = [tf([1,-1], [1,1,1]) 0; 0 tf([1],[1,1])]
-f(s) = [(s-1)./(s.^2+s+1) 0; 0 1./(1+s)]
-ws = logspace(-2,2,50)
-resp = Array{Complex128}(50,2,2)
+f(s) = [(s-1)./(s.^2+s+1) 0; 0 1 ./(1+s)]
+ws = exp10.(range(-2, stop=2, length=50))
+resp = Array{ComplexF64}(undef, 50,2,2)
 for (i,w) in enumerate(ws)
     resp[i,:,:] = f(im*w)
 end
 
 @test bode(sys, ws)[1:2] == (abs.(resp), rad2deg.(angle.(resp)))
 @test nyquist(sys, ws)[1:2] == (real(resp), imag(resp))
-sigs = Array{Float64}(50,2)
+sigs = Array{Float64}(undef, 50,2)
 for i in eachindex(ws)
     sigs[i,:] =  svdvals(resp[i,:,:])
 end

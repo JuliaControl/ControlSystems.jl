@@ -35,8 +35,9 @@ Base.zero(f::SisoRational) = zero(typeof(f))
 
 isproper(f::SisoRational) = (length(f.num) <= length(f.den))
 
-function minreal(sys::SisoRational, eps::Real=sqrt(eps()))
-    return SisoRational(minreal(SisoZpk(sys), eps))
+function minreal(sys::SisoRational{T}, eps::Real=sqrt(eps())) where T
+    T2 = typeof(zero(T)/one(T))
+    return convert(SisoRational{T2}, minreal(convert(SisoZpk,sys), eps))
 end
 
 function print_siso(io::IO, f::SisoRational, var=:s)
@@ -67,9 +68,8 @@ function print_compact(io::Base.IO, f::SisoRational, var)
     println(io, "($numstr)/($denstr)")
 end
 
-
-Base.num(f::SisoRational) = reverse(coeffs(f.num))
-Base.den(f::SisoRational) = reverse(coeffs(f.den))
+numvec(f::SisoRational) = reverse(coeffs(f.num))
+denvec(f::SisoRational) = reverse(coeffs(f.den))
 
 denpoly(f::SisoRational) = f.den
 numpoly(f::SisoRational) = f.num

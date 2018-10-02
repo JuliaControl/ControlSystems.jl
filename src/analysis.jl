@@ -33,9 +33,9 @@ end
 Compute the zeros, poles, and gains of system `sys`.
 
 ### Returns
-`z` : Matrix{Vector{Complex128}}, (ny x nu)
+`z` : Matrix{Vector{ComplexF64}}, (ny x nu)
 
-`p` : Matrix{Vector{Complex128}}, (ny x nu)
+`p` : Matrix{Vector{ComplexF64}}, (ny x nu)
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
@@ -72,7 +72,7 @@ Display a report of the poles, damping ratio, natural frequency, and time
 constant of the system `sys`"""
 function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
-    t_const = 1./(Wn.*zeta)
+    t_const = 1 ./ (Wn.*zeta)
     header =
     ("|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
     "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
@@ -80,10 +80,10 @@ function dampreport(io::IO, sys::LTISystem)
     println(io, header)
     for i=eachindex(ps)
         p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-        @printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
+        Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
     end
 end
-dampreport(sys::LTISystem) = dampreport(STDOUT, sys)
+dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 
 """`tzero(sys)`
@@ -102,7 +102,7 @@ end
 # Emami-Naeini, A. and P. Van Dooren, "Computation of Zeros of Linear
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
-# Note that this returns either Vector{Complex64} or Vector{Float64}
+# Note that this returns either Vector{ComplexF32} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
 function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})
@@ -124,14 +124,14 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
     mat = [C D]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
-    W = full(qrfact(mat')[:Q], thin=false)::Matrix{T}
-    W = flipdim(W,2)
+    W = qr(mat').Q
+    W = reverse(W, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
         nf = size(A, 1)
         m = size(D, 2)
         Af = ([A B] * W)[1:nf, 1:nf]
-        Bf = ([eye(nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+        Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
         zs = eigvals(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
@@ -140,22 +140,22 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
     return zs
 end
 
-reduce_sys(A::Matrix{<:BlasFloat}, B::Matrix{<:BlasFloat}, C::Matrix{<:BlasFloat}, D::Matrix{<:BlasFloat}, meps::BlasFloat) =
+reduce_sys(A::AbstractMatrix{<:BlasFloat}, B::AbstractMatrix{<:BlasFloat}, C::AbstractMatrix{<:BlasFloat}, D::AbstractMatrix{<:BlasFloat}, meps::BlasFloat) =
     reduce_sys(promote(A,B,C,D)..., meps)
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps::BlasFloat) where T <: BlasFloat
+function reduce_sys(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}, meps::BlasFloat) where T <: BlasFloat
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
     end
     while true
         # Compress rows of D
-        U = full(qrfact(D)[:Q], thin=false)::Matrix{T}
-        D = U'*D
-        C = U'*C
+        U = qr(D).Q
+        D = U'D
+        C = U'C
         sigma = fastrank(D, meps)
         Cbar = C[1:sigma, :]
         Dbar = D[1:sigma, :]
@@ -165,8 +165,8 @@ function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps
         end
 
         # Compress columns of Ctilde
-        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{T}
-        V = flipdim(V,2)
+        V = qr(Ctilde').Q
+        V = reverse(V,dims=2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
@@ -175,15 +175,15 @@ function reduce_sys(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, meps
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Matrix{T}(0,0)
+            A = B = Cbar = Dbar = Matrix{T}(undef, 0,0)
             break
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(T, n, m); zeros(T, m, n) eye(T, m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) eye(T, sigma)]
+            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
         else
             M = [A B]
             Vs = V'
@@ -201,9 +201,9 @@ end
 # Determine the number of non-zero rows, with meps as a tolerance. For an
 # upper-triangular matrix, this is a good proxy for determining the row-rank.
 function fastrank(A::AbstractMatrix, meps::Real)
-    n, m = size(A, 1, 2)
+    n, m = size(A)
     if n*m == 0     return 0    end
-    norms = Vector{eltype(A)}(n)
+    norms = Vector{eltype(A)}(undef, n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end
@@ -223,15 +223,19 @@ If `full` return also `fullPhase`
 """
 function margin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
     ny, nu = size(sys)
-    vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
+
     if allMargins
-        for val in vals
-            eval(:($val = Array{Array{eltype(sys),1}}($ny,$nu)))
-        end
+        wgm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        gm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        wpm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        pm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        fullPhase   = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
     else
-        for val in vals
-            eval(:($val = Array{eltype(sys),2}($ny,$nu)))
-        end
+        wgm         = Array{numeric_type(sys),2}(undef, ny, nu)
+        gm          = Array{numeric_type(sys),2}(undef, ny, nu)
+        wpm         = Array{numeric_type(sys),2}(undef, ny, nu)
+        pm          = Array{numeric_type(sys),2}(undef, ny, nu)
+        fullPhase   = Array{numeric_type(sys),2}(undef, ny, nu)
     end
     for j=1:nu
         for i=1:ny
@@ -259,7 +263,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
     for i = eachindex(wgm)
-        gm[i] = 1./abs(freqresp(sys,[wgm[i]])[1][1])
+        gm[i] = 1 ./ abs(freqresp(sys,[wgm[i]])[1][1])
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
@@ -302,13 +306,13 @@ function interpolate(fi, list)
 end
 
 function _allGainCrossings(w, mag)
-    _findCrossings(w,mag.>1,mag-1)
+    _findCrossings(w,mag.>1,mag.-1)
 end
 
 function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
-    n =  Vector{eltype(w)}(length(w)) #Nbr of crossed
-    ph = Vector{eltype(w)}(length(w)) #Residual
+    n =  Vector{eltype(w)}(undef, length(w)) #Nbr of crossed
+    ph = Vector{eltype(w)}(undef, length(w)) #Residual
     for i = eachindex(w) #Found no easier way to do this
         n[i], ph[i] = fldmod(phase[i]+180,360)#+180
     end

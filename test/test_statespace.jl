@@ -7,6 +7,7 @@
 # dims: "nxnuny"
 # feedthrough: append "_d" if `D` is present
 # names: append "_n" if some inputs/outputs/states are named
+
 @testset "test_statespace" begin
 # SCALARS
 a_2 = [-5 -3; 2 -9]
@@ -14,17 +15,17 @@ CS_111 = ss(-5, 2, 3, [0])
 CS_111_d = ss([3], 2, 1, 1)
 CS_211 = ss(a_2, [1; 2], [1 0], 0)
 CS_221 = ss(a_2, [1 0; 0 2], [1 0], 0)
-CS_222 = ss(a_2, [1 0; 0 2], eye(2), 0)
+CS_222 = ss(a_2, [1 0; 0 2], eye_(2), 0)
 
 # CONTINUOUS
 a_1 = [-5]
 C_111 = ss(a_1, [2], [3], [0])
 C_211 = ss(a_2, [1; 2], [1 0], [0])
-C_212 = ss(a_2, [1; 2], eye(2), [0; 0])
+C_212 = ss(a_2, [1; 2], eye_(2), [0; 0])
 C_221 = ss(a_2, [1 0; 0 2], [1 0], [0 0])
-C_222 = ss(a_2, [1 0; 0 2], eye(2), zeros(2,2))
-C_222_d = ss(a_2, [1 0; 0 2], eye(2), eye(2))
-C_022 = ss(4*eye(2))
+C_222 = ss(a_2, [1 0; 0 2], eye_(2), zeros(2,2))
+C_222_d = ss(a_2, [1 0; 0 2], eye_(2), eye_(2))
+C_022 = ss(4.0*eye_(2))
 
 # DISCRETE
 da_1 = [-0.5]
@@ -32,12 +33,12 @@ da_2 = [0.2 -0.8; -0.8 0.07]
 D_111 = ss(da_1, [2], [3], [0], 0.005)
 D_211 = ss(da_2, [1; 2], [1 0], [0], 0.005)
 D_221 = ss(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
-D_222 = ss(da_2, [1 0; 0 2], eye(2), zeros(2,2), 0.005)
-D_222_d = ss(da_2, [1 0; 0 2], eye(2), eye(2), 0.005)
-D_022 = ss(4*eye(2), 0.005)
+D_222 = ss(da_2, [1 0; 0 2], eye_(2), zeros(2,2), 0.005)
+D_222_d = ss(da_2, [1 0; 0 2], eye_(2), eye_(2), 0.005)
+D_022 = ss(4.0*eye_(2), 0.005)
 
 # Definition of input, output and state names
-C_222_d_n = ss(a_2, [1 0; 0 2], eye(2), eye(2))
+C_222_d_n = ss(a_2, [1 0; 0 2], eye_(2), eye_(2))
 
 # TESTS
 # Contstuct with scalars
@@ -99,13 +100,13 @@ sys = ss(A, B, C, D)
 
 
 # Printing
-res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nA = \n -5.0  -3.0\n  2.0  -9.0\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nContinuous-time state-space model")
+res = ("StateSpace{Float64,Array{Float64,2}}\nA = \n -5.0  -3.0\n  2.0  -9.0\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nContinuous-time state-space model")
 @test sprint(show, C_222) == res
-res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model")
+res = ("StateSpace{Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model")
 @test sprint(show, D_222) == res
-res = ("ControlSystems.StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nStatic gain")
+res = ("StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nStatic gain")
 @test sprint(show, C_022) == res
-res = "ControlSystems.StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nStatic gain"
+res = "StateSpace{Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nStatic gain"
 @test sprint(show, D_022) == res
 
 # Errors
@@ -125,5 +126,5 @@ D_diffTs = ss([1], [2], [3], [4], 0.1)
 @test_throws ErrorException ss([1], [2 0], [1], [2])      # I/0 dim mismatch
 @test_throws ErrorException ss([1], [2], [3 4], [1])      # I/0 dim mismatch
 @test_throws ErrorException ss([1], [2], [3], [4], -0.1)  # Negative samping time
-@test_throws ErrorException ss(eye(2), eye(2), eye(2), [0]) # Dimension mismatch
+@test_throws ErrorException ss(eye_(2), eye_(2), eye_(2), [0]) # Dimension mismatch
 end

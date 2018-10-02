@@ -10,9 +10,10 @@ numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
 to_matrix(T, A::Vector) = Matrix{T}(reshape(A, length(A), 1))
-to_matrix(T, A::AbstractMatrix) = Matrix{T}(A)
+to_matrix(T, A::AbstractMatrix) = T.(A)  # Fallback
 to_matrix(T, A::Number) = fill(T(A), 1, 1)
-
+# Handle Adjoint Matrices
+to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
 
 
@@ -25,7 +26,7 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
-    poly_factors = Vector{Poly{T}}(0)
+    poly_factors = Vector{Poly{T}}()
 
     for k=1:length(roots)
         r = roots[k]
@@ -92,7 +93,7 @@ function unwrap!(M::Array, dim=1)
         # d = M[i,:,:,...,:] - M[i-1,:,...,:]
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
-        M[alldims(i)...] -= floor.((d+π) / 2π) * 2π
+        M[alldims(i)...] -= floor.((d .+ π) / 2π) * 2π
     end
     return M
 end

@@ -14,9 +14,11 @@ To install, in the Julia REPL:
 ```julia
 Pkg.add("ControlSystems")
 ```
-Note that the latest version of this package requires Julia 0.6. Supporting Julia v0.7 is ongoing.
 
 ## News
+### 2018-09-30
+Support for Julia 0.7/1.0 added.
+
 ### 2018-09-01
 - LTISystem types are now more generic and can hold matrices/vectors of arbitrary type. Examples (partly pseudo-code):
 ```julia

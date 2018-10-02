@@ -8,10 +8,10 @@
 # CONTINUOUS
 C_111 = zpk([-2],[-5],1)
 C_211 = zpk([-1+sqrt(2)im,-1-sqrt(2)im], [-5,-3],1)
-C_212 = zpk(vecarray(2, 1, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(2, 1, [-5,-3], [-5,-3]), [1;1])
-C_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2, [-5,-3], [-5,-3]), [1 1])
+C_212 = zpk(vecarray(2, 1, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(2, 1, [-5,-3], [-5,-3]), fill(1, 2, 1))
+C_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2, [-5,-3], [-5,-3]), fill(1, 1, 2))
 C_222 = [C_221; C_221]
-C_022 = zpk(4eye(2))
+C_022 = zpk([4 0; 0 4])
 s = zpk("s")
 
 # DISCRETE
@@ -19,7 +19,7 @@ D_111 = zpk([-2], [0.5], 1, 0.005)
 D_211 = zpk([-1+sqrt(2)im,-1-sqrt(2)im], [-0.3, 0.5], 1, 0.005)
 D_221 = zpk(vecarray(1, 2, [-1+sqrt(2)im,-1-sqrt(2)im], [-2]), vecarray(1, 2, [-0.3, 0.5], [-0.3, 0.5]), [1 1], 0.005)
 D_222 = [D_221; D_221]
-D_022 = zpk(4eye(2), 0.005)
+D_022 = zpk([4 0; 0 4], 0.005)
 z = zpk("z", 0.005)
 
 # TESTS
@@ -30,13 +30,13 @@ z = zpk("z", 0.005)
 @test D_022 == zpk(vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4], 0.005)
 @test C_022 == [zpk(4) 0;0 4]
 #TODO We might want to fix this
-#@test D_022 == [zpk(4, 0.005) 0;0 4])
+@test_broken D_022 == [zpk(4, 0.005) 0;0 4]
 
 # Test constructors with empty matrices of type Any
 @test zpk([-1.0], [], 1.0) == zpk([-1.0], Float64[], 1.0)
 @test zpk([], [-1.0], 1.0) == zpk(Float64[], [-1.0], 1.0)
 @test zpk([], [], 1.0) == zpk(Float64[], Float64[], 1.0)
-@test zpk([], [1.0+im,1.0-im], 1.0) == zpk(Complex128[], [1.0+im,1.0-im], 1.0)
+@test zpk([], [1.0+im,1.0-im], 1.0) == zpk(ComplexF64[], [1.0+im,1.0-im], 1.0)
 
 
 

@@ -24,14 +24,14 @@ Other uses:
 """
 function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::Real=0.0) where {T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
-    if !(size(z, 1, 2) == size(p, 1, 2) == size(k, 1, 2))
-        error("Dimensions for s, p, and k must match")
+    if !(size(z) == size(p) == size(k))
+        error("Dimensions for z, p, and k must match")
     end
 
     TR = promote_type(T0,TZ,TP)
-    T = promote_type(T0, real(TR)) # Ensuring this avoids many problems, e.g., with SisoZpk{Int64,Complex128}
+    T = promote_type(T0, real(TR)) # Ensuring this avoids many problems, e.g., with SisoZpk{Int64,ComplexF64}
 
-    matrix = Array{SisoZpk{T, TR}}(size(z,1), size(z,2)) # TODO: make this nicer
+    matrix = Array{SisoZpk{T, TR}}(undef, size(z,1), size(z,2)) # TODO: make this nicer
     for o=1:size(z,1)
         for i=1:size(z,2)
             matrix[o, i] = SisoZpk{T,TR}(z[o, i], p[o, i], k[o, i])
@@ -44,7 +44,7 @@ function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::Real=0.0) w
 end
 
 function zpk(gain::Matrix{T}, Ts::Real=0; kwargs...) where {T <: Number}
-    TR = promote_type(Complex128,T)
+    TR = promote_type(ComplexF64,T)
     ny, nu = size(gain)
     matrix = [SisoZpk{T, TR}(TR[],TR[], gain[o, i]) for o=1:ny, i=1:nu]
     return TransferFunction{SisoZpk{T,TR}}(matrix, Ts)

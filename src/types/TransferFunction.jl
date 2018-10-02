@@ -1,4 +1,4 @@
-mutable struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
     Ts::Float64
     nu::Int
@@ -52,7 +52,7 @@ function Base.getindex(G::TransferFunction{S}, inds...) where {S<:SisoTf}
         error("Must specify 2 indices to index TransferFunction model")
     end
     rows, cols = index2range(inds...)
-    mat = Matrix{S}(length(rows), length(cols))
+    mat = Matrix{S}(undef, length(rows), length(cols))
     mat[:, :] = G.matrix[rows, cols]
     return TransferFunction(mat, G.Ts)
 end
@@ -61,6 +61,8 @@ function Base.copy(G::TransferFunction)
     return TransferFunction(copy(G.matrix), G.Ts)
 end
 
+numvec(G::TransferFunction) = map(numvec, G.matrix)
+denvec(G::TransferFunction) = map(denvec, G.matrix)
 
 numpoly(G::TransferFunction) = map(numpoly, G.matrix)
 denpoly(G::TransferFunction) = map(denpoly, G.matrix)
@@ -80,7 +82,7 @@ end
 """`isproper(tf)`
 
 Returns `true` if the `TransferFunction` is proper. This means that order(den)
-\>= order(num))"""
+>= order(num))"""
 function isproper(G::TransferFunction)
     return all(isproper(f) for f in G.matrix)
 end
@@ -112,7 +114,7 @@ function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
 end
 
 function isapprox(G1::Array{T}, G2::Array{S}; kwargs...) where {T<:SisoTf, S<:SisoTf}
-    reduce(&, [isapprox(G1[i], G2[i]; kwargs...) for i in eachindex(G1)])
+    all(i -> isapprox(G1[i], G2[i]; kwargs...), eachindex(G1))
 end
 
 ## ADDITION ##
@@ -127,11 +129,11 @@ function +(G1::TransferFunction, G2::TransferFunction)
     return TransferFunction(matrix, G1.Ts)
 end
 
-+(G::TransferFunction, n::Number) = TransferFunction(G.matrix + n, G.Ts)
++(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.Ts)
 +(n::Number, G::TransferFunction) = +(G, n)
 
 ## SUBTRACTION ##
--(n::Number, G::TransferFunction) = TransferFunction(n - G.matrix, G.Ts)
+-(n::Number, G::TransferFunction) = TransferFunction(n .- G.matrix, G.Ts)
 -(G1::TransferFunction, G2::TransferFunction) = +(G1, -G2)
 -(G::TransferFunction, n::Number) = +(G, -n)
 
@@ -166,6 +168,8 @@ function /(n::Number, G::TransferFunction)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
+
+Base.:^(sys::TransferFunction, p::Integer) = Base.power_by_squaring(sys, p)
 
 #####################################################################
 ##                        Display Functions                        ##

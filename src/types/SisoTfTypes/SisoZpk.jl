@@ -60,8 +60,8 @@ denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
 numpoly(f::SisoZpk) = f.k*prod(roots2poly_factors(f.z))
 denpoly(f::SisoZpk) = prod(roots2poly_factors(f.p))
 
-num(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
-den(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
+numvec(f::SisoZpk) = reverse(coeffs(numpoly(f))) # FIXME: reverse?!
+denvec(f::SisoZpk) = reverse(coeffs(denpoly(f))) # FIXME: reverse?!
 
 isproper(f::SisoZpk) = (length(f.z) <= length(f.p))
 
@@ -74,7 +74,7 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
     end
 
     newZ = copy(sys.z)
-    newP = Vector{TR}(0)
+    newP = Vector{TR}()
 
     pidx = 1
     p = sys.p[pidx]
@@ -82,7 +82,7 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
         if isempty(newZ)
             push!(newP, p)
         else
-            distance, zidx = findmin(abs.(p-newZ))
+            distance, zidx = findmin(abs.(p .- newZ))
 
             if distance < eps
                 if imag(p) == 0 && imag(newZ[zidx]) != 0
@@ -138,11 +138,12 @@ end
 function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
     T0 = promote_type(T2, TR)
     T = promote_type(T1, Base.promote_op(/, T0, T0))
-    den = reduce(*, one(T0), s-a for a in f.p) # Default to one
+    den = mapreduce(a -> s-a, *, f.p, init = one(T0)) # Default to one
+
     if den == zero(T0)
         return convert(T, Inf)
     else
-        num = reduce(*, one(T0), s-b for b in f.z)
+        num = mapreduce(b -> s-b, *, f.z, init=one(T0))
         return f.k*num/den
     end
 end
@@ -150,11 +151,11 @@ end
 
 function poly_factors2string(poly_factors::AbstractArray{<:Poly{T}}, var) where T
     if length(poly_factors) == 0
-        str = sprint(printpolyfun(var), Poly{T}(one(T)))
+        str = sprint(printpolyfun(var), Poly(one(T)))
     elseif length(poly_factors) == 1
         str = sprint(printpolyfun(var), poly_factors[1])
     else
-        str = reduce(*,"",["("*sprint(printpolyfun(var), z)*")" for z in poly_factors])
+        str = prod(z -> "("*sprint(printpolyfun(var), z)*")", poly_factors)
     end
 end
 
@@ -165,7 +166,7 @@ function _printcoefficient(nbr::Number)
     # Print type information as in 1.0f0 for Float32
     # showcompact might be better, but is not consistent with polynomials
     nbr_string = sprint(show,nbr)
-    if contains(nbr_string, " + ") || contains(nbr_string, " - ") || contains(nbr_string, " ± ")
+    if occursin(" + ", nbr_string) || occursin(" - ", nbr_string) || occursin(" ± ", nbr_string)
         return "(" * nbr_string * ")" # Add parens
     else
         return nbr_string

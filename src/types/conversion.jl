@@ -50,7 +50,7 @@ Base.convert(::Type{StateSpace{T, MT}}, b::Number) where {T, MT} = convert(State
 #
 
 function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
-    Gnew_matrix = Matrix{S}(size(G))
+    Gnew_matrix = Matrix{S}(undef, size(G))
     for i in eachindex(G.matrix)
         Gnew_matrix[i] = convert(S, G.matrix[i])
     end
@@ -76,15 +76,15 @@ function Base.convert(::Type{StateSpace{T,MT}}, G::TransferFunction) where {T<:N
     # could be much cleaner.
     #T = Base.promote_op(/, T0, T0)
 
-    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(0, 0)
+    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(undef, 0, 0)
     for i=1:ninputs(G)
         for j=1:noutputs(G)
             a, b, c, d = siso_tf_to_ss(T, G.matrix[j, i])
             if j > 1
                 # vcat
-                Ac = blkdiag(Ac, a)
+                Ac = blockdiag(Ac, a)
                 Bc = vcat(Bc, b)
-                Cc = blkdiag(Cc, c)
+                Cc = blockdiag(Cc, c)
                 Dc = vcat(Dc, d)
             else
                 Ac, Bc, Cc, Dc = a, b, c, d
@@ -92,8 +92,8 @@ function Base.convert(::Type{StateSpace{T,MT}}, G::TransferFunction) where {T<:N
         end
         if i > 1
             # hcat
-            A = blkdiag(A, Ac)
-            B = blkdiag(B, Bc)
+            A = blockdiag(A, Ac)
+            B = blockdiag(B, Bc)
             C = hcat(C, Cc)
             D = hcat(D, Dc)
         else
@@ -109,7 +109,7 @@ siso_tf_to_ss(T::Type, f::SisoTf) = siso_tf_to_ss(T, convert(SisoRational, f))
 # Conversion to statespace on controllable canonical form
 function siso_tf_to_ss(T::Type, f::SisoRational)
 
-    num0, den0 = Base.num(f), Base.den(f)
+    num0, den0 = numvec(f), denvec(f)
     # Normalize the numerator and denominator,
     # To allow realization of transfer functions that are proper, but now strictly proper
     num = num0 / den0[1]
@@ -125,7 +125,7 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
         B = fill(zero(T), 0, 1)
         C = fill(zero(T), 1, 0)
     else
-        A = diagm(fill(one(T), N-1), 1)
+        A = diagm(1 => fill(one(T), N-1))
         A[end, :] .= -reverse(den)[1:end-1]
 
         B = fill(zero(T), N, 1)
@@ -196,13 +196,17 @@ Computes a balancing transformation `T` that attempts to scale the system so
 that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
 If `perm=true`, the states in `A` are allowed to be reordered.
 
+No balancing will be done if `A, B C` are not BLAS compatible
+
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 See also `balance_statespace`, `balance`
 """
-function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::AbstractArray{R}, perm::Bool=false) where {R<:BlasFloat}
+function balance_transform(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    T = [A B; C zeros(R, size(C*B))]
+    R = promote_type(eltype(A), eltype(B), eltype(C), Float32) # Make sure we get at least BlasFloat
+    T = R[A B; C zeros(R, size(C*B))]
+
     size(T,1) < size(T,2) && (T = [T; zeros(R, size(T,2)-size(T,1),size(T,2))])
     size(T,1) > size(T,2) && (T = [T zeros(R, size(T,1),size(T,1)-size(T,2))])
     S = diag(balance(T, false)[1])
@@ -212,7 +216,7 @@ function balance_transform(A::AbstractArray{R}, B::AbstractArray{R}, C::Abstract
     pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
     # Compute the transformation matrix
     T = zeros(R, nx, nx)
-    T[pvec, :] = Sio * diagm(R(1)./Sx)
+    T[pvec, :] = Sio * diagm(0 => R(1)./Sx)
     return T
 end
 
@@ -222,7 +226,7 @@ balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,s
 convert(::Type{TransferFunction}, sys::StateSpace) = convert(TransferFunction{SisoRational}, sys)
 
 function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) where {T<:Number}
-    matrix = Matrix{SisoRational{T}}(size(sys))
+    matrix = Matrix{SisoRational{T}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
 
@@ -244,11 +248,11 @@ end
 
 
 function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where {T<:Number, TR <: Number}
-    matrix = Matrix{SisoZpk{T,TR}}(size(sys))
+    matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
 
-    for j=1:noutputs(sys), i=1:ninputs(sys)
+    for i=1:noutputs(sys), j=1:ninputs(sys)
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
@@ -259,6 +263,9 @@ function convert(::Type{TransferFunction{SisoZpk}}, sys::StateSpace{T0}) where {
     convert(TransferFunction{SisoZpk{T,complex(T)}}, sys)
 end
 
+"""
+Convert get zpk representation of sys from input j to output i
+"""
 function siso_ss_to_zpk(sys, i, j)
     A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, j:j], sys.C[i:i, :])
     D = sys.D[i:i, j:j]

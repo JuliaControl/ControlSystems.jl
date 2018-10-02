@@ -10,14 +10,18 @@ http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 function care(A, B, Q, R)
     G = try
         B*inv(R)*B'
-    catch
-        error("R must be non-singular.")
+    catch y
+        if y isa SingularException
+            error("R must be non-singular.")
+        else
+            throw(t)
+        end
     end
 
     Z = [A  -G;
         -Q  -A']
 
-    S = schurfact(Z)
+    S = schur(Z)
     S = ordschur(S, real(S.values).<0)
     U = S.Z
 
@@ -53,7 +57,7 @@ function dare(A, B, Q, R)
     Z = [A + G*Ait*Q   -G*Ait;
          -Ait*Q        Ait]
 
-    S = schurfact(Z)
+    S = schur(Z)
     S = ordschur(S, abs.(S.values).<=1)
     U = S.Z
 
@@ -65,12 +69,12 @@ end
 
 """`dlyap(A, Q)`
 
-Compute the solution "X" to the discrete Lyapunov equation
-"AXA' - X + Q = 0".
+Compute the solution `X` to the discrete Lyapunov equation
+`AXA' - X + Q = 0`.
 """
-function dlyap(A, Q)
+function dlyap(A::AbstractMatrix{T}, Q) where T
     lhs = kron(A, conj(A))
-    lhs = eye(size(lhs, 1)) - lhs
+    lhs = I - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
     return reshape(x, size(Q))
 end
@@ -87,9 +91,9 @@ function gram(sys::StateSpace, opt::Symbol)
     func = iscontinuous(sys) ? lyap : dlyap
     if opt == :c
         # TODO probably remove type check in julia 0.7.0
-        return func(sys.A, sys.B*sys.B')::Array{numeric_type(sys),2} # lyap is type-unstable
+        return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
     elseif opt == :o
-        return func(sys.A', sys.C'*sys.C)::Array{numeric_type(sys),2} # lyap is type-unstable
+        return func(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -148,10 +152,10 @@ white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac de
 
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
-(D*W*D.' .!= 0) for contunuous systems."""
-function covar(sys::StateSpace, W::StridedMatrix)
+(D*W*D' .!= 0) for contunuous systems."""
+function covar(sys::StateSpace, W)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
-    if size(B,2) != size(W, 1) || size(W, 1) != size(W, 2)
+    if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
     if !isstable(sys)
@@ -169,8 +173,8 @@ function covar(sys::StateSpace, W::StridedMatrix)
         directNoise = D*W*D'
         for i in 1:size(C,1)
             if directNoise[i,i] != 0
-                P[i,:] = Inf
-                P[:,i] = Inf
+                P[i,:] .= Inf
+                P[:,i] .= Inf
             end
         end
     else
@@ -179,7 +183,7 @@ function covar(sys::StateSpace, W::StridedMatrix)
     return P
 end
 
-covar(sys::TransferFunction, W::StridedMatrix) = covar(ss(sys), W)
+covar(sys::TransferFunction, W) = covar(ss(sys), W)
 
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
@@ -206,9 +210,9 @@ For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """
-function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::StateSpace, p::Real=2; tol=1e-6)
     if p == 2
-        return sqrt(trace(covar(sys, eye(size(sys.B, 2)))))
+        return sqrt(tr(covar(sys, I)))
     elseif p == Inf
         if sys.Ts == 0
             return normLinf_twoSteps_ct(sys,tol)[1]
@@ -220,8 +224,8 @@ function Base.norm(sys::StateSpace, p::Real=2; tol=1e-6)
     end
 end
 
-function Base.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
-    return Base.norm(ss(sys), p, tol=tol)
+function LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
+    return norm(ss(sys), p, tol=tol)
 end
 
 """
@@ -261,14 +265,14 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: pair of Float64, namely L∞ norm approximation and frequency fpeak at which it is achieved
-    T = promote_type(numeric_type(sys), Float32)
+    T = promote_type(numeric_type(sys), Float64)
     if sys.nx == 0  # static gain
-        return (norm(sys.D,2), T(0))
+        return (svdvals(sys.D)[1], T(0))
     end
     p = pole(sys)
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(map(x->isapprox(x,0.0),real(p)))
-    if pidx > 0
+    if !(pidx isa Nothing)
         return (T(Inf), imag(p[pidx]))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     else
@@ -283,7 +287,7 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
             omegap = minimum(abs.(p))
         else  # at least one pair of complex poles
             tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
-            omegap = abs(p[indmax(tmp)])
+            omegap = abs(p[argmax(tmp)])    # TODO This is highly suspicious
         end
         (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0
         if idx == 2
@@ -294,8 +298,8 @@ function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approxim
         iter = 1;
         while iter <= maxIters
             res = (1+2*T(tol))*lb
-            R = sys.D'*sys.D - res^2*eye(T, sys.nu)
-            S = sys.D*sys.D' - res^2*eye(T, sys.ny)
+            R = sys.D'*sys.D - res^2*I
+            S = sys.D*sys.D' - res^2*I
             M = sys.A-sys.B*(R\sys.D')*sys.C
             H = [         M              -res*sys.B*(R\sys.B') ;
                    res*sys.C'*(S\sys.C)            -M'            ]
@@ -322,14 +326,14 @@ end
 # discrete-time version of normHinf_twoSteps_ct above
 # The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
 function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
-    T = promote_type(numeric_type(sys), Float32)
+    T = promote_type(numeric_type(sys), Float64)
     if sys.nx == 0  # static gain
-        return (norm(sys.D,2), T(0))
+        return (svdvals(sys.D)[1], T(0))
     end
     p = pole(sys)
     # Check first if there is a pole on the unit circle
     pidx = findfirst(map(x->isapprox(x,1.0),abs.(p)))
-    if (pidx > 0)
+    if !(pidx isa Nothing)
         return (T(Inf), angle(p[pidx])/abs(T(sys.Ts)))
     else
         # Initialization: computation of a lower bound from 3 terms
@@ -343,7 +347,7 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
         p = p[imag(p).>0]
         if ~isempty(p)  # not just real poles
             # find frequency of pôle closest to unit circle
-            omegap = angle(p[findmin(abs.(abs.(p)-1))[2]])
+            omegap = angle(p[findmin(abs.(abs.(p).-1))[2]])
         else
             omegap = T(pi)/2
         end
@@ -356,16 +360,16 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
         iter = 1;
         while iter <= maxIters
             res = (1+2*T(tol))*lb
-            R = res^2*eye(T, sys.nu) - sys.D'*sys.D
+            R = res^2*I - sys.D'*sys.D
             RinvDt = R\sys.D'
             L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
-                  zeros(T, sys.nx,sys.nx)      eye(T, sys.nx)]
-            M = [ eye(T, sys.nx)                              zeros(T, sys.nx,sys.nx);
-                  sys.C'*(eye(T, sys.ny)+sys.D*RinvDt)*sys.C  L[1:sys.nx,1:sys.nx]']
+                  zeros(T, sys.nx,sys.nx)      I]
+            M = [ I                                 zeros(T, sys.nx,sys.nx);
+                  sys.C'*(I+sys.D*RinvDt)*sys.C     L[1:sys.nx,1:sys.nx]']
             # +0im to make type stable
             zs = eigvals(L,M) .+ 0im # generalized eigenvalues
             # are there eigenvalues on the unit circle?
-            omegaps = angle.(zs[ (abs.(abs.(zs)-1) .<= approxcirc) .& (imag(zs).>=0)])
+            omegaps = angle.(zs[ (abs.(abs.(zs).-1) .<= approxcirc) .& (imag(zs).>=0)])
             sort!(omegaps)
             if isempty(omegaps)
                 return (1+T(tol))*lb, fpeak/T(sys.Ts)
@@ -391,16 +395,16 @@ Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale, and not permute `A`."""
 function balance(A, perm::Bool=true)
-    n = Base.LinAlg.checksquare(A)
+    n = LinearAlgebra.checksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
     ilo, ihi, scaling = LAPACK.gebal!(job, B)
 
-    S = diagm(scaling)
+    S = diagm(0 => scaling)
     for j = 1:(ilo-1)   S[j,j] = 1 end
     for j = (ihi+1):n   S[j,j] = 1 end
 
-    P = eye(Int, n)
+    P = Matrix{Int}(I,n,n)
     if perm
         if ilo > 1
             for j = (ilo-1):-1:1 cswap!(j, round(Int, scaling[j]), P) end
@@ -432,16 +436,21 @@ Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 function balreal(sys::StateSpace)
 P = gram(sys, :c)
 Q = gram(sys, :o)
-Q1 = chol(Q)
+
+Q1 = try
+    cholesky(Q).U
+catch
+    throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
+end
 U,Σ,V = svd(Q1*P*Q1')
 Σ .= sqrt.(Σ)
-Σ1 = diagm(sqrt.(Σ))
+Σ1 = diagm(0 => sqrt.(Σ))
 T = Σ1\(U'Q1)
 
 Pz = T*P*T'
 Qz = inv(T')*Q*inv(T)
-if vecnorm(Pz-Qz) > sqrt(eps())
-    warn("balreal: Result may be inaccurate")
+if norm(Pz-Qz) > sqrt(eps())
+    @warn("balreal: Result may be inaccurate")
     println("Controllability gramian before transform")
     display(P)
     println("Controllability gramian after transform")
@@ -454,7 +463,7 @@ if vecnorm(Pz-Qz) > sqrt(eps())
     display(Σ)
 end
 
-sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(Σ)
+sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(0 => Σ)
 end
 
 
@@ -481,5 +490,5 @@ function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = t
         D = D/(C*inv(-A)*B)
     end
 
-    return ss(A,B,C,D), diagm(S)
+    return ss(A,B,C,D), diagm(0 => S)
 end

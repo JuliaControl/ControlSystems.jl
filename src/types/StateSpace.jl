@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-type StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
+struct StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
     A::MT
     B::MT
     C::MT
@@ -37,10 +37,12 @@ type StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
         new{T, MT}(A, B, C, D, Ts, nx, nu, ny)
     end
 end
+
 function StateSpace{T,MT}(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
         return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)),
             MT(to_matrix(T, D)), Float64(Ts))
 end
+
 function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
         # TODO: change back in 0.7 T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
         T = promote_type(promote_type(eltype(A),eltype(B)), promote_type(eltype(C),eltype(D)))
@@ -75,8 +77,7 @@ end
 
 ## Approximate ##
 function isapprox(sys1::StateSpace, sys2::StateSpace)
-    fieldsApprox = [:A, :B, :C, :D, :Ts]
-    return all(sys1.f ≈ sys2.f for f in fieldnames(fieldsApprox))
+    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(StateSpace))
 end
 
 ## ADDITION ##
@@ -147,6 +148,7 @@ end
 Base.inv(sys::StateSpace) = 1/sys
 /(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
 
+Base.:^(sys::StateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 
 
 #####################################################################
@@ -169,20 +171,11 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
-# TODO : this is a very hacky way of handling StateSpace printing.
-# function _string_mat_with_headers(X::Matrix, cols::Vector{String},
-#                                 rows::Vector{String})
-#     mat = [[""] reshape(cols,1,length(cols));
-#            rows X]
-#     p = (io, m) -> Base.showarray(io, m, false, header=false)
-#     return replace(sprint(p, mat), "\"", " ")
-# end
-
 function _string_mat_with_headers(X::Matrix)
     #mat = [[""] reshape(cols,1,length(cols));
     #       rows X]
-    p = (io, m) -> Base.showarray(io, m, false, header=false)
-    return replace(sprint(p, X), "\"", " ")
+    p = (io, m) -> Base.print_matrix(io, m)
+    return replace(sprint(p, X), "\"" => " ")
 end
 
 Base.print(io::IO, sys::StateSpace) = show(io, sys)
@@ -234,16 +227,16 @@ end
 
 
 """
-`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal. The result is rounded to `digits` decimal points.
+`dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal.
 """
 function diagonalize(s::StateSpace, digits = 12)
-    r = x -> round(x,digits)
-    S,V = eig(s.A)
+    r = x -> round(x, digits=digits)
+    S,V = eigen(s.A)
     try
-        A = V\s.A*V     .|> r
-        B = V\s.B       .|> r
-        C = s.C*V       .|> r
-        D = s.D         .|> r
+        A = diagm(0 => S)
+        B = V\s.B
+        C = s.C*V
+        D = s.D
         return ss(A,B,C,D)
     catch e
         error("System not diagonalizable", e)

@@ -41,7 +41,7 @@ TG2 = typeof(G2)
 @test promote(zpk(1), tf(1.)) == (zpk(1.), zpk(1.))
 @test promote(tf([1 + im]), tf([1.])) == (tf([1. + im]), tf([1. + 0*im]))
 @test promote(zpk(1), tf(1)) == (zpk(1.), zpk(1.))
-@test promote(ss(1), ss([1.*im])) == (ss([1+0*im]),ss([1.*im]))
-@test promote(ss(1), tf([1.*im])) == (ss([1+0*im]),ss([1.*im]))
+@test promote(ss(1), ss([1 .*im])) == (ss([1+0*im]),ss([1 .*im]))
+@test promote(ss(1), tf([1 .*im])) == (ss([1+0*im]),ss([1 .*im]))
 
 end

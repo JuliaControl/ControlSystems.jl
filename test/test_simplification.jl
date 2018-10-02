@@ -18,6 +18,12 @@ sysmin = minreal(sys)
 
 @test size(sysmin.A,1) == 3 # Test that the reduction of sys worked
 
+@test norminf(sys - sysmin)[1] < 1e-15 # And that the answer is correct
+
+@test_broken balreal(sys-sysmin)
+
+@test all(sigma(sys-sysmin, [0.0, 1.0, 2.0])[1] .< 1e-15)  # Previously crashed because of zero dimensions in tzero
+
 t = 0:0.1:10
 y1,x1 = step(sys,t)[[1,3]]
 y2,x2 = step(sysmin,t)[[1,3]]
