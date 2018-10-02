@@ -252,7 +252,7 @@ function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where
 
     A, B, C, D = ssdata(sys)
 
-    for j=1:noutputs(sys), i=1:ninputs(sys)
+    for i=1:noutputs(sys), j=1:ninputs(sys)
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
@@ -263,6 +263,9 @@ function convert(::Type{TransferFunction{SisoZpk}}, sys::StateSpace{T0}) where {
     convert(TransferFunction{SisoZpk{T,complex(T)}}, sys)
 end
 
+"""
+Convert get zpk representation of sys from input j to output i
+"""
 function siso_ss_to_zpk(sys, i, j)
     A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, j:j], sys.C[i:i, :])
     D = sys.D[i:i, j:j]

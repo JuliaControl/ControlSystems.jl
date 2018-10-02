@@ -103,6 +103,8 @@ G3 = tf([1,1],[1,0,-1])
 @test G2 ≈ tf(ss(G2)) atol=1e-15
 @test G3 ≈ tf(ss(G3)) atol=1e-15
 
+### test mimo
+@test norminf(zpk([sys1 sys2])-zpk([ss(sys1) ss(sys2)]))[1] < 1e-12
 
 ## Test some rather trivial conversions of numeric types
 
