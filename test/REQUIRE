@@ -1,6 +1,4 @@
 julia 0.7
-# VisualRegressionTests
-# GR
-# Plots
-# FactCheck
-# Gtk
+VisualRegressionTests
+GR
+Plots

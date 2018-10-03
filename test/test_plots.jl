@@ -1,9 +1,10 @@
 
 module PlotTests
-using ControlSystems, Plots
-using VisualRegressionTests, ControlExamplePlots
+
+using ControlSystems
+using ControlExamplePlots, Plots
 using Test
-gr()
+Plots.gr()
 default(show=false)
 
 @testset "test_plots" begin

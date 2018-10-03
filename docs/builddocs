@@ -6,8 +6,8 @@ else
 juliapath=$1
 fi
 
-$juliapath -e '"Documenter" in keys(Pkg.installed()) || Pkg.add("Documenter");'
-$juliapath -e '"PyPlot" in keys(Pkg.installed()) || Pkg.add("PyPlot");'
+$juliapath -e 'using Pkg; "Documenter" in keys(Pkg.installed()) || Pkg.add("Documenter");'
+$juliapath -e 'using Pkg; "PyPlot" in keys(Pkg.installed()) || Pkg.add("PyPlot");'
 
 $juliapath make.jl
 

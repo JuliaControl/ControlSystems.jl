@@ -1,5 +1,5 @@
 using ControlSystems
-using Test, LinearAlgebra
+using Test, LinearAlgebra, Pkg
 import Base.isapprox
 import SparseArrays: sparse
 import DSP: conv
@@ -25,13 +25,17 @@ my_tests = ["test_statespace",
             "test_lqg",
             "test_synthesis"]
 
+if get(ENV, "TRAVIS", "") != ""
+    # TODO how to do this without adding in REQUIRE?
+    Pkg.add(PackageSpec(url="https://github.com/JuliaControl/ControlExamplePlots.jl", version="0.2.0"))
+end
 
-# try
-#     Pkg.installed("ControlExamplePlots")
-#     push!(my_tests, "test_plots")
-# catch
-#     warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
-#     Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
-# end
+try
+    using ControlExamplePlots
+    push!(my_tests, "test_plots")
+catch
+    @warn "The unregistered package ControlExamplePlots is currently needed to test plots, install using:
+          Pkg.add(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")"
+end
 
 run_tests(my_tests)
