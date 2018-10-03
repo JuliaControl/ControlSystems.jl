@@ -38,11 +38,25 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-function getLogTicks(x)
+"""
+Get atributes from xlims or ylims
+default to extrema(wmag) if xlims/ylims not defined or empty
+"""
+function getlims(xylims, plotattributes, wmag)
+    lims = get(plotattributes, xylims, extrema(wmag))
+    if lims isa Tuple{<:Number, <:Number} # If x/ylims not supplied as empty
+        return lims
+    else
+        return extrema(wmag)
+    end
+end
+
+function getLogTicks(x, minmax)
+    minx, maxx =  minmax
     major_minor_limit = 6
     minor_text_limit  = 8
-    min               = ceil(log10(minimum(x)))
-    max               = floor(log10(maximum(x)))
+    min               = ceil(log10(minx))
+    max               = floor(log10(maxx))
     major             = 10 .^ collect(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
@@ -57,7 +71,7 @@ function getLogTicks(x)
             minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
         end
 
-        ind       = findall(minimum(x) .<= minor .<= maximum(x))
+        ind       = findall(minx .<= minor .<= maxx)
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
@@ -205,7 +219,7 @@ optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
     systems = p.args[1]
     if !isa(systems, AbstractArray)
         systems = typeof(systems)[systems]
@@ -222,7 +236,7 @@ bodeplot
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
-    xticks --> getLogTicks(w)
+    xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -246,7 +260,7 @@ bodeplot
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
                     if _PlotScale != "dB"
-                        yticks    --> getLogTicks(magdata)
+                        yticks    --> getLogTicks(magdata, getlims(:ylims, plotattributes, magdata))
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
@@ -260,9 +274,11 @@ bodeplot
                 if !plotphase
                     continue
                 end
+
                 @series begin
                     grid      --> true
                     xscale    --> :log10
+                    ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
                     subplot --> s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
@@ -287,8 +303,8 @@ end
         yscale --> :log10
         xscale --> :log10
         yguide --> "Magnitude"
-        xticks --> getLogTicks(w)
-        yticks --> getLogTicks(magdata)
+        xticks --> getLogTicks(w,  getlims(:xlims, plotattributes, w))
+        yticks --> getLogTicks(magdata,  getlims(:ylims, plotattributes, magdata))
         x := w; y := magdata
         ()
     end
@@ -306,7 +322,7 @@ end
         xscale --> :log10
         yguide --> "Phase (deg)"
         xguide --> "Frequency (rad/s)"
-        xticks --> getLogTicks(w)
+        xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
         x := w; y := phasedata
         ()
     end
