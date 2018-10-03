@@ -173,25 +173,25 @@
 <p><code>mag, phase, w = bode(sys[, w])</code></p>
 <p>Compute the magnitude and phase parts of the frequency response of system <code>sys</code> at frequencies <code>w</code></p>
 <p><code>mag</code> and <code>phase</code> has size <code>(length(w), ny, nu)</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/freqresp.jl#L120-L126' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/freqresp.jl#L119-L125' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.evalfr' href='#ControlSystems.evalfr'>#</a>
 <strong><code>ControlSystems.evalfr</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>evalfr(sys, x)</code> Evaluate the transfer function of the LTI system sys at the complex number s=x (continuous-time) or z=x (discrete-time).</p>
 <p>For many values of <code>x</code>, use <code>freqresp</code> instead.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/freqresp.jl#L61-L66' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/freqresp.jl#L60-L65' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.freqresp' href='#ControlSystems.freqresp'>#</a>
 <strong><code>ControlSystems.freqresp</code></strong> &mdash; <em>Function</em>.</p>
 <p>sys_fr = freqresp(sys, w)</p>
 <p>Evaluate the frequency response of a linear system</p>
 <p><code>w -&gt; C*((iw*im -A)^-1)*B + D</code></p>
 <p>of system <code>sys</code> over the frequency vector <code>w</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/freqresp.jl#L1-L8' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/freqresp.jl#L1-L8' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.impulse' href='#ControlSystems.impulse'>#</a>
 <strong><code>ControlSystems.impulse</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>y, t, x = impulse(sys[, Tf])</code> or <code>y, t, x = impulse(sys[, t])</code></p>
 <p>Calculate the impulse response of system <code>sys</code>. If the final time <code>Tf</code> or time vector <code>t</code> is not provided, one is calculated based on the system pole locations.</p>
 <p><code>y</code> has size <code>(length(t), ny, nu)</code>, <code>x</code> has size <code>(length(t), nx, nu)</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/timeresp.jl#L34-L41' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/timeresp.jl#L34-L41' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.lsim' href='#ControlSystems.lsim'>#</a>
 <strong><code>ControlSystems.lsim</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>y, t, x = lsim(sys, u, t; x0, method])</code></p>
@@ -201,12 +201,13 @@
 <p>Continuous time systems are simulated using an ODE solver if <code>u</code> is a function. If <code>u</code> is an array, the system is discretized before simulation. For a lower level inteface, see <code>?Simulator</code> and <code>?solve</code></p>
 <p><code>u</code> can be a function or a matrix/vector of precalculated control signals. If <code>u</code> is a function, then <code>u(x,i)</code> (<code>u(x,t)</code>) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback <code>u(x,t) = -L*x</code> calculated by <code>lqr</code>. To simulate a unit step, use <code>(x,i)-&gt; 1</code>, for a ramp, use <code>(x,i)-&gt; i*h</code>, for a step at <code>t=5</code>, use (x,i)-&gt; (i*h &gt;= 5) etc.</p>
 <p>Usage example:</p>
-<pre><code class="julia">A = [0 1; 0 0]
+<pre><code class="julia">using LinearAlgebra # For identity matrix I
+A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0)
-Q = eye(2)
-R = eye(1)
+Q = I
+R = I
 L = lqr(sys,Q,R)
 
 u(x,t) = -L*x # Form control law,
@@ -216,19 +217,19 @@ y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]', xlabel=&quot;Time [s]&quot;)
 </code></pre>
 
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/timeresp.jl#L73-L105' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/timeresp.jl#L73-L106' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.nyquist' href='#ControlSystems.nyquist'>#</a>
 <strong><code>ControlSystems.nyquist</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>re, im, w = nyquist(sys[, w])</code></p>
 <p>Compute the real and imaginary parts of the frequency response of system <code>sys</code> at frequencies <code>w</code></p>
 <p><code>re</code> and <code>im</code> has size <code>(length(w), ny, nu)</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/freqresp.jl#L132-L138' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/freqresp.jl#L131-L137' class='documenter-source'>source</a><br></p>
 <p><a id='Base.step' href='#Base.step'>#</a>
 <strong><code>Base.step</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>y, t, x = step(sys[, Tf])</code> or <code>y, t, x = step(sys[, t])</code></p>
 <p>Calculate the step response of system <code>sys</code>. If the final time <code>Tf</code> or time vector <code>t</code> is not provided, one is calculated based on the system pole locations.</p>
 <p><code>y</code> has size <code>(length(t), ny, nu)</code>, <code>x</code> has size <code>(length(t), nx, nu)</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/14202a3de5e70da78516ddb75d4f029d04c37bbf/src/timeresp.jl#L5-L12' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/timeresp.jl#L5-L12' class='documenter-source'>source</a><br></p>
               
             </div>
           </div>

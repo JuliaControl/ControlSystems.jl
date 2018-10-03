@@ -2,47 +2,47 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
      <loc>/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/examples/example/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/man/introduction/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/man/creatingtfs/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/lib/constructors/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/lib/analysis/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/lib/synthesis/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/lib/timefreqresponse/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>/lib/plotting/</loc>
-     <lastmod>2018-09-04</lastmod>
+     <lastmod>2018-10-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
