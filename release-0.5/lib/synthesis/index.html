@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="JuliaControl">
+  <link rel="shortcut icon" href="../../img/favicon.ico">
+  <title>Synthesis - ControlSystems.jl</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../../css/highlight.css">
+  <link href="../../assets/Documenter.css" rel="stylesheet">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Synthesis";
+    var mkdocs_page_input_path = "lib/synthesis.md";
+    var mkdocs_page_url = "/lib/synthesis/";
+  </script>
+  
+  <script src="../../js/jquery-2.1.1.min.js"></script>
+  <script src="../../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../../js/highlight.pack.js"></script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href="../.." class="icon icon-home"> ControlSystems.jl</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <a class="" href="../..">Home</a>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Examples</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../../examples/example/">Design</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Guide</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../../man/introduction/">Introduction</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../../man/creatingtfs/">Creating Transfer Functions</a>
+                </li>
+    </ul>
+	    </li>
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Functions</span>
+    <ul class="subnav">
+                <li class="">
+                    
+    <a class="" href="../constructors/">Constructors</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../analysis/">Analysis</a>
+                </li>
+                <li class=" current">
+                    
+    <a class="current" href="./">Synthesis</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l3"><a href="#synthesis">Synthesis</a></li>
+    
+
+    </ul>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../timefreqresponse/">Time and Frequency response</a>
+                </li>
+                <li class="">
+                    
+    <a class="" href="../plotting/">Plotting</a>
+                </li>
+    </ul>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../..">ControlSystems.jl</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../..">Docs</a> &raquo;</li>
+    
+      
+        
+          <li>Functions &raquo;</li>
+        
+      
+    
+    <li>Synthesis</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        <a href="https://github.com/JuliaControl/ControlSystems.jl/edit/master/docs/lib/synthesis.md"
+          class="icon icon-github"> Edit on GitHub</a>
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <ul>
+<li><a href="./#ControlSystems.balance"><code>ControlSystems.balance</code></a></li>
+<li><a href="./#ControlSystems.care"><code>ControlSystems.care</code></a></li>
+<li><a href="./#ControlSystems.dab"><code>ControlSystems.dab</code></a></li>
+<li><a href="./#ControlSystems.dare"><code>ControlSystems.dare</code></a></li>
+<li><a href="./#ControlSystems.dkalman"><code>ControlSystems.dkalman</code></a></li>
+<li><a href="./#ControlSystems.dlqr"><code>ControlSystems.dlqr</code></a></li>
+<li><a href="./#ControlSystems.dlyap"><code>ControlSystems.dlyap</code></a></li>
+<li><a href="./#ControlSystems.kalman"><code>ControlSystems.kalman</code></a></li>
+<li><a href="./#ControlSystems.laglink"><code>ControlSystems.laglink</code></a></li>
+<li><a href="./#ControlSystems.leadlink"><code>ControlSystems.leadlink</code></a></li>
+<li><a href="./#ControlSystems.leadlinkat"><code>ControlSystems.leadlinkat</code></a></li>
+<li><a href="./#ControlSystems.loopshapingPI"><code>ControlSystems.loopshapingPI</code></a></li>
+<li><a href="./#ControlSystems.lqr"><code>ControlSystems.lqr</code></a></li>
+<li><a href="./#ControlSystems.pid"><code>ControlSystems.pid</code></a></li>
+<li><a href="./#ControlSystems.place"><code>ControlSystems.place</code></a></li>
+<li><a href="./#ControlSystems.reduce_sys"><code>ControlSystems.reduce_sys</code></a></li>
+<li><a href="./#ControlSystems.rstc"><code>ControlSystems.rstc</code></a></li>
+<li><a href="./#ControlSystems.rstd"><code>ControlSystems.rstd</code></a></li>
+</ul>
+<p><a id='Synthesis-1'></a></p>
+<h1 id="synthesis">Synthesis</h1>
+<p><a id='ControlSystems.balance' href='#ControlSystems.balance'>#</a>
+<strong><code>ControlSystems.balance</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>T, B = balance(A[, perm=true])</code></p>
+<p>Compute a similarity transform <code>T</code> resulting in <code>B = T\A*T</code> such that the row and column norms of <code>B</code> are approximately equivalent. If <code>perm=false</code>, the transformation will only scale, and not permute <code>A</code>.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/matrix_comps.jl#L392-L397' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.care' href='#ControlSystems.care'>#</a>
+<strong><code>ControlSystems.care</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>care(A, B, Q, R)</code></p>
+<p>Compute 'X', the solution to the continuous-time algebraic Riccati equation, defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.</p>
+<p>Algorithm taken from: Laub, "A Schur Method for Solving Algebraic Riccati Equations." http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/matrix_comps.jl#L1-L10' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.dab' href='#ControlSystems.dab'>#</a>
+<strong><code>ControlSystems.dab</code></strong> &mdash; <em>Function</em>.</p>
+<p>DAB   Solves the Diophantine-Aryabhatta-Bezout identity</p>
+<p><code>X,Y = DAB(A,B,C)</code></p>
+<p>AX + BY = C, where A, B, C, X and Y are polynomials and deg Y = deg A - 1.</p>
+<p>See Computer-Controlled Systems: Theory and Design, Third Edition Karl Johan Åström, Björn Wittenmark</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/discrete.jl#L108-L118' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.dare' href='#ControlSystems.dare'>#</a>
+<strong><code>ControlSystems.dare</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>dare(A, B, Q, R)</code></p>
+<p>Compute <code>X</code>, the solution to the discrete-time algebraic Riccati equation, defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where A and R are non-singular.</p>
+<p>Algorithm taken from: Laub, "A Schur Method for Solving Algebraic Riccati Equations." http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/matrix_comps.jl#L34-L44' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.dkalman' href='#ControlSystems.dkalman'>#</a>
+<strong><code>ControlSystems.dkalman</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>dkalman(A, C, R1, R2)</code> kalman(sys, R1, R2)`</p>
+<p>Calculate the optimal Kalman gain for discrete time systems</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/synthesis.jl#L107-L112' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.dlqr' href='#ControlSystems.dlqr'>#</a>
+<strong><code>ControlSystems.dlqr</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>dlqr(A, B, Q, R)</code>, <code>dlqr(sys, Q, R)</code></p>
+<p>Calculate the optimal gain matrix <code>K</code> for the state-feedback law <code>u[k] = K*x[k]</code> that minimizes the cost function:</p>
+<p>J = sum(x'Qx + u'Ru, 0, inf).</p>
+<p>For the discrte time model <code>x[k+1] = Ax[k] + Bu[k]</code>.</p>
+<p>See also <code>lqg</code></p>
+<p>Usage example:</p>
+<pre><code class="julia">using LinearAlgebra # For identity matrix I
+h = 0.1
+A = [1 h; 0 1]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0, h)
+Q = I
+R = I
+L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(t,x) = -L*x # Form control law,
+t=0:h:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]', xlabel=&quot;Time [s]&quot;)
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/synthesis.jl#L67-L97' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.dlyap' href='#ControlSystems.dlyap'>#</a>
+<strong><code>ControlSystems.dlyap</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>dlyap(A, Q)</code></p>
+<p>Compute the solution <code>X</code> to the discrete Lyapunov equation <code>AXA' - X + Q = 0</code>.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/matrix_comps.jl#L70-L75' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.kalman' href='#ControlSystems.kalman'>#</a>
+<strong><code>ControlSystems.kalman</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>kalman(A, C, R1, R2)</code> kalman(sys, R1, R2)`</p>
+<p>Calculate the optimal Kalman gain</p>
+<p>See also <code>LQG</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/synthesis.jl#L41-L48' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.laglink' href='#ControlSystems.laglink'>#</a>
+<strong><code>ControlSystems.laglink</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>laglink(a, M; h=0)</code></p>
+<p>Returns a phase retarding link, the rule of thumb <code>a = 0.1ωc</code> guarantees less than 6 degrees phase margin loss. The bode curve will go from <code>M</code>, bend down at <code>a/M</code> and level out at 1 for frequencies &gt; <code>a</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L164-L168' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.leadlink' href='#ControlSystems.leadlink'>#</a>
+<strong><code>ControlSystems.leadlink</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>leadlink(b, N, K; h=0)</code></p>
+<p>Returns a phase advancing link, the top of the phase curve is located at <code>ω = b√(N)</code> where the link amplification is <code>K√(N)</code> The bode curve will go from <code>K</code>, bend up at <code>b</code> and level out at <code>KN</code> for frequencies &gt; <code>bN</code></p>
+<p>The phase advance at <code>ω = b√(N)</code> can be plotted as a function of <code>N</code> with <code>leadlinkcurve()</code></p>
+<p>Values of <code>N &lt; 1</code> will give a phase retarding link.</p>
+<p>See also <code>leadlinkat</code> <code>laglink</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L178-L188' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.leadlinkat' href='#ControlSystems.leadlinkat'>#</a>
+<strong><code>ControlSystems.leadlinkat</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>leadlinkat(ω, N, K; h=0)</code></p>
+<p>Returns a phase advancing link, the top of the phase curve is located at <code>ω</code> where the link amplification is <code>K√(N)</code> The bode curve will go from <code>K</code>, bend up at <code>ω/√(N)</code> and level out at <code>KN</code> for frequencies &gt; <code>ω√(N)</code></p>
+<p>The phase advance at <code>ω</code> can be plotted as a function of <code>N</code> with <code>leadlinkcurve()</code></p>
+<p>Values of <code>N &lt; 1</code> will give a phase retarding link.</p>
+<p>See also <code>leadlink</code> <code>laglink</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L198-L208' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.loopshapingPI' href='#ControlSystems.loopshapingPI'>#</a>
+<strong><code>ControlSystems.loopshapingPI</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin)</code></p>
+<p>Selects the parameters of a PI-controller such that the Nyquist curve of <code>P</code> at the frequency <code>ωp</code> is moved to <code>rl exp(i ϕl)</code></p>
+<p>If <code>phasemargin</code> is supplied, <code>ϕl</code> is selected such that the curve is moved to an angle of <code>phasemargin - 180</code> degrees</p>
+<p>If no <code>rl</code> is given, the magnitude of the curve at <code>ωp</code> is kept the same and only the phase is affected, the same goes for <code>ϕl</code> if no phasemargin is given.</p>
+<p>See also <code>pidplots</code>, <code>stabregionPID</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L268-L278' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.lqr' href='#ControlSystems.lqr'>#</a>
+<strong><code>ControlSystems.lqr</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>lqr(A, B, Q, R)</code></p>
+<p>Calculate the optimal gain matrix <code>K</code> for the state-feedback law <code>u = K*x</code> that minimizes the cost function:</p>
+<p>J = integral(x'Qx + u'Ru, 0, inf).</p>
+<p>For the continuous time model <code>dx = Ax + Bu</code>.</p>
+<p><code>lqr(sys, Q, R)</code></p>
+<p>Solve the LQR problem for state-space system <code>sys</code>. Works for both discrete and continuous time systems.</p>
+<p>See also <code>LQG</code></p>
+<p>Usage example:</p>
+<pre><code class="julia">using LinearAlgebra # For identity matrix I
+A = [0 1; 0 0]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0)
+Q = I
+R = I
+L = lqr(sys,Q,R)
+
+u(t,x) = -L*x # Form control law,
+t=0:0.1:5
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0)
+plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]', xlabel=&quot;Time [s]&quot;)
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/synthesis.jl#L1-L35' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.pid' href='#ControlSystems.pid'>#</a>
+<strong><code>ControlSystems.pid</code></strong> &mdash; <em>Function</em>.</p>
+<p>Calculates and returns a PID controller on transfer function form. <code>time</code> indicates whether or not the parameters are given as gains (default) or as time constants <code>series</code> indicates  whether or not the series form or parallel form (default) is desired</p>
+<p><code>C = pid(; kp=0, ki=0; kd=0, time=false, series=false)</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L3-L9' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.place' href='#ControlSystems.place'>#</a>
+<strong><code>ControlSystems.place</code></strong> &mdash; <em>Function</em>.</p>
+<p><code>place(A, B, p)</code>, <code>place(sys::StateSpace, p)</code></p>
+<p>Calculate gain matrix <code>K</code> such that the poles of <code>(A-BK)</code> in are in <code>p</code></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/synthesis.jl#L114-L118' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.reduce_sys' href='#ControlSystems.reduce_sys'>#</a>
+<strong><code>ControlSystems.reduce_sys</code></strong> &mdash; <em>Function</em>.</p>
+<p>Implements REDUCE in the Emami-Naeini &amp; Van Dooren paper. Returns transformed A, B, C, D matrices. These are empty if there are no zeros.</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/analysis.jl#L145-L148' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.rstc' href='#ControlSystems.rstc'>#</a>
+<strong><code>ControlSystems.rstc</code></strong> &mdash; <em>Function</em>.</p>
+<p>See ?rstd for the discerte case</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/discrete.jl#L69-L71' class='documenter-source'>source</a><br></p>
+<p><a id='ControlSystems.rstd' href='#ControlSystems.rstd'>#</a>
+<strong><code>ControlSystems.rstd</code></strong> &mdash; <em>Function</em>.</p>
+<p>rstd  Polynomial synthesis in discrete time.</p>
+<p><code>R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)</code></p>
+<p><code>R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)</code></p>
+<p><code>R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)</code></p>
+<p>Polynomial synthesis according to CCS ch 10 to design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)</p>
+<p>Inputs:  BPLUS  : Part of open loop numerator BMINUS : Part of open loop numerator A      : Open loop denominator BM1    : Additional zeros AM     : Closed loop denominator AO     : Observer polynomial AR     : Pre-specified factor of R, e.g integral part [1, -1]^k AS     : Pre-specified factor of S, e.g notch filter [1, 0, w^2]</p>
+<p>Outputs: R,S,T  : Polynomials in controller</p>
+<p>See function DAB how the solution to the Diophantine- Aryabhatta-Bezout identity is chosen.</p>
+<p>See Computer-Controlled Systems: Theory and Design, Third Edition Karl Johan Åström, Björn Wittenmark</p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/discrete.jl#L74-L104' class='documenter-source'>source</a><br></p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../timefreqresponse/" class="btn btn-neutral float-right" title="Time and Frequency response">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+        <a href="../analysis/" class="btn btn-neutral" title="Analysis"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/JuliaControl/ControlSystems.jl/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href="../analysis/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+        <span style="margin-left: 15px"><a href="../timefreqresponse/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme.js"></script>
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+      <script src="../../assets/mathjaxhelper.js"></script>
+      <script src="../../search/require.js"></script>
+      <script src="../../search/search.js"></script>
+
+</body>
+</html>
