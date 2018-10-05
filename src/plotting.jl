@@ -208,6 +208,27 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
 
 end
 
+"""
+    processfreqplot(plottype::Symbol, system::LTISystem, [w])
+    processfreqplot(plottype::Symbol, system::AbstractVector{<:LTISystem}, [w])
+
+    Calculate default frequency vector and put system in array of not already array.
+    Check that system dimensions are compatible.
+"""
+processfreqplot(plottype::Symbol, system::LTISystem, args...) =
+    processfreqplot(plottype, [system], args...)
+
+
+processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem}, args...) =
+    processfreqplot(plottype, systems, _default_freq_vector(systems, plottype))
+
+function processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem}, w)
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
+    return systems, w
+end
+
 
 @userplot Bodeplot
 ## FREQUENCY PLOTS ##
@@ -220,18 +241,7 @@ optionally provided.
 bodeplot
 
 @recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
-    systems = p.args[1]
-    if !isa(systems, AbstractArray)
-        systems = typeof(systems)[systems]
-    end
-    if length(p.args) >= 2
-        w = p.args[2]
-    else
-        w = _default_freq_vector(systems, :bode)
-    end
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
+    systems, w = processfreqplot(:bode, p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
@@ -345,15 +355,8 @@ the sensitivity and complementary sensitivity functions.
 `kwargs` is sent as argument to plot."""
 nyquistplot
 @recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
-    systems = p.args[1]
-    if !isa(systems,AbstractArray)
-        systems = [systems]
-    end
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
+    systems, w = processfreqplot(:nyquist, p.args...)
     ny, nu = size(systems[1])
-    w = length(p.args) < 2 ?  _default_freq_vector(systems, :nyquist) : p.args[2]
     nw = length(w)
     layout --> (ny,nu)
     s2i(i,j) = LinearIndices((ny,nu))[j,i]
@@ -441,11 +444,7 @@ nicholsplot
     val      = 0.85,
     fontsize = 10)
 
-    systems, w = p.args[1:2]
-
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
+    systems, w = processfreqplot(:nyquist, p.args...)
     ny, nu = size(systems[1])
 
     if !iscontinuous(systems[1])
@@ -573,10 +572,6 @@ nicholsplot
 
 end
 
-nicholsplot(systems::Vector{T};kwargs...) where {T<:LTISystem} =
-nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
-nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwargs...)
-
 @userplot Sigmaplot
 """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
 
@@ -586,10 +581,7 @@ frequency vector `w` can be optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 sigmaplot
 @recipe function sigmaplot(p::Sigmaplot)
-    systems, w = p.args[1:2]
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
+    systems, w = processfreqplot(:sigma, p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
     title --> "Sigma Plot"
@@ -612,9 +604,6 @@ sigmaplot
         end
     end
 end
-sigmaplot(systems::Vector{T}; kwargs...) where {T<:LTISystem} =
-sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
-sigmaplot(sys::LTISystem, args...; kwargs...) = sigmaplot([sys], args...; kwargs...)
 
 """`fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)`
 
@@ -622,10 +611,8 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to Plots.plot."""
-function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:LTISystem
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
+function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
+    systems, w = processfreqplot(:bode, systems, args...)
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
@@ -672,10 +659,6 @@ function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:L
     end
     return fig
 end
-marginplot(systems::Vector{T}; kwargs...) where {T<:LTISystem} =
-marginplot(systems, _default_freq_vector(systems, :bode); kwargs...)
-marginplot(sys::LTISystem, args...; kwargs...) = marginplot([sys], args...; kwargs...)
-
 
 # HELPERS:
 
