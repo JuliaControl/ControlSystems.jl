@@ -217,12 +217,12 @@ end
 """
 processfreqplot(plottype::Symbol, system::LTISystem, args...) =
     processfreqplot(plottype, [system], args...)
+# Catch when system is not vector, with and without frequency input
 
+# Cantch correct form
+function processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem},
+            w = _default_freq_vector(systems, plottype))
 
-processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem}, args...) =
-    processfreqplot(plottype, systems, _default_freq_vector(systems, plottype))
-
-function processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem}, w)
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
     end
