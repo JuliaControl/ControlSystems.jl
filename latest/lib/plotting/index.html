@@ -174,39 +174,39 @@
 <p><code>fig = bodeplot(sys, args...)</code>, <code>bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)</code></p>
 <p>Create a Bode plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L214-L220' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L235-L241' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.gangoffourplot' href='#ControlSystems.gangoffourplot'>#</a>
 <strong><code>ControlSystems.gangoffourplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = gangoffourplot(P::LTISystem, C::LTISystem)</code>, <code>gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)</code></p>
 <p>Gang-of-Four plot.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L741-L746' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L724-L729' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.impulseplot' href='#ControlSystems.impulseplot'>#</a>
 <strong><code>ControlSystems.impulseplot</code></strong> &mdash; <em>Function</em>.</p>
 <pre><code>impulseplot(sys[, Tf[,  Ts]])
 </code></pre>
 
 <p>Plot step response of <code>sys</code> with optional final time <code>Tf</code> and discretization time <code>Ts</code>. If not defined, suitable values are chosen based on <code>sys</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L152-L156' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L152-L156' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.leadlinkcurve' href='#ControlSystems.leadlinkcurve'>#</a>
 <strong><code>ControlSystems.leadlinkcurve</code></strong> &mdash; <em>Function</em>.</p>
 <p>Plot the phase advance as a function of <code>N</code> for a lead link (phase advance link)</p>
 <p>If an input argument <code>s</code> is given, the curve is plotted from <code>s</code> to 10, else from 1 to 10.</p>
 <p>See also <code>Leadlink, leadlinkat</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L214-L220' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/pid_design.jl#L214-L220' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.lsimplot' href='#ControlSystems.lsimplot'>#</a>
 <strong><code>ControlSystems.lsimplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = lsimplot(sys::LTISystem, u, t; x0=0, method)</code></p>
 <p><code>lsimplot(LTISystem[sys1, sys2...], u, t; x0, method)</code></p>
 <p>Calculate the time response of the <code>LTISystem</code>(s) to input <code>u</code>. If <code>x0</code> is not specified, a zero vector is used.</p>
 <p>Continuous time systems are discretized before simulation. By default, the method is chosen based on the smoothness of the input signal. Optionally, the <code>method</code> parameter can be specified as either <code>:zoh</code> or <code>:foh</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L91-L102' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L91-L102' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.marginplot' href='#ControlSystems.marginplot'>#</a>
 <strong><code>ControlSystems.marginplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)</code>, <code>marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)</code></p>
 <p>Plot all the amplitude and phase margins of the system(s) <code>sys</code>. A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L619-L625' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L608-L614' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.nicholsplot' href='#ControlSystems.nicholsplot'>#</a>
 <strong><code>ControlSystems.nicholsplot</code></strong> &mdash; <em>Function</em>.</p>
 <p>fig = <code>nicholsplot{T&lt;:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)</code></p>
@@ -225,14 +225,14 @@ fontsize = 10
 <p><code>val</code> ∈ [0,1] determines the brightness of the gain lines</p>
 <p>Additional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax</p>
 <p>This function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L405-L434' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L408-L437' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.nyquistplot' href='#ControlSystems.nyquistplot'>#</a>
 <strong><code>ControlSystems.nyquistplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = nyquistplot(sys; gaincircles=true, kwargs...)</code>, <code>nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)</code></p>
 <p>Create a Nyquist plot of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>gaincircles</code> plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are the sensitivity and complementary sensitivity functions.</p>
 <p><code>kwargs</code> is sent as argument to plot.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L337-L346' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L347-L356' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.pidplots' href='#ControlSystems.pidplots'>#</a>
 <strong><code>ControlSystems.pidplots</code></strong> &mdash; <em>Function</em>.</p>
 <p>Plots interesting figures related to closing the loop around process <code>P</code> with a PID controller Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.</p>
@@ -242,37 +242,37 @@ fontsize = 10
 <p>One can also supply a frequency vector ω to be used in Bode and Nyquist plots</p>
 <p><code>pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)</code></p>
 <p>See also <code>loopshapingPI</code>, <code>stabregionPID</code></p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L19-L34' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/pid_design.jl#L19-L34' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.pzmap' href='#ControlSystems.pzmap'>#</a>
 <strong><code>ControlSystems.pzmap</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>fig = pzmap(fig, system, args...; kwargs...)</code></p>
 <p>Create a pole-zero map of the <code>LTISystem</code>(s) in figure <code>fig</code>, <code>args</code> and <code>kwargs</code> will be sent to the <code>scatter</code> plot command.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L696-L699' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L679-L682' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.rlocus' href='#ControlSystems.rlocus'>#</a>
 <strong><code>ControlSystems.rlocus</code></strong> &mdash; <em>Function</em>.</p>
 <pre><code>rlocusplot(P::LTISystem, K)
 </code></pre>
 
 <p>Computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains <code>K</code>, if <code>K</code> is not provided, range(1e-6,stop=500,length=10000) is used. If <code>OrdinaryDiffEq.jl</code> is installed and loaded by the user (<code>using OrdinaryDiffEq</code>), <code>rlocusplot</code> will use an adaptive step-size algorithm to select values of <code>K</code>. A scalar <code>Kmax</code> can then be given as second argument.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/pid_design.jl#L119-L126' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/pid_design.jl#L119-L126' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.sigmaplot' href='#ControlSystems.sigmaplot'>#</a>
 <strong><code>ControlSystems.sigmaplot</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>sigmaplot(sys, args...)</code>, <code>sigmaplot(LTISystem[sys1, sys2...], args...)</code></p>
 <p>Plot the singular values of the frequency response of the <code>LTISystem</code>(s). A frequency vector <code>w</code> can be optionally provided.</p>
 <p><code>kwargs</code> is sent as argument to Plots.plot.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L581-L587' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L576-L582' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.setPlotScale' href='#ControlSystems.setPlotScale'>#</a>
 <strong><code>ControlSystems.setPlotScale</code></strong> &mdash; <em>Function</em>.</p>
 <p><code>setPlotScale(str)</code></p>
 <p>Set the default scale of magnitude in <code>bodeplot</code> and <code>sigmaplot</code>. <code>str</code> should be either <code>"dB"</code> or <code>"log10"</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L25-L29' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L25-L29' class='documenter-source'>source</a><br></p>
 <p><a id='ControlSystems.stepplot' href='#ControlSystems.stepplot'>#</a>
 <strong><code>ControlSystems.stepplot</code></strong> &mdash; <em>Function</em>.</p>
 <pre><code>stepplot(sys[, Tf[,  Ts]])
 </code></pre>
 
 <p>Plot step response of <code>sys</code> with optional final time <code>Tf</code> and discretization time <code>Ts</code>. If not defined, suitable values are chosen based on <code>sys</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/eb0ea1aa671e7882cda5f559a306a65632c6432f/src/plotting.jl#L145-L149' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaControl/ControlSystems.jl/blob/7b97b1b4c5c43376faa0eb7f4c3d69757948ed79/src/plotting.jl#L145-L149' class='documenter-source'>source</a><br></p>
               
             </div>
           </div>
