@@ -38,25 +38,11 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-"""
-Get atributes from xlims or ylims
-default to extrema(wmag) if xlims/ylims not defined or empty
-"""
-function getlims(xylims, plotattributes, wmag)
-    lims = get(plotattributes, xylims, extrema(wmag))
-    if lims isa Tuple{<:Number, <:Number} # If x/ylims not supplied as empty
-        return lims
-    else
-        return extrema(wmag)
-    end
-end
-
-function getLogTicks(x, minmax)
-    minx, maxx =  minmax
+function getLogTicks(x)
     major_minor_limit = 6
     minor_text_limit  = 8
-    min               = ceil(log10(minx))
-    max               = floor(log10(maxx))
+    min               = ceil(log10(minimum(x)))
+    max               = floor(log10(maximum(x)))
     major             = 10 .^ collect(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
@@ -71,7 +57,7 @@ function getLogTicks(x, minmax)
             minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
         end
 
-        ind       = findall(minx .<= minor .<= maxx)
+        ind       = findall(minimum(x) .<= minor .<= maximum(x))
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
@@ -208,27 +194,6 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
 
 end
 
-"""
-    processfreqplot(plottype::Symbol, system::LTISystem, [w])
-    processfreqplot(plottype::Symbol, system::AbstractVector{<:LTISystem}, [w])
-
-    Calculate default frequency vector and put system in array of not already array.
-    Check that system dimensions are compatible.
-"""
-processfreqplot(plottype::Symbol, system::LTISystem, args...) =
-    processfreqplot(plottype, [system], args...)
-# Catch when system is not vector, with and without frequency input
-
-# Cantch correct form
-function processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem},
-            w = _default_freq_vector(systems, plottype))
-
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
-    return systems, w
-end
-
 
 @userplot Bodeplot
 ## FREQUENCY PLOTS ##
@@ -240,13 +205,24 @@ optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
-    systems, w = processfreqplot(:bode, p.args...)
+@recipe function bodeplot(p::Bodeplot; plotphase=true)
+    systems = p.args[1]
+    if !isa(systems, AbstractArray)
+        systems = typeof(systems)[systems]
+    end
+    if length(p.args) >= 2
+        w = p.args[2]
+    else
+        w = _default_freq_vector(systems, :bode)
+    end
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
-    xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
+    xticks --> getLogTicks(w)
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -270,7 +246,7 @@ bodeplot
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
                     if _PlotScale != "dB"
-                        yticks    --> getLogTicks(magdata, getlims(:ylims, plotattributes, magdata))
+                        yticks    --> getLogTicks(magdata)
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
@@ -284,11 +260,9 @@ bodeplot
                 if !plotphase
                     continue
                 end
-
                 @series begin
                     grid      --> true
                     xscale    --> :log10
-                    ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
                     subplot --> s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
@@ -313,8 +287,8 @@ end
         yscale --> :log10
         xscale --> :log10
         yguide --> "Magnitude"
-        xticks --> getLogTicks(w,  getlims(:xlims, plotattributes, w))
-        yticks --> getLogTicks(magdata,  getlims(:ylims, plotattributes, magdata))
+        xticks --> getLogTicks(w)
+        yticks --> getLogTicks(magdata)
         x := w; y := magdata
         ()
     end
@@ -332,7 +306,7 @@ end
         xscale --> :log10
         yguide --> "Phase (deg)"
         xguide --> "Frequency (rad/s)"
-        xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
+        xticks --> getLogTicks(w)
         x := w; y := phasedata
         ()
     end
@@ -355,8 +329,15 @@ the sensitivity and complementary sensitivity functions.
 `kwargs` is sent as argument to plot."""
 nyquistplot
 @recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
-    systems, w = processfreqplot(:nyquist, p.args...)
+    systems = p.args[1]
+    if !isa(systems,AbstractArray)
+        systems = [systems]
+    end
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
     ny, nu = size(systems[1])
+    w = length(p.args) < 2 ?  _default_freq_vector(systems, :nyquist) : p.args[2]
     nw = length(w)
     layout --> (ny,nu)
     s2i(i,j) = LinearIndices((ny,nu))[j,i]
@@ -444,7 +425,11 @@ nicholsplot
     val      = 0.85,
     fontsize = 10)
 
-    systems, w = processfreqplot(:nyquist, p.args...)
+    systems, w = p.args[1:2]
+
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
     ny, nu = size(systems[1])
 
     if !iscontinuous(systems[1])
@@ -572,6 +557,10 @@ nicholsplot
 
 end
 
+nicholsplot(systems::Vector{T};kwargs...) where {T<:LTISystem} =
+nicholsplot(systems, _default_freq_vector(systems, :nyquist);kwargs...)
+nicholsplot(sys::LTISystem, args...; kwargs...) = nicholsplot([sys],args...; kwargs...)
+
 @userplot Sigmaplot
 """`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
 
@@ -581,7 +570,10 @@ frequency vector `w` can be optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 sigmaplot
 @recipe function sigmaplot(p::Sigmaplot)
-    systems, w = processfreqplot(:sigma, p.args...)
+    systems, w = p.args[1:2]
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
     ny, nu = size(systems[1])
     nw = length(w)
     title --> "Sigma Plot"
@@ -604,6 +596,9 @@ sigmaplot
         end
     end
 end
+sigmaplot(systems::Vector{T}; kwargs...) where {T<:LTISystem} =
+sigmaplot(systems, _default_freq_vector(systems, :sigma); kwargs...)
+sigmaplot(sys::LTISystem, args...; kwargs...) = sigmaplot([sys], args...; kwargs...)
 
 """`fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)`
 
@@ -611,8 +606,10 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to Plots.plot."""
-function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
-    systems, w = processfreqplot(:bode, systems, args...)
+function marginplot(systems::Vector{T}, w::AbstractVector; kwargs...) where T<:LTISystem
+    if !_same_io_dims(systems...)
+        error("All systems must have the same input/output dimensions")
+    end
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
@@ -659,6 +656,10 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
     end
     return fig
 end
+marginplot(systems::Vector{T}; kwargs...) where {T<:LTISystem} =
+marginplot(systems, _default_freq_vector(systems, :bode); kwargs...)
+marginplot(sys::LTISystem, args...; kwargs...) = marginplot([sys], args...; kwargs...)
+
 
 # HELPERS:
 

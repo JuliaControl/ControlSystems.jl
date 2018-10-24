@@ -32,6 +32,10 @@ function ss(A::Union{Number,AbstractArray}, B::Union{Number,AbstractArray}, C::U
     ss(A, B, C, D, Ts)
 end
 
+function ss(A::AbstractArray, B1::AbstractArray, B2::AbstractArray, C1::AbstractArray, C2::AbstractArray, D11::AbstractArray, D12::AbstractArray, D21::AbstractArray, D22::AbstractArray, Ts::Real=0)
+    return ExtendedStateSpace(A, B1, B2, C1, C2, D11, D12, D21, D22, Ts)
+end
+
 # Function for creation of static gain
 function ss(D::AbstractArray{T}, Ts::Real=0) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)

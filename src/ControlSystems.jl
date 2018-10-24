@@ -2,6 +2,7 @@ module ControlSystems
 
 export  LTISystem,
         StateSpace,
+        ExtendedStatespace,
         TransferFunction,
         ss,
         tf,
@@ -71,8 +72,13 @@ export  LTISystem,
         numvec,
         denvec,
         numpoly,
-        denpoly
-
+        denpoly,
+        # Hinfinity design
+        hInf_synthesize,
+        hInf_assumptions,
+        hInf_visualize,
+        hInf_partition,
+        hInf_signals
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
@@ -98,6 +104,7 @@ include("types/SisoTfTypes/promotion.jl")
 include("types/SisoTfTypes/conversion.jl")
 
 include("types/StateSpace.jl")
+include("types/ExtendedStatespace.jl")
 
 # Convenience constructors
 include("types/tf.jl")
@@ -127,6 +134,8 @@ include("simulators.jl")
 include("pid_design.jl")
 
 include("plotting.jl")
+
+include("hinfinity_design.jl")
 
 @deprecate num numvec
 @deprecate den denvec

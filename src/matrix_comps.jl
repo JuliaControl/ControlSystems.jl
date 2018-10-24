@@ -12,9 +12,9 @@ function care(A, B, Q, R)
         B*inv(R)*B'
     catch y
         if y isa SingularException
-            error("R must be non-singular in care.")
+            error("R must be non-singular.")
         else
-            throw(y)
+            throw(t)
         end
     end
 

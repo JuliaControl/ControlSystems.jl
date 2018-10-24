@@ -1,4 +1,4 @@
-using Documenter, ControlSystems, Plots, LinearAlgebra, DSP
+using Documenter, ControlSystems, Plots
 import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 
 include("src/makeplots.jl")
@@ -23,6 +23,6 @@ end
 deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
     latest = "master",
-    julia = "1.0",
+    julia = "0.6",
     deps = myDeps
 )
