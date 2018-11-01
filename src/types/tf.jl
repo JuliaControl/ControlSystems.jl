@@ -69,3 +69,23 @@ function tf(var::AbstractString, Ts::Real)
     Ts == 0 && error("Ts must not be 0 for discrete time tf.")
     return tf([1, 0], [1], Ts)
 end
+
+## Constructors for polynomial inputs
+function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::Real=0.0) where {T<:Number, PT <: Polynomials.Poly{T}}
+    ny, nu = size(num, 1), size(num, 2)
+    if (ny, nu) != (size(den, 1), size(den, 2))
+        error("num and den dimensions must match")
+    end
+
+    matrix = Matrix{SisoRational{T}}(undef, ny, nu)
+    for o=1:ny
+        for i=1:nu
+            matrix[o, i] = SisoRational{T}(num[o, i], den[o, i])
+        end
+    end
+    return TransferFunction{SisoRational{T}}(matrix, Ts)
+end
+
+function tf(num::PT, den::PT,  Ts::Real=0.0) where {T<:Number, PT <: Polynomials.Poly{T}}
+    tf(fill(num,1,1), fill(den,1,1), Ts)
+end

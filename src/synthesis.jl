@@ -157,24 +157,25 @@ feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 #Efficient implementations
 function feedback(L::TransferFunction{T}) where T<:SisoRational
     if size(L) != (1,1)
-        error("MIMO TransferFunction inversion isn't implemented yet")
+        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
     P = numpoly(L)
     Q = denpoly(L)
     #Extract polynomials and create P/(P+Q)
-    tf(P[1][:],(P+Q)[1][:], L.Ts)
+    tf(P, P+Q, L.Ts)
 end
 
 function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
     if size(L) != (1,1)
-        error("MIMO TransferFunction inversion isn't implemented yet")
+        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
-    numer = num(L.matrix[1])
-    k = L.matrix[1].k
-    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1]) # TODO: Chcek indexing into polynomials
-    kden = denpol[1]
     #Extract polynomials and create P/(P+Q)
-    zpk(numer, roots(denpol), k/kden, L.Ts)
+    k = L.matrix[1].k
+    denpol = numpoly(L)[1]+denpoly(L)[1]
+    kden = denpol[end] # Get coeff of s^n
+    # Create siso system
+    sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
+    return TransferFunction{T}(fill(sisozpk,1,1), L.Ts)
 end
 
 """

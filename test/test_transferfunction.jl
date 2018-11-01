@@ -140,4 +140,29 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
+
+# Test polynomial inputs
+Poly = ControlSystems.Polynomials.Poly
+v1, v2, v3, v4 = [1,2,3], [4,5,6], [7,8], [9,10,11]
+p1, p2, p3, p4 = Poly.(reverse.((v1,v2,v3,v4)))
+
+S1v = tf(v1, v2)
+S2v = tf(v3, v4)
+Sv = [S1v S2v; 2S1v 3S2v]
+
+# Test polynomial SISO constructor
+S1p = tf(p1,p2)
+# Test polynomial matrix MIMO constructor
+Sp = tf([p1 p3; 2p1 3p3], [p2 p4; p2 p4])
+
+@test S1v == S1p
+@test Sv == Sp
+
+# Test constructors
+@test ControlSystems.SisoRational{Float64}(v1,v2) isa ControlSystems.SisoRational{Float64}
+@test ControlSystems.SisoRational{Float64}(v1,1.0*v2) isa ControlSystems.SisoRational{Float64}
+@test ControlSystems.SisoRational{Int64}(v1,1.0*v2) isa ControlSystems.SisoRational{Int64}
+
+@test_throws InexactError ControlSystems.SisoRational{Int64}(v1,1.5*v2)
+
 end

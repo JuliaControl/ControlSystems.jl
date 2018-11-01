@@ -16,6 +16,8 @@ function SisoRational(num::Poly{T1}, den::Poly{T2}) where T1 <: Number where T2 
     T = promote_type(T1,T2)
     SisoRational{T}(Poly{T}(num.a), Poly{T}(den.a))
 end
+SisoRational{T}(num::Poly, den::Poly) where T = SisoRational{T}(convert(Poly{T}, num), convert(Poly{T}, den))
+
 function SisoRational{T}(num::AbstractVector, den::AbstractVector) where T <: Number # NOTE: Typearguemnts on the parameters?
     SisoRational{T}(Poly{T}(reverse(num)), Poly{T}(reverse(den)))
 end
