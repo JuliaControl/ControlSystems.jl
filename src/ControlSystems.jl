@@ -78,7 +78,9 @@ export  LTISystem,
         hInf_assumptions,
         hInf_visualize,
         hInf_partition,
-        hInf_signals
+        hInf_signals,
+        hInf_bilinear_s2z,
+        hInf_bilinear_z2s
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra

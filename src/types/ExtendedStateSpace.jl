@@ -85,7 +85,7 @@ end
 get_A(sys::ExtendedStateSpace)   = sys.A
 get_B1(sys::ExtendedStateSpace)  = sys.B1
 get_B2(sys::ExtendedStateSpace)  = sys.B2
-get_B(sys::ExtendedStateSpace)   = [sys.B1 sysB2]
+get_B(sys::ExtendedStateSpace)   = [sys.B1 sys.B2]
 get_C1(sys::ExtendedStateSpace)  = sys.C1
 get_C2(sys::ExtendedStateSpace)  = sys.C2
 get_C(sys::ExtendedStateSpace)   = [sys.C1; sys.C2]

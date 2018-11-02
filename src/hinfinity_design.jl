@@ -55,42 +55,34 @@ function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
       flag=false
     end
     # Check assumption A5
-    D12Pinv = _compute_pseudoinverse(D12)
-    if rank(A - B2*D12Pinv*C1) < size(A,1)
+    D12Pinv, D12Pinv_exists = _compute_pseudoinverse(D12)
+    if !D12Pinv_exists
       if verbose
-        println("Warning, the matrix (A - B2*D12^-*C1) does not have full rank, violation of assumption A5. Returning candidate approximation in Atilde. Please re-check the feasibility conditions with Atilde.")
+        println("Warning, the matrix (A - B2*D12^-*C1) cannot be evaluated, violation of assumption A5. The pseudo inverse of D12 does not exist.")
       end
-      #
-      #U,S,V=svd(A - B2*D12Pinv*C1)
-      #Stilde = zeros(size(S))
-      #for (i, val) in enumerate(Stilde)
-      #    if abs(val) < epsilon
-      #        Stilde[i] = epsilon
-      #    else
-      #        Stilde[i] = S[i]
-      #    end
-      #end
-      #Atilde = A + U*(Diagonal(Stilde) - Diagonal(S)) * V
       flag=false
+    else
+      if rank(A - B2*D12Pinv*C1) < size(A,1)
+        if verbose
+          println("Warning, the matrix (A - B2*D12^-*C1) does not have full rank, violation of assumption A5. Returning candidate approximation in Atilde. Please re-check the feasibility conditions with Atilde.")
+        end
+        flag=false
+      end
     end
     # Check assumption A5
-    D21Pinv = _compute_pseudoinverse(D21)
-    if rank(A - B1*D21Pinv*C2) < size(A,1)
+    D21Pinv, D21Pinv_exists = _compute_pseudoinverse(D21)
+    if !D21Pinv_exists
       if verbose
-        println("Warning, the matrix (A - B1*D21Pinv*C2) does not have full rank, violation of assumption A6. Returning candidate approximation in Atilde. Please re-check the feasibility conditions with Atilde.")
+        println("Warning, the matrix (A - B1*D21Pinv*C2) cannot be evaluated, violation of assumption A5. The pseudo inverse of D21 does not exist.")
       end
-      #
-      #,S,V=svd(A - B1*D21Pinv*C2)
-      #Stilde = zeros(size(S))
-      #for (i, val) in enumerate(Stilde)
-      #    if abs(val) < epsilon
-      #        Stilde[i] = epsilon
-      #    else
-      #        Stilde[i] = S[i]
-      #    end
-      #end
-      #Atilde = A + U*(Diagonal(Stilde) - Diagonal(S)) * V
       flag=false
+    else
+      if rank(A - B1*D21Pinv*C2) < size(A,1)
+        if verbose
+          println("Warning, the matrix (A - B1*D21Pinv*C2) does not have full rank, violation of assumption A6. Returning candidate approximation in Atilde. Please re-check the feasibility conditions with Atilde.")
+        end
+        flag=false
+      end
     end
     if flag && verbose
       println("All assumtions are satisfied!")
@@ -108,11 +100,23 @@ min(size(M))==rank(M). Used for checking assumptions A5 and A6.
 """
 function _compute_pseudoinverse(M)
   if size(M,1) == size(M,2)
-    return (inv(M))
+    if rank(M) != size(M,2)
+      # G-inverse does not exist
+      return [], false
+    end
+    return (inv(M)), true
   elseif size(M,1) > size(M,2)
-    return (inv(M'*M)*M')
+    if rank(M'*M) != size(M'*M,2)
+      # G-inverse does not exist
+      return [], false
+    end
+    return (inv(M'*M)*M'), true
   elseif size(M,1) < size(M,2)
-    return (M'*inv(M*M'))
+    if rank(M*M') != size(M*M',2)
+      # G-inverse does not exist
+      return [], false
+    end
+    return (M'*inv(M*M')), true
   end
 end
 
@@ -603,6 +607,10 @@ function hInf_partition(G, WS, WU, WT)
     return P
 end
 
+"""`convert_input_to_ss(H)`
+
+Help fucntion used for type conversion in hInf_partition()
+"""
 function convert_input_to_ss(H)
   if isa(H, LTISystem)
       if isa(H, TransferFunction)
@@ -619,8 +627,7 @@ function convert_input_to_ss(H)
   return Ah, Bh, Ch, Dh
 end
 
-"""
-`hInf_signals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)`
+"""`hInf_signals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)`
 
 Use the extended state-space model, a plant and the found controller to extract
 the closed loop transfer functions operating solely on the state-space.
@@ -680,4 +687,195 @@ function hInf_signals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)
   T   = Pw2y
 
   return Pcl, S, KS, T
+end
+
+
+"""`hInf_bilinear_z2s(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArray, Dd::AbstractArray, Ts::Number; tolerance=1e-12)`
+
+Balanced Bilinear transformation in State-Space. This method computes a
+continuous time equivalent of a discrete time system, such that
+
+    G_c(z) = z2s[G_d(z)]
+
+in a manner which accomplishes the following
+  (i)   Preserves the infinity L-infinity norm over the transformation
+  (ii)  Finds a system which balances B and C, in the sense that ||B||_2=||C||_2
+  (iii) Satisfies G_d(z) = s2z[z2s[G_d(z)]] for some map s2z[]
+"""
+function hInf_bilinear_z2s(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArray, Dd::AbstractArray, Ts::Number; tolerance=1e-12)
+
+  Id = Matrix{Float64}(I, size(Ad,1), size(Ad,2))
+
+  Pd = Ad - Id
+  Qd = Ad + Id
+  ialpha = 2/Ts #Should be this, but the nyquist frequency doesnt add up unless
+  ialpha = 1/Ts
+
+  Ac = ialpha*(Pd/Qd)
+  Bc = Qd\Bd
+  Cc = 2*ialpha*(Cd/Qd)
+  Dc = Dd - (Cd/Qd)*Bd
+
+  # Scaling for improved numerical stability
+  σB = maximum(svd(Bc).S)
+  σC = maximum(svd(Cc).S)
+  if σB > tolerance && σC > tolerance
+    λd = sqrt(σB / σC)
+  else
+    λd = 1
+    error("Warning, the problem is poorly cnditioned. Consider an alternate discretization scheme.")
+  end
+  Bc /= λd
+  Cc *= λd
+
+  return Ac, Bc, Cc, Dc
+end
+
+"""`hInf_bilinear_z2s(sys::StateSpace)`
+
+Applies a Balanced Bilinear transformation to continuous-time statespace object
+"""
+function hInf_bilinear_z2s(sys::StateSpace)
+  Ad, Bd, Cd, Dd = ssdata(sys)
+  Ts = sys.Ts
+
+  if Ts <= 0; error("Error, the input must be a discrete time system."); end
+
+  Ac, Bc, Cc, Dc = hInf_bilinear_z2s(Ad, Bd, Cd, Dd, Ts)
+  return ss(Ac, Bc, Cc, Dc)
+end
+
+"""`hInf_bilinear_z2s(sys::ExtendedStateSpace)`
+
+Applies a Balanced Bilinear transformation to continuous-time extended statespace object
+"""
+function hInf_bilinear_z2s(sys::ExtendedStateSpace)
+  Ad = get_A(sys)
+  Bd = get_B(sys)
+  Cd = get_C(sys)
+  Dd = get_D(sys)
+  Ts = sys.Ts
+
+  m1 = size(get_B1(sys),2)
+  m2 = size(get_B2(sys),2)
+  p1 = size(get_C1(sys),1)
+  p2 = size(get_C2(sys),1)
+
+  if Ts <= 0; error("Error, the input must be a discrete time system."); end
+
+  Ac, Bc, Cc, Dc = hInf_bilinear_z2s(Ad, Bd, Cd, Dd, Ts)
+
+  A   = Ac
+  B1  = Bc[:,1:m1]
+  B2  = Bc[:,(m1+1):(m1+m2)]
+  C1  = Cc[1:p1,:]
+  C2  = Cc[(p1+1):(p1+p2),:]
+  D11 = Dc[1:p1,1:m1]
+  D12 = Dc[1:p1,(m1+1):(m1+m2)]
+  D21 = Dc[(p1+1):(p1+p2),1:m1]
+  D22 = Dc[(p1+1):(p1+p2),(m1+1):(m1+m2)]
+
+  return ss(A, B1, B2, C1, C2, D11, D12, D21, D22)
+end
+
+"""`hInf_bilinear_s2z(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArray, Dc::AbstractArray, Ts::Number; tolerance=1e-12)`
+
+Balanced Bilinear transformation in State-Space. This method computes a
+discrete time equivalent of a continuous-time system, such that
+
+    G_d(z) = s2z[G_c(s)]
+
+in a manner which accomplishes the following
+  (i)   Preserves the infinity L-infinity norm over the transformation
+  (ii)  Finds a system which balances B and C, in the sense that ||B||_2=||C||_2
+  (iii) Satisfies G_c(s) = z2s[s2z[G_c(s)]] for some map z2s[]
+"""
+function hInf_bilinear_s2z(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArray, Dc::AbstractArray, Ts::Number; tolerance = 1e-12)
+
+  Id = Matrix{Float64}(I, size(Ac,1), size(Ac,2))
+  alpha = Ts/2 #Should be this, but the nyquist frequency doesnt add up
+  alpha = Ts
+
+  # Check that the bilinear tranformation is possible
+  if minimum(svd(Id - alpha * Ac).S) < 1e-12
+    error("The transformation is extremely poorly conditioned, with min(svd(Id - alpha * Ac).S) < 1e-12. Consider an alternate discretization scheme.")
+  end
+
+  PP = Id - alpha * Ac
+  QQ = Id + alpha * Ac
+
+  Ad = PP \ QQ
+  Bd = (PP\Bc)
+  Cd = 2 * alpha * (Cc/PP)
+
+  # Scaling for improved numerical stability
+  σB = maximum(svd(Bd).S)
+  σC = maximum(svd(Cd).S)
+  if σB > tolerance && σC > tolerance
+    λc = sqrt(σB / σC)
+  else
+    λc = 1
+    error("Warning, the problem is poorly cnditioned. Consider an alternate discretization scheme.")
+  end
+
+  Bd /= λc
+  Cd *= λc
+
+  Dd = alpha * Cc/PP*Bc + Dc
+  return Ad, Bd, Cd, Dd, Ts
+end
+
+"""`hInf_bilinear_s2z(sys::StateSpace, Ts::Number)`
+
+Applies a Balanced Bilinear transformation to a discrete-time statespace object
+"""
+function hInf_bilinear_s2z(sys::StateSpace, Ts::Number)
+  Ac, Bc, Cc, Dc = ssdata(sys)
+
+  if sys.Ts > 0
+    error("Error, the input to bilinear_z2s() must be a continuous time system.")
+  end
+  if Ts <= 0
+    error("Error, the the discretization time Ts must be positive.")
+  end
+
+  Ad, Bd, Cd, Dd = hInf_bilinear_s2z(Ac, Bc, Cc, Dc, Ts)
+  return ss(Ad, Bd, Cd, Dd, Ts)
+end
+
+"""`hInf_bilinear_s2z(sys::ExtendedStateSpace, Ts::Number)`
+
+Applies a Balanced Bilinear transformation to a discrete-time extended statespace object
+"""
+function hInf_bilinear_s2z(sys::ExtendedStateSpace, Ts::Number)
+  Ac = get_A(sys)
+  Bc = get_B(sys)
+  Cc = get_C(sys)
+  Dc = get_D(sys)
+
+  m1 = size(get_B1(sys),2)
+  m2 = size(get_B2(sys),2)
+  p1 = size(get_C1(sys),1)
+  p2 = size(get_C2(sys),1)
+
+  if sys.Ts > 0
+    error("Error, the input to hInf_bilinear_s2z() must be a continuous time system.")
+  end
+  if Ts <= 0
+    error("Error, the the discretization time Ts must be positive.")
+  end
+
+  Ad, Bd, Cd, Dd = hInf_bilinear_s2z(Ac, Bc, Cc, Dc, Ts)
+
+  A   = Ad
+  B1  = Bd[:,1:m1]
+  B2  = Bd[:,(m1+1):(m1+m2)]
+  C1  = Cd[1:p1,:]
+  C2  = Cd[(p1+1):(p1+p2),:]
+  D11 = Dd[1:p1,1:m1]
+  D12 = Dd[1:p1,(m1+1):(m1+m2)]
+  D21 = Dd[(p1+1):(p1+p2),1:m1]
+  D22 = Dd[(p1+1):(p1+p2),(m1+1):(m1+m2)]
+
+  return ss(A, B1, B2, C1, C2, D11, D12, D21, D22, Ts)
 end

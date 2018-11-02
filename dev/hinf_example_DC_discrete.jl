@@ -14,7 +14,9 @@ MakePlots = true
 SavePlots = false
 
 # Define the process
-Gtrue   = tf([11.2], [1, 0.12,0])
+ts = 0.01
+epsilon = 1e-5
+Gd = ss(c2d(tf([11.2], [1, 0.12]) * tf([1], [1, epsilon]), ts))
 
 # Sensitivity weight function
 M, wB, A = 1.5, 20.0, 1e-8
@@ -26,27 +28,31 @@ WU = ss(1)
 # Complementary sensitivity weight function
 WT = []
 
-# Form the P in the LFT F_l(P,C) as a partitioned state-space object
-P = hInf_partition(Gtrue, WS, WU, WT)
-
-# Check if the system is feasible for synythesis
-flag = hInf_assumptions(P)
-
-# Since it is not, modify the plant desciption
-epsilon = 1e-5
-G = tf([11.2], [1, 0.12]) * tf([1], [1, epsilon])
+# Create continuous time approximation of the process
+hInf_bilinear_z2s(ss(Gd))
 
 # Form the P in the LFT Fl(P,C) as a partitioned state-space object
-P = hInf_partition(G, WS, WU, WT)
+Pc = hInf_partition(Gc, WS, WU, WT)
 
 # Check if the problem is feasible
-flag = hInf_assumptions(P)
+flag = hInf_assumptions(Pc)
 
 # Synthesize the H-infinity optimal controller
-flag, C, gamma = hInf_synthesize(P)
+flag, Cc, gamma = hInf_synthesize(Pc)
 
-# Extract the transfer functions defining some signals of interest
-Pcl, S, CS, T = hInf_signals(P, G, C)
+# Extract the transfer functions defining some signals of interest, but do so
+# using discrete equivalent of the continuous time objects Pc, Cc and Gc
+PclD, SD, CSD, TD = hInf_signals(
+  hInf_bilinear_s2z(Pc, ts),
+  hInf_bilinear_s2z(Gc, ts),
+  hInf_bilinear_s2z(Cc, ts)
+)
+
+# This solution is a bit hacky and should be revised
+Pcl = ss(PclD.A, PclD.B, PclD.C, PclD.D, ts)
+S   = ss(SD.A, SD.B, SD.C, SD.D, ts)
+CS  = ss(CSD.A, CSD.B, CSD.C, CSD.D, ts)
+T   = ss(TD.A, TD.B, TD.C, TD.D, ts)
 
 # TODO remove hack for visualizing plots, should be made into some kind of recepie
 if MakePlots

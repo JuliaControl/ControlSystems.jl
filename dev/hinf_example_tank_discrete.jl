@@ -34,17 +34,18 @@ B = [gamma1*k1/A1     0;
 C = [kc 0 0 0;
      0 kc 0 0];
 D = zeros(2,2)
-G = ss(A,B,C,D);
+ts = 0.01
+Gd = hInf_bilinear_s2z(ss(A,B,C,D), ts)
 
 # Sensitivity weight function
-WSelement = 100*tf([1,1],[1000,1])
+WSelement = 100*tf([0.1,1],[1000,1])
 WS = [WSelement 0; 0 WSelement]
 iWSelement = 1/WSelement
 iWS = [iWSelement 0; 0 iWSelement]
 
 # Output sensitivity weight function
-WUelement = 5*tf([1,1],[0.1,1]) ##
-WUelement = ss(0.01)
+WUelement = 100*tf([1,1],[0.1,1]) ##
+WUelement = ss(0.1)
 WU = [WUelement 0; 0 WUelement]
 iWUelement = 1/WUelement
 iWU = [iWUelement 0; 0 iWUelement]
@@ -55,25 +56,36 @@ WT  = [WTelement 0; 0 WTelement]
 iWTelement = 1/WTelement
 iWT = [iWTelement 0; 0 iWTelement]
 
-# Form augmented P dynamics in state-space
-P = hInf_partition(G, WS, WU, WT)
+# Create continuous time approximation of the process
+Gc = hInf_bilinear_z2s(Gd)
+#Gc = ss(A,B,C,D)
 
-# Check that the assumptions are satisfied
-flag = hInf_assumptions(P)
+# Form the P in the LFT Fl(P,C) as a partitioned state-space object
+Pc = hInf_partition(Gc, WS, WU, WT)
+
+# Check if the problem is feasible
+flag = hInf_assumptions(Pc)
 
 # Synthesize the H-infinity optimal controller
-flag, C, gamma = hInf_synthesize(P)
+flag, Cc, gamma = hInf_synthesize(Pc)
 
-Pcl, S, CS, T = hInf_signals(P, G, C)
+# Extract the transfer functions defining some signals of interest
+Pcl, S, CS, T = hInf_signals(Pc, Gc, Cc)
+
+Pcl = hInf_bilinear_s2z(Pcl, ts)
+S   = hInf_bilinear_s2z(S,  ts)
+CS  = hInf_bilinear_s2z(CS, ts)
+T   = hInf_bilinear_s2z(T,  ts)
 
 if MakePlots
   # Visualize
-  frequencies = [10^i for i in range(-6, stop=6, length=1001)];
+  frequencies = [10^i for i in range(-6, stop=(2+log10(0.5/ts)), length=1001)];
 
   pGain = plot(frequencies, ones(size(frequencies))*gamma, scale = :log10, yscale = :log10, color = :black, w=2, style=:dot, label="\$\\gamma\$")
   valPcl  = sigma(Pcl, frequencies)[1];
   plot!(frequencies, valPcl[:,1], scale = :log10, yscale = :log10, color = :black, w=1, label="\$\\sigma(P_{w\\rightarrow z}(j\\omega))\$")
   plot!(frequencies, valPcl[:,2], scale = :log10, yscale = :log10, color = :black, w=1, label="")
+  plot!([pi/ts; pi/ts], [minimum(valPcl); maximum(valPcl)], scale = :log10, yscale = :log10, color = :green, w=1, label="\$\\omega_s/2\$")
 
   valT  = sigma(T, frequencies)[1];
   pSigma = plot(frequencies, valT[:,1], scale = :log10, yscale = :log10, color = :black, w=1, label="\$\\sigma(T(j\\omega))\$")
@@ -92,9 +104,13 @@ if MakePlots
   valPiWS  = sigma(gamma*iWS, frequencies)[1];
   plot!(frequencies, valPiWS[:,1], scale = :log10, yscale = :log10, color = :red, w=2, style=:dot, label="\$\\gamma\\sigma(W_S^{-1}(j\\omega))\$")
 
-  times = [i for i in range(0, stop=300, length=10000)]
+  plot!([pi/ts; pi/ts],
+        [minimum([valT valPiWT valCS valPiWU valS valPiWS]);
+         maximum([valT valPiWT valCS valPiWU valS valPiWS])],
+        scale = :log10, yscale = :log10, color = :green,
+        w=1, label="\$\\omega_s/2\$")
 
-  stepy, stept, stepx = step(T, times)
+  stepy, stept, stepx = step(T, 300)
 
   pStep1=plot(stept, stepy[:,1,1], color = :blue, w=2, label="\$u_1\\rightarrow y_1\$")
   pStep2=plot(stept, stepy[:,1,2], color = :blue, w=2, label="\$u_1\\rightarrow y_2\$", ylims = (-0.5,1.1))

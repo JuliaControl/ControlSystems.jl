@@ -15,7 +15,7 @@ The example can be set to visualize and save plots using the two variables
   filename  - Set to string if files are to be saved, otherwise set a empty list
 """
 MakePlots = true
-SavePlots = true
+SavePlots = false
 
 # Define the process
 G   = tf([200], [0.025,1.0025,10.1,1])
@@ -43,8 +43,8 @@ flag, C, gamma = hInf_synthesize(P)
 Pcl, S, CS, T = hInf_signals(P, G, C)
 
 # TODO remove hack for visualizing plots, should be made into some kind of recepie
-include("hinf_utilities.jl")
 if MakePlots
+  include("hinf_utilities.jl")
   if SavePlots; filename = "example_MIT.pdf"; else; filename=[]; end
-  visualize_synthesis(Pcl, S, CS, T, gamma; filename=filename, tmax=1)
+  visualize_synthesis(Pcl, S, CS, T, gamma, tmax=1)
 end
