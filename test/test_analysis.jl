@@ -100,9 +100,12 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 @test tzero(sys) ≈ [3.0, -1.0, im, -im, 0.0]
 
 ## POLE ##
+# TODO: how are poles sorted?
 @test pole(sys) ≈ [4.0, -4.0, -1.0]
-@test_broken pole([sys sys]) ≈ [4.0, -4.0, -1.0] # Issue #81
+@test pole([sys sys]) ≈ [4.0, -4.0, -1.0] # Issue #81
 @test pole(ex_11) ≈ eigvals(ex_11.A)
+@test pole([2/(s+1) 3/(s+2); 1/(s+1) 1/(s+1)]) ≈ [-1, -1, -2]
+
 
 poles = [-3.383889568918823 + 0.000000000000000im
                             -2.199935841931115 + 0.000000000000000im

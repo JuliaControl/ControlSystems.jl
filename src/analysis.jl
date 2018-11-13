@@ -2,9 +2,91 @@
 
 Compute the poles of system `sys`."""
 pole(sys::StateSpace) = eigvals(sys.A)
-# TODO wrong for MIMO
-pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
+function pole(sys::TransferFunction{S}) where {T, S <: SisoTf{T}}
+    # Seems to have a lot of rounding problems if we run the full thing with sisorational,
+    # converting to zpk before works better in the cases I have tested.
+    sys = zpk(sys)
+
+    # TODO: Might be able to make this less general, especially for zpk
+    T1 = typeof(one(T) + im * one(T))
+    PoleType = Base.promote_op(/, T1, T1)
+
+    # Calculate least common denominator of the minors, 
+    # i.e. something like least common multiple of the pole-polynomials
+    individualpoles = [map(pole, sys.matrix)...;]
+    lcmpoles = PoleType[]
+    for poles = minorpoles(sys.matrix)
+        # Poles have to be equal to existing poles for the individual transfer functions and this 
+        # calculation probably is more precise than the full. Seems to work better at least.
+        for i = 1:length(poles) 
+            idx = argmin(map(abs, individualpoles .- poles[i]))
+            poles[i] = individualpoles[idx]
+        end
+        for pole = lcmpoles
+            idx = findfirst(poles .≈ pole)
+            if idx != nothing
+                deleteat!(poles, idx)
+            end
+        end
+        append!(lcmpoles, poles)
+    end
+
+    return lcmpoles
+end
+
+"""`minorpoles(sys)`
+
+Compute the poles of all minors of the system."""
+# TODO: Improve implementation, should be more efficient ways. 
+# Calculates the same minors several times in some cases.
+function minorpoles(sys::Matrix{S}) where {T<:Number, S<:SisoTf{T}}
+    T1 = typeof(one(T) + im * one(T))
+    PoleType = Base.promote_op(/, T1, T1)
+    minors = Array{PoleType, 1}[]
+    ny, nu = size(sys)
+    if ny == nu == 1
+        push!(minors, pole(sys[1, 1]))
+    elseif ny == nu
+        push!(minors, pole(det(sys)))
+        for i = 1:ny
+            for j = 1:nu
+                newmat = sys[1:end .!=i, 1:end .!= j]
+                append!(minors, minorpoles(newmat))
+            end
+        end
+    elseif ny < nu
+        for i = 1:nu
+            newmat = sys[1:end, 1:end .!= i]
+            append!(minors, minorpoles(newmat))
+        end
+    else
+        for i = 1:ny
+            newmat = sys[1:end .!= i, 1:end]
+            append!(minors, minorpoles(newmat))
+        end
+    end
+    return minors
+end
+
+"""`det(sys)`
+
+Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
+# TODO: improve this implementation, should be more efficient ones
+function det(sys::Matrix{S}) where {T<:Number, S<:SisoTf{T}}
+    ny, nu = size(sys)
+    @assert ny == nu "Matrix is not square"
+    if ny == 1
+        return sys[1, 1]
+    end
+    tot = zero(S)
+    sign = -1
+    for i = 1:ny
+        sign = -sign
+        tot += sign * sys[i, 1] * det(sys[1:end .!= i, 2:end])
+    end
+    return tot
+end
 
 """`dcgain(sys)`
 
@@ -94,6 +176,9 @@ function tzero(sys::TransferFunction)
     if issiso(sys)
         return tzero(sys.matrix[1,1])
     else
+        # TODO: Could probably implement this in a numerically more stable way
+        # for transfer functions by finding poles and then greatest common divisor of zeros
+        # normalized with poles
         return tzero(ss(sys))
     end
 end
