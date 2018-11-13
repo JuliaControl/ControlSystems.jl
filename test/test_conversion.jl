@@ -106,6 +106,27 @@ G3 = tf([1,1],[1,0,-1])
 ### test mimo
 @test norminf(zpk([sys1 sys2])-zpk([ss(sys1) ss(sys2)]))[1] < 1e-12
 
+
+## Test some BigFloat
+SSBigFloat = StateSpace{BigFloat,Array{BigFloat,2}}
+ZpkBigFloat = TransferFunction{ControlSystems.SisoZpk{BigFloat,Complex{BigFloat}}}
+RationalBigFloat = TransferFunction{ControlSystems.SisoRational{BigFloat}}
+
+s = tf("s")
+f = zpk(1.0*(2s+3)/((5s+7)*(11s+13)))
+fb = BigFloat(1.0)*f
+
+# Reasonable defaults
+# @test fb isa RationalBigFloat # Do we want this? We get TransferFunction{ControlSystems.SisoZpk{BigFloat,Complex{Float64}}}
+@test ss(fb) isa SSBigFloat
+@test tf(fb) isa RationalBigFloat
+# Cant compute poles:
+# @test zpk(tf(fb)) isa SSBigFloat
+
+@test convert(SSBigFloat, fb) isa SSBigFloat
+@test convert(ZpkBigFloat, fb) isa ZpkBigFloat
+@test convert(RationalBigFloat, fb) isa RationalBigFloat
+
 ## Test some rather trivial conversions of numeric types
 
 b = 1.5

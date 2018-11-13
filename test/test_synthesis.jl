@@ -28,4 +28,31 @@ Lint = P*C
 
 @test_throws ErrorException feedback(ss(1),ss(1))
 @test_throws ErrorException feedback(ss([1 0; 0 1], ones(2,2), ones(1,2),0))
+
+# Test Feedback Issue: 163
+g = tf([1],[1,1])
+gfb = feedback(g)
+gfb2 = tf(feedback(ss(g)))
+@test norminf(gfb - gfb2)[1] <= 1e-14
+
+# Test more feedback
+s = tf("s")
+ftf = 1.0*(2s+3)/((5s+7)*(11s+13))
+fzpk = zpk(ftf)
+
+ffb = feedback(fzpk)            # Zpk feedback
+ffb2 = zpk(feedback(ss(fzpk)))  # ss feedback + ss conversion
+ffb3 = feedback(ftf)            # tf feedback
+ffb4 = feedback(ss(ftf))        # ss feedback
+ffb5 = minreal(fzpk/(1+fzpk))   # Zpk feedback manual
+
+z1,p1,k1 = zpkdata(ffb)
+z2,p2,k2 = zpkdata(ffb2)
+z3,p3,k3 = zpkdata(ffb3)
+z4,p4,k4 = zpkdata(ffb4)
+z5,p5,k5 = zpkdata(ffb5)
+@test sort(real.(z1[1])) ≈ sort(real.(z2[1])) ≈ sort(real.(z3[1])) ≈ sort(real.(z4[1])) ≈ sort(real.(z5[1]))
+@test sort(real.(p1[1])) ≈ sort(real.(p2[1])) ≈ sort(real.(p3[1])) ≈ sort(real.(p4[1])) ≈ sort(real.(p5[1]))
+@test k1 ≈ k2 ≈ k3 ≈ k4 ≈ k5
+
 end
