@@ -176,9 +176,6 @@ function tzero(sys::TransferFunction)
     if issiso(sys)
         return tzero(sys.matrix[1,1])
     else
-        # TODO: Could probably implement this in a numerically more stable way
-        # for transfer functions by finding poles and then greatest common divisor of zeros
-        # normalized with poles
         return tzero(ss(sys))
     end
 end
