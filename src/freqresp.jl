@@ -149,7 +149,7 @@ frequencies `w`
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     nw, ny, nu = size(resp)
-    sv = Array{Float64}(undef, nw, min(ny, nu))
+    sv = Array{numeric_type(sys)}(undef, nw, min(ny, nu))
     for i=1:nw
         sv[i, :] = svdvals(resp[i, :, :])
     end
@@ -161,7 +161,7 @@ function _default_freq_vector(systems::Vector{T}, plot::Symbol) where T<:LTISyst
     min_pt_per_dec = 60
     min_pt_total = 200
     nsys = length(systems)
-    bounds = Array{Float64}(undef, 2, nsys)
+    bounds = Array{numeric_type(systems[1])}(undef, 2, nsys)
     for i=1:nsys
         # TODO : For now we ignore the feature information. In the future,
         # these can be used to improve the frequency vector near features.
