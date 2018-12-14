@@ -13,12 +13,12 @@ function issiso(sys::LTISystem)
 end
 
 
-"""`iscontinuous(sys)`
-
-Returns `true` if `sys` is continuous, else returns `false`."""
-function iscontinuous(sys::LTISystem)
-    return sys.Ts == 0
-end
+# """`iscontinuous(sys)`
+#
+# Returns `true` if `sys` is continuous, else returns `false`."""
+# function iscontinuous(sys::LTISystem)
+#     return get_Ts(sys) == 0
+# end
 
 
 """`isstable(sys)`

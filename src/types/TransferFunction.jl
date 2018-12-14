@@ -1,22 +1,32 @@
-struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{SampleT<:AbstractSampleTime,DimT<:AbstractSystemSize,S<:SisoTf{T} where T}# <: LTISystem
     matrix::Matrix{S}
-    Ts::Float64
+    Ts::SampleT
     nu::Int
     ny::Int
-    function TransferFunction{S}(matrix::Matrix{S}, Ts::Real=0) where {S}
+    function TransferFunction{S}(matrix::Matrix{S}, Ts::Real=0) where {SampleT,DimT,S}
         # Validate size of input and output names
         ny, nu = size(matrix)
+        if issiso(DimT)
+            @assert ny == nu == 1 "SISO Systems can only have one input and one output"
+        end
         # Validate sampling time
         if Ts < 0 && Ts != -1
             error("Ts must be either a positive number, 0
                 (continuous system), or -1 (unspecified)")
         end
-        return new{S}(matrix, Ts, nu, ny)
+        return new{SampleT,DimT,S}(matrix, Ts, nu, ny)
     end
 end
 function TransferFunction(matrix::Matrix{S}, Ts::Float64=0) where {T<:Number, S<:SisoTf{T}}
     return TransferFunction{S}(matrix, Ts)
 end
+function TransferFunction(matrix::Matrix{S}) where {T<:Number, S<:SisoTf{T}}
+    return TransferFunction{Discrete, S}(matrix, Ts)
+end
+
+const TransferFunctionDisc{DimT, S} = TransferFunction{Discrete, DimT, S}   where {DimT<:AbstractSystemSize,S<:SisoTf{T} where T}
+const TransferFunctionCont{DimT, S} = TransferFunction{Continuous, DimT, S} where {DimT<:AbstractSystemSize,S<:SisoTf{T} where T}
+const TransferFunctionCont{DimT, S} = TransferFunction{Static, DimT, S}     where {DimT<:AbstractSystemSize,S<:SisoTf{T} where T}
 
 noutputs(G::TransferFunction) = size(G.matrix, 1)
 ninputs(G::TransferFunction) = size(G.matrix, 2)
@@ -91,26 +101,13 @@ end
 #####################################################################
 
 ## EQUALITY ##
-function ==(G1::TransferFunction, G2::TransferFunction)
-    fields = [:Ts, :ny, :nu, :matrix]
-    for field in fields
-        if getfield(G1, field) != getfield(G2, field)
-            return false
-        end
-    end
-    return true
+function ==(G1::TransferFunction, G2::TransferFunction) where SampleT <: AbstractSampleTime
+    return (G1.Ts == G2.Ts) && (size(G1) == size(G2)) && (G1.matrix == G2.matrix)
 end
 
 ## Approximate ##
 function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
-    G1, G2 = promote(G1, G2)
-    fieldsApprox = [:Ts, :matrix]
-    for field in fieldsApprox
-        if !(isapprox(getfield(G1, field), getfield(G2, field); kwargs...))
-            return false
-        end
-    end
-    return true
+    return (G1.Ts ≈ G2.Ts) && (G1.matrix ≈ G2.matrix)
 end
 
 function isapprox(G1::Array{T}, G2::Array{S}; kwargs...) where {T<:SisoTf, S<:SisoTf}
@@ -118,7 +115,7 @@ function isapprox(G1::Array{T}, G2::Array{S}; kwargs...) where {T<:SisoTf, S<:Si
 end
 
 ## ADDITION ##
-function +(G1::TransferFunction, G2::TransferFunction)
+function +(G1::TransferFunction{SampleT}, G2::TransferFunction{SampleT}) where SampleT <: AbstractSampleTime
     if size(G1) != size(G2)
         error("Systems have different shapes.")
     elseif G1.Ts != G2.Ts
@@ -127,6 +124,13 @@ function +(G1::TransferFunction, G2::TransferFunction)
 
     matrix = G1.matrix + G2.matrix
     return TransferFunction(matrix, G1.Ts)
+end
+
+function +(G1::TransferFunction{SampleT1<:AbstractSampleTime}, G2::TransferFunction{SampleT2<:AbstractSampleTime})
+    if !isa(SampleT1,Static) && !isa(SampleT1,Static)
+        error("Sample time mismatch, cannot add systems with $SampleT1 and $SampleT2 sample times.")
+    end
+    if isa(SampleT1, Static)
 end
 
 +(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.Ts)

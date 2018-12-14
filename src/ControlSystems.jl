@@ -85,6 +85,39 @@ import DSP: conv
 
 abstract type AbstractSystem end
 
+abstract type AbstractSystemSize end
+issiso(sm::DimT) where {DimT <: AbstractSystemSize}  = issiso(DimT)
+struct SISO <: AbstractSystemSize end
+struct MIMO <: AbstractSystemSize end
+issiso(::Type{SISO}) = true
+issiso(::Type{MIMO}) = false
+
+abstract type AbstractSampleTime end
+iscontinuous(::SampleT) where {SampleT <: AbstractSampleTime}  = issiso(SampleT)
+
+struct Discrete{T} <: AbstractSampleTime
+    Ts::T
+end
+struct Continuous <: AbstractSampleTime end
+struct Static <: AbstractSampleTime end
+iscontinuous(::Type{Discrete}) = false
+iscontinuous(::Type{Continuous}) = true
+iscontinuous(::Type{Static}) = false
+
+sampletime(x::Discrete) = x.Ts
+sampletime(x::Continuous) = error("Continuous system has no sample time")
+sampletime(x::Static) = error("Static system has no sample time")
+
+==(x::AbstractSampleTime, y::AbstractSampleTime) = false
+==(x::Discrete, y::Discrete) = (x.Ts == y.Ts)
+==(::Continuous, ::Continuous) = true
+==(::Static, ::Static) = true
+
+≈(x::AbstractSampleTime, y::AbstractSampleTime) = false
+≈(x::Discrete, y::Discrete) = (x.Ts ≈ y.Ts)
+≈(::Continuous, ::Continuous) = true
+≈(::Static, ::Static) = true
+
 include("types/Lti.jl")
 
 include("types/SisoTf.jl")
