@@ -50,11 +50,8 @@ Base.convert(::Type{StateSpace{T, MT}}, b::Number) where {T, MT} = convert(State
 #
 
 function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
-    Gnew_matrix = Matrix{S}(undef, size(G))
-    for i in eachindex(G.matrix)
-        Gnew_matrix[i] = convert(S, G.matrix[i])
-    end
-    return TransferFunction{S}(Gnew_matrix, G.Ts)
+    Gnew_matrix = convert.(S, G.matrix)
+    return TransferFunction{eltype(Gnew_matrix)}(Gnew_matrix, G.Ts)
 end
 
 function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}

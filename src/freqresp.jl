@@ -105,7 +105,7 @@ function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
+bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
 """`re, im, w = nyquist(sys[, w])`
 
@@ -117,7 +117,7 @@ function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
+nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
 """`sv, w = sigma(sys[, w])`
 
@@ -131,9 +131,9 @@ function sigma(sys::LTISystem, w::AbstractVector)
     sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end
-sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, :sigma))
+sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
-function _default_freq_vector(systems::Vector{T}, plot::Symbol) where T<:LTISystem
+function _default_freq_vector(systems::Vector{T}, plot) where T<:LTISystem
     min_pt_per_dec = 60
     min_pt_total = 200
     bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)
@@ -143,22 +143,23 @@ function _default_freq_vector(systems::Vector{T}, plot::Symbol) where T<:LTISyst
     nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
     return exp10.(range(w1, stop=w2, length=nw))
 end
-_default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
-        LTISystem[sys], plot)
+_default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
+        [sys], plot)
 
 
 
 
-function _bounds_and_features(sys::LTISystem, plot::Symbol)
+function _bounds_and_features(sys::LTISystem, plot::Val)
     # Get zeros and poles for each channel
-    if plot != :sigma
+    if !isa(plot, Val{:sigma})
         zs, ps = zpkdata(sys)
         # Compose vector of all zs, ps, positive conjugates only.
-        zp = vcat([vcat(i, j) for (i, j) in zip(zs, ps)]...)
+        zpType = promote_type(eltype(eltype(zs)), eltype(eltype(ps)))
+        zp = vcat(zpType[], zs..., ps...) # Emty vector to avoid type unstable vcat()
         zp = zp[imag(zp) .>= 0.0]
     else
-        # For sigma plots, use the MIMO poles and zeros
-        zp = [tzero(sys); pole(sys)]
+         # For sigma plots, use the MIMO poles and zeros
+         zp = [tzero(sys); pole(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
     fzp = log10.(abs.(zp))
@@ -169,13 +170,13 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
         w1 = floor(fzp[1] - 0.2)
         w2 = ceil(fzp[end] + 0.2)
         # Expand the range for nyquist plots
-        if plot == :nyquist
-            w1 -= 1
-            w2 += 1
+        if plot isa Val{:nyquist}
+            w1 -= 1.0
+            w2 += 1.0
         end
     else
-        w1 = 0
-        w2 = 2
+        w1 = 0.0
+        w2 = 2.0
     end
     return [w1, w2], zp
 end
