@@ -179,7 +179,6 @@ z, p, k = zpkdata(G)
      "|  -2.000e+00   |  1.000e+00    |  2.000e+00    |  5.000e-01    |\n"*
      "|  3.000e+00    |  -1.000e+00   |  3.000e+00    |  -3.333e-01   |\n")
 
-s = tf("s")
 @test sprint(dampreport, 1/(s+1+2im)/(s+2+3im)) == (
      "|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
      "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*

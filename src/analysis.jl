@@ -70,7 +70,7 @@ end
 
 Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
 # TODO: improve this implementation, should be more efficient ones
-function det(sys::Matrix{SisoZpk{T, TR}}) where {T<:Number, TR}
+function det(sys::Matrix{S}) where {T<:Number, TR, S<:SisoZpk}
     ny, nu = size(sys)
     @assert ny == nu "Matrix is not square"
     if ny == 1
