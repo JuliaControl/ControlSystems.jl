@@ -3,23 +3,22 @@
 Compute the poles of system `sys`."""
 pole(sys::StateSpace) = eigvals(sys.A)
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
-function pole(sys::TransferFunction{S}) where {T, S <: SisoTf{T}}
-    # Seems to have a lot of rounding problems if we run the full thing with sisorational,
-    # converting to zpk before works better in the cases I have tested.
-    sys = zpk(sys)
 
-    # TODO: Might be able to make this less general, especially for zpk
-    T1 = typeof(one(T) + im * one(T))
-    PoleType = Base.promote_op(/, T1, T1)
+# Seems to have a lot of rounding problems if we run the full thing with sisorational,
+# converting to zpk before works better in the cases I have tested.
+pole(sys::TransferFunction) = pole(zpk(sys))
 
-    # Calculate least common denominator of the minors, 
+function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T<:Number, TR<:Number}
+    # With right TR, this code works for any SisoTf
+
+    # Calculate least common denominator of the minors,
     # i.e. something like least common multiple of the pole-polynomials
     individualpoles = [map(pole, sys.matrix)...;]
-    lcmpoles = PoleType[]
+    lcmpoles = TR[]
     for poles = minorpoles(sys.matrix)
-        # Poles have to be equal to existing poles for the individual transfer functions and this 
+        # Poles have to be equal to existing poles for the individual transfer functions and this
         # calculation probably is more precise than the full. Seems to work better at least.
-        for i = 1:length(poles) 
+        for i = 1:length(poles)
             idx = argmin(map(abs, individualpoles .- poles[i]))
             poles[i] = individualpoles[idx]
         end
@@ -38,12 +37,10 @@ end
 """`minorpoles(sys)`
 
 Compute the poles of all minors of the system."""
-# TODO: Improve implementation, should be more efficient ways. 
+# TODO: Improve implementation, should be more efficient ways.
 # Calculates the same minors several times in some cases.
-function minorpoles(sys::Matrix{S}) where {T<:Number, S<:SisoTf{T}}
-    T1 = typeof(one(T) + im * one(T))
-    PoleType = Base.promote_op(/, T1, T1)
-    minors = Array{PoleType, 1}[]
+function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
+    minors = Array{TR,1}[]
     ny, nu = size(sys)
     if ny == nu == 1
         push!(minors, pole(sys[1, 1]))
@@ -73,7 +70,7 @@ end
 
 Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
 # TODO: improve this implementation, should be more efficient ones
-function det(sys::Matrix{S}) where {T<:Number, S<:SisoTf{T}}
+function det(sys::Matrix{SisoZpk{T, TR}}) where {T<:Number, TR}
     ny, nu = size(sys)
     @assert ny == nu "Matrix is not square"
     if ny == 1
@@ -160,9 +157,17 @@ function dampreport(io::IO, sys::LTISystem)
     "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
     "+---------------+---------------+---------------+---------------+")
     println(io, header)
-    for i=eachindex(ps)
-        p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-        Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
+    if all(isreal, ps)
+        for i=eachindex(ps)
+            p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
+            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, t)
+        end
+    else
+        for i=eachindex(ps)
+            p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
+            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, t)
+            Printf.@printf(io, "|  %-+11.3eim|               |               |               |\n", imag(p))
+        end
     end
 end
 dampreport(sys::LTISystem) = dampreport(stdout, sys)
