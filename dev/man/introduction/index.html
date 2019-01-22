@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Introduction · ControlSystems</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>ControlSystems</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../examples/example/">LQR design</a></li><li><a class="toctext" href="../../">ControlSystems.jl Manual</a></li><li><a class="toctext" href="../../lib/analysis/">Analysis</a></li><li><a class="toctext" href="../../lib/constructors/">Constructing transfer functions</a></li><li><a class="toctext" href="../../lib/plotting/">Plotting functions</a></li><li><a class="toctext" href="../../lib/synthesis/">Synthesis</a></li><li><a class="toctext" href="../../lib/timefreqresponse/">Time and Frequency response</a></li><li><a class="toctext" href="../creatingtfs/">Creating Transfer Functions</a></li><li class="current"><a class="toctext" href>Introduction</a><ul class="internal"><li><a class="toctext" href="#Installation-1">Installation</a></li><li><a class="toctext" href="#Basic-functions-1">Basic functions</a></li><li><a class="toctext" href="#Plotting-1">Plotting</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li><a href>Introduction</a></li></ul><a class="edit-page" href="https://github.com/JuliaControl/ControlSystems.jl/blob/master/docs/src/man/introduction.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Introduction</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Introduction-1" href="#Introduction-1">Introduction</a></h1><h2><a class="nav-anchor" id="Installation-1" href="#Installation-1">Installation</a></h2><p>To install this package simply run</p><pre><code class="language-julia">Pkg.add(&quot;ControlSystems&quot;)</code></pre><h2><a class="nav-anchor" id="Basic-functions-1" href="#Basic-functions-1">Basic functions</a></h2><p>Transfer functions can easily be created using the function <code>tf(num, den, Ts=0)</code>, where <code>num</code> and <code>den</code> are vectors representing the numerator and denominator of a rational function. See <a href="../../lib/constructors/#ControlSystems.tf"><code>tf</code></a> or the section &quot;Creating Transfer Functions&quot; for more info. These functions can then be connected and modified using the operators <code>+,-,*,/</code> and functions like <a href="../../lib/constructors/#ControlSystems.append"><code>append</code></a>.</p><p>Example:</p><pre><code class="language-julia">P = tf([1],[1,1])
+T = P/(1+P)
+
+# output
+
+TransferFunction:
+    s + 1.0
+----------------
+s^2 + 3.0s + 2.0
+
+Continuous-time transfer function model</code></pre><p>Notice that the poles are not canceled automatically, to do this, the function <code>minreal</code> is available</p><pre><code class="language-julia">minreal(T)
+
+# output
+
+TransferFunction:
+  1.0
+-------
+s + 2.0
+
+Continuous-time transfer function model</code></pre><h2><a class="nav-anchor" id="Plotting-1" href="#Plotting-1">Plotting</a></h2><p>Plotting requires some extra care. The ControlSystems package is using <code>Plots.jl</code> (<a href="https://github.com/tbreloff/Plots.jl">link</a>) as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using <code>PyPlot</code>. If you have several back-ends for plotting then you can select the one you want to use with the corresponding <code>Plots</code> call (for <code>PyPlot</code> this is <code>Plots.pyplot()</code>, some alternatives are <code>immerse(), gadfly(), plotly()</code>). A simple example where we generate a plot using <code>immerse</code> and save it to a file is</p><pre><code class="language-julia">using ControlSystems
+Plots.immerse()
+
+fig = bodeplot(tf(1,[1,2,1]))
+
+Plots.savefig(fig, &quot;myfile.svg&quot;)</code></pre><footer><hr/><a class="previous" href="../creatingtfs/"><span class="direction">Previous</span><span class="title">Creating Transfer Functions</span></a></footer></article></body></html>
