@@ -1,72 +1,16 @@
 var documenterSearchIndex = {"docs": [
 
 {
-    "location": "examples/example/#",
-    "page": "LQR design",
-    "title": "LQR design",
-    "category": "page",
-    "text": "DocTestSetup = quote\n    using ControlSystems\nend"
-},
-
-{
-    "location": "examples/example/#LQR-design-1",
-    "page": "LQR design",
-    "title": "LQR design",
-    "category": "section",
-    "text": "using LinearAlgebra # For identity matrix I\nh       = 0.1\nA       = [1 h; 0 1]\nB       = [0;1]\nC       = [1 0]\nsys     = ss(A,B,C,0, h)\nQ       = I\nR       = I\nL       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used\n\nu(t,x)  = -L*x + 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5\nt       =0:h:5\nx0      = [1,0]\ny, t, x, uout = lsim(sys,u,t,x0)\nplot(t,x, lab=[\"Position\", \"Velocity\"]\', xlabel=\"Time [s]\")(Image: )"
-},
-
-{
-    "location": "examples/example/#LQR-design-2",
-    "page": "LQR design",
-    "title": "LQR design",
-    "category": "section",
-    "text": "using LinearAlgebra # For identity matrix I\nh       = 0.1\nA       = [1 h; 0 1]\nB       = [0;1]\nC       = [1 0]\nsys     = ss(A,B,C,0, h)\nQ       = I\nR       = I\nL       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used\n\nu(t,x)  = -L*x + 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5\nt       =0:h:5\nx0      = [1,0]\ny, t, x, uout = lsim(sys,u,t,x0)\nplot(t,x, lab=[\"Position\", \"Velocity\"]\', xlabel=\"Time [s]\")(Image: )"
-},
-
-{
-    "location": "examples/example/#PID-design-functions-1",
-    "page": "LQR design",
-    "title": "PID design functions",
-    "category": "section",
-    "text": "By plotting the gang of four under unit feedback for the processP = tf(1,[1,1])^4\ngangoffourplot(P,tf(1))(Image: )we notice that the sensitivity function is a bit too high at around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the function loopshapingPI and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.ωp = 0.8\nkp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)(Image: ) (Image: )We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something likeωp = 2\nkp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)Here we specify that we want the Nyquist curve L(iω) = P(iω)C(iω) to pass the point |L(iω)| = rl = 1,  arg(L(iω)) = -180 + phasemargin = -180 + 60 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles. (Image: ) (Image: )"
-},
-
-{
-    "location": "examples/example/#Advanced-pole-zero-placement-1",
-    "page": "LQR design",
-    "title": "Advanced pole-zero placement",
-    "category": "section",
-    "text": "This example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.Define the processζ = 0.2\nω = 1\n\nB = [1]\nA   = [1, 2ζ*ω, ω^2]\nP  = tf(B,A)\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 0.4s + 1.0\n\nContinuous-time transfer function modelDefine the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.# Control design\nζ0 = 0.7\nω0 = 2\nAm = [1, 2ζ0*ω0, ω0^2]\nAo = conv(2Am, [1/2, 1]) # Observer polynomial, add extra pole due to the integrator\nAR = [1,0] # Force the controller to contain an integrator ( 1/(s+0) )\n\nB⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ where B⁻ contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)\nB⁻  = [1]\nBm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process\n\nR,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials\n\nGcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length\n\nstepplot([P,Gcl]) # Visualize the open and closed loop responses.\ngangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK(Image: ) (Image: )"
-},
-
-{
-    "location": "examples/example/#Stability-boundary-for-PID-controllers-1",
-    "page": "LQR design",
-    "title": "Stability boundary for PID controllers",
-    "category": "section",
-    "text": "The stability boundary, where the transfer function P(s)C(s) = -1, can be plotted with the command stabregionPID. The process can be given in string form or as a regular LTIsystem.P1 = \"exp(-sqrt(s))\"\nf1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)))\nP2 = \"100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2)\"\nf2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)))\nP3 = tf(1,[1,1])^4\nf3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)))(Image: ) (Image: ) (Image: )"
-},
-
-{
-    "location": "examples/example/#PID-plots-1",
-    "page": "LQR design",
-    "title": "PID plots",
-    "category": "section",
-    "text": "This example utilizes the function pidplots, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.P = tf([1.],[1., 1])\n\nζ = 0.5 # Desired damping\n\nws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths\nkp = 2*ζ*ws-1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern\nki = ws.^2\npidplots(P,:nyquist,:gof;kps=kp,kis=ki, ω= exp10.(range(-2, stop=2, length=500))) # Request Nyquist and Gang-of-four plots (more plots are available, see ?pidplots )(Image: ) (Image: )Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/skp = range(-1, stop=1, length=8) #\nki = sqrt(1-kp.^2)/10\npidplots(P,:nyquist,:gof;kps=kp,kis=ki)(Image: ) (Image: )"
-},
-
-{
     "location": "#",
-    "page": "ControlSystems.jl Manual",
-    "title": "ControlSystems.jl Manual",
+    "page": "Home",
+    "title": "Home",
     "category": "page",
     "text": ""
 },
 
 {
     "location": "#ControlSystems.jl-Manual-1",
-    "page": "ControlSystems.jl Manual",
+    "page": "Home",
     "title": "ControlSystems.jl Manual",
     "category": "section",
     "text": "CurrentModule = ControlSystems"
@@ -74,15 +18,15 @@ var documenterSearchIndex = {"docs": [
 
 {
     "location": "#Examples-1",
-    "page": "ControlSystems.jl Manual",
+    "page": "Home",
     "title": "Examples",
     "category": "section",
-    "text": "Pages = [\"examples/example.md\"]\nDepth = 1"
+    "text": "Pages = [\"examples/example.md\"]\nDepth = 2"
 },
 
 {
     "location": "#Guide-1",
-    "page": "ControlSystems.jl Manual",
+    "page": "Home",
     "title": "Guide",
     "category": "section",
     "text": "Pages = [\"man/introduction.md\", \"man/creatingtfs.md\"]\nDepth = 1"
@@ -90,18 +34,266 @@ var documenterSearchIndex = {"docs": [
 
 {
     "location": "#Functions-1",
-    "page": "ControlSystems.jl Manual",
+    "page": "Home",
     "title": "Functions",
     "category": "section",
-    "text": "Pages = [\"lib/constructors.md\", \"lib/plotting.md\"]"
+    "text": "Pages = [\"lib/constructors.md\",  \"lib/analysis.md\", \"lib/syntheis.md\", \"lib/timefreqresponse.md\", \"lib/plotting.md\"]\nDepth = 1"
 },
 
 {
-    "location": "#Documentation-Index-1",
-    "page": "ControlSystems.jl Manual",
-    "title": "Documentation Index",
+    "location": "examples/example/#",
+    "page": "Design",
+    "title": "Design",
+    "category": "page",
+    "text": "DocTestSetup = quote\n    using ControlSystems\nend"
+},
+
+{
+    "location": "examples/example/#LQR-design-1",
+    "page": "Design",
+    "title": "LQR design",
     "category": "section",
-    "text": "Pages = [\"lib/constructors.md\", \"lib/plotting.md\", \"lib/syntheis.md\", \"lib/timefreqresponse.md\", \"lib/analysis.md\"]\nDepth = 1"
+    "text": "using LinearAlgebra # For identity matrix I\nh       = 0.1\nA       = [1 h; 0 1]\nB       = [0;1]\nC       = [1 0]\nsys     = ss(A,B,C,0, h)\nQ       = I\nR       = I\nL       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used\n\nu(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5\nt       =0:h:5\nx0      = [1,0]\ny, t, x, uout = lsim(sys,u,t,x0=x0)\nplot(t,x, lab=[\"Position\", \"Velocity\"]\', xlabel=\"Time [s]\")(Image: )"
+},
+
+{
+    "location": "examples/example/#LQR-design-2",
+    "page": "Design",
+    "title": "LQR design",
+    "category": "section",
+    "text": "using LinearAlgebra # For identity matrix I\nh       = 0.1\nA       = [1 h; 0 1]\nB       = [0;1]\nC       = [1 0]\nsys     = ss(A,B,C,0, h)\nQ       = I\nR       = I\nL       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used\n\nu(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5\nt       =0:h:5\nx0      = [1,0]\ny, t, x, uout = lsim(sys,u,t,x0=x0)\nplot(t,x, lab=[\"Position\", \"Velocity\"]\', xlabel=\"Time [s]\")(Image: )"
+},
+
+{
+    "location": "examples/example/#PID-design-functions-1",
+    "page": "Design",
+    "title": "PID design functions",
+    "category": "section",
+    "text": "By plotting the gang of four under unit feedback for the processP = tf(1,[1,1])^4\ngangoffourplot(P,tf(1))(Image: )we notice that the sensitivity function is a bit too high at around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the function loopshapingPI and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.ωp = 0.8\nkp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)(Image: ) (Image: )We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something likeωp = 2\nkp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)Here we specify that we want the Nyquist curve L(iω) = P(iω)C(iω) to pass the point |L(iω)| = rl = 1,  arg(L(iω)) = -180 + phasemargin = -180 + 60 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles. (Image: ) (Image: )"
+},
+
+{
+    "location": "examples/example/#Advanced-pole-zero-placement-1",
+    "page": "Design",
+    "title": "Advanced pole-zero placement",
+    "category": "section",
+    "text": "This example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.Define the processζ = 0.2\nω = 1\n\nB = [1]\nA   = [1, 2ζ*ω, ω^2]\nP  = tf(B,A)\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 0.4s + 1.0\n\nContinuous-time transfer function modelDefine the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.# Control design\nζ0 = 0.7\nω0 = 2\nAm = [1, 2ζ0*ω0, ω0^2]\nAo = conv(2Am, [1/2, 1]) # Observer polynomial, add extra pole due to the integrator\nAR = [1,0] # Force the controller to contain an integrator ( 1/(s+0) )\n\nB⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ where B⁻ contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)\nB⁻  = [1]\nBm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process\n\nR,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials\n\nGcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length\n\nstepplot([P,Gcl]) # Visualize the open and closed loop responses.\ngangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK(Image: ) (Image: )"
+},
+
+{
+    "location": "examples/example/#Stability-boundary-for-PID-controllers-1",
+    "page": "Design",
+    "title": "Stability boundary for PID controllers",
+    "category": "section",
+    "text": "The stability boundary, where the transfer function P(s)C(s) = -1, can be plotted with the command stabregionPID. The process can be given in string form or as a regular LTIsystem.P1 = s -> exp(-sqrt(s))\nf1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)))\nP2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)\nf2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)))\nP3 = tf(1,[1,1])^4\nf3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)))(Image: ) (Image: ) (Image: )"
+},
+
+{
+    "location": "examples/example/#PID-plots-1",
+    "page": "Design",
+    "title": "PID plots",
+    "category": "section",
+    "text": "This example utilizes the function pidplots, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.P = tf([1.],[1., 1])\n\nζ = 0.5 # Desired damping\n\nws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths\nkp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern\nki = ws.^2\npidplots(P,:nyquist,:gof;kps=kp,kis=ki, ω= exp10.(range(-2, stop=2, length=500))) # Request Nyquist and Gang-of-four plots (more plots are available, see ?pidplots )(Image: ) (Image: )Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/skp = range(-1, stop=1, length=8) #\nki = sqrt.(1 .- kp.^2)/10\npidplots(P,:nyquist,:gof;kps=kp,kis=ki)(Image: ) (Image: )"
+},
+
+{
+    "location": "man/introduction/#",
+    "page": "Introduction",
+    "title": "Introduction",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "man/introduction/#Introduction-1",
+    "page": "Introduction",
+    "title": "Introduction",
+    "category": "section",
+    "text": ""
+},
+
+{
+    "location": "man/introduction/#Installation-1",
+    "page": "Introduction",
+    "title": "Installation",
+    "category": "section",
+    "text": "To install this package simply runPkg.add(\"ControlSystems\")"
+},
+
+{
+    "location": "man/introduction/#Basic-functions-1",
+    "page": "Introduction",
+    "title": "Basic functions",
+    "category": "section",
+    "text": "DocTestSetup = quote\n    using ControlSystems\n    P = tf([1],[1,1])\n    T = P/(1+P)\nendTransfer functions can easily be created using the function tf(num, den, Ts=0), where num and den are vectors representing the numerator and denominator of a rational function. See tf or the section \"Creating Transfer Functions\" for more info. These functions can then be connected and modified using the operators +,-,*,/ and functions like append.Example:P = tf([1.0],[1,1])\nT = P/(1+P)\n\n# output\n\nTransferFunction{ControlSystems.SisoRational{Float64}}\n     1.0*s + 1.0\n---------------------\n1.0*s^2 + 3.0*s + 2.0\n\nContinuous-time transfer function modelNotice that the poles are not canceled automatically, to do this, the function minreal is availableminreal(T)\n\n# output\n\nTransferFunction{ControlSystems.SisoRational{Float64}}\n    1.0\n-----------\n1.0*s + 2.0\n\nContinuous-time transfer function model"
+},
+
+{
+    "location": "man/introduction/#Plotting-1",
+    "page": "Introduction",
+    "title": "Plotting",
+    "category": "section",
+    "text": "Plotting requires some extra care. The ControlSystems package is using Plots.jl (link) as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using PyPlot. If you have several back-ends for plotting then you can select the one you want to use with the corresponding Plots call (for PyPlot this is Plots.pyplot(), some alternatives are immerse(), gadfly(), plotly()). A simple example where we generate a plot using immerse and save it to a file isusing ControlSystems\nPlots.immerse()\n\nfig = bodeplot(tf(1,[1,2,1]))\n\nPlots.savefig(fig, \"myfile.svg\")"
+},
+
+{
+    "location": "man/creatingtfs/#",
+    "page": "Creating Transfer Functions",
+    "title": "Creating Transfer Functions",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "man/creatingtfs/#Creating-Transfer-Functions-1",
+    "page": "Creating Transfer Functions",
+    "title": "Creating Transfer Functions",
+    "category": "section",
+    "text": "DocTestSetup = quote\n    using ControlSystems\nend"
+},
+
+{
+    "location": "man/creatingtfs/#tf-Rational-Representation-1",
+    "page": "Creating Transfer Functions",
+    "title": "tf - Rational Representation",
+    "category": "section",
+    "text": "The syntax for creating a transfer function istf(num, den, Ts=0)where num and den are the polinomial coefficients of the numerator and denominator of the polynomial and Ts is the sample time."
+},
+
+{
+    "location": "man/creatingtfs/#Example:-1",
+    "page": "Creating Transfer Functions",
+    "title": "Example:",
+    "category": "section",
+    "text": "tf([1.0],[1,2,1])\n\n# output\n\nTransferFunction{ControlSystems.SisoRational{Float64}}\n         1.0\n---------------------\n1.0*s^2 + 2.0*s + 1.0\n\n\nContinuous-time transfer function modelThe transfer functions created using this method will be of type TransferFunction{SisoRational}."
+},
+
+{
+    "location": "man/creatingtfs/#zpk-Pole-Zero-Gain-Representation-1",
+    "page": "Creating Transfer Functions",
+    "title": "zpk - Pole-Zero-Gain Representation",
+    "category": "section",
+    "text": "Sometimes it\'s better to represent the transferfunction by its poles, zeros and gain, this can be done usingzpk(zeros, poles, gain, Ts=0)where zeros and poles are Vectors of the zeros and poles for the system and gain is a gain coefficient."
+},
+
+{
+    "location": "man/creatingtfs/#Example-1",
+    "page": "Creating Transfer Functions",
+    "title": "Example",
+    "category": "section",
+    "text": "zpk([-1.0,1], [-5, -10], 2)\n\n# output\n\nTransferFunction{ControlSystems.SisoZpk{Float64,Float64}}\n   (1.0*s + 1.0)(1.0*s - 1.0)\n2.0---------------------------\n   (1.0*s + 5.0)(1.0*s + 10.0)\n\nContinuous-time transfer function modelThe transfer functions created using this method will be of type TransferFunction{SisoZpk}."
+},
+
+{
+    "location": "man/creatingtfs/#Converting-between-types-1",
+    "page": "Creating Transfer Functions",
+    "title": "Converting between types",
+    "category": "section",
+    "text": "It is sometime useful to convert one representation to another, this is possible using the same functions, for exampletf(zpk([-1], [1], 2, 0.1))\n\n# output\n\nTransferFunction{ControlSystems.SisoRational{Int64}}\n2*z + 2\n-------\n1z - 1\n\nSample Time: 0.1 (seconds)\nDiscrete-time transfer function model"
+},
+
+{
+    "location": "lib/constructors/#",
+    "page": "Constructors",
+    "title": "Constructors",
+    "category": "page",
+    "text": "Pages = [\"constructors.md\"]"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.append",
+    "page": "Constructors",
+    "title": "ControlSystems.append",
+    "category": "function",
+    "text": "append(systems::StateSpace...), append(systems::TransferFunction...)\n\nAppend systems in block diagonal form\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.c2d",
+    "page": "Constructors",
+    "title": "ControlSystems.c2d",
+    "category": "function",
+    "text": "[sysd, x0map] = c2d(sys, Ts, method=:zoh)\n\nConvert the continuous system sys into a discrete system with sample time Ts, using the provided method. Currently only :zoh and :foh are provided.\n\nReturns the discrete system sysd, and a matrix x0map that transforms the initial conditions to the discrete domain by x0_discrete = x0map*[x0; u0]\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.feedback",
+    "page": "Constructors",
+    "title": "ControlSystems.feedback",
+    "category": "function",
+    "text": "feedback(L) Returns L/(1+L) feedback(P1,P2) Returns P1/(1+P1*P2)\n\n\n\n\n\nfeedback(sys)\n\nfeedback(sys1,sys2)\n\nForms the negative feedback interconnection\n\n>-+ sys1 +-->\n  |      |\n (-)sys2 +\n\nIf no second system is given, negative identity feedback is assumed\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.feedback2dof",
+    "page": "Constructors",
+    "title": "ControlSystems.feedback2dof",
+    "category": "function",
+    "text": "feedback2dof(P,R,S,T) Return BT/(AR+ST) where B and A are the numerator and denomenator polynomials of P respectively feedback2dof(B,A,R,S,T) Return BT/(AR+ST)\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.minreal",
+    "page": "Constructors",
+    "title": "ControlSystems.minreal",
+    "category": "function",
+    "text": "tf = minreal(tf::TransferFunction, eps=sqrt(eps()))\n\nCreate a minimial representation of each transfer function in tf by cancelling poles and zeros will promote system to an appropriate numeric type\n\n\n\n\n\nminsys = minreal(s::StateSpace, tol=sqrt(eps())) is implemented via baltrunc and returns a system on diagonal form.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.parallel",
+    "page": "Constructors",
+    "title": "ControlSystems.parallel",
+    "category": "function",
+    "text": "series(sys1::LTISystem, sys2::LTISystem)\n\nConnect systems in parallel, equivalent to sys2+sys1\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.series",
+    "page": "Constructors",
+    "title": "ControlSystems.series",
+    "category": "function",
+    "text": "series(sys1::LTISystem, sys2::LTISystem)\n\nConnect systems in series, equivalent to sys2*sys1\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.sminreal",
+    "page": "Constructors",
+    "title": "ControlSystems.sminreal",
+    "category": "function",
+    "text": "sminreal(sys)\n\nCompute the structurally minimal realization of the state-space system sys. A structurally minimal realization is one where only states that can be determined to be uncontrollable and unobservable based on the location of 0s in sys are removed.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.ss",
+    "page": "Constructors",
+    "title": "ControlSystems.ss",
+    "category": "function",
+    "text": "sys = ss(A, B, C, D, Ts=0) -> sys\n\nCreate a state-space model sys::StateSpace{T, MT<:AbstractMatrix{T}} where MT is the type of matrixes A,B,C,D and T the element type.\n\nThis is a continuous-time model if Ts is omitted or set to 0. Otherwise, this is a discrete-time model with sampling period Ts. Set Ts=-1 for a discrete-time model with unspecified sampling period.\n\nsys = ss(D[, Ts, ...]) specifies a static gain matrix D.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.tf",
+    "page": "Constructors",
+    "title": "ControlSystems.tf",
+    "category": "function",
+    "text": "sys = tf(num, den, Ts=0), sys = tf(gain, Ts=0)\n\nCreate as a fraction of polynomials:\n\nsys::TransferFunction{SisoRational{T,TR}} = numerator/denominator where T is the type of the coefficients in the polynomial.\n\nnum: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\nden: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\nTs: Sample time or 0 for continuous system.\n\nOther uses: tf(sys): Convert sys to tf form. tf(\"s\"), tf(\"z\"): Create the continous transferfunction s.\n\nSee also: zpk, ss\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#ControlSystems.zpk",
+    "page": "Constructors",
+    "title": "ControlSystems.zpk",
+    "category": "function",
+    "text": "zpk(gain, Ts=0), zpk(num, den, k, Ts=0), zpk(sys)\n\nCreate transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.\n\nsys::TransferFunction{SisoZpk{T,TR}} = k*numerator/denominator where T is the type of k and TR the type of the zeros/poles, usually Float64 and Complex{Float64}.\n\nnum: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\nden: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\nk: The gain of the system. Obs, this is not the same as dcgain.\n\nTs: Sample time or 0 for continuous system.\n\nOther uses:\n\nzpk(sys): Convert sys to zpk form.\n\nzpk(\"s\"): Create the transferfunction s.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/constructors/#Constructing-transfer-functions-1",
+    "page": "Constructors",
+    "title": "Constructing transfer functions",
+    "category": "section",
+    "text": "append\nc2d\nfeedback\nfeedback2dof\nminreal\nparallel\nseries\nsminreal\nss\ntf\nzpk"
 },
 
 {
@@ -262,238 +454,6 @@ var documenterSearchIndex = {"docs": [
     "title": "Analysis",
     "category": "section",
     "text": "covar\nctrb\ndamp\ndampreport\ndcgain\ndelaymargin\ngangoffour\ngangofseven\ngram\nmargin\nmarkovparam\nnorm\nobsv\npole\nsigma\nstabregionPID\ntzero\nzpkdata"
-},
-
-{
-    "location": "lib/constructors/#",
-    "page": "Constructing transfer functions",
-    "title": "Constructing transfer functions",
-    "category": "page",
-    "text": "Pages = [\"constructors.md\"]"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.append",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.append",
-    "category": "function",
-    "text": "append(systems::StateSpace...), append(systems::TransferFunction...)\n\nAppend systems in block diagonal form\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.c2d",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.c2d",
-    "category": "function",
-    "text": "[sysd, x0map] = c2d(sys, Ts, method=:zoh)\n\nConvert the continuous system sys into a discrete system with sample time Ts, using the provided method. Currently only :zoh and :foh are provided.\n\nReturns the discrete system sysd, and a matrix x0map that transforms the initial conditions to the discrete domain by x0_discrete = x0map*[x0; u0]\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.feedback",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.feedback",
-    "category": "function",
-    "text": "feedback(L) Returns L/(1+L) feedback(P1,P2) Returns P1/(1+P1*P2)\n\n\n\n\n\nfeedback(sys)\n\nfeedback(sys1,sys2)\n\nForms the negative feedback interconnection\n\n>-+ sys1 +-->\n  |      |\n (-)sys2 +\n\nIf no second system is given, negative identity feedback is assumed\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.feedback2dof",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.feedback2dof",
-    "category": "function",
-    "text": "feedback2dof(P,R,S,T) Return BT/(AR+ST) where B and A are the numerator and denomenator polynomials of P respectively feedback2dof(B,A,R,S,T) Return BT/(AR+ST)\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.minreal",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.minreal",
-    "category": "function",
-    "text": "tf = minreal(tf::TransferFunction, eps=sqrt(eps()))\n\nCreate a minimial representation of each transfer function in tf by cancelling poles and zeros will promote system to an appropriate numeric type\n\n\n\n\n\nminsys = minreal(s::StateSpace, tol=sqrt(eps())) is implemented via baltrunc and returns a system on diagonal form.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.parallel",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.parallel",
-    "category": "function",
-    "text": "series(sys1::LTISystem, sys2::LTISystem)\n\nConnect systems in parallel, equivalent to sys2+sys1\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.series",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.series",
-    "category": "function",
-    "text": "series(sys1::LTISystem, sys2::LTISystem)\n\nConnect systems in series, equivalent to sys2*sys1\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.sminreal",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.sminreal",
-    "category": "function",
-    "text": "sminreal(sys)\n\nCompute the structurally minimal realization of the state-space system sys. A structurally minimal realization is one where only states that can be determined to be uncontrollable and unobservable based on the location of 0s in sys are removed.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.ss",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.ss",
-    "category": "function",
-    "text": "sys = ss(A, B, C, D, Ts=0) -> sys\n\nCreate a state-space model sys::StateSpace{T, MT<:AbstractMatrix{T}} where MT is the type of matrixes A,B,C,D and T the element type.\n\nThis is a continuous-time model if Ts is omitted or set to 0. Otherwise, this is a discrete-time model with sampling period Ts. Set Ts=-1 for a discrete-time model with unspecified sampling period.\n\nsys = ss(D[, Ts, ...]) specifies a static gain matrix D.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.tf",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.tf",
-    "category": "function",
-    "text": "sys = tf(num, den, Ts=0), sys = tf(gain, Ts=0)\n\nCreate as a fraction of polynomials:\n\nsys::TransferFunction{SisoRational{T,TR}} = numerator/denominator where T is the type of the coefficients in the polynomial.\n\nnum: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\nden: the coefficients of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\nTs: Sample time or 0 for continuous system.\n\nOther uses: tf(sys): Convert sys to tf form. tf(\"s\"), tf(\"z\"): Create the continous transferfunction s.\n\nSee also: zpk, ss\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#ControlSystems.zpk",
-    "page": "Constructing transfer functions",
-    "title": "ControlSystems.zpk",
-    "category": "function",
-    "text": "zpk(gain, Ts=0), zpk(num, den, k, Ts=0), zpk(sys)\n\nCreate transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.\n\nsys::TransferFunction{SisoZpk{T,TR}} = k*numerator/denominator where T is the type of k and TR the type of the zeros/poles, usually Float64 and Complex{Float64}.\n\nnum: the roots of the numerator polynomial. Either scalar or vector to create SISO systems or an array of vectors to create MIMO system.\n\nden: the roots of the denominator polynomial. Either vector to create SISO systems or an array of vectors to create MIMO system.\n\nk: The gain of the system. Obs, this is not the same as dcgain.\n\nTs: Sample time or 0 for continuous system.\n\nOther uses:\n\nzpk(sys): Convert sys to zpk form.\n\nzpk(\"s\"): Create the transferfunction s.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/constructors/#Constructing-transfer-functions-1",
-    "page": "Constructing transfer functions",
-    "title": "Constructing transfer functions",
-    "category": "section",
-    "text": "append\nc2d\nfeedback\nfeedback2dof\nminreal\nparallel\nseries\nsminreal\nss\ntf\nzpk"
-},
-
-{
-    "location": "lib/plotting/#",
-    "page": "Plotting functions",
-    "title": "Plotting functions",
-    "category": "page",
-    "text": "Pages = [\"plotting.md\"]"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.bodeplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.bodeplot",
-    "category": "function",
-    "text": "fig = bodeplot(sys, args...), bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)\n\nCreate a Bode plot of the LTISystem(s). A frequency vector w can be optionally provided.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.gangoffourplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.gangoffourplot",
-    "category": "function",
-    "text": "fig = gangoffourplot(P::LTISystem, C::LTISystem), gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)\n\nGang-of-Four plot.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.impulseplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.impulseplot",
-    "category": "function",
-    "text": "impulseplot(sys[, Tf[,  Ts]])\n\nPlot step response of sys with optional final time Tf and discretization time Ts. If not defined, suitable values are chosen based on sys.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.leadlinkcurve",
-    "page": "Plotting functions",
-    "title": "ControlSystems.leadlinkcurve",
-    "category": "function",
-    "text": "Plot the phase advance as a function of N for a lead link (phase advance link)\n\nIf an input argument s is given, the curve is plotted from s to 10, else from 1 to 10.\n\nSee also Leadlink, leadlinkat\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.lsimplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.lsimplot",
-    "category": "function",
-    "text": "fig = lsimplot(sys::LTISystem, u, t; x0=0, method)\n\nlsimplot(LTISystem[sys1, sys2...], u, t; x0, method)\n\nCalculate the time response of the LTISystem(s) to input u. If x0 is not specified, a zero vector is used.\n\nContinuous time systems are discretized before simulation. By default, the method is chosen based on the smoothness of the input signal. Optionally, the method parameter can be specified as either :zoh or :foh.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.marginplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.marginplot",
-    "category": "function",
-    "text": "fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...), marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)\n\nPlot all the amplitude and phase margins of the system(s) sys. A frequency vector w can be optionally provided.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.nicholsplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.nicholsplot",
-    "category": "function",
-    "text": "fig = nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)\n\nCreate a Nichols plot of the LTISystem(s). A frequency vector w can be optionally provided.\n\nKeyword arguments:\n\ntext = true\nGains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]\npInc = 30\nsat = 0.4\nval = 0.85\nfontsize = 10\n\npInc determines the increment in degrees between phase lines.\n\nsat ∈ [0,1] determines the saturation of the gain lines\n\nval ∈ [0,1] determines the brightness of the gain lines\n\nAdditional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax\n\nThis function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.nyquistplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.nyquistplot",
-    "category": "function",
-    "text": "fig = nyquistplot(sys; gaincircles=true, kwargs...), nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)\n\nCreate a Nyquist plot of the LTISystem(s). A frequency vector w can be optionally provided.\n\ngaincircles plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are the sensitivity and complementary sensitivity functions.\n\nkwargs is sent as argument to plot.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.pidplots",
-    "page": "Plotting functions",
-    "title": "ControlSystems.pidplots",
-    "category": "function",
-    "text": "Plots interesting figures related to closing the loop around process P with a PID controller Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.\n\ntime indicates whether or not the parameters are given as gains (default) or as time constants\n\nseries indicates  whether or not the series form or parallel form (default) is desired\n\nAvailable plots are :gof for Gang of four, :nyquist, :controller for a bode plot of the controller TF and :pz for pole-zero maps\n\nOne can also supply a frequency vector ω to be used in Bode and Nyquist plots\n\npidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)\n\nSee also loopshapingPI, stabregionPID\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.pzmap",
-    "page": "Plotting functions",
-    "title": "ControlSystems.pzmap",
-    "category": "function",
-    "text": "fig = pzmap(fig, system, args...; kwargs...)\n\nCreate a pole-zero map of the LTISystem(s) in figure fig, args and kwargs will be sent to the scatter plot command.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.rlocus",
-    "page": "Plotting functions",
-    "title": "ControlSystems.rlocus",
-    "category": "function",
-    "text": "rlocusplot(P::LTISystem, K)\n\nComputes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains K, if K is not provided, range(1e-6,stop=500,length=10000) is used. If OrdinaryDiffEq.jl is installed and loaded by the user (using OrdinaryDiffEq), rlocusplot will use an adaptive step-size algorithm to select values of K. A scalar Kmax can then be given as second argument.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.sigmaplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.sigmaplot",
-    "category": "function",
-    "text": "sigmaplot(sys, args...), sigmaplot(LTISystem[sys1, sys2...], args...)\n\nPlot the singular values of the frequency response of the LTISystem(s). A frequency vector w can be optionally provided.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.setPlotScale",
-    "page": "Plotting functions",
-    "title": "ControlSystems.setPlotScale",
-    "category": "function",
-    "text": "setPlotScale(str)\n\nSet the default scale of magnitude in bodeplot and sigmaplot. str should be either \"dB\" or \"log10\".\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#ControlSystems.stepplot",
-    "page": "Plotting functions",
-    "title": "ControlSystems.stepplot",
-    "category": "function",
-    "text": "stepplot(sys[, Tf[,  Ts]])\n\nPlot step response of sys with optional final time Tf and discretization time Ts. If not defined, suitable values are chosen based on sys.\n\n\n\n\n\n"
-},
-
-{
-    "location": "lib/plotting/#Plotting-functions-1",
-    "page": "Plotting functions",
-    "title": "Plotting functions",
-    "category": "section",
-    "text": "bodeplot\ngangoffourplot\nimpulseplot\nleadlinkcurve\nlsimplot\nmarginplot\nnicholsplot\nnyquistplot\npidplots\npzmap\nrlocus\nsigmaplot\nsetPlotScale\nstepplot"
 },
 
 {
@@ -729,99 +689,131 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/creatingtfs/#",
-    "page": "Creating Transfer Functions",
-    "title": "Creating Transfer Functions",
-    "category": "page",
-    "text": ""
-},
-
-{
-    "location": "man/creatingtfs/#Creating-Transfer-Functions-1",
-    "page": "Creating Transfer Functions",
-    "title": "Creating Transfer Functions",
-    "category": "section",
-    "text": "DocTestSetup = quote\n    using ControlSystems\nend"
-},
-
-{
-    "location": "man/creatingtfs/#tf-Rational-Representation-1",
-    "page": "Creating Transfer Functions",
-    "title": "tf - Rational Representation",
-    "category": "section",
-    "text": "The syntax for creating a transfer function istf(num, den, Ts=0)where num and den are the polinomial coefficients of the numerator and denominator of the polynomial and Ts is the sample time."
-},
-
-{
-    "location": "man/creatingtfs/#Example:-1",
-    "page": "Creating Transfer Functions",
-    "title": "Example:",
-    "category": "section",
-    "text": "tf([1],[1,2,1])\n\n# output\n\nTransferFunction:\n      1.0\n----------------\ns^2 + 2.0s + 1.0\n\nContinuous-time transfer function modelThe transfer functions created using this method will be of type TransferFunction{SisoRational}."
-},
-
-{
-    "location": "man/creatingtfs/#zpk-Pole-Zero-Gain-Representation-1",
-    "page": "Creating Transfer Functions",
-    "title": "zpk - Pole-Zero-Gain Representation",
-    "category": "section",
-    "text": "Sometimes it\'s better to represent the transferfunction by its poles, zeros and gain, this can be done usingzpk(zeros, poles, gain, Ts=0)where zeros and poles are Vectors of the zeros and poles for the system and gain is a gain coefficient."
-},
-
-{
-    "location": "man/creatingtfs/#Example-1",
-    "page": "Creating Transfer Functions",
-    "title": "Example",
-    "category": "section",
-    "text": "zpk([-1,1], [-5, -10], 2)\n\n# output\n\nTransferFunction:\n   (s - 1.0)(s + 1.0)\n2.0-------------------\n   (s + 10.0)(s + 5.0)\n\nContinuous-time transfer function modelThe transfer functions created using this method will be of type TransferFunction{SisoZpk}."
-},
-
-{
-    "location": "man/creatingtfs/#Converting-between-types-1",
-    "page": "Creating Transfer Functions",
-    "title": "Converting between types",
-    "category": "section",
-    "text": "It is sometime useful to convert one representation to another, this is possible using the same functions, for exampletf(zpk([-1], [1], 2, 0.1))\n\n# output\n\nTransferFunction:\n2.0z + 2.0\n----------\n z - 1.0\n\nSample Time: 0.1 (seconds)\nDiscrete-time transfer function model"
-},
-
-{
-    "location": "man/introduction/#",
-    "page": "Introduction",
-    "title": "Introduction",
-    "category": "page",
-    "text": ""
-},
-
-{
-    "location": "man/introduction/#Introduction-1",
-    "page": "Introduction",
-    "title": "Introduction",
-    "category": "section",
-    "text": ""
-},
-
-{
-    "location": "man/introduction/#Installation-1",
-    "page": "Introduction",
-    "title": "Installation",
-    "category": "section",
-    "text": "To install this package simply runPkg.add(\"ControlSystems\")"
-},
-
-{
-    "location": "man/introduction/#Basic-functions-1",
-    "page": "Introduction",
-    "title": "Basic functions",
-    "category": "section",
-    "text": "DocTestSetup = quote\n    using ControlSystems\n    P = tf([1],[1,1])\n    T = P/(1+P)\nendTransfer functions can easily be created using the function tf(num, den, Ts=0), where num and den are vectors representing the numerator and denominator of a rational function. See tf or the section \"Creating Transfer Functions\" for more info. These functions can then be connected and modified using the operators +,-,*,/ and functions like append.Example:P = tf([1],[1,1])\nT = P/(1+P)\n\n# output\n\nTransferFunction:\n    s + 1.0\n----------------\ns^2 + 3.0s + 2.0\n\nContinuous-time transfer function modelNotice that the poles are not canceled automatically, to do this, the function minreal is availableminreal(T)\n\n# output\n\nTransferFunction:\n  1.0\n-------\ns + 2.0\n\nContinuous-time transfer function model"
-},
-
-{
-    "location": "man/introduction/#Plotting-1",
-    "page": "Introduction",
+    "location": "lib/plotting/#",
+    "page": "Plotting",
     "title": "Plotting",
+    "category": "page",
+    "text": "Pages = [\"plotting.md\"]"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.bodeplot",
+    "page": "Plotting",
+    "title": "ControlSystems.bodeplot",
+    "category": "function",
+    "text": "fig = bodeplot(sys, args...), bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)\n\nCreate a Bode plot of the LTISystem(s). A frequency vector w can be optionally provided.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.gangoffourplot",
+    "page": "Plotting",
+    "title": "ControlSystems.gangoffourplot",
+    "category": "function",
+    "text": "fig = gangoffourplot(P::LTISystem, C::LTISystem), gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)\n\nGang-of-Four plot.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.impulseplot",
+    "page": "Plotting",
+    "title": "ControlSystems.impulseplot",
+    "category": "function",
+    "text": "impulseplot(sys[, Tf[,  Ts]])\n\nPlot step response of sys with optional final time Tf and discretization time Ts. If not defined, suitable values are chosen based on sys.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.leadlinkcurve",
+    "page": "Plotting",
+    "title": "ControlSystems.leadlinkcurve",
+    "category": "function",
+    "text": "Plot the phase advance as a function of N for a lead link (phase advance link)\n\nIf an input argument s is given, the curve is plotted from s to 10, else from 1 to 10.\n\nSee also Leadlink, leadlinkat\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.lsimplot",
+    "page": "Plotting",
+    "title": "ControlSystems.lsimplot",
+    "category": "function",
+    "text": "fig = lsimplot(sys::LTISystem, u, t; x0=0, method)\n\nlsimplot(LTISystem[sys1, sys2...], u, t; x0, method)\n\nCalculate the time response of the LTISystem(s) to input u. If x0 is not specified, a zero vector is used.\n\nContinuous time systems are discretized before simulation. By default, the method is chosen based on the smoothness of the input signal. Optionally, the method parameter can be specified as either :zoh or :foh.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.marginplot",
+    "page": "Plotting",
+    "title": "ControlSystems.marginplot",
+    "category": "function",
+    "text": "fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...), marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)\n\nPlot all the amplitude and phase margins of the system(s) sys. A frequency vector w can be optionally provided.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.nicholsplot",
+    "page": "Plotting",
+    "title": "ControlSystems.nicholsplot",
+    "category": "function",
+    "text": "fig = nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)\n\nCreate a Nichols plot of the LTISystem(s). A frequency vector w can be optionally provided.\n\nKeyword arguments:\n\ntext = true\nGains = [12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60]\npInc = 30\nsat = 0.4\nval = 0.85\nfontsize = 10\n\npInc determines the increment in degrees between phase lines.\n\nsat ∈ [0,1] determines the saturation of the gain lines\n\nval ∈ [0,1] determines the brightness of the gain lines\n\nAdditional keyword arguments are sent to the function plotting the systems and can be used to specify colors, line styles etc. using regular Plots.jl syntax\n\nThis function is based on code subject to the two-clause BSD licence Copyright 2011 Will Robertson Copyright 2011 Philipp Allgeuer\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.nyquistplot",
+    "page": "Plotting",
+    "title": "ControlSystems.nyquistplot",
+    "category": "function",
+    "text": "fig = nyquistplot(sys; gaincircles=true, kwargs...), nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)\n\nCreate a Nyquist plot of the LTISystem(s). A frequency vector w can be optionally provided.\n\ngaincircles plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are the sensitivity and complementary sensitivity functions.\n\nkwargs is sent as argument to plot.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.pidplots",
+    "page": "Plotting",
+    "title": "ControlSystems.pidplots",
+    "category": "function",
+    "text": "Plots interesting figures related to closing the loop around process P with a PID controller Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.\n\ntime indicates whether or not the parameters are given as gains (default) or as time constants\n\nseries indicates  whether or not the series form or parallel form (default) is desired\n\nAvailable plots are :gof for Gang of four, :nyquist, :controller for a bode plot of the controller TF and :pz for pole-zero maps\n\nOne can also supply a frequency vector ω to be used in Bode and Nyquist plots\n\npidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)\n\nSee also loopshapingPI, stabregionPID\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.pzmap",
+    "page": "Plotting",
+    "title": "ControlSystems.pzmap",
+    "category": "function",
+    "text": "fig = pzmap(fig, system, args...; kwargs...)\n\nCreate a pole-zero map of the LTISystem(s) in figure fig, args and kwargs will be sent to the scatter plot command.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.rlocus",
+    "page": "Plotting",
+    "title": "ControlSystems.rlocus",
+    "category": "function",
+    "text": "rlocusplot(P::LTISystem, K)\n\nComputes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains K, if K is not provided, range(1e-6,stop=500,length=10000) is used. If OrdinaryDiffEq.jl is installed and loaded by the user (using OrdinaryDiffEq), rlocusplot will use an adaptive step-size algorithm to select values of K. A scalar Kmax can then be given as second argument.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.sigmaplot",
+    "page": "Plotting",
+    "title": "ControlSystems.sigmaplot",
+    "category": "function",
+    "text": "sigmaplot(sys, args...), sigmaplot(LTISystem[sys1, sys2...], args...)\n\nPlot the singular values of the frequency response of the LTISystem(s). A frequency vector w can be optionally provided.\n\nkwargs is sent as argument to Plots.plot.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.setPlotScale",
+    "page": "Plotting",
+    "title": "ControlSystems.setPlotScale",
+    "category": "function",
+    "text": "setPlotScale(str)\n\nSet the default scale of magnitude in bodeplot and sigmaplot. str should be either \"dB\" or \"log10\".\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#ControlSystems.stepplot",
+    "page": "Plotting",
+    "title": "ControlSystems.stepplot",
+    "category": "function",
+    "text": "stepplot(sys[, Tf[,  Ts]])\n\nPlot step response of sys with optional final time Tf and discretization time Ts. If not defined, suitable values are chosen based on sys.\n\n\n\n\n\n"
+},
+
+{
+    "location": "lib/plotting/#Plotting-functions-1",
+    "page": "Plotting",
+    "title": "Plotting functions",
     "category": "section",
-    "text": "Plotting requires some extra care. The ControlSystems package is using Plots.jl (link) as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using PyPlot. If you have several back-ends for plotting then you can select the one you want to use with the corresponding Plots call (for PyPlot this is Plots.pyplot(), some alternatives are immerse(), gadfly(), plotly()). A simple example where we generate a plot using immerse and save it to a file isusing ControlSystems\nPlots.immerse()\n\nfig = bodeplot(tf(1,[1,2,1]))\n\nPlots.savefig(fig, \"myfile.svg\")"
+    "text": "bodeplot\ngangoffourplot\nimpulseplot\nleadlinkcurve\nlsimplot\nmarginplot\nnicholsplot\nnyquistplot\npidplots\npzmap\nrlocus\nsigmaplot\nsetPlotScale\nstepplot"
 },
 
 ]}
