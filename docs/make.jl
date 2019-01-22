@@ -3,7 +3,7 @@ import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Pl
 
 include("src/makeplots.jl")
 
-makedocs(modules=[ControlSystems])
+makedocs(modules=[ControlSystems], format=:html, sitename="ControlSystems")
 
 # If not running travis, generate the plots here, even if we are not deploying
 if get(ENV, "TRAVIS", "") == ""
@@ -15,14 +15,11 @@ end
 function myDeps()
     if get(ENV, "TRAVIS", "") != ""
         println("Installing deploy dependencies")
-        run(`pip install --user pygments mkdocs`)
         makePlots()
     end
 end
 
 deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
-    latest = "master",
-    julia = "1.0",
     deps = myDeps
 )
