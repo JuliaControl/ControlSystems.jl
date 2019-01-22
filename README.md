@@ -1,9 +1,10 @@
 # ControlSystems.jl
 
-[![ControlSystems](http://pkg.julialang.org/badges/ControlSystems_0.6.svg)](http://pkg.julialang.org/?pkg=ControlSystems)
 [![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
-[![Coverage Status](https://coveralls.io/repos/github/JuliaControl/ControlSystems.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaControl/ControlSystems.jl?branch=master)
-[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliacontrol.github.io/ControlSystems.jl/latest/)
+[![Gitter](https://badges.gitter.im/JuliaControl/ControlSystems.jl.svg)](https://gitter.im/JuliaControl/ControlSystems.jl?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/stable)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/latest)
 
 A control systems design toolbox for Julia.
 
