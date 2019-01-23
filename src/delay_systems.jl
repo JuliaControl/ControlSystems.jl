@@ -25,17 +25,23 @@ end
 function simulate5(sys::DelayLtiSystem, tspan; u=[], x0=Float64[], alg=MethodOfSteps(Tsit5()), kwargs...)
     P = sys.P
 
+    if ~iszero(P.D22)
+        error("non-zero D22-matrix block is not supported") # Due to limitations in differential equations
+    end
+
     nu = ControlSystems.ninputs(sys)
     nx = ControlSystems.nstates(sys)
 
     u = (u == []) ? t -> fill(0.0, nu) : u
     x0 = (x0 == []) ? fill(0.0, nx) : x0
 
-    # FIXME: Only works for one single time delay
-    # FIXME: Should error for non-zero D22 terms
     dde = function (dx, x, h, p, t)
-        d_delayed = P.C2*h(p,t-sys.Tau[1]) + P.D21*u(t-sys.Tau[1])# + P.D22*(t-Tau[1]
-        dx .= P.A*x  + P.B2*d_delayed + P.B1*u(t)
+        dx .= P.A*x + P.B1*u(t)
+        for k=1:length(sys.Tau) # Add each of the delayed signals
+            dk_delayed = dot(P.C2[k,:], h(p,t-sys.Tau[k])) + dot(P.D21[k,:], u(t-sys.Tau[k]))# + P.D22*(t-Tau[1]
+            dx .+= P.B2[:, k] * dk_delayed
+        end
+        #d_delayed = zeros(size(P.C2,1))
     end
 
     h_initial = (p, t) -> zeros(nx)
