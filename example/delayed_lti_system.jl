@@ -4,7 +4,7 @@ using Plots
 
 s = tf("s")
 
-P = delay(0.2) * DelayLtiSystem(ss(1/(s+1)))
+P = delay(0.2) * ss(1/(s+1))
 
 K = 3; Ti = 0.3;
 C = DelayLtiSystem(ss(K*(1 + 1/s)))
