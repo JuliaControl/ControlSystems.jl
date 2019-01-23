@@ -88,10 +88,9 @@ end
 
 
 """
-    Series connection of to partioned StateSpace systems.
+    Series connection of partioned StateSpace systems.
 """
 function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    println("Hej")
     A = [s1.A                           s1.B1*s2.C1;
     zeros(size(s2.A,1),size(s1.A,2))      s2.A]
 
@@ -112,7 +111,7 @@ end
 
 
 
-# Algebraic loops?!
+# QUESTION: Should perhaps algebraic loops?! Perhaps issue warning if P1(∞)*P2(∞) > 1
 
 function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     X_11 = [-s2.D11*s1.C1  -s2.C1]
@@ -120,9 +119,9 @@ function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
 
     # For the case of two outputs
     #    X_12 = [I   -s2.D11   -s2.D11*s1.D12   -s2.D12]
-    #    X_22 = [-s1.D11  I     -s1.D12          s1.D11*s2.D12]
+    #    X_22 = [s1.D11  I     -s1.D12          s1.D11*s2.D12]
     X_12 = [I      -s2.D11*s1.D12   -s2.D12]
-    X_22 = [-s1.D11   -s1.D12          s1.D11*s2.D12]
+    X_22 = [s1.D11   -s1.D12          s1.D11*s2.D12]
 
 
 

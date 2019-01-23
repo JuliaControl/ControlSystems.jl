@@ -11,14 +11,24 @@ struct DelayLtiSystem{T} <: LTISystem
     # end
 end
 
-DelayLtiSystem(sys::StateSpace) = DelayLtiSystem(sys, Float64[])
-#Base.convert(::Type{S}, ) where {S<:DelayLtiSystem} =  # Need to handle numerical arguments
+DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T}(sys, Float64[])
+DelayLtiSystem{T}(sys::StateSpace) where T = DelayLtiSystem{T}(sys, Float64[])
 
-Base.promote_rule(::Type{<:StateSpace}, ::Type{S}) where {S<:DelayLtiSystem} = S
 
-ninputs(sys::DelayLtiSystem) = size(sys.P)[2] - length(sys.Tau)
-noutputs(sys::DelayLtiSystem) = size(sys.P)[1] - length(sys.Tau)
+# TODO: Think through these promotions and conversions
+Base.promote_rule(::Type{<:StateSpace{T1}}, ::Type{DelayLtiSystem{T2}}) where {T1<:Number,T2<:Number} = DelayLtiSystem{promote_type(T1,T2)}
+Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2}}) where {T1<:Number,T2<:Number} = DelayLtiSystem{promote_type(T1,T2)}
+Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2}}) where {T1<:Number,T2<:Number} = DelayLtiSystem{promote_type(T1,T2)}
+#Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T}
 
+Base.convert(::Type{DelayLtiSystem{T}}, sys::StateSpace) where T = DelayLtiSystem{T}(sys)
+Base.convert(::Type{DelayLtiSystem{T1}}, d::T2) where {T1,T2 <: Number} = DelayLtiSystem{T1}(ss(d))
+#Base.convert(::Type{DelayLtiSystem{T}}, sys::DelayLtiSystem) where T = DelayLtiSystem{T}(StateSpace{T,Matrix{T}}(sys))
+
+
+ninputs(sys::DelayLtiSystem) = ninputs(sys.P) - length(sys.Tau)
+noutputs(sys::DelayLtiSystem) = noutputs(sys.P) - length(sys.Tau)
+nstates(sys::DelayLtiSystem) = nstates(sys.P)
 
 function +(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     s1 = PartionedStateSpace(sys1.P, ninputs(sys1), noutputs(sys1))
