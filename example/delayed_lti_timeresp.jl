@@ -1,24 +1,24 @@
 using DifferentialEquations
 
-
-
-
-
+plotly()
 
 #sys_d = c2d(sys.P)
 
-#function sim_discr(sys::DelayLtiSystem)
+sys = feedback(1.0, ss(-1.0, 2, 1, 0) * (delay(2.0) + delay(3.0)))
 
-sys = feedback(2.0, ss(-1.0, 2, 1, 0) * delay(3.0))
+@time t, x, saved_y = ControlSystems.simulate5(sys, (0.0,8.0); u=t->[t>0 ? 1.0 : 0.0], saveat=0:0.02:8)
 
-@time t, x, saved_y = ControlSystems.simulate2(sys, (0.0,8.0); u=t->[t>0 ? 1.0 : 0.0], saveat=0:0.02:5)
+y = hcat([saved_y.saveval[k][1] for k=1:length(t)]...)
+d = hcat([saved_y.saveval[k][2] for k=1:length(t)]...)
 
+for k=1:length(sys.Tau)
+    N_del = Integer(50*sys.Tau[k])
+    dk = [zeros(N_del); d[k, 1:end-N_del]]
 
-saved_y
-x1 = [x[k][1] for k=1:length(x)]
+    for j=1:length(t)
+        y[:, j] .+= sys.P.D12[:, k] * dk[j]
+    end
+end
 
-
-del = [zeros(50); x1[1:end-50]] # FIXME: Not the real delayed signal...
-
-# The following does not work in general... just this specific problem instance
-plot(t, ones(size(t)) .- x1)
+plot(t, y')
+gui()
