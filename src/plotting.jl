@@ -133,7 +133,7 @@ lsimplot
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
                 linestyle --> styledict[:l]
-                linecolor --> styledict[:c]
+                color --> styledict[:c]
                 t,  y[:, i]
             end
         end
@@ -198,7 +198,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
                         linestyle --> styledict[:l]
-                        linecolor --> styledict[:c]
+                        color --> styledict[:c]
                         t, ydata
                     end
                 end
@@ -278,7 +278,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    linecolor --> styledict[:c]
+                    color --> styledict[:c]
                     w, magdata
                 end
                 if !plotphase
@@ -294,7 +294,7 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    linecolor --> styledict[:c]
+                    color --> styledict[:c]
                     w, phasedata
                 end
 
@@ -376,7 +376,7 @@ nyquistplot
                     label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
-                    linecolor --> styledict[:c]
+                    color --> styledict[:c]
                     (redata, imdata)
                 end
                 # Plot rings
@@ -386,13 +386,13 @@ nyquistplot
                     @series begin
                         label := ""
                         linestyle := :dash
-                        linecolor := :black
+                        color := :black
                         (C,S)
                     end
                     @series begin
                         label := ""
                         linestyle := :dash
-                        linecolor := :black
+                        color := :black
                         (C .-1,S)
                     end
                 end
@@ -488,7 +488,7 @@ nicholsplot
         for l in PCyc
             @series begin
                 linewidth := 1
-                linecolor --> getColor(k)
+                linecolor := getColor(k)
                 grid --> false
                 if text
                     offset  = (l+1)
@@ -562,7 +562,7 @@ nicholsplot
             linewidth --> 2
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
-            linecolor --> styledict[:c]
+            color --> styledict[:c]
             angles, mag
         end
     end
@@ -598,7 +598,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 linestyle --> styledict[:l]
-                linecolor --> styledict[:c]
+                color --> styledict[:c]
                 w, sv[:, i]
             end
         end
