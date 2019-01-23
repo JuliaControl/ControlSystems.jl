@@ -78,7 +78,8 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
+using Polynomials, Plots, LaTeXStrings, LinearAlgebra
+using DifferentialEquations, OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty

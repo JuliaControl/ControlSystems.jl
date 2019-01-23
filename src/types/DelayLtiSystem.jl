@@ -1,5 +1,5 @@
 struct DelayLtiSystem{T} <: LTISystem
-    P::StateSpace{T,Matrix{T}}
+    P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
     Tau::Vector{Float64} # The length of the vector tau implicitly defines the partitionging of P
 
     # function DelayLtiSystem(P::StateSpace{T, MT}, Tau::Vector{Float64})
@@ -11,6 +11,21 @@ struct DelayLtiSystem{T} <: LTISystem
     # end
 end
 
+# QUESTION: would psys be a good standard variable name for a PartionedStateSpace
+#           and perhaps dsys for a delayed system, (ambigous with discrete system though)
+function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{Float64}) where T
+    nu = ninputs(sys) - length(Tau)
+    ny = noutputs(sys) - length(Tau)
+
+    if nu < 0  || ny < 0
+        error("Time vector is too long.")
+    end
+
+    psys = PartionedStateSpace(sys, ny, nu)
+    DelayLtiSystem{T}(psys, Tau)
+end
+
+DelayLtiSystem(sys::StateSpace{T,MT}, Tau::Vector{Float64}) where {T, MT} = DelayLtiSystem{T}(sys, Tau)
 DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T}(sys, Float64[])
 DelayLtiSystem{T}(sys::StateSpace) where T = DelayLtiSystem{T}(sys, Float64[])
 
@@ -23,43 +38,34 @@ Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2}}) where {T1<:Number,T2<:
 
 Base.convert(::Type{DelayLtiSystem{T}}, sys::StateSpace) where T = DelayLtiSystem{T}(sys)
 Base.convert(::Type{DelayLtiSystem{T1}}, d::T2) where {T1,T2 <: Number} = DelayLtiSystem{T1}(ss(d))
-#Base.convert(::Type{DelayLtiSystem{T}}, sys::DelayLtiSystem) where T = DelayLtiSystem{T}(StateSpace{T,Matrix{T}}(sys))
+Base.convert(::Type{DelayLtiSystem{T}}, sys::DelayLtiSystem) where T = DelayLtiSystem{T}(StateSpace{T,Matrix{T}}(sys.P.P), sys.Tau)
 
 
-ninputs(sys::DelayLtiSystem) = ninputs(sys.P) - length(sys.Tau)
-noutputs(sys::DelayLtiSystem) = noutputs(sys.P) - length(sys.Tau)
-nstates(sys::DelayLtiSystem) = nstates(sys.P)
+ninputs(sys::DelayLtiSystem) = size(sys.P.P, 2) - length(sys.Tau)
+noutputs(sys::DelayLtiSystem) = size(sys.P.P, 1) - length(sys.Tau)
+nstates(sys::DelayLtiSystem) = nstates(sys.P.P)
 
 function +(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
-    s1 = PartionedStateSpace(sys1.P, ninputs(sys1), noutputs(sys1))
-    s2 = PartionedStateSpace(sys2.P, ninputs(sys2), noutputs(sys2))
-
-    s_new = s1 + s2
+    psys_new = sys1.P + sys2.P
     Tau_new = [sys1.Tau; sys2.Tau]
 
-    DelayLtiSystem(s_new.P, Tau_new)
+    DelayLtiSystem(psys_new.P, Tau_new)
 end
 
 
 function *(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
-    s1 = PartionedStateSpace(sys1.P, ninputs(sys1), noutputs(sys1))
-    s2 = PartionedStateSpace(sys2.P, ninputs(sys2), noutputs(sys2))
-
-    s_new = s1 * s2
+    psys_new = sys1.P * sys2.P
     Tau_new = [sys1.Tau; sys2.Tau]
 
-    DelayLtiSystem(s_new.P, Tau_new)
+    DelayLtiSystem(psys_new.P, Tau_new)
 end
 
 
 function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
-    s1 = PartionedStateSpace(sys1.P, ninputs(sys1), noutputs(sys1))
-    s2 = PartionedStateSpace(sys2.P, ninputs(sys2), noutputs(sys2))
-
-    s_new = feedback(s1, s2)
+    psys_new = feedback(sys1.P, sys2.P)
     Tau_new = [sys1.Tau; sys2.Tau]
 
-    DelayLtiSystem(s_new.P, Tau_new)
+    DelayLtiSystem(psys_new.P, Tau_new)
 end
 
 function delay(tau::Real, T::Type{<:Number}=Float64)

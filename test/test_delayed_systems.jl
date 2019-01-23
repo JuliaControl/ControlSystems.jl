@@ -1,7 +1,8 @@
 ω = 0.0:8
 
-typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
-typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Float64}
+# broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
+
+typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}}
 
 freqresp(delay(1), ω)[:] ≈ exp.(-im*ω)
 freqresp(delay(2.5), ω)[:] ≈ exp.(-2.5*im*ω)

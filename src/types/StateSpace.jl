@@ -51,6 +51,8 @@ function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::Abs
             to_matrix(T, D), Float64(Ts))
 end
 
+StateSpace{T,MT}(sys::StateSpace) where {T,MT} = StateSpace{T,MT}(MT(sys.A), MT(sys.B), MT(sys.C), MT(sys.D), sys.Ts)
+
 # Getter functions
 get_A(sys::StateSpace) = sys.A
 get_B(sys::StateSpace) = sys.B
