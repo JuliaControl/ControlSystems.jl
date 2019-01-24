@@ -111,8 +111,7 @@ end
 
 
 
-# QUESTION: Should perhaps algebraic loops?! Perhaps issue warning if P1(∞)*P2(∞) > 1
-
+# QUESTION: What about algebraic loops and well-posedness?! Perhaps issue warning if P1(∞)*P2(∞) > 1
 function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     X_11 = (I + s2.D11*s1.D11)\[-s2.D11*s1.C1  -s2.C1]
     X_21 = (I + s1.D11*s2.D11)\[s1.C1  -s1.D11*s2.C1]
