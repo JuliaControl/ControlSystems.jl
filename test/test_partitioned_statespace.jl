@@ -23,19 +23,18 @@ sys1.D22 == matrix(9.0)
 
 
 ##
-sys1 = ControlSystems.PartionedStateSpace(ss(fill(1.0, 2, 2), fill(2.0, 2, 5), fill(3.0, 7, 2), fill(4.0, 7, 5)), 2, 3)
+sys2 = ControlSystems.PartionedStateSpace(ss(fill(1.0, 2, 2), fill(2.0, 2, 5), fill(3.0, 7, 2), fill(4.0, 7, 5)), 2, 3)
 
-sys1.A == fill(1.0, 2, 2)
-sys1.B1 == fill(2.0, 2, 2)
-sys1.B2 == fill(2.0, 2, 3)
-sys1.C1 == fill(3.0, 3, 2)
-sys1.C2 == fill(3.0, 4, 2)
-sys1.D11 == fill(4.0, 3, 2)
-sys1.D12 == fill(4.0, 3, 3)
-sys1.D21 == fill(4.0, 4, 2)
-sys1.D22 == fill(4.0, 4, 3)
+@test sys2.A == fill(1.0, 2, 2)
+@test sys2.B1 == fill(2.0, 2, 2)
+@test sys2.B2 == fill(2.0, 2, 3)
+@test sys2.C1 == fill(3.0, 3, 2)
+@test sys2.C2 == fill(3.0, 4, 2)
+@test sys2.D11 == fill(4.0, 3, 2)
+@test sys2.D12 == fill(4.0, 3, 3)
+@test sys2.D21 == fill(4.0, 4, 2)
+@test sys2.D22 == fill(4.0, 4, 3)
 
 
-# Simple test
-(sys1 + sys1).P[1, 1] == (sys1.P[1,1] + sys1.P[1,1])
-(sys1 * sys1).P[1, 1] == (sys1.P[1,1] * sys1.P[1,1])
+# TODO: Add some tests for interconnections, implicitly tested through delay system implementations though
+@test (sys1 + sys1).P[1, 1] == (sys1.P[1,1] + sys1.P[1,1])
