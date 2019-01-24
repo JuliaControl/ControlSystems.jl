@@ -115,22 +115,27 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
     A, B, C = balance_statespace(A, B, C)
 
     # Compute a good tolerance
-    meps = 10*eps(T)*norm([A B; C D])
-    A, B, C, D = reduce_sys(A, B, C, D, meps)
-    A, B, C, D = reduce_sys(A', C', B', D', meps)
+    meps = 10*eps(real(T))*norm([A B; C D])
+
+    # Step 1:
+    A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
+
+    # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
+    A_rc, B_rc, C_rc, D_rc = reduce_sys(transpose(A_r), transpose(C_r), transpose(B_r), transpose(D_r), meps)
     if isempty(A)   return complex(T)[]    end
 
+    # Step 3:
     # Compress cols of [C D] to [0 Df]
-    mat = [C D]
+    mat = [C_rc D_rc]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
     W = qr(mat').Q
     W = reverse(W, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
-        nf = size(A, 1)
-        m = size(D, 2)
-        Af = ([A B] * W)[1:nf, 1:nf]
+        nf = size(A_rc, 1)
+        m = size(D_rc, 2)
+        Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
         Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
         zs = eigvals(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
@@ -203,7 +208,7 @@ end
 function fastrank(A::AbstractMatrix, meps::Real)
     n, m = size(A)
     if n*m == 0     return 0    end
-    norms = Vector{eltype(A)}(undef, n)
+    norms = Vector{real(eltype(A))}(undef, n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end
