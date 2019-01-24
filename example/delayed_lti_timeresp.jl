@@ -1,8 +1,4 @@
-using DifferentialEquations
-
 plotly()
-
-#sys_d = c2d(sys.P)
 
 sys = feedback(1.0, ss(-1.0, 2, 1, 0) * (delay(2.0) + delay(3.0)))
 
