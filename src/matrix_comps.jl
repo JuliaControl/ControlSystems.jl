@@ -504,9 +504,9 @@ D̃ = D
 ```
 """
 function similarity_transform(sys::StateSpace, T)
-    T = factorize(T)
-    A = T\sys.A*T
-    B = T\sys.B
+    Tf = factorize(T)
+    A = Tf\sys.A*T
+    B = Tf\sys.B
     C = sys.C*T
     D = sys.D
     ss(A,B,C,D,sys.Ts)
