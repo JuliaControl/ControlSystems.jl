@@ -114,7 +114,9 @@ dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
 """`place(A, B, p)`, `place(sys::StateSpace, p)`
 
 Calculate gain matrix `K` such that
-the poles of `(A-BK)` in are in `p`"""
+the poles of `(A-BK)` in are in `p`.
+
+Uses Ackermann's formula."""
 function place(A, B, p)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")

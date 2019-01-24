@@ -58,4 +58,12 @@ Arb,Brb,Crb,Tr = ControlSystems.balance_statespace(Ar,Br,Cr)
 @test Brb ≈ Tr*Br
 @test Crb*Tr ≈ Cr
 
+Tr = randn(2,2)
+syst = similarity_transform(sys, Tr)
+@test sys.A*Tr ≈ Tr*syst.A
+@test sys.B ≈ Tr*syst.B
+@test sys.C*Tr ≈ syst.C
+
+
+
 end

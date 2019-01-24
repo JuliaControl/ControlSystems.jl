@@ -244,7 +244,7 @@ If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops
 
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
-function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0, doplot = true)
+function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplot = true)
     Pv  = freqresp(P,ω)[:,1,1]
     r   = abs.(Pv)
     phi = angle.(Pv)

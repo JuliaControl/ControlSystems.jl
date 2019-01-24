@@ -120,9 +120,9 @@ Compute the zeros, poles, and gains of system `sys`.
 function zpkdata(sys::LTISystem)
     G = convert(TransferFunction{SisoZpk}, sys)
 
-    zs = getfield.(G.matrix, :z)
-    ps = getfield.(G.matrix, :p)
-    ks = getfield.(G.matrix, :k)
+    zs = map(x -> x.z, G.matrix)
+    ps = map(x -> x.p, G.matrix)
+    ks = map(x -> x.k, G.matrix)
 
     return zs, ps, ks
 end
@@ -382,7 +382,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _default_freq_vector(system, :bode); kwargs...)
+margin(system, _default_freq_vector(system, Val{:bode}()); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
 # Interpolate the values in "list" given the floating point "index" fi
