@@ -213,7 +213,7 @@ end
     _processfreqplot(plottype, system::AbstractVector{<:LTISystem}, [w])
 
     Calculate default frequency vector and put system in array of not already array.
-    `plottype` is one of `Val{:bode}, Val{:nyquist}, ...`
+    `plottype` is one of `Val{:bode}(), Val{:nyquist}(), ...`
     for which `_default_freq_vector` is defined.
     Check that system dimensions are compatible.
 """
@@ -243,7 +243,7 @@ optionally provided.
 bodeplot
 
 @recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
-    systems, w = _processfreqplot(Val{:bode}, p.args...)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
