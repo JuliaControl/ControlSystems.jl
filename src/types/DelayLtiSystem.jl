@@ -41,6 +41,13 @@ Base.convert(::Type{DelayLtiSystem{T1}}, d::T2) where {T1,T2 <: Number} = DelayL
 Base.convert(::Type{DelayLtiSystem{T}}, sys::DelayLtiSystem) where T = DelayLtiSystem{T}(StateSpace{T,Matrix{T}}(sys.P.P), sys.Tau)
 
 
+function *(sys::DelayLtiSystem, n::Number)
+    new_C = [sys.P.C1*n; sys.P.C2]
+    new_D = [sys.P.D11*n sys.P.D12; sys.P.D21*n sys.P.D22]
+    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.Ts), sys.Tau)
+end
+*(n::Number, sys::DelayLtiSystem) = *(sys, n)
+
 ninputs(sys::DelayLtiSystem) = size(sys.P.P, 2) - length(sys.Tau)
 noutputs(sys::DelayLtiSystem) = size(sys.P.P, 1) - length(sys.Tau)
 nstates(sys::DelayLtiSystem) = nstates(sys.P.P)
