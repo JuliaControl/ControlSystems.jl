@@ -155,6 +155,7 @@ function dab(a,b,c)
 end
 
 function toeplitz(c,r)
+    @assert c[1] == r[1]
     nc = length(c)
     nr = length(r)
     A  = zeros(nc, nr)

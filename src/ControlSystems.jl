@@ -71,7 +71,12 @@ export  LTISystem,
         numvec,
         denvec,
         numpoly,
-        denpoly
+        denpoly,
+        # arx
+        getARXregressor,
+        find_na,
+        arx,
+        bodeconfidence
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
@@ -79,6 +84,7 @@ using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import LinearAlgebra: BlasFloat
+import Statistics: var, std, mean
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
@@ -127,6 +133,7 @@ include("simulators.jl")
 include("pid_design.jl")
 
 include("plotting.jl")
+include("arx.jl")
 
 @deprecate num numvec
 @deprecate den denvec
