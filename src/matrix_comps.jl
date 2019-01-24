@@ -389,11 +389,11 @@ function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcir
 end
 
 
-"""`T, B = balance(A[, perm=true])`
+"""`S, P, B = balance(A[, perm=true])`
 
 Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
-transformation will only scale, and not permute `A`."""
+transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`)."""
 function balance(A, perm::Bool=true)
     n = LinearAlgebra.checksquare(A)
     B = copy(A)
@@ -491,4 +491,23 @@ function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = t
     end
 
     return ss(A,B,C,D), diagm(0 => S)
+end
+
+"""
+    syst = similarity_transform(sys, T)
+Perform a similarity transform `T : Tx̃ = x` on `sys` such that
+```
+Ã = T⁻¹AT
+B̃ = T⁻¹ B
+C̃ = CT
+D̃ = D
+```
+"""
+function similarity_transform(sys::StateSpace, T)
+    Tf = factorize(T)
+    A = Tf\sys.A*T
+    B = Tf\sys.B
+    C = sys.C*T
+    D = sys.D
+    ss(A,B,C,D,sys.Ts)
 end
