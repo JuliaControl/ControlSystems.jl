@@ -23,41 +23,51 @@ end
 
 
 
-function simulate5(sys::DelayLtiSystem, tspan; u=[], x0=Float64[], alg=MethodOfSteps(Tsit5()), kwargs...)
+function lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(t -> fill(0.0, ninputs(sys))), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)
     P = sys.P
 
     if ~iszero(P.D22)
         error("non-zero D22-matrix block is not supported") # Due to limitations in differential equations
     end
 
-    nu = ControlSystems.ninputs(sys)
-    nx = ControlSystems.nstates(sys)
+    dt = t[2] - t[1]
+    if ~all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
+        error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
+    end
 
-    u = (u == []) ? t -> fill(0.0, nu) : u
-    x0 = (x0 == []) ? fill(0.0, nx) : x0
-
+    # Slightly more complicated definition since the d signal is not directly available
     dde = function (dx, x, h, p, t)
         dx .= P.A*x + P.B1*u(t)
         for k=1:length(sys.Tau) # Add each of the delayed signals
-            dk_delayed = dot(P.C2[k,:], h(p,t-sys.Tau[k])) + dot(P.D21[k,:], u(t-sys.Tau[k]))# + P.D22*(t-Tau[1]
+            dk_delayed = dot(P.C2[k,:], h(p,t-sys.Tau[k])) + dot(P.D21[k,:], u(t-sys.Tau[k]))
             dx .+= P.B2[:, k] * dk_delayed
         end
-        #d_delayed = zeros(size(P.C2,1))
     end
 
-    h_initial = (p, t) -> zeros(nx)
-
+    h_initial = (p, t) -> zeros(nstates(sys))
 
     # Saves y (excluding the d(t-τ) contribution) and d
-    saved_values_y = SavedValues(Float64, Tuple{Vector{Float64}, Vector{Float64}})
-    cb = SavingCallback((x,t,integrator) -> (P.C1*x + P.D11*u(t), P.C2*x + P.D21*u(t)), saved_values_y, saveat=0:0.02:tspan[2])
-#P.C1*x + P.D11*u(t) + P.D12*h(t)
-    prob = DDEProblem(dde, x0, h_initial, tspan, constant_lags=sys.Tau)
+    saved_values = SavedValues(Float64, Tuple{Vector{Float64}, Vector{Float64}})
+    cb = SavingCallback((x,t,integrator) -> (P.C1*x + P.D11*u(t), P.C2*x + P.D21*u(t)), saved_values, saveat=t)
 
-    sol = solve(prob, alg, callback=cb; saveat=0:0.02:tspan[2], kwargs...)
+    prob = DDEProblem(dde, x0, h_initial, (0.0, 8.0), constant_lags=sys.Tau)
 
-    t, x = sol.t, sol.u
+    sol = solve(prob, alg, callback=cb; saveat=t, kwargs...)
+
+    x = sol.u # the states are labeled u in DifferentialEquations
+    y = hcat([saved_values.saveval[k][1] for k=1:length(t)]...)
+    d = hcat([saved_values.saveval[k][2] for k=1:length(t)]...)
+
+    # Account for the effect of the delayed d-signal on y
+    for k=1:length(sys.Tau)
+        N_del = Integer(sys.Tau[k] / dt)
+        dk = [zeros(N_del); d[k, 1:end-N_del]]
+
+        for j=1:length(t)
+            y[:, j] .+= sys.P.D12[:, k] * dk[j]
+        end
+    end
 
 
-    t, x, saved_values_y
+    t, x, y
 end

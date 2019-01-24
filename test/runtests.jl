@@ -23,7 +23,9 @@ my_tests = ["test_statespace",
             "test_analysis",
             "test_matrix_comps",
             "test_lqg",
-            "test_synthesis"]
+            "test_synthesis",
+            "test_partitioned_statespace",
+            "test_delayed_systems"]
 
 
 # try
