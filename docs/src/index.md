@@ -7,7 +7,7 @@ CurrentModule = ControlSystems
 ## Examples
 ```@contents
 Pages = ["examples/example.md"]
-Depth = 1
+Depth = 2
 ```
 
 ## Guide
@@ -20,12 +20,6 @@ Depth = 1
 ## Functions
 
 ```@contents
-Pages = ["lib/constructors.md", "lib/plotting.md"]
-```
-
-## Documentation Index
-
-```@index
-Pages = ["lib/constructors.md", "lib/plotting.md", "lib/syntheis.md", "lib/timefreqresponse.md", "lib/analysis.md"]
+Pages = ["lib/constructors.md",  "lib/analysis.md", "lib/syntheis.md", "lib/timefreqresponse.md", "lib/plotting.md"]
 Depth = 1
 ```
