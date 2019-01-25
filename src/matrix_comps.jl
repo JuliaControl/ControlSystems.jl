@@ -434,36 +434,36 @@ See also `gram`, `baltrunc`
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
 function balreal(sys::StateSpace)
-P = gram(sys, :c)
-Q = gram(sys, :o)
+    P = gram(sys, :c)
+    Q = gram(sys, :o)
 
-Q1 = try
-    cholesky(Q).U
-catch
-    throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
-end
-U,Σ,V = svd(Q1*P*Q1')
-Σ .= sqrt.(Σ)
-Σ1 = diagm(0 => sqrt.(Σ))
-T = Σ1\(U'Q1)
+    Q1 = try
+        cholesky(Hermitian(Q)).U
+    catch
+        throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
+    end
+    U,Σ,V = svd(Q1*P*Q1')
+    Σ .= sqrt.(Σ)
+    Σ1 = diagm(0 => sqrt.(Σ))
+    T = Σ1\(U'Q1)
 
-Pz = T*P*T'
-Qz = inv(T')*Q*inv(T)
-if norm(Pz-Qz) > sqrt(eps())
-    @warn("balreal: Result may be inaccurate")
-    println("Controllability gramian before transform")
-    display(P)
-    println("Controllability gramian after transform")
-    display(Pz)
-    println("Observability gramian before transform")
-    display(Q)
-    println("Observability gramian after transform")
-    display(Qz)
-    println("Singular values of PQ")
-    display(Σ)
-end
+    Pz = T*P*T'
+    Qz = inv(T')*Q*inv(T)
+    if norm(Pz-Qz) > sqrt(eps())
+        @warn("balreal: Result may be inaccurate")
+        println("Controllability gramian before transform")
+        display(P)
+        println("Controllability gramian after transform")
+        display(Pz)
+        println("Observability gramian before transform")
+        display(Q)
+        println("Observability gramian after transform")
+        display(Qz)
+        println("Singular values of PQ")
+        display(Σ)
+    end
 
-sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(0 => Σ)
+    sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(0 => Σ)
 end
 
 
