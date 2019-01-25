@@ -39,4 +39,4 @@ s = tf("s");
 @test tzero(ss((s-2.0-1.5im)^3/(s+1+im)/(s+2)^3)) ≈ fill(2.0 + 1.5im, 3) rtol=1e-4
 @test tzero(ss((s-2.0-1.5im)*(s-3.0)/(s+1+im)/(s+2)^2)) ≈ [3.0, 2.0 + 1.5im] rtol=1e-14
 
-end-
+end
