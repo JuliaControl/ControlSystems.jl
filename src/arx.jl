@@ -38,14 +38,14 @@ end
 Plots the RMSE and AIC For model orders up to `n`. Useful for model selection
 """
 function find_na(y::AbstractVector,n::Int)
-    error = zeros(n,2)
-    for i = 1:n
-        w,e = ar(y,i)
-        error[i,1] = rms(e)
-        error[i,2] = aic(e,i)
-        print(i,", ")
+    error = zeros(n-1,2)
+    for i = 2:n
+        w,e = arx(y,0y,i,0)
+        error[i-1,1] = rms(e)
+        error[i-1,2] = aic(e,i)
+
     end
-    println("Done")
+
     scatter(error, show=true)
 end
 
