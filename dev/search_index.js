@@ -469,7 +469,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Synthesis",
     "title": "ControlSystems.balance",
     "category": "function",
-    "text": "T, B = balance(A[, perm=true])\n\nCompute a similarity transform T resulting in B = T\\A*T such that the row and column norms of B are approximately equivalent. If perm=false, the transformation will only scale, and not permute A.\n\n\n\n\n\n"
+    "text": "S, P, B = balance(A[, perm=true])\n\nCompute a similarity transform T resulting in B = T\\A*T such that the row and column norms of B are approximately equivalent. If perm=false, the transformation will only scale A using diagonal S, and not permute A (i.e., set P=I).\n\n\n\n\n\n"
 },
 
 {
@@ -581,7 +581,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Synthesis",
     "title": "ControlSystems.place",
     "category": "function",
-    "text": "place(A, B, p), place(sys::StateSpace, p)\n\nCalculate gain matrix K such that the poles of (A-BK) in are in p\n\n\n\n\n\n"
+    "text": "place(A, B, p), place(sys::StateSpace, p)\n\nCalculate gain matrix K such that the poles of (A-BK) in are in p.\n\nUses Ackermann\'s formula.\n\n\n\n\n\n"
 },
 
 {
