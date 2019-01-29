@@ -10,7 +10,7 @@ A = [1,1]
 R = [1,1]
 S = [1]
 T = [1]
-
+@testset "minreal + feedback" begin
 @test isapprox(minreal(feedback(P,C),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5)
 @test isapprox(numpoly(minreal(feedback(L),1e-5))[1].a, numpoly(tf(1,[1,1]))[1].a)# This test is ugly, but numerical stability is poor for minreal
 @test feedback2dof(B,A,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
@@ -54,5 +54,20 @@ z5,p5,k5 = zpkdata(ffb5)
 @test sort(real.(z1[1])) ≈ sort(real.(z2[1])) ≈ sort(real.(z3[1])) ≈ sort(real.(z4[1])) ≈ sort(real.(z5[1]))
 @test sort(real.(p1[1])) ≈ sort(real.(p2[1])) ≈ sort(real.(p3[1])) ≈ sort(real.(p4[1])) ≈ sort(real.(p5[1]))
 @test k1 ≈ k2 ≈ k3 ≈ k4 ≈ k5
+end
+
+
+@testset "acker" begin
+Random.seed!(0)
+A = randn(3,3)
+B = randn(3,1)
+p = [3.0,2,1]
+K = ControlSystems.acker(A,B,p)
+@test eigvals(A-B*K) ≈ p
+
+p = [-1+im, -1-im, -1]
+K = ControlSystems.acker(A,B,p)
+@test eigvals(A-B*K) ≈ p
+end
 
 end
