@@ -528,6 +528,6 @@ y  = Cx + v
 where `v` is the innovation sequence
 """
 function innovation_form(sys::StateSpace, R1, R2)
-    K = kalman(sys.A, sys.C, R1, R2)
+    K = kalman(sys, R1, R2)
     ss(sys.A - K*sys.C, K, sys.C, sys.D, sys.Ts)
 end
