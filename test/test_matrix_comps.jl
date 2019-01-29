@@ -64,9 +64,33 @@ syst = similarity_transform(sys, Tr)
 @test sys.B ≈ Tr*syst.B
 @test sys.C*Tr ≈ syst.C
 
-sys = ss(eye_(2), ones(2), ones(1,2), 0, 1)
+sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
 sysi = ControlSystems.innovation_form(sys, I, I)
-@test sysi.A ≈ [-3.5 -4.5; 1.5 2.5]
-@test sysi.B ≈ [4.5; -1.5]
+@test sysi.A ≈ sysi.A
+@test sysi.B ≈ [4.415675759647131
+ 48.334204475215365]
+
+ sysi = innovation_form(sys)
+ @test sysi.B ≈ [4.415675759647131
+ 48.334204475215365]
+
+ sysi = innovation_form(sys, R2 = 2I)
+ @test sysi.B ≈ [4.225661436353894
+ 44.52445850991302]
+
+ sysi = innovation_form(sys, R1 = 2I)
+ @test sysi.B ≈ [4.734159731874057
+ 54.719744515739514]
+
+ sysi = ControlSystems.innovation_form(sys, R1=2I, R2=2I)
+ @test sysi.B ≈ [4.415675759647131
+ 48.334204475215365]
+
+# Test with noise filters
+sysw = ss([0.5 0.1; 0 0.5], [0,1], eye_(2), 0, 1)
+sysi = ControlSystems.innovation_form(sys, sysw=sysw)
+@test sysi.A ≈ sys.A
+@test sysi.B ≈ [4.01361818808572
+ 40.26132476965486]
 
 end
