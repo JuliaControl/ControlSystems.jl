@@ -163,8 +163,7 @@ function feedback(L::TransferFunction{T}) where T<:SisoRational
     end
     P = numpoly(L)
     Q = denpoly(L)
-    #Extract polynomials and create P/(P+Q)
-    tf(P[1][end:-1:0],(P+Q)[1][end:-1:0],L.Ts)
+    tf(P, P+Q, L.Ts)
 end
 
 function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
