@@ -378,7 +378,7 @@ nyquistplot
                     label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
-                    hover --> [@sprintf("ω = %.3f", w) for w in w]
+                    hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
                     color --> styledict[:c]
                     (redata, imdata)
                 end
@@ -565,7 +565,7 @@ nicholsplot
             linewidth --> 2
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
-            hover --> [@sprintf("ω = %.3f", w) for w in w]
+            hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
             color --> styledict[:c]
             angles, mag
         end
