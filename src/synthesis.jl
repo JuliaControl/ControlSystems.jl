@@ -139,7 +139,7 @@ function acker(A,B,P)
     poly = mapreduce(p -> Poly([1, -p]), *, P, init=Poly(one(eltype(P))))
     q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
-        q += A^(n-i)*poly[i+1]
+        q += A^(n-i)*poly[i]
     end
     S = Array{promote_type(eltype(A),eltype(B),Float64),2}(undef, n,n)
     for i = 0:(n-1)
@@ -163,7 +163,6 @@ function feedback(L::TransferFunction{T}) where T<:SisoRational
     end
     P = numpoly(L)
     Q = denpoly(L)
-    #Extract polynomials and create P/(P+Q)
     tf(P, P+Q, L.Ts)
 end
 
