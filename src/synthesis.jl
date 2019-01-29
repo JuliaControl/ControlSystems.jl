@@ -45,7 +45,7 @@ Calculate the optimal Kalman gain
 See also `LQG`
 
 """
-kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
+kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
 function lqr(sys::StateSpace, Q, R)
     if iscontinuous(sys)
@@ -57,9 +57,9 @@ end
 
 function kalman(sys::StateSpace, R1,R2)
     if iscontinuous(sys)
-        return lqr(sys.A', sys.C', R1,R2)'
+        return Matrix(lqr(sys.A', sys.C', R1,R2)')
     else
-        return dlqr(sys.A', sys.C', R1,R2)'
+        return Matrix(dlqr(sys.A', sys.C', R1,R2)')
     end
 end
 
@@ -109,7 +109,7 @@ end
 Calculate the optimal Kalman gain for discrete time systems
 
 """
-dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
+dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 
 """`place(A, B, p)`, `place(sys::StateSpace, p)`
 
