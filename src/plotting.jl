@@ -133,7 +133,7 @@ lsimplot
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
                 linestyle --> styledict[:l]
-                linecolor --> styledict[:c]
+                color --> styledict[:c]
                 t,  y[:, i]
             end
         end
@@ -198,7 +198,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
                         linestyle --> styledict[:l]
-                        linecolor --> styledict[:c]
+                        color --> styledict[:c]
                         t, ydata
                     end
                 end
@@ -209,18 +209,20 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
 end
 
 """
-    processfreqplot(plottype::Symbol, system::LTISystem, [w])
-    processfreqplot(plottype::Symbol, system::AbstractVector{<:LTISystem}, [w])
+    _processfreqplot(plottype, system::LTISystem, [w])
+    _processfreqplot(plottype, system::AbstractVector{<:LTISystem}, [w])
 
     Calculate default frequency vector and put system in array of not already array.
+    `plottype` is one of `Val{:bode}, Val{:nyquist}, ...`
+    for which `_default_freq_vector` is defined.
     Check that system dimensions are compatible.
 """
-processfreqplot(plottype::Symbol, system::LTISystem, args...) =
-    processfreqplot(plottype, [system], args...)
+_processfreqplot(plottype, system::LTISystem, args...) =
+    _processfreqplot(plottype, [system], args...)
 # Catch when system is not vector, with and without frequency input
 
 # Cantch correct form
-function processfreqplot(plottype::Symbol, systems::AbstractVector{<:LTISystem},
+function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem},
             w = _default_freq_vector(systems, plottype))
 
     if !_same_io_dims(systems...)
@@ -241,7 +243,7 @@ optionally provided.
 bodeplot
 
 @recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
-    systems, w = processfreqplot(:bode, p.args...)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
@@ -278,7 +280,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    linecolor --> styledict[:c]
+                    color --> styledict[:c]
                     w, magdata
                 end
                 if !plotphase
@@ -294,7 +296,7 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    linecolor --> styledict[:c]
+                    color --> styledict[:c]
                     w, phasedata
                 end
 
@@ -355,7 +357,7 @@ the sensitivity and complementary sensitivity functions.
 `kwargs` is sent as argument to plot."""
 nyquistplot
 @recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
-    systems, w = processfreqplot(:nyquist, p.args...)
+    systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
     layout --> (ny,nu)
@@ -376,7 +378,7 @@ nyquistplot
                     label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
-                    linecolor --> styledict[:c]
+                    color --> styledict[:c]
                     (redata, imdata)
                 end
                 # Plot rings
@@ -386,13 +388,13 @@ nyquistplot
                     @series begin
                         label := ""
                         linestyle := :dash
-                        linecolor := :black
+                        color := :black
                         (C,S)
                     end
                     @series begin
                         label := ""
                         linestyle := :dash
-                        linecolor := :black
+                        color := :black
                         (C .-1,S)
                     end
                 end
@@ -444,7 +446,7 @@ nicholsplot
     val      = 0.85,
     fontsize = 10)
 
-    systems, w = processfreqplot(:nyquist, p.args...)
+    systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
 
     if !iscontinuous(systems[1])
@@ -488,7 +490,7 @@ nicholsplot
         for l in PCyc
             @series begin
                 linewidth := 1
-                linecolor --> getColor(k)
+                linecolor := getColor(k)
                 grid --> false
                 if text
                     offset  = (l+1)
@@ -562,7 +564,7 @@ nicholsplot
             linewidth --> 2
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
-            linecolor --> styledict[:c]
+            color --> styledict[:c]
             angles, mag
         end
     end
@@ -581,7 +583,7 @@ frequency vector `w` can be optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 sigmaplot
 @recipe function sigmaplot(p::Sigmaplot)
-    systems, w = processfreqplot(:sigma, p.args...)
+    systems, w = _processfreqplot(Val{:sigma}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
     title --> "Sigma Plot"
@@ -598,7 +600,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 linestyle --> styledict[:l]
-                linecolor --> styledict[:c]
+                color --> styledict[:c]
                 w, sv[:, i]
             end
         end
@@ -612,7 +614,7 @@ A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to Plots.plot."""
 function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
-    systems, w = processfreqplot(:bode, systems, args...)
+    systems, w = _processfreqplot(Val{:bode}(), systems, args...)
     ny, nu = size(systems[1])
     fig = bodeplot(systems, w, kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
