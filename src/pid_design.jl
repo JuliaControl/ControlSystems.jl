@@ -136,7 +136,7 @@ rlocus
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
-    form(k, p) = @sprintf("%.4f", k) * "  pole=" * @sprintf("%.3f%+.3fim", real(p), imag(p))
+    form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
     @series begin
         legend --> false
         ylims  --> ylim
