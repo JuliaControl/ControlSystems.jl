@@ -511,3 +511,23 @@ function similarity_transform(sys::StateSpace, T)
     D = sys.D
     ss(A,B,C,D,sys.Ts)
 end
+
+"""
+sysi = innovation_form(sys, R1, R2)
+
+Takes a system
+```
+x' = Ax + Bu + w ~ R1
+y  = Cx + e ~ R2
+```
+and returns the system
+```
+x' = (A-KC)x + Kv
+y  = Cx + v
+```
+where `v` is the innovation sequence
+"""
+function innovation_form(sys::StateSpace, R1, R2)
+    K = kalman(sys.A, sys.C, R1, R2)
+    ss(sys.A - K*sys.C, K, sys.C, sys.D, sys.Ts)
+end

@@ -64,6 +64,9 @@ syst = similarity_transform(sys, Tr)
 @test sys.B ≈ Tr*syst.B
 @test sys.C*Tr ≈ syst.C
 
-
+sys = ss(eye_(2), ones(2), ones(1,2), 0, 1)
+sysi = ControlSystems.innovation_form(sys, I, I)
+@test sysi.A ≈ [-3.5 -4.5; 1.5 2.5]
+@test sysi.B ≈ [4.5; -1.5]
 
 end
