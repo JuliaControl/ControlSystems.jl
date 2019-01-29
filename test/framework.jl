@@ -1,5 +1,5 @@
 # Length not defined for StateSpace, so use custom function
-function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
+function Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
     fields = [:Ts, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
     for field in fields
         if getfield(va, field) != getfield(vb, field)
@@ -20,14 +20,14 @@ function Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bst
     return true
 end
 
-Base.Test.test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
-    Base.Test.test_approx_eq(va, vb, 1E4*length(va.A)*max(Base.Test.array_eps(va.A),
-    Base.Test.array_eps(vb.A)), astr, bstr)
+Test.test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
+    Test.test_approx_eq(va, vb, 1E4*length(va.A)*max(Test.array_eps(va.A),
+    Test.array_eps(vb.A)), astr, bstr)
 
 # Length not defined for TransferFunction, so use custom function
-Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
+Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
 
-Base.Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
+Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
 
 #Base.isapprox{T<:Number,N}(x::Array{T,N}, y::Array{T,N}; atol=sqrt(eps())) = all(abs.(x.-y) .< atol)
 
@@ -48,7 +48,7 @@ function vecarray(T::Type, ny::Int,nx::Int, args::AbstractArray...)
     array = reshape(collect(Array{T,1},args),nx,ny)
     permutedims(array,[2,1])
 end
-vecarray{T}(ny::Int,nx::Int, args::AbstractArray{T}...) = vecarray(T, ny, nx, args...)
+vecarray(ny::Int,nx::Int, args::AbstractArray{T}...) where {T} = vecarray(T, ny, nx, args...)
 
 function vecarray(ny::Int,nx::Int, args::AbstractArray...)
     args2 = promote(args...)
@@ -67,14 +67,20 @@ macro test_array_vecs_eps(a, b, tol)
     end
 end
 
-macro test_c2d(ex, sys_sol, mat_sol)
-    quote
-        sys, mat = $(esc(ex))
-        @test sys ≈ $(esc(sys_sol))
-        @test mat ≈ $(esc(mat_sol))
+macro test_c2d(ex, sys_sol, mat_sol, op)
+    if op == true
+        quote
+            sys, mat = $(esc(ex))
+            @test sys ≈ $(esc(sys_sol)) && mat ≈ $(esc(mat_sol))
+        end
+    else
+        quote
+            sys, mat = $(esc(ex))
+            @test !(sys ≈ $(esc(sys_sol))) || !(mat ≈ $(esc(mat_sol)))
+        end
     end
 end
 
 
-approxin(el,col;kwargs...) = reduce(|,false,isapprox.(el,col;kwargs...))
+approxin(el,col;kwargs...) = any(colel -> isapprox(el, colel; kwargs...), col)
 approxsetequal(s1,s2;kwargs...) = all(approxin(p,s1;kwargs...) for p in s2) && all(approxin(p,s2;kwargs...) for p in s1)

@@ -50,6 +50,8 @@ It is also possible to access all fileds using the `G[:symbol]` syntax, the fiel
 # Example
 
 ```julia
+eye(n) = Matrix{Float64}(I,n,n) # For convinience
+
 qQ = 1
 qR = 1
 Q1 = 10eye(4)
@@ -62,7 +64,7 @@ G = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
 Gcl = G[:cl]
 T = G[:T]
 S = G[:S]
-sigmaplot([S,T],logspace(-3,3,1000))
+sigmaplot([S,T],exp10.(range(-3, stop=3, length=1000)))
 stepplot(Gcl)
 ```
 
@@ -87,10 +89,10 @@ function LQG(A,B,C,D,Q1::AbstractMatrix,Q2::AbstractMatrix,R1::AbstractMatrix,R2
 end # (1) Dispatches to final
 
 function LQG(A,B,C,D,Q1::AbstractVector,Q2::AbstractVector,R1::AbstractVector,R2::AbstractVector; qQ=0, qR=0, integrator=false)
-    Q1 = diagm(Q1)
-    Q2 = diagm(Q2)
-    R1 = diagm(R1)
-    R2 = diagm(R2)
+    Q1 = diagm(0 => Q1)
+    Q2 = diagm(0 => Q2)
+    R1 = diagm(0 => R1)
+    R2 = diagm(0 => R2)
     integrator ? _LQGi(A,B,C,D,Q1,Q2,R1,R2, qQ, qR) : _LQG(A,B,C,D,Q1,Q2,R1,R2, qQ, qR)
 end # (2) Dispatches to final
 
@@ -111,7 +113,7 @@ function _LQG(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     Ac=A-B*L-K*C+K*D*L
     Bc=K
     Cc=L
-    Dc=zeros(D')
+    Dc=zero(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
     return LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, L, K, false)
@@ -131,14 +133,14 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     De = D
 
     L = lqr(A, B, Q1+qQ*C'C, Q2)
-    Le = [L eye(m)]
+    Le = [L I]
     K = kalman(Ae, Ce, R1+qR*Be*Be', R2)
 
     # Controller system
     Ac=Ae-Be*Le-K*Ce+K*De*Le
     Bc=K
     Cc=Le
-    Dc=zeros(D')
+    Dc=zero(D')
     sysc = ss(Ac,Bc,Cc,Dc)
 
     LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
@@ -187,17 +189,17 @@ function Base.getindex(G::LQG, s)
     PC = P*sysc # Loop gain
 
     if s ∈ [:cl, :closedloop, :ry] # Closed-loop system
-        Acl = [A-B*L B*L; zeros(A) A-K*C]
-        Bcl = [B; zeros(B)]
-        Ccl = [C zeros(C)]
+        Acl = [A-B*L B*L; zero(A) A-K*C]
+        Bcl = [B; zero(B)]
+        Ccl = [C zero(C)]
         Bcl = Bcl/(P.C*inv(P.B*L[:,1:n]-P.A)*P.B) # B*lᵣ # Always normalized with nominal plant static gain
         return syscl = ss(Acl,Bcl,Ccl,0)
     elseif s ∈ [:Sin, :S] # Sensitivity function
-        return feedback(ss(eye(m)),PC)
+        return feedback(ss(Matrix{numeric_type(PC)}(I, m, m)),PC)
     elseif s ∈ [:Tin, :T] # Complementary sensitivity function
         return feedback(PC)
     elseif s == :Sout # Sensitivity function, output
-        return feedback(ss(eye(m)),sysc*P)
+        return feedback(ss(Matrix{numeric_type(sys_c)}(I, m, m)),sysc*P)
     elseif s == :Tout # Complementary sensitivity function, output
         return feedback(sysc*P)
     elseif s == :PS # Load disturbance to output
@@ -207,9 +209,9 @@ function Base.getindex(G::LQG, s)
     elseif s ∈ [:lt, :looptransfer, :loopgain]
         return PC
     elseif s ∈ [:rd, :returndifference]
-        return  ss(eye(p)) + PC
+        return  ss(Matrix{numeric_type(PC)}(I, p, p)) + PC
     elseif s ∈ [:sr, :stabilityrobustness]
-        return  ss(eye(p)) + inv(PC)
+        return  ss(Matrix{numeric_type(PC)}(I, p, p)) + inv(PC)
     end
     error("The symbol $s does not have a function associated with it.")
 end

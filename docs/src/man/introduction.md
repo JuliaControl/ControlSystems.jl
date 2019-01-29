@@ -18,15 +18,15 @@ Transfer functions can easily be created using the function `tf(num, den, Ts=0)`
 
 Example:
 ```julia
-P = tf([1],[1,1])
+P = tf([1.0],[1,1])
 T = P/(1+P)
 
 # output
 
-TransferFunction:
-    s + 1.0
-----------------
-s^2 + 3.0s + 2.0
+TransferFunction{ControlSystems.SisoRational{Float64}}
+     1.0*s + 1.0
+---------------------
+1.0*s^2 + 3.0*s + 2.0
 
 Continuous-time transfer function model
 ```
@@ -37,10 +37,10 @@ minreal(T)
 
 # output
 
-TransferFunction:
-  1.0
--------
-s + 2.0
+TransferFunction{ControlSystems.SisoRational{Float64}}
+    1.0
+-----------
+1.0*s + 2.0
 
 Continuous-time transfer function model
 ```

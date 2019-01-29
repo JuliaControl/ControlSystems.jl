@@ -1,10 +1,10 @@
 # ControlSystems.jl
 
-[![ControlSystems](http://pkg.julialang.org/badges/ControlSystems_0.5.svg)](http://pkg.julialang.org/?pkg=ControlSystems)
-[![ControlSystems](http://pkg.julialang.org/badges/ControlSystems_0.6.svg)](http://pkg.julialang.org/?pkg=ControlSystems)
 [![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
-[![Coverage Status](https://coveralls.io/repos/github/JuliaControl/ControlSystems.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaControl/ControlSystems.jl?branch=master)
-[![Latest](https://img.shields.io/badge/docs-latest-blue.svg)](http://juliacontrol.github.io/ControlSystems.jl/latest/)
+[![Gitter](https://badges.gitter.im/JuliaControl/ControlSystems.jl.svg)](https://gitter.im/JuliaControl/ControlSystems.jl?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/stable)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/latest)
 
 A control systems design toolbox for Julia.
 
@@ -16,7 +16,28 @@ To install, in the Julia REPL:
 Pkg.add("ControlSystems")
 ```
 
-Note that the latest version of this package requires Julia 0.5. Users of Julia 0.4 should use [v0.1.4](https://github.com/JuliaControl/ControlSystems.jl/tree/v0.1.4) instead.
+## News
+### 2018-09-30
+Support for Julia 0.7/1.0 added.
+
+### 2018-09-01
+- LTISystem types are now more generic and can hold matrices/vectors of arbitrary type. Examples (partly pseudo-code):
+```julia
+ss(1)
+ss(1.)
+ss(1im)
+ss(ForwardDiff.Dual(1.))
+ss(GPUArray([1]))
+ss(SparseMatrix([1])
+```
+Similar for `tf,zpk` etc.
+- Continuous time systems are simulated with continuous time solvers from `OrdinaryDiffEq.jl`
+- Freqresp now returns frequencies in the first dimension.
+- Breaking: `lsim(sys, u::Function)` syntax has changed from `u(t,x)` to `u(x,t)` to be consistent with `OrdinaryDiffEq`
+- Breaking: `feedback(P,C)` no longer returns `feedback(P*C)`. The behavior is changed to `feedback(P1, P2) = P1/(1+P1*P2)`.
+- Type `Simulator` provides lower level interface to continuous time simulation.
+- Example [autodiff.jl](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example/autodiff.jl) provides an illustration of how the new generic types can be used for automatic differentiation of a cost function through the continuous-time solver, which allows for optimization of the cost function w.r.t. PID parameters.
+
 
 ## Documentation
 

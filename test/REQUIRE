@@ -1,6 +1,6 @@
-julia 0.6
-VisualRegressionTests
-GR
-Plots
-FactCheck
-Gtk
+julia 0.7
+# VisualRegressionTests
+# GR
+# Plots
+# FactCheck
+# Gtk
