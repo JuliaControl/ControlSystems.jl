@@ -1,5 +1,5 @@
 using ControlSystems
-using Test, LinearAlgebra
+using Test, LinearAlgebra, Random
 import Base.isapprox
 import SparseArrays: sparse
 import DSP: conv
