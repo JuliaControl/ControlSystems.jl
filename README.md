@@ -13,7 +13,7 @@ A control systems design toolbox for Julia.
 To install, in the Julia REPL:
 
 ```julia
-Pkg.add("ControlSystems")
+using Pkg; Pkg.add("ControlSystems")
 ```
 
 ## News
