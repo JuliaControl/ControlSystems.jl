@@ -34,6 +34,7 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
+        innovation_form,
         # Stability Analysis
         isstable,
         pole,

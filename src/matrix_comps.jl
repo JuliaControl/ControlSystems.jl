@@ -185,6 +185,12 @@ end
 
 covar(sys::TransferFunction, W) = covar(ss(sys), W)
 
+"""
+    covar(C,W)
+If `C` is a matrix, return CWC'
+"""
+covar(C::Union{AbstractMatrix,UniformScaling}, R) = C*R*C'
+
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
@@ -510,4 +516,34 @@ function similarity_transform(sys::StateSpace, T)
     C = sys.C*T
     D = sys.D
     ss(A,B,C,D,sys.Ts)
+end
+
+"""
+sysi = innovation_form(sys, R1, R2)
+sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+
+Takes a system
+```
+x' = Ax + Bu + w ~ R1
+y  = Cx + e ~ R2
+```
+and returns the system
+```
+x' = Ax + Kv
+y  = Cx + v
+```
+where `v` is the innovation sequence.
+
+If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R1` (`R2`) through `sysw` (`syse`) is used as covariance.
+
+See Stochastic Control, Chapter 4, Åström
+"""
+function innovation_form(sys::StateSpace, R1, R2)
+    K = kalman(sys, R1, R2)
+    ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+end
+# Set D = I to get transfer function H = I + C(sI-A)\ K
+function innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
+	ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
 end
