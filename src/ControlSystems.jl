@@ -8,7 +8,6 @@ export  LTISystem,
         zpk,
         ss2tf,
         LQG,
-        primitivetype,
         # Linear Algebra
         balance,
         care,
