@@ -156,8 +156,8 @@ function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::Abstr
 
     # Compute the transformation matrix
     mag_A = abs.(A)
-    mag_B = max.(abs.(B), zero(P))
-    mag_C = max.(abs.(C), zero(P))
+    mag_B = max.(abs.(B), zero(real(P)))
+    mag_C = max.(abs.(C), zero(real(P)))
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation

@@ -32,4 +32,11 @@ C_2 = zpk([-1+im], [], 1.0+1im)
 
 @test 1 / ( tf("s") + 1 + im ) == tf([1], [1, 1+im])
 
+s = tf("s");
+@test tzero(ss(-1, 1, 1, 1.0im)) ≈ [-1.0 + im] rtol=1e-15
+@test tzero(ss([-1.0-im 1-im; 2 0], [2; 0], [-1+1im -0.5-1.25im], 1)) ≈ [-1-2im, 2-im]
+
+@test tzero(ss((s-2.0-1.5im)^3/(s+1+im)/(s+2)^3)) ≈ fill(2.0 + 1.5im, 3) rtol=1e-4
+@test tzero(ss((s-2.0-1.5im)*(s-3.0)/(s+1+im)/(s+2)^2)) ≈ [3.0, 2.0 + 1.5im] rtol=1e-14
+
 end
