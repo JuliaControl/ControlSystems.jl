@@ -7,12 +7,12 @@ Calculates and returns a PID controller on transfer function form.
 
 `C = pid(; kp=0, ki=0; kd=0, time=false, series=false)`
 """
-function pid(; kp=0, ki=0, kd=0, time=false, series=false)
+function pid(; kp=0., ki=0., kd=0., time=false, series=false)
     s = tf("s")
     if series
-        return time ? kp*(1 + 1/(ki*s) + kd*s) : kp*(1 + ki/s + kd*s)
+        return time ? kp*(one(kp) + one(kp)/(ki*s) + kd*s) : kp*(one(kp) + ki/s + kd*s)
     else
-        return time ? kp + 1/(ki*s) + kd*s : kp + ki/s + kd*s
+        return time ? kp + one(kp)/(ki*s) + kd*s : kp + ki/s + kd*s
     end
 end
 
@@ -47,7 +47,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         kis = kis == 0 ? zeros(n) : kis
         kds = kds == 0 ? zeros(n) : kds
     end
-    ω   = ω   == 0 ? logspace(-3,3,500) : ω
+    ω   = ω   == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
 
     getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
@@ -57,87 +57,108 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     pz_         = in(:pz         ,args)
     nichols_    = in(:nichols    ,args)
 
-
-    if nyquist_
-        nq = Plots.plot()
-    end
-    if gof_
-        bd = Plots.subplot(n=4,nc=2)
-    end
-    if pz_
-        pz = Plots.plot()
-    end
-    if controller_
-        cplot = plot()
-    end
-
+    Cs = LTISystem[]
+    PCs = LTISystem[]
+    Ts  = LTISystem[]
+    labels = Array{String,2}(undef, 1,length(kps))
+    colors =  Array{Colors.RGB{Float64},2}(undef, 1, length(kps))
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
-        label = "\$k_p = $(round(kp,3)), \\quad k_i = $(round(ki,3)), \\quad k_d = $(round(kd,3))\$"
+        label = "\$k_p\$ = $(round(kp, digits=3)),      \$k_i\$ = $(round(ki, digits=3)),      \$k_d\$ = $(round(kd, digits=3))"
 
         C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
-
-        if nyquist_
-            NQ = nyquist(P*C,ω)
-            redata = NQ[1][:]
-            imdata = NQ[2][:]
-            ylim = (max(-20,minimum(imdata)), min(20,maximum(imdata)))
-            xlim = (max(-20,minimum(redata)), min(20,maximum(redata)))
-            Plots.plot!(nq,redata,imdata, ylims=ylim, xlims=xlim, lab=label, c=getColorSys(i))
-        end
-        if gof_
-            BD = bode(S,ω)
-            Plots.plot!(bd[1,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-            BD = bode(D,ω)
-            Plots.plot!(bd[1,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-            BD = bode(N,ω)
-            Plots.plot!(bd[2,1],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-            BD = bode(T,ω)
-            Plots.plot!(bd[2,2],BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-        end
-        if pz_
-            pzmap!(pz,T)
-        end
-        if controller_
-            BD = bode(C,ω)
-            Plots.plot!(cplot,BD[3][:],BD[1][:], lab=label, c=getColorSys(i))
-        end
+        push!(Cs, C)
+        push!(PCs, P*C)
+        push!(Ts, T)
+        labels[i] = label
     end
 
-    nyquist_ && Plots.plot!(nq,legend=true, title="Nyquist curves")
+    if nyquist_
+        nq = nyquistplot(PCs, ω, lab=labels, title="Nyquist curves")
+    end
     if gof_
-        Plots.plot!(bd[1,1],legend=true, title="S", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[1,2],legend=true, title="D", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,1],legend=true, title="N", xscale=:log10, yscale=:log10)
-        Plots.plot!(bd[2,2],legend=true, title="T", xscale=:log10, yscale=:log10)
+        bd = gangoffourplot(P, Cs, ω, lab=labels)
     end
     if pz_
-        Plots.plot!(pz,title="Pole-zero map")
+        pzmap(Ts, title="Pole-zero map")
     end
     if controller_
-        Plots.plot!(cplot,title="Controller bode plot",legend=true, xscale=:log10, yscale=:log10)
+        cplot = bodeplot(Cs, ω, lab=labels, title="Controller bode plot")
     end
 
 
 
 end
 
+@userplot Rlocusplot
+@deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
+
+
+
+function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
+    P          = numpoly(G)[1]
+    Q          = denpoly(G)[1]
+    f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
+    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
+    integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
+    ts         = Vector{Float64}()
+    poleout    = Vector{Vector{ComplexF64}}()
+    for i in integrator
+       push!(poleout,integrator.k[1])
+       push!(ts,integrator.t[1])
+    end
+    poleout = hcat(poleout...)'
+    poleout, ts
+end
+
+
+
 """
-`rlocus(P::LTISystem, K)` computes and plots the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains `K`, if `K` is not provided, linspace(1e-6,500,10000) is used
+    rlocusplot(P::LTISystem, K)
+Computes and plots the root locus of the SISO LTISystem P with
+a negative feedback loop and feedback gains `K`, if `K` is not provided,
+range(1e-6,stop=500,length=10000) is used.
+If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffEq`), `rlocusplot` will use an adaptive step-size algorithm to
+select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
-function rlocus(P::LTISystem, K=[])
-    K = isempty(K) ? linspace(1e-6,500,10000) : K
+rlocus
+@recipe function rlocus(p::Rlocusplot; K=Float64[])
+    P = p.args[1]
+    K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
     Z = tzero(P)
-    poles = map(k -> pole(k*P/(1+k*P)), K)
-    poles = cat(2,poles...)'
-    redata = real(poles)
-    imdata = imag(poles)
+    poles, K = getpoles(P,K)
+    redata = real.(poles)
+    imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
     xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
-    Plots.plot(redata, imdata, legend=false,ylims=ylim, xlims=xlim)
-    Plots.scatter!(real(Z), imag(Z), m=:c)
+    title --> "Root locus"
+    xguide --> "Re(roots)"
+    yguide --> "Im(roots)"
+    form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
+    @series begin
+        legend --> false
+        ylims  --> ylim
+        xlims  --> xlim
+        hover := "K=" .* form.(K,poles)
+        label := ""
+        redata, imdata
+    end
+    @series begin
+        seriestype := :scatter
+        markershape --> :circle
+        markersize --> 10
+        label --> "Zeros"
+        real.(Z), imag.(Z)
+    end
+    @series begin
+        seriestype := :scatter
+        markershape --> :xcross
+        markersize --> 10
+        label --> "Open-loop poles"
+        redata[1,:], imdata[1,:]
+    end
 end
 
 """
@@ -198,7 +219,7 @@ If an input argument `s` is given, the curve is plotted from `s` to 10, else fro
 See also `Leadlink, leadlinkat`
 """
 function leadlinkcurve(start=1)
-    N = linspace(start,10)
+    N = range(start, stop=10, length=50)
     dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
     Plots.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
 end
@@ -206,7 +227,7 @@ end
 
 
 """
-`fig, kp, ki = stabregionPID(P, [ω]; kd=0)`
+`fig, kp, ki = stabregionPID(P, [ω]; kd=0, doplot = true)`
 
 Segments of the curve generated by this program
 is the boundary of the stability region for a
@@ -214,34 +235,32 @@ process with transfer function P(s)
 The PID controller is assumed to be on the form kp +ki/s +kd s
 
 The curve is found by analyzing
-P(s)\*C(s) = -1 ⟹\n
-|PC| = |P| |C| = 1\n
+P(s)*C(s) = -1 ⟹
+|PC| = |P| |C| = 1
 arg(P) + arg(C) = -π
 
 
-If `P` is a string (e.g. "exp(-sqrt(s))", the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
+If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
 
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
-function stabregionPID(P, ω = _default_freq_vector(P,:bode); kd=0)
-    Pv      = squeeze(freqresp(P,ω)[1],(1,2))
-    r       = abs(Pv)
-    phi     = angle(Pv)
-    kp      = -cos(phi)./r
-    ki      = kd*ω.^2 - ω.*sin(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$P, \\quad k_d = $(round(kd,4))\$"), kp, ki
+function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplot = true)
+    Pv  = freqresp(P,ω)[:,1,1]
+    r   = abs.(Pv)
+    phi = angle.(Pv)
+    kp  = -cos.(phi)./r
+    ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
 end
 
 
-function stabregionPID(P::AbstractString, ω = logspace(-3,1); kd=0)
-    Pe      = parse(P)
-    Pf(s)   = eval(:(s -> $(Pe)))(s)
-    Pv      = Pf(im*ω)
-    r       = abs(Pv)
-    phi     = angle(Pv)
-    kp      = -cos(phi)./r
-    ki      = kd*ω.^2 - ω.*sin(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of \$ $(replace(P,".","")), \\quad k_d = $(round(kd,4))\$"), kp, ki
+function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); kd=0, doplot = true)
+    Pv      = P.(im*ω)
+    r       = abs.(Pv)
+    phi     = angle.(Pv)
+    kp      = -cos.(phi)./r
+    ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
 end
 
 
@@ -258,25 +277,25 @@ If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and on
 See also `pidplots`, `stabregionPID`
 """
 function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
-Pw = P(im*ωp)[1]
-ϕp = angle(Pw)
-rp = abs(Pw)
+    Pw = P(im*ωp)[1]
+    ϕp = angle(Pw)
+    rp = abs.(Pw)
 
-if phasemargin > 0
-    ϕl = deg2rad(-180+phasemargin)
-else
-    ϕl = ϕl == 0 ? ϕp : ϕl
-end
-rl = rl == 0 ? rp : rl
+    if phasemargin > 0
+        ϕl = deg2rad(-180+phasemargin)
+    else
+        ϕl = ϕl == 0 ? ϕp : ϕl
+    end
+    rl = rl == 0 ? rp : rl
 
-kp = rl/rp*cos(ϕp-ϕl)
-ki = rl*ωp/rp*sin(ϕp-ϕl)
+    kp = rl/rp*cos(ϕp-ϕl)
+    ki = rl*ωp/rp*sin(ϕp-ϕl)
 
-C = pid(kp=kp, ki=ki)
+    C = pid(kp=kp, ki=ki)
 
-if doplot
-    gangoffourplot(P,[tf(1),C])
-    nyquistplot([P, P*C])
-end
-return kp,ki,C
+    if doplot
+        gangoffourplot(P,[tf(1),C])
+        nyquistplot([P, P*C])
+    end
+    return kp,ki,C
 end

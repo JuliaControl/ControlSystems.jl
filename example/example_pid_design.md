@@ -46,7 +46,7 @@ B⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ wh
 B⁻  = [1]
 Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process
 
-R,S,T = rstc(B⁺,B⁻,A,bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
+R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
 
 Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
 
@@ -61,11 +61,11 @@ The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plot
 
 ```julia
 P1 = "exp(-sqrt(s))"
-f1 = stabregionPID(P1,logspace(-5,1,1000))
+f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)))
 P2 = "100*(s+6).^2./(s.*(s+1).^2.*(s+50).^2)"
-f2 = stabregionPID(P2,logspace(-5,2,1000))
+f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)))
 P3 = tf(1,[1,1])^4
-f3 = stabregionPID(P3,logspace(-5,0,1000))
+f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)))
 ```
 
 

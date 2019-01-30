@@ -1,32 +1,32 @@
-export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, tfnum, tfden, zpconv#, lsima, indirect_str
+export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-@doc """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
+"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
 
 Convert the continuous system `sys` into a discrete system with sample time
 `Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
 
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
-`x0_discrete = x0map*[x0; u0]`""" ->
+`x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     if !iscontinuous(sys)
         error("sys must be a continuous time system")
     end
-    A, B, C, D = sys.A, sys.B, sys.C, sys.D
+    A, B, C, D = ssdata(sys)
     ny, nu = size(sys)
-    nx = sys.nx
+    nx = nstates(sys)
     if method == :zoh
-        M = expm([A*Ts  B*Ts;
+        M = exp([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [eye(nx) zeros(nx, nu)]
+        x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
     elseif method == :foh
-        M = expm([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) eye(nu);
+        M = exp([A*Ts B*Ts zeros(nx, nu);
+            zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -34,14 +34,13 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [eye(nx) -M2]
+        x0map = [Matrix{Float64}(I, nx, nx)  (-M2)]
     elseif method == :tustin || method == :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, Ts, sys.statenames, sys.inputnames,
-        sys.outputnames), x0map
+    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
 end
 
 
@@ -144,14 +143,14 @@ function dab(a,b,c)
     mb = toeplitz([b; zb],[b[1]; zb])
     m = [ma mb]
     if rank(m) < minimum(size(m))
-        warn("Singular problem due to common factors in A and B")
+        @warn("Singular problem due to common factors in A and B")
     end
     co = cond(m)
     co > 1e6 && println("dab: condition number $(co)")
-    rs = c'/(m')
+    rs = (c'/(m'))'
     r = rs[1:nr]
     s = rs[nr+1:nc]
-    length(s) > length(r) && warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
+    length(s) > length(r) && @warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
     r,s
 end
 
@@ -189,31 +188,26 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h;kwargs...)
+function c2d(G::TransferFunction{S}, h;kwargs...) where {S}
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys,h,kwargs...)[1]
-    return ss2tf(sysd)
+    sysd = c2d(sys, h, kwargs...)[1]
+    return convert(TransferFunction, sysd)
 end
 
 
-tfnum(G::TransferFunction) = G.matrix[1,1].num.a
-tfden(G::TransferFunction) = G.matrix[1,1].den.a
-
-
-
-@doc """`[y, t, x] = lsima(sys, t[, x0, method])`
+"""`[y, t, x] = lsima(sys, t[, x0, method])`
 
 Calculate the time response of adaptive controller. If `x0` is ommitted,
 a zero vector is used.
 
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.""" ->
-function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
-    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
+`method` parameter can be specified as either `:zoh` or `:foh`."""
+function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
+    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh) where T
     ny, nu = size(sys)
 
     nx = sys.nx
@@ -236,9 +230,9 @@ function lsima{T}(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, cont
         dsys, x0map = c2d(sys, dt, :foh)
     end
     n = size(t, 1)
-    x = Array(T, size(sys.A, 1), n)
-    u = Array(T, n)
-    y = Array(T, n)
+    x = Array{T}(undef, size(sys.A, 1), n)
+    u = Array{T}(undef, n)
+    y = Array{T}(undef, n)
     for i=1:n
         x[:,i] = x0
         y[i] = (sys.C*x0 + sys.D*u[i])[1]

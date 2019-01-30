@@ -1,151 +1,168 @@
-@doc """Evaluate the frequency response
+"""sys_fr = freqresp(sys, w)
 
-`H(jw) = C*((jwI -A)^-1)*B + D`
+Evaluate the frequency response of a linear system
 
-of system `sys` over the frequency vector `w`.""" ->
-function freqresp{S<:Real}(sys::LTISystem, w::AbstractVector{S})
-    ny, nu = size(sys)
-    nw = length(w)
+`w -> C*((iw*im -A)^-1)*B + D`
+
+of system `sys` over the frequency vector `w`."""
+function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
     # Create imaginary freq vector s
     if !iscontinuous(sys)
         Ts = sys.Ts == -1 ? 1.0 : sys.Ts
-        s = exp(w*im*Ts)
+        s_vec = exp.(w_vec*(im*Ts))
     else
-        s = im*w
+        s_vec = im*w_vec
     end
-    sys = _preprocess_for_freqresp(sys)
-    resp = Array(Complex128, ny, nu, nw)
-    for i=1:nw
-        # TODO : This doesn't actually take advantage of Hessenberg structure
-        # for statespace version.
-        resp[:, :, i] = evalfr(sys, s[i])
+    if isa(sys, StateSpace)
+        sys = _preprocess_for_freqresp(sys)
     end
-    return resp, w
+    ny,nu = noutputs(sys), ninputs(sys)
+    [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
 end
 
 # Implements algorithm found in:
 # Laub, A.J., "Efficient Multivariable Frequency Response Computations",
 # IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
 function _preprocess_for_freqresp(sys::StateSpace)
+    if isempty(sys.A) # hessfact does not work for empty matrices
+        return sys
+    end
+    Tsys = numeric_type(sys)
+    TT = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Float32)
+
     A, B, C, D = sys.A, sys.B, sys.C, sys.D
-    F = hessfact(A)
-    H = F[:H]::Matrix{Float64}
-    T = full(F[:Q])
+    F = hessenberg(A)
+    T = F.Q
     P = C*T
-    Q = T\B
-    StateSpace(H, Q, P, D, sys.Ts, sys.statenames, sys.inputnames,
-        sys.outputnames)
+    Q = T\B # TODO Type stability?
+    StateSpace(F.H, Q, P, D, sys.Ts)
 end
-_preprocess_for_freqresp(sys::TransferFunction) = sys
 
-@doc """Evaluate the frequency response
 
-`H(s) = C*((sI - A)^-1)*B + D`
+#_preprocess_for_freqresp(sys::TransferFunction) = sys.matrix
+#function _preprocess_for_freqresp(sys::TransferFunction)
+#    map(sisotf -> _preprocess_for_freqresp(sisotf), sys.matrix)
+#end
 
-of system `sys` at value `s`. For many values of `s`, use `freqresp` instead.""" ->
-function evalfr(sys::StateSpace, s::Number)
-    S = promote_type(typeof(s), Float64)
+#_preprocess_for_freqresp(sys::SisoTf) = sys
+
+"""
+`evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
+at the complex number s=x (continuous-time) or z=x (discrete-time).
+
+For many values of `x`, use `freqresp` instead.
+"""
+function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
+    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     try
-        R = Diagonal(S[s for i=1:sys.nx]) - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{S})  # Weird type stability issue
+        R = s*I - sys.A
+        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
     catch
-        fill(convert(S, Inf), size(sys))
+        fill(convert(T, Inf), size(sys))
     end
 end
 
-function evalfr(sys::TransferFunction, s::Number)
-    S = promote_type(typeof(s), Float64)
-    mat = sys.matrix
-    ny, nu = size(mat)
-    res = Array(S, ny, nu)
-    for j = 1:nu
-        for i = 1:ny
-            res[i, j] = evalfr(mat[i, j], s)
-        end
-    end
-    return res
+function evalfr(G::TransferFunction{<:SisoTf{T0}}, s::Number) where {T0}
+    map(m -> evalfr(m,s), G.matrix)
 end
 
-function Base.call(sys::TransferFunction, s)
+"""
+`F(s)`, `F(omega, true)`, `F(z, false)`
+
+Notation for frequency response evaluation.
+- F(s) evaluates the continuous-time transfer function F at s.
+- F(omega,true) evaluates the discrete-time transfer function F at exp(i*Ts*omega)
+- F(z,false) evaluates the discrete-time transfer function F at z
+"""
+function (sys::TransferFunction)(s)
     evalfr(sys,s)
 end
 
-function Base.call(sys::TransferFunction, s::Number, map_to_unit_circle::Bool)
+function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
-    evalfr(sys,exp(im*s.*sys.Ts))
+    if map_to_unit_circle
+        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
+    else
+        evalfr(sys,z_or_omega)
+    end
 end
 
-function Base.call(sys::TransferFunction, s::AbstractVector, map_to_unit_circle::Bool)
+function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
     @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
-    freqresp(sys,s)
+    vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
+    # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
+    nu,ny = size(vals[1])
+    [v[i,j]  for v in vals, i in 1:nu, j in 1:ny]
 end
 
-@doc """`mag, phase, w = bode(sys[, w])`
+"""`mag, phase, w = bode(sys[, w])`
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
-at frequencies `w`""" ->
-function bode(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)[1]
-    return abs(resp), rad2deg(unwrap!(angle(resp),3)), w
-end
-bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, :bode))
+at frequencies `w`
 
-@doc """`re, im, w = nyquist(sys[, w])`
+`mag` and `phase` has size `(length(w), ny, nu)`"""
+function bode(sys::LTISystem, w::AbstractVector)
+    resp = freqresp(sys, w)
+    return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
+end
+bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+
+"""`re, im, w = nyquist(sys[, w])`
 
 Compute the real and imaginary parts of the frequency response of system `sys`
-at frequencies `w`""" ->
+at frequencies `w`
+
+`re` and `im` has size `(length(w), ny, nu)`"""
 function nyquist(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)[1]
+    resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, :nyquist))
+nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
-@doc """`sv, w = sigma(sys[, w])`
+"""`sv, w = sigma(sys[, w])`
 
 Compute the singular values of the frequency response of system `sys` at
-frequencies `w`""" ->
+frequencies `w`
+
+`sv` has size `(length(w), max(ny, nu))`"""
 function sigma(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)[1]
-    ny, nu, nw = size(resp)
-    sv = Array(Float64, min(ny, nu), nw)
-    for i=1:nw
-        sv[:, i] = svdvals(resp[:, :, i])
-    end
+    resp = freqresp(sys, w)
+    nw, ny, nu = size(resp)
+    sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end
-sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, :sigma))
+sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
-function _default_freq_vector{T<:LTISystem}(systems::Vector{T}, plot::Symbol)
+function _default_freq_vector(systems::Vector{T}, plot) where T<:LTISystem
     min_pt_per_dec = 60
     min_pt_total = 200
-    nsys = length(systems)
-    bounds = Array(Float64, 2, nsys)
-    for i=1:nsys
-        # TODO : For now we ignore the feature information. In the future,
-        # these can be used to improve the frequency vector near features.
-        bounds[:, i] = _bounds_and_features(systems[i], plot)[1]
-    end
-    w1 = minimum(bounds)
-    w2 = maximum(bounds)
-    nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
-    return logspace(w1, w2, nw)
-end
-_default_freq_vector(sys::LTISystem, plot::Symbol) = _default_freq_vector(
-        LTISystem[sys], plot)
+    bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)
+    w1 = minimum(minimum.(bounds))
+    w2 = maximum(maximum.(bounds))
 
-function _bounds_and_features(sys::LTISystem, plot::Symbol)
+    nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
+    return exp10.(range(w1, stop=w2, length=nw))
+end
+_default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
+        [sys], plot)
+
+
+
+
+function _bounds_and_features(sys::LTISystem, plot::Val)
     # Get zeros and poles for each channel
-    if plot != :sigma
+    if !isa(plot, Val{:sigma})
         zs, ps = zpkdata(sys)
         # Compose vector of all zs, ps, positive conjugates only.
-        zp = vcat([vcat(i, j) for (i, j) in zip(zs, ps)]...)
+        zpType = promote_type(eltype(eltype(zs)), eltype(eltype(ps)))
+        zp = vcat(zpType[], zs..., ps...) # Emty vector to avoid type unstable vcat()
         zp = zp[imag(zp) .>= 0.0]
     else
-        # For sigma plots, use the MIMO poles and zeros
-        zp = [tzero(sys); pole(sys)]
+         # For sigma plots, use the MIMO poles and zeros
+         zp = [tzero(sys); pole(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
-    fzp = log10(abs(zp))
+    fzp = log10.(abs.(zp))
     fzp = fzp[fzp .> -4]
     fzp = sort!(fzp)
     # Determine the bounds on the frequency vector
@@ -153,13 +170,16 @@ function _bounds_and_features(sys::LTISystem, plot::Symbol)
         w1 = floor(fzp[1] - 0.2)
         w2 = ceil(fzp[end] + 0.2)
         # Expand the range for nyquist plots
-        if plot == :nyquist
-            w1 -= 1
-            w2 += 1
+        if plot isa Val{:nyquist}
+            w1 -= 1.0
+            w2 += 1.0
         end
     else
-        w1 = 0
-        w2 = 2
+        w1 = 0.0
+        w2 = 2.0
+    end
+    if !iscontinuous(sys) # Do not draw above Nyquist freq for disc. systems
+        w2 = min(w2, log10(π/sys.Ts))
     end
     return [w1, w2], zp
 end

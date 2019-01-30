@@ -1,3 +1,8 @@
-julia 0.4
+julia 0.7
 Plots
 Polynomials
+LaTeXStrings
+OrdinaryDiffEq
+IterTools
+Colors
+DSP
