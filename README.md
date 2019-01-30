@@ -51,7 +51,9 @@ ss, tf, zpk, ss2tf
 ##### Analysis
 pole, tzero, norm, norminf, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
 ##### Synthesis
-care, dare, dlyap, lqr, dlqr, place, pid, leadlink, laglink, leadlinkat, rstd, rstc, dab
+care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab
+###### PID design
+pid, stabregionPID, loopshapingPI, pidplots
 ##### Time and Frequency response
 step, impulse, lsim, freqresp, evalfr, bode, nyquist
 ##### Plotting
@@ -102,3 +104,6 @@ stepplot(CLs, label=["Kp = 1", "Kp = 5", "Kp = 15"])
 ```
 
 ![StepResponse](/example/step_response.png)
+
+### Additional examples
+See the examples folder
