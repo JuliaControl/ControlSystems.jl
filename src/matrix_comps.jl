@@ -529,12 +529,14 @@ y  = Cx + e ~ R2
 ```
 and returns the system
 ```
-x' = (A-KC)x + Kv
+x' = Ax + Kv
 y  = Cx + v
 ```
 where `v` is the innovation sequence.
 
 If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R1` (`R2`) through `sysw` (`syse`) is used as covariance.
+
+See Stochastic Control, Chapter 4, Åström
 """
 function innovation_form(sys::StateSpace, R1, R2)
     K = kalman(sys, R1, R2)
