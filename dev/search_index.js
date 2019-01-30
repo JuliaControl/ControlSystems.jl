@@ -309,7 +309,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Analysis",
     "title": "ControlSystems.covar",
     "category": "function",
-    "text": "P = covar(sys, W)\n\nCalculate the stationary covariance P = E[y(t)y(t)\'] of an lti-model sys, driven by gaussian white noise \'w\' of covariance E[w(t)w(τ)]=W*δ(t-τ) where δ is the dirac delta.\n\nThe ouput is if Inf if the system is unstable. Passing white noise directly to the output will result in infinite covariance in the corresponding outputs (DWD\' .!= 0) for contunuous systems.\n\n\n\n\n\n"
+    "text": "P = covar(sys, W)\n\nCalculate the stationary covariance P = E[y(t)y(t)\'] of an lti-model sys, driven by gaussian white noise \'w\' of covariance E[w(t)w(τ)]=W*δ(t-τ) where δ is the dirac delta.\n\nThe ouput is if Inf if the system is unstable. Passing white noise directly to the output will result in infinite covariance in the corresponding outputs (DWD\' .!= 0) for contunuous systems.\n\n\n\n\n\ncovar(C,W)\n\nIf C is a matrix, return CWC\'\n\n\n\n\n\n"
 },
 
 {
