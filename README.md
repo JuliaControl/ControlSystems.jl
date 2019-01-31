@@ -17,6 +17,13 @@ Pkg.add("ControlSystems")
 ```
 
 ## News
+### 2019-01-31
+System identification using [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is now available. The [readme](https://github.com/baggepinnen/ControlSystemIdentification.jl) together with a series of notebooks serve as documentation.
+- [State-space identification](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_statespace.ipynb)
+- [ARX/PLR](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_arx.ipynb)
+- [Transfer-function estimation using spectral methods](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_spectral.ipynb)
+- [Impulse-response estimation](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_impulse_response.ipynb)
+
 ### 2018-09-30
 Support for Julia 0.7/1.0 added.
 
