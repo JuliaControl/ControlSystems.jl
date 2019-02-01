@@ -60,7 +60,7 @@ function blkdiag(A1::Matrix{T1}, A2::Matrix{T2}) where {T1<:Number, T2<:Number}
     dims1 = size(A1)
     dims2 = size(A2)
 
-    A_new = zeros(Float64, dims1 .+ dims2)
+    A_new = zeros(T, dims1 .+ dims2)
     A_new[1:dims1[1], 1:dims1[2]] = A1
     A_new[dims1[1]+1:end, dims1[2]+1:end] = A2
 
