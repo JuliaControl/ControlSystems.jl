@@ -41,26 +41,27 @@ Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 function dare(A, B, Q, R)
-    if (minimum(eigvals(Q)) < 0)
+    if (!ishermitian(Q) || minimum(eigvals(real(Q))) < 0)
         error("Q must be positive-semidefinite.");
     end
-    if (minimum(eigvals(R)) <= 0)
+    if (!isposdef(R))
         error("R must be positive definite.");
     end
     
+    n = size(A, 1);
+    
     E = [
-        I B/R*transpose(B);
-        zeros(size(A)) transpose(A)
+        Matrix{Float64}(I, n, n) B/R*B';
+        zeros(size(A)) A'
     ];
     F = [
         A zeros(size(A));
-        -Q I
+        -Q Matrix{Float64}(I, n, n)
     ];
     
     QZ = schur(F, E);
     QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
     
-    n = size(A, 1);
     return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
 end
 
