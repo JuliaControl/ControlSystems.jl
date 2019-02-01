@@ -44,12 +44,30 @@ default to extrema(wmag) if xlims/ylims not defined or empty
 """
 function getlims(xylims, plotattributes, wmag)
     lims = get(plotattributes, xylims, extrema(wmag))
-    if lims isa Tuple{<:Number, <:Number} # If x/ylims not supplied as empty
-        return lims
-    else
-        return extrema(wmag)
+    if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
+        lims = extrema(wmag)
+    end
+    if !isempty(get_serieslist(plotattributes))
+        subplot = get(plotattributes, :subplot, 0)
+        subplot == 0 && (return lims)
+        se = seriesextrema(xylims, plotattributes, subplot)
+        lims = extremareducer(lims, se)
+    end
+    lims
+end
+
+get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
+get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
+
+function seriesextrema(xylims, plotattributes, subplot)
+    serieslist = get_serieslist(plotattributes, subplot)
+    isempty(serieslist) && (return (Inf, -Inf))
+    sym = xylims == :xlims ? :x : :y
+    mapreduce(extremareducer, serieslist) do series
+        extrema(series[sym])
     end
 end
+extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
 function getLogTicks(x, minmax)
     minx, maxx =  minmax
@@ -57,7 +75,7 @@ function getLogTicks(x, minmax)
     minor_text_limit  = 8
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
-    major             = 10 .^ collect(min:max)
+    major             = 10 .^ (min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
