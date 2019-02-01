@@ -2,9 +2,9 @@ julia 0.7
 Plots
 Polynomials
 LaTeXStrings
-DifferentialEquations
 DelayDiffEq
 OrdinaryDiffEq
 IterTools
 Colors
 DSP
+Interpolations

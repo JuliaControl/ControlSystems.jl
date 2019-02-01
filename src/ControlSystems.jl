@@ -79,11 +79,12 @@ export  LTISystem,
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Polynomials, Plots, LaTeXStrings, LinearAlgebra
-using DifferentialEquations, OrdinaryDiffEq, DelayDiffEq
+using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
 import LinearAlgebra: BlasFloat
+import Interpolations
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
