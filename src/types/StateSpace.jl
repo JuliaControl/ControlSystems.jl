@@ -158,7 +158,6 @@ Base.:^(sys::StateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 #####################################################################
 Base.ndims(::StateSpace) = 2 # NOTE: Also for SISO systems?
 Base.size(sys::StateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(get_D(sys))
-Base.size(sys::StateSpace, d) = d <= 2 ? size(sys)[d] : 1
 Base.eltype(::Type{S}) where {S<:StateSpace} = S
 
 function Base.getindex(sys::StateSpace, inds...)

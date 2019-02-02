@@ -43,6 +43,21 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
+# TODO Move size check to wrappers
+
+function Base.vcat(systems::DelayLtiSystem...)
+    P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
+    Tau = vcat([sys.Tau for sys in systems]...)
+    return DelayLtiSystem(P, Tau)
+end
+
+function Base.hcat(systems::DelayLtiSystem...)
+    P = hcat_1([sys.P for sys in systems]...)  # See PartitionedStateSpace
+    Tau = vcat([sys.Tau for sys in systems]...)
+    return DelayLtiSystem(P, Tau)
+end
+
+
 function Base.vcat(systems::StateSpace...)
     # Perform checks
     nu = systems[1].nu
@@ -123,6 +138,12 @@ end
 Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem} = hcat(convert.(T, X)...)
 # Ambiguity
 Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.(T, X)...)
+
+# Catch special cases where inv(sys) might not be possible after promotion, like improper tf
+function /(sys1::Union{StateSpace,DelayLtiSystem}, sys2::LTISystem)
+    sys1new, sys2new = promote(sys1, 1/sys2)
+    return sys1new*sys2new
+end
 
 # function hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
 #     T = Base.promote_typeof(systems...)

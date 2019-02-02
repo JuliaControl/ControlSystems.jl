@@ -21,53 +21,172 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
     return G_fr
 end
 
+struct FunctionWrapper <: Function
+    f::Function
+end
+(fv::FunctionWrapper)(dx, x, h!, p, t) = fv.f(dx, x, h!, p, t)
+
+struct UWrapper <: Function
+    f::Function
+end
+(fv::UWrapper)(out, t) = fv.f(out, t)
 
 
-function lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(t -> fill(0.0, ninputs(sys))), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)
+"""
+    `y, t, x = lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(out, t) -> (out .= 0), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
+
+    Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
+
+    Arguments:
+
+    `t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
+    `u`: Function to determine control signal `ut` at a time `t`, on any of the following forms:
+        Can be a constant `Number` or `Vector`, interpreted as `ut .= u` , or
+        Function `ut .= u(t)`, or
+        In-place function `u(ut, t)`. (Slightly more effienct)
+
+    Returns: times `t`, and `y` and `x` at those times.
+"""
+function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5())) where T
+    # Make u! in-place function of u
+    u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
+        (uout, t) -> uout .= u
+    elseif DiffEqBase.isinplace(u, 2)               # If u is an inplace (more than 1 argument function)
+        u
+    else                                            # If u is a regular u(t) function
+        (out, t) -> (out .= u(t))
+    end
+    _lsim(sys, UWrapper(u!), t, x0, alg)
+end
+
+function dde_param(dx, x, h!, p, t)
+    A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp = p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10]
+
+    u!(uout, t)     # uout = u(t)
+
+    #dx .= A*x + B1*ut
+    mul!(dx, A, x)
+    mul!(tmp, B1, uout)
+    dx .+= tmp
+
+    for k=1:length(Tau)     # Add each of the delayed signals
+        u!(uout, t-Tau[k])      # uout = u(t-tau[k])
+        h!(hout, p, t-Tau[k])
+        dk_delayed = dot(view(C2,k,:), hout) + dot(view(D21,k,:), uout)
+        dx .+= view(B2,:, k) .* dk_delayed
+    end
+    return
+end
+
+function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T}, alg) where T
     P = sys.P
 
     if ~iszero(P.D22)
         error("non-zero D22-matrix block is not supported") # Due to limitations in differential equations
     end
 
+    t0 = first(t)
     dt = t[2] - t[1]
     if ~all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
         error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
     end
 
-    # Slightly more complicated definition since the d signal is not directly available
-    dde = function (dx, x, h, p, t)
-        dx .= P.A*x + P.B1*u(t)
-        for k=1:length(sys.Tau) # Add each of the delayed signals
-            dk_delayed = dot(P.C2[k,:], h(p,t-sys.Tau[k])) + dot(P.D21[k,:], u(t-sys.Tau[k]))
-            dx .+= P.B2[:, k] * dk_delayed
-        end
+    # Get all matrices to save on allocations
+    A, B1, B2, C1, C2, D11, D12, D21, D22 = P.A, P.B1, P.B2, P.C1, P.C2, P.D11, P.D12, P.D21, P.D22
+    Tau = sys.Tau
+
+    hout = fill(zero(T), nstates(sys))  # in place storage for h
+    uout = fill(zero(T), ninputs(sys)) # in place storage for u
+    tmp = similar(x0)
+
+    h!(out, p, t) = (out .= 0)      # History function
+
+    p = (A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp)
+    prob = DDEProblem{true}(dde_param, x0, h!, (t[1], t[end]), p, constant_lags=sys.Tau)
+
+    sol = DelayDiffEq.solve(prob, alg, saveat=t)
+
+    x = sol.u::Array{Array{T,1},1} # the states are labeled u in DelayDiffEq
+
+    y = Array{T,2}(undef, noutputs(sys), length(t))
+    d = Array{T,2}(undef, size(C2,1), length(t))
+    # Build y signal (without d term)
+    for k = 1:length(t)
+        u!(uout, t[k])
+        y[:,k] = C1*x[k] + D11*uout
+        #d[:,k] = C2*x[k] + D21*uout
     end
+    xitp = Interpolations.interpolate((t,), x, Interpolations.Gridded(Interpolations.Linear()))
 
-    h_initial = (p, t) -> zeros(nstates(sys))
-
-    # Saves y (excluding the d(t-τ) contribution) and d
-    saved_values = SavedValues(Float64, Tuple{Vector{Float64}, Vector{Float64}})
-    cb = SavingCallback((x,t,integrator) -> (P.C1*x + P.D11*u(t), P.C2*x + P.D21*u(t)), saved_values, saveat=t)
-
-    prob = DDEProblem(dde, x0, h_initial, (0.0, 8.0), constant_lags=sys.Tau)
-
-    sol = solve(prob, alg, callback=cb; saveat=t, kwargs...)
-
-    x = sol.u # the states are labeled u in DifferentialEquations
-    y = hcat([saved_values.saveval[k][1] for k=1:length(t)]...)
-    d = hcat([saved_values.saveval[k][2] for k=1:length(t)]...)
+    dtmp = Array{T,1}(undef, size(C2,1))
+    # Function to evaluate d(t)_i at an arbitrary time
+    # X is constinuous, so interpoate, u is not
+    function dfunc!(tmp::Array{T1}, t, i) where T1
+        tmp .= if t < t0
+            T1(0)
+        else
+            xitp(t)
+        end
+        u!(uout, t)
+        return dot(view(C2,i,:),tmp) + dot(view(D21,i,:),uout)
+    end
 
     # Account for the effect of the delayed d-signal on y
-    for k=1:length(sys.Tau)
-        N_del = Integer(sys.Tau[k] / dt)
-        dk = [zeros(N_del); d[k, 1:end-N_del]]
-
+    for k=1:length(Tau)
         for j=1:length(t)
-            y[:, j] .+= sys.P.D12[:, k] * dk[j]
+            di = dfunc!(tmp, t[j] - Tau[k], k)
+            y[:, j] .+= view(D12,:, k) .* di
         end
     end
 
+    return y', t, hcat(x...)'
+end
 
-    t, x, y
+
+# We have to default to something, look at the sys.P.P and delays
+function _bounds_and_features(sys::DelayLtiSystem, plot::Symbol)
+    ws, pz =  _bounds_and_features(sys.P.P, plot)
+    logtau = log10.(abs.(sys.Tau))
+    logtau = logtau[logtau .> -4] # Ignore low frequency
+    if isempty(logtau)
+        return ws, pz
+    end
+    extreme = extrema(logtau)
+    return [min(ws[1], floor(extreme[1]-0.2)), max(ws[2], ceil(extreme[2]+0.2))], pz
+end
+
+# Againm we have to do something for default vectors, more or less a copy from timeresp.jl
+function _default_Ts(sys::DelayLtiSystem)
+    if !isstable(sys.P.P)
+        return 0.05   # Something small
+    else
+        ps = pole(sys.P.P)
+        r = minimum([abs.(real.(ps));0]) # Find the fastest pole of sys.P.P
+        r = min(r, minimum([sys.Tau;0])) # Find the fastest delay
+        if r == 0.0
+            r = 1.0
+        end
+        return 0.07/r
+    end
+end
+
+iscontinuous(sys::DelayLtiSystem) = true
+
+function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
+    nu = ninputs(sys)
+    if t[1] != 0
+        throw(ArgumentError("First time point must be 0 in step"))
+    end
+    u = (out, t) -> (t < 0 ? out .= 0 : out .= 1)
+    x0=fill(zero(T), nstates(sys))
+    if nu == 1
+        y, tout, x = lsim(sys, u, t, x0=x0, kwargs...)
+    else
+        x = Array{T}(undef, length(t), nstates(sys), nu)
+        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        for i=1:nu
+            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, kwargs...)
+        end
+    end
+    return y, tout, x
 end
