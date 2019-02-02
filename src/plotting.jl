@@ -647,6 +647,20 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
+                # Let's be reasonable, only plot 5 smallest gain margins
+                if length(gm) > 5
+                    @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
+                    idx = sortperm(gm)
+                    wgm = wgm[idx[1:5]]
+                    gm = gm[idx[1:5]]
+                end
+                # Let's be reasonable, only plot 5 smallest phase margins
+                if length(pm) > 5
+                    @warn "Only showing \"smallest\" 5 out of $(length(pm)) phase margins"
+                    idx = sortperm(pm)
+                    wgm = wpm[idx[1:5]]
+                    gm = pm[idx[1:5]]
+                end
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0

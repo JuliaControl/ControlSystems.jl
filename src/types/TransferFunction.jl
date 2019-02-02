@@ -44,7 +44,6 @@ ninputs(G::TransferFunction) = size(G.matrix, 2)
 ## INDEXING ##
 Base.ndims(::TransferFunction) = 2
 Base.size(G::TransferFunction) = size(G.matrix)
-Base.size(G::TransferFunction, d) = size(G.matrix, d)
 Base.eltype(::Type{S}) where {S<:TransferFunction} = S
 
 function Base.getindex(G::TransferFunction{S}, inds...) where {S<:SisoTf}

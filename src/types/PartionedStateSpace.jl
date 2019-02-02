@@ -16,7 +16,9 @@ struct PartionedStateSpace{S}
     nu1::Int
     ny1::Int
 end
-
+# For converting between different S
+PartionedStateSpace{S}(partsys::PartionedStateSpace) where {S<:StateSpace} =
+    PartionedStateSpace{S}(S(partsys.P), partsys.nu1, partsys.ny1)
 
 function getproperty(sys::PartionedStateSpace, d::Symbol)
     P = getfield(sys, :P)
@@ -52,32 +54,16 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     end
 end
 
-
-# There should already exist a function like this somewhare?
-function blkdiag(A1::Matrix{T1}, A2::Matrix{T2}) where {T1<:Number, T2<:Number}
-    T = promote_type(T1, T2)
-
-    dims1 = size(A1)
-    dims2 = size(A2)
-
-    A_new = zeros(T, dims1 .+ dims2)
-    A_new[1:dims1[1], 1:dims1[2]] = A1
-    A_new[dims1[1]+1:end, dims1[2]+1:end] = A2
-
-    return A_new
-end
-
-
 function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    A = blkdiag(s1.A, s2.A)
+    A = blockdiag(s1.A, s2.A)
 
-    B = [[s1.B1; s2.B1] blkdiag(s1.B2, s2.B2)]
+    B = [[s1.B1; s2.B1] blockdiag(s1.B2, s2.B2)]
 
     C = [[s1.C1 s2.C1];
-    blkdiag(s1.C2, s2.C2)]
+    blockdiag(s1.C2, s2.C2)]
 
     D = [(s1.D11 + s2.D11) s1.D12 s2.D12;
-    [s1.D21; s2.D21] blkdiag(s1.D22, s2.D22)]
+    [s1.D21; s2.D21] blockdiag(s1.D22, s2.D22)]
 
     P = StateSpace(A, B, C, D, 0) # How to handle discrete?
     PartionedStateSpace(P, s1.nu1 + s2.nu1, s1.ny1 + s2.ny1)
@@ -122,35 +108,112 @@ function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     X_12 = (I + s2.D11*s1.D11)\[I      -s2.D11*s1.D12   -s2.D12]
     X_22 = (I + s1.D11*s2.D11)\[s1.D11   s1.D12          -s1.D11*s2.D12]
 
-    A = [s1.B1 * X_11 ; s2.B1 * X_21] + blkdiag(s1.A, s2.A)
+    A = [s1.B1 * X_11 ; s2.B1 * X_21] + blockdiag(s1.A, s2.A)
 
     B = [s1.B1 * X_12 ; s2.B1 * X_22]
-    tmp = blkdiag(s1.B2, s2.B2)
+    tmp = blockdiag(s1.B2, s2.B2)
     B[:, end-size(tmp,2)+1:end] .+= tmp
 
     C = [s1.D11 * X_11 ;
          s1.D21 * X_11 ;
-         s2.D21 * X_21 ] + [s1.C1 zeros(size(s1.C1,1),size(s2.C1,2)); blkdiag(s1.C2, s2.C2)]
+         s2.D21 * X_21 ] + [s1.C1 zeros(size(s1.C1,1),size(s2.C1,2)); blockdiag(s1.C2, s2.C2)]
 
     D = [s1.D11 * X_12 ;
         s1.D21 * X_12 ;
         s2.D21 * X_22 ]
-    tmp = [s1.D12 zeros(size(s1.D12,1),size(s2.D12,2)); blkdiag(s1.D22, s2.D22)]
+    tmp = [s1.D12 zeros(size(s1.D12,1),size(s2.D12,2)); blockdiag(s1.D22, s2.D22)]
     D[:, end-size(tmp,2)+1:end] .+= tmp
 
     # in case it is desired to consider both outputs
     # C = [s1.D11 * X_11 ;
     #      s2.D11 * X_21 ;
     #      s1.D21 * X_11 ;
-    #      s2.D21 * X_21 ] + [blkdiag(s1.C1, s2.C1); blkdiag(s1.C2, s2.C2)]
+    #      s2.D21 * X_21 ] + [blockdiag(s1.C1, s2.C1); blockdiag(s1.C2, s2.C2)]
     #
     # D = [s1.D11 * X_12 ;
     #     s2.D11 * X_22 ;
     #     s1.D21 * X_12 ;
     #     s2.D21 * X_22 ]
-    #tmp = [blkdiag(s1.D12, s2.D12); blkdiag(s1.D22, s2.D22)]
+    #tmp = [blockdiag(s1.D12, s2.D12); blockdiag(s1.D22, s2.D22)]
     #D[:, end-size(tmp,2)+1:end] .+= tmp
 
     P = StateSpace(A, B, C, D, 0)
     PartionedStateSpace(P, s2.nu1, s1.ny1)
+end
+
+""" Concatenate systems vertically with
+    same first input u1
+    second input [u2_1; u2_2 ...]
+    and output  y1 = [y1_1; y1_2, ...]
+                y2 = [y2_1; y2_2, ...]
+    for u1_i, u2_i, y1_i, y2_i, where i denotes system i
+"""
+function vcat_1(systems::PartionedStateSpace...)
+    # Perform checks
+    println("vcal $(length(systems))")
+    println(systems)
+    Ts = systems[1].P.Ts
+    if !all(s.P.Ts == Ts for s in systems)
+        error("All systems have same sample time")
+    end
+    nu1 = systems[1].nu1
+    if !all(s.nu1 == nu1 for s in systems)
+        error("All systems must have same first input dimension")
+    end
+
+    A = blockdiag([s.A for s in systems]...)
+
+    B1 = vcat([s.B1 for s in systems]...)
+    B2 = blockdiag([s.B2 for s in systems]...)
+    for i = 1:length(systems)
+        println(systems[i].ny1)
+    end
+    println("after")
+    C1 = blockdiag([s.C1 for s in systems]...)
+    C2 = blockdiag([s.C2 for s in systems]...)
+
+    D11 = vcat([s.D11 for s in systems]...)
+    D12 = blockdiag([s.D12 for s in systems]...)
+    D21 = vcat([s.D21 for s in systems]...)
+    D22 = blockdiag([s.D22 for s in systems]...)
+
+    sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], Ts)
+    return PartionedStateSpace(sysnew, nu1, sum(s -> s.ny1, systems))
+end
+
+
+""" Concatenate systems horizontally with
+    same first ouput y1 being the sum
+    second output y2 = [y2_1; y2_2, ...]
+    and inputs  u1 = [u1_1; u1_2, ...]
+    u2 = [u2_1; u2_2, ...]
+    for u1_i, u2_i, y1_i, y2_i, where i denotes system i
+"""
+function hcat_1(systems::PartionedStateSpace...)
+    println("hcat $(length(systems))")
+    # Perform checks
+    Ts = systems[1].P.Ts
+    if !all(s.P.Ts == Ts for s in systems)
+        error("All systems have same sample time")
+    end
+    ny1 = systems[1].ny1
+    if !all(s.ny1 == ny1 for s in systems)
+        error("All systems must have same first ouput dimension")
+    end
+
+    A = blockdiag([s.A for s in systems]...)
+
+    B1 = blockdiag([s.B1 for s in systems]...)
+    B2 = blockdiag([s.B2 for s in systems]...)
+
+    C1 = hcat([s.C1 for s in systems]...)
+    C2 = blockdiag([s.C2 for s in systems]...)
+
+    D11 = hcat([s.D11 for s in systems]...)
+    D12 = hcat([s.D12 for s in systems]...)
+    D21 = blockdiag([s.D21 for s in systems]...)
+    D22 = blockdiag([s.D22 for s in systems]...)
+
+    sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], Ts)
+    return PartionedStateSpace(sysnew, sum(s -> s.nu1, systems), ny1)
 end
