@@ -50,13 +50,10 @@ end
 function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5())) where T
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
-        println("Number vector")
         (uout, t) -> uout .= u
     elseif DiffEqBase.isinplace(u, 2)               # If u is an inplace (more than 1 argument function)
-        println("Inplace")
         u
     else                                            # If u is a regular u(t) function
-        println("Outplace")
         (out, t) -> (out .= u(t))
     end
     _lsim(sys, UWrapper(u!), t, x0, alg)
@@ -110,7 +107,6 @@ function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T},
     sol = DelayDiffEq.solve(prob, alg, saveat=t)
 
     x = sol.u::Array{Array{T,1},1} # the states are labeled u in DelayDiffEq
-    println(size(x))
 
     y = Array{T,2}(undef, noutputs(sys), length(t))
     d = Array{T,2}(undef, size(C2,1), length(t))
