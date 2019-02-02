@@ -150,8 +150,6 @@ end
 """
 function vcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    println("vcal $(length(systems))")
-    println(systems)
     Ts = systems[1].P.Ts
     if !all(s.P.Ts == Ts for s in systems)
         error("All systems have same sample time")
@@ -165,10 +163,7 @@ function vcat_1(systems::PartionedStateSpace...)
 
     B1 = vcat([s.B1 for s in systems]...)
     B2 = blockdiag([s.B2 for s in systems]...)
-    for i = 1:length(systems)
-        println(systems[i].ny1)
-    end
-    println("after")
+
     C1 = blockdiag([s.C1 for s in systems]...)
     C2 = blockdiag([s.C2 for s in systems]...)
 
@@ -190,7 +185,6 @@ end
     for u1_i, u2_i, y1_i, y2_i, where i denotes system i
 """
 function hcat_1(systems::PartionedStateSpace...)
-    println("hcat $(length(systems))")
     # Perform checks
     Ts = systems[1].P.Ts
     if !all(s.P.Ts == Ts for s in systems)

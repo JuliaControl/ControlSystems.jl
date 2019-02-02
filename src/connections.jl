@@ -48,9 +48,6 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
 # TODO Move size check to wrappers
 
 function Base.vcat(systems::DelayLtiSystem...)
-    for sys in systems
-        println(sys.P.ny1)
-    end
     P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
     Tau = vcat([sys.Tau for sys in systems]...)
     return DelayLtiSystem(P, Tau)

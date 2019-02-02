@@ -69,6 +69,7 @@ G_fr = 0.5 .+ 0.5*exp.(-2*im*ω)# + 0.5*exp.(-3*im*ω)
 
 @test freqresp(feedback(P2, G), ω)[:] ≈ P2_fr ./(1 .+ P2_fr .* G_fr) rtol=1e-15
 
+s = tf("s")
 # Random conversions
 sys1 = DelayLtiSystem(1.0/s)
 @test sys1.P.A == sys1.P.D == fill(0,1,1)
@@ -88,8 +89,6 @@ expected_sys_fr = 1.0 ./ (P1_fr .* (exp.(-2*im*ω) + exp.(-3*im*ω)) .+ 1)
 
 @test freqresp(feedback(1.0*P1, G*G*P2*P2), ω)[:] ≈ P1_fr ./(1 .+ (G_fr.^2).*P1_fr.*P2_fr.^2) rtol=1e-15# Somewhat pathological system though
 
-
-s = tf("s")
 s11 = feedback(ss(1/s), delay(1))
 s12 = ss(1/s)
 s21 = DelayLtiSystem(ss(1/(s+1)))
