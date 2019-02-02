@@ -33,7 +33,7 @@ end
 
 
 """
-    `t, x, y = lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(out, t) -> (out .= 0), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
+    `y, t, x = lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(out, t) -> (out .= 0), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
 
     Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
 
@@ -45,7 +45,7 @@ end
         Function `ut .= u(t)`, or
         In-place function `u(ut, t)`. (Slightly more effienct)
 
-    Returns: `x` and `y` at times `t`.
+    Returns: times `t`, and `y` and `x` at those times.
 """
 function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5())) where T
     # Make u! in-place function of u
@@ -88,6 +88,7 @@ function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T},
         error("non-zero D22-matrix block is not supported") # Due to limitations in differential equations
     end
 
+    t0 = first(t)
     dt = t[2] - t[1]
     if ~all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
         error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
@@ -125,7 +126,7 @@ function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T},
     # Function to evaluate d(t)_i at an arbitrary time
     # X is constinuous, so interpoate, u is not
     function dfunc!(tmp::Array{T1}, t, i) where T1
-        tmp .= if t < 0
+        tmp .= if t < t0
             T1(0)
         else
             xitp(t)
@@ -142,5 +143,54 @@ function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T},
         end
     end
 
-    return t, x, y
+    return y', t, hcat(x...)'
+end
+
+
+# We have to default to something, look at the sys.P.P and delays
+function _bounds_and_features(sys::DelayLtiSystem, plot::Symbol)
+    ws, pz =  _bounds_and_features(sys.P.P, plot)
+    logtau = log10.(abs.(sys.Tau))
+    logtau = logtau[logtau .> -4] # Ignore low frequency
+    if isempty(logtau)
+        return ws, pz
+    end
+    extreme = extrema(logtau)
+    return [min(ws[1], floor(extreme[1]-0.2)), max(ws[2], ceil(extreme[2]+0.2))], pz
+end
+
+# Againm we have to do something for default vectors, more or less a copy from timeresp.jl
+function _default_Ts(sys::DelayLtiSystem)
+    if !isstable(sys.P.P)
+        return 0.05   # Something small
+    else
+        ps = pole(sys.P.P)
+        r = minimum([abs.(real.(ps));0]) # Find the fastest pole of sys.P.P
+        r = min(r, minimum([sys.Tau;0])) # Find the fastest delay
+        if r == 0.0
+            r = 1.0
+        end
+        return 0.07/r
+    end
+end
+
+iscontinuous(sys::DelayLtiSystem) = true
+
+function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
+    nu = ninputs(sys)
+    if t[1] != 0
+        throw(ArgumentError("First time point must be 0 in step"))
+    end
+    u = (out, t) -> (t < 0 ? out .= 0 : out .= 1)
+    x0=fill(zero(T), nstates(sys))
+    if nu == 1
+        y, tout, x = lsim(sys, u, t, x0=x0, kwargs...)
+    else
+        x = Array{T}(undef, length(t), nstates(sys), nu)
+        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        for i=1:nu
+            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, kwargs...)
+        end
+    end
+    return y, tout, x
 end

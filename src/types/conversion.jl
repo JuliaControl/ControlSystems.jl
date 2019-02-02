@@ -49,16 +49,24 @@ Base.convert(::Type{StateSpace{T, MT}}, b::Number) where {T, MT} = convert(State
 # end
 #
 
-function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
-    Gnew_matrix = Matrix{S}(undef, size(G))
-    for i in eachindex(G.matrix)
-        Gnew_matrix[i] = convert(S, G.matrix[i])
+function convert(::Type{S}, G::TransferFunction) where {SisoT, S<:TransferFunction{SisoT}}
+    if G isa S
+        return G
+    else
+        Gnew_matrix = Matrix{SisoT}(undef, size(G))
+        for i in eachindex(G.matrix)
+            Gnew_matrix[i] = convert(SisoT, G.matrix[i])
+        end
+        return TransferFunction{SisoT}(Gnew_matrix, G.Ts)
     end
-    return TransferFunction{S}(Gnew_matrix, G.Ts)
 end
 
-function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
-    return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
+function convert(::Type{S}, sys::StateSpace) where {T, MT, S <:StateSpace{T,MT}}
+    if sys isa S
+        return sys
+    else
+        return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
+    end
 end
 
 function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}

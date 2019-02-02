@@ -33,6 +33,13 @@ function Base.promote_rule(::Type{TransferFunction{S1}}, ::Type{StateSpace{T2,MT
 end
 # NOTE: Perhaps should try to keep matrix structure?
 
+function Base.promote_rule(::Type{TransferFunction{S1}}, ::Type{DelayLtiSystem{T2}}) where {T1,S1<:SisoTf{T1},T2}
+    DelayLtiSystem{promote_type(T1,T2)}
+end
+function Base.promote_rule(::Type{StateSpace{T1,MT}}, ::Type{DelayLtiSystem{T2}}) where {T1,MT,T2}
+    DelayLtiSystem{promote_type(T1,T2)}
+end
+
 Base.promote_rule(::Type{TransferFunction{S1}}, ::Type{TransferFunction{S2}}) where {S1, S2} = TransferFunction{promote_type(S1, S2)}
 #Base.promote_rule(::Type{SisoTf}, ::Type{TransferFunction}) = TransferFunction
 #Base.promote_rule(::Type{SisoZpk}, ::Type{TransferFunction}) = TransferFunction
@@ -61,6 +68,14 @@ end
 Base.promote_rule(::Type{TransferFunction{SisoZpk{T1,TR1}}}, ::Type{M2}) where {T1, TR1, T2, M2<:AbstractMatrix{T2}} = TransferFunction{SisoZpk{T1, promote_type(TR1, T2)}}
 
 Base.promote_rule(::Type{TransferFunction{SisoRational{T1}}}, ::Type{M2}) where {T1, T2, M2<:AbstractMatrix{T2}} = TransferFunction{SisoRational{promote_type(T1, T2)}}
+
+function Base.promote_rule(::Type{StateSpace{T1, MT1}}, ::Type{MT2}) where {T1, MT1, MT2<:AbstractMatrix}
+    MT = promote_type(MT1, MT2)
+    StateSpace{eltype(MT), MT}
+end
+
+Base.promote_rule(::Type{DelayLtiSystem{T1}}, ::Type{MT1}) where {T1, MT1<:AbstractMatrix} =
+    DelayLtiSystem{promote_type(T1, eltype(MT1))}
 
 #Base.promote_rule{S<:TransferFunction{<:SisoTf}}(::Type{S}, ::Type{<:Real}) = S
 
