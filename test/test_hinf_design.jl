@@ -256,6 +256,7 @@ using Random
     time and continuous-time systems in the frequency domain, we can test if the
     bilinear discretization operates as expected.
     """
+
     @testset "SS data" begin
       # Fixture for the SS-type data
       Random.seed!(0);
@@ -269,7 +270,7 @@ using Random
         for (jj, n) in enumerate(M)
           for (kk, h) in enumerate(H)
 
-            freq = [10^i for i in range(-6, stop=log10(pi/h), length=1001)]
+            freq = [10^i for i in range(-6, stop=log10(pi/h), length=101)]
 
             AcTrue, BcTrue, CcTrue, DcTrue = rand(m,m), rand(m,n), rand(n,m), rand(n,n)
 
@@ -294,6 +295,77 @@ using Random
             # Test that the C->D->C and D->C->D results in the same
             @test norm(valA-valC, Inf) < tolerance
             @test norm(valB-valD, Inf) < tolerance
+          end
+        end
+      end
+    end
+
+    @testset "Extended SS data" begin
+      # Fixture for the extended SS-type data
+      Random.seed!(0);
+      N  = [1,4]
+      P1 = [1,4]
+      P2 = [1,4]
+      M1 = [1,4]
+      M2 = [1,4]
+      H = [0.1,0.01,0.001]
+      tolerance = 1e-5;
+
+      for (in1, n) in enumerate(N)
+        for (im1, m1) in enumerate(M1)
+          for (im2, m2) in enumerate(M2)
+            for (ip1, p1) in enumerate(P1)
+              for (ip2, p2) in enumerate(P2)
+                for (ih, h) in enumerate(H)
+
+                  freq = [10^i for i in range(-4, stop=log10(pi/h), length=101)]
+
+                  A,  B1,  B2  = 0.01*rand(n,n),  rand(n,m1),  rand(n,m2)
+                  C1, D11, D12 = rand(p1,n), rand(p1,m1), rand(p1,m2)
+                  C2, D21, D22 = rand(p2,n), rand(p2,m1), rand(p2,m2)
+
+                  ev = eigvals(A)
+                  if !isempty(ev[real(ev).>0])
+                    A = A - one(A) * 2 * maximum(abs.(real(ev[real(ev).>0])))
+                  end
+
+                  EsysA = ss(A, B1, B2, C1, C2, D11, D12, D21, D22)
+                  valA, fA = sigma(ss(
+                  EsysA.A,
+                  [EsysA.B1 EsysA.B2],
+                  [EsysA.C1; EsysA.C2],
+                  [EsysA.D11 EsysA.D12; EsysA.D21 EsysA.D22]) , freq)
+
+                  # To discrete time
+                  EsysB = hInf_bilinear_s2z(EsysA, h)
+                  valB, fB = sigma(ss(
+                  EsysB.A,
+                  [EsysB.B1 EsysB.B2],
+                  [EsysB.C1; EsysB.C2],
+                  [EsysB.D11 EsysB.D12; EsysB.D21 EsysB.D22],h) , freq)
+
+                  # To continuous time
+                  EsysC = hInf_bilinear_z2s(hInf_bilinear_s2z(EsysA, h))
+                  valC, fC = sigma(ss(
+                  EsysC.A,
+                  [EsysC.B1 EsysC.B2],
+                  [EsysC.C1; EsysC.C2],
+                  [EsysC.D11 EsysC.D12; EsysC.D21 EsysC.D22]) , freq)
+
+                  # To discrete time
+                  EsysD = hInf_bilinear_s2z(hInf_bilinear_z2s(hInf_bilinear_s2z(EsysA, h)),h)
+                  valD, fD = sigma(ss(
+                  EsysD.A,
+                  [EsysD.B1 EsysD.B2],
+                  [EsysD.C1; EsysD.C2],
+                  [EsysD.D11 EsysD.D12; EsysD.D21 EsysD.D22],h) , freq)
+
+                  # Test that the C->D->C and D->C->D results in the same
+                  @test norm(valA-valC, Inf) < tolerance
+                  @test norm(valB-valD, Inf) < tolerance
+                end
+              end
+            end
           end
         end
       end
