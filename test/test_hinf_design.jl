@@ -38,6 +38,9 @@ using Random
     """
 
     @testset "Stabilizability check" begin
+      """
+      Test the check for stabilizability using the Hautus Lemma
+      """
       ### Fixture
       Random.seed!(0); N = 10; M = 5;
       R = rand(Float64, (N,N))
@@ -61,20 +64,49 @@ using Random
           end
         end
       end
-      
+
       # Check common input types and ensure that a method error is thrown when
       # not using two abstract matrices, but some other common type
       N = 10; M = 5;
       A = rand(Float64, (N,N));
-      C = rand(Float64, (N,M));
+      B = rand(Float64, (N,M));
       @test_throws MethodError ControlSystems._is_detectable(A,nothing)
-      @test_throws MethodError ControlSystems._is_detectable(nothing,C)
+      @test_throws MethodError ControlSystems._is_detectable(nothing,B)
       @test_throws MethodError ControlSystems._is_detectable(A,[])
-      @test_throws MethodError ControlSystems._is_detectable([],C)
+      @test_throws MethodError ControlSystems._is_detectable([],B)
       @test_throws MethodError ControlSystems._is_detectable(A,ss(1))
-      @test_throws MethodError ControlSystems._is_detectable(ss(1),C)
+      @test_throws MethodError ControlSystems._is_detectable(ss(1),B)
       @test_throws MethodError ControlSystems._is_detectable(A,tf(1))
-      @test_throws MethodError ControlSystems._is_detectable(tf(1),C)
+      @test_throws MethodError ControlSystems._is_detectable(tf(1),B)
+    end
+
+    @testset "Detectability check" begin
+      """
+      Test the check for detectability using the Hautus Lemma
+      """
+      ### Fixture
+      Random.seed!(0); N = 10; M = 5;
+      R = rand(Float64, (N,N))
+      Q = eigvecs(R + R');
+      L = rand(Float64,N).-0.5;
+      A = Q*Diagonal(L)*Q';
+      E = eigvals(A);
+
+      # Here we should return false if for any positive eigenvalue λ of A, we get
+      # that rank(A-λI; C) < N. We define C as rows which are linearly
+      # dependent with rows in A-λI, and check that the system returns false
+      # in every case where λ > 0 and never when λ≦0.
+      for ii = 1:N
+        for jj = 1:(N-M)
+          Ahat = A - E[ii]*Matrix{Float64}(I, N, N);
+          C    = Ahat[jj:(jj+M),:]
+          if E[ii] >= 0
+            @test !ControlSystems._is_detectable(A,C)
+          else
+            @test ControlSystems._is_detectable(A,C)
+          end
+        end
+      end
     end
   end
 end
