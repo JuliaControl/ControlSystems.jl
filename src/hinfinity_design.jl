@@ -93,12 +93,12 @@ function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
 end
 
 """
-`[Mpinv] = function _compute_pseudoinverse(M)`
+`[Mpinv] = function _compute_pseudoinverse(M::AbstractMatrix)`
 
 Compute the g-inverses for a non-rectangular matrix M, satisfying
 min(size(M))==rank(M). Used for checking assumptions A5 and A6.
 """
-function _compute_pseudoinverse(M)
+function _compute_pseudoinverse(M::AbstractMatrix)
   if size(M,1) == size(M,2)
     if rank(M) != size(M,2)
       # G-inverse does not exist
@@ -121,7 +121,7 @@ function _compute_pseudoinverse(M)
 end
 
 """
-`[flag] = _is_stabilizable(A, B)`
+`[flag] = _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)`
 
 Applies the Hautus lemma to check if the pair is stabilizable
 """
@@ -138,7 +138,7 @@ function _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)
 end
 
 """
-`[flag] = _is_stabilizable(A, C)`
+`[flag] = _is_stabilizable(A::AbstractMatrix, C::AbstractMatrix)`
 
 Applies the Hautus lemma to check if the pair is detectable
 """
