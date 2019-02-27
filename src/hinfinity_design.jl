@@ -125,7 +125,7 @@ end
 
 Applies the Hautus lemma to check if the pair is stabilizable
 """
-function _is_stabilizable(A, B)
+function _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)
   eigValsA = eigvals(A)
   for ii = 1:length(eigValsA)
     if real(eigValsA[ii])>= 0
@@ -142,7 +142,7 @@ end
 
 Applies the Hautus lemma to check if the pair is detectable
 """
-function _is_detectable(A, C)
+function _is_detectable(A::AbstractMatrix, C::AbstractMatrix)
   eigValsA = eigvals(A)
   for ii = 1:length(eigValsA)
     if real(eigValsA[ii])>= 0
