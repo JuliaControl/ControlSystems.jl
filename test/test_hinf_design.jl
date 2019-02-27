@@ -232,5 +232,29 @@ using Random
       @test  ControlSystems._checkFeasibility(Xinf, Yzero, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
       @test !ControlSystems._checkFeasibility(Xinf, Yneg,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
     end
+
+    # TODO: Include a check to verify that the bisection works as intended.
+    # TODO: Check to verify that the Hamiltonian Shur-solver is working
+    # TODO: Check to verify that the Hamiltonian Eigenvalue-solver is working
+  end
+
+  @testset "Bilinear discretization" begin
+    """
+    This tests the bilinear method of discretizing a continuous time StateSpace
+    or ExtendedStateSpace object, moving from the Laplace-domain to the Z-domain.
+    However, importantly, the method also enables approximating discrete-time
+    systems with continuous-time state-space domain, moving from the Z-domain back
+    to the laplace-domain. Since the L∞-norm is invariant over the bilinear
+    discretization and "continuization", this effectively allows us to approximate
+    discrete-time systems with a continuous-time equivalent, design an H∞-optimal
+    controller for the continuous-time plant, and then re-discretizing this
+    controller.
+
+    The structure of these tests is to simply discretize a set of plants with
+    various dimensions, transport them back into continuous-time domain, and then
+    to discrete-time again. By then comparing the resulting two pairs of discrete-
+    time and continuous-time systems in the frequency domain, we can test if the
+    bilinear discretization operates as expected.
+    """
   end
 end
