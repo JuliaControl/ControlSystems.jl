@@ -213,6 +213,24 @@ using Random
       @test !ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY)-tolerance, tolerance, iteration; verbose=false)
       @test !ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY),           tolerance, iteration; verbose=false)
       @test  ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+
+      # Test that errors are thrown if the matrix Xinf and Yinf are not PSD down
+      # to the numerical tolerance.
+      L = LX;
+      L[1] += -L[1] + 2*tolerance; Xpos   = Q*Diagonal(L)*Q'; # slightly positive eigenvalue
+      L[1] += -L[1]; Xzero  = Q*Diagonal(LX)*Q';               # exactly one zero eigenvalue
+      L[1] += -L[1] - 2*tolerance; Xneg = Q*Diagonal(L)*Q';   # slightly negative eigenvalue
+      @test  ControlSystems._checkFeasibility(Xpos,  Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+      @test  ControlSystems._checkFeasibility(Xzero, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+      @test !ControlSystems._checkFeasibility(Xneg,  Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+
+      L = LY;
+      L[1] += -L[1] + 2*tolerance; Ypos   = Q*Diagonal(L)*Q'; # slightly positive eigenvalue
+      L[1] += -L[1]; Yzero  = Q*Diagonal(L)*Q';               # exactly one zero eigenvalue
+      L[1] += -L[1] - 2*tolerance; Yneg = Q*Diagonal(L)*Q';   # slightly negative eigenvalue
+      @test  ControlSystems._checkFeasibility(Xinf, Ypos,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+      @test  ControlSystems._checkFeasibility(Xinf, Yzero, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+      @test !ControlSystems._checkFeasibility(Xinf, Yneg,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
     end
   end
 end
