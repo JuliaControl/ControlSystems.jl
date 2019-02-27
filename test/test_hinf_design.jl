@@ -159,6 +159,18 @@ using Random
       @test_throws MethodError ControlSystems._compute_pseudoinverse(ss(1))
       @test_throws MethodError ControlSystems._compute_pseudoinverse(tf(1))
 
+      # Check that the method correctly reports that no pseudoinverse exists
+      # when the matrix M is rank deficient
+      for M = 1:5:11
+        for N = 1:5:11
+          U,S,V = svd(rand(M,N))
+          S[1] = 0.0;
+          AMN_rank_deficient = U*Diagonal(S)*V';
+          Pinv, status = ControlSystems._compute_pseudoinverse(AMN_rank_deficient);
+          @test !status
+          @test isa(Pinv, Array{Any,1})
+        end
+      end
     end
   end
 end
