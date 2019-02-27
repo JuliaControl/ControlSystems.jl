@@ -122,5 +122,35 @@ using Random
       @test_throws MethodError ControlSystems._is_detectable(A,tf(1))
       @test_throws MethodError ControlSystems._is_detectable(tf(1),C)
     end
+
+    @testset "Pseudoinverse computation" begin
+      """
+      The g-inverse is used to check the rank conditions across all frequencies,
+      see e.g. assumptions A5 and A6 in the reference [1]. As was shown in the
+      complementary report [2], this can be done by computing a pseudoinverse
+      and checking its rank. This code tests that the compuatation of these
+      g-inverses are done correctly for arbitrary matrices
+      """
+
+      ### Fixture
+      tolerance = 1e-10;
+      R = rand(Float64, (10,10))
+      Q = eigvecs(R + R');
+
+      # Check that the g-invere works for a set of full-rank square and
+      # rectangular matrices
+      for M = 1:5:11
+        for N = 1:5:11
+          AMN = rand(M,N);
+          Pinv, status = ControlSystems._compute_pseudoinverse(AMN);
+          @test status
+          if M < N
+            @test opnorm(AMN*Pinv - Matrix{Float64}(I, min(M,N), min(M,N))) < tolerance
+          else
+            @test opnorm(Pinv*AMN - Matrix{Float64}(I, min(M,N), min(M,N))) < tolerance
+          end
+        end
+      end
+    end
   end
 end
