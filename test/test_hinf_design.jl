@@ -172,5 +172,47 @@ using Random
         end
       end
     end
+
+    # TODO: write tests using the above submethods directly in hInf_assumptions
+  end
+
+  @testset "(4) Gamma iterations" begin
+    """
+    Tests the core methods of the gamma-iteration bisection method, including
+    the ARE hamiltonian solver, the eigenvalue solver, the feasibility checks.
+    """
+
+    @testset "Solution feasibility check" begin
+      """
+      Check that a solution to the dual riccati equations is correctly reported
+      as being feasible if satisfying the conditions of positive definiteness on
+      the X and Y solutions are met, and the spectral radius condition of X*Y is
+      also met
+      """
+      # Fixture
+      Random.seed!(0);
+      tolerance = 1e-10;
+      iteration = 1;
+      Random.seed!(0); N = 10; M = 5;
+      R = rand(Float64, (N,N))
+      Q = eigvecs(R + R');
+      ρX = rand()
+      ρY = rand()
+      LX= rand(Float64,N); LX = ρX*sort(LX / maximum(LX))
+      LY= rand(Float64,N); LY = ρY*sort(LY / maximum(LY))
+      Xinf = Q*Diagonal(LX)*Q';
+      Yinf = Q*Diagonal(LY)*Q';
+      gamma = 1;
+
+      # Test that the fesibility is true if ρ(Xinf*Yinf) < γ^2, that is the
+      # check should be true for any
+      #
+      #    γ = sqrt(ρX*ρY) + ϵ
+      #
+      # with any epsilon greater than or equal to zero.
+      @test !ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY)-tolerance, tolerance, iteration; verbose=false)
+      @test !ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY),           tolerance, iteration; verbose=false)
+      @test  ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+    end
   end
 end
