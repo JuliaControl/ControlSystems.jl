@@ -256,5 +256,47 @@ using Random
     time and continuous-time systems in the frequency domain, we can test if the
     bilinear discretization operates as expected.
     """
+    @testset "SS data" begin
+      # Fixture for the SS-type data
+      Random.seed!(0);
+      N = [1,5,10]
+      M = [1,5,10]
+      H = [0.1,0.01,0.001]
+      tolerance = 1e-7;
+
+      # Tests for the SS-type data
+      for (ii, m) in enumerate(N)
+        for (jj, n) in enumerate(M)
+          for (kk, h) in enumerate(H)
+
+            freq = [10^i for i in range(-6, stop=log10(pi/h), length=1001)]
+
+            AcTrue, BcTrue, CcTrue, DcTrue = rand(m,m), rand(m,n), rand(n,m), rand(n,n)
+
+            ev = eigvals(AcTrue)
+            if !isempty(ev[real(ev).<0])
+              AcTrue = AcTrue - one(AcTrue) * 2 * maximum(abs.(real(ev[real(ev).<0])))
+            end
+
+            Gtrue = ss(AcTrue, BcTrue, CcTrue, DcTrue)
+            valA, fA = sigma(Gtrue, freq);
+            sysB = hInf_bilinear_s2z(Gtrue, h);
+            valB, fB = sigma(sysB, freq)
+            sysC = hInf_bilinear_z2s(hInf_bilinear_s2z(Gtrue, h))
+            valC, fC = sigma(sysC, freq)
+            sysD = hInf_bilinear_s2z(hInf_bilinear_z2s(hInf_bilinear_s2z(Gtrue, h)),h)
+            valD, fD = sigma(sysD, freq)
+
+            @test abs(maximum(svd(sysB.B).S)-maximum(svd(sysB.C).S)) < tolerance
+            @test abs(maximum(svd(sysC.B).S)-maximum(svd(sysC.C).S)) < tolerance
+            @test abs(maximum(svd(sysD.B).S)-maximum(svd(sysD.C).S)) < tolerance
+
+            # Test that the C->D->C and D->C->D results in the same
+            @test norm(valA-valC, Inf) < tolerance
+            @test norm(valB-valD, Inf) < tolerance
+          end
+        end
+      end
+    end
   end
 end
