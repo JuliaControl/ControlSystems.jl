@@ -107,6 +107,20 @@ using Random
           end
         end
       end
+
+      # Check common input types and ensure that a method error is thrown when
+      # not using two abstract matrices, but some other common type
+      N = 10; M = 5;
+      A = rand(Float64, (M,M));
+      C = rand(Float64, (N,M));
+      @test_throws MethodError ControlSystems._is_detectable(A,nothing)
+      @test_throws MethodError ControlSystems._is_detectable(nothing,C)
+      @test_throws MethodError ControlSystems._is_detectable(A,[])
+      @test_throws MethodError ControlSystems._is_detectable([],C)
+      @test_throws MethodError ControlSystems._is_detectable(A,ss(1))
+      @test_throws MethodError ControlSystems._is_detectable(ss(1),C)
+      @test_throws MethodError ControlSystems._is_detectable(A,tf(1))
+      @test_throws MethodError ControlSystems._is_detectable(tf(1),C)
     end
   end
 end
