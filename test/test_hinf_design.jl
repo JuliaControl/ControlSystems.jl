@@ -151,6 +151,14 @@ using Random
           end
         end
       end
+
+      # Check common input types and ensure that a method error is thrown when
+      # not using two abstract matrices, but some other common type
+      @test_throws MethodError ControlSystems._compute_pseudoinverse(nothing)
+      @test_throws MethodError ControlSystems._compute_pseudoinverse([])
+      @test_throws MethodError ControlSystems._compute_pseudoinverse(ss(1))
+      @test_throws MethodError ControlSystems._compute_pseudoinverse(tf(1))
+
     end
   end
 end
