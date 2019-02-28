@@ -415,6 +415,10 @@ using Random
 
       # Make sure that the code runs
       @test isa(include("../example/hinf_example_MIT.jl"), Nothing)
+      Ω = [10^i for i in range(-7, stop=7, length=201)]
+
+      # Check that the optimal gain is correct
+      @test abs(gamma - 0.923430124918) < tolerance
     end
   end
 end
