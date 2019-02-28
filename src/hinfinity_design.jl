@@ -239,24 +239,12 @@ function _synthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf
 
     # Equation 20
     D12hatD12hat = I - (D1121 / (gSq * I - D1111' * D1111)) * D1121'
-
-    if any(real(eigvals(D12hatD12hat)).<= 0)
-      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is not PSD"))
-    end
-    if any(imag(eigvals(D12hatD12hat)).!=0)
-      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is complex"))
-    end
-
+    _assert_real_and_PSD(D12hatD12hat, "in equation (20)")
     D12hat = cholesky(D12hatD12hat).L
 
     # Equation 21
     D21hatD21hat = I - (D1112' / (gSq * I - D1111 * D1111')) * D1112
-    if any(real(eigvals(D21hatD21hat)).<=0)
-      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is not PSD"))
-    end
-    if any(imag(eigvals(D21hatD21hat)).!=0)
-      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is complex"))
-    end
+    _assert_real_and_PSD(D21hatD21hat, "in equation (21)")
     D21hat = cholesky(D21hatD21hat).U
 
     # Equation 27
@@ -297,6 +285,19 @@ function _synthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf
     # TODO implement loop shift for any system hot satisfying A4
 
     return Acontroller, Bcontroller[:,1:P2], Ccontroller[1:M2,:], Dcontroller[1:M2,1:P2]
+end
+
+"""_assert_real_and_PSD(A::AbstractMatrix, msg::AbstractString)
+
+Check that a matrix is real and PSD - throw an error otherwise.
+"""
+function _assert_real_and_PSD(A::AbstractMatrix, msg::AbstractString)
+  if any(real(eigvals(A)).<=0)
+    error(ErrorException("The matrix ", msg, " is not PSD."))
+  end
+  if any(imag(eigvals(A)).!=0)
+    error(ErrorException("The matrix ", msg, " is complex."))
+  end
 end
 
 """`[flag] =  _checkFeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=true)`
