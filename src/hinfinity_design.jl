@@ -237,10 +237,16 @@ function _synthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf
     # Equation 19
     D11hat = ((-D1121 * D1111') / (gSq * I - D1111 * D1111')) * D1112 - D1122
 
-    # TODO check that the M matrices are positive definite
-
     # Equation 20
     D12hatD12hat = I - (D1121 / (gSq * I - D1111' * D1111)) * D1121'
+
+    if any(real(eigvals(D12hatD12hat)).<= 0)
+      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is not PSD"))
+    end
+    if any(imag(eigvals(D12hatD12hat)).!=0)
+      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is complex"))
+    end
+
     D12hat = cholesky(D12hatD12hat).L
 
     # Equation 21
