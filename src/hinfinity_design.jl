@@ -10,85 +10,80 @@ be feasible for synthesis. However, this has not been too successful so far..!
 """
 function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
 
-    flag=true
-
     A, B1, B2, C1, C2, D11, D12, D21, D22 = ssdata(P)
 
     # Check assumption A1
-    if !_is_stabilizable(A, B1)
-      if verbose
-        println("Warning, the system A is not stabilizable through B1, violation of assumption A1.")
-      end
-      flag=false
-    end
     if !_is_stabilizable(A, B2)
       if verbose
-        println("Warning, the system A is not stabilizable through B2, violation of assumption A1.")
+        println("Warning, the system A is not stabilizable through B2, ",
+                "violation of assumption A1.")
       end
-      flag=false
-    end
-    if !_is_detectable(A, C1)
-      if verbose
-        println("Warning, the system A is not detectable through C1, violation of assumption A1.")
-      end
-      flag=false
+      return false
     end
     if !_is_detectable(A, C2)
       if verbose
-        println("Warning, the system A is not detectable through C2, violation of assumption A1.")
+        println("Warning, the system A is not detectable through C2, ",
+                "violation of assumption A1.")
       end
-      flag=false
+      return false
     end
 
     # Check assumption A2
     if rank(D12) < size(D12,2)
       if verbose
-        println("Warning, the matrix D12 does not have full rank, violation of assumption A2.")
+        println("Warning, the matrix D12 does not have full rank, ",
+                "violation of assumption A2.")
       end
-      flag=false
+      return false
     end
     if rank(D21) < size(D21,1)
       if verbose
-        println("Warning, the matrix D21 does not have full rank, violation of assumption A2.")
+        println("Warning, the matrix D21 does not have full rank, ",
+                "violation of assumption A2.")
       end
-      flag=false
+      return false
     end
+
     # Check assumption A5
     D12Pinv, D12Pinv_exists = _compute_pseudoinverse(D12)
     if !D12Pinv_exists
       if verbose
-        println("Warning, the matrix (A - B2*D12^-*C1) cannot be evaluated, violation of assumption A5. The pseudo inverse of D12 does not exist.")
+        println("Warning, the matrix (A - B2*D12^-*C1) cannot be evaluated,",
+                "violation of assumption A5. The pseudo inverse of D12 does ",
+                "not exist.")
       end
-      flag=false
+      return false
     else
       if rank(A - B2*D12Pinv*C1) < size(A,1)
         if verbose
-          println("Warning, the matrix (A - B2*D12^-*C1) does not have full rank, violation of assumption A5. Returning candidate approximation in Atilde. Please re-check the feasibility conditions with Atilde.")
+          println("Warning, the matrix (A - B2*D12^-*C1) does not have full",
+                  "rank, violation of assumption A5.")
         end
-        flag=false
+        return false
       end
     end
     # Check assumption A5
     D21Pinv, D21Pinv_exists = _compute_pseudoinverse(D21)
     if !D21Pinv_exists
       if verbose
-        println("Warning, the matrix (A - B1*D21Pinv*C2) cannot be evaluated, violation of assumption A5. The pseudo inverse of D21 does not exist.")
+        println("Warning, the matrix (A - B1*D21Pinv*C2) cannot be evaluated, ",
+                "violation of assumption A5. The pseudo inverse of D21 does ",
+                " not exist.")
       end
-      flag=false
+      return false
     else
       if rank(A - B1*D21Pinv*C2) < size(A,1)
         if verbose
-          println("Warning, the matrix (A - B1*D21Pinv*C2) does not have full rank, violation of assumption A6. Returning candidate approximation in Atilde. Please re-check the feasibility conditions with Atilde.")
+          println("Warning, the matrix (A - B1*D21Pinv*C2) does not ",
+                  "have full rank, violation of assumption A6.")
         end
-        flag=false
+        return false
       end
     end
-    if flag && verbose
-      println("All assumtions are satisfied!")
-    else
-      println("All assumtions are not satisfied, consider a slight modification of the plant.")
-    end
-    return flag
+
+    # All assumptions have passed, and we may proceed with the synthesis
+    if verbose println("All assumtions are satisfied!") end
+    return true
 end
 
 """
