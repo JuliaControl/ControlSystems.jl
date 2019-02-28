@@ -251,6 +251,12 @@ function _synthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf
 
     # Equation 21
     D21hatD21hat = I - (D1112' / (gSq * I - D1111 * D1111')) * D1112
+    if any(real(eigvals(D21hatD21hat)).<=0)
+      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is not PSD"))
+    end
+    if any(imag(eigvals(D21hatD21hat)).!=0)
+      error(ErrorException("The matrix I - (D1121 / (gSq * I - D1111' * D1111)) * D1121' in equation (20) is complex"))
+    end
     D21hat = cholesky(D21hatD21hat).U
 
     # Equation 27
