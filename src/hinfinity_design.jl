@@ -176,7 +176,7 @@ risk sensitivity" by Glover and Doyle. See the Bib-entry below:
 }
 
 """
-function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true)
+function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true, tolerance=1e-10)
 
     A, B1, B2, C1, C2, D11, D12, D21, D22 = ssdata(P)
 
@@ -184,7 +184,7 @@ function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), v
     Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, Ltrans12, Rtrans12, Ltrans21, Rtrans21 = _transformP2Pbar(A, B1, B2, C1, C2, D11, D12, D21, D22)
 
     # Run the gamma iterations
-    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaIterations(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, maxIter, interval, verbose)
+    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaIterations(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, maxIter, interval, verbose, tolerance)
 
     if !isempty(gammFeasible)
       # Synthesize the controller
@@ -401,15 +401,13 @@ terminates without a solution if the maximum possible gamma on the defined
 interval is infeasible. Here we could consider increasing the bounds somewhat
 and warn the user if this occurrs.
 """
-function _gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose)
+function _gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)
 
     XinfFeasible = []
     YinfFeasible = []
     FinfFeasible = []
     HinfFeasible = []
     gammFeasible = []
-
-    tolerance = 1e-10
 
     gamma = maximum(interval)
 
