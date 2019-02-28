@@ -380,5 +380,8 @@ using Random
     @test isa(include("../example/hinf_example_DC.jl"), Nothing)
     Ω = [10^i for i in range(-3, stop=3, length=201)]
 
+    # Check that the optimal gain is correct
+    @test abs(gamma - 4.463211059) < tolerance
+
   end
 end
