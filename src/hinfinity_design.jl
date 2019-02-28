@@ -291,12 +291,10 @@ Riccatti equations, return true if the solution is valid, and false otherwise.
 """
 function _checkFeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=true)
 
-    gammaSq = gamma*gamma
-
     # TODO Add checks to capture singular Xinf and Yinf
     minXev  = minimum(real(eigvals(Xinf)))
     minYev  = minimum(real(eigvals(Yinf)))
-    specrad = maximum(abs.(eigvals(Xinf*Yinf))) / gammaSq
+    specrad = maximum(abs.(eigvals(Xinf*Yinf))) / (gamma*gamma)
 
     if verbose
         if iteration == 1
