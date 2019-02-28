@@ -238,7 +238,7 @@ using Random
     # TODO: Check to verify that the Hamiltonian Eigenvalue-solver is working
   end
 
-  @testset "Bilinear discretization" begin
+  @testset "(7) Bilinear discretization" begin
     """
     This tests the bilinear method of discretizing a continuous time StateSpace
     or ExtendedStateSpace object, moving from the Laplace-domain to the Z-domain.
@@ -370,5 +370,15 @@ using Random
         end
       end
     end
+  end
+
+  @testset "(9) Synthesis Examples" begin
+    # Fixture
+    tolerance = 1e-4
+
+    # Make sure that the code runs
+    @test isa(include("../example/hinf_example_DC.jl"), Nothing)
+    Ω = [10^i for i in range(-3, stop=3, length=201)]
+
   end
 end
