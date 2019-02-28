@@ -450,6 +450,10 @@ using Random
 
       # Make sure that the code runs
       @test isa(include("../example/hinf_example_tank.jl"), Nothing)
+      Ω = [10^i for i in range(-7, stop=7, length=201)]
+
+      # Check that the optimal gain is correct
+      @test abs(gamma - 0.9534467) < tolerance
     end
   end
 end
