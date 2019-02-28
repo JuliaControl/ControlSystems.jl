@@ -1,41 +1,40 @@
-using ControlSystems
 using Plots
-
+using ControlSystems
 """
-This is a simple SISO example which was used for debugging the implementation,
-as this exact example was use in the lecture notes of the "Principles of Optimal
-Control" cours of the MIT OpenCourseWare [1], however, this example is in discrete time
+This is a simple SISO example with a pole in the origin, corresponding to the
+DC servos used in the Lund laboratories. It serves to exeplify how the syntheis
+can be done for simple SISO systems, and also demonstrates how we chan verify
+if the problem is feasible to solve using the ARE method.
 
-[1] https://ocw.mit.edu/courses/aeronautics-and-astronautics/16-323-principles-of-optimal-control-spring-2008/lecture-notes/lec15.pdf
-
-The example can be set to visualize and save plots using the two variables
+The example can be set to visualize and save plots using the variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots = true
-SavePlots = true
+MakePlots = false
+SavePlots = false
 
 # Define the process
-ts = 0.005
-Gd = hInf_bilinear_s2z(ss(tf([200], [0.025,1.0025,10.1,1])),ts)
+ts = 0.01
+epsilon = 1e-5
+Gd = ss(c2d(tf([11.2], [1, 0.12]) * tf([1], [1, epsilon]), ts))
 
 # Sensitivity weight function
-M, wB, A = 1.5, 10, 1e-4
+M, wB, A = 1.5, 20.0, 1e-8
 WS = tf([1/M, wB],[1, wB*A])
 
 # Output sensitivity weight function
-WU = ss(0.1)
+WU = ss(1)
 
 # Complementary sensitivity weight function
 WT = []
 
 # Create continuous time approximation of the process
-Gc = hInf_bilinear_z2s(ss(Gd))
+hInf_bilinear_z2s(ss(Gd))
 
-# Form augmented P dynamics in state-space
+# Form the P in the LFT Fl(P,C) as a partitioned state-space object
 Pc = hInf_partition(Gc, WS, WU, WT)
 
-# Check that the assumptions are satisfied
+# Check if the problem is feasible
 flag = hInf_assumptions(Pc)
 
 # Synthesize the H-infinity optimal controller
@@ -49,6 +48,7 @@ PclD, SD, CSD, TD = hInf_signals(
   hInf_bilinear_s2z(Cc, ts)
 )
 
+# This solution is a bit hacky and should be revised
 Pcl = ss(PclD.A, PclD.B, PclD.C, PclD.D, ts)
 S   = ss(SD.A, SD.B, SD.C, SD.D, ts)
 CS  = ss(CSD.A, CSD.B, CSD.C, CSD.D, ts)
@@ -57,6 +57,6 @@ T   = ss(TD.A, TD.B, TD.C, TD.D, ts)
 # TODO remove hack for visualizing plots, should be made into some kind of recepie
 if MakePlots
   include("hinf_utilities.jl")
-  if SavePlots; filename = "example_MIT.pdf"; else; filename=[]; end
-  visualize_synthesis(Pcl, S, CS, T, gamma, filename=filename, tmax=1)
+  if SavePlots; filename = "example_DC.pdf"; else; filename=[]; end
+  visualize_synthesis(Pcl, S, CS, T, gamma; filename=filename, tmax=4)
 end

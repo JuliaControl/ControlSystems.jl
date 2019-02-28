@@ -14,7 +14,7 @@ The example can be set to visualize and save plots using the two variables
   ShowPlots - true/false (true if plots are to be generated, false for testing)
   filename  - Set to string if files are to be saved, otherwise set a empty list
 """
-MakePlots = true
+MakePlots = false
 SavePlots = false
 
 # Define the process

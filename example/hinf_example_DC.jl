@@ -10,7 +10,7 @@ The example can be set to visualize and save plots using the variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots = true
+MakePlots = false
 SavePlots = false
 
 # Define the process
