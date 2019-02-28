@@ -10,7 +10,6 @@ be feasible for synthesis. However, this has not been too successful so far..!
 """
 function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
 
-    epsilon = 1e-8
     flag=true
 
     A, B1, B2, C1, C2, D11, D12, D21, D22 = ssdata(P)
@@ -391,7 +390,7 @@ function _solveMatrixEquations(A, B1, B2, C1, C2, D11, D12, D21, D22, gamma)
 end
 
 """
-`[flag]=_gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose)`
+`[flag]=_gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)`
 
 Rune the complete set of γ-iterations over a specified search interval with a
 set number of iterations. It is possible to break the algorithm if the number
