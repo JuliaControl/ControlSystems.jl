@@ -239,12 +239,12 @@ function _synthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf
 
     # Equation 20
     D12hatD12hat = I - (D1121 / (gSq * I - D1111' * D1111)) * D1121'
-    _assert_real_and_PSD(D12hatD12hat, "in equation (20)")
+    _assert_real_and_PSD(D12hatD12hat; msg=" in equation (20)")
     D12hat = cholesky(D12hatD12hat).L
 
     # Equation 21
     D21hatD21hat = I - (D1112' / (gSq * I - D1111 * D1111')) * D1112
-    _assert_real_and_PSD(D21hatD21hat, "in equation (21)")
+    _assert_real_and_PSD(D21hatD21hat; msg=" in equation (21)")
     D21hat = cholesky(D21hatD21hat).U
 
     # Equation 27
@@ -291,12 +291,12 @@ end
 
 Check that a matrix is real and PSD - throw an error otherwise.
 """
-function _assert_real_and_PSD(A::AbstractMatrix, msg::AbstractString)
+function _assert_real_and_PSD(A::AbstractMatrix; msg="")
   if any(real(eigvals(A)).<=0)
-    error(ErrorException("The matrix ", msg, " is not PSD."))
+    error(ErrorException(string("The matrix", msg," is not PSD.")))
   end
   if any(imag(eigvals(A)).!=0)
-    error(ErrorException("The matrix ", msg, " is complex."))
+    error(ErrorException(string("The matrix", msg," is not real.")))
   end
 end
 
