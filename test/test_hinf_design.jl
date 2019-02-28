@@ -30,6 +30,154 @@ using Random
   extensively with detailed comments for each test-set.
   """
 
+  @testset "(1) Specifications" begin
+    """
+    These tests make sure that the specifications are written on a suitable form
+    for any combination of none/empty, static gain, SISO, and MIMO
+    specificaitons in the weighting functions. Essentially, the tests are made
+    to verify that hInf_partition(G, WS, WU, WT) works as expected.
+    """
+
+    @testset "Conversion of user input" begin
+
+      @testset "Empty and nothing" begin
+
+        # Check that conversion of nothing is OK
+        A, B, C, D = ControlSystems._convert_input_to_ss(nothing)
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test size(A) == (0,0)
+        @test size(B) == (0,0)
+        @test size(C) == (0,0)
+        @test size(D) == (0,0)
+
+        # Check that conversion of empty objects are OK
+        A, B, C, D = ControlSystems._convert_input_to_ss([])
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test size(A) == (0,0)
+        @test size(B) == (0,0)
+        @test size(C) == (0,0)
+        @test size(D) == (0,0)
+      end
+
+      @testset "Static gains" begin
+        # Fixture
+        number = 2.0
+
+        # Check that conversion of numbers are OK
+        A, B, C, D = ControlSystems._convert_input_to_ss(number)
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test D[1,1] == number
+
+        @test size(A) == (0,0)
+        @test size(B) == (0,1)
+        @test size(C) == (1,0)
+        @test size(D) == (1,1)
+      end
+
+      @testset "LTI models" begin
+
+        # Fixture
+        Random.seed!(0); M=3; N=2;
+        SISO_tf = tf([1,0],[1,0,1])
+        SISO_ss = ss(SISO_tf)
+        MIMO_ss = ss(
+          rand(Float64, (M,M)),
+          rand(Float64, (M,N)),
+          rand(Float64, (N,M)),
+          rand(Float64, (N,N))
+        )
+        MIMO_tf = tf(MIMO_ss)
+
+        # check that conversion of SISO tf data is OK
+        A, B, C, D = ControlSystems._convert_input_to_ss(SISO_tf)
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test ss(A, B, C, D) == ss(SISO_tf)
+
+        # check that conversion of SISO tf data is OK
+        A, B, C, D = ControlSystems._convert_input_to_ss(SISO_ss)
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test ss(A, B, C, D) == SISO_ss
+
+        # check that conversion of MIMO tf data is OK
+        A, B, C, D = ControlSystems._convert_input_to_ss(MIMO_tf)
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test ss(A, B, C, D) == ss(MIMO_tf)
+
+        # check that conversion of MIMO tf data is OK
+        A, B, C, D = ControlSystems._convert_input_to_ss(MIMO_ss)
+        @test isa(A, Array{Float64,2})
+        @test isa(B, Array{Float64,2})
+        @test isa(C, Array{Float64,2})
+        @test isa(D, Array{Float64,2})
+
+        @test ss(A, B, C, D) == MIMO_ss
+      end
+    end
+
+    #
+    # @testset "Dimensionality checks"
+    #
+    #   # Check sensitivity function weight - must have the same number of inputs
+    #   # as outputs, can have an arbitrarily large statespace, and must have the
+    #   # same number of inputs as there are outputs in the process which is to be
+    #   # controlled.
+    #
+    #   # Fixture
+    #   M = 5; N = 3; L=4;
+    #   G = ss(rand(Float64, (M,M)), rand(Float64, (M,L)),
+    #          rand(Float64, (N,M)), rand(Float64, (N,L)))
+    #
+    #   # Create a sensitivity weighting function with ii inputs and ii outputs
+    #   for ii = 2:6
+    #     for jj = 2:6
+    #       for kk = 2:6
+    #         # Create some randome weighting functions
+    #         WS = ss(rand(Float64, (M,M)), rand(Float64, (M,ii)),
+    #                 rand(Float64, (ii,M)), rand(Float64, (ii,ii)))
+    #         WU = ss(rand(Float64, (M,M)), rand(Float64, (M,jj)),
+    #                 rand(Float64, (jj,M)), rand(Float64, (jj,jj)))
+    #         WT = ss(rand(Float64, (M,M)), rand(Float64, (M,kk)),
+    #                 rand(Float64, (kk,M)), rand(Float64, (kk,kk)))
+    #
+    #         println([ii,jj,kk])
+    #         # Chech that the specifications can be re-written is possible
+    #         if ii == N && jj == L && kk == N
+    #           @test isa(hInf_partition(G, WS, WU, WT), ControlSystems.ExtendedStateSpace)
+    #         else
+    #           @test_throws ErrorException hInf_partition(G, WS, WU, WT)
+    #         end
+    #       end
+    #     end
+    #   end
+    # end
+
+
+  end
+
   @testset "(2) Assumptions" begin
     """
     Tests the methods used to check that the assumptions are satisfied,
