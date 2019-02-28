@@ -480,14 +480,14 @@ Tl*A*Tr = [I; 0], depending on the dimensionality of A.
 function _scaleMatrix(A)
     # Check that a scaling is feasible
     if isempty(A)
-        @printf("Cannot scale the system, A is empty")
+        error("Cannot scale the system, A is empty")
         return [], []
     else
         if (minimum(size(A)) > 1)
             print(A)
             print(size(A))
             if rank(A) != minimum(size(A))
-                @printf("Cannot scale the system, assumption A2 is violated")
+                error("Cannot scale the system, assumption A2 is violated")
                 return [], []
             end
         end
