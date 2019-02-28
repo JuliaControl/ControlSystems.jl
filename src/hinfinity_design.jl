@@ -678,10 +678,10 @@ function hInf_signals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)
 
   Pcl = Pw2z
   S   = Pw2e
-  KS  = Pw2u
+  CS  = Pw2u
   T   = Pw2y
 
-  return Pcl, S, KS, T
+  return Pcl, S, CS, T
 end
 
 
