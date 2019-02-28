@@ -408,6 +408,13 @@ using Random
       end
     end
 
-    
+    @testset "MIT open courseware example" begin
+
+      # Fixture
+      tolerance = 1e-4
+
+      # Make sure that the code runs
+      @test isa(include("../example/hinf_example_MIT.jl"), Nothing)
+    end
   end
 end
