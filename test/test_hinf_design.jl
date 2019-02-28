@@ -442,5 +442,14 @@ using Random
         @test all(valTWT .< (gamma+tolerance))
       end
     end
+
+    @testset "Quad tank example" begin
+
+      # Fixture
+      tolerance = 1e-2
+
+      # Make sure that the code runs
+      @test isa(include("../example/hinf_example_tank.jl"), Nothing)
+    end
   end
 end
