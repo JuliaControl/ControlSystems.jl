@@ -181,7 +181,7 @@ function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), v
     XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaIterations(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, maxIter, interval, verbose, tolerance)
 
     if !isempty(gammFeasible)
-      K
+      # Synthesize the controller and trnasform it back into the original coordinates
       Ac, Bc, Cc, Dc = _synthesizeController(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible, Ltrans12, Rtrans12, Ltrans21, Rtrans21)
 
       # Return the controller, the optimal gain γ, and a true flag
