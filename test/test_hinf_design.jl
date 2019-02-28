@@ -454,6 +454,28 @@ using Random
 
       # Check that the optimal gain is correct
       @test abs(gamma - 0.9534467) < tolerance
+
+      # Check that the closed loop satisfies ||F_l(P(jω), C(jω)||_∞ < γ,  ∀ω ∈ Ω
+      valPcl  = sigma(Pcl, Ω)[1];
+      @test all(valPcl[:,1] .< (gamma+tolerance))
+
+      # Check that ||S(jω)/WS(jω)||_∞ < γ,  ∀ω ∈ Ω
+      if isa(WS, LTISystem) || isa(WS, Number)
+        valSWS = sigma(S * WS , Ω)[1];
+        @test all(valSWS[:,1] .< (gamma+tolerance))
+      end
+
+      # Check that ||C(jω)S(jω)/W_U(jω)||_∞ < γ,  ∀ω ∈ Ω
+      if isa(WU, LTISystem) || isa(WU, Number)
+        valKSWU = sigma(CS * WU , Ω)[1];
+        @test all(valKSWU[:,1] .< (gamma+tolerance))
+      end
+
+      # Check that ||T(jω)/W_T(jω)||_∞ < γ,  ∀ω ∈ Ω
+      if isa(WT, LTISystem) || isa(WT, Number)
+        valTWT = sigma(T * WT , Ω)[1];
+        @test all(valTWT[:,1] .< (gamma+tolerance))
+      end
     end
   end
 end
