@@ -521,27 +521,27 @@ fucntion objects on a the trasfer function or the state-space form.
 
 function hInf_partition(G, WS, WU, WT)
     # Convert the systems into state-space form
-    Ag,  Bg,  Cg,  Dg  = convert_input_to_ss(G)
-    Asw, Bsw, Csw, Dsw = convert_input_to_ss(WS)
-    Auw, Buw, Cuw, Duw = convert_input_to_ss(WU)
-    Atw, Btw, Ctw, Dtw = convert_input_to_ss(WT)
+    Ag,  Bg,  Cg,  Dg  = _convert_input_to_ss(G)
+    Asw, Bsw, Csw, Dsw = _convert_input_to_ss(WS)
+    Auw, Buw, Cuw, Duw = _convert_input_to_ss(WU)
+    Atw, Btw, Ctw, Dtw = _convert_input_to_ss(WT)
 
     # Check that the system is realizable
     if size(Cg, 1) != size(Btw,2) && size(Btw,2) != 0
       println([size(Cg, 1) , size(Btw,2)])
-      error(["You must have the same number of outputs y=C2xg+D21w+D22u as there are inputs to WT"])
+      error(DimensionMismatch("You must have the same number of outputs y=C2xg+D21w+D22u as there are inputs to WT"))
     end
     if size(Cg, 1) != size(Bsw,2) && size(Bsw,2) != 0
       println([size(Cg, 1) , size(Bsw,2)])
-      error(["You must have the same number of states x=Agxg+B1w+B2u as there are inputs to WS"])
+      error(DimensionMismatch("You must have the same number of states x=Agxg+B1w+B2u as there are inputs to WS"))
     end
     if size(Bg, 2) != size(Buw,2) && size(Buw,2) != 0
       println([size(Bg, 2) , size(Buw,2)])
-      error(["You must have the same number of controls u as there are inputs to WU"])
+      error(DimensionMismatch("You must have the same number of controls u as there are inputs to WU"))
     end
     if (size(Ag,1)==0 || size(Ag,2)==0 || size(Bg,1)==0 || size(Bg,2)==0 ||
         size(Cg,1)==0 || size(Cg,2)==0 || size(Dg,1)==0 || size(Dg,2)==0)
-        error(["Expansion of systems dimensionless A,B,C or D is not yet supported"])
+        error(DimensionMismatch("Expansion of systems dimensionless A,B,C or D is not yet supported"))
     end
 
     # Form A
@@ -603,15 +603,18 @@ function hInf_partition(G, WS, WU, WT)
     Dyw=Matrix{Float64}(I, mCg, nDuw)
     Dyu=-Dg;
 
+    println([size(A)  size(Bw) size(Bu);
+             size(Cz) size( Dzw) size(Dzu);
+             size(Cy)  size( Dyw) size( Dyu)])
     P = ss(A, Bw, Bu, Cz, Cy, Dzw, Dzu, Dyw, Dyu)
     return P
 end
 
 """`convert_input_to_ss(H)`
 
-Help fucntion used for type conversion in hInf_partition()
+Help function used for type conversion in hInf_partition()
 """
-function convert_input_to_ss(H)
+function _convert_input_to_ss(H)
   if isa(H, LTISystem)
       if isa(H, TransferFunction)
           Hss = ss(H)
