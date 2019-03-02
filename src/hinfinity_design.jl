@@ -478,16 +478,15 @@ Find a left and right transform of A such that Tl*A*Tr = [I, 0], or
 Tl*A*Tr = [I; 0], depending on the dimensionality of A.
 """
 function _scaleMatrix(A::AbstractMatrix; method="QR"::String)
-  # Check that a scaling can be done
-  if isempty(A)
-    error(ErrorException("Cannot scale the system, A is empty"))
-  end
   # Check the rank condition
-  if (minimum(size(A)) > 1)
+  if (minimum(size(A)) > 0)
     if rank(A) != minimum(size(A))
       error(ErrorException("Cannot scale the system, assumption A2 is violated"))
     end
+  else
+    error(ErrorException("Cannot scale the system, minimum size of A must begreater than 0"))
   end
+
   # Perform scaling with the cosen method
   if method == "QR"
     return _computeCoordinateTransformQR(A)
