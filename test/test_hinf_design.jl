@@ -3,7 +3,7 @@ using Test
 using LinearAlgebra
 using Random
 
-execute_tests = [false,false,true,false,false,false,false,false,false]
+execute_tests = [false,false,true,false,false,false,false,false,true]
 
 @testset "H-infinity design" begin
   """
@@ -361,13 +361,41 @@ execute_tests = [false,false,true,false,false,false,false,false,false]
               Z_mat = zeros(Float64, (min(M,N), max(M,N)-min(M,N)))
               A_bar_true = [Z_mat  I_mat]
             end
-            LeftTransform, RightTransform = ControlSystems._scaleMatrix(A)
+            LeftTransform, RightTransform = ControlSystems._scaleMatrix(A; method="QR")
             @test opnorm(LeftTransform*A*RightTransform - A_bar_true) < tolerance
           end
         end
       end
 
+      @testset "Find coordinate transformation with QR decomposition" begin
+        """
+        Test computation of the transformation in square and rectangular cases.
+        """
+        # Fixture
+        tolerance = 1e-10
 
+        for N = 1:5
+          for M = 1:5
+            A   = rand(Float64, (M, N))
+            I_mat = Matrix{Float64}(I, min(M,N), min(M,N))
+
+            if M==N
+              # Square case
+              A_bar_true = I_mat
+            elseif M>N
+              # Rectangular case (more rows than columns)
+              Z_mat = zeros(Float64, (max(M,N)-min(M,N),min(M,N)))
+              A_bar_true = [Z_mat; I_mat]
+            else
+              # Rectangular case (more columns than rows)
+              Z_mat = zeros(Float64, (min(M,N), max(M,N)-min(M,N)))
+              A_bar_true = [Z_mat  I_mat]
+            end
+            LeftTransform, RightTransform = ControlSystems._scaleMatrix(A; method="SVD")
+            @test opnorm(LeftTransform*A*RightTransform - A_bar_true) < tolerance
+          end
+        end
+      end
     end
   end
 
