@@ -337,7 +337,7 @@ execute_tests = [false,false,true,false,false,false,false,false,true]
       D12_bar = [0,I] and D21_bar = [0;I].
       """
 
-      @testset "Find coordinate transformation with QR decomposition" begin
+      @testset "Find transformation for full rank matrix with QR" begin
         """
         Test computation of the transformation in square and rectangular cases.
         """
@@ -361,13 +361,13 @@ execute_tests = [false,false,true,false,false,false,false,false,true]
               Z_mat = zeros(Float64, (min(M,N), max(M,N)-min(M,N)))
               A_bar_true = [Z_mat  I_mat]
             end
-            LeftTransform, RightTransform = ControlSystems._scaleMatrix(A; method="QR")
-            @test opnorm(LeftTransform*A*RightTransform - A_bar_true) < tolerance
+            Tl,Tr = ControlSystems._computeCoordinateTransformQR(A)
+            @test opnorm(Tl*A*Tr - A_bar_true) < tolerance
           end
         end
       end
 
-      @testset "Find coordinate transformation with QR decomposition" begin
+      @testset "Find transformation for full rank matrix with SVD" begin
         """
         Test computation of the transformation in square and rectangular cases.
         """
@@ -391,11 +391,55 @@ execute_tests = [false,false,true,false,false,false,false,false,true]
               Z_mat = zeros(Float64, (min(M,N), max(M,N)-min(M,N)))
               A_bar_true = [Z_mat  I_mat]
             end
-            LeftTransform, RightTransform = ControlSystems._scaleMatrix(A; method="SVD")
-            @test opnorm(LeftTransform*A*RightTransform - A_bar_true) < tolerance
+            Tl,Tr = ControlSystems._computeCoordinateTransformSVD(A)
+            @test opnorm(Tl*A*Tr - A_bar_true) < tolerance
           end
         end
       end
+
+      @testset "Find transformation for arbitrary matrix inputs" begin
+        """
+        Test computation of the transformation in square and rectangular cases.
+        """
+        # Fixture
+        test_matrices_full = [
+          rand(Float64,(1,1)),
+          rand(Float64,(5,5)),
+          rand(Float64,(2,5)),
+          rand(Float64,(5,2))
+        ]
+
+        # Compute rank deficient matrices
+        test_matrices_rank_deficient = test_matrices_full
+        for ii = 1:length(test_matrices_full)
+          U,S,V = svd(test_matrices_full[ii])
+          S[1]=0
+          test_matrices_rank_deficient[ii] = U*Diagonal(S)*V'
+        end
+
+        # Make sure that an exception is raised if assumption A2 is violated,
+        # any of the matrices which are to be decomposed are rank deficient
+        for A = test_matrices_rank_deficient
+          println(A)
+          @test_throws ErrorException ControlSystems._scaleMatrix(A)
+        end
+
+        # Various bad inputs
+        @test_throws MethodError ControlSystems._scaleMatrix(tf(1))
+        @test_throws MethodError ControlSystems._scaleMatrix(ss(1))
+        @test_throws MethodError ControlSystems._scaleMatrix([])
+        @test_throws MethodError ControlSystems._scaleMatrix(nothing)
+        @test_throws MethodError ControlSystems._scaleMatrix(1)
+
+        # Check that errors are thrown if the matric has zise zero
+        @test_throws ErrorException ControlSystems._scaleMatrix(zeros(Float64,(0,1)))
+
+        # Various bad methods
+        A = test_matrices_full[1];
+        @test_throws ErrorException ControlSystems._scaleMatrix(A; method="bad method")
+        @test_throws ErrorException ControlSystems._scaleMatrix(A; method=1)
+      end
+
     end
   end
 
