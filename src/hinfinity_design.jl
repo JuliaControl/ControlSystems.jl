@@ -1,3 +1,21 @@
+""" The code in this module is based on the bibentry [1] (glover1988state)
+below, and is best read alongside the complementary report in [2]
+(mgreiff2019report). For the LMI-experiments see the third bibentry [3].
+
+  @article{glover1988state,
+    title={State-space formulae for all stabilizing controllers that satisfy an
+           H-infinity norm bound and relations to relations to risk sensitivity},
+    author={Glover, Keith and Doyle, John C},
+    journal={Systems & control letters},
+    volume={11},
+    number={3},
+    pages={167--172},
+    year={1988},
+    publisher={Citeseer}
+  }
+"""
+
+
 """`[flag] = function hInf_assumptions(P::ExtendedStateSpace; verbose=true)`
 
 Check the assumptions for using the γ-iteration synthesis in Theorem 1. In
@@ -85,7 +103,8 @@ end
 """`[Mpinv] = function _compute_pseudoinverse(M::AbstractMatrix)`
 
 Compute the g-inverses for a non-rectangular matrix M, satisfying
-min(size(M))==rank(M). Used for checking assumptions A5 and A6.
+min(size(M))==rank(M). Used for checking assumptions A5 and A6 in [1], see the
+section on the generalized
 """
 function _compute_pseudoinverse(M::AbstractMatrix)
   if size(M,1) == size(M,2)
@@ -147,19 +166,7 @@ Computes an H-infinity optimal controller K for an extended plant P such that
 ||F_l(P, K)||∞ < γ for the largest possible gamma given P. The routine is
 known as the γ-iteration, and is based on the paper "State-space formulae for
 all stabilizing controllers that satisfy an H∞-norm bound and relations to
-risk sensitivity" by Glover and Doyle. See the Bib-entry below:
-
-@article{glover1988state,
-  title={State-space formulae for all stabilizing controllers that satisfy an
-         H-infinity norm bound and relations to relations to risk sensitivity},
-  author={Glover, Keith and Doyle, John C},
-  journal={Systems & control letters},
-  volume={11},
-  number={3},
-  pages={167--172},
-  year={1988},
-  publisher={Citeseer}
-}
+risk sensitivity" by Glover and Doyle. See the Bib-entry below [1] above.
 """
 function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true, tolerance=1e-10)
 
