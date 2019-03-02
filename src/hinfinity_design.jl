@@ -1,8 +1,4 @@
-using Printf
-using Plots
-
-"""
-`[flag] = function hInf_assumptions(P::ExtendedStateSpace; verbose=true)`
+"""`[flag] = function hInf_assumptions(P::ExtendedStateSpace; verbose=true)`
 
 Check the assumptions for using the γ-iteration synthesis in Theorem 1. In
 future revisions, we could suggest possible changes to P should the system not
@@ -86,8 +82,7 @@ function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
     return true
 end
 
-"""
-`[Mpinv] = function _compute_pseudoinverse(M::AbstractMatrix)`
+"""`[Mpinv] = function _compute_pseudoinverse(M::AbstractMatrix)`
 
 Compute the g-inverses for a non-rectangular matrix M, satisfying
 min(size(M))==rank(M). Used for checking assumptions A5 and A6.
@@ -114,8 +109,7 @@ function _compute_pseudoinverse(M::AbstractMatrix)
   end
 end
 
-"""
-`[flag] = _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)`
+"""`[flag] = _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)`
 
 Applies the Hautus lemma to check if the pair is stabilizable
 """
@@ -131,8 +125,7 @@ function _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)
   return true
 end
 
-"""
-`[flag] = _is_stabilizable(A::AbstractMatrix, C::AbstractMatrix)`
+"""`[flag] = _is_stabilizable(A::AbstractMatrix, C::AbstractMatrix)`
 
 Applies the Hautus lemma to check if the pair is detectable
 """
@@ -148,8 +141,7 @@ function _is_detectable(A::AbstractMatrix, C::AbstractMatrix)
   return true
 end
 
-"""
-`[flag, K, gamma] = hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true)`
+"""`[flag, K, gamma] = hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true)`
 
 Computes an H-infinity optimal controller K for an extended plant P such that
 ||F_l(P, K)||∞ < γ for the largest possible gamma given P. The routine is
@@ -168,21 +160,18 @@ risk sensitivity" by Glover and Doyle. See the Bib-entry below:
   year={1988},
   publisher={Citeseer}
 }
-
 """
 function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true, tolerance=1e-10)
 
-    A, B1, B2, C1, C2, D11, D12, D21, D22 = ssdata(P)
-
     # Transform the system into a suitable form
-    Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, Ltrans12, Rtrans12, Ltrans21, Rtrans21 = _transformP2Pbar(A, B1, B2, C1, C2, D11, D12, D21, D22)
+    Pbar, Ltrans12, Rtrans12, Ltrans21, Rtrans21 = _transformP2Pbar(P)
 
     # Run the gamma iterations
-    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaIterations(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, maxIter, interval, verbose, tolerance)
+    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaIterations(Pbar, maxIter, interval, verbose, tolerance)
 
     if !isempty(gammFeasible)
       # Synthesize the controller and trnasform it back into the original coordinates
-      Ac, Bc, Cc, Dc = _synthesizeController(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible, Ltrans12, Rtrans12, Ltrans21, Rtrans21)
+      Ac, Bc, Cc, Dc = _synthesizeController(Pbar, XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible, Ltrans12, Rtrans12, Ltrans21, Rtrans21)
 
       # Return the controller, the optimal gain γ, and a true flag
       C     = ss(Ac, Bc, Cc, Dc)
@@ -197,7 +186,7 @@ function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), v
     return flag, C, gammFeasible
 end
 
-"""`[Ac, Bc Cc, Dc] = hInfSynthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf, F, H, gamma, Ltrans12, Rtrans12, Ltrans21, Rtrans21)`
+"""`[Ac, Bc Cc, Dc] = hInfSynthesizeController(P::ExtendedStateSpace, Xinf, Yinf, F, H, gamma, Ltrans12, Rtrans12, Ltrans21, Rtrans21)`
 
 Syntheize a controller by operating on the scaled state-space description of the
 system (i.e., the state-space realization of Pbar) using the solutions from the
@@ -205,7 +194,17 @@ system (i.e., the state-space realization of Pbar) using the solutions from the
 transformed back to the original coordinates by the linear transformations
 Ltrans12, Rtrans12, Ltrans21 and Rtrans21.
 """
-function _synthesizeController(A, B1, B2, C1, C2, D11, D12, D21, D22, Xinf, Yinf, F, H, gamma, Ltrans12, Rtrans12, Ltrans21, Rtrans21)
+function _synthesizeController(P::ExtendedStateSpace, Xinf::AbstractMatrix, Yinf::AbstractMatrix, F::AbstractMatrix, H::AbstractMatrix, gamma::Number, Ltrans12::AbstractMatrix, Rtrans12::AbstractMatrix, Ltrans21::AbstractMatrix, Rtrans21::AbstractMatrix)
+
+    A = P.A
+    B1 = P.B1
+    B2 = P.B2
+    C1 = P.C1
+    C2 = P.C2
+    D11 = P.D11
+    D12 = P.D12
+    D21 = P.D21
+    D22 = P.D22
 
     gSq = gamma * gamma
 
@@ -305,41 +304,39 @@ end
 Check the feasibility of the computed solutions Xinf, Yinf and the algebraic
 Riccatti equations, return true if the solution is valid, and false otherwise.
 """
-function _checkFeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=true)
+function _checkFeasibility(Xinf::AbstractMatrix, Yinf::AbstractMatrix, gamma::Number, tolerance::Number, iteration::Number; verbose=true)
 
-    # TODO Add checks to capture singular Xinf and Yinf
-    minXev  = minimum(real(eigvals(Xinf)))
-    minYev  = minimum(real(eigvals(Yinf)))
-    specrad = maximum(abs.(eigvals(Xinf*Yinf))) / (gamma*gamma)
+  minXev  = minimum(real(eigvals(Xinf)))
+  minYev  = minimum(real(eigvals(Yinf)))
+  specrad = maximum(abs.(eigvals(Xinf*Yinf))) / (gamma*gamma)
 
-    if verbose
-        if iteration == 1
-            @printf("iteration, gamma\n")
-        end
-        @printf("%i  %f\n", iteration, gamma)
+  if verbose
+    if iteration == 1
+      println("iteration, gamma")
     end
+    println(iteration, " ", gamma)
+  end
 
-    if minXev < -tolerance
-        # Failed test, eigenvalues of Xinf must be positive real
-        return false
-    end
-    if minYev < -tolerance
-        # Failed test, eigenvalues of Yinf must be positive real
-        return false
-    end
-    if specrad > 1
-        # Failed test, spectral radius of XY must be greater than gamma squared
-        return false
-    end
-    return true
+  if minXev < -tolerance
+    # Failed test, eigenvalues of Xinf must be positive real
+    return false
+  end
+  if minYev < -tolerance
+    # Failed test, eigenvalues of Yinf must be positive real
+    return false
+  end
+  if specrad > 1
+    # Failed test, spectral radius of XY must be greater than gamma squared
+    return false
+  end
+  return true
 end
 
-"""
-`[solution] = _solveHamiltonianARE(H)`
+"""`[solution] = _solveHamiltonianARE(H)`
 
 Solves a hamiltonian Alebraic Riccati equation using the Schur-decomposition.
 """
-function _solveHamiltonianARE(H)
+function _solveHamiltonianARE(H::Any)
 
     # TODO fix this computational routine if need be
     # TODO throw errors?
@@ -357,12 +354,22 @@ function _solveHamiltonianARE(H)
     return solution, flag
 end
 
-"""
-`[solution] = _solveMatrixEquations(A, B1, B2, C1, C2, D11, D12, D21, D22, gamma)`
+"""`[solution] = _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)`
 
 Solves the dual matrix equations in the γ-iterations (equations 7-12 in Doyle).
 """
-function _solveMatrixEquations(A, B1, B2, C1, C2, D11, D12, D21, D22, gamma)
+function _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)
+
+    A = P.A
+    B1 = P.B1
+    B2 = P.B2
+    C1 = P.C1
+    C2 = P.C2
+    D11 = P.D11
+    D12 = P.D12
+    D21 = P.D21
+    D22 = P.D22
+
     P1 = size(C1,1);
     P2 = size(C2,1);
     M1 = size(B1,2);
@@ -398,8 +405,7 @@ function _solveMatrixEquations(A, B1, B2, C1, C2, D11, D12, D21, D22, gamma)
     return Xinf, Yinf, F, H
 end
 
-"""
-`[flag]=_gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)`
+"""`[flag]=_gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)`
 
 Rune the complete set of γ-iterations over a specified search interval with a
 set number of iterations. It is possible to break the algorithm if the number
@@ -409,20 +415,16 @@ terminates without a solution if the maximum possible gamma on the defined
 interval is infeasible. Here we could consider increasing the bounds somewhat
 and warn the user if this occurrs.
 """
-function _gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)
+function _gammaIterations(P::ExtendedStateSpace, maxIter::Number, interval::Tuple, verbose::Bool, tolerance::Number)
 
-    XinfFeasible = []
-    YinfFeasible = []
-    FinfFeasible = []
-    HinfFeasible = []
-    gammFeasible = []
+    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = [],[],[],[],[]
 
     gamma = maximum(interval)
 
     for iteration = 1:maxIter
 
           # Solve the matrix equations
-          Xinf, Yinf, F, H = _solveMatrixEquations(A, B1, B2, C1, C2, D11, D12, D21, D22, gamma)
+          Xinf, Yinf, F, H = _solveMatrixEquations(P, gamma)
 
           # Check Feasibility
           isFeasible = _checkFeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=verbose)
@@ -444,35 +446,33 @@ function _gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interv
     return XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible
 end
 
-"""
-`[Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar,
-  D21bar, D22bar, Ltrans12, Rtrans12, Ltrans21,
-  Rtrans21] = _transformP2Pbar(A, B1, B2, C1, C2, D11, D12, D21, D22)`
+"""`[Pbar, Ltrans12, Rtrans12, Ltrans21, Rtrans21] = _transformP2Pbar(P::ExtendedStateSpace)`
 
-Transform the original system P to a new system Pbar, in which D12bar = [I; 0]
-and D21bar = [I 0] in order to satisfy the feasibility assumption A3 (see Doyle)
+Transform the original system P to a new system Pbar, in which D12bar = [0; I]
+and D21bar = [0 I] in order to satisfy the feasibility assumption A3 (see Doyle)
 """
-function _transformP2Pbar(A, B1, B2, C1, C2, D11, D12, D21, D22)
+function _transformP2Pbar(P::ExtendedStateSpace)
 
     # Compute the transformation
-    Ltrans12, Rtrans12 = _scaleMatrix(D12)
-    Ltrans21, Rtrans21 = _scaleMatrix(D21)
+    Ltrans12, Rtrans12 = _scaleMatrix(P.D12)
+    Ltrans21, Rtrans21 = _scaleMatrix(P.D21)
 
-    Abar   = A
-    B1bar  = B1*Rtrans21
-    B2bar  = B2*Rtrans12
-    C1bar  = Ltrans12*C1
-    C2bar  = Ltrans21*C2
-    D11bar = Ltrans12*D11*Rtrans21
-    D12bar = Ltrans12*D12*Rtrans12
-    D21bar = Ltrans21*D21*Rtrans21
-    D22bar = Ltrans21*D22*Rtrans12
+    # Transform the system
+    Abar   = P.A
+    B1bar  = P.B1*Rtrans21
+    B2bar  = P.B2*Rtrans12
+    C1bar  = Ltrans12*P.C1
+    C2bar  = Ltrans21*P.C2
+    D11bar = Ltrans12*P.D11*Rtrans21
+    D12bar = Ltrans12*P.D12*Rtrans12
+    D21bar = Ltrans21*P.D21*Rtrans21
+    D22bar = Ltrans21*P.D22*Rtrans12
+    Pbar = ss(Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar)
 
-    return Abar, B1bar, B2bar, C1bar, C2bar, D11bar, D12bar, D21bar, D22bar, Ltrans12, Rtrans12, Ltrans21, Rtrans21
+    return Pbar, Ltrans12, Rtrans12, Ltrans21, Rtrans21
 end
 
-"""
-`[Tl, Tr] = _scaleMatrix(A::AbstractMatrix; method::String)`
+"""`[Tl, Tr] = _scaleMatrix(A::AbstractMatrix; method::String)`
 
 Find a left and right transform of A such that Tl*A*Tr = [I, 0], or
 Tl*A*Tr = [I; 0], depending on the dimensionality of A.
@@ -497,8 +497,7 @@ function _scaleMatrix(A::AbstractMatrix; method="QR"::String)
   end
 end
 
-"""
-`[Tl, Tr] =  _computeCoordinateTransformQR(A::AbstractMatrix)`
+"""`[Tl, Tr] =  _computeCoordinateTransformQR(A::AbstractMatrix)`
 
 Use the QR decomposition to find a transformaiton [Tl, Tr] such that
 Tl*A*Tr becomes [0;I], [0 I] or I depending on the dimensionality of A.
@@ -524,8 +523,7 @@ function _computeCoordinateTransformQR(A::AbstractMatrix)
   return LeftTransform, RightTransform
 end
 
-"""
-`[Tl, Tr] =  _computeCoordinateTransformSVD(A::AbstractMatrix)`
+"""`[Tl, Tr] =  _computeCoordinateTransformSVD(A::AbstractMatrix)`
 
 Use the SVD to find a transformaiton [Tl, Tr] such that
 Tl*A*Tr becomes [0;I], [0 I] or I depending on the dimensionality of A.
@@ -565,7 +563,7 @@ weighting functions are empty entries, numbers (static gains), and transfer
 fucntion objects on a the trasfer function or the state-space form.
 """
 
-function hInf_partition(G, WS, WU, WT)
+function hInf_partition(G::Any, WS::Any, WU::Any, WT::Any)
     # Convert the systems into state-space form
     Ag,  Bg,  Cg,  Dg  = _convert_input_to_ss(G)
     Asw, Bsw, Csw, Dsw = _convert_input_to_ss(WS)
@@ -649,9 +647,6 @@ function hInf_partition(G, WS, WU, WT)
     Dyw=Matrix{Float64}(I, mCg, nDuw)
     Dyu=-Dg;
 
-    println([size(A)  size(Bw) size(Bu);
-             size(Cz) size( Dzw) size(Dzu);
-             size(Cy)  size( Dyw) size( Dyu)])
     P = ss(A, Bw, Bu, Cz, Cy, Dzw, Dzu, Dyw, Dyu)
     return P
 end
@@ -660,7 +655,7 @@ end
 
 Help function used for type conversion in hInf_partition()
 """
-function _convert_input_to_ss(H)
+function _convert_input_to_ss(H::Any)
   if isa(H, LTISystem)
       if isa(H, TransferFunction)
           Hss = ss(H)
