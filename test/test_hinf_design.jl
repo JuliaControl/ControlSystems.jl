@@ -29,7 +29,30 @@ execute_tests = [false,false,true,false,false,false,false,false,true]
   (9) Three examples which can be used to demonstrate the tool.
 
   Many of the tests are quite intuitive, and all points (1)-(9) are tested
-  extensively with detailed comments for each test-set.
+  extensively with detailed comments for each test-set, and below is a list
+  of all the functions tested in this unit test
+
+    hInf_synthesize
+    hInf_assumptions
+    hInf_bilinear_z2s
+    hInf_bilinear_s2z
+    hInf_signals
+    hInf_partition
+    _is_detectable
+    _is_stabilizable
+    _compute_pseudoinverse
+    _synthesizeController
+    _assert_real_and_PSD
+    _checkFeasibility
+    _solveHamiltonianARE
+    _solveMatrixEquations
+    _gammaIterations
+    _transformP2Pbar
+    _scaleMatrix
+    _convert_input_to_ss
+    _computeCoordinateTransformSVD
+    _computeCoordinateTransformQR
+
   """
 
   if execute_tests[1]
@@ -440,6 +463,11 @@ execute_tests = [false,false,true,false,false,false,false,false,true]
         @test_throws ErrorException ControlSystems._scaleMatrix(A; method=1)
       end
 
+      @testset "Test application of the transformation to an ESS object" begin
+        """
+        The wa
+        """
+      end
     end
   end
 
