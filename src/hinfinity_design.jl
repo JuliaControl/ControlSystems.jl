@@ -472,43 +472,84 @@ function _transformP2Pbar(A, B1, B2, C1, C2, D11, D12, D21, D22)
 end
 
 """
-`[Tl, Tr]_scaleMatrix(A)`
+`[Tl, Tr] = _scaleMatrix(A::AbstractMatrix; method::String)`
 
 Find a left and right transform of A such that Tl*A*Tr = [I, 0], or
 Tl*A*Tr = [I; 0], depending on the dimensionality of A.
 """
-function _scaleMatrix(A)
-    # Check that a scaling is feasible
-    if isempty(A)
-        error("Cannot scale the system, A is empty")
-        return [], []
-    else
-        if (minimum(size(A)) > 1)
-            print(A)
-            print(size(A))
-            if rank(A) != minimum(size(A))
-                error("Cannot scale the system, assumption A2 is violated")
-                return [], []
-            end
-        end
-        m, n = size(A)
-        if m == n
-            # Square matrix with full rank
-            Q, R = qr(A)
-            LeftTransform  = Q'
-            RightTransform = inv(R)
-        elseif m > n
-            Q, R = qr(A)
-            # Rectangular matrix with rank = n
-            LeftTransform = [Q[:,(n+1):(m)]'; Q[:,1:n]']
-            RightTransform = inv(R[1:n,1:n])
-        elseif m < n
-            Q, R = qr(A')
-            LeftTransform = inv(R[1:m,1:m])'
-            RightTransform = [Q[:,(m+1):(n)] Q[:,1:m]]
-        end
-        return LeftTransform, RightTransform
+function _scaleMatrix(A::AbstractMatrix; method="QR"::String)
+  # Check that a scaling can be done
+  if isempty(A)
+    error(ErrorException("Cannot scale the system, A is empty"))
+  end
+  # Check the rank condition
+  if (minimum(size(A)) > 1)
+    if rank(A) != minimum(size(A))
+      error(ErrorException("Cannot scale the system, assumption A2 is violated"))
     end
+  end
+  # Perform scaling with the cosen method
+  if method == "QR"
+    return _computeCoordinateTransformQR(A)
+  elseif method == "SVD"
+    return _computeCoordinateTransformSVD(A)
+  else
+    error(ErrorException(string("The method", method," is not supported, use 'QR' or 'SVD' instad.")))
+  end
+end
+
+"""
+`[Tl, Tr] =  _computeCoordinateTransformQR(A::AbstractMatrix)`
+
+Use the QR decomposition to find a transformaiton [Tl, Tr] such that
+Tl*A*Tr becomes [0;I], [0 I] or I depending on the dimensionality of A.
+"""
+function _computeCoordinateTransformQR(A::AbstractMatrix)
+  m, n = size(A)
+  if m == n
+    # Square matrix with full rank
+    Q, R = qr(A)
+    LeftTransform  = Q'
+    RightTransform = inv(R)
+  elseif m > n
+    # Rectangular matrix with rank = n
+    Q, R = qr(A)
+    LeftTransform = [Q[:,(n+1):(m)]'; Q[:,1:n]']
+    RightTransform = inv(R[1:n,1:n])
+  elseif m < n
+    # Rectangular matrix with rank = m
+    Q, R = qr(A')
+    LeftTransform = inv(R[1:m,1:m])'
+    RightTransform = [Q[:,m+1:n] Q[:,1:m]]
+  end
+  return LeftTransform, RightTransform
+end
+
+"""
+`[Tl, Tr] =  _computeCoordinateTransformSVD(A::AbstractMatrix)`
+
+Use the SVD to find a transformaiton [Tl, Tr] such that
+Tl*A*Tr becomes [0;I], [0 I] or I depending on the dimensionality of A.
+"""
+function _computeCoordinateTransformSVD(A::AbstractMatrix)
+  m, n = size(A)
+  if m == n
+    # Square matrix with full rank
+    U, S, V = svd(A)
+    LeftTransform  = inv(Diagonal(S))*U'
+    RightTransform = V
+  elseif m > n
+    # Rectangular matrix with rank = n
+    U, S, V = svd(A; full=true)
+    LeftTransform = [U[:,n+1:m]';inv(Diagonal(S))*U[:,1:n]']
+    RightTransform = V
+  elseif m < n
+    # Rectangular matrix with rank = m
+    U, S, V = svd(A; full=true)
+    LeftTransform = inv(Diagonal(S))*U'
+    RightTransform = [V[:,m+1:n] V[:,1:m]]
+  end
+  return LeftTransform, RightTransform
 end
 
 """`[P] = hInf_partition(G, WS, WU, WT)`
