@@ -32,7 +32,7 @@ WT = []
 Gc = hInf_bilinear_z2s(ss(Gd))
 
 # Form augmented P dynamics in state-space
-Pc = hInf_partition(Gc, WS, WU, WT)
+Pc = hinfpartition(Gc, WS, WU, WT)
 
 # Check that the assumptions are satisfied
 flag = hinfassumptions(Pc)
@@ -42,7 +42,7 @@ flag, Cc, gamma = hinfsynthesize(Pc)
 
 # Extract the transfer functions defining some signals of interest, but do so
 # using discrete equivalent of the continuous time objects Pc, Cc and Gc
-PclD, SD, CSD, TD = hInf_signals(
+PclD, SD, CSD, TD = hinfsignals(
   hInf_bilinear_s2z(Pc, ts),
   hInf_bilinear_s2z(Gc, ts),
   hInf_bilinear_s2z(Cc, ts)

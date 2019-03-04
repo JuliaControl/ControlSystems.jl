@@ -197,12 +197,12 @@ function _synthesizecontroller(P::ExtendedStateSpace, Xinf::AbstractMatrix, Yinf
 
     # Equation 20
     D12hatD12hat = I - (D1121 / (gSq * I - D1111' * D1111)) * D1121'
-    _assert_real_and_PSD(D12hatD12hat; msg=" in equation (20)")
+    _assertrealandpsd(D12hatD12hat; msg=" in equation (20)")
     D12hat = cholesky(D12hatD12hat).L
 
     # Equation 21
     D21hatD21hat = I - (D1112' / (gSq * I - D1111 * D1111')) * D1112
-    _assert_real_and_PSD(D21hatD21hat; msg=" in equation (21)")
+    _assertrealandpsd(D21hatD21hat; msg=" in equation (21)")
     D21hat = cholesky(D21hatD21hat).U
 
     # Equation 27
@@ -245,11 +245,11 @@ function _synthesizecontroller(P::ExtendedStateSpace, Xinf::AbstractMatrix, Yinf
     return Acontroller, Bcontroller[:,1:P2], Ccontroller[1:M2,:], Dcontroller[1:M2,1:P2]
 end
 
-"""_assert_real_and_PSD(A::AbstractMatrix, msg::AbstractString)
+"""_assertrealandpsd(A::AbstractMatrix, msg::AbstractString)
 
 Check that a matrix is real and PSD - throw an error otherwise.
 """
-function _assert_real_and_PSD(A::AbstractMatrix; msg="")
+function _assertrealandpsd(A::AbstractMatrix; msg="")
   if any(real(eigvals(A)).<=0)
     error(ErrorException(string("The matrix", msg," is not PSD.")))
   end
@@ -291,7 +291,7 @@ function _checkfeasibility(Xinf::AbstractMatrix, Yinf::AbstractMatrix, gamma::Nu
   return true
 end
 
-"""`[solution] = _solveHamiltonianARE(H)`
+"""`[solution] = _solvehamiltonianare(H)`
 
 Solves a hamiltonian Alebraic Riccati equation using the Schur-decomposition,
 for additional details, see
@@ -307,7 +307,7 @@ for additional details, see
     publisher={IEEE}
   }
 """
-function _solveHamiltonianARE(H::Any)
+function _solvehamiltonianare(H::Any)
 
     S = schur(H)
     S = ordschur(S, real(S.values).<0)
@@ -358,8 +358,8 @@ function _solvematrixequations(P::ExtendedStateSpace, gamma::Number)
     HY = [A' zeros(size(A)); -B1*B1' -A] - ([C';-B1*Ddot1']/Rbar)*[Ddot1*B1' C];
 
     # Solve matrix equations
-    Xinf = _solveHamiltonianARE(HX)
-    Yinf = _solveHamiltonianARE(HY)
+    Xinf = _solvehamiltonianare(HX)
+    Yinf = _solvehamiltonianare(HY)
 
     # Equation (11)
     F = - R \ (D1dot'*C1+B'*Xinf)
@@ -419,8 +419,8 @@ and D21bar = [0 I] in order to satisfy the feasibility assumption A3 (see Doyle)
 function _transformp2pbar(P::ExtendedStateSpace)
 
     # Compute the transformation
-    Ltrans12, Rtrans12 = _scaleMatrix(P.D12)
-    Ltrans21, Rtrans21 = _scaleMatrix(P.D21)
+    Ltrans12, Rtrans12 = _scalematrix(P.D12)
+    Ltrans21, Rtrans21 = _scalematrix(P.D21)
 
     # Transform the system
     Abar   = P.A
@@ -437,12 +437,12 @@ function _transformp2pbar(P::ExtendedStateSpace)
     return Pbar, Ltrans12, Rtrans12, Ltrans21, Rtrans21
 end
 
-"""`[Tl, Tr] = _scaleMatrix(A::AbstractMatrix; method::String)`
+"""`[Tl, Tr] = _scalematrix(A::AbstractMatrix; method::String)`
 
 Find a left and right transform of A such that Tl*A*Tr = [I, 0], or
 Tl*A*Tr = [I; 0], depending on the dimensionality of A.
 """
-function _scaleMatrix(A::AbstractMatrix; method="QR"::String)
+function _scalematrix(A::AbstractMatrix; method="QR"::String)
   # Check the rank condition
   if (minimum(size(A)) > 0)
     if rank(A) != minimum(size(A))
@@ -454,9 +454,9 @@ function _scaleMatrix(A::AbstractMatrix; method="QR"::String)
 
   # Perform scaling with the cosen method
   if method == "QR"
-    return _computeCoordinateTransformQR(A)
+    return _coordinatetransformqr(A)
   elseif method == "SVD"
-    return _computeCoordinateTransformSVD(A)
+    return _coordinatetransformsvd(A)
   else
     error(ErrorException(string("The method", method," is not supported, use 'QR' or 'SVD' instad.")))
   end
@@ -467,7 +467,7 @@ end
 Use the QR decomposition to find a transformaiton [Tl, Tr] such that
 Tl*A*Tr becomes [0;I], [0 I] or I depending on the dimensionality of A.
 """
-function _computeCoordinateTransformQR(A::AbstractMatrix)
+function _coordinatetransformqr(A::AbstractMatrix)
   m, n = size(A)
   if m == n
     # Square matrix with full rank
@@ -493,7 +493,7 @@ end
 Use the SVD to find a transformaiton [Tl, Tr] such that
 Tl*A*Tr becomes [0;I], [0 I] or I depending on the dimensionality of A.
 """
-function _computeCoordinateTransformSVD(A::AbstractMatrix)
+function _coordinatetransformsvd(A::AbstractMatrix)
   m, n = size(A)
   if m == n
     # Square matrix with full rank
@@ -527,7 +527,7 @@ can be both MIMO and SISO, both in tf and ss forms). Valid inputs for the
 weighting functions are empty entries, numbers (static gains), and transfer
 fucntion objects on a the trasfer function or the state-space form.
 """
-function hInf_partition(G::Any, WS::Any, WU::Any, WT::Any)
+function hinfpartition(G::Any, WS::Any, WU::Any, WT::Any)
     # Convert the systems into state-space form
     Ag,  Bg,  Cg,  Dg  = _convert_input_to_ss(G)
     Asw, Bsw, Csw, Dsw = _convert_input_to_ss(WS)
@@ -645,7 +645,7 @@ the closed loop transfer functions operating solely on the state-space.
   CS  : w → u : From input to control
   T   : w → y : From input to output
 """
-function hInf_signals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)
+function hinfsignals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)
 
   A, B1, B2, C1, C2, D11, D12, D21, D22 = ssdata(P)
   Ag, Bg, Cg, Dg = ssdata(ss(G))

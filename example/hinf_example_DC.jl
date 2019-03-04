@@ -26,7 +26,7 @@ WU = ss(1)
 WT = []
 
 # Form the P in the LFT F_l(P,C) as a partitioned state-space object
-P = hInf_partition(Gtrue, WS, WU, WT)
+P = hinfpartition(Gtrue, WS, WU, WT)
 
 # Check if the system is feasible for synythesis
 flag = hinfassumptions(P)
@@ -36,7 +36,7 @@ epsilon = 1e-5
 G = tf([11.2], [1, 0.12]) * tf([1], [1, epsilon])
 
 # Form the P in the LFT Fl(P,C) as a partitioned state-space object
-P = hInf_partition(G, WS, WU, WT)
+P = hinfpartition(G, WS, WU, WT)
 
 # Check if the problem is feasible
 flag = hinfassumptions(P)
@@ -45,7 +45,7 @@ flag = hinfassumptions(P)
 flag, C, gamma = hinfsynthesize(P)
 
 # Extract the transfer functions defining some signals of interest
-Pcl, S, CS, T = hInf_signals(P, G, C)
+Pcl, S, CS, T = hinfsignals(P, G, C)
 
 ## Plot the specifications
 if MakePlots

@@ -30,7 +30,7 @@ WU = ss(0.1)
 WT = []
 
 # Form augmented P dynamics in state-space
-P = hInf_partition(G, WS, WU, WT)
+P = hinfpartition(G, WS, WU, WT)
 
 # Check that the assumptions are satisfied
 flag = hinfassumptions(P)
@@ -39,7 +39,7 @@ flag = hinfassumptions(P)
 flag, C, gamma = hinfsynthesize(P)
 
 # Extract the transfer functions defining some signals of interest
-Pcl, S, CS, T = hInf_signals(P, G, C)
+Pcl, S, CS, T = hinfsignals(P, G, C)
 
 ## Plot the specifications
 if MakePlots

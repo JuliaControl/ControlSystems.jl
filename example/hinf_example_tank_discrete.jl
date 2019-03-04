@@ -61,7 +61,7 @@ Gc = hInf_bilinear_z2s(Gd)
 #Gc = ss(A,B,C,D)
 
 # Form the P in the LFT Fl(P,C) as a partitioned state-space object
-Pc = hInf_partition(Gc, WS, WU, WT)
+Pc = hinfpartition(Gc, WS, WU, WT)
 
 # Check if the problem is feasible
 flag = hinfassumptions(Pc)
@@ -70,7 +70,7 @@ flag = hinfassumptions(Pc)
 flag, Cc, gamma = hinfsynthesize(Pc)
 
 # Extract the transfer functions defining some signals of interest
-Pcl, S, CS, T = hInf_signals(Pc, Gc, Cc)
+Pcl, S, CS, T = hinfsignals(Pc, Gc, Cc)
 
 Pcl = hInf_bilinear_s2z(Pcl, ts)
 S   = hInf_bilinear_s2z(S,  ts)

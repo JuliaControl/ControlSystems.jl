@@ -55,7 +55,7 @@ iWTelement = 1/WTelement
 iWT = [iWTelement 0; 0 iWTelement]
 
 # Form augmented P dynamics in state-space
-P = hInf_partition(G, WS, WU, WT)
+P = hinfpartition(G, WS, WU, WT)
 
 # Check that the assumptions are satisfied
 flag = hinfassumptions(P)
@@ -63,7 +63,7 @@ flag = hinfassumptions(P)
 # Synthesize the H-infinity optimal controller
 flag, C, gamma = hinfsynthesize(P)
 
-Pcl, S, CS, T = hInf_signals(P, G, C)
+Pcl, S, CS, T = hinfsignals(P, G, C)
 
 ## Plot the specifications
 # TODO figure out why I get segmentation errors when using ss instead of tf for

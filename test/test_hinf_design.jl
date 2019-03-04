@@ -36,21 +36,21 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
     hinfassumptions
     hInf_bilinear_z2s
     hInf_bilinear_s2z
-    hInf_signals
-    hInf_partition
+    hinfsignals
+    hinfpartition
     _is_detectable
     _is_stabilizable
     _synthesizecontroller
-    _assert_real_and_PSD
+    _assertrealandpsd
     _checkfeasibility
-    _solveHamiltonianARE
+    _solvehamiltonianare
     _solvematrixequations
     _gammaIterations
     _transformp2pbar
-    _scaleMatrix
+    _scalematrix
     _convert_input_to_ss
-    _computeCoordinateTransformSVD
-    _computeCoordinateTransformQR
+    _coordinateTtansformqr
+    _coordinateTtansformsvd
 
   """
 
@@ -333,7 +333,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
               Z_mat = zeros(Float64, (min(M,N), max(M,N)-min(M,N)))
               A_bar_true = [Z_mat  I_mat]
             end
-            Tl,Tr = ControlSystems._computeCoordinateTransformQR(A)
+            Tl,Tr = ControlSystems._coordinatetransformqr(A)
             @test opnorm(Tl*A*Tr - A_bar_true) < tolerance
           end
         end
@@ -363,7 +363,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
               Z_mat = zeros(Float64, (min(M,N), max(M,N)-min(M,N)))
               A_bar_true = [Z_mat  I_mat]
             end
-            Tl,Tr = ControlSystems._computeCoordinateTransformSVD(A)
+            Tl,Tr = ControlSystems._coordinatetransformsvd(A)
             @test opnorm(Tl*A*Tr - A_bar_true) < tolerance
           end
         end
@@ -393,23 +393,23 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         # any of the matrices which are to be decomposed are rank deficient
         for A = test_matrices_rank_deficient
           println(A)
-          @test_throws ErrorException ControlSystems._scaleMatrix(A)
+          @test_throws ErrorException ControlSystems._scalematrix(A)
         end
 
         # Various bad inputs
-        @test_throws MethodError ControlSystems._scaleMatrix(tf(1))
-        @test_throws MethodError ControlSystems._scaleMatrix(ss(1))
-        @test_throws MethodError ControlSystems._scaleMatrix([])
-        @test_throws MethodError ControlSystems._scaleMatrix(nothing)
-        @test_throws MethodError ControlSystems._scaleMatrix(1)
+        @test_throws MethodError ControlSystems._scalematrix(tf(1))
+        @test_throws MethodError ControlSystems._scalematrix(ss(1))
+        @test_throws MethodError ControlSystems._scalematrix([])
+        @test_throws MethodError ControlSystems._scalematrix(nothing)
+        @test_throws MethodError ControlSystems._scalematrix(1)
 
         # Check that errors are thrown if the matric has zise zero
-        @test_throws ErrorException ControlSystems._scaleMatrix(zeros(Float64,(0,1)))
+        @test_throws ErrorException ControlSystems._scalematrix(zeros(Float64,(0,1)))
 
         # Various bad methods
         A = test_matrices_full[1];
-        @test_throws ErrorException ControlSystems._scaleMatrix(A; method="bad method")
-        @test_throws ErrorException ControlSystems._scaleMatrix(A; method=1)
+        @test_throws ErrorException ControlSystems._scalematrix(A; method="bad method")
+        @test_throws ErrorException ControlSystems._scalematrix(A; method=1)
       end
 
       @testset "Test application of the transformation to an ESS object" begin

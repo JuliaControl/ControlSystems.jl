@@ -76,8 +76,8 @@ export  LTISystem,
         # Hinfinity design
         hinfsynthesize,
         hinfassumptions,
-        hInf_partition,
-        hInf_signals,
+        hinfpartition,
+        hinfsignals,
         hInf_bilinear_s2z,
         hInf_bilinear_z2s
 
