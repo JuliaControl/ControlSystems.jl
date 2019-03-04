@@ -59,73 +59,25 @@ function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
     end
 
     # Check assumption A5
-    D12Pinv, D12Pinv_exists = _compute_pseudoinverse(D12)
-    if !D12Pinv_exists
+    if rank(A - B2*pinv(D12)*C1) < size(A,1)
       if verbose
-        println("Warning, the matrix (A - B2*D12^-*C1) cannot be evaluated,",
-                "violation of assumption A5. The pseudo inverse of D12 does ",
-                "not exist.")
+        println("Warning, the matrix (A - B2*D12^-*C1) does not have full",
+                "rank, violation of assumption A5.")
       end
       return false
-    else
-      if rank(A - B2*D12Pinv*C1) < size(A,1)
-        if verbose
-          println("Warning, the matrix (A - B2*D12^-*C1) does not have full",
-                  "rank, violation of assumption A5.")
-        end
-        return false
-      end
     end
-    # Check assumption A5
-    D21Pinv, D21Pinv_exists = _compute_pseudoinverse(D21)
-    if !D21Pinv_exists
+    # Check assumption A6
+    if rank(A - B1*pinv(D21)*C2) < size(A,1)
       if verbose
-        println("Warning, the matrix (A - B1*D21Pinv*C2) cannot be evaluated, ",
-                "violation of assumption A5. The pseudo inverse of D21 does ",
-                " not exist.")
+        println("Warning, the matrix (A - B1*D21Pinv*C2) does not ",
+                "have full rank, violation of assumption A6.")
       end
       return false
-    else
-      if rank(A - B1*D21Pinv*C2) < size(A,1)
-        if verbose
-          println("Warning, the matrix (A - B1*D21Pinv*C2) does not ",
-                  "have full rank, violation of assumption A6.")
-        end
-        return false
-      end
     end
 
     # All assumptions have passed, and we may proceed with the synthesis
     if verbose println("All assumtions are satisfied!") end
     return true
-end
-
-"""`[Mpinv] = function _compute_pseudoinverse(M::AbstractMatrix)`
-
-Compute the g-inverses for a non-rectangular matrix M, satisfying
-min(size(M))==rank(M). Used for checking assumptions A5 and A6 in [1], see the
-section on the generalized
-"""
-function _compute_pseudoinverse(M::AbstractMatrix)
-  if size(M,1) == size(M,2)
-    if rank(M) != size(M,2)
-      # G-inverse does not exist
-      return [], false
-    end
-    return (inv(M)), true
-  elseif size(M,1) > size(M,2)
-    if rank(M'*M) != size(M'*M,2)
-      # G-inverse does not exist
-      return [], false
-    end
-    return (inv(M'*M)*M'), true
-  elseif size(M,1) < size(M,2)
-    if rank(M*M') != size(M*M',2)
-      # G-inverse does not exist
-      return [], false
-    end
-    return (M'*inv(M*M')), true
-  end
 end
 
 """`[flag] = _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)`

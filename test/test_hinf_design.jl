@@ -40,7 +40,6 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
     hInf_partition
     _is_detectable
     _is_stabilizable
-    _compute_pseudoinverse
     _synthesizeController
     _assert_real_and_PSD
     _checkFeasibility
@@ -295,56 +294,6 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         @test_throws MethodError ControlSystems._is_detectable(ss(1),C)
         @test_throws MethodError ControlSystems._is_detectable(A,tf(1))
         @test_throws MethodError ControlSystems._is_detectable(tf(1),C)
-      end
-
-      @testset "Pseudoinverse computation" begin
-        """
-        The g-inverse is used to check the rank conditions across all frequencies,
-        see e.g. assumptions A5 and A6 in the reference [1]. As was shown in the
-        complementary report [2], this can be done by computing a pseudoinverse
-        and checking its rank. This code tests that the compuatation of these
-        g-inverses are done correctly for arbitrary matrices
-        """
-
-        ### Fixture
-        tolerance = 1e-10;
-        R = rand(Float64, (10,10))
-        Q = eigvecs(R + R');
-
-        # Check that the g-invere works for a set of full-rank square and
-        # rectangular matrices
-        for M = 1:5:11
-          for N = 1:5:11
-            AMN = rand(M,N);
-            Pinv, status = ControlSystems._compute_pseudoinverse(AMN);
-            @test status
-            if M < N
-              @test opnorm(AMN*Pinv - Matrix{Float64}(I, min(M,N), min(M,N))) < tolerance
-            else
-              @test opnorm(Pinv*AMN - Matrix{Float64}(I, min(M,N), min(M,N))) < tolerance
-            end
-          end
-        end
-
-        # Check common input types and ensure that a method error is thrown when
-        # not using two abstract matrices, but some other common type
-        @test_throws MethodError ControlSystems._compute_pseudoinverse(nothing)
-        @test_throws MethodError ControlSystems._compute_pseudoinverse([])
-        @test_throws MethodError ControlSystems._compute_pseudoinverse(ss(1))
-        @test_throws MethodError ControlSystems._compute_pseudoinverse(tf(1))
-
-        # Check that the method correctly reports that no pseudoinverse exists
-        # when the matrix M is rank deficient
-        for M = 1:5:11
-          for N = 1:5:11
-            U,S,V = svd(rand(M,N))
-            S[1] = 0.0;
-            AMN_rank_deficient = U*Diagonal(S)*V';
-            Pinv, status = ControlSystems._compute_pseudoinverse(AMN_rank_deficient);
-            @test !status
-            @test isa(Pinv, Array{Any,1})
-          end
-        end
       end
 
       # TODO: write tests using the above submethods directly in hInf_assumptions
