@@ -1,6 +1,6 @@
-""" The code in this module is based on the bibentry [1] (glover1988state)
-below, and is best read alongside the complementary report in [2]
-(mgreiff2019report). For the LMI-experiments see the third bibentry [3].
+""" The implementation is primarily based on a paper by Glover and Doyle, and
+the code is best read with this docment at hand. All references to equations
+in docstrings and comments are to the version of the paper given below:
 
   @article{glover1988state,
     title={State-space formulae for all stabilizing controllers that satisfy an
