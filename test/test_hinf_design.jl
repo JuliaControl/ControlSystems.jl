@@ -32,21 +32,21 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
   extensively with detailed comments for each test-set, and below is a list
   of all the functions tested in this unit test
 
-    hInf_synthesize
-    hInf_assumptions
+    hinfsynthesize
+    hinfassumptions
     hInf_bilinear_z2s
     hInf_bilinear_s2z
     hInf_signals
     hInf_partition
     _is_detectable
     _is_stabilizable
-    _synthesizeController
+    _synthesizecontroller
     _assert_real_and_PSD
-    _checkFeasibility
+    _checkfeasibility
     _solveHamiltonianARE
-    _solveMatrixEquations
+    _solvematrixequations
     _gammaIterations
-    _transformP2Pbar
+    _transformp2pbar
     _scaleMatrix
     _convert_input_to_ss
     _computeCoordinateTransformSVD
@@ -231,9 +231,9 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
             Ahat = A - E[ii]*Matrix{Float64}(I, N, N);
             B    = Ahat[:,jj:(jj+M)]
             if E[ii] >= 0
-              @test !ControlSystems._is_stabilizable(A,B)
+              @test !ControlSystems._stabilizable(A,B)
             else
-              @test ControlSystems._is_stabilizable(A,B)
+              @test ControlSystems._stabilizable(A,B)
             end
           end
         end
@@ -243,14 +243,14 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         N = 10; M = 5;
         A = rand(Float64, (N,N));
         B = rand(Float64, (N,M));
-        @test_throws MethodError ControlSystems._is_detectable(A,nothing)
-        @test_throws MethodError ControlSystems._is_detectable(nothing,B)
-        @test_throws MethodError ControlSystems._is_detectable(A,[])
-        @test_throws MethodError ControlSystems._is_detectable([],B)
-        @test_throws MethodError ControlSystems._is_detectable(A,ss(1))
-        @test_throws MethodError ControlSystems._is_detectable(ss(1),B)
-        @test_throws MethodError ControlSystems._is_detectable(A,tf(1))
-        @test_throws MethodError ControlSystems._is_detectable(tf(1),B)
+        @test_throws MethodError ControlSystems._stabilizable(A,nothing)
+        @test_throws MethodError ControlSystems._stabilizable(nothing,B)
+        @test_throws MethodError ControlSystems._stabilizable(A,[])
+        @test_throws MethodError ControlSystems._stabilizable([],B)
+        @test_throws MethodError ControlSystems._stabilizable(A,ss(1))
+        @test_throws MethodError ControlSystems._stabilizable(ss(1),B)
+        @test_throws MethodError ControlSystems._stabilizable(A,tf(1))
+        @test_throws MethodError ControlSystems._stabilizable(tf(1),B)
       end
 
       @testset "Detectability check" begin
@@ -274,9 +274,9 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
             Ahat = A - E[ii]*Matrix{Float64}(I, N, N);
             C    = Ahat[jj:(jj+M),:]
             if E[ii] >= 0
-              @test !ControlSystems._is_detectable(A,C)
+              @test !ControlSystems._detectable(A,C)
             else
-              @test ControlSystems._is_detectable(A,C)
+              @test ControlSystems._detectable(A,C)
             end
           end
         end
@@ -286,14 +286,14 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         N = 10; M = 5;
         A = rand(Float64, (M,M));
         C = rand(Float64, (N,M));
-        @test_throws MethodError ControlSystems._is_detectable(A,nothing)
-        @test_throws MethodError ControlSystems._is_detectable(nothing,C)
-        @test_throws MethodError ControlSystems._is_detectable(A,[])
-        @test_throws MethodError ControlSystems._is_detectable([],C)
-        @test_throws MethodError ControlSystems._is_detectable(A,ss(1))
-        @test_throws MethodError ControlSystems._is_detectable(ss(1),C)
-        @test_throws MethodError ControlSystems._is_detectable(A,tf(1))
-        @test_throws MethodError ControlSystems._is_detectable(tf(1),C)
+        @test_throws MethodError ControlSystems._detectable(A,nothing)
+        @test_throws MethodError ControlSystems._detectable(nothing,C)
+        @test_throws MethodError ControlSystems._detectable(A,[])
+        @test_throws MethodError ControlSystems._detectable([],C)
+        @test_throws MethodError ControlSystems._detectable(A,ss(1))
+        @test_throws MethodError ControlSystems._detectable(ss(1),C)
+        @test_throws MethodError ControlSystems._detectable(A,tf(1))
+        @test_throws MethodError ControlSystems._detectable(tf(1),C)
       end
 
       # TODO: write tests using the above submethods directly in hInf_assumptions
@@ -455,9 +455,9 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         #    γ = sqrt(ρX*ρY) + ϵ
         #
         # with any epsilon greater than or equal to zero.
-        @test !ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY)-tolerance, tolerance, iteration; verbose=false)
-        @test !ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY),           tolerance, iteration; verbose=false)
-        @test  ControlSystems._checkFeasibility(Xinf, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test !ControlSystems._checkfeasibility(Xinf, Yinf, sqrt(ρX*ρY)-tolerance, tolerance, iteration; verbose=false)
+        @test !ControlSystems._checkfeasibility(Xinf, Yinf, sqrt(ρX*ρY),           tolerance, iteration; verbose=false)
+        @test  ControlSystems._checkfeasibility(Xinf, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
 
         # Test that errors are thrown if the matrix Xinf and Yinf are not PSD down
         # to the numerical tolerance.
@@ -465,17 +465,17 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         L[1] += -L[1] + 2*tolerance; Xpos   = Q*Diagonal(L)*Q'; # slightly positive eigenvalue
         L[1] += -L[1]; Xzero  = Q*Diagonal(LX)*Q';               # exactly one zero eigenvalue
         L[1] += -L[1] - 2*tolerance; Xneg = Q*Diagonal(L)*Q';   # slightly negative eigenvalue
-        @test  ControlSystems._checkFeasibility(Xpos,  Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
-        @test  ControlSystems._checkFeasibility(Xzero, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
-        @test !ControlSystems._checkFeasibility(Xneg,  Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test  ControlSystems._checkfeasibility(Xpos,  Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test  ControlSystems._checkfeasibility(Xzero, Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test !ControlSystems._checkfeasibility(Xneg,  Yinf, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
 
         L = LY;
         L[1] += -L[1] + 2*tolerance; Ypos   = Q*Diagonal(L)*Q'; # slightly positive eigenvalue
         L[1] += -L[1]; Yzero  = Q*Diagonal(L)*Q';               # exactly one zero eigenvalue
         L[1] += -L[1] - 2*tolerance; Yneg = Q*Diagonal(L)*Q';   # slightly negative eigenvalue
-        @test  ControlSystems._checkFeasibility(Xinf, Ypos,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
-        @test  ControlSystems._checkFeasibility(Xinf, Yzero, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
-        @test !ControlSystems._checkFeasibility(Xinf, Yneg,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test  ControlSystems._checkfeasibility(Xinf, Ypos,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test  ControlSystems._checkfeasibility(Xinf, Yzero, sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
+        @test !ControlSystems._checkfeasibility(Xinf, Yneg,  sqrt(ρX*ρY)+tolerance, tolerance, iteration; verbose=false)
       end
 
       # TODO: Include a check to verify that the bisection works as intended.

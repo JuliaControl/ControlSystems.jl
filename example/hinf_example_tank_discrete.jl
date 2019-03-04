@@ -64,10 +64,10 @@ Gc = hInf_bilinear_z2s(Gd)
 Pc = hInf_partition(Gc, WS, WU, WT)
 
 # Check if the problem is feasible
-flag = hInf_assumptions(Pc)
+flag = hinfassumptions(Pc)
 
 # Synthesize the H-infinity optimal controller
-flag, Cc, gamma = hInf_synthesize(Pc)
+flag, Cc, gamma = hinfsynthesize(Pc)
 
 # Extract the transfer functions defining some signals of interest
 Pcl, S, CS, T = hInf_signals(Pc, Gc, Cc)

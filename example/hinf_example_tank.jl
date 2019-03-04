@@ -58,10 +58,10 @@ iWT = [iWTelement 0; 0 iWTelement]
 P = hInf_partition(G, WS, WU, WT)
 
 # Check that the assumptions are satisfied
-flag = hInf_assumptions(P)
+flag = hinfassumptions(P)
 
 # Synthesize the H-infinity optimal controller
-flag, C, gamma = hInf_synthesize(P)
+flag, C, gamma = hinfsynthesize(P)
 
 Pcl, S, CS, T = hInf_signals(P, G, C)
 

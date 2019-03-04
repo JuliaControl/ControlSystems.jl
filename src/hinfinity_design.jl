@@ -16,25 +16,25 @@ in docstrings and comments are to the version of the paper given below:
 """
 
 
-"""`[flag] = function hInf_assumptions(P::ExtendedStateSpace; verbose=true)`
+"""`[flag] = function hinfassumptions(P::ExtendedStateSpace; verbose=true)`
 
 Check the assumptions for using the γ-iteration synthesis in Theorem 1. In
 future revisions, we could suggest possible changes to P should the system not
 be feasible for synthesis. However, this has not been too successful so far..!
 """
-function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
+function hinfassumptions(P::ExtendedStateSpace; verbose=true)
 
     A, B1, B2, C1, C2, D11, D12, D21, D22 = ssdata(P)
 
     # Check assumption A1
-    if !_is_stabilizable(A, B2)
+    if !_stabilizable(A, B2)
       if verbose
         println("Warning, the system A is not stabilizable through B2, ",
                 "violation of assumption A1.")
       end
       return false
     end
-    if !_is_detectable(A, C2)
+    if !_detectable(A, C2)
       if verbose
         println("Warning, the system A is not detectable through C2, ",
                 "violation of assumption A1.")
@@ -80,11 +80,11 @@ function hInf_assumptions(P::ExtendedStateSpace; verbose=true)
     return true
 end
 
-"""`[flag] = _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)`
+"""`[flag] = _stabilizable(A::AbstractMatrix, B::AbstractMatrix)`
 
 Applies the Hautus lemma to check if the pair is stabilizable
 """
-function _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)
+function _stabilizable(A::AbstractMatrix, B::AbstractMatrix)
   eigValsA = eigvals(A)
   for ii = 1:length(eigValsA)
     if real(eigValsA[ii])>= 0
@@ -96,11 +96,11 @@ function _is_stabilizable(A::AbstractMatrix, B::AbstractMatrix)
   return true
 end
 
-"""`[flag] = _is_stabilizable(A::AbstractMatrix, C::AbstractMatrix)`
+"""`[flag] = _detectable(A::AbstractMatrix, C::AbstractMatrix)`
 
 Applies the Hautus lemma to check if the pair is detectable
 """
-function _is_detectable(A::AbstractMatrix, C::AbstractMatrix)
+function _detectable(A::AbstractMatrix, C::AbstractMatrix)
   eigValsA = eigvals(A)
   for ii = 1:length(eigValsA)
     if real(eigValsA[ii])>= 0
@@ -112,7 +112,7 @@ function _is_detectable(A::AbstractMatrix, C::AbstractMatrix)
   return true
 end
 
-"""`[flag, K, gamma] = hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true)`
+"""`[flag, K, gamma] = hinfsynthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true)`
 
 Computes an H-infinity optimal controller K for an extended plant P such that
 ||F_l(P, K)||∞ < γ for the largest possible gamma given P. The routine is
@@ -120,17 +120,17 @@ known as the γ-iteration, and is based on the paper "State-space formulae for
 all stabilizing controllers that satisfy an H∞-norm bound and relations to
 risk sensitivity" by Glover and Doyle. See the Bib-entry below [1] above.
 """
-function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true, tolerance=1e-10)
+function hinfsynthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), verbose=true, tolerance=1e-10)
 
     # Transform the system into a suitable form
-    Pbar, Ltrans12, Rtrans12, Ltrans21, Rtrans21 = _transformP2Pbar(P)
+    Pbar, Ltrans12, Rtrans12, Ltrans21, Rtrans21 = _transformp2pbar(P)
 
     # Run the gamma iterations
-    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaIterations(Pbar, maxIter, interval, verbose, tolerance)
+    XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = _gammaiterations(Pbar, maxIter, interval, verbose, tolerance)
 
     if !isempty(gammFeasible)
       # Synthesize the controller and trnasform it back into the original coordinates
-      Ac, Bc, Cc, Dc = _synthesizeController(Pbar, XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible, Ltrans12, Rtrans12, Ltrans21, Rtrans21)
+      Ac, Bc, Cc, Dc = _synthesizecontroller(Pbar, XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible, Ltrans12, Rtrans12, Ltrans21, Rtrans21)
 
       # Return the controller, the optimal gain γ, and a true flag
       C     = ss(Ac, Bc, Cc, Dc)
@@ -145,7 +145,7 @@ function hInf_synthesize(P::ExtendedStateSpace; maxIter=20, interval=(2/3,20), v
     return flag, C, gammFeasible
 end
 
-"""`[Ac, Bc Cc, Dc] = hInfSynthesizeController(P::ExtendedStateSpace, Xinf, Yinf, F, H, gamma, Ltrans12, Rtrans12, Ltrans21, Rtrans21)`
+"""`[Ac, Bc Cc, Dc] = _synthesizecontroller(P::ExtendedStateSpace, Xinf, Yinf, F, H, gamma, Ltrans12, Rtrans12, Ltrans21, Rtrans21)`
 
 Syntheize a controller by operating on the scaled state-space description of the
 system (i.e., the state-space realization of Pbar) using the solutions from the
@@ -153,7 +153,7 @@ system (i.e., the state-space realization of Pbar) using the solutions from the
 transformed back to the original coordinates by the linear transformations
 Ltrans12, Rtrans12, Ltrans21 and Rtrans21.
 """
-function _synthesizeController(P::ExtendedStateSpace, Xinf::AbstractMatrix, Yinf::AbstractMatrix, F::AbstractMatrix, H::AbstractMatrix, gamma::Number, Ltrans12::AbstractMatrix, Rtrans12::AbstractMatrix, Ltrans21::AbstractMatrix, Rtrans21::AbstractMatrix)
+function _synthesizecontroller(P::ExtendedStateSpace, Xinf::AbstractMatrix, Yinf::AbstractMatrix, F::AbstractMatrix, H::AbstractMatrix, gamma::Number, Ltrans12::AbstractMatrix, Rtrans12::AbstractMatrix, Ltrans21::AbstractMatrix, Rtrans21::AbstractMatrix)
 
     A = P.A
     B1 = P.B1
@@ -258,12 +258,12 @@ function _assert_real_and_PSD(A::AbstractMatrix; msg="")
   end
 end
 
-"""`[flag] =  _checkFeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=true)`
+"""`[flag] =  _checkfeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=true)`
 
 Check the feasibility of the computed solutions Xinf, Yinf and the algebraic
 Riccatti equations, return true if the solution is valid, and false otherwise.
 """
-function _checkFeasibility(Xinf::AbstractMatrix, Yinf::AbstractMatrix, gamma::Number, tolerance::Number, iteration::Number; verbose=true)
+function _checkfeasibility(Xinf::AbstractMatrix, Yinf::AbstractMatrix, gamma::Number, tolerance::Number, iteration::Number; verbose=true)
 
   minXev  = minimum(real(eigvals(Xinf)))
   minYev  = minimum(real(eigvals(Yinf)))
@@ -319,11 +319,11 @@ function _solveHamiltonianARE(H::Any)
     return U21/U11
 end
 
-"""`[solution] = _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)`
+"""`[solution] = _solvematrixequations(P::ExtendedStateSpace, gamma::Number)`
 
 Solves the dual matrix equations in the γ-iterations (equations 7-12 in Doyle).
 """
-function _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)
+function _solvematrixequations(P::ExtendedStateSpace, gamma::Number)
 
     A = P.A
     B1 = P.B1
@@ -370,7 +370,7 @@ function _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)
     return Xinf, Yinf, F, H
 end
 
-"""`[flag]=_gammaIterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)`
+"""`[flag]=_gammaiterations(A, B1, B2, C1, C2, D11, D12, D21, D22, maxIter, interval, verbose, tolerance)`
 
 Rune the complete set of γ-iterations over a specified search interval with a
 set number of iterations. It is possible to break the algorithm if the number
@@ -380,7 +380,7 @@ terminates without a solution if the maximum possible gamma on the defined
 interval is infeasible. Here we could consider increasing the bounds somewhat
 and warn the user if this occurrs.
 """
-function _gammaIterations(P::ExtendedStateSpace, maxIter::Number, interval::Tuple, verbose::Bool, tolerance::Number)
+function _gammaiterations(P::ExtendedStateSpace, maxIter::Number, interval::Tuple, verbose::Bool, tolerance::Number)
 
     XinfFeasible, YinfFeasible, FinfFeasible, HinfFeasible, gammFeasible = [],[],[],[],[]
 
@@ -389,10 +389,10 @@ function _gammaIterations(P::ExtendedStateSpace, maxIter::Number, interval::Tupl
     for iteration = 1:maxIter
 
           # Solve the matrix equations
-          Xinf, Yinf, F, H = _solveMatrixEquations(P, gamma)
+          Xinf, Yinf, F, H = _solvematrixequations(P, gamma)
 
           # Check Feasibility
-          isFeasible = _checkFeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=verbose)
+          isFeasible = _checkfeasibility(Xinf, Yinf, gamma, tolerance, iteration; verbose=verbose)
 
       if isFeasible
           XinfFeasible = Xinf
@@ -416,7 +416,7 @@ end
 Transform the original system P to a new system Pbar, in which D12bar = [0; I]
 and D21bar = [0 I] in order to satisfy the feasibility assumption A3 (see Doyle)
 """
-function _transformP2Pbar(P::ExtendedStateSpace)
+function _transformp2pbar(P::ExtendedStateSpace)
 
     # Compute the transformation
     Ltrans12, Rtrans12 = _scaleMatrix(P.D12)

@@ -29,7 +29,7 @@ WT = []
 P = hInf_partition(Gtrue, WS, WU, WT)
 
 # Check if the system is feasible for synythesis
-flag = hInf_assumptions(P)
+flag = hinfassumptions(P)
 
 # Since it is not, modify the plant desciption
 epsilon = 1e-5
@@ -39,10 +39,10 @@ G = tf([11.2], [1, 0.12]) * tf([1], [1, epsilon])
 P = hInf_partition(G, WS, WU, WT)
 
 # Check if the problem is feasible
-flag = hInf_assumptions(P)
+flag = hinfassumptions(P)
 
 # Synthesize the H-infinity optimal controller
-flag, C, gamma = hInf_synthesize(P)
+flag, C, gamma = hinfsynthesize(P)
 
 # Extract the transfer functions defining some signals of interest
 Pcl, S, CS, T = hInf_signals(P, G, C)
