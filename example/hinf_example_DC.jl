@@ -10,8 +10,7 @@ The example can be set to visualize and save plots using the variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots = false
-SavePlots = false
+MakePlots, SavePlots = true, true
 
 # Define the process
 Gtrue   = tf([11.2], [1, 0.12,0])
@@ -48,9 +47,18 @@ flag, C, gamma = hInf_synthesize(P)
 # Extract the transfer functions defining some signals of interest
 Pcl, S, CS, T = hInf_signals(P, G, C)
 
-# TODO remove hack for visualizing plots, should be made into some kind of recepie
+## Plot the specifications
 if MakePlots
-  include("hinf_utilities.jl")
-  if SavePlots; filename = "example_DC.pdf"; else; filename=[]; end
-  visualize_synthesis(Pcl, S, CS, T, gamma; filename=filename, tmax=4)
+  specificationplot([S, CS, T], [WS, WU, WT], gamma)
+  if SavePlots
+    savefig("example_DC_specifications.pdf")
+  end
+end
+
+## Plot the closed loop gain from w to z
+if MakePlots
+  specificationplot(Pcl, gamma; s_labels=["\$\\sigma(P_{cl}(j\\omega))\$"], w_labels=["\$\\gamma\$"])
+  if SavePlots
+    savefig("example_DC_clgain.pdf")
+  end
 end

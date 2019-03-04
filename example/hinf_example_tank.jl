@@ -9,8 +9,7 @@ The example can be set to visualize and save plots using the variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots = false
-SavePlots = false
+MakePlots, SavePlots = true, true
 
 # Define the proces parameters
 k1, k2, kc, g = 3.33, 3.35, 0.5, 981
@@ -43,7 +42,7 @@ iWSelement = 1/WSelement
 iWS = [iWSelement 0; 0 iWSelement]
 
 # Output sensitivity weight function
-WUelement = 5*tf([1,1],[0.1,1]) ##
+WUelement = 5*tf([1,1],[0.1,1])
 WUelement = ss(0.01)
 WU = [WUelement 0; 0 WUelement]
 iWUelement = 1/WUelement
@@ -66,53 +65,35 @@ flag, C, gamma = hInf_synthesize(P)
 
 Pcl, S, CS, T = hInf_signals(P, G, C)
 
+## Plot the specifications
+# TODO figure out why I get segmentation errors when using ss instead of tf for
+# the weighting functions, makes no sense at all
 if MakePlots
-  # Visualize
-  frequencies = [10^i for i in range(-6, stop=6, length=1001)];
+  specificationplot([S, CS, T], [WSelement, 0.01, WTelement], gamma)
+  if SavePlots
+    savefig("example_tank_specifications.pdf")
+  end
+end
 
-  pGain = plot(frequencies, ones(size(frequencies))*gamma, scale = :log10, yscale = :log10, color = :black, w=2, style=:dot, label="\$\\gamma\$")
-  valPcl  = sigma(Pcl, frequencies)[1];
-  plot!(frequencies, valPcl[:,1], scale = :log10, yscale = :log10, color = :black, w=1, label="\$\\sigma(P_{w\\rightarrow z}(j\\omega))\$")
-  plot!(frequencies, valPcl[:,2], scale = :log10, yscale = :log10, color = :black, w=1, label="")
+## Plot the closed loop gain from w to z
+# TODO figure out why the legends don't seem to work in this case
+if MakePlots
+  specificationplot(Pcl, gamma; s_labels=["\$\\sigma(P_{cl}(j\\omega))\$"], w_labels=["\$\\gamma\$"])
+  if SavePlots
+    savefig("example_tank_clgain.pdf")
+  end
+end
 
-  valT  = sigma(T, frequencies)[1];
-  pSigma = plot(frequencies, valT[:,1], scale = :log10, yscale = :log10, color = :black, w=1, label="\$\\sigma(T(j\\omega))\$")
-  plot!(frequencies, valT[:,2], scale = :log10, yscale = :log10, color = :black, w=1, label="")
-  valCS  = sigma(CS, frequencies)[1];
-  plot!(frequencies, valCS[:,1], scale = :log10, yscale = :log10, color = :blue, w=1, label="\$\\sigma(C(j\\omega)S(j\\omega))\$")
-  plot!(frequencies, valCS[:,2], scale = :log10, yscale = :log10, color = :blue, w=1, label="")
-  valS = sigma(S, frequencies)[1];
-  plot!(frequencies, valS[:,1], scale = :log10, yscale = :log10, color = :red, w=1, label="\$\\sigma(S(j\\omega))\$")
-  plot!(frequencies, valS[:,2], scale = :log10, yscale = :log10, color = :red, w=1, label="")
-
-  valPiWT  = sigma(gamma*iWT, frequencies)[1];
-  plot!(frequencies, valPiWT[:,1], scale = :log10, yscale = :log10, color = :black, w=2, style=:dot, label="\$\\gamma\\sigma(W_T^{-1}(j\\omega))\$")#
-  valPiWU  = sigma(gamma*iWU, frequencies)[1];
-  plot!(frequencies, valPiWU[:,1], scale = :log10, yscale = :log10, color = :blue, w=2, style=:dot, label="\$\\gamma\\sigma(W_U^{-1}(j\\omega))\$")
-  valPiWS  = sigma(gamma*iWS, frequencies)[1];
-  plot!(frequencies, valPiWS[:,1], scale = :log10, yscale = :log10, color = :red, w=2, style=:dot, label="\$\\gamma\\sigma(W_S^{-1}(j\\omega))\$")
-
+if MakePlots
   times = [i for i in range(0, stop=300, length=10000)]
-
   stepy, stept, stepx = step(T, times)
-
   pStep1=plot(stept, stepy[:,1,1], color = :blue, w=2, label="\$u_1\\rightarrow y_1\$")
   pStep2=plot(stept, stepy[:,1,2], color = :blue, w=2, label="\$u_1\\rightarrow y_2\$", ylims = (-0.5,1.1))
   pStep3=plot(stept, stepy[:,2,1], color = :blue, w=2, label="\$u_2\\rightarrow y_1\$", ylims = (-0.5,1.1))
   pStep4=plot(stept, stepy[:,2,2], color = :blue, w=2, label="\$u_2\\rightarrow y_2\$")
-
+  l = @layout [ a b c d ]
+  plt=plot(pStep1, pStep2, pStep3, pStep4, layout=l, size=(1000,250))
   if SavePlots
-    plot(pGain, size=(600, 300), legend=:right)
-    savefig("gainPlotQuadTank.pdf")
-
-    plot(pSigma, size=(600, 300), legend=:left)
-    savefig("sigmaPlotQuadTank.pdf")
-
-    l = @layout [ c d e f ]
-    plt=plot(pStep1, pStep2, pStep3, pStep4, layout=l, size=(1000,250))
-    savefig("stepPlotQuadTank.pdf")
-  else
-    l = @layout [ a ; b ; c d ; e f ]
-    plt=plot(pGain, pSigma, pStep1, pStep2, pStep3, pStep4, layout=l, size=(600,600))
+    savefig("example_tank_stepresponse.pdf")
   end
 end
