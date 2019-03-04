@@ -341,24 +341,30 @@ end
 
 """`[solution] = _solveHamiltonianARE(H)`
 
-Solves a hamiltonian Alebraic Riccati equation using the Schur-decomposition.
+Solves a hamiltonian Alebraic Riccati equation using the Schur-decomposition,
+for additional details, see
+
+  @article{laub1979schur,
+    title={A Schur method for solving algebraic Riccati equations},
+    author={Laub, Alan},
+    journal={IEEE Transactions on automatic control},
+    volume={24},
+    number={6},
+    pages={913--921},
+    year={1979},
+    publisher={IEEE}
+  }
 """
 function _solveHamiltonianARE(H::Any)
 
-    # TODO fix this computational routine if need be
-    # TODO throw errors?
-    # TODO eigenvalue solvers as an alternative?
     S = schur(H)
     S = ordschur(S, real(S.values).<0)
-    U = S.Z
 
-    (m, n) = size(U)
-    U11 = U[1:div(m, 2), 1:div(n,2)]
-    U21 = U[div(m,2)+1:m, 1:div(n,2)]
-    solution = U21/U11
+    (m, n) = size(S.Z)
+    U11 = S.Z[1:div(m, 2), 1:div(n,2)]
+    U21 = S.Z[div(m,2)+1:m, 1:div(n,2)]
 
-    flag = 0
-    return solution, flag
+    return U21/U11
 end
 
 """`[solution] = _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)`
@@ -400,8 +406,8 @@ function _solveMatrixEquations(P::ExtendedStateSpace, gamma::Number)
     HY = [A' zeros(size(A)); -B1*B1' -A] - ([C';-B1*Ddot1']/Rbar)*[Ddot1*B1' C];
 
     # Solve matrix equations
-    Xinf, Xflag = _solveHamiltonianARE(HX)
-    Yinf, Yflag = _solveHamiltonianARE(HY)
+    Xinf = _solveHamiltonianARE(HX)
+    Yinf = _solveHamiltonianARE(HY)
 
     # Equation (11)
     F = - R \ (D1dot'*C1+B'*Xinf)

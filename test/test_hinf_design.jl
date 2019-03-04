@@ -3,7 +3,7 @@ using Test
 using LinearAlgebra
 using Random
 
-execute_tests = [false,false,true,false,false,false,false,false,true]
+execute_tests = [true,true,true,true,true,true,true,true,true]
 
 @testset "H-infinity design" begin
   """
