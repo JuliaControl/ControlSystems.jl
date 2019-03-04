@@ -529,10 +529,10 @@ fucntion objects on a the trasfer function or the state-space form.
 """
 function hinfpartition(G::Any, WS::Any, WU::Any, WT::Any)
     # Convert the systems into state-space form
-    Ag,  Bg,  Cg,  Dg  = _convert_input_to_ss(G)
-    Asw, Bsw, Csw, Dsw = _convert_input_to_ss(WS)
-    Auw, Buw, Cuw, Duw = _convert_input_to_ss(WU)
-    Atw, Btw, Ctw, Dtw = _convert_input_to_ss(WT)
+    Ag,  Bg,  Cg,  Dg  = _input2ss(G)
+    Asw, Bsw, Csw, Dsw = _input2ss(WS)
+    Auw, Buw, Cuw, Duw = _input2ss(WU)
+    Atw, Btw, Ctw, Dtw = _input2ss(WT)
 
     # Check that the system is realizable
     if size(Cg, 1) != size(Btw,2) && size(Btw,2) != 0
@@ -619,7 +619,7 @@ end
 
 Help function used for type conversion in hInf_partition()
 """
-function _convert_input_to_ss(H::Any)
+function _input2ss(H::Any)
   if isa(H, LTISystem)
       if isa(H, TransferFunction)
           Hss = ss(H)
@@ -698,7 +698,7 @@ function hinfsignals(P::ExtendedStateSpace, G::LTISystem, C::LTISystem)
 end
 
 
-"""`hInf_bilinear_z2s(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArray, Dd::AbstractArray, Ts::Number; tolerance=1e-12)`
+"""`bilineard2c(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArray, Dd::AbstractArray, Ts::Number; tolerance=1e-12)`
 
 Balanced Bilinear transformation in State-Space. This method computes a
 continuous time equivalent of a discrete time system, such that
@@ -710,7 +710,7 @@ in a manner which accomplishes the following
   (ii)  Finds a system which balances B and C, in the sense that ||B||_2=||C||_2
   (iii) Satisfies G_d(z) = s2z[z2s[G_d(z)]] for some map s2z[]
 """
-function hInf_bilinear_z2s(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArray, Dd::AbstractArray, Ts::Number; tolerance=1e-12)
+function bilineard2c(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArray, Dd::AbstractArray, Ts::Number; tolerance=1e-12)
 
   Id = Matrix{Float64}(I, size(Ad,1), size(Ad,2))
 
@@ -739,25 +739,25 @@ function hInf_bilinear_z2s(Ad::AbstractArray, Bd::AbstractArray, Cd::AbstractArr
   return Ac, Bc, Cc, Dc
 end
 
-"""`hInf_bilinear_z2s(sys::StateSpace)`
+"""`bilineard2c(sys::StateSpace)`
 
 Applies a Balanced Bilinear transformation to continuous-time statespace object
 """
-function hInf_bilinear_z2s(sys::StateSpace)
+function bilineard2c(sys::StateSpace)
   Ad, Bd, Cd, Dd = ssdata(sys)
   Ts = sys.Ts
 
   if Ts <= 0; error("Error, the input must be a discrete time system."); end
 
-  Ac, Bc, Cc, Dc = hInf_bilinear_z2s(Ad, Bd, Cd, Dd, Ts)
+  Ac, Bc, Cc, Dc = bilineard2c(Ad, Bd, Cd, Dd, Ts)
   return ss(Ac, Bc, Cc, Dc)
 end
 
-"""`hInf_bilinear_z2s(sys::ExtendedStateSpace)`
+"""`bilineard2c(sys::ExtendedStateSpace)`
 
 Applies a Balanced Bilinear transformation to continuous-time extended statespace object
 """
-function hInf_bilinear_z2s(sys::ExtendedStateSpace)
+function bilineard2c(sys::ExtendedStateSpace)
   Ad = get_A(sys)
   Bd = get_B(sys)
   Cd = get_C(sys)
@@ -771,7 +771,7 @@ function hInf_bilinear_z2s(sys::ExtendedStateSpace)
 
   if Ts <= 0; error("Error, the input must be a discrete time system."); end
 
-  Ac, Bc, Cc, Dc = hInf_bilinear_z2s(Ad, Bd, Cd, Dd, Ts)
+  Ac, Bc, Cc, Dc = bilineard2c(Ad, Bd, Cd, Dd, Ts)
 
   A   = Ac
   B1  = Bc[:,1:m1]
@@ -786,7 +786,7 @@ function hInf_bilinear_z2s(sys::ExtendedStateSpace)
   return ss(A, B1, B2, C1, C2, D11, D12, D21, D22)
 end
 
-"""`hInf_bilinear_s2z(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArray, Dc::AbstractArray, Ts::Number; tolerance=1e-12)`
+"""`bilinearc2d(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArray, Dc::AbstractArray, Ts::Number; tolerance=1e-12)`
 
 Balanced Bilinear transformation in State-Space. This method computes a
 discrete time equivalent of a continuous-time system, such that
@@ -798,7 +798,7 @@ in a manner which accomplishes the following
   (ii)  Finds a system which balances B and C, in the sense that ||B||_2=||C||_2
   (iii) Satisfies G_c(s) = z2s[s2z[G_c(s)]] for some map z2s[]
 """
-function hInf_bilinear_s2z(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArray, Dc::AbstractArray, Ts::Number; tolerance = 1e-12)
+function bilinearc2d(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArray, Dc::AbstractArray, Ts::Number; tolerance = 1e-12)
 
   Id = Matrix{Float64}(I, size(Ac,1), size(Ac,2))
   alpha = Ts/2 #Should be this, but the nyquist frequency doesnt add up
@@ -833,11 +833,11 @@ function hInf_bilinear_s2z(Ac::AbstractArray, Bc::AbstractArray, Cc::AbstractArr
   return Ad, Bd, Cd, Dd, Ts
 end
 
-"""`hInf_bilinear_s2z(sys::StateSpace, Ts::Number)`
+"""`bilinearc2d(sys::StateSpace, Ts::Number)`
 
 Applies a Balanced Bilinear transformation to a discrete-time statespace object
 """
-function hInf_bilinear_s2z(sys::StateSpace, Ts::Number)
+function bilinearc2d(sys::StateSpace, Ts::Number)
   Ac, Bc, Cc, Dc = ssdata(sys)
 
   if sys.Ts > 0
@@ -847,15 +847,15 @@ function hInf_bilinear_s2z(sys::StateSpace, Ts::Number)
     error("Error, the the discretization time Ts must be positive.")
   end
 
-  Ad, Bd, Cd, Dd = hInf_bilinear_s2z(Ac, Bc, Cc, Dc, Ts)
+  Ad, Bd, Cd, Dd = bilinearc2d(Ac, Bc, Cc, Dc, Ts)
   return ss(Ad, Bd, Cd, Dd, Ts)
 end
 
-"""`hInf_bilinear_s2z(sys::ExtendedStateSpace, Ts::Number)`
+"""`bilinearc2d(sys::ExtendedStateSpace, Ts::Number)`
 
 Applies a Balanced Bilinear transformation to a discrete-time extended statespace object
 """
-function hInf_bilinear_s2z(sys::ExtendedStateSpace, Ts::Number)
+function bilinearc2d(sys::ExtendedStateSpace, Ts::Number)
   Ac = get_A(sys)
   Bc = get_B(sys)
   Cc = get_C(sys)
@@ -873,7 +873,7 @@ function hInf_bilinear_s2z(sys::ExtendedStateSpace, Ts::Number)
     error("Error, the the discretization time Ts must be positive.")
   end
 
-  Ad, Bd, Cd, Dd = hInf_bilinear_s2z(Ac, Bc, Cc, Dc, Ts)
+  Ad, Bd, Cd, Dd = bilinearc2d(Ac, Bc, Cc, Dc, Ts)
 
   A   = Ad
   B1  = Bd[:,1:m1]

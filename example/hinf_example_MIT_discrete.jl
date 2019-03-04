@@ -29,7 +29,7 @@ WU = ss(0.1)
 WT = []
 
 # Create continuous time approximation of the process
-Gc = hInf_bilinear_z2s(ss(Gd))
+Gc = bilineard2c(ss(Gd))
 
 # Form augmented P dynamics in state-space
 Pc = hinfpartition(Gc, WS, WU, WT)
@@ -43,9 +43,9 @@ flag, Cc, gamma = hinfsynthesize(Pc)
 # Extract the transfer functions defining some signals of interest, but do so
 # using discrete equivalent of the continuous time objects Pc, Cc and Gc
 PclD, SD, CSD, TD = hinfsignals(
-  hInf_bilinear_s2z(Pc, ts),
-  hInf_bilinear_s2z(Gc, ts),
-  hInf_bilinear_s2z(Cc, ts)
+  bilinearc2d(Pc, ts),
+  bilinearc2d(Gc, ts),
+  bilinearc2d(Cc, ts)
 )
 
 Pcl = ss(PclD.A, PclD.B, PclD.C, PclD.D, ts)

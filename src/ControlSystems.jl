@@ -78,8 +78,8 @@ export  LTISystem,
         hinfassumptions,
         hinfpartition,
         hinfsignals,
-        hInf_bilinear_s2z,
-        hInf_bilinear_z2s
+        bilinearc2d,
+        bilineard2c
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra

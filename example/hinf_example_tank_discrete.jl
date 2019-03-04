@@ -35,7 +35,7 @@ C = [kc 0 0 0;
      0 kc 0 0];
 D = zeros(2,2)
 ts = 0.01
-Gd = hInf_bilinear_s2z(ss(A,B,C,D), ts)
+Gd = bilinearc2d(ss(A,B,C,D), ts)
 
 # Sensitivity weight function
 WSelement = 100*tf([0.1,1],[1000,1])
@@ -57,7 +57,7 @@ iWTelement = 1/WTelement
 iWT = [iWTelement 0; 0 iWTelement]
 
 # Create continuous time approximation of the process
-Gc = hInf_bilinear_z2s(Gd)
+Gc = bilineard2c(Gd)
 #Gc = ss(A,B,C,D)
 
 # Form the P in the LFT Fl(P,C) as a partitioned state-space object
@@ -72,10 +72,10 @@ flag, Cc, gamma = hinfsynthesize(Pc)
 # Extract the transfer functions defining some signals of interest
 Pcl, S, CS, T = hinfsignals(Pc, Gc, Cc)
 
-Pcl = hInf_bilinear_s2z(Pcl, ts)
-S   = hInf_bilinear_s2z(S,  ts)
-CS  = hInf_bilinear_s2z(CS, ts)
-T   = hInf_bilinear_s2z(T,  ts)
+Pcl = bilinearc2d(Pcl, ts)
+S   = bilinearc2d(S,  ts)
+CS  = bilinearc2d(CS, ts)
+T   = bilinearc2d(T,  ts)
 
 if MakePlots
   # Specifications

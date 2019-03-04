@@ -34,12 +34,12 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
 
     hinfsynthesize
     hinfassumptions
-    hInf_bilinear_z2s
-    hInf_bilinear_s2z
     hinfsignals
     hinfpartition
-    _is_detectable
-    _is_stabilizable
+    bilineard2c
+    bilinearc2d
+    _detectable
+    _stabilizable
     _synthesizecontroller
     _assertrealandpsd
     _checkfeasibility
@@ -48,7 +48,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
     _gammaIterations
     _transformp2pbar
     _scalematrix
-    _convert_input_to_ss
+    _input2ss
     _coordinateTtansformqr
     _coordinateTtansformsvd
 
@@ -68,7 +68,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
         @testset "Empty and nothing" begin
 
           # Check that conversion of nothing is OK
-          A, B, C, D = ControlSystems._convert_input_to_ss(nothing)
+          A, B, C, D = ControlSystems._input2ss(nothing)
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -80,7 +80,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
           @test size(D) == (0,0)
 
           # Check that conversion of empty objects are OK
-          A, B, C, D = ControlSystems._convert_input_to_ss([])
+          A, B, C, D = ControlSystems._input2ss([])
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -97,7 +97,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
           number = 2.0
 
           # Check that conversion of numbers are OK
-          A, B, C, D = ControlSystems._convert_input_to_ss(number)
+          A, B, C, D = ControlSystems._input2ss(number)
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -126,7 +126,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
           MIMO_tf = tf(MIMO_ss)
 
           # check that conversion of SISO tf data is OK
-          A, B, C, D = ControlSystems._convert_input_to_ss(SISO_tf)
+          A, B, C, D = ControlSystems._input2ss(SISO_tf)
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -135,7 +135,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
           @test ss(A, B, C, D) == ss(SISO_tf)
 
           # check that conversion of SISO tf data is OK
-          A, B, C, D = ControlSystems._convert_input_to_ss(SISO_ss)
+          A, B, C, D = ControlSystems._input2ss(SISO_ss)
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -144,7 +144,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
           @test ss(A, B, C, D) == SISO_ss
 
           # check that conversion of MIMO tf data is OK
-          A, B, C, D = ControlSystems._convert_input_to_ss(MIMO_tf)
+          A, B, C, D = ControlSystems._input2ss(MIMO_tf)
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -153,7 +153,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
           @test ss(A, B, C, D) == ss(MIMO_tf)
 
           # check that conversion of MIMO tf data is OK
-          A, B, C, D = ControlSystems._convert_input_to_ss(MIMO_ss)
+          A, B, C, D = ControlSystems._input2ss(MIMO_ss)
           @test isa(A, Array{Float64,2})
           @test isa(B, Array{Float64,2})
           @test isa(C, Array{Float64,2})
@@ -528,11 +528,11 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
 
               Gtrue = ss(AcTrue, BcTrue, CcTrue, DcTrue)
               valA, fA = sigma(Gtrue, freq);
-              sysB = hInf_bilinear_s2z(Gtrue, h);
+              sysB = bilinearc2d(Gtrue, h);
               valB, fB = sigma(sysB, freq)
-              sysC = hInf_bilinear_z2s(hInf_bilinear_s2z(Gtrue, h))
+              sysC = bilineard2c(bilinearc2d(Gtrue, h))
               valC, fC = sigma(sysC, freq)
-              sysD = hInf_bilinear_s2z(hInf_bilinear_z2s(hInf_bilinear_s2z(Gtrue, h)),h)
+              sysD = bilinearc2d(bilineard2c(bilinearc2d(Gtrue, h)),h)
               valD, fD = sigma(sysD, freq)
 
               @test abs(maximum(svd(sysB.B).S)-maximum(svd(sysB.C).S)) < tolerance
@@ -584,7 +584,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
                     [EsysA.D11 EsysA.D12; EsysA.D21 EsysA.D22]) , freq)
 
                     # To discrete time
-                    EsysB = hInf_bilinear_s2z(EsysA, h)
+                    EsysB = bilinearc2d(EsysA, h)
                     valB, fB = sigma(ss(
                     EsysB.A,
                     [EsysB.B1 EsysB.B2],
@@ -592,7 +592,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
                     [EsysB.D11 EsysB.D12; EsysB.D21 EsysB.D22],h) , freq)
 
                     # To continuous time
-                    EsysC = hInf_bilinear_z2s(hInf_bilinear_s2z(EsysA, h))
+                    EsysC = bilineard2c(bilinearc2d(EsysA, h))
                     valC, fC = sigma(ss(
                     EsysC.A,
                     [EsysC.B1 EsysC.B2],
@@ -600,7 +600,7 @@ execute_tests = [true,true,true,true,true,true,true,true,true]
                     [EsysC.D11 EsysC.D12; EsysC.D21 EsysC.D22]) , freq)
 
                     # To discrete time
-                    EsysD = hInf_bilinear_s2z(hInf_bilinear_z2s(hInf_bilinear_s2z(EsysA, h)),h)
+                    EsysD = bilinearc2d(bilineard2c(bilinearc2d(EsysA, h)),h)
                     valD, fD = sigma(ss(
                     EsysD.A,
                     [EsysD.B1 EsysD.B2],
