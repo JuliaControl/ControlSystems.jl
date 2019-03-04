@@ -569,7 +569,6 @@ can be both MIMO and SISO, both in tf and ss forms). Valid inputs for the
 weighting functions are empty entries, numbers (static gains), and transfer
 fucntion objects on a the trasfer function or the state-space form.
 """
-
 function hInf_partition(G::Any, WS::Any, WU::Any, WT::Any)
     # Convert the systems into state-space form
     Ag,  Bg,  Cg,  Dg  = _convert_input_to_ss(G)

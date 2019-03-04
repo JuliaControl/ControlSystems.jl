@@ -14,7 +14,7 @@ The example can be set to visualize and save plots using the two variables
   ShowPlots - true/false (true if plots are to be generated, false for testing)
   filename  - Set to string if files are to be saved, otherwise set a empty list
 """
-MakePlots, SavePlots = true, true
+MakePlots, SavePlots = false, false
 
 # Define the process
 G   = tf([200], [0.025,1.0025,10.1,1])

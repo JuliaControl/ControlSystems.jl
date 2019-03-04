@@ -10,8 +10,7 @@ The example can be set to visualize and save plots using the variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots = false
-SavePlots = false
+MakePlots = true
 
 # Define the process
 ts = 0.01
@@ -29,7 +28,7 @@ WU = ss(1)
 WT = []
 
 # Create continuous time approximation of the process
-hInf_bilinear_z2s(ss(Gd))
+Gc = hInf_bilinear_z2s(ss(Gd))
 
 # Form the P in the LFT Fl(P,C) as a partitioned state-space object
 Pc = hInf_partition(Gc, WS, WU, WT)
@@ -54,9 +53,8 @@ S   = ss(SD.A, SD.B, SD.C, SD.D, ts)
 CS  = ss(CSD.A, CSD.B, CSD.C, CSD.D, ts)
 T   = ss(TD.A, TD.B, TD.C, TD.D, ts)
 
-# TODO remove hack for visualizing plots, should be made into some kind of recepie
+# Visualize results
 if MakePlots
-  include("hinf_utilities.jl")
-  if SavePlots; filename = "example_DC.pdf"; else; filename=[]; end
-  visualize_synthesis(Pcl, S, CS, T, gamma; filename=filename, tmax=4)
+  specificationplot([S, CS, T], [WS, WU, WT], gamma)
+  specificationplot(Pcl, gamma; s_labels=["\$\\sigma(P_{cl}(j\\omega))\$"], w_labels=["\$\\gamma\$"])
 end

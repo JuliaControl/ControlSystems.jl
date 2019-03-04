@@ -10,7 +10,7 @@ The example can be set to visualize and save plots using the variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots, SavePlots = true, true
+MakePlots, SavePlots = false, false
 
 # Define the process
 Gtrue   = tf([11.2], [1, 0.12,0])

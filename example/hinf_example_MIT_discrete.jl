@@ -12,8 +12,7 @@ The example can be set to visualize and save plots using the two variables
   MakePlots - true/false (true if plots are to be generated, false for testing)
   SavePlots - true/false (true if plots are to be saved, false for testing)
 """
-MakePlots = false
-SavePlots = false
+MakePlots = true
 
 # Define the process
 ts = 0.005
@@ -54,9 +53,8 @@ S   = ss(SD.A, SD.B, SD.C, SD.D, ts)
 CS  = ss(CSD.A, CSD.B, CSD.C, CSD.D, ts)
 T   = ss(TD.A, TD.B, TD.C, TD.D, ts)
 
-# TODO remove hack for visualizing plots, should be made into some kind of recepie
+# Visualize results
 if MakePlots
-  include("hinf_utilities.jl")
-  if SavePlots; filename = "example_MIT.pdf"; else; filename=[]; end
-  visualize_synthesis(Pcl, S, CS, T, gamma, filename=filename, tmax=1)
+  specificationplot([S, CS, T], [WS, WU, WT], gamma)
+  specificationplot(Pcl, gamma; s_labels=["\$\\sigma(P_{cl}(j\\omega))\$"], w_labels=["\$\\gamma\$"])
 end
