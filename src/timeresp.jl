@@ -88,6 +88,8 @@ To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a s
 Usage example:
 ```julia
 using LinearAlgebra # For identity matrix I
+using Plots
+
 A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
@@ -99,8 +101,8 @@ L = lqr(sys,Q,R)
 u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t;x0=x0)
+plot(t,x, lab=["Position", "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
