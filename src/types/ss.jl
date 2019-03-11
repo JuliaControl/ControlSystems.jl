@@ -1,6 +1,6 @@
 # Convenience constructor for creating StateSpace objects
 
-"""`sys = ss(A, B, C, D, Ts=0) -> sys`
+"""`sys = ss(A, B, C, D, Ts=0)`
 
 
 Create a state-space model `sys::StateSpace{T, MT<:AbstractMatrix{T}}`
