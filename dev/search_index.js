@@ -269,7 +269,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Constructors",
     "title": "ControlSystems.ss",
     "category": "function",
-    "text": "sys = ss(A, B, C, D, Ts=0) -> sys\n\nCreate a state-space model sys::StateSpace{T, MT<:AbstractMatrix{T}} where MT is the type of matrixes A,B,C,D and T the element type.\n\nThis is a continuous-time model if Ts is omitted or set to 0. Otherwise, this is a discrete-time model with sampling period Ts. Set Ts=-1 for a discrete-time model with unspecified sampling period.\n\nsys = ss(D[, Ts, ...]) specifies a static gain matrix D.\n\n\n\n\n\n"
+    "text": "sys = ss(A, B, C, D, Ts=0)\n\nCreate a state-space model sys::StateSpace{T, MT<:AbstractMatrix{T}} where MT is the type of matrixes A,B,C,D and T the element type.\n\nThis is a continuous-time model if Ts is omitted or set to 0. Otherwise, this is a discrete-time model with sampling period Ts. Set Ts=-1 for a discrete-time model with unspecified sampling period.\n\nsys = ss(D[, Ts, ...]) specifies a static gain matrix D.\n\n\n\n\n\n"
 },
 
 {
