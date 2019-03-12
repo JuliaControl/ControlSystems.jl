@@ -101,7 +101,7 @@ L = lqr(sys,Q,R)
 u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t;x0=x0)
+y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
