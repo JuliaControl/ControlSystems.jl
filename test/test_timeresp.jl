@@ -13,7 +13,7 @@ L = lqr(sys,Q,R)
 u(x,i) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1.,0]
-y, t, x, uout = lsim(sys,u,t;x0=x0) # Continuous time
+y, t, x, uout = lsim(sys,u,t,x0=x0) # Continuous time
 
 th = 1e-6
 @test sum(abs.(x[end,:])) < th
