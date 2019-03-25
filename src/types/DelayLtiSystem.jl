@@ -18,7 +18,7 @@ function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{Float64}) where T<:Numbe
     ny = noutputs(sys) - length(Tau)
 
     if nu < 0  || ny < 0
-        error("Time vector is too long.")
+        throw(ArgumentError("Time vector is too long."))
     end
 
     psys = PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys, nu, ny)
