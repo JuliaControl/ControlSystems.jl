@@ -129,3 +129,44 @@ y2, t2, x2 = step([1.0/s 2/s; 3/s 4/s], t)
 @test y1 ≈ y2 rtol=1e-15
 @test size(x1,1) == length(t)
 @test size(x1,3) == 2
+
+
+##################### Test with known solution
+K = 2.0
+sys_known = feedback(delay(1)*K/s, 1)
+
+ystep, t, _ = step(sys_known, 3)
+
+function y_expected(t, K)
+      if t < 1
+            return 0
+      elseif t < 2
+            return K*(t-1)
+      elseif t <= 3
+            return K*(t-1)-1/2*K^2*(t-2)^2
+      else
+            throw(ArgumentError("Test not defined here"))
+      end
+end
+
+@test ystep ≈ y_expected.(t, K) atol = 1e-7
+
+function dy_expected(t, K)
+      if t < 1
+            return 0
+      elseif t < 2
+            return K
+      elseif t <= 3
+            return K - K^2*(t-2)
+      else
+            throw(ArgumentError("Test not defined here"))
+      end
+end
+
+y_impulse, t, _ = impulse(sys_known, 3)
+
+# TODO Better accuracy for impulse
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-2
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
+
+@time [s11; s12]

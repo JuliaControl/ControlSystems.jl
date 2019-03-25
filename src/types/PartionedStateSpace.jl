@@ -161,15 +161,15 @@ function vcat_1(systems::PartionedStateSpace...)
 
     A = blockdiag([s.A for s in systems]...)
 
-    B1 = vcat([s.B1 for s in systems]...)
+    B1 = reduce(vcat, [s.B1 for s in systems])
     B2 = blockdiag([s.B2 for s in systems]...)
 
     C1 = blockdiag([s.C1 for s in systems]...)
     C2 = blockdiag([s.C2 for s in systems]...)
 
-    D11 = vcat([s.D11 for s in systems]...)
+    D11 = reduce(vcat, [s.D11 for s in systems])
     D12 = blockdiag([s.D12 for s in systems]...)
-    D21 = vcat([s.D21 for s in systems]...)
+    D21 = reduce(vcat, [s.D21 for s in systems])
     D22 = blockdiag([s.D22 for s in systems]...)
 
     sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], Ts)
@@ -200,11 +200,11 @@ function hcat_1(systems::PartionedStateSpace...)
     B1 = blockdiag([s.B1 for s in systems]...)
     B2 = blockdiag([s.B2 for s in systems]...)
 
-    C1 = hcat([s.C1 for s in systems]...)
+    C1 = reduce(hcat, [s.C1 for s in systems])
     C2 = blockdiag([s.C2 for s in systems]...)
 
-    D11 = hcat([s.D11 for s in systems]...)
-    D12 = hcat([s.D12 for s in systems]...)
+    D11 = reduce(hcat, [s.D11 for s in systems])
+    D12 = reduce(hcat, [s.D12 for s in systems])
     D21 = blockdiag([s.D21 for s in systems]...)
     D22 = blockdiag([s.D22 for s in systems]...)
 

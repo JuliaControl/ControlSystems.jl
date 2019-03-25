@@ -78,6 +78,7 @@ function dde_param(dx, x, h!, p, t)
     return
 end
 
+# TODO Discontinuities in u are not handled well yet.
 function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T}, alg) where T
     P = sys.P
 
@@ -186,6 +187,25 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
         y = Array{T}(undef, length(t), noutputs(sys), nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, kwargs...)
+        end
+    end
+    return y, tout, x
+end
+
+
+function impulse(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
+    nu = ninputs(sys)
+    if t[1] != 0
+        throw(ArgumentError("First time point must be 0 in impulse"))
+    end
+    u = (out, t) -> (out .= 0)
+    if nu == 1
+        y, tout, x = lsim(sys, u, t, x0=sys.P.B[:,1], kwargs...)
+    else
+        x = Array{T}(undef, length(t), nstates(sys), nu)
+        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        for i=1:nu
+            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t, x0=sys.P.B[:,i], kwargs...)
         end
     end
     return y, tout, x
