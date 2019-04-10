@@ -34,8 +34,14 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
         if isreal(r)
             push!(poly_factors,Poly{T}([-real(r),1]))
         else
-            if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
-                continue
+            @static if VERSION > v"1.2.0-DEV.0" # Flipped order in this version
+                if imag(r) > 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
+                    continue
+                end
+            else
+                if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
+                    continue
+                end
             end
 
             if k == length(roots) || r != conj(roots[k+1])
