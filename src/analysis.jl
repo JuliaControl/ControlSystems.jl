@@ -1,95 +1,136 @@
-@doc """`pole(sys)`
+"""`pole(sys)`
 
-Compute the poles of system `sys`.""" ->
+Compute the poles of system `sys`."""
 pole(sys::StateSpace) = eigvals(sys.A)
-pole(sys::TransferFunction) = [map(pole, sys.matrix)...;]
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
-@doc """`dcgain(sys)`
+# Seems to have a lot of rounding problems if we run the full thing with sisorational,
+# converting to zpk before works better in the cases I have tested.
+pole(sys::TransferFunction) = pole(zpk(sys))
 
-Compute the gain of SISO system `sys`.""" ->
-function dcgain(sys::StateSpace, zs::Vector=tzero(sys))
-    !issiso(sys) && error("Gain only defined for siso systems")
-    return ( sys.C*(-sys.A\sys.B) + sys.D)[1]
+function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T<:Number, TR<:Number}
+    # With right TR, this code works for any SisoTf
+
+    # Calculate least common denominator of the minors,
+    # i.e. something like least common multiple of the pole-polynomials
+    individualpoles = [map(pole, sys.matrix)...;]
+    lcmpoles = TR[]
+    for poles = minorpoles(sys.matrix)
+        # Poles have to be equal to existing poles for the individual transfer functions and this
+        # calculation probably is more precise than the full. Seems to work better at least.
+        for i = 1:length(poles)
+            idx = argmin(map(abs, individualpoles .- poles[i]))
+            poles[i] = individualpoles[idx]
+        end
+        for pole = lcmpoles
+            idx = findfirst(poles .≈ pole)
+            if idx != nothing
+                deleteat!(poles, idx)
+            end
+        end
+        append!(lcmpoles, poles)
+    end
+
+    return lcmpoles
 end
 
-@doc """`dcgain(sys)`
+"""`minorpoles(sys)`
+
+Compute the poles of all minors of the system."""
+# TODO: Improve implementation, should be more efficient ways.
+# Calculates the same minors several times in some cases.
+function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
+    minors = Array{TR,1}[]
+    ny, nu = size(sys)
+    if ny == nu == 1
+        push!(minors, pole(sys[1, 1]))
+    elseif ny == nu
+        push!(minors, pole(det(sys)))
+        for i = 1:ny
+            for j = 1:nu
+                newmat = sys[1:end .!=i, 1:end .!= j]
+                append!(minors, minorpoles(newmat))
+            end
+        end
+    elseif ny < nu
+        for i = 1:nu
+            newmat = sys[1:end, 1:end .!= i]
+            append!(minors, minorpoles(newmat))
+        end
+    else
+        for i = 1:ny
+            newmat = sys[1:end .!= i, 1:end]
+            append!(minors, minorpoles(newmat))
+        end
+    end
+    return minors
+end
+
+"""`det(sys)`
+
+Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
+# TODO: improve this implementation, should be more efficient ones
+function det(sys::Matrix{S}) where {T<:Number, TR, S<:SisoZpk}
+    ny, nu = size(sys)
+    @assert ny == nu "Matrix is not square"
+    if ny == 1
+        return sys[1, 1]
+    end
+    tot = zero(S)
+    sign = -1
+    for i = 1:ny
+        sign = -sign
+        tot += sign * sys[i, 1] * det(sys[1:end .!= i, 2:end])
+    end
+    return tot
+end
+
+"""`dcgain(sys)`
 
 Compute the dcgain of system `sys`.
 
-equal to G(0) for continuous-time systems and G(1) for discrete-time systems.""" ->
-function dcgain(sys::TransferFunction)
-    !issiso(sys) && error("Gain only defined for siso systems")
-    if sys.Ts > 0
-        return map(s->sum(s.num.a)/sum(s.den.a), sys.matrix)
-    end
-
-    return map(s -> s.num[end]/s.den[end], sys.matrix)
+equal to G(0) for continuous-time systems and G(1) for discrete-time systems."""
+function dcgain(sys::LTISystem)
+    return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
-@doc """`markovparam(sys, n)`
+"""`markovparam(sys, n)`
 
 Compute the `n`th markov parameter of state-space system `sys`. This is defined
 as the following:
 
 `h(0) = D`
 
-`h(n) = C*A^(n-1)*B`""" ->
+`h(n) = C*A^(n-1)*B`"""
 function markovparam(sys::StateSpace, n::Integer)
     n < 0 && error("n must be >= 0")
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
 
-@doc """`z, p, k = zpkdata(sys)`
+"""`z, p, k = zpkdata(sys)`
 
 Compute the zeros, poles, and gains of system `sys`.
 
 ### Returns
-`z` : Matrix{Vector{Complex128}}, (ny x nu)
+`z` : Matrix{Vector{ComplexF64}}, (ny x nu)
 
-`p` : Matrix{Vector{Complex128}}, (ny x nu)
+`p` : Matrix{Vector{ComplexF64}}, (ny x nu)
 
-`k` : Matrix{Float64}, (ny x nu)""" ->
+`k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    ny, nu = size(sys)
-    zs = Array{Vector{Complex128}}(ny, nu)
-    ps = Array{Vector{Complex128}}(ny, nu)
-    ks = Array{Float64}(ny, nu)
-    for j = 1:nu
-        for i = 1:ny
-            zs[i, j], ps[i, j], ks[i, j] = _zpk_kern(sys, i, j)
-        end
-    end
+    G = convert(TransferFunction{SisoZpk}, sys)
+
+    zs = map(x -> x.z, G.matrix)
+    ps = map(x -> x.p, G.matrix)
+    ks = map(x -> x.k, G.matrix)
+
     return zs, ps, ks
 end
 
-function _zpk_kern(sys::StateSpace, iy::Int, iu::Int)
-    A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, iu:iu], sys.C[iy:iy, :])
-    D = sys.D[iy:iy, iu:iu]
-    z = tzero(A, B, C, D)
-    nx = size(A, 1)
-    nz = length(z)
-    k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
-    return z, eigvals(A), k
-end
-
-function _zpk_kern(sys::TransferFunction, iy::Int, iu::Int)
-    s = sys.matrix[iy, iu]
-    return _zpk_kern(s)
-end
-
-function _zpk_kern(s::SisoRational)
-  return roots(s.num), roots(s.den), s.num[1]/s.den[1]
-end
-
-function _zpk_kern(s::SisoZpk)
-    return s.z, s.p, s.k
-end
-
-@doc """`Wn, zeta, ps = damp(sys)`
+"""`Wn, zeta, ps = damp(sys)`
 
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
-poles, `ps`, of `sys`""" ->
+poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if !iscontinuous(sys)
@@ -104,30 +145,38 @@ function damp(sys::LTISystem)
     return Wn, ζ, ps
 end
 
-@doc """`dampreport(sys)`
+"""`dampreport(sys)`
 
 Display a report of the poles, damping ratio, natural frequency, and time
-constant of the system `sys`""" ->
+constant of the system `sys`"""
 function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
-    t_const = 1./(Wn.*zeta)
+    t_const = 1 ./ (Wn.*zeta)
     header =
     ("|     Pole      |   Damping     |   Frequency   | Time Constant |\n"*
     "|               |    Ratio      |   (rad/sec)   |     (sec)     |\n"*
     "+---------------+---------------+---------------+---------------+")
     println(io, header)
-    for i=eachindex(ps)
-        p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-        @printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", p, z, w, t)
+    if all(isreal, ps)
+        for i=eachindex(ps)
+            p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
+            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, t)
+        end
+    else
+        for i=eachindex(ps)
+            p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
+            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, t)
+            Printf.@printf(io, "|  %-+11.3eim|               |               |               |\n", imag(p))
+        end
     end
 end
-dampreport(sys::LTISystem) = dampreport(STDOUT, sys)
+dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 
-@doc """`tzero(sys)`
+"""`tzero(sys)`
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
-realization, these are also the transmission zeros.""" ->
+realization, these are also the transmission zeros."""
 function tzero(sys::TransferFunction)
     if issiso(sys)
         return tzero(sys.matrix[1,1])
@@ -140,52 +189,65 @@ end
 # Emami-Naeini, A. and P. Van Dooren, "Computation of Zeros of Linear
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
-# Note that this returns either Vector{Complex64} or Vector{Float64}
+# Note that this returns either Vector{ComplexF32} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
-function tzero(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64},
-        D::Matrix{Float64})
+# Make sure everything is BlasFloat
+function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    tzero(A2, B2, C2, D2)
+end
+function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:BlasFloat
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
     # Compute a good tolerance
-    meps = 10*eps()*norm([A B; C D])
-    A, B, C, D = reduce_sys(A, B, C, D, meps)
-    A, B, C, D = reduce_sys(A', C', B', D', meps)
-    if isempty(A)   return Float64[]    end
+    meps = 10*eps(real(T))*norm([A B; C D])
 
+    # Step 1:
+    A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
+
+    # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
+    A_rc, B_rc, C_rc, D_rc = reduce_sys(transpose(A_r), transpose(C_r), transpose(B_r), transpose(D_r), meps)
+    if isempty(A)   return complex(T)[]    end
+
+    # Step 3:
     # Compress cols of [C D] to [0 Df]
-    mat = [C D]
+    mat = [C_rc D_rc]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
-    W = full(qrfact(mat')[:Q], thin=false)::Matrix{Float64}
-    W = flipdim(W,2)
+    W = qr(mat').Q
+    W = reverse(W, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
-        nf = size(A, 1)
-        m = size(D, 2)
-        Af = ([A B] * W)[1:nf, 1:nf]
-        Bf = ([eye(nf) zeros(nf, m)] * W)[1:nf, 1:nf]
-        zs = eig(Af, Bf)[1]
+        nf = size(A_rc, 1)
+        m = size(D_rc, 2)
+        Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
+        Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+        zs = eigvals(Af, Bf)
+        _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
-        zs = Float64[]
+        zs = complex(T)[]
     end
     return zs
 end
 
+reduce_sys(A::AbstractMatrix{<:BlasFloat}, B::AbstractMatrix{<:BlasFloat}, C::AbstractMatrix{<:BlasFloat}, D::AbstractMatrix{<:BlasFloat}, meps::BlasFloat) =
+    reduce_sys(promote(A,B,C,D)..., meps)
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, D::Matrix{Float64}, meps::Float64)
+function reduce_sys(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}, meps::BlasFloat) where T <: BlasFloat
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
     end
     while true
         # Compress rows of D
-        U = full(qrfact(D)[:Q], thin=false)::Matrix{Float64}
-        D = U'*D
-        C = U'*C
+        U = qr(D).Q
+        D = U'D
+        C = U'C
         sigma = fastrank(D, meps)
         Cbar = C[1:sigma, :]
         Dbar = D[1:sigma, :]
@@ -195,8 +257,8 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, 
         end
 
         # Compress columns of Ctilde
-        V = full(qrfact(Ctilde')[:Q], thin=false)::Matrix{Float64}
-        V = flipdim(V,2)
+        V = qr(Ctilde').Q
+        V = reverse(V,dims=2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
@@ -205,15 +267,15 @@ function reduce_sys(A::Matrix{Float64}, B::Matrix{Float64}, C::Matrix{Float64}, 
             break
         elseif nu == 0
             # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Array{Float64,2}(0,0)
+            A = B = Cbar = Dbar = Matrix{T}(undef, 0,0)
             break
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(n, m); zeros(m, n) eye(m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)]
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(n, sigma) ; zeros(sigma, n) eye(sigma)]
+            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
         else
             M = [A B]
             Vs = V'
@@ -230,10 +292,10 @@ end
 
 # Determine the number of non-zero rows, with meps as a tolerance. For an
 # upper-triangular matrix, this is a good proxy for determining the row-rank.
-function fastrank(A::Matrix{Float64}, meps::Float64)
-    n, m = size(A, 1, 2)
+function fastrank(A::AbstractMatrix, meps::Real)
+    n, m = size(A)
     if n*m == 0     return 0    end
-    norms = Array{Float64}(n)
+    norms = Vector{real(eltype(A))}(undef, n)
     for i = 1:n
         norms[i] = norm(A[i, :])
     end
@@ -251,17 +313,21 @@ If `!allMargins`, return only the smallest margin
 If `full` return also `fullPhase`
 
 """
-function margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
+function margin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
     ny, nu = size(sys)
-    vals = (:wgm, :gm, :wpm, :pm, :fullPhase)
+
     if allMargins
-        for val in vals
-            eval(:($val = Array{Array{Float64,1}}($ny,$nu)))
-        end
+        wgm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        gm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        wpm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        pm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        fullPhase   = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
     else
-        for val in vals
-            eval(:($val = Array{Float64,2}($ny,$nu)))
-        end
+        wgm         = Array{numeric_type(sys),2}(undef, ny, nu)
+        gm          = Array{numeric_type(sys),2}(undef, ny, nu)
+        wpm         = Array{numeric_type(sys),2}(undef, ny, nu)
+        pm          = Array{numeric_type(sys),2}(undef, ny, nu)
+        fullPhase   = Array{numeric_type(sys),2}(undef, ny, nu)
     end
     for j=1:nu
         for i=1:ny
@@ -280,7 +346,7 @@ end
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 """
-function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)
+function sisomargin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
@@ -289,7 +355,7 @@ function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, a
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
     for i = eachindex(wgm)
-        gm[i] = 1./abs(freqresp(sys,[wgm[i]])[1][1])
+        gm[i] = 1 ./ abs(freqresp(sys,[wgm[i]])[1][1])
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
@@ -321,24 +387,24 @@ function sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, a
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _default_freq_vector(system, :bode); kwargs...)
+margin(system, _default_freq_vector(system, Val{:bode}()); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
-    fif = floor(Integer, fi)
-    fic = ceil(Integer, fi)
-    list[fif]+mod(fi,1).*(list[fic]-list[fif])
+    fif = floor.(Integer, fi)
+    fic = ceil.(Integer, fi)
+    list[fif]+mod.(fi,1).*(list[fic]-list[fif])
 end
 
 function _allGainCrossings(w, mag)
-    _findCrossings(w,mag.>1,mag-1)
+    _findCrossings(w,mag.>1,mag.-1)
 end
 
 function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
-    n =  Array{Float64,1}(length(w)) #Nbr of crossed
-    ph = Array{Float64,1}(length(w)) #Residual
+    n =  Vector{eltype(w)}(undef, length(w)) #Nbr of crossed
+    ph = Vector{eltype(w)}(undef, length(w)) #Residual
     for i = eachindex(w) #Found no easier way to do this
         n[i], ph[i] = fldmod(phase[i]+180,360)#+180
     end
@@ -346,8 +412,8 @@ function _allPhaseCrossings(w, phase)
 end
 
 function _findCrossings(w, n, res)
-    wcross = Array{Float64,1}()
-    tcross = Array{Float64,1}()
+    wcross = Vector{eltype(w)}()
+    tcross = Vector{eltype(w)}()
     for i in 1:(length(w)-1)
         if res[i] == 0
             wcross = [wcross; w[i]]
@@ -367,26 +433,26 @@ function _findCrossings(w, n, res)
     wcross, tcross
 end
 
-@doc """`dₘ = delaymargin(G::LTISystem)`
+"""`dₘ = delaymargin(G::LTISystem)`
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     if G.nu + G.ny > 2
         error("delaymargin only supports SISO systems")
     end
-    m   = margin(G,allMargins=true)
-    ϕₘ,i= findmin(m[4])
-    ϕₘ *= π/180
-    ωϕₘ = m[3][i]
-    dₘ  = ϕₘ/ωϕₘ
+    m     = margin(G,allMargins=true)
+    ϕₘ, i = findmin(m[4])
+    ϕₘ   *= π/180
+    ωϕₘ   = m[3][i]
+    dₘ    = ϕₘ/ωϕₘ
     if G.Ts > 0
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
     dₘ
 end
 
-@doc """`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
+"""`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
 
 Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 
@@ -398,7 +464,7 @@ Given a transfer function describing the Plant `P` and a transferfunction descri
 
 `T = PC/(1+PC)` Complementary sensitivity function
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function gangoffour(P::TransferFunction,C::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
@@ -410,7 +476,9 @@ function gangoffour(P::TransferFunction,C::TransferFunction)
     return S, D, N, T
 end
 
+
 function gangoffour(P::AbstractVector, C::AbstractVector)
+    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
         error("gangoffour only supports SISO systems")
     end
@@ -424,14 +492,16 @@ function gangoffour(P::AbstractVector, C::AbstractVector)
 end
 
 function gangoffour(P::TransferFunction, C::AbstractVector)
+    Base.depwarn("Deprecrated use of gangoffour(::TransferFunction, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     gangoffour(fill(P,length(C)), C)
 end
 
 function gangoffour(P::AbstractVector, C::TransferFunction)
+    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::TransferFunction), use `broadcast` and `zip` instead", :gangoffour)
     gangoffour(P, fill(C,length(P)))
 end
 
-@doc """`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
+"""`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
 
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
 computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
@@ -450,7 +520,7 @@ computes the four transfer functions in the Gang-of-Four and the transferfunctio
 
 `RE = F/(1+P*C)`
 
-Only supports SISO systems""" ->
+Only supports SISO systems"""
 function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)
     if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
         error("gof only supports SISO systems")

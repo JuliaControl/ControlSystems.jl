@@ -15,7 +15,6 @@ nicholsplot
 nyquistplot
 pidplots
 pzmap
-pzmap!
 rlocus
 sigmaplot
 setPlotScale

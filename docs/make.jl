@@ -1,8 +1,29 @@
-using Documenter, ControlSystems, Plots
+using Documenter, ControlSystems, Plots, LinearAlgebra, DSP
+import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
+
 include("src/makeplots.jl")
 
-makedocs(modules=[ControlSystems])
-
+makedocs(modules=[ControlSystems],
+    format=Documenter.HTML(),
+    sitename="ControlSystems.jl",
+    pages=[
+        "Home" => "index.md",
+        "Examples" => Any[
+            "Design" => "examples/example.md",
+        ],
+        "Guide" => Any[
+            "Introduction" => "man/introduction.md",
+            "Creating Transfer Functions" => "man/creatingtfs.md",
+        ],
+        "Functions" => Any[
+            "Constructors" => "lib/constructors.md",
+            "Analysis" => "lib/analysis.md",
+            "Synthesis" => "lib/synthesis.md",
+            "Time and Frequency response" => "lib/timefreqresponse.md",
+            "Plotting" => "lib/plotting.md",
+        ],
+    ]
+    )
 # If not running travis, generate the plots here, even if we are not deploying
 if get(ENV, "TRAVIS", "") == ""
     makePlots()
@@ -13,14 +34,11 @@ end
 function myDeps()
     if get(ENV, "TRAVIS", "") != ""
         println("Installing deploy dependencies")
-        run(`pip install --user pygments mkdocs`)
         makePlots()
     end
 end
 
 deploydocs(
     repo = "github.com/JuliaControl/ControlSystems.jl.git",
-    latest = "master",
-    julia = "0.5",
     deps = myDeps
 )

@@ -5,8 +5,8 @@ juliapath=julia
 else
 juliapath=$1
 fi
- 
-$juliapath -e '"Documenter" in keys(Pkg.installed()) || Pkg.clone("https://github.com/MichaelHatherly/Documenter.jl");'
+
+$juliapath -e '"Documenter" in keys(Pkg.installed()) || Pkg.add("Documenter");'
 $juliapath -e '"PyPlot" in keys(Pkg.installed()) || Pkg.add("PyPlot");'
 
 $juliapath make.jl

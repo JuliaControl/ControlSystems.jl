@@ -1,4 +1,4 @@
-@doc """`lqr(A, B, Q, R)`
+"""`lqr(A, B, Q, R)`
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u = K*x` that
 minimizes the cost function:
@@ -16,12 +16,13 @@ See also `LQG`
 
 Usage example:
 ```julia
+using LinearAlgebra # For identity matrix I
 A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0)
-Q = eye(2)
-R = eye(1)
+Q = I
+R = I
 L = lqr(sys,Q,R)
 
 u(t,x) = -L*x # Form control law,
@@ -30,21 +31,21 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function lqr(A, B, Q, R)
     S = care(A, B, Q, R)
     K = R\B'*S
     return K
 end
 
-@doc """`kalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+"""`kalman(A, C, R1, R2)` kalman(sys, R1, R2)`
 
 Calculate the optimal Kalman gain
 
 See also `LQG`
 
-""" ->
-kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
+"""
+kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
 function lqr(sys::StateSpace, Q, R)
     if iscontinuous(sys)
@@ -56,14 +57,14 @@ end
 
 function kalman(sys::StateSpace, R1,R2)
     if iscontinuous(sys)
-        return lqr(sys.A', sys.C', R1,R2)'
+        return Matrix(lqr(sys.A', sys.C', R1,R2)')
     else
-        return dlqr(sys.A', sys.C', R1,R2)'
+        return Matrix(dlqr(sys.A', sys.C', R1,R2)')
     end
 end
 
 
-@doc """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
+"""`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = K*x[k]` that
 minimizes the cost function:
@@ -76,13 +77,14 @@ See also `lqg`
 
 Usage example:
 ```julia
+using LinearAlgebra # For identity matrix I
 h = 0.1
 A = [1 h; 0 1]
 B = [0;1]
 C = [1 0]
 sys = ss(A,B,C,0, h)
-Q = eye(2)
-R = eye(1)
+Q = I
+R = I
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(t,x) = -L*x # Form control law,
@@ -91,24 +93,30 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0)
 plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
 ```
-""" ->
+"""
 function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
 end
 
-@doc """`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+function dlqr(A, B::Vector, Q, R)
+    dlqr(A, reshape(B, length(B), 1), Q, R)
+end
+
+"""`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
 
 Calculate the optimal Kalman gain for discrete time systems
 
-""" ->
-dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
+"""
+dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 
-@doc """`place(A, B, p)`, `place(sys::StateSpace, p)`
+"""`place(A, B, p)`, `place(sys::StateSpace, p)`
 
 Calculate gain matrix `K` such that
-the poles of `(A-BK)` in are in `p`""" ->
+the poles of `(A-BK)` in are in `p`.
+
+Uses Ackermann's formula."""
 function place(A, B, p)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")
@@ -128,12 +136,12 @@ end
 function acker(A,B,P)
     n = length(P)
     #Calculate characteristic polynomial
-    poly = reduce(*,Poly([1]),[Poly([1, -p]) for p in P])
-    q = zero(Array{promote_type(eltype(A),Float64),2}(n,n))
+    poly = mapreduce(p -> Poly([1, -p]), *, P, init=Poly(one(eltype(P))))
+    q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
-        q += A^(n-i)*poly[i+1]
+        q += A^(n-i)*poly[i]
     end
-    S = Array{promote_type(eltype(A),eltype(B),Float64),2}(n,n)
+    S = Array{promote_type(eltype(A),eltype(B),Float64),2}(undef, n,n)
     for i = 0:(n-1)
         S[:,i+1] = A^i*B
     end
@@ -143,32 +151,32 @@ end
 
 """
 `feedback(L)` Returns L/(1+L)
-`feedback(P,C)` Returns PC/(1+PC)
+`feedback(P1,P2)` Returns P1/(1+P1*P2)
 """
 feedback(L::TransferFunction) = L/(1+L)
-feedback(P::TransferFunction, C::TransferFunction) = feedback(P*C)
+feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
 #Efficient implementations
-function feedback{T<:SisoRational}(L::TransferFunction{T})
+function feedback(L::TransferFunction{T}) where T<:SisoRational
     if size(L) != (1,1)
-        error("MIMO TransferFunction inversion isn't implemented yet")
+        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
     P = numpoly(L)
     Q = denpoly(L)
-    #Extract polynomials and create P/(P+Q)
-    tf(P[1][:],(P+Q)[1][:], Ts=L.Ts)
+    tf(P, P+Q, L.Ts)
 end
 
-function ControlSystems.feedback{T<:ControlSystems.SisoZpk}(L::TransferFunction{T})
+function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
     if size(L) != (1,1)
-        error("MIMO TransferFunction inversion isn't implemented yet")
+        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
-    numer = num(L.matrix[1])
-    k = L.matrix[1].k
-    denpol = k*prod(numpoly(L)[1])+prod(denpoly(L)[1])
-    kden = denpol[1]
     #Extract polynomials and create P/(P+Q)
-    zpk(numer,ControlSystems.roots(denpol), k/kden, Ts=L.Ts)
+    k = L.matrix[1].k
+    denpol = numpoly(L)[1]+denpoly(L)[1]
+    kden = denpol[end] # Get coeff of s^n
+    # Create siso system
+    sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
+    return TransferFunction{T}(fill(sisozpk,1,1), L.Ts)
 end
 
 """
@@ -186,7 +194,7 @@ If no second system is given, negative identity feedback is assumed
 """
 function feedback(sys::StateSpace)
     sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(eye(sys.ny)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,sys.ny,sys.ny)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)
