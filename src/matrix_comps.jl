@@ -107,11 +107,12 @@ Compute the observability matrix for the system described by `(A, C)` or `sys`.
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
 `gram(sys, :o)` is positive definite."""
-function obsv(A::AbstractMatrix{T}, C::AbstractMatrix) where T
+function obsv(A::AbstractMatrix, C::AbstractMatrix)
+    T = promote_type(eltype(A), eltype(C))
     n = size(A, 1)
     ny = size(C, 1)
     if n != size(C, 2)
-        error("C must have the same number of columns as A")
+        throw(ArgumentError("C must have the same number of columns as A"))
     end
     res = fill(zero(T), n*ny, n)
     res[1:ny, :] = C
@@ -130,11 +131,12 @@ Compute the controllability matrix for the system described by `(A, B)` or
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite."""
-function ctrb(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where {T <: Number}
+function ctrb(A::AbstractMatrix, B::AbstractMatrix)
+    T = promote_type(eltype(A), eltype(B))
     n = size(A, 1)
     nu = size(B, 2)
     if n != size(B, 1)
-        error("B must have the same number of rows as A")
+        throw(ArgumentError("B must have the same number of rows as A"))
     end
     res = fill(zero(T), n, n*nu)
     res[:, 1:nu] = B
