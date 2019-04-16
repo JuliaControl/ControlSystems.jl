@@ -162,9 +162,9 @@ Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.
 # end
 
 
-blockdiag(mats::Matrix...) = blockdiag(promote(mats...)...)
+blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
 
-function blockdiag(mats::Matrix{T}...) where T
+function blockdiag(mats::AbstractMatrix{T}...) where T
     rows = Int[size(m, 1) for m in mats]
     cols = Int[size(m, 2) for m in mats]
     res = zeros(T, sum(rows), sum(cols))

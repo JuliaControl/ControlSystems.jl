@@ -27,7 +27,9 @@ to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matri
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
     poly_factors = Vector{Poly{T}}()
-
+    @static if VERSION > v"1.2.0-DEV.0" # Sort one more time to handle GenericLinearAlgebra not being updated
+        sort!(roots, by=LinearAlgebra.eigsortby)
+    end
     for k=1:length(roots)
         r = roots[k]
 

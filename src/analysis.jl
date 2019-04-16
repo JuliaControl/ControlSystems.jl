@@ -192,13 +192,12 @@ end
 # Note that this returns either Vector{ComplexF32} or Vector{Float64}
 tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
-function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})
-    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
-    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
-    tzero(A2, B2, C2, D2)
-end
 function tzero(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    A2, B2, C2, D2, _ = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    tzero(A2, B2, C2, D2)
+end
+function tzero(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
@@ -233,8 +232,7 @@ function tzero(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::Abstr
     return zs
 end
 
-reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat) =
-    reduce_sys(promote(A,B,C,D)..., meps)
+
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
