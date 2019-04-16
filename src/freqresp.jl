@@ -5,7 +5,7 @@ Evaluate the frequency response of a linear system
 `w -> C*((iw*im -A)^-1)*B + D`
 
 of system `sys` over the frequency vector `w`."""
-function freqresp(sys::LTISystem, w_vec::AbstractVector{S}) where {S<:Real}
+function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
     if !iscontinuous(sys)
         Ts = sys.Ts == -1 ? 1.0 : sys.Ts
@@ -62,7 +62,7 @@ function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
     end
 end
 
-function evalfr(G::TransferFunction{<:SisoTf{T0}}, s::Number) where {T0}
+function evalfr(G::TransferFunction{<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
 
@@ -133,7 +133,7 @@ function sigma(sys::LTISystem, w::AbstractVector)
 end
 sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
-function _default_freq_vector(systems::Vector{T}, plot) where T<:LTISystem
+function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     min_pt_per_dec = 60
     min_pt_total = 200
     bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)

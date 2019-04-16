@@ -188,7 +188,7 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction{S}, h;kwargs...) where {S}
+function c2d(G::TransferFunction, h;kwargs...)
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
@@ -198,16 +198,17 @@ function c2d(G::TransferFunction{S}, h;kwargs...) where {S}
 end
 
 
-"""`[y, t, x] = lsima(sys, t[, x0, method])`
+"""`[y, t, x] = lsima(sys, t, r, controller, state[, x0, method])`
 
 Calculate the time response of adaptive controller. If `x0` is ommitted,
 a zero vector is used.
 
+`controller` is a function `u[i],state = controller(state, y[1:i], u[1:i-1], r[1:i])`
 Continuous time systems are discretized before simulation. By default, the
 method is chosen based on the smoothness of the input signal. Optionally, the
 `method` parameter can be specified as either `:zoh` or `:foh`."""
-function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control_signal::Function,state,
-    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh) where T
+function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector, control_signal::Function,state,
+    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
     ny, nu = size(sys)
 
     nx = sys.nx
@@ -230,9 +231,9 @@ function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector{T}, control
         dsys, x0map = c2d(sys, dt, :foh)
     end
     n = size(t, 1)
-    x = Array{T}(undef, size(sys.A, 1), n)
-    u = Array{T}(undef, n)
-    y = Array{T}(undef, n)
+    x = similar(r, size(sys.A, 1), n)
+    u = similar(r, n)
+    y = similar(r, n)
     for i=1:n
         x[:,i] = x0
         y[i] = (sys.C*x0 + sys.D*u[i])[1]

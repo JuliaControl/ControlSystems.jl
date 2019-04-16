@@ -72,7 +72,7 @@ end
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 """
-function dlyap(A::AbstractMatrix{T}, Q) where T
+function dlyap(A::AbstractMatrix, Q)
     lhs = kron(A, conj(A))
     lhs = I - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
@@ -107,7 +107,7 @@ Compute the observability matrix for the system described by `(A, C)` or `sys`.
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
 `gram(sys, :o)` is positive definite."""
-function obsv(A::AbstractMatrix{T}, C::AbstractMatrix{T}) where {T <: Number}
+function obsv(A::AbstractMatrix{T}, C::AbstractMatrix) where T
     n = size(A, 1)
     ny = size(C, 1)
     if n != size(C, 2)
@@ -422,7 +422,7 @@ function balance(A, perm::Bool=true)
     return S, P, B
 end
 
-function cswap!(i::Integer, j::Integer, X::StridedMatrix{T}) where T<:Number
+function cswap!(i::Integer, j::Integer, X::StridedMatrix)
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end
