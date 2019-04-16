@@ -25,11 +25,11 @@ Q = I
 R = I
 L = lqr(sys,Q,R)
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lqr(A, B, Q, R)
