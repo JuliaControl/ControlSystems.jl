@@ -101,11 +101,12 @@ Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
 `mag` and `phase` has size `(length(w), ny, nu)`"""
-function bode(sys::LTISystem, w::AbstractVector)
+bode
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
 """`re, im, w = nyquist(sys[, w])`
 
