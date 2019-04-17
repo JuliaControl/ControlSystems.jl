@@ -64,6 +64,7 @@ export  LTISystem,
         freqresp,
         evalfr,
         bode,
+        bodev,
         nyquist,
         sigma,
         # utilities
@@ -76,7 +77,7 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
+using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra, MacroTools
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import LinearAlgebra: BlasFloat

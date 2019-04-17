@@ -116,3 +116,35 @@ index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
 index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
+
+
+"""
+@autovec (idxs...) f() = (a, b, c)
+
+A macro that helps in creating functions where excessive dimensions are 
+removed automatically for specific inputs.
+"""
+macro autovec(idxs, f)
+	dict = MacroTools.splitdef(f)
+	rtype = get(dict, :rtype, :Any)
+	all_params = [get(dict, :params, [])..., get(dict, :whereparams, [])...]
+	quote
+		$(esc(f)) # Original function
+
+		""" 
+		$($(esc(dict[:name])))v($([tmp for tmp in $(esc(dict[:args]))]...))
+
+		For use with SISO systems where it acts the same as $($(esc(dict[:name]))) 
+		but with the extra dimensions removed in the returned values.
+		"""
+		function $(esc(Symbol(dict[:name], "v")))($([esc(tmp) for tmp in dict[:args]]...); 
+												  $([esc(tmp) for tmp in dict[:kwargs]]...))::$rtype
+			b = $(dict[:name])($([esc(tmp) for tmp in dict[:args]]...); 
+							   $([esc(tmp) for tmp in dict[:kwargs]]...))
+			# or b = begin
+			#        dict[:body]
+			#    end
+			Tuple([i in $(esc(idxs)) ? vec(b[i]) : b[i] for i in 1:length(b)])
+	   	end
+	end
+end
