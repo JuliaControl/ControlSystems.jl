@@ -128,38 +128,38 @@ number of outputs. `f()` is the original function and `fv()` will be the version
 with flattened outputs.
 """
 macro autovec(idxs, nidxs, f) 
-	dict = MacroTools.splitdef(f)
-	rtype = get(dict, :rtype, :Any)
-	all_params = [get(dict, :params, [])..., get(dict, :whereparams, [])...]
-	idxs = eval(idxs)
-	maxidx = max(idxs...)
+    dict = MacroTools.splitdef(f)
+    rtype = get(dict, :rtype, :Any)
+    all_params = [get(dict, :params, [])..., get(dict, :whereparams, [])...]
+    idxs = eval(idxs)
+    maxidx = max(idxs...)
 
-	# Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ idxs
-	return_exp = :()
-	for i in 1:nidxs
-		if i in idxs
-			return_exp = :($return_exp..., vec(ret[$i]))
-		else
-			return_exp = :($return_exp..., ret[$i])
-		end
-	end
+    # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ idxs
+    return_exp = :()
+    for i in 1:nidxs
+        if i in idxs
+            return_exp = :($return_exp..., vec(ret[$i]))
+        else
+            return_exp = :($return_exp..., ret[$i])
+        end
+    end
 
-	quote
-		$(esc(f)) # Original function
+    quote
+        $(esc(f)) # Original function
 
-		""" 
-		$($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))
+        """ 
+        $($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))
 
-		For use with SISO systems where it acts the same as $($(esc(dict[:name]))) 
-		but with the extra dimensions removed in the returned values.
-		"""
-		function $(esc(Symbol(dict[:name], "v")))($(dict[:args]...); 
-												  $(dict[:kwargs]...))::$rtype where $(dict[:whereparams]...)
-			# TODO check if siso? what argument do we check?
-			ret = $(esc(dict[:name]))($(dict[:args]...); 
-							   		  $(dict[:kwargs]...))
+        For use with SISO systems where it acts the same as $($(esc(dict[:name]))) 
+        but with the extra dimensions removed in the returned values.
+        """
+        function $(esc(Symbol(dict[:name], "v")))($(dict[:args]...); 
+                                                  $(dict[:kwargs]...))::$rtype where $(dict[:whereparams]...)
+            # TODO check if siso? what argument do we check?
+            ret = $(esc(dict[:name]))($(dict[:args]...); 
+                                      $(dict[:kwargs]...))
 
-			return $return_exp
-	   	end
-	end
+            return $return_exp
+        end
+    end
 end
