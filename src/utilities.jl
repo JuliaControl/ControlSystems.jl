@@ -119,10 +119,13 @@ index2range(ind::Colon) = ind
 
 
 """
-@autovec (idxs...) f() = (a, b, c)
+@autovec (idxs...) nout f() = (a, b, c)
 
-A macro that helps in creating functions where excessive dimensions are 
-removed automatically for specific inputs.
+A macro that helps in creating versions of functions where excessive dimensions 
+are removed automatically for specific outputs. `idxs` are the indexes of the 
+outputs of the functions which should be flattened and  `nout` is the total
+number of outputs. `f()` is the original function and `fv()` will be the version
+with flattened outputs.
 """
 macro autovec(idxs, nidxs, f) 
 	dict = MacroTools.splitdef(f)
