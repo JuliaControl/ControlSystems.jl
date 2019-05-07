@@ -144,22 +144,39 @@ macro autovec(idxs, nout, f)
         end
     end
 
+    args = map(dict[:args]) do a
+        if a isa Expr
+            a.args[1]
+        else
+            a
+        end
+    end
+
     quote
         export $(esc(dict[:name])), $(esc(Symbol(dict[:name], "v")))
 
         $(esc(f)) # Original function
 
+        # TODO fix following row and add to documentation
+        # `$($(esc(dict[:name])))v($($(esc.(dict[:args])...)); $($(esc.(dict[:kwargs]))...))`
         """ 
-        `$($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))`
 
         For use with SISO systems where it acts the same as `$($(esc(dict[:name])))` 
         but with the extra dimensions removed in the returned values.
         """
-        function $(esc(Symbol(dict[:name], "v")))($(dict[:args]...); 
-                                                  $(dict[:kwargs]...))::$rtype where $(dict[:whereparams]...)
+        function $(esc(Symbol(dict[:name], "v")))($(esc.(dict[:args])...); 
+                                                  $(esc.(dict[:kwargs])...))::$rtype
+            # TODO add where {...} to function definition
             # TODO check if siso? what argument do we check?
-            ret = $(esc(dict[:name]))($(dict[:args]...); 
-                                      $(dict[:kwargs]...))
+            # use issiso on something that is sys <: LTISystem
+            # loop through args to find?
+            for a in ($(esc.(args)...),)
+                if a isa LTISystem
+                    @assert issiso(a)
+                end
+            end
+            ret = $(esc(dict[:name]))($(esc.(dict[:args])...); 
+                                      $(esc.(dict[:kwargs])...))
             return $return_exp
         end
     end
