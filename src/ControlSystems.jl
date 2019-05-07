@@ -63,12 +63,6 @@ export  LTISystem,
         # Frequency Response
         freqresp,
         evalfr,
-        bode,
-        bodev,
-        nyquist,
-        nyquistv,
-        sigma,
-        sigmav,
         # utilities
         num,    #Deprecated
         den,    #Deprecated
