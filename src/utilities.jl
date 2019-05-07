@@ -124,27 +124,39 @@ index2range(ind::Colon) = ind
 A macro that helps in creating functions where excessive dimensions are 
 removed automatically for specific inputs.
 """
-macro autovec(idxs, f)
+macro autovec(idxs, nidxs, f) 
 	dict = MacroTools.splitdef(f)
 	rtype = get(dict, :rtype, :Any)
 	all_params = [get(dict, :params, [])..., get(dict, :whereparams, [])...]
+	idxs = eval(idxs)
+	maxidx = max(idxs...)
+
+	# Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ idxs
+	return_exp = :()
+	for i in 1:nidxs
+		if i in idxs
+			return_exp = :($return_exp..., vec(ret[$i]))
+		else
+			return_exp = :($return_exp..., ret[$i])
+		end
+	end
+
 	quote
 		$(esc(f)) # Original function
 
 		""" 
-		$($(esc(dict[:name])))v($([tmp for tmp in $(esc(dict[:args]))]...))
+		$($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))
 
 		For use with SISO systems where it acts the same as $($(esc(dict[:name]))) 
 		but with the extra dimensions removed in the returned values.
 		"""
-		function $(esc(Symbol(dict[:name], "v")))($([esc(tmp) for tmp in dict[:args]]...); 
-												  $([esc(tmp) for tmp in dict[:kwargs]]...))::$rtype
-			b = $(dict[:name])($([esc(tmp) for tmp in dict[:args]]...); 
-							   $([esc(tmp) for tmp in dict[:kwargs]]...))
-			# or b = begin
-			#        dict[:body]
-			#    end
-			Tuple([i in $(esc(idxs)) ? vec(b[i]) : b[i] for i in 1:length(b)])
+		function $(esc(Symbol(dict[:name], "v")))($(dict[:args]...); 
+												  $(dict[:kwargs]...))::$rtype where $(dict[:whereparams]...)
+			# TODO check if siso? what argument do we check?
+			ret = $(esc(dict[:name]))($(dict[:args]...); 
+							   		  $(dict[:kwargs]...))
+
+			return $return_exp
 	   	end
 	end
 end

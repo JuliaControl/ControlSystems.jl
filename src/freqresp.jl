@@ -102,11 +102,11 @@ at frequencies `w`
 
 `mag` and `phase` has size `(length(w), ny, nu)`"""
 bode
-@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
+@autovec (1, 2) 3 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) 3 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
 """`re, im, w = nyquist(sys[, w])`
 
@@ -114,11 +114,12 @@ Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`
 
 `re` and `im` has size `(length(w), ny, nu)`"""
-function nyquist(sys::LTISystem, w::AbstractVector)
+nyquist
+@autovec (1, 2) 3 function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
+@autovec (1, 2) 3 nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
 """`sv, w = sigma(sys[, w])`
 
@@ -126,13 +127,14 @@ Compute the singular values of the frequency response of system `sys` at
 frequencies `w`
 
 `sv` has size `(length(w), max(ny, nu))`"""
-function sigma(sys::LTISystem, w::AbstractVector)
+sigma
+@autovec (1) 2 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     nw, ny, nu = size(resp)
     sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end
-sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
+@autovec (1) 2 sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
 function _default_freq_vector(systems::Vector{T}, plot) where T<:LTISystem
     min_pt_per_dec = 60

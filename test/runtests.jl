@@ -5,7 +5,7 @@ import SparseArrays: sparse
 import DSP: conv
 include("framework.jl")
 
-# Local definition to make sure we get warings if we use eye
+# Local definition to make sure we get warnings if we use eye
 eye_(n) = Matrix{Int64}(I, n, n)
 
 my_tests = ["test_statespace",
@@ -23,7 +23,8 @@ my_tests = ["test_statespace",
             "test_analysis",
             "test_matrix_comps",
             "test_lqg",
-            "test_synthesis"]
+            "test_synthesis",
+            "test_autovec"]
 
 
 # try
