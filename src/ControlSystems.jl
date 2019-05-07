@@ -66,7 +66,9 @@ export  LTISystem,
         bode,
         bodev,
         nyquist,
+        nyquistv,
         sigma,
+        sigmav,
         # utilities
         num,    #Deprecated
         den,    #Deprecated
