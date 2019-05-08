@@ -119,25 +119,25 @@ index2range(ind::Colon) = ind
 
 
 """
-@autovec (idxs...) nout f() = (a, b, c)
+@autovec (indices...) nout f() = (a, b, c)
 
 A macro that helps in creating versions of functions where excessive dimensions 
-are removed automatically for specific outputs. `idxs` are the indexes of the 
+are removed automatically for specific outputs. `indices` are the indexes of the 
 outputs of the functions which should be flattened and  `nout` is the total
 number of outputs. `f()` is the original function and `fv()` will be the version
 with flattened outputs.
 """
-macro autovec(idxs, nout, f) 
+macro autovec(indices, nout, f) 
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
     all_params = [get(dict, :params, [])..., get(dict, :whereparams, [])...]
-    idxs = eval(idxs)
-    maxidx = max(idxs...)
+    indices = eval(indices)
+    maxidx = max(indices...)
 
-    # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ idxs
+    # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ indices
     return_exp = :()
     for i in 1:nout
-        if i in idxs
+        if i in indices
             return_exp = :($return_exp..., vec(ret[$i]))
         else
             return_exp = :($return_exp..., ret[$i])
@@ -145,11 +145,7 @@ macro autovec(idxs, nout, f)
     end
 
     args = map(dict[:args]) do a
-        if a isa Expr
-            a.args[1]
-        else
-            a
-        end
+        a isa Expr ? a.args[1] : a
     end
 
     quote
