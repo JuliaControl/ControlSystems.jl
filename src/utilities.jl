@@ -168,7 +168,7 @@ macro autovec(indices, nout, f)
             # loop through args to find?
             for a in ($(esc.(args)...),)
                 if a isa LTISystem
-                    @assert issiso(a)
+issiso(a) || throw(ArgumentError("Only SISO systems accepted to $(esc(Symbol(dict[:name], "v")))"))
                 end
             end
             ret = $(esc(dict[:name]))($(esc.(dict[:args])...); 
