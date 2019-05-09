@@ -130,7 +130,6 @@ with flattened outputs.
 macro autovec(indices, nout, f) 
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
-    all_params = [get(dict, :params, [])..., get(dict, :whereparams, [])...]
     indices = eval(indices)
     maxidx = max(indices...)
 
@@ -153,22 +152,19 @@ macro autovec(indices, nout, f)
 
         $(esc(f)) # Original function
 
-        # TODO fix following row and add to documentation
-        # `$($(esc(dict[:name])))v($($(esc.(dict[:args])...)); $($(esc.(dict[:kwargs]))...))`
+        # TODO following row does not work, existing works... don't understand why
+        # `$($(esc(dict[:name])))v($($(esc.(get(dict, :args, []))...)); $($(esc.(get(dict, :kwargs, []))...)))`
         """ 
+        `$($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))`
 
         For use with SISO systems where it acts the same as `$($(esc(dict[:name])))` 
         but with the extra dimensions removed in the returned values.
         """
-        function $(esc(Symbol(dict[:name], "v")))($(esc.(dict[:args])...); 
-                                                  $(esc.(dict[:kwargs])...))::$rtype
-            # TODO add where {...} to function definition
-            # TODO check if siso? what argument do we check?
-            # use issiso on something that is sys <: LTISystem
-            # loop through args to find?
+        function $(esc(Symbol(dict[:name], "v")))($(esc.(get(dict, :args, []))...); 
+                                                  $(esc.(get(dict, :kwargs, []))...))::$rtype where {$(esc.(get(dict, :whereparams, []))...)}
             for a in ($(esc.(args)...),)
                 if a isa LTISystem
-issiso(a) || throw(ArgumentError("Only SISO systems accepted to $(esc(Symbol(dict[:name], "v")))"))
+                    issiso(a) || throw(ArgumentError("Only SISO systems accepted to $(esc(Symbol(dict[:name], "v")))"))
                 end
             end
             ret = $(esc(dict[:name]))($(esc.(dict[:args])...); 
