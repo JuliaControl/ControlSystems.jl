@@ -236,7 +236,7 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
         num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
-    TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
+    TransferFunction{SisoRational{T}}(matrix, sys.Ts)
 end
 function convert(::Type{TransferFunction{SisoRational}}, sys::StateSpace{T0}) where {T0<:Number}
     T = typeof(one(T0)/one(T0))
@@ -253,7 +253,7 @@ function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
-    TransferFunction{SisoZpk{T,TR}}(matrix, get_Ts(sys))
+    TransferFunction{SisoZpk{T,TR}}(matrix, sys.Ts)
 end
 function convert(::Type{TransferFunction{SisoZpk}}, sys::StateSpace{T0}) where {T0<:Number}
     T = typeof(one(T0)/one(T0))
