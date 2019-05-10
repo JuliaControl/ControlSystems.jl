@@ -498,7 +498,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) whe
         D = D/(C*inv(-A)*B)
     end
 
-    return ST(A,B,C,D,sts.Ts), diagm(0 => S)
+    return ST(A,B,C,D,sys.Ts), diagm(0 => S)
 end
 
 """
