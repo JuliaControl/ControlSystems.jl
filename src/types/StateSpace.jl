@@ -73,20 +73,12 @@ function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::Abs
             to_matrix(T, D), Float64(Ts))
 end
 
-# Getter functions
-get_A(sys::AbstractStateSpace) = sys.A
-get_B(sys::AbstractStateSpace) = sys.B
-get_C(sys::AbstractStateSpace) = sys.C
-get_D(sys::AbstractStateSpace) = sys.D
-
-get_Ts(sys::AbstractStateSpace) = sys.Ts
-
-ssdata(sys::AbstractStateSpace) = get_A(sys), get_B(sys), get_C(sys), get_D(sys)
+ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 
 # Funtions for number of intputs, outputs and states
-ninputs(sys::AbstractStateSpace) = size(get_D(sys), 2)
-noutputs(sys::AbstractStateSpace) = size(get_D(sys), 1)
-nstates(sys::AbstractStateSpace) = size(get_A(sys), 1)
+ninputs(sys::AbstractStateSpace) = size(sys.D, 2)
+noutputs(sys::AbstractStateSpace) = size(sys.D, 1)
+nstates(sys::AbstractStateSpace) = size(sys.A, 1)
 
 #####################################################################
 ##                         Math Operators                          ##
@@ -164,7 +156,7 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     catch
         error("D isn't invertible")
     end
-    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, get_Ts(sys))
+    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.Ts)
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
@@ -177,7 +169,7 @@ Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 ##                       Indexing Functions                        ##
 #####################################################################
 Base.ndims(::AbstractStateSpace) = 2 # NOTE: Also for SISO systems?
-Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(get_D(sys))
+Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(sys.D)
 Base.size(sys::AbstractStateSpace, d) = d <= 2 ? size(sys)[d] : 1
 Base.eltype(::Type{S}) where {S<:AbstractStateSpace} = S
 
