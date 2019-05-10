@@ -23,7 +23,7 @@ C_111 = ss(a_1, [2], [3], [0])
 C_211 = ss(a_2, [1; 2], [1 0], [0])
 C_212 = ss(a_2, [1; 2], eye_(2), [0; 0])
 C_221 = ss(a_2, [1 0; 0 2], [1 0], [0 0])
-C_222 = ss(a_2, [1 0; 0 2], eye_(2), zeros(2,2))
+C_222 = ss(a_2, [1 0; 0 2], eye_(2), zeros(Int,2,2))
 C_222_d = ss(a_2, [1 0; 0 2], eye_(2), eye_(2))
 C_022 = ss(4.0*eye_(2))
 
@@ -100,7 +100,7 @@ sys = ss(A, B, C, D)
 
 
 # Printing
-res = ("StateSpace{Float64,Array{Float64,2}}\nA = \n -5.0  -3.0\n  2.0  -9.0\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nContinuous-time state-space model")
+res = ("StateSpace{Int64,Array{Int64,2}}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\n\nContinuous-time state-space model")
 @test sprint(show, C_222) == res
 res = ("StateSpace{Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model")
 @test sprint(show, D_222) == res

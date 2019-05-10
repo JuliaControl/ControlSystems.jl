@@ -20,7 +20,8 @@ append() = LTISystem[]
 
 Append systems in block diagonal form
 """
-function append(systems::AbstractStateSpace...) where ST <: AbstractStateSpace
+function append(systems::(ST where ST<:AbstractStateSpace)...)
+    ST = promote_type(typeof.(systems)...)
     Ts = systems[1].Ts
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
@@ -29,7 +30,7 @@ function append(systems::AbstractStateSpace...) where ST <: AbstractStateSpace
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = blockdiag([s.D for s in systems]...)
-    return AbstractStateSpace(A, B, C, D, Ts)
+    return ST(A, B, C, D, Ts)
 end
 
 function append(systems::TransferFunction...)

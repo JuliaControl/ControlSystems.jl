@@ -44,6 +44,20 @@ struct StateSpace{T, MT<:AbstractMatrix{T}} <: AbstractStateSpace
     end
 end
 
+
+function StateSpace{T,MT}(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
+        return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)),
+            MT(to_matrix(T, D)), Float64(Ts))
+end
+
+function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
+        # TODO: change back in 0.7 T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+        T = promote_type(promote_type(eltype(A),eltype(B)), promote_type(eltype(C),eltype(D)))
+        @assert (typeof(to_matrix(T, A)) == typeof(to_matrix(T, B)) == typeof(to_matrix(T, C)) == typeof(to_matrix(T, D)))
+        return StateSpace{T,Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C),
+            to_matrix(T, D), Float64(Ts))
+end
+
 struct HeteroStateSpace{AT,BT,CT,DT} <: AbstractStateSpace
     A::AT
     B::BT
@@ -60,19 +74,6 @@ function HeteroStateSpace(A::AT, B::BT,
     HeteroStateSpace{AT,BT,CT,DT}(A, B, C, D, Ts, nx, nu, ny)
 end
 
-function StateSpace{T,MT}(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
-        return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)),
-            MT(to_matrix(T, D)), Float64(Ts))
-end
-
-function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
-        # TODO: change back in 0.7 T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-        T = promote_type(promote_type(eltype(A),eltype(B)), promote_type(eltype(C),eltype(D)))
-        @assert (typeof(to_matrix(T, A)) == typeof(to_matrix(T, B)) == typeof(to_matrix(T, C)) == typeof(to_matrix(T, D)))
-        return StateSpace{T,Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C),
-            to_matrix(T, D), Float64(Ts))
-end
-
 ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 
 # Funtions for number of intputs, outputs and states
@@ -85,13 +86,13 @@ nstates(sys::AbstractStateSpace) = size(sys.A, 1)
 #####################################################################
 
 ## EQUALITY ##
-function ==(sys1::ST, sys2::ST) where ST <: AbstractStateSpace
-    return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(ST))
+function ==(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
+    return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(ST1))
 end
 
 ## Approximate ##
-function isapprox(sys1::ST, sys2::ST) where ST <: AbstractStateSpace
-    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(ST))
+function isapprox(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
+    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(ST1))
 end
 
 ## ADDITION ##
@@ -142,7 +143,7 @@ function *(sys1::StateSpace{T,MT}, sys2::StateSpace{T,MT}) where {T, MT}
     return StateSpace{T,MT}(A, B, C, D, sys2.Ts)
 end
 
-*(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
 *(n::Number, sys::AbstractStateSpace) = *(sys, n)
 
 ## DIVISION ##
