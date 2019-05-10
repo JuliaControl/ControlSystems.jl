@@ -1,6 +1,32 @@
 #####################################################################
 ##                      Data Type Declarations                     ##
 #####################################################################
+
+function state_space_validation(A,B,C,D,Ts)
+    nx = size(A, 1)
+    nu = size(B, 2)
+    ny = size(C, 1)
+
+    if size(A, 2) != nx && nx != 0
+        error("A must be square")
+    elseif size(B, 1) != nx
+        error("B must have the same row size as A")
+    elseif size(C, 2) != nx
+        error("C must have the same column size as A")
+    elseif nu != size(D, 2)
+        error("D must have the same column size as B")
+    elseif ny != size(D, 1)
+        error("D must have the same row size as C")
+    end
+
+    # Validate sampling time
+    if Ts < 0 && Ts != -1
+        error("Ts must be either a positive number, 0
+               (continuous system), or -1 (unspecified)")
+    end
+    nx,nu,ny
+end
+
 abstract type AbstractStateSpace <: LTISystem end
 struct StateSpace{T, MT<:AbstractMatrix{T}} <: AbstractStateSpace
     A::MT
@@ -13,29 +39,25 @@ struct StateSpace{T, MT<:AbstractMatrix{T}} <: AbstractStateSpace
     ny::Int
     function StateSpace{T, MT}(A::MT, B::MT,
             C::MT, D::MT, Ts::Float64) where {T, MT <: AbstractMatrix{T}}
-        nx = size(A, 1)
-        nu = size(B, 2)
-        ny = size(C, 1)
-
-        if size(A, 2) != nx && nx != 0
-            error("A must be square")
-        elseif size(B, 1) != nx
-            error("B must have the same row size as A")
-        elseif size(C, 2) != nx
-            error("C must have the same column size as A")
-        elseif nu != size(D, 2)
-            error("D must have the same column size as B")
-        elseif ny != size(D, 1)
-            error("D must have the same row size as C")
-        end
-
-        # Validate sampling time
-        if Ts < 0 && Ts != -1
-            error("Ts must be either a positive number, 0
-                   (continuous system), or -1 (unspecified)")
-        end
+        nx,nu,ny = state_space_validation(A,B,C,D,Ts)
         new{T, MT}(A, B, C, D, Ts, nx, nu, ny)
     end
+end
+
+struct HeteroStateSpace{AT,BT,CT,DT} <: AbstractStateSpace
+    A::AT
+    B::BT
+    C::CT
+    D::DT
+    Ts::Float64
+    nx::Int
+    nu::Int
+    ny::Int
+end
+function HeteroStateSpace(A::AT, B::BT,
+    C::CT, D::DT, Ts::Float64=0) where {AT,BT,CT,DT}
+    nx,nu,ny = state_space_validation(A,B,C,D,Ts)
+    HeteroStateSpace{AT,BT,CT,DT}(A, B, C, D, Ts, nx, nu, ny)
 end
 
 function StateSpace{T,MT}(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
@@ -171,6 +193,7 @@ end
 ##                        Display Functions                        ##
 #####################################################################
 
+_string_mat_with_headers(X) = _string_mat_with_headers(Matrix(X))
 function _string_mat_with_headers(X::Matrix)
     #mat = [[""] reshape(cols,1,length(cols));
     #       rows X]

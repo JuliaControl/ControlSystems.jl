@@ -9,7 +9,7 @@ abstract type AbstractSimulator end
     f = (x,p,t) -> x
     y = (x,t)   -> y
 """
-struct Simulator{S<:StateSpace,F<:Function,Y<:Function} <: AbstractSimulator
+struct Simulator{S<:AbstractStateSpace,F<:Function,Y<:Function} <: AbstractSimulator
     P::S
     f::F
     y::Y
@@ -36,7 +36,7 @@ sol            = solve(s, x0, tspan, Tsit5())
 plot(t, s.y(sol, t)[:], lab="Open loop step response")
 ```
 """
-function Simulator(P::StateSpace, u::F = (x,t) -> 0) where F
+function Simulator(P::AbstractStateSpace, u::F = (x,t) -> 0) where F
     @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
     @assert all(P.D .== 0) "Can not simulate systems with direct term D != 0"
     f = (dx,x,p,t) -> dx .= P.A*x .+ P.B*u(x,t)
