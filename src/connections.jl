@@ -20,7 +20,7 @@ append() = LTISystem[]
 
 Append systems in block diagonal form
 """
-function append(systems::StateSpace...)
+function append(systems::AbstractStateSpace...) where ST <: AbstractStateSpace
     Ts = systems[1].Ts
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
@@ -29,7 +29,7 @@ function append(systems::StateSpace...)
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = blockdiag([s.D for s in systems]...)
-    return StateSpace(A, B, C, D, Ts)
+    return AbstractStateSpace(A, B, C, D, Ts)
 end
 
 function append(systems::TransferFunction...)
@@ -43,7 +43,7 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
-function Base.vcat(systems::StateSpace...)
+function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     # Perform checks
     nu = systems[1].nu
     if !all(s.nu == nu for s in systems)
@@ -58,7 +58,7 @@ function Base.vcat(systems::StateSpace...)
     C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
 
-    return StateSpace(A, B, C, D, Ts)
+    return ST(A, B, C, D, Ts)
 end
 
 function Base.vcat(systems::TransferFunction...)
@@ -77,7 +77,7 @@ end
 
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
-function Base.hcat(systems::StateSpace...)
+function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     # Perform checks
     ny = systems[1].ny
     if !all(s.ny == ny for s in systems)
@@ -92,7 +92,7 @@ function Base.hcat(systems::StateSpace...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
 
-    return StateSpace(A, B, C, D, Ts)
+    return ST(A, B, C, D, Ts)
 end
 
 function Base.hcat(systems::TransferFunction...)

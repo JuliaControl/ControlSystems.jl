@@ -1,8 +1,8 @@
 #####################################################################
 ##                      Data Type Declarations                     ##
 #####################################################################
-
-struct StateSpace{T, MT<:AbstractMatrix{T}} <: LTISystem
+abstract type AbstractStateSpace <: LTISystem end
+struct StateSpace{T, MT<:AbstractMatrix{T}} <: AbstractStateSpace
     A::MT
     B::MT
     C::MT
@@ -52,32 +52,32 @@ function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::Abs
 end
 
 # Getter functions
-get_A(sys::StateSpace) = sys.A
-get_B(sys::StateSpace) = sys.B
-get_C(sys::StateSpace) = sys.C
-get_D(sys::StateSpace) = sys.D
+get_A(sys::AbstractStateSpace) = sys.A
+get_B(sys::AbstractStateSpace) = sys.B
+get_C(sys::AbstractStateSpace) = sys.C
+get_D(sys::AbstractStateSpace) = sys.D
 
-get_Ts(sys::StateSpace) = sys.Ts
+get_Ts(sys::AbstractStateSpace) = sys.Ts
 
-ssdata(sys::StateSpace) = get_A(sys), get_B(sys), get_C(sys), get_D(sys)
+ssdata(sys::AbstractStateSpace) = get_A(sys), get_B(sys), get_C(sys), get_D(sys)
 
 # Funtions for number of intputs, outputs and states
-ninputs(sys::StateSpace) = size(get_D(sys), 2)
-noutputs(sys::StateSpace) = size(get_D(sys), 1)
-nstates(sys::StateSpace) = size(get_A(sys), 1)
+ninputs(sys::AbstractStateSpace) = size(get_D(sys), 2)
+noutputs(sys::AbstractStateSpace) = size(get_D(sys), 1)
+nstates(sys::AbstractStateSpace) = size(get_A(sys), 1)
 
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################
 
 ## EQUALITY ##
-function ==(sys1::StateSpace, sys2::StateSpace)
-    return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(StateSpace))
+function ==(sys1::ST, sys2::ST) where ST <: AbstractStateSpace
+    return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(ST))
 end
 
 ## Approximate ##
-function isapprox(sys1::StateSpace, sys2::StateSpace)
-    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(StateSpace))
+function isapprox(sys1::ST, sys2::ST) where ST <: AbstractStateSpace
+    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(ST))
 end
 
 ## ADDITION ##
@@ -98,16 +98,16 @@ function +(s1::StateSpace{T,MT}, s2::StateSpace{T,MT}) where {T, MT}
     return StateSpace(A, B, C, D, s1.Ts)
 end
 
-+(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.Ts)
-+(n::Number, sys::StateSpace) = +(sys, n)
++(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.Ts)
++(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
 
 ## SUBTRACTION ##
--(sys1::StateSpace, sys2::StateSpace) = +(sys1, -sys2)
--(sys::StateSpace, n::Number) = +(sys, -n)
--(n::Number, sys::StateSpace) = +(-sys, n)
+-(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = +(sys1, -sys2)
+-(sys::AbstractStateSpace, n::Number) = +(sys, -n)
+-(n::Number, sys::AbstractStateSpace) = +(-sys, n)
 
 ## NEGATION ##
--(sys::StateSpace) = StateSpace(sys.A, sys.B, -sys.C, -sys.D, sys.Ts)
+-(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.Ts)
 
 ## MULTIPLICATION ##
 function *(sys1::StateSpace{T,MT}, sys2::StateSpace{T,MT}) where {T, MT}
@@ -128,13 +128,13 @@ function *(sys1::StateSpace{T,MT}, sys2::StateSpace{T,MT}) where {T, MT}
     return StateSpace{T,MT}(A, B, C, D, sys2.Ts)
 end
 
-*(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
-*(n::Number, sys::StateSpace) = *(sys, n)
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
+*(n::Number, sys::AbstractStateSpace) = *(sys, n)
 
 ## DIVISION ##
-/(sys1::StateSpace, sys2::StateSpace) = sys1*inv(sys2)
+/(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = sys1*inv(sys2)
 
-function /(n::Number, sys::StateSpace)
+function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     # Ensure s.D is invertible
     A, B, C, D = ssdata(sys)
     Dinv = try
@@ -142,29 +142,29 @@ function /(n::Number, sys::StateSpace)
     catch
         error("D isn't invertible")
     end
-    return StateSpace(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, get_Ts(sys))
+    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, get_Ts(sys))
 end
 
-Base.inv(sys::StateSpace) = 1/sys
-/(sys::StateSpace, n::Number) = StateSpace(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
+Base.inv(sys::AbstractStateSpace) = 1/sys
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
 
-Base.:^(sys::StateSpace, p::Integer) = Base.power_by_squaring(sys, p)
+Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 
 
 #####################################################################
 ##                       Indexing Functions                        ##
 #####################################################################
-Base.ndims(::StateSpace) = 2 # NOTE: Also for SISO systems?
-Base.size(sys::StateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(get_D(sys))
-Base.size(sys::StateSpace, d) = d <= 2 ? size(sys)[d] : 1
-Base.eltype(::Type{S}) where {S<:StateSpace} = S
+Base.ndims(::AbstractStateSpace) = 2 # NOTE: Also for SISO systems?
+Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(get_D(sys))
+Base.size(sys::AbstractStateSpace, d) = d <= 2 ? size(sys)[d] : 1
+Base.eltype(::Type{S}) where {S<:AbstractStateSpace} = S
 
-function Base.getindex(sys::StateSpace, inds...)
+function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
     if size(inds, 1) != 2
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
-    return StateSpace(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.Ts)
+    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.Ts)
 end
 
 #####################################################################
@@ -178,9 +178,9 @@ function _string_mat_with_headers(X::Matrix)
     return replace(sprint(p, X), "\"" => " ")
 end
 
-Base.print(io::IO, sys::StateSpace) = show(io, sys)
+Base.print(io::IO, sys::AbstractStateSpace) = show(io, sys)
 
-function Base.show(io::IO, sys::StateSpace)
+function Base.show(io::IO, sys::AbstractStateSpace)
     # Compose the name vectors
     #inputs = format_names(s.inputnames, "u", "?")
     #outputs = format_names(s.outputnames, "y", "?")
@@ -215,7 +215,7 @@ end
 """
 `minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
 """
-function minreal(s::StateSpace, tol=sqrt(eps()))
+function minreal(s::AbstractStateSpace, tol=sqrt(eps()))
     s = baltrunc(s, atol=tol, rtol = 0)[1]
     try
         return diagonalize(s)
@@ -229,7 +229,7 @@ end
 """
 `dsys = diagonalize(s::StateSpace, digits=12)` Diagonalizes the system such that the A-matrix is diagonal.
 """
-function diagonalize(s::StateSpace, digits = 12)
+function diagonalize(s::AbstractStateSpace, digits = 12)
     r = x -> round(x, digits=digits)
     S,V = eigen(s.A)
     try
