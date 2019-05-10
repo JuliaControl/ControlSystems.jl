@@ -13,8 +13,6 @@ Set Ts=-1 for a discrete-time model with unspecified sampling period.
 `sys = ss(D[, Ts, ...])` specifies a static gain matrix D."""
 function ss(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real=0)
     # Check the kwargs for metadata
-    nu = size(B, 2)
-    ny, nx = size(C, 1), size(C, 2)
     return StateSpace(A, B, C, D, Ts)
 end
 

@@ -1,7 +1,7 @@
 """`pole(sys)`
 
 Compute the poles of system `sys`."""
-pole(sys::StateSpace) = eigvals(sys.A)
+pole(sys::AbstractStateSpace) = eigvals(sys.A)
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
@@ -102,7 +102,7 @@ as the following:
 `h(0) = D`
 
 `h(n) = C*A^(n-1)*B`"""
-function markovparam(sys::StateSpace, n::Integer)
+function markovparam(sys::AbstractStateSpace, n::Integer)
     n < 0 && error("n must be >= 0")
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
@@ -190,7 +190,7 @@ end
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
 # Note that this returns either Vector{ComplexF32} or Vector{Float64}
-tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
+tzero(sys::AbstractStateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
 function tzero(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
