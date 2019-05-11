@@ -1,7 +1,9 @@
 module ControlSystems
 
 export  LTISystem,
+        AbstractStateSpace,
         StateSpace,
+        HeteroStateSpace,
         TransferFunction,
         ss,
         tf,
