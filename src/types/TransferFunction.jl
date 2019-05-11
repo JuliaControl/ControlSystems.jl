@@ -141,6 +141,12 @@ end
 -(G::TransferFunction) = TransferFunction(-G.matrix, G.Ts)
 
 ## MULTIPLICATION ##
+function (*)(A::AbstractMatrix{<:SisoRational}, B::AbstractMatrix{<:SisoRational})
+    # TS = promote_op(matprod, eltype(A), eltype(B)) # TODO; this promote_op does not work 100% and often returns ControlSystems.SisoRational{_A} where _A even though it should be ControlSystems.SisoRational{eltype(A)}
+    TS = promote_type(eltype(A), eltype(B))
+    mul!(similar(B, TS, (size(A,1), size(B,2))), A, B)
+end
+
 function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
     if G1.nu != G2.ny
