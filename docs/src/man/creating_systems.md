@@ -65,3 +65,71 @@ TransferFunction{ControlSystems.SisoRational{Int64}}
 Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
 ```
+
+
+# Creating State-Space Systems
+A state-space system is created using
+```julia
+ss(A,B,C,D,Ts=0)
+```
+and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
+```julia
+using StaticArrays
+import ControlSystems.HeteroStateSpace
+@inline to_static(a::Number) = a
+@inline to_static(a::AbstractArray) = SMatrix{size(a)...}(a)
+@inline to_sized(a::Number) = a
+@inline to_sized(a::AbstractArray) = SizedArray{Tuple{size(a)...}}(a)
+function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
+    HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
+end
+@inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.Ts,f)
+ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)) # Overload for printing purposes
+```
+Notice the different matrix types used
+```jldoctest
+julia> sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
+StateSpace{Int64,Array{Int64,2}}
+A =
+ -5   0
+  0  -5
+B =
+ 2
+ 2
+C =
+ 3  3
+D =
+ 0
+
+Continuous-time state-space model
+
+julia> HeteroStateSpace(sys, to_static)
+HeteroStateSpace{SArray{Tuple{2,2},Int64,2,4},SArray{Tuple{2,1},Int64,2,2},SArray{Tuple{1,2},Int64,2,2},SArray{Tuple{1,1},Int64,2,1}}
+A =
+ -5   0
+  0  -5
+B =
+ 2
+ 2
+C =
+ 3  3
+D =
+ 0
+
+Continuous-time state-space model
+
+julia> HeteroStateSpace(sys, to_sized)
+HeteroStateSpace{SizedArray{Tuple{2,2},Int64,2,2},SizedArray{Tuple{2,1},Int64,2,2},SizedArray{Tuple{1,2},Int64,2,2},SizedArray{Tuple{1,1},Int64,2,2}}
+A =
+ -5   0
+  0  -5
+B =
+ 2
+ 2
+C =
+ 3  3
+D =
+ 0
+
+Continuous-time state-space model
+```

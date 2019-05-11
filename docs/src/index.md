@@ -13,7 +13,7 @@ Depth = 2
 ## Guide
 
 ```@contents
-Pages = ["man/introduction.md", "man/creatingtfs.md"]
+Pages = ["man/introduction.md", "man/creating_systems.md"]
 Depth = 1
 ```
 
