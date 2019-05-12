@@ -87,11 +87,13 @@ nstates(sys::AbstractStateSpace) = size(sys.A, 1)
 
 ## EQUALITY ##
 function ==(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
+    fieldnames(ST1) == fieldnames(ST2) || (return false)
     return all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(ST1))
 end
 
 ## Approximate ##
 function isapprox(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
+    fieldnames(ST1) == fieldnames(ST2) || (return false)
     return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(ST1))
 end
 
