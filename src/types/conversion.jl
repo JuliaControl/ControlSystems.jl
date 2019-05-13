@@ -58,6 +58,10 @@ function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
     return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
 end
 
+Base.convert(::Type{HeteroStateSpace{AT,BT,CT,DT}}, s::StateSpace{T,MT}) where {T,MT,AT,BT,CT,DT} = HeteroStateSpace{promote_type(MT,AT),promote_type(MT,BT),promote_type(MT,CT),promote_type(MT,DT)}(s.A,s.B,s.C,s.D,s.Ts)
+
+Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
+
 function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
     T = Base.promote_op(/,T0,T0)
     convert(StateSpace{T,Matrix{T}}, G)

@@ -98,7 +98,7 @@ Set Ts=-1 for a discrete-time model with unspecified sampling period.
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{AT,BT,CT,DT} <: AbstractStateSpace
+struct HeteroStateSpace{AT<:AbstractVecOrMat,BT<:AbstractVecOrMat,CT<:AbstractVecOrMat,DT<:AbstractVecOrMat} <: AbstractStateSpace
     A::AT
     B::BT
     C::CT
@@ -113,6 +113,15 @@ function HeteroStateSpace(A::AT, B::BT,
     nx,nu,ny = state_space_validation(A,B,C,D,Ts)
     HeteroStateSpace{AT,BT,CT,DT}(A, B, C, D, Ts, nx, nu, ny)
 end
+
+function HeteroStateSpace{AT,BT,CT,DT}(A, B, C, D, Ts::Float64=0) where {AT,BT,CT,DT}
+    nx,nu,ny = state_space_validation(A,B,C,D,Ts)
+    HeteroStateSpace{AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), Ts, nx, nu, ny)
+end
+
+HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.Ts)
+
+# Getter functions ###################################################
 
 ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 
