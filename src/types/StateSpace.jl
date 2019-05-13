@@ -44,19 +44,59 @@ struct StateSpace{T, MT<:AbstractMatrix{T}} <: AbstractStateSpace
     end
 end
 
+const AbstractNumOrArray = Union{Number, AbstractVecOrMat}
 
-function StateSpace{T,MT}(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
-        return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)),
-            MT(to_matrix(T, D)), Float64(Ts))
+function StateSpace{T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
+    if D == 0
+        D = fill(zero(T), size(C,1), size(B,2))
+    else
+        D = to_matrix(T, D)
+    end
+    return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)), MT(D), Float64(Ts))
 end
 
-function StateSpace(A::AbstractArray, B::AbstractArray, C::AbstractArray, D::AbstractArray, Ts::Real)
-        # TODO: change back in 0.7 T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
-        T = promote_type(promote_type(eltype(A),eltype(B)), promote_type(eltype(C),eltype(D)))
-        @assert (typeof(to_matrix(T, A)) == typeof(to_matrix(T, B)) == typeof(to_matrix(T, C)) == typeof(to_matrix(T, D)))
-        return StateSpace{T,Matrix{T}}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C),
-            to_matrix(T, D), Float64(Ts))
+function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Real=0)
+    T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
+    A = to_matrix(T, A)
+    B = to_matrix(T, B)
+    C = to_matrix(T, C)
+    if D == 0
+        D = fill(zero(T), size(C,1), size(B,2))
+    else
+        D = to_matrix(T, D)
+    end
+    return StateSpace{T,Matrix{T}}(A, B, C, D, Float64(Ts))
 end
+
+
+# Function for creation of static gain
+function StateSpace(D::AbstractArray{T}, Ts::Real=0) where {T<:Number}
+    ny, nu = size(D, 1), size(D, 2)
+    A = fill(zero(T), 0, 0)
+    B = fill(zero(T), 0, nu)
+    C = fill(zero(T), ny, 0)
+
+    return StateSpace(A, B, C, D, Ts)
+end
+StateSpace(d::Number, Ts::Real=0; kwargs...) = StateSpace([d], Ts)
+
+# StateSpace(sys) converts to StateSpace
+StateSpace(sys::LTISystem) = convert(StateSpace, sys)
+
+"""
+    `sys = ss(A, B, C, D, Ts=0)`
+
+Create a state-space model `sys::StateSpace{T, MT<:AbstractMatrix{T}}`
+where `MT` is the type of matrixes `A,B,C,D` and `T` the element type.
+
+This is a continuous-time model if Ts is omitted or set to 0.
+Otherwise, this is a discrete-time model with sampling period Ts.
+Set Ts=-1 for a discrete-time model with unspecified sampling period.
+
+`sys = ss(D[, Ts, ...])` specifies a static gain matrix D.
+"""
+ss(args...;kwargs...) = StateSpace(args...;kwargs...)
+
 
 struct HeteroStateSpace{AT,BT,CT,DT} <: AbstractStateSpace
     A::AT
