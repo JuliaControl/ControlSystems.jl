@@ -112,7 +112,7 @@ end
 
 # We overload this method to circumvent the Base methods use of promote_op(matprod,...)
 function (*)(A::AbstractMatrix{<:SisoRational}, B::AbstractMatrix{<:SisoRational})
-    # TS = promote_op(matprod, eltype(A), eltype(B)) # TODO; this promote_op does not work 100% and often returns ControlSystems.SisoRational{_A} where _A even though it should be ControlSystems.SisoRational{eltype(A)}
+    # TS = promote_op(LinearAlgebra.matprod, eltype(A), eltype(B)) # TODO; this promote_op does not work 100% and often returns ControlSystems.SisoRational{_A} where _A even though it should be ControlSystems.SisoRational{eltype(A)}
     TS = promote_type(eltype(A), eltype(B))
     mul!(similar(B, TS, (size(A,1), size(B,2))), A, B)
 end
