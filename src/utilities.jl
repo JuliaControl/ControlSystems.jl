@@ -137,9 +137,9 @@ macro autovec(indices, nout, f)
     return_exp = :()
     for i in 1:nout
         if i in indices
-            return_exp = :($return_exp..., vec(ret[$i]))
+            return_exp = :($return_exp..., vec(result[$i]))
         else
-            return_exp = :($return_exp..., ret[$i])
+            return_exp = :($return_exp..., result[$i])
         end
     end
 
@@ -154,6 +154,8 @@ macro autovec(indices, nout, f)
 
         # TODO following row does not work, existing works... don't understand why
         # `$($(esc(dict[:name])))v($($(esc.(get(dict, :args, []))...)); $($(esc.(get(dict, :kwargs, []))...)))`
+        # TODO works without the whereparam, but complains when it's used in f
+        # $(isempty(dict[:whereparams]) ? :() : :( where {$(esc.(get(dict, :whereparams, []))...)}))
         """ 
         `$($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))`
 
@@ -167,7 +169,8 @@ macro autovec(indices, nout, f)
                     issiso(a) || throw(ArgumentError("Only SISO systems accepted to $(esc(Symbol(dict[:name], "v")))"))
                 end
             end
-            ret = $(esc(dict[:name]))($(esc.(dict[:args])...); 
+            # TODO not really fixed, kwargs can still have shape c::Int=4
+            result = $(esc(dict[:name]))($(esc.(args)...); 
                                       $(esc.(dict[:kwargs])...))
             return $return_exp
         end
