@@ -109,7 +109,7 @@ struct HeteroStateSpace{AT<:AbstractVecOrMat,BT<:AbstractVecOrMat,CT<:AbstractVe
     ny::Int
 end
 function HeteroStateSpace(A::AT, B::BT,
-    C::CT, D::DT, Ts::Float64=0) where {AT,BT,CT,DT}
+    C::CT, D::DT, Ts::Float64=0) where {AT<:AbstractVecOrMat,BT<:AbstractVecOrMat,CT<:AbstractVecOrMat,DT<:AbstractVecOrMat}
     nx,nu,ny = state_space_validation(A,B,C,D,Ts)
     HeteroStateSpace{AT,BT,CT,DT}(A, B, C, D, Ts, nx, nu, ny)
 end
@@ -120,6 +120,33 @@ function HeteroStateSpace{AT,BT,CT,DT}(A, B, C, D, Ts::Float64=0) where {AT,BT,C
 end
 
 HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.Ts)
+
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Real=0)
+    A = to_matrix(eltype(A), A)
+    B = to_matrix(eltype(B), B)
+    C = to_matrix(eltype(C), C)
+    if D == 0
+        D = fill(zero(eltype(C)), size(C,1), size(B,2))
+    else
+        D = to_matrix(eltype(D), D)
+    end
+    return HeteroStateSpace{typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, Float64(Ts))
+end
+
+
+# Function for creation of static gain
+function HeteroStateSpace(D::AbstractArray{T}, Ts::Real=0) where {T<:Number}
+    ny, nu = size(D, 1), size(D, 2)
+    A = fill(zero(T), 0, 0)
+    B = fill(zero(T), 0, nu)
+    C = fill(zero(T), ny, 0)
+
+    return HeteroStateSpace(A, B, C, D, Ts)
+end
+HeteroStateSpace(d::Number, Ts::Real=0; kwargs...) = HeteroStateSpace([d], Ts)
+
+# HeteroStateSpace(sys) converts to HeteroStateSpace
+HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
 
 # Getter functions ###################################################
 
@@ -164,6 +191,23 @@ function +(s1::StateSpace{T,MT}, s2::StateSpace{T,MT}) where {T, MT}
     return StateSpace(A, B, C, D, s1.Ts)
 end
 
+function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
+    #Ensure systems have same dimensions
+    if size(s1) != size(s2)
+        error("Systems have different shapes.")
+    elseif s1.Ts != s2.Ts
+        error("Sampling time mismatch")
+    end
+    T = promote_type(eltype(s1.A),eltype(s2.A))
+    A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
+         fill(zero(T), nstates(s2), nstates(s1))        s2.A]
+    B = [s1.B ; s2.B]
+    C = [s1.C s2.C;]
+    D = [s1.D + s2.D;]
+
+    return HeteroStateSpace(A, B, C, D, s1.Ts)
+end
+
 +(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.Ts)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
 
@@ -192,6 +236,24 @@ function *(sys1::StateSpace{T,MT}, sys2::StateSpace{T,MT}) where {T, MT}
     D = [sys1.D*sys2.D;]
 
     return StateSpace{T,MT}(A, B, C, D, sys2.Ts)
+end
+
+function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
+    #Check dimension alignment
+    #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
+    if sys1.nu != sys2.ny
+        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
+    elseif sys1.Ts != sys2.Ts
+        error("Sampling time mismatch")
+    end
+    T = promote_type(eltype(sys1.A),eltype(sys2.A))
+    A = [sys1.A    sys1.B*sys2.C;
+         fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
+    B = [sys1.B*sys2.D ; sys2.B]
+    C = [sys1.C   sys1.D*sys2.C;]
+    D = [sys1.D*sys2.D;]
+
+    return HeteroStateSpace(A, B, C, D, sys2.Ts)
 end
 
 *(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
