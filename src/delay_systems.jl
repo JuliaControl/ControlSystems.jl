@@ -83,7 +83,7 @@ function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T},
     P = sys.P
 
     if ~iszero(P.D22)
-        error("non-zero D22-matrix block is not supported") # Due to limitations in differential equations
+        throw(ArgumentError("non-zero D22-matrix block is not supported")) # Due to limitations in differential equations
     end
 
     t0 = first(t)
