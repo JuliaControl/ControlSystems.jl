@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Design · ControlSystems.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link href="../../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><a href="../../index.html"><img class="logo" src="../../assets/logo.png" alt="ControlSystems.jl logo"/></a><h1>ControlSystems.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../../">Home</a></li><li><span class="toctext">Examples</span><ul><li class="current"><a class="toctext" href>Design</a><ul class="internal"><li class="toplevel"><a class="toctext" href="#LQR-design-2">LQR design</a></li><li class="toplevel"><a class="toctext" href="#PID-design-functions-1">PID design functions</a></li><li class="toplevel"><a class="toctext" href="#Advanced-pole-zero-placement-1">Advanced pole-zero placement</a></li><li class="toplevel"><a class="toctext" href="#Stability-boundary-for-PID-controllers-1">Stability boundary for PID controllers</a></li><li class="toplevel"><a class="toctext" href="#PID-plots-1">PID plots</a></li></ul></li></ul></li><li><span class="toctext">Guide</span><ul><li><a class="toctext" href="../../man/introduction/">Introduction</a></li><li><a class="toctext" href="../../man/creating_systems/">Creating Systems</a></li></ul></li><li><span class="toctext">Functions</span><ul><li><a class="toctext" href="../../lib/constructors/">Constructors</a></li><li><a class="toctext" href="../../lib/analysis/">Analysis</a></li><li><a class="toctext" href="../../lib/synthesis/">Synthesis</a></li><li><a class="toctext" href="../../lib/timefreqresponse/">Time and Frequency response</a></li><li><a class="toctext" href="../../lib/plotting/">Plotting</a></li></ul></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>Design</a></li></ul><a class="edit-page" href="https://github.com/JuliaControl/ControlSystems.jl/blob/master/docs/src/examples/example.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Design</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="LQR-design-1" href="#LQR-design-1">LQR design</a></h1><pre><code class="language-julia">using LinearAlgebra # For identity matrix I
+h       = 0.1
+A       = [1 h; 0 1]
+B       = [0;1]
+C       = [1 0]
+sys     = ss(A,B,C,0, h)
+Q       = I
+R       = I
+L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(x,t)  = -L*x .+ 1.5(t&gt;=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
+t       =0:h:5
+x0      = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]&#39;, xlabel=&quot;Time [s]&quot;)</code></pre><p><img src="../../plots/lqrplot.svg" alt/></p><h1><a class="nav-anchor" id="LQR-design-2" href="#LQR-design-2">LQR design</a></h1><pre><code class="language-julia">using LinearAlgebra # For identity matrix I
+h       = 0.1
+A       = [1 h; 0 1]
+B       = [0;1]
+C       = [1 0]
+sys     = ss(A,B,C,0, h)
+Q       = I
+R       = I
+L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+
+u(x,t)  = -L*x .+ 1.5(t&gt;=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
+t       =0:h:5
+x0      = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=[&quot;Position&quot;, &quot;Velocity&quot;]&#39;, xlabel=&quot;Time [s]&quot;)</code></pre><p><img src="../../plots/lqrplot.svg" alt/></p><h1><a class="nav-anchor" id="PID-design-functions-1" href="#PID-design-functions-1">PID design functions</a></h1><p>By plotting the gang of four under unit feedback for the process</p><pre><code class="language-julia">P = tf(1,[1,1])^4
+gangoffourplot(P,tf(1))</code></pre><p><img src="../../plots/pidgofplot.svg" alt/></p><p>we notice that the sensitivity function is a bit too high at around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the function <code>loopshapingPI</code> and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.</p><pre><code class="language-julia">ωp = 0.8
+kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)</code></pre><p><img src="../../plots/pidgofplot2.svg" alt/> <img src="../../plots/pidnyquistplot.svg" alt/></p><p>We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like</p><pre><code class="language-julia">ωp = 2
+kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)</code></pre><p>Here we specify that we want the Nyquist curve <code>L(iω) = P(iω)C(iω)</code> to pass the point <code>|L(iω)| = rl = 1,  arg(L(iω)) = -180 + phasemargin = -180 + 60</code> The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles. <img src="../../plots/pidgofplot3.svg" alt/> <img src="../../plots/pidnyquistplot2.svg" alt/></p><h1><a class="nav-anchor" id="Advanced-pole-zero-placement-1" href="#Advanced-pole-zero-placement-1">Advanced pole-zero placement</a></h1><p>This example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.</p><p>Define the process</p><pre><code class="language-julia">ζ = 0.2
+ω = 1
+
+B = [1]
+A   = [1, 2ζ*ω, ω^2]
+P  = tf(B,A)
+
+# output
+
+TransferFunction:
+      1.0
+----------------
+s^2 + 0.4s + 1.0
+
+Continuous-time transfer function model</code></pre><p>Define the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.</p><pre><code class="language-julia"># Control design
+ζ0 = 0.7
+ω0 = 2
+Am = [1, 2ζ0*ω0, ω0^2]
+Ao = conv(2Am, [1/2, 1]) # Observer polynomial, add extra pole due to the integrator
+AR = [1,0] # Force the controller to contain an integrator ( 1/(s+0) )
+
+B⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ where B⁻ contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)
+B⁻  = [1]
+Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process
+
+R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
+
+Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
+
+stepplot([P,Gcl]) # Visualize the open and closed loop responses.
+gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK</code></pre><p><img src="../../plots/ppstepplot.svg" alt/> <img src="../../plots/ppgofplot.svg" alt/></p><h1><a class="nav-anchor" id="Stability-boundary-for-PID-controllers-1" href="#Stability-boundary-for-PID-controllers-1">Stability boundary for PID controllers</a></h1><p>The stability boundary, where the transfer function <code>P(s)C(s) = -1</code>, can be plotted with the command <code>stabregionPID</code>. The process can be given in string form or as a regular LTIsystem.</p><pre><code class="language-julia">P1 = s -&gt; exp(-sqrt(s))
+f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)))
+P2 = s -&gt; 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
+f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)))
+P3 = tf(1,[1,1])^4
+f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)))</code></pre><p><img src="../../plots/stab1.svg" alt/> <img src="../../plots/stab2.svg" alt/> <img src="../../plots/stab3.svg" alt/></p><h1><a class="nav-anchor" id="PID-plots-1" href="#PID-plots-1">PID plots</a></h1><p>This example utilizes the function <code>pidplots</code>, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.</p><pre><code class="language-julia">P = tf([1.],[1., 1])
+
+ζ = 0.5 # Desired damping
+
+ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
+kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
+ki = ws.^2
+pidplots(P,:nyquist,:gof;kps=kp,kis=ki, ω= exp10.(range(-2, stop=2, length=500))) # Request Nyquist and Gang-of-four plots (more plots are available, see ?pidplots )</code></pre><p><img src="../../plots/pidplotsnyquist1.svg" alt/> <img src="../../plots/pidplotsgof1svg" alt/></p><p>Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s</p><pre><code class="language-julia">kp = range(-1, stop=1, length=8) #
+ki = sqrt.(1 .- kp.^2)/10
+pidplots(P,:nyquist,:gof;kps=kp,kis=ki)</code></pre><p><img src="../../plots/pidplotsnyquist2.svg" alt/> <img src="../../plots/pidplotsgof2.svg" alt/></p><footer><hr/><a class="previous" href="../../"><span class="direction">Previous</span><span class="title">Home</span></a><a class="next" href="../../man/introduction/"><span class="direction">Next</span><span class="title">Introduction</span></a></footer></article></body></html>
