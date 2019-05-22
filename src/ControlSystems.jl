@@ -87,7 +87,6 @@ export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
 import LinearAlgebra: BlasFloat
-import Interpolations
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv

@@ -107,16 +107,15 @@ function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{
         y[:,k] = C1*x[k] + D11*uout
         #d[:,k] = C2*x[k] + D21*uout
     end
-    xitp = Interpolations.interpolate((t,), x, Interpolations.Gridded(Interpolations.Linear()))
 
     dtmp = Array{T,1}(undef, size(C2,1))
     # Function to evaluate d(t)_i at an arbitrary time
-    # X is constinuous, so interpoate, u is not
+    # X is continuous, so interpoate, u is not
     function dfunc!(tmp::Array{T1}, t, i) where T1
         tmp .= if t < t0
             T1(0)
         else
-            xitp(t)
+            sol(t)
         end
         u!(uout, t)
         return dot(view(C2,i,:),tmp) + dot(view(D21,i,:),uout)
