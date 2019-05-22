@@ -21,16 +21,6 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
     return G_fr
 end
 
-struct FunctionWrapper <: Function
-    f::Function
-end
-(fv::FunctionWrapper)(dx, x, h!, p, t) = fv.f(dx, x, h!, p, t)
-
-struct UWrapper <: Function
-    f::Function
-end
-(fv::UWrapper)(out, t) = fv.f(out, t)
-
 
 """
     `y, t, x = lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(out, t) -> (out .= 0), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
@@ -56,11 +46,11 @@ function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T),
     else                                            # If u is a regular u(t) function
         (out, t) -> (out .= u(t))
     end
-    _lsim(sys, UWrapper(u!), t, x0, alg)
+    _lsim(sys, u!, t, x0, alg)
 end
 
 function dde_param(dx, x, h!, p, t)
-    A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp = p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10]
+    A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp = p
 
     u!(uout, t)     # uout = u(t)
 
@@ -69,17 +59,17 @@ function dde_param(dx, x, h!, p, t)
     mul!(tmp, B1, uout)
     dx .+= tmp
 
-    for k=1:length(Tau)     # Add each of the delayed signals
+    @views for k=1:length(Tau)     # Add each of the delayed signals
         u!(uout, t-Tau[k])      # uout = u(t-tau[k])
         h!(hout, p, t-Tau[k])
-        dk_delayed = dot(view(C2,k,:), hout) + dot(view(D21,k,:), uout)
-        dx .+= view(B2,:, k) .* dk_delayed
+        dk_delayed = dot(C2[k,:], hout) + dot(D21[k,:], uout)
+        dx .+= B2[:, k] .* dk_delayed
     end
     return
 end
 
 # TODO Discontinuities in u are not handled well yet.
-function _lsim(sys::DelayLtiSystem{T}, u!, t::AbstractArray{<:T}, x0::Vector{T}, alg) where T
+function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{<:T}, x0::Vector{T}, alg) where T
     P = sys.P
 
     if ~iszero(P.D22)
