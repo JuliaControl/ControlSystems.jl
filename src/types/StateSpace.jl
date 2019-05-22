@@ -284,7 +284,7 @@ Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 #####################################################################
 Base.ndims(::AbstractStateSpace) = 2 # NOTE: Also for SISO systems?
 Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(sys.D)
-Base.size(sys::AbstractStateSpace, d) = d <= 2 ? size(sys)[d] : 1
+Base.size(sys::AbstractStateSpace, d::Integer) = d <= 2 ? size(sys)[d] : 1
 Base.eltype(::Type{S}) where {S<:AbstractStateSpace} = S
 
 function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
