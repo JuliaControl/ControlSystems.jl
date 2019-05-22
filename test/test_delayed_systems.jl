@@ -1,3 +1,4 @@
+@testset "test_delay_system" begin
 ω = 0.0:8
 
 # broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
@@ -170,3 +171,5 @@ y_impulse, t, _ = impulse(sys_known, 3)
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
 
 @time [s11; s12]
+
+end
