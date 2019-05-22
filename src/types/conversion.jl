@@ -54,8 +54,12 @@ function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
     return TransferFunction{eltype(Gnew_matrix)}(Gnew_matrix, G.Ts)
 end
 
-function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
-    return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
+function convert(::Type{S}, sys::StateSpace) where {T, MT, S <:StateSpace{T,MT}}
+    if sys isa S
+        return sys
+    else
+        return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
+    end
 end
 
 Base.convert(::Type{HeteroStateSpace{AT,BT,CT,DT}}, s::StateSpace{T,MT}) where {T,MT,AT,BT,CT,DT} = HeteroStateSpace{promote_type(MT,AT),promote_type(MT,BT),promote_type(MT,CT),promote_type(MT,DT)}(s.A,s.B,s.C,s.D,s.Ts)

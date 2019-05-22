@@ -34,7 +34,8 @@ function _preprocess_for_freqresp(sys::StateSpace)
     F = hessenberg(A)
     T = F.Q
     P = C*T
-    Q = T\B # TODO Type stability?
+    Q = T\B # TODO Type stability? # T is unitary, so mutliplication with T' should do the trick
+    # FIXME; No performance improvement from Hessienberg structure, also weired renaming of matrices
     StateSpace(F.H, Q, P, D, sys.Ts)
 end
 

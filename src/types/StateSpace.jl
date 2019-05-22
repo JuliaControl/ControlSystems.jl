@@ -55,6 +55,10 @@ function StateSpace{T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Abstr
     return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)), MT(D), Float64(Ts))
 end
 
+function StateSpace{T,MT}(sys::StateSpace) where {T, MT <: AbstractMatrix{T}}
+    StateSpace{T,MT}(sys.A,sys.B,sys.C,sys.D,sys.Ts)
+end
+
 function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Real=0)
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     A = to_matrix(T, A)
@@ -284,7 +288,7 @@ Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 #####################################################################
 Base.ndims(::AbstractStateSpace) = 2 # NOTE: Also for SISO systems?
 Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(sys.D)
-Base.size(sys::AbstractStateSpace, d) = d <= 2 ? size(sys)[d] : 1
+Base.size(sys::AbstractStateSpace, d::Integer) = d <= 2 ? size(sys)[d] : 1
 Base.eltype(::Type{S}) where {S<:AbstractStateSpace} = S
 
 function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace

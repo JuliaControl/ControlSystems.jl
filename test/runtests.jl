@@ -8,7 +8,9 @@ include("framework.jl")
 # Local definition to make sure we get warings if we use eye
 eye_(n) = Matrix{Int64}(I, n, n)
 
-my_tests = ["test_statespace",
+my_tests = [
+            "test_delayed_systems",
+            "test_statespace",
             "test_transferfunction",
             "test_zpk",
             "test_promotion",
@@ -23,7 +25,9 @@ my_tests = ["test_statespace",
             "test_analysis",
             "test_matrix_comps",
             "test_lqg",
-            "test_synthesis"]
+            "test_synthesis",
+            "test_partitioned_statespace",
+            ]
 
 
 # try

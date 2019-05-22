@@ -1,0 +1,10 @@
+julia 0.7
+Plots
+Polynomials
+LaTeXStrings
+DelayDiffEq
+OrdinaryDiffEq
+IterTools
+Colors
+DSP
+Interpolations

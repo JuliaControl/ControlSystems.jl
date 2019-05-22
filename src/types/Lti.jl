@@ -3,7 +3,36 @@ abstract type LTISystem <: AbstractSystem end
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
 *(sys1::LTISystem, sys2::LTISystem) = *(promote(sys1, sys2)...)
 /(sys1::LTISystem, sys2::LTISystem) = /(promote(sys1, sys2)...)
+
+# Fallback number
++(sys1::LTISystem, sys2::Number) = +(promote(sys1, sys2)...)
+-(sys1::LTISystem, sys2::Number) = -(promote(sys1, sys2)...)
+*(sys1::LTISystem, sys2::Number) = *(promote(sys1, sys2)...)
+/(sys1::LTISystem, sys2::Number) = /(promote(sys1, sys2)...)
+
++(sys1::Number, sys2::LTISystem) = +(promote(sys1, sys2)...)
+-(sys1::Number, sys2::LTISystem) = -(promote(sys1, sys2)...)
+*(sys1::Number, sys2::LTISystem) = *(promote(sys1, sys2)...)
+/(sys1::Number, sys2::LTISystem) = /(promote(sys1, sys2)...)
+
+# Fallback Matrix
++(sys1::LTISystem, sys2::AbstractMatrix) = +(promote(sys1, sys2)...)
+-(sys1::LTISystem, sys2::AbstractMatrix) = -(promote(sys1, sys2)...)
+*(sys1::LTISystem, sys2::AbstractMatrix) = *(promote(sys1, sys2)...)
+/(sys1::LTISystem, sys2::AbstractMatrix) = /(promote(sys1, sys2)...)
+
++(sys1::AbstractMatrix, sys2::LTISystem) = +(promote(sys1, sys2)...)
+-(sys1::AbstractMatrix, sys2::LTISystem) = -(promote(sys1, sys2)...)
+*(sys1::AbstractMatrix, sys2::LTISystem) = *(promote(sys1, sys2)...)
+/(sys1::AbstractMatrix, sys2::LTISystem) = /(promote(sys1, sys2)...)
+
+# TODO We should have proper fallbacks for matrices too
+
+feedback(sys1::Union{LTISystem,Number,AbstractMatrix{<:Number}},
+         sys2::Union{LTISystem,Number,AbstractMatrix{<:Number}}) = feedback(promote(sys1, sys2)...)
+
 Base.inv(G::LTISystem) = 1/G
+
 
 """`issiso(sys)`
 
@@ -51,3 +80,6 @@ function _check_consistent_sampling_time(sys1::LTISystem, sys2::LTISystem)
        error("Sampling time mismatch")
    end
 end
+
+# Fallback since LTISystem not AbstractArray
+Base.size(sys::LTISystem, i::Integer) = size(sys)[i]
