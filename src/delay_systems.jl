@@ -2,7 +2,7 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
     ny = noutputs(sys)
     nu = ninputs(sys)
 
-    P_fr = ControlSystems.freqresp(sys.P.P, ω);
+    P_fr = freqresp(sys.P.P, ω);
 
     G_fr = zeros(eltype(P_fr), length(ω), ny, nu)
 
