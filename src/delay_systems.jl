@@ -116,7 +116,7 @@ function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{
         tmp .= if t < t0
             T1(0)
         else
-            sol(t)
+            sol(t) # solution object has built in interpolator of same order as solver.
         end
         u!(uout, t)
         return dot(view(C2,i,:),tmp) + dot(view(D21,i,:),uout)
@@ -130,7 +130,7 @@ function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{
         end
     end
 
-    return y', t, hcat(x...)'
+    return y', t, reduce(hcat ,x)'
 end
 
 
@@ -138,7 +138,7 @@ end
 function _bounds_and_features(sys::DelayLtiSystem, plot::Symbol)
     ws, pz =  _bounds_and_features(sys.P.P, plot)
     logtau = log10.(abs.(sys.Tau))
-    logtau = logtau[logtau .> -4] # Ignore low frequency
+    logtau = filter(x->x>4, logtau) # Ignore low frequency
     if isempty(logtau)
         return ws, pz
     end
