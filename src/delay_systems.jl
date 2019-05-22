@@ -34,10 +34,11 @@ end
         Can be a constant `Number` or `Vector`, interpreted as `ut .= u` , or
         Function `ut .= u(t)`, or
         In-place function `u(ut, t)`. (Slightly more effienct)
+    `kwargs...`: These are sent to `solve` from DelayDiffEq.
 
     Returns: times `t`, and `y` and `x` at those times.
 """
-function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5())) where T
+function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...) where T
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
         (uout, t) -> uout .= u
@@ -46,7 +47,7 @@ function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T),
     else                                            # If u is a regular u(t) function
         (out, t) -> (out .= u(t))
     end
-    _lsim(sys, u!, t, x0, alg)
+    _lsim(sys, u!, t, x0, alg; kwargs...)
 end
 
 function dde_param(dx, x, h!, p, t)
@@ -69,7 +70,7 @@ function dde_param(dx, x, h!, p, t)
 end
 
 # TODO Discontinuities in u are not handled well yet.
-function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{<:T}, x0::Vector{T}, alg) where T
+function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{<:T}, x0::Vector{T}, alg; kwargs...) where T
     P = sys.P
 
     if ~iszero(P.D22)
@@ -95,7 +96,7 @@ function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{
     p = (A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp)
     prob = DDEProblem{true}(dde_param, x0, h!, (t[1], t[end]), p, constant_lags=sys.Tau)
 
-    sol = DelayDiffEq.solve(prob, alg, saveat=t)
+    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
 
     x = sol.u::Array{Array{T,1},1} # the states are labeled u in DelayDiffEq
 
@@ -162,7 +163,7 @@ end
 
 iscontinuous(sys::DelayLtiSystem) = true
 
-function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
+function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     nu = ninputs(sys)
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in step"))
@@ -170,31 +171,32 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
     u = (out, t) -> (t < 0 ? out .= 0 : out .= 1)
     x0=fill(zero(T), nstates(sys))
     if nu == 1
-        y, tout, x = lsim(sys, u, t, x0=x0, kwargs...)
+        y, tout, x = lsim(sys, u, t; x0=x0, kwargs...)
     else
         x = Array{T}(undef, length(t), nstates(sys), nu)
         y = Array{T}(undef, length(t), noutputs(sys), nu)
         for i=1:nu
-            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t, x0=x0, kwargs...)
+            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t; x0=x0, kwargs...)
         end
     end
     return y, tout, x
 end
 
 
-function impulse(sys::DelayLtiSystem{T}, t::AbstractVector, kwargs...) where T
+function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     nu = ninputs(sys)
+    iszero(sys.P.D12) || @warn("Impulse with a direct term from input to delay vector leads to poor accuracy.")
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in impulse"))
     end
     u = (out, t) -> (out .= 0)
     if nu == 1
-        y, tout, x = lsim(sys, u, t, x0=sys.P.B[:,1], kwargs...)
+        y, tout, x = lsim(sys, u, t; x0=sys.P.B[:,1], kwargs...)
     else
         x = Array{T}(undef, length(t), nstates(sys), nu)
         y = Array{T}(undef, length(t), noutputs(sys), nu)
         for i=1:nu
-            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t, x0=sys.P.B[:,i], kwargs...)
+            y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t; x0=sys.P.B[:,i], kwargs...)
         end
     end
     return y, tout, x
