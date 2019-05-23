@@ -1,4 +1,4 @@
-struct DelayLtiSystem{T,S} <: LTISystem
+struct DelayLtiSystem{T,S<:Real} <: LTISystem
     P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
