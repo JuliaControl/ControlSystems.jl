@@ -1,3 +1,5 @@
+using DelayDiffEq
+
 @testset "test_delay_system" begin
 ω = 0.0:8
 
