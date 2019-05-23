@@ -80,6 +80,10 @@ end
 # Efficient subtraction with number
 -(sys::DelayLtiSystem, n::T) where {T <:Number} = +(sys, -n)
 -(n::T, sys::DelayLtiSystem) where {T <:Number} = +(-sys, n)
+function /(anything, sys::DelayLtiSystem)
+    all(iszero, sys.Tau) || error("A delayed system can not be inverted. Consider use of the function `feedback`.")
+    /(anything, sys.P.P) # If all delays are zero, invert the inner system
+end
 
 ninputs(sys::DelayLtiSystem) = size(sys.P.P, 2) - length(sys.Tau)
 noutputs(sys::DelayLtiSystem) = size(sys.P.P, 1) - length(sys.Tau)
