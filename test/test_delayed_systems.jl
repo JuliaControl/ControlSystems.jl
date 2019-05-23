@@ -3,7 +3,7 @@
 
 # broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
 
-@test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}}
+@test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
 # Extremely baseic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
