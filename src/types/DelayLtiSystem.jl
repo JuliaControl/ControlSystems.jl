@@ -1,8 +1,8 @@
 struct DelayLtiSystem{T} <: LTISystem
     P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
-    Tau::Vector{Float64} # The length of the vector tau implicitly defines the partitionging of P
+    Tau::Vector{T} # The length of the vector tau implicitly defines the partitionging of P
 
-    # function DelayLtiSystem(P::StateSpace{T, MT}, Tau::Vector{Float64})
+    # function DelayLtiSystem(P::StateSpace{T, MT}, Tau::Vector{T})
     #     if ControlSystems.noutputs(P) < length(Tau) ||
     #         ControlSystems.noutputs(P) < length(Tau)
     #         error("Length of time-vector is too long given the size of the partitioned system P.")
@@ -13,7 +13,7 @@ end
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
-function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{Float64}) where T<:Number
+function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{T}) where T<:Number
     nu = ninputs(sys) - length(Tau)
     ny = noutputs(sys) - length(Tau)
 
@@ -25,12 +25,12 @@ function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{Float64}) where T<:Numbe
     DelayLtiSystem{T}(psys, Tau)
 end
 # For converting DelayLtiSystem{T} to different T
-DelayLtiSystem{T}(sys::DelayLtiSystem) where T = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys.P), Float64[])
-DelayLtiSystem{T}(sys::StateSpace) where T = DelayLtiSystem{T}(sys, Float64[])
+DelayLtiSystem{T}(sys::DelayLtiSystem) where T = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys.P), T[])
+DelayLtiSystem{T}(sys::StateSpace) where T = DelayLtiSystem{T}(sys, T[])
 
 # From StateSpace, infer type
-DelayLtiSystem(sys::StateSpace{T,MT}, Tau::Vector{Float64}) where {T, MT} = DelayLtiSystem{T}(sys, Tau)
-DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T}(sys, Float64[])
+DelayLtiSystem(sys::StateSpace{T,MT}, Tau::Vector{T}) where {T, MT} = DelayLtiSystem{T}(sys, Tau)
+DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T}(sys, T[])
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
 DelayLtiSystem(sys::TransferFunction{S}) where {T,S<:SisoTf{T}} = DelayLtiSystem(convert(StateSpace{T, Matrix{T}}, sys))
@@ -146,7 +146,7 @@ function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
 end
 
 function delay(tau::Real, T::Type{<:Number}=Float64)
-    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [float(tau)])
+    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
 end
 
 # function exp(G::TransferFunction)
