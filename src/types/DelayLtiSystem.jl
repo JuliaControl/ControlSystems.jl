@@ -1,6 +1,6 @@
-struct DelayLtiSystem{T} <: LTISystem
+struct DelayLtiSystem{T,S} <: LTISystem
     P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
-    Tau::Vector{T} # The length of the vector tau implicitly defines the partitionging of P
+    Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
     # function DelayLtiSystem(P::StateSpace{T, MT}, Tau::Vector{T})
     #     if ControlSystems.noutputs(P) < length(Tau) ||
@@ -13,7 +13,7 @@ end
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
-function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{T}) where T<:Number
+function DelayLtiSystem{T,S}(sys::StateSpace, Tau::Vector{S} = Float64[]) where {T<:Number,S<:Real}
     nu = ninputs(sys) - length(Tau)
     ny = noutputs(sys) - length(Tau)
 
@@ -22,31 +22,37 @@ function DelayLtiSystem{T}(sys::StateSpace, Tau::Vector{T}) where T<:Number
     end
 
     psys = PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys, nu, ny)
-    DelayLtiSystem{T}(psys, Tau)
+    DelayLtiSystem{T,S}(psys, Tau)
 end
-# For converting DelayLtiSystem{T} to different T
-DelayLtiSystem{T}(sys::DelayLtiSystem) where T = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys.P), T[])
-DelayLtiSystem{T}(sys::StateSpace) where T = DelayLtiSystem{T}(sys, T[])
+# For converting DelayLtiSystem{T,S} to different T
+DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys.P), Float64[])
+DelayLtiSystem{T}(sys::StateSpace) where {T} = DelayLtiSystem{T}(sys, Float64[])
 
 # From StateSpace, infer type
-DelayLtiSystem(sys::StateSpace{T,MT}, Tau::Vector{T}) where {T, MT} = DelayLtiSystem{T}(sys, Tau)
-DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T}(sys, T[])
+DelayLtiSystem(sys::StateSpace{T,MT}, Tau::Vector{S}) where {T, MT,S} = DelayLtiSystem{T,S}(sys, Tau)
+DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T,T}(sys, T[])
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
 DelayLtiSystem(sys::TransferFunction{S}) where {T,S<:SisoTf{T}} = DelayLtiSystem(convert(StateSpace{T, Matrix{T}}, sys))
 
 # TODO: Think through these promotions and conversions
-Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2}}) where {T1<:Number,T2<:Number} = DelayLtiSystem{promote_type(T1,T2)}
-Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2}}) where {T1<:Number,T2<:Number} = DelayLtiSystem{promote_type(T1,T2)}
-#Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T}
+Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
+Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 
-Base.convert(::Type{DelayLtiSystem{T}}, sys::StateSpace) where T = DelayLtiSystem{T}(sys)
-Base.convert(::Type{DelayLtiSystem{T1}}, d::T2) where {T1,T2 <: Number} = DelayLtiSystem{T1}(ss(d))
+Base.promote_rule(::Type{<:StateSpace{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
+#Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
+
+function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::StateSpace) where {T,S}
+    DelayLtiSystem{T,S}(sys)
+end
+function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: Number,S}
+    DelayLtiSystem{T1,S}(StateSpace(T1(d)))
+end
 # Catch convertsion between T
-Base.convert(::Type{S}, sys::DelayLtiSystem)  where {T, S<:DelayLtiSystem{T}} =
-    sys isa S ? sys : S(StateSpace{T,Matrix{T}}(sys.P.P), sys.Tau)
+Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
+    sys isa V ? sys : V(StateSpace{T,Matrix{T}}(sys.P.P), sys.Tau)
 
-Base.convert(::Type{DelayLtiSystem{T}}, sys::TransferFunction) where T = DelayLtiSystem{T}(convert(StateSpace{T, Matrix{T}}, sys))
+Base.convert(::Type{DelayLtiSystem{T,S}}, sys::TransferFunction) where {T,S} = DelayLtiSystem{T,S}(convert(StateSpace{T, Matrix{T}}, sys))
 
 
 function *(sys::DelayLtiSystem, n::Number)
@@ -56,12 +62,12 @@ function *(sys::DelayLtiSystem, n::Number)
 end
 *(n::Number, sys::DelayLtiSystem) = *(sys, n)
 
-function +(sys::DelayLtiSystem{T1}, n::T2) where {T1,T2<:Number}
+function +(sys::DelayLtiSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
     T = promote_type(T1,T2)
     if T == T1 # T2 can be stored in sys
         +(sys, T1(n))
     else # We need to upgrade sys
-        +(DelayLtiSystem{T}(sys), T(n))
+        +(DelayLtiSystem{T,S}(sys), T(n))
     end
 end
 
@@ -149,7 +155,7 @@ function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     DelayLtiSystem(psys_new.P, Tau_new)
 end
 
-function delay(tau::Real, T::Type{<:Number}=Float64)
+function delay(tau::S, T::Type{<:Number}=Float64) where S
     return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
 end
 

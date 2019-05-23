@@ -3,7 +3,7 @@
 
 # broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
 
-@test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}}
+@test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
 # Extremely baseic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
@@ -23,7 +23,7 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 
 
 ## Addition
-@test freqresp(1 + delay(1), ω)[:] ≈ 1 .+ exp.(-im*ω) # FIXME; Add suitable conversion from Int64 to DelayLtiSystem
+@test freqresp(1 + delay(1), ω)[:] ≈ 1 .+ exp.(-im*ω)
 @test freqresp(P1 + delay(1), ω)[:] ≈ P1_fr .+ exp.(-im*ω)
 
 # Substraction
