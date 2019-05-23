@@ -70,7 +70,7 @@ function +(sys::DelayLtiSystem{T}, n::T) where {T<:Number}
     ny, nu = size(sys)
     ssold = sys.P.P
     # Add to direct term from input to output
-    new_D = ssold.D
+    new_D = copy(ssold.D)
     new_D[1:ny, 1:nu] .+= n
 
     pnew = PartionedStateSpace(StateSpace(ssold.A, ssold.B, ssold.C, new_D, 0.0), ny, nu)
