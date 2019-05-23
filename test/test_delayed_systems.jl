@@ -170,6 +170,12 @@ y_impulse, t, _ = impulse(sys_known, 3)
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-2
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
 
+y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(BS3()))
+
+# TODO Better accuracy for impulse
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-4 # Two orders of magnitude better with BS3 in this case
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-3
+
 @time [s11; s12]
 
 end

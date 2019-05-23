@@ -185,7 +185,7 @@ end
 
 function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     nu = ninputs(sys)
-    iszero(sys.P.D12) || @warn("Impulse with a direct term from input to delay vector leads to poor accuracy.")
+    iszero(sys.P.D12) || @warn("Impulse with a direct term from input to delay vector leads to poor accuracy. Try specifying the solver using the keyword argument `alg=MethodOfSteps(BS3())`, (requires `using OrdinaryDiffEq, DelayDiffEq`)")
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in impulse"))
     end
