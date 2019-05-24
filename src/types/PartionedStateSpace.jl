@@ -25,29 +25,29 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     nu1 = getfield(sys, :nu1)
     ny1 = getfield(sys, :ny1)
 
-    if d == :P
+    if d === :P
         return P
-    elseif d == :nu1
+    elseif d === :nu1
         return nu1
-    elseif d == :ny1
+    elseif d === :ny1
         return ny1
-    elseif d == :A
+    elseif d === :A
         return P.A
-    elseif d == :B1
+    elseif d === :B1
         return P.B[:, 1:nu1]
-    elseif d == :B2
+    elseif d === :B2
         return P.B[:, nu1+1:end]
-    elseif d == :C1
+    elseif d === :C1
         return P.C[1:ny1, :]
-    elseif d == :C2
+    elseif d === :C2
         return P.C[ny1+1:end, :]
-    elseif d == :D11
+    elseif d === :D11
         return P.D[1:ny1, 1:nu1]
-    elseif d == :D12
+    elseif d === :D12
         return P.D[1:ny1, nu1+1:end]
-    elseif d == :D21
+    elseif d === :D21
         return P.D[ny1+1:end, 1:nu1]
-    elseif d == :D22
+    elseif d === :D22
         return P.D[ny1+1:end, nu1+1:end]
     else
         return getfield(P, d)
