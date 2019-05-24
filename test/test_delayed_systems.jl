@@ -1,3 +1,5 @@
+using DelayDiffEq
+
 @testset "test_delay_system" begin
 ω = 0.0:8
 
@@ -113,8 +115,9 @@ w = 10 .^ (-2:0.1:2)
 #FIXME: A lot more tests, including MIMO systems in particular
 
 # Test step
-y1, t1, x1 = step([s11;s12], 10)
-@test y1[:,2] ≈ step(s12, t1)[1] rtol = 1e-14
+println("Simulating first delay system:")
+@time y1, t1, x1 = step([s11;s12], 10)
+@time @test y1[:,2] ≈ step(s12, t1)[1] rtol = 1e-14
 
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)
@@ -167,9 +170,13 @@ end
 y_impulse, t, _ = impulse(sys_known, 3)
 
 # TODO Better accuracy for impulse
-@test y_impulse ≈ dy_expected.(t, K) rtol=1e-2
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-4
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-3
+y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
+
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
 
-@time [s11; s12]
+[s11; s12]
 
 end
