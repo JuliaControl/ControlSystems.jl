@@ -135,7 +135,10 @@ function Base._cat_t(::Val{2}, T::Type{<:LTISystem}, X...)
 end
 
 # Used in typed_hvcat
-Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem} = hcat(convert.(T, X)...)
+function Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem}
+    S = promote_type(typeof.(X)...)
+    hcat(convert.(S, X)...)
+end
 # Ambiguity
 Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.(T, X)...)
 

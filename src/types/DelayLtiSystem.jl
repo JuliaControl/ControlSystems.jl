@@ -156,8 +156,12 @@ function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     DelayLtiSystem(psys_new.P, Tau_new)
 end
 
-function delay(tau::S, T::Type{<:Number}=Float64) where S
+function delay(T::Type{<:Number}, tau)
     return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
+end
+
+function delay(tau::S) where S
+    return DelayLtiSystem(ControlSystems.ss([zero(S) one(S); one(S) zero(S)]), [S(tau)])
 end
 
 # function exp(G::TransferFunction)
