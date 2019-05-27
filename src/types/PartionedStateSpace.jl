@@ -211,3 +211,7 @@ function hcat_1(systems::PartionedStateSpace...)
     sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], Ts)
     return PartionedStateSpace(sysnew, sum(s -> s.nu1, systems), ny1)
 end
+
+function Base.convert(::Type{<:PartionedStateSpace}, sys::T) where T<: StateSpace
+    PartionedStateSpace(sys,sys.nu,sys.ny)
+end
