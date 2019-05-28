@@ -1,3 +1,8 @@
+"""
+    struct DelayLtiSystem{T, S <: Real} <: LTISystem
+
+Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
+"""
 struct DelayLtiSystem{T,S<:Real} <: LTISystem
     P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
@@ -13,6 +18,11 @@ end
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
+"""
+    DelayLtiSystem{T, S}(sys::StateSpace, Tau::AbstractVector{S}=Float64[]) where {T <: Number, S <: Real}
+
+Create a delayed system by speciying both the system and time-delay vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
+"""
 function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]) where {T<:Number,S<:Real}
     nu = ninputs(sys) - length(Tau)
     ny = noutputs(sys) - length(Tau)
@@ -156,12 +166,17 @@ function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     DelayLtiSystem(psys_new.P, Tau_new)
 end
 
+"""
+    delay(T::Type{<:Number}, tau)
+
+Create a pure time delay. If `T` is not specified, the default is to choose `promote_type(T, typeof(tau))`
+"""
 function delay(T::Type{<:Number}, tau)
     return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
 end
 
 function delay(tau::S) where S
-    return DelayLtiSystem(ControlSystems.ss([zero(S) one(S); one(S) zero(S)]), [S(tau)])
+    delay(promote_type(Float64,S), tau)
 end
 
 # function exp(G::TransferFunction)
