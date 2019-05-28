@@ -17,6 +17,15 @@ Pkg.add("ControlSystems")
 ```
 
 ## News
+### 2019-05-28
+- We now support systems with time delays. Example:
+```julia
+sys = tf(1, [1,1])*delay(1)
+stepplot(sys, 5) # Compilation time might be long for first simulation
+nyquistplot(sys)
+```
+- Example: [Systems with uncertainty](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/controlsystems.jl)
+- Example: [Robust PID optimization](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/robust_controller_opt.jl)
 ### 2019-05-22
 New state-space type `HeteroStateSpace` that accepts matrices of heterogeneous types: [example using `StaticArrays`](https://juliacontrol.github.io/ControlSystems.jl/latest/man/creating_systems/#Creating-State-Space-Systems-1).
 ### 2019-01-31
