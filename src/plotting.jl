@@ -260,7 +260,7 @@ optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -301,9 +301,7 @@ bodeplot
                     color --> styledict[:c]
                     w, magdata
                 end
-                if !plotphase
-                    continue
-                end
+                plotphase || continue
 
                 @series begin
                     grid      --> true
@@ -315,7 +313,7 @@ bodeplot
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     color --> styledict[:c]
-                    w, phasedata
+                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
             end
