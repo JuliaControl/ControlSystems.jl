@@ -135,7 +135,7 @@ end
 
 
 # We have to default to something, look at the sys.P.P and delays
-function _bounds_and_features(sys::DelayLtiSystem, plot::Symbol)
+function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
     ws, pz =  _bounds_and_features(sys.P.P, plot)
     logtau = log10.(abs.(sys.Tau))
     logtau = filter(x->x>4, logtau) # Ignore low frequency
