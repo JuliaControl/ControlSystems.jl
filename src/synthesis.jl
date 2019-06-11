@@ -100,10 +100,6 @@ function dlqr(A, B, Q, R)
     return K
 end
 
-function dlqr(A, B::Vector, Q, R)
-    dlqr(A, reshape(B, length(B), 1), Q, R)
-end
-
 """`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
 
 Calculate the optimal Kalman gain for discrete time systems
