@@ -113,14 +113,13 @@ INPUT:
 struct SawtoothGenerator{T <: Real} <: Function
     f::T #Frequency
     p::T #Phase
-    frac::Function #Not to be added from outside
 end
 
-SawtoothGenerator(f)    = SawtoothGenerator(f, 0, t -> t - floor(t))
-SawtoothGenerator(f, p) = SawtoothGenerator(f, p, t -> t - floor(t))
+SawtoothGenerator(f)    = SawtoothGenerator(f, 0)
+SawtoothGenerator(f, p) = SawtoothGenerator(f, p)
 
 function (ref::SawtoothGenerator)(t::Real)
-    return ref.frac(ref.f*t+ref.p)
+    return (ref.f*t+ref.p) - floor(ref.f*t+ref.p)
 end
 
 
