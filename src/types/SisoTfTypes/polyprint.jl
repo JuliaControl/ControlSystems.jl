@@ -31,7 +31,7 @@ function showterm2(io::IO, p::Poly{T}, j, first, var, mimetype) where {T}
 
     pj == zero(T) && return false
 
-    pj = Polynomials.printsign(io, pj, j, first, mimetype)
+    pj = Polynomials.printsign(io, pj, first, mimetype)
     Polynomials.printcoefficient(io, pj, j, mimetype)
     Polynomials.printproductsign(io, pj, j, mimetype)
     Polynomials.printexponent(io, var, j, mimetype)
