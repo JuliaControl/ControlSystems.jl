@@ -32,10 +32,7 @@ One can also supply a frequency vector ω to be used in Bode and Nyquist plots
 
 See also `loopshapingPI`, `stabregionPID`
 """
-function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false)
-
-
-
+function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false, kwargs...)
     if grid
         kp = [i for i in kps, j in kis, k in kds][:]
         ki = [j for i in kps, j in kis, k in kds][:]
@@ -50,12 +47,6 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     ω   = ω   == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
 
     getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
-
-    gof_        = in(:gof        ,args)
-    nyquist_    = in(:nyquist    ,args)
-    controller_ = in(:controller ,args)
-    pz_         = in(:pz         ,args)
-    nichols_    = in(:nichols    ,args)
 
     Cs = LTISystem[]
     PCs = LTISystem[]
@@ -75,21 +66,18 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         labels[i] = label
     end
 
-    if nyquist_
-        nq = nyquistplot(PCs, ω, lab=labels, title="Nyquist curves")
+    if :nyquist ∈ args
+        nyquistplot(PCs, ω; lab=labels, title="Nyquist curves", kwargs...) |> display
     end
-    if gof_
-        bd = gangoffourplot(P, Cs, ω, lab=labels)
+    if :gof ∈ args
+        gangoffourplot(P, Cs, ω; lab=labels, kwargs...) |> display
     end
-    if pz_
-        pzmap(Ts, title="Pole-zero map")
+    if :pz ∈ args
+        pzmap(Ts; title="Pole-zero map", kwargs...) |> display
     end
-    if controller_
-        cplot = bodeplot(Cs, ω, lab=labels, title="Controller bode plot")
+    if :controller ∈ args
+        bodeplot(Cs, ω; lab=labels, title="Controller bode plot", kwargs...) |> display
     end
-
-
-
 end
 
 @userplot Rlocusplot
