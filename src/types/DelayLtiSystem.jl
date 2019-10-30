@@ -1,3 +1,8 @@
+"""
+    struct DelayLtiSystem{T, S <: Real} <: LTISystem
+
+Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
+"""
 struct DelayLtiSystem{T,S<:Real} <: LTISystem
     P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
@@ -13,6 +18,11 @@ end
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
+"""
+    DelayLtiSystem{T, S}(sys::StateSpace, Tau::AbstractVector{S}=Float64[]) where {T <: Number, S <: Real}
+
+Create a delayed system by speciying both the system and time-delay vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
+"""
 function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]) where {T<:Number,S<:Real}
     nu = ninputs(sys) - length(Tau)
     ny = noutputs(sys) - length(Tau)
@@ -49,6 +59,10 @@ end
 function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: Number,S}
     DelayLtiSystem{T1,S}(StateSpace(T1(d)))
 end
+function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: AbstractArray,S}
+    DelayLtiSystem{T1,S}(StateSpace(T1.(d)))
+end
+
 Base.convert(::Type{<:DelayLtiSystem}, sys::TransferFunction)  = DelayLtiSystem(sys)
 # Catch convertsion between T
 Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
@@ -156,8 +170,17 @@ function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     DelayLtiSystem(psys_new.P, Tau_new)
 end
 
-function delay(tau::S, T::Type{<:Number}=Float64) where S
+"""
+    delay(T::Type{<:Number}, tau)
+
+Create a pure time delay. If `T` is not specified, the default is to choose `promote_type(T, typeof(tau))`
+"""
+function delay(T::Type{<:Number}, tau)
     return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
+end
+
+function delay(tau::S) where S
+    delay(promote_type(Float64,S), tau)
 end
 
 # function exp(G::TransferFunction)
