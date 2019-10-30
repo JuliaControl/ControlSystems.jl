@@ -192,9 +192,9 @@ Forms the negative feedback interconnection
 ```
 If no second system is given, negative identity feedback is assumed
 """
-function feedback(sys::StateSpace)
-    sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,sys.ny,sys.ny)))
+function feedback(sys::Union{StateSpace, DelayLtiSystem})
+    ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)

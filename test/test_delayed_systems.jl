@@ -116,6 +116,9 @@ w = 10 .^ (-2:0.1:2)
 
 # Test step
 println("Simulating first delay system:")
+@time step(delay(1)*tf(1,[1.,1]))
+@time step(delay(1)*tf(1,[1,1]))
+
 @time y1, t1, x1 = step([s11;s12], 10)
 @time @test y1[:,2] ≈ step(s12, t1)[1] rtol = 1e-14
 
