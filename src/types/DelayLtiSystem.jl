@@ -59,6 +59,10 @@ end
 function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: Number,S}
     DelayLtiSystem{T1,S}(StateSpace(T1(d)))
 end
+function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: AbstractArray,S}
+    DelayLtiSystem{T1,S}(StateSpace(T1.(d)))
+end
+
 Base.convert(::Type{<:DelayLtiSystem}, sys::TransferFunction)  = DelayLtiSystem(sys)
 # Catch convertsion between T
 Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
