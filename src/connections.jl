@@ -20,7 +20,8 @@ append() = LTISystem[]
 
 Append systems in block diagonal form
 """
-function append(systems::StateSpace...)
+function append(systems::(ST where ST<:AbstractStateSpace)...)
+    ST = promote_type(typeof.(systems)...)
     Ts = systems[1].Ts
     if !all(s.Ts == Ts for s in systems)
         error("Sampling time mismatch")
@@ -29,7 +30,7 @@ function append(systems::StateSpace...)
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = blockdiag([s.D for s in systems]...)
-    return StateSpace(A, B, C, D, Ts)
+    return ST(A, B, C, D, Ts)
 end
 
 function append(systems::TransferFunction...)
@@ -43,7 +44,21 @@ end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
 
-function Base.vcat(systems::StateSpace...)
+
+function Base.vcat(systems::DelayLtiSystem...)
+    P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
+    Tau = vcat([sys.Tau for sys in systems]...)
+    return DelayLtiSystem(P, Tau)
+end
+
+function Base.hcat(systems::DelayLtiSystem...)
+    P = hcat_1([sys.P for sys in systems]...)  # See PartitionedStateSpace
+    Tau = vcat([sys.Tau for sys in systems]...)
+    return DelayLtiSystem(P, Tau)
+end
+
+
+function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     # Perform checks
     nu = systems[1].nu
     if !all(s.nu == nu for s in systems)
@@ -58,7 +73,7 @@ function Base.vcat(systems::StateSpace...)
     C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
 
-    return StateSpace(A, B, C, D, Ts)
+    return ST(A, B, C, D, Ts)
 end
 
 function Base.vcat(systems::TransferFunction...)
@@ -77,7 +92,7 @@ end
 
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
 
-function Base.hcat(systems::StateSpace...)
+function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     # Perform checks
     ny = systems[1].ny
     if !all(s.ny == ny for s in systems)
@@ -92,7 +107,7 @@ function Base.hcat(systems::StateSpace...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
 
-    return StateSpace(A, B, C, D, Ts)
+    return ST(A, B, C, D, Ts)
 end
 
 function Base.hcat(systems::TransferFunction...)
@@ -120,9 +135,17 @@ function Base._cat_t(::Val{2}, T::Type{<:LTISystem}, X...)
 end
 
 # Used in typed_hvcat
-Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem} = hcat(convert.(T, X)...)
+function Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem}
+    hcat(convert.(T, X)...)
+end
 # Ambiguity
 Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.(T, X)...)
+
+# Catch special cases where inv(sys) might not be possible after promotion, like improper tf
+function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
+    sys1new, sys2new = promote(sys1, 1/sys2)
+    return sys1new*sys2new
+end
 
 # function hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
 #     T = Base.promote_typeof(systems...)
@@ -162,9 +185,9 @@ Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.
 # end
 
 
-blockdiag(mats::Matrix...) = blockdiag(promote(mats...)...)
+blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
 
-function blockdiag(mats::Matrix{T}...) where T
+function blockdiag(mats::AbstractMatrix{T}...) where T
     rows = Int[size(m, 1) for m in mats]
     cols = Int[size(m, 2) for m in mats]
     res = zeros(T, sum(rows), sum(cols))

@@ -44,12 +44,30 @@ default to extrema(wmag) if xlims/ylims not defined or empty
 """
 function getlims(xylims, plotattributes, wmag)
     lims = get(plotattributes, xylims, extrema(wmag))
-    if lims isa Tuple{<:Number, <:Number} # If x/ylims not supplied as empty
-        return lims
-    else
-        return extrema(wmag)
+    if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
+        lims = extrema(wmag)
+    end
+    if !isempty(get_serieslist(plotattributes))
+        subplot = get(plotattributes, :subplot, 0)
+        subplot == 0 && (return lims)
+        se = seriesextrema(xylims, plotattributes, subplot)
+        lims = extremareducer(lims, se)
+    end
+    lims
+end
+
+get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
+get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
+
+function seriesextrema(xylims, plotattributes, subplot)
+    serieslist = get_serieslist(plotattributes, subplot)
+    isempty(serieslist) && (return (Inf, -Inf))
+    sym = xylims == :xlims ? :x : :y
+    mapreduce(extremareducer, serieslist) do series
+        extrema(series[sym])
     end
 end
+extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
 function getLogTicks(x, minmax)
     minx, maxx =  minmax
@@ -57,7 +75,7 @@ function getLogTicks(x, minmax)
     minor_text_limit  = 8
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
-    major             = 10 .^ collect(min:max)
+    major             = 10 .^ (min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
@@ -378,6 +396,7 @@ nyquistplot
                     label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
+                    hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
                     color --> styledict[:c]
                     (redata, imdata)
                 end
@@ -564,6 +583,7 @@ nicholsplot
             linewidth --> 2
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
+            hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
             color --> styledict[:c]
             angles, mag
         end
@@ -627,6 +647,20 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
+                # Let's be reasonable, only plot 5 smallest gain margins
+                if length(gm) > 5
+                    @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
+                    idx = sortperm(gm)
+                    wgm = wgm[idx[1:5]]
+                    gm = gm[idx[1:5]]
+                end
+                # Let's be reasonable, only plot 5 smallest phase margins
+                if length(pm) > 5
+                    @warn "Only showing \"smallest\" 5 out of $(length(pm)) phase margins"
+                    idx = sortperm(pm)
+                    wgm = wpm[idx[1:5]]
+                    gm = pm[idx[1:5]]
+                end
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0

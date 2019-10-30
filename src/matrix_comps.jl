@@ -70,7 +70,7 @@ end
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 """
-function dlyap(A::AbstractMatrix{T}, Q) where T
+function dlyap(A::AbstractMatrix, Q)
     lhs = kron(A, conj(A))
     lhs = I - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
@@ -82,7 +82,7 @@ end
 Compute the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian. If `opt` is `:o`, computes the observability
 grammian."""
-function gram(sys::StateSpace, opt::Symbol)
+function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
@@ -105,11 +105,12 @@ Compute the observability matrix for the system described by `(A, C)` or `sys`.
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
 `gram(sys, :o)` is positive definite."""
-function obsv(A::AbstractMatrix{T}, C::AbstractMatrix{T}) where {T <: Number}
+function obsv(A::AbstractMatrix, C::AbstractMatrix)
+    T = promote_type(eltype(A), eltype(C))
     n = size(A, 1)
     ny = size(C, 1)
     if n != size(C, 2)
-        error("C must have the same number of columns as A")
+        throw(ArgumentError("C must have the same number of columns as A"))
     end
     res = fill(zero(T), n*ny, n)
     res[1:ny, :] = C
@@ -128,11 +129,12 @@ Compute the controllability matrix for the system described by `(A, B)` or
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite."""
-function ctrb(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where {T <: Number}
+function ctrb(A::AbstractMatrix, B::AbstractMatrix)
+    T = promote_type(eltype(A), eltype(B))
     n = size(A, 1)
     nu = size(B, 2)
     if n != size(B, 1)
-        error("B must have the same number of rows as A")
+        throw(ArgumentError("B must have the same number of rows as A"))
     end
     res = fill(zero(T), n, n*nu)
     res[:, 1:nu] = B
@@ -151,7 +153,7 @@ white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac de
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
 (D*W*D' .!= 0) for contunuous systems."""
-function covar(sys::StateSpace, W)
+function covar(sys::AbstractStateSpace, W)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
@@ -183,6 +185,12 @@ end
 
 covar(sys::TransferFunction, W) = covar(ss(sys), W)
 
+"""
+    covar(C,W)
+If `C` is a matrix, return CWC'
+"""
+covar(C::Union{AbstractMatrix,UniformScaling}, R) = C*R*C'
+
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
@@ -208,7 +216,7 @@ For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """
-function LinearAlgebra.norm(sys::StateSpace, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
     if p == 2
         return sqrt(tr(covar(sys, I)))
     elseif p == Inf
@@ -245,7 +253,7 @@ For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """
-function norminf(sys::StateSpace; tol=1e-6)
+function norminf(sys::AbstractStateSpace; tol=1e-6)
     if sys.Ts == 0
         return normLinf_twoSteps_ct(sys,tol)
     else
@@ -257,7 +265,7 @@ function norminf(sys::TransferFunction, ; tol=1e-6)
     return norminf(ss(sys), tol=tol)
 end
 
-function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
+function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
@@ -323,7 +331,7 @@ end
 
 # discrete-time version of normHinf_twoSteps_ct above
 # The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
-function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
+function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
     T = promote_type(numeric_type(sys), Float64)
     if sys.nx == 0  # static gain
         return (svdvals(sys.D)[1], T(0))
@@ -414,7 +422,7 @@ function balance(A, perm::Bool=true)
     return S, P, B
 end
 
-function cswap!(i::Integer, j::Integer, X::StridedMatrix{T}) where T<:Number
+function cswap!(i::Integer, j::Integer, X::StridedMatrix)
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end
@@ -431,7 +439,7 @@ See also `gram`, `baltrunc`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function balreal(sys::StateSpace)
+function balreal(sys::ST) where ST <: AbstractStateSpace
     P = gram(sys, :c)
     Q = gram(sys, :o)
 
@@ -461,7 +469,7 @@ function balreal(sys::StateSpace)
         display(Σ)
     end
 
-    sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.Ts), diagm(0 => Σ)
 end
 
 
@@ -474,7 +482,7 @@ See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = true)
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) where ST <: AbstractStateSpace
     sysbal, S = balreal(sys)
     S = diag(S)
     S = S[S .>= atol]
@@ -488,7 +496,7 @@ function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = t
         D = D/(C*inv(-A)*B)
     end
 
-    return ss(A,B,C,D), diagm(0 => S)
+    return ST(A,B,C,D,sys.Ts), diagm(0 => S)
 end
 
 """
@@ -501,11 +509,41 @@ C̃ = CT
 D̃ = D
 ```
 """
-function similarity_transform(sys::StateSpace, T)
+function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     Tf = factorize(T)
     A = Tf\sys.A*T
     B = Tf\sys.B
     C = sys.C*T
     D = sys.D
-    ss(A,B,C,D,sys.Ts)
+    ST(A,B,C,D,sys.Ts)
+end
+
+"""
+sysi = innovation_form(sys, R1, R2)
+sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+
+Takes a system
+```
+x' = Ax + Bu + w ~ R1
+y  = Cx + e ~ R2
+```
+and returns the system
+```
+x' = Ax + Kv
+y  = Cx + v
+```
+where `v` is the innovation sequence.
+
+If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R1` (`R2`) through `sysw` (`syse`) is used as covariance.
+
+See Stochastic Control, Chapter 4, Åström
+"""
+function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
+    K = kalman(sys, R1, R2)
+    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+end
+# Set D = I to get transfer function H = I + C(sI-A)\ K
+function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
+	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
+	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
 end

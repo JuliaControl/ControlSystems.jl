@@ -25,11 +25,11 @@ Q = I
 R = I
 L = lqr(sys,Q,R)
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lqr(A, B, Q, R)
@@ -45,7 +45,7 @@ Calculate the optimal Kalman gain
 See also `LQG`
 
 """
-kalman(A, C, R1,R2) = lqr(A',C',R1,R2)'
+kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
 function lqr(sys::StateSpace, Q, R)
     if iscontinuous(sys)
@@ -57,9 +57,9 @@ end
 
 function kalman(sys::StateSpace, R1,R2)
     if iscontinuous(sys)
-        return lqr(sys.A', sys.C', R1,R2)'
+        return Matrix(lqr(sys.A', sys.C', R1,R2)')
     else
-        return dlqr(sys.A', sys.C', R1,R2)'
+        return Matrix(dlqr(sys.A', sys.C', R1,R2)')
     end
 end
 
@@ -87,11 +87,11 @@ Q = I
 R = I
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:h:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 """
 function dlqr(A, B, Q, R)
@@ -109,7 +109,7 @@ end
 Calculate the optimal Kalman gain for discrete time systems
 
 """
-dkalman(A, C, R1,R2) = dlqr(A',C',R1,R2)'
+dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 
 """`place(A, B, p)`, `place(sys::StateSpace, p)`
 
@@ -139,7 +139,7 @@ function acker(A,B,P)
     poly = mapreduce(p -> Poly([1, -p]), *, P, init=Poly(one(eltype(P))))
     q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
-        q += A^(n-i)*poly[i+1]
+        q += A^(n-i)*poly[i]
     end
     S = Array{promote_type(eltype(A),eltype(B),Float64),2}(undef, n,n)
     for i = 0:(n-1)
@@ -163,7 +163,6 @@ function feedback(L::TransferFunction{T}) where T<:SisoRational
     end
     P = numpoly(L)
     Q = denpoly(L)
-    #Extract polynomials and create P/(P+Q)
     tf(P, P+Q, L.Ts)
 end
 
@@ -193,9 +192,9 @@ Forms the negative feedback interconnection
 ```
 If no second system is given, negative identity feedback is assumed
 """
-function feedback(sys::StateSpace)
-    sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,sys.ny,sys.ny)))
+function feedback(sys::Union{StateSpace, DelayLtiSystem})
+    ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)

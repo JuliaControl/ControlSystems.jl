@@ -13,7 +13,7 @@ makedocs(modules=[ControlSystems],
         ],
         "Guide" => Any[
             "Introduction" => "man/introduction.md",
-            "Creating Transfer Functions" => "man/creatingtfs.md",
+            "Creating Systems" => "man/creating_systems.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",

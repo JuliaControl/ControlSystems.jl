@@ -6,10 +6,11 @@ numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
 numeric_type(::Type{TransferFunction{S}}) where S = numeric_type(S)
 numeric_type(::Type{<:StateSpace{T}}) where T = T
+numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
-to_matrix(T, A::Vector) = Matrix{T}(reshape(A, length(A), 1))
+to_matrix(T, A::AbstractVector) = Matrix{T}(reshape(A, length(A), 1))
 to_matrix(T, A::AbstractMatrix) = T.(A)  # Fallback
 to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
@@ -27,15 +28,23 @@ to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matri
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
     poly_factors = Vector{Poly{T}}()
-
+    @static if VERSION > v"1.2.0-DEV.0" # Sort one more time to handle GenericLinearAlgebra not being updated
+        sort!(roots, by=LinearAlgebra.eigsortby)
+    end
     for k=1:length(roots)
         r = roots[k]
 
         if isreal(r)
             push!(poly_factors,Poly{T}([-real(r),1]))
         else
-            if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
-                continue
+            @static if VERSION > v"1.2.0-DEV.0" # Flipped order in this version
+                if imag(r) > 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
+                    continue
+                end
+            else
+                if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
+                    continue
+                end
             end
 
             if k == length(roots) || r != conj(roots[k+1])

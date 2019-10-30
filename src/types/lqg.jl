@@ -6,9 +6,9 @@ import Base.getindex
     G = LQG(sys, args...; kwargs...)
 
 Return an LQG object that describes the closed control loop around the process `sys=ss(A,B,C,D)`
-where the controller is of LQG-type. The controller is specified by weight matrices `R1,R2`
+where the controller is of LQG-type. The controller is specified by weight matrices `Q1,Q2`
 that penalizes state deviations and control signal variance respectively, and covariance
-matrices `Q1,Q2` which specify state drift and measurement covariance respectively.
+matrices `R1,R2` which specify state drift and measurement covariance respectively.
 This constructor calls [`lqr`](@ref) and [`kalman`](@ref) and forms the closed-loop system.
 
 If `integrator=true`, the resulting controller will have intregral action.
@@ -50,6 +50,9 @@ It is also possible to access all fileds using the `G[:symbol]` syntax, the fiel
 # Example
 
 ```julia
+s = tf("s")
+P = [1/(s+1) 2/(s+2); 1/(s+3) 1/(s-1)]
+sys = ss(P)
 eye(n) = Matrix{Float64}(I,n,n) # For convinience
 
 qQ = 1

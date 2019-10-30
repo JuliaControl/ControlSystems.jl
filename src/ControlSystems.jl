@@ -1,14 +1,16 @@
 module ControlSystems
 
 export  LTISystem,
+        AbstractStateSpace,
         StateSpace,
+        HeteroStateSpace,
         TransferFunction,
+        DelayLtiSystem,
         ss,
         tf,
         zpk,
         ss2tf,
         LQG,
-        primitivetype,
         # Linear Algebra
         balance,
         care,
@@ -34,6 +36,7 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
+        innovation_form,
         # Stability Analysis
         isstable,
         pole,
@@ -66,6 +69,8 @@ export  LTISystem,
         bode,
         nyquist,
         sigma,
+        # delay systems
+        delay,
         # utilities
         num,    #Deprecated
         den,    #Deprecated
@@ -76,9 +81,11 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra
+using Polynomials, Plots, LaTeXStrings, LinearAlgebra
+using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
+import Base: getproperty
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
@@ -100,10 +107,12 @@ include("types/SisoTfTypes/conversion.jl")
 
 include("types/StateSpace.jl")
 
+include("types/PartionedStateSpace.jl")
+include("types/DelayLtiSystem.jl")
+
 # Convenience constructors
 include("types/tf.jl")
 include("types/zpk.jl")
-include("types/ss.jl")
 
 include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
 
@@ -126,6 +135,8 @@ include("synthesis.jl")
 
 include("simulators.jl")
 include("pid_design.jl")
+
+include("delay_systems.jl")
 
 include("plotting.jl")
 

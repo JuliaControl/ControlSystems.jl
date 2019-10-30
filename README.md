@@ -17,6 +17,28 @@ Pkg.add("ControlSystems")
 ```
 
 ## News
+### 2019-05-28
+#### Delay systems
+- We now support systems with time delays. Example:
+```julia
+sys = tf(1, [1,1])*delay(1)
+stepplot(sys, 5) # Compilation time might be long for first simulation
+nyquistplot(sys)
+```
+#### New examples
+- [Delayed systems (frequency domain)](https://github.com/JuliaControl/ControlSystems.jl/blob/master/example/delayed_lti_system.jl)
+- [Delayed systems (time domain)](https://github.com/JuliaControl/ControlSystems.jl/blob/master/example/delayed_lti_timeresp.jl)
+- [Systems with uncertainty](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/controlsystems.jl)
+- [Robust PID optimization](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/robust_controller_opt.jl)
+### 2019-05-22
+New state-space type `HeteroStateSpace` that accepts matrices of heterogeneous types: [example using `StaticArrays`](https://juliacontrol.github.io/ControlSystems.jl/latest/man/creating_systems/#Creating-State-Space-Systems-1).
+### 2019-01-31
+System identification using [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is now available. The [readme](https://github.com/baggepinnen/ControlSystemIdentification.jl) together with a series of notebooks serve as documentation.
+- [State-space identification](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_statespace.ipynb)
+- [ARX/PLR](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_arx.ipynb)
+- [Transfer-function estimation using spectral methods](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_spectral.ipynb)
+- [Impulse-response estimation](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_impulse_response.ipynb)
+
 ### 2018-09-30
 Support for Julia 0.7/1.0 added.
 
@@ -28,7 +50,7 @@ ss(1.)
 ss(1im)
 ss(ForwardDiff.Dual(1.))
 ss(GPUArray([1]))
-ss(SparseMatrix([1])
+ss(SparseMatrix([1]))
 ```
 Similar for `tf,zpk` etc.
 - Continuous time systems are simulated with continuous time solvers from `OrdinaryDiffEq.jl`
@@ -43,7 +65,7 @@ Similar for `tf,zpk` etc.
 
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
 
-A documentation website under developement is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/).
 
 Some of the available commands are:
 ##### Constructing systems
@@ -51,7 +73,9 @@ ss, tf, zpk, ss2tf
 ##### Analysis
 pole, tzero, norm, norminf, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
 ##### Synthesis
-care, dare, dlyap, lqr, dlqr, place, pid, leadlink, laglink, leadlinkat, rstd, rstc, dab
+care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
+###### PID design
+pid, stabregionPID, loopshapingPI, pidplots
 ##### Time and Frequency response
 step, impulse, lsim, freqresp, evalfr, bode, nyquist
 ##### Plotting
@@ -102,3 +126,6 @@ stepplot(CLs, label=["Kp = 1", "Kp = 5", "Kp = 15"])
 ```
 
 ![StepResponse](/example/step_response.png)
+
+### Additional examples
+See the examples folder

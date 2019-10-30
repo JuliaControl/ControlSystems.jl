@@ -32,10 +32,7 @@ One can also supply a frequency vector ω to be used in Bode and Nyquist plots
 
 See also `loopshapingPI`, `stabregionPID`
 """
-function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false)
-
-
-
+function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false, kwargs...)
     if grid
         kp = [i for i in kps, j in kis, k in kds][:]
         ki = [j for i in kps, j in kis, k in kds][:]
@@ -50,12 +47,6 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     ω   = ω   == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
 
     getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
-
-    gof_        = in(:gof        ,args)
-    nyquist_    = in(:nyquist    ,args)
-    controller_ = in(:controller ,args)
-    pz_         = in(:pz         ,args)
-    nichols_    = in(:nichols    ,args)
 
     Cs = LTISystem[]
     PCs = LTISystem[]
@@ -75,30 +66,23 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         labels[i] = label
     end
 
-    if nyquist_
-        nq = nyquistplot(PCs, ω, lab=labels, title="Nyquist curves")
+    if :nyquist ∈ args
+        nyquistplot(PCs, ω; lab=labels, title="Nyquist curves", kwargs...) |> display
     end
-    if gof_
-        bd = gangoffourplot(P, Cs, ω, lab=labels)
+    if :gof ∈ args
+        gangoffourplot(P, Cs, ω; lab=labels, kwargs...) |> display
     end
-    if pz_
-        pzmap(Ts, title="Pole-zero map")
+    if :pz ∈ args
+        pzmap(Ts; title="Pole-zero map", kwargs...) |> display
     end
-    if controller_
-        cplot = bodeplot(Cs, ω, lab=labels, title="Controller bode plot")
+    if :controller ∈ args
+        bodeplot(Cs, ω; lab=labels, title="Controller bode plot", kwargs...) |> display
     end
-
-
-
 end
 
 @userplot Rlocusplot
 @deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
-# function getpoles(G,K)
-#     poles = map(k -> pole(feedback(G,tf(k))), K)
-#     cat(2,poles...)'
-# end
 
 
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
@@ -107,11 +91,14 @@ function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles w
     f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
+    ts         = Vector{Float64}()
     poleout    = Vector{Vector{ComplexF64}}()
     for i in integrator
        push!(poleout,integrator.k[1])
+       push!(ts,integrator.t[1])
     end
     poleout = hcat(poleout...)'
+    poleout, ts
 end
 
 
@@ -129,8 +116,7 @@ rlocus
     P = p.args[1]
     K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
     Z = tzero(P)
-
-    poles = getpoles(P,K)
+    poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
@@ -138,10 +124,12 @@ rlocus
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
+    form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
     @series begin
         legend --> false
         ylims  --> ylim
         xlims  --> xlim
+        hover := "K=" .* form.(K,poles)
         label := ""
         redata, imdata
     end
