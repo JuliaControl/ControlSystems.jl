@@ -14,8 +14,8 @@ Q = Matrix{Float64}(I, 2, 2);
 R0 = 1
 X = dare(A, B0, Q, R0);
 # Reshape for matrix expression
-B = reshape(B, 2, 1)
-R = fill(R, 1, 1)
+B = reshape(B0, 2, 1)
+R = fill(R0, 1, 1)
 @test norm(A'X*A - X - (A'X*B)*((B'X*B + R)\(B'X*A)) + Q) < 1e-14
 ## Test dare for scalars
 A = 1.0;
