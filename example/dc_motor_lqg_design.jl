@@ -1,4 +1,4 @@
-using ControlSystems
+using ControlSystems, Plots
 """
 Example for designing an LQG speed controller for an electrical DC motor.
 """
@@ -60,5 +60,5 @@ S = 1-T
 
 # 1000 logarithmically spaced values from -3 to 3
 f3 = bodeplot([Gcl, S, T], exp10.(range(-3, stop=3, length=1000)))
-f4 = stepplot(Gcl, 1, label="Closed loop system using LQG")
-Plots.plot(f1, f2, f3, f4, layout=(2,2), size=(800, 600))
+f4 = plot(step(Gcl, 1), label="Closed loop system using LQG")
+plot(f1, f2, f3, f4, layout=(2,2), size=(800, 600))

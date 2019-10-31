@@ -49,12 +49,13 @@ TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
 Continuous-time transfer function model
 ```
 ## Plotting
-Plotting requires some extra care. The ControlSystems package is using `Plots.jl` ([link](https://github.com/tbreloff/Plots.jl)) as interface to generate all the plots. This means that the user is able to freely choose back-end. The plots in this manual are generated using `GR`. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is
+Plotting requires some extra care. The ControlSystems package is using `RecipesBase.jl` ([link](https://github.com/JuliaPlots/RecipesBase.jl)) as interface to generate all the plots. This means that it is up to the user to choose a plotting library that supports `RecipesBase.jl`, a suggestion would be `Plots.jl` with which the user is also able to freely choose a back-end. The plots in this manual are generated using `Plots.jl` with the `GR` backend. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is
 ```jldoctest; output=false
+using Plots
 
 fig = bodeplot(tf(1,[1,2,1]))
 
-Plots.savefig(fig, "myfile.svg")
+savefig(fig, "myfile.svg")
 
 save_docs_plot(fig, "intro_bode.svg") # hide
 

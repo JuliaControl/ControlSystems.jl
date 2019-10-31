@@ -99,11 +99,10 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Plots, LaTeXStrings, LinearAlgebra
+using RecipesBase, LaTeXStrings, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq
-export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)

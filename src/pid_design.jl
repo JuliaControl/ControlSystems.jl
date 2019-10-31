@@ -225,7 +225,7 @@ See also `Leadlink, leadlinkat`
 function leadlinkcurve(start=1)
     N = range(start, stop=10, length=50)
     dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
-    Plots.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
+    RecipesBase.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
 end
 
 
@@ -253,7 +253,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplo
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
+    RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
@@ -263,7 +263,7 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
+    RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
