@@ -260,7 +260,7 @@ optionally provided.
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -301,9 +301,7 @@ bodeplot
                     color --> styledict[:c]
                     w, magdata
                 end
-                if !plotphase
-                    continue
-                end
+                plotphase || continue
 
                 @series begin
                     grid      --> true
@@ -315,7 +313,7 @@ bodeplot
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     color --> styledict[:c]
-                    w, phasedata
+                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
             end
@@ -388,16 +386,16 @@ nyquistplot
                 redata      = re_resp[:, i, j]
                 imdata      = im_resp[:, i, j]
                 @series begin
-                    ylims   := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims   := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                    ylims   --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                    xlims   --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
+                    seriescolor --> styledict[:c]
                     hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-                    color --> styledict[:c]
                     (redata, imdata)
                 end
                 # Plot rings
@@ -405,15 +403,19 @@ nyquistplot
                     v = range(0,stop=2π,length=100)
                     S,C = sin.(v),cos.(v)
                     @series begin
-                        label := ""
+                        primary := false
                         linestyle := :dash
-                        color := :black
+                        linecolor := :black
+                        seriestype := :path
+                        markershape := :none
                         (C,S)
                     end
                     @series begin
-                        label := ""
+                        primary := false
                         linestyle := :dash
-                        color := :black
+                        linecolor := :black
+                        seriestype := :path
+                        markershape := :none
                         (C .-1,S)
                     end
                 end
