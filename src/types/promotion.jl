@@ -21,7 +21,7 @@
 
 # Abstract type pyramid =============================================================
 
-# NOTE: mycket som inte verkar användas...
+# NOTE: a lot that doesnt seem to be used...
 #Base.promote_rule(::Type{StateSpace{T1}}, ::Type{StateSpace{T2}}) where {T1,T2} = StateSpace{promote_type(T1, T2)}
 
 # NOTE: Is the below thing correct always?
@@ -84,8 +84,8 @@ function Base.promote_rule(::Type{StateSpace{T1, MT1}}, ::Type{MT2}) where {T1, 
     StateSpace{eltype(MT), MT}
 end
 
-Base.promote_rule(::Type{DelayLtiSystem{T1}}, ::Type{MT1}) where {T1, MT1<:AbstractMatrix} =
-    DelayLtiSystem{promote_type(T1, eltype(MT1))}
+Base.promote_rule(::Type{DelayLtiSystem{T1,S}}, ::Type{MT1}) where {T1, S, MT1<:AbstractMatrix} =
+    DelayLtiSystem{promote_type(T1, eltype(MT1)),S}
 
 #Base.promote_rule{S<:TransferFunction{<:SisoTf}}(::Type{S}, ::Type{<:Real}) = S
 

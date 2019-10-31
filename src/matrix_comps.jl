@@ -34,37 +34,35 @@ end
 """`dare(A, B, Q, R)`
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
-defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where A and R
-are non-singular.
+defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
 Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 function dare(A, B, Q, R)
-    G = try
-        B*inv(R)*B'
-    catch
-        error("R must be non-singular.")
+    if (!ishermitian(Q) || minimum(eigvals(real(Q))) < 0)
+        error("Q must be positive-semidefinite.");
     end
-
-    Ait = try
-        inv(A)'
-    catch
-        error("A must be non-singular.")
+    if (!isposdef(R))
+        error("R must be positive definite.");
     end
-
-    Z = [A + G*Ait*Q   -G*Ait;
-         -Ait*Q        Ait]
-
-    S = schur(Z)
-    S = ordschur(S, abs.(S.values).<=1)
-    U = S.Z
-
-    (m, n) = size(U)
-    U11 = U[1:div(m, 2), 1:div(n,2)]
-    U21 = U[div(m,2)+1:m, 1:div(n,2)]
-    return U21/U11
+    
+    n = size(A, 1);
+    
+    E = [
+        Matrix{Float64}(I, n, n) B/R*B';
+        zeros(size(A)) A'
+    ];
+    F = [
+        A zeros(size(A));
+        -Q Matrix{Float64}(I, n, n)
+    ];
+    
+    QZ = schur(F, E);
+    QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
+    
+    return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
 end
 
 """`dlyap(A, Q)`

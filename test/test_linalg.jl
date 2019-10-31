@@ -7,6 +7,33 @@ r = 3
 @test care(a, b, c'*c, r) ≈ [0.5895174372762604 1.8215747248860816; 1.8215747248860823 8.818839806923107]
 @test dare(a, b, c'*c, r) ≈ [240.73344504496302 -131.09928700089387; -131.0992870008943 75.93413176750603]
 
+## Test dare method for non invertible matrices
+A = [0 1; 0 0];
+B0 = [0; 1];
+Q = Matrix{Float64}(I, 2, 2);
+R0 = 1
+X = dare(A, B0, Q, R0);
+# Reshape for matrix expression
+B = reshape(B0, 2, 1)
+R = fill(R0, 1, 1)
+@test norm(A'X*A - X - (A'X*B)*((B'X*B + R)\(B'X*A)) + Q) < 1e-14
+## Test dare for scalars
+A = 1.0;
+B = 1.0;
+Q = 1.0;
+R = 1.0;
+X0 = dare(A, B, Q, R);
+X = X0[1]
+@test norm(A'X*A - X - (A'X*B)*((B'X*B + R)\(B'X*A)) + Q) < 1e-14
+# Test for complex matrices
+I2 = Matrix{Float64}(I, 2, 2)
+@test dare([1.0 im; im 1.0], I2, I2, I2) ≈ [1 + sqrt(2) 0; 0 1 + sqrt(2)]
+# And complex scalars
+@test dare(1.0, 1, 1, 1) ≈ fill((1 + sqrt(5))/2, 1, 1)
+@test dare(1.0im, 1, 1, 1) ≈ fill((1 + sqrt(5))/2, 1, 1)
+@test dare(1.0, 1im, 1, 1) ≈ fill((1 + sqrt(5))/2, 1, 1)
+
+## Test gram, ctrb, obsv
 a_2 = [-5 -3; 2 -9]
 C_212 = ss(a_2, [1; 2], [1 0; 0 1], [0; 0])
 C_222 = ss(a_2, [1 0; 0 2], [1 0; 0 1], zeros(2,2))

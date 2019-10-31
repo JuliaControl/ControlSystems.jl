@@ -23,7 +23,7 @@ end
 
 
 """
-    `y, t, x = lsim(sys::DelayLtiSystem, t::AbstractArray{<:Real}; u=(out, t) -> (out .= 0), x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
+    `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
 
     Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
 
@@ -38,7 +38,7 @@ end
 
     Returns: times `t`, and `y` and `x` at those times.
 """
-function lsim(sys::DelayLtiSystem{T}, u, t::AbstractArray{<:T}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...) where T
+function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...) where {T,S}
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
         (uout, t) -> uout .= u
@@ -70,7 +70,7 @@ function dde_param(dx, x, h!, p, t)
 end
 
 # TODO Discontinuities in u are not handled well yet.
-function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{<:T}, x0::Vector{T}, alg; kwargs...) where T
+function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
     P = sys.P
 
     if ~iszero(P.D22)
@@ -94,14 +94,14 @@ function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{
     h!(out, p, t) = (out .= 0)      # History function
 
     p = (A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp)
-    prob = DDEProblem{true}(dde_param, x0, h!, (t[1], t[end]), p, constant_lags=sys.Tau)
+    prob = DDEProblem{true}(dde_param, x0, h!, (T(t[1]), T(t[end])), p, constant_lags=sys.Tau)
 
     sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
 
-    x = sol.u::Array{Array{T,1},1} # the states are labeled u in DelayDiffEq
+    x = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
 
-    y = Array{T,2}(undef, noutputs(sys), length(t))
-    d = Array{T,2}(undef, size(C2,1), length(t))
+    y = Matrix{T}(undef, noutputs(sys), length(t))
+    d = Matrix{T}(undef, size(C2,1), length(t))
     # Build y signal (without d term)
     for k = 1:length(t)
         u!(uout, t[k])
@@ -109,7 +109,7 @@ function _lsim(sys::DelayLtiSystem{T}, Base.@nospecialize(u!), t::AbstractArray{
         #d[:,k] = C2*x[k] + D21*uout
     end
 
-    dtmp = Array{T,1}(undef, size(C2,1))
+    dtmp = Vector{T}(undef, size(C2,1))
     # Function to evaluate d(t)_i at an arbitrary time
     # X is continuous, so interpoate, u is not
     function dfunc!(tmp::Array{T1}, t, i) where T1
@@ -135,7 +135,7 @@ end
 
 
 # We have to default to something, look at the sys.P.P and delays
-function _bounds_and_features(sys::DelayLtiSystem, plot::Symbol)
+function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
     ws, pz =  _bounds_and_features(sys.P.P, plot)
     logtau = log10.(abs.(sys.Tau))
     logtau = filter(x->x>4, logtau) # Ignore low frequency
