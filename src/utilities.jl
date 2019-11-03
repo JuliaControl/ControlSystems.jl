@@ -16,7 +16,11 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
-
+eigsort(v) = sort(v, by=eigsortby)
+eigsort!(v) = sort!(v, by=eigsortby)
+# Copied from Julia base VERSION > v"1.2.0-DEV.0"
+eigsortby(λ::Real) = λ
+eigsortby(λ::Complex) = (real(λ),imag(λ))
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
@@ -28,23 +32,15 @@ to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matri
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
     poly_factors = Vector{Poly{T}}()
-    @static if VERSION > v"1.2.0-DEV.0" # Sort one more time to handle GenericLinearAlgebra not being updated
-        sort!(roots, by=LinearAlgebra.eigsortby)
-    end
+    sort!(roots, by=eigsortby) # TODO this doesn't properly sort complex conjugates together
     for k=1:length(roots)
         r = roots[k]
 
         if isreal(r)
             push!(poly_factors,Poly{T}([-real(r),1]))
         else
-            @static if VERSION > v"1.2.0-DEV.0" # Flipped order in this version
-                if imag(r) > 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
-                    continue
-                end
-            else
-                if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
-                    continue
-                end
+            if imag(r) > 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
+                continue
             end
 
             if k == length(roots) || r != conj(roots[k+1])
