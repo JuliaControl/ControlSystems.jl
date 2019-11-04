@@ -27,7 +27,7 @@ end
 # Allocate for maxiumum possible length of polynomial vector?
 #
 # This function rely on that the every complex roots is followed by its exact conjugate,
-# and that the first complex root in each pair has positive real part. This format is always
+# and that the first complex root in each pair has positive imaginary part. This format is always
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
