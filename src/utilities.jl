@@ -19,7 +19,7 @@ to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matri
 @static if VERSION > v"1.2.0-DEV.0"
     eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
 else
-    eigvalsnosort(args..., kwargs...) = eigvals(args...; kwargs...)
+    eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
 end
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
