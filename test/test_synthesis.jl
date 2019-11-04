@@ -61,13 +61,13 @@ end
 Random.seed!(0)
 A = randn(3,3)
 B = randn(3,1)
-p = [1.0, 2, 3.0]
+p = [3.0,2,1]
 K = ControlSystems.acker(A,B,p)
-@test ControlSystems.eigsort!(eigvals(A-B*K)) ≈ p
+@test eigvals(A-B*K, sortby=nothing) ≈ p
 
-p = [-1-im, -1, -1+im]
+p = [-1+im, -1-im, -1]
 K = ControlSystems.acker(A,B,p)
-@test ControlSystems.eigsort!(eigvals(A-B*K)) ≈ p
+@test eigvals(A-B*K, sortby=nothing) ≈ p
 end
 
 end

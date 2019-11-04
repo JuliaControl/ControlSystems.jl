@@ -18,7 +18,7 @@ Pkg.add("ControlSystems")
 
 ## News
 ### 2019-11-03
-- Poles and zeros are now sorted lexicographically by (im, re) as in Julia 1.2 see [#21598](https://github.com/JuliaLang/julia/pull/21598)
+- Poles and zeros are "not sorted" as in Julia versions < 1.2, even on newer versions of Julia. This should imply that complex conjugates are kept together.
 
 ### 2019-05-28
 #### Delay systems
