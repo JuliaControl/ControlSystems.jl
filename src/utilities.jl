@@ -16,11 +16,19 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
+# Do no sorting of eigenvalues
 @static if VERSION > v"1.2.0-DEV.0"
     eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+    roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 else
     eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
+    roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
 end
+
+""" f = printpolyfun(var)
+`fun` Prints polynomial in descending order, with variable `var`
+"""
+printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printpoly(io, p, mimetype, descending_powers=true, var=var)
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
@@ -114,33 +122,3 @@ index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
 index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
-
-# We rely on eigenvalues being sorted with complex conjugates in pairs, so overload roots
-# Copied from Polynomials.jl, Copyright Jameson Nash and other contributors
-function roots(p::Poly{T}) where {T}
-    R = promote_type(T, Float64)
-    length(p) == 0 && return zeros(R, 0)
-
-    num_leading_zeros = 0
-    while p[num_leading_zeros] ≈ zero(T)
-        if num_leading_zeros == length(p)-1
-            return zeros(R, 0)
-        end
-        num_leading_zeros += 1
-    end
-    num_trailing_zeros = 0
-    while p[end - num_trailing_zeros] ≈ zero(T)
-        num_trailing_zeros += 1
-    end
-    n = lastindex(p)-(num_leading_zeros + num_trailing_zeros)
-    n < 1 && return zeros(R, length(p) - num_trailing_zeros - 1)
-
-    companion = diagm(-1 => ones(R, n-1))
-    an = p[end-num_trailing_zeros]
-    companion[1,:] = -p[(end-num_trailing_zeros-1):-1:num_leading_zeros] / an
-
-    D = eigvalsnosort(companion)
-    r = zeros(eltype(D),length(p)-num_trailing_zeros-1)
-    r[1:n] = D
-    return r
-end
