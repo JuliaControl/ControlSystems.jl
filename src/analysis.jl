@@ -1,7 +1,7 @@
 """`pole(sys)`
 
 Compute the poles of system `sys`."""
-pole(sys::AbstractStateSpace) = eigvals(sys.A)
+pole(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
@@ -224,7 +224,7 @@ function tzero(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T},
         m = size(D_rc, 2)
         Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
         Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
-        zs = eigvals(Af, Bf)
+        zs = eigvalsnosort(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
         zs = complex(T)[]

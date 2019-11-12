@@ -47,9 +47,9 @@ function dare(A, B, Q, R)
     if (!isposdef(R))
         error("R must be positive definite.");
     end
-    
+
     n = size(A, 1);
-    
+
     E = [
         Matrix{Float64}(I, n, n) B/R*B';
         zeros(size(A)) A'
@@ -58,10 +58,10 @@ function dare(A, B, Q, R)
         A zeros(size(A));
         -Q Matrix{Float64}(I, n, n)
     ];
-    
+
     QZ = schur(F, E);
     QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
-    
+
     return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
 end
 
@@ -292,7 +292,7 @@ function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=1000, 
         if isreal(p)  # only real poles
             omegap = minimum(abs.(p))
         else  # at least one pair of complex poles
-            tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
+            tmp = abs.(imag.(p)./(real.(p).*abs.(p)))
             omegap = abs(p[argmax(tmp)])    # TODO This is highly suspicious
         end
         (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0

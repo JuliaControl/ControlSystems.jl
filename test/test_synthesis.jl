@@ -63,11 +63,11 @@ A = randn(3,3)
 B = randn(3,1)
 p = [3.0,2,1]
 K = ControlSystems.acker(A,B,p)
-@test eigvals(A-B*K) ≈ p
+@test ControlSystems.eigvalsnosort(A-B*K) ≈ p
 
 p = [-1+im, -1-im, -1]
 K = ControlSystems.acker(A,B,p)
-@test eigvals(A-B*K) ≈ p
+@test ControlSystems.eigvalsnosort(A-B*K) ≈ p
 end
 
 end

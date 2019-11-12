@@ -17,6 +17,9 @@ Pkg.add("ControlSystems")
 ```
 
 ## News
+### 2019-11-03
+- Poles and zeros are "not sorted" as in Julia versions < 1.2, even on newer versions of Julia. This should imply that complex conjugates are kept together.
+
 ### 2019-05-28
 #### Delay systems
 - We now support systems with time delays. Example:

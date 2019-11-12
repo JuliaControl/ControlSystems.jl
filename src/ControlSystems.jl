@@ -81,7 +81,9 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Polynomials, Plots, LaTeXStrings, LinearAlgebra
+using Plots, LaTeXStrings, LinearAlgebra
+import Polynomials
+import Polynomials: Poly, coeffs, polyval
 using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
@@ -99,7 +101,6 @@ include("types/SisoTf.jl")
 
 # Transfer functions and tranfer function elemements
 include("types/TransferFunction.jl")
-include("types/SisoTfTypes/polyprint.jl")
 include("types/SisoTfTypes/SisoZpk.jl")
 include("types/SisoTfTypes/SisoRational.jl")
 include("types/SisoTfTypes/promotion.jl")
