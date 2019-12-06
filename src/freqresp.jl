@@ -128,7 +128,6 @@ frequencies `w`
 `sv` has size `(length(w), max(ny, nu))`"""
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    nw, ny, nu = size(resp)
     sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end
