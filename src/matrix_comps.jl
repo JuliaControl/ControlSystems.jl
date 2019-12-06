@@ -265,133 +265,139 @@ function norminf(sys::TransferFunction, ; tol=1e-6)
     return norminf(ss(sys), tol=tol)
 end
 
-function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
+function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=250, approximag=1e-10)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: pair of Float64, namely L∞ norm approximation and frequency fpeak at which it is achieved
-    T = promote_type(numeric_type(sys), Float64)
+    T = promote_type(real(numeric_type(sys)), Float64)
+
+    on_imag_axis = z -> abs(real(z)) < approximag # Helper fcn for readability
+
     if sys.nx == 0  # static gain
-        return (svdvals(sys.D)[1], T(0))
+        return (opnorm(sys.D), T(0))
     end
-    p = pole(sys)
+
+    pole_vec = pole(sys)
+
     # Check if there is a pole on the imaginary axis
-    pidx = findfirst(map(x->isapprox(x,0.0),real(p)))
+    pidx = findfirst(on_imag_axis, pole_vec)
     if !(pidx isa Nothing)
         return (T(Inf), imag(p[pidx]))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
-    else
-        # Initialization: computation of a lower bound from 3 terms
-        lb = maximum(svdvals(sys.D))
-        fpeak = T(Inf)
-        (lb, idx) = findmax([lb, T(maximum((svdvals(evalfr(sys,0)))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = T(0)
-        end
-        if isreal(p)  # only real poles
-            omegap = minimum(abs.(p))
-        else  # at least one pair of complex poles
-            tmp = abs.(imag.(p)./(real.(p).*abs.(p)))
-            omegap = abs(p[argmax(tmp)])    # TODO This is highly suspicious
-        end
-        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = omegap
-        end
+    end
 
-        # Iterations
-        iter = 1;
-        while iter <= maxIters
-            res = (1+2*T(tol))*lb
-            R = sys.D'*sys.D - res^2*I
-            S = sys.D*sys.D' - res^2*I
-            M = sys.A-sys.B*(R\sys.D')*sys.C
-            H = [         M              -res*sys.B*(R\sys.B') ;
-                   res*sys.C'*(S\sys.C)            -M'            ]
-            omegas = eigvals(H) .+ 0im # To make type stable
-            omegaps = imag.(omegas[ (abs.(real.(omegas)).<=approximag) .& (imag.(omegas).>=0) ])
-            sort!(omegaps)
-            if isempty(omegaps)
-                return (1+T(tol))*lb, fpeak
-            else  # if not empty, omegaps contains at least two values
-                ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
-                for mval in ms
-                    (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,mval*1im))))]) #TODO remove T() in julia 0.7.0
-                    if idx == 2
-                        fpeak = mval
-                    end
+    # Initialization: computation of a lower bound from 3 terms
+    if isreal(pole_vec)  # only real poles
+        omegap = minimum(abs.(pole_vec))
+    else  # at least one pair of complex poles
+        maxidx = argmax([abs(imag(p)/real(p))/abs(p) for p in pole_vec])
+        omegap = abs(pole_vec[maxidx])    # TODO This is highly suspicious
+    end
+
+    m_vec_init = [0, omegap, Inf]
+
+    (lb, idx) = findmax([opnorm(evalfr(sys, im*m)) for m in m_vec_init])
+    ω_peak = m_vec_init[idx]
+
+    # Iterations
+    for iter=1:maxIters
+        gamma = (1+2*T(tol))*lb
+        R = sys.D'*sys.D - gamma^2*I
+        S = sys.D*sys.D' - gamma^2*I
+        M = sys.A-sys.B*(R\sys.D')*sys.C
+        H = [         M              -gamma*sys.B*(R\sys.B') ;
+               gamma*sys.C'*(S\sys.C)            -M'            ]
+
+        Λ = complex(eigvals(H)) # To make type stable
+
+        Λ_on_imag_axis = filter(z -> on_imag_axis(z) && (numeric_type(sys) <: Complex || imag(z) >= 0), Λ)
+
+        ω_vec = imag.(Λ_on_imag_axis)
+
+        sort!(ω_vec)
+        if isempty(ω_vec)
+            return (1+T(tol))*lb, ω_peak
+        else  # if not empty, ω_vec contains at least two values
+            for k=1:length(ω_vec)-1
+                mk = (ω_vec[k] + ω_vec[k+1])/2
+                sigmamax_mk = opnorm(evalfr(sys,mk*1im))
+                if sigmamax_mk > lb
+                    lb = sigmamax_mk
+                    ω_peak = mk
                 end
             end
-            iter += 1
         end
-        error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
     end
+    error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
 end
 
 # discrete-time version of normHinf_twoSteps_ct above
-# The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
-function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
-    T = promote_type(numeric_type(sys), Float64)
+function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, approxcirc=1e-8)
+    # Compuations are done in normalized frequency
+    on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
+
+    T = promote_type(real(numeric_type(sys)), Float64)
+
     if sys.nx == 0  # static gain
-        return (svdvals(sys.D)[1], T(0))
+        return (opnorm(sys.D), T(0))
     end
-    p = pole(sys)
+
+    pole_vec = pole(sys)
+
     # Check first if there is a pole on the unit circle
-    pidx = findfirst(map(x->isapprox(x,1.0),abs.(p)))
+    pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), angle(p[pidx])/abs(T(sys.Ts)))
+        return (T(Inf), angle(pole_vec[pidx])/T(sys.Ts))
+    end
+
+    # Initialization: computation of a lower bound from 3 terms
+
+    if isreal(pole_vec)  # not just real poles
+        # find frequency of pôle closest to unit circle
+        omegap = angle(pole_vec[argmin(abs.(abs.(pole_vec).-1))])
     else
-        # Initialization: computation of a lower bound from 3 terms
-        lb = T(maximum(svdvals(evalfr(sys,1))))  #TODO remove T() in julia 0.7.0
-        fpeak = T(0)
-        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,-1))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = T(pi)
-        end
+        omegap = T(pi)/2
+    end
 
-        p = p[imag(p).>0]
-        if ~isempty(p)  # not just real poles
-            # find frequency of pôle closest to unit circle
-            omegap = angle(p[findmin(abs.(abs.(p).-1))[2]])
-        else
-            omegap = T(pi)/2
-        end
-        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, exp(omegap*1im)))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = omegap
-        end
+    m_vec_init = [0, omegap, pi]
 
-        # Iterations
-        iter = 1;
-        while iter <= maxIters
-            res = (1+2*T(tol))*lb
-            R = res^2*I - sys.D'*sys.D
-            RinvDt = R\sys.D'
-            L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
-                  zeros(T, sys.nx,sys.nx)      I]
-            M = [ I                                 zeros(T, sys.nx,sys.nx);
-                  sys.C'*(I+sys.D*RinvDt)*sys.C     L[1:sys.nx,1:sys.nx]']
-            # +0im to make type stable
-            zs = eigvals(L,M) .+ 0im # generalized eigenvalues
-            # are there eigenvalues on the unit circle?
-            omegaps = angle.(zs[ (abs.(abs.(zs).-1) .<= approxcirc) .& (imag(zs).>=0)])
-            sort!(omegaps)
-            if isempty(omegaps)
-                return (1+T(tol))*lb, fpeak/T(sys.Ts)
-            else  # if not empty, omegaps contains at least two values
-                ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
-                for mval in ms
-                    (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,exp(mval*1im)))))]) #TODO remove T() in julia 0.7.0
-                    if idx == 2
-                        fpeak = mval
-                    end
+    (lb, idx) = findmax([opnorm(evalfr(sys, exp(im*m))) for m in m_vec_init])
+    ω_peak = m_vec_init[idx]
+
+    # Iterations
+    iter = 1;
+    while iter <= maxIters
+        gamma = (1+2*T(tol))*lb
+        R = gamma^2*I - sys.D'*sys.D
+        RinvDt = R\sys.D'
+        L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
+              zeros(T, sys.nx,sys.nx)      I]
+        M = [ I                                 zeros(T, sys.nx,sys.nx);
+              sys.C'*(I+sys.D*RinvDt)*sys.C     L[1:sys.nx,1:sys.nx]']
+
+        Λ = complex(eigvals(L,M)) # complex is to ensure type stability
+
+        Λ_on_imag_axis = filter(z -> on_unit_circle(z) && (numeric_type(sys) <: Complex || imag(z) >= 0), Λ)
+
+        ω_vec = angle.(Λ_on_imag_axis)
+
+        sort!(ω_vec)
+        if isempty(ω_vec)
+            return (1+T(tol))*lb, ω_peak/T(sys.Ts)
+        else  # if not empty, ω_vec contains at least two values
+            for k=1:length(ω_vec)-1
+                mk = (ω_vec[k] + ω_vec[k+1])/2
+                sigmamax_mk = opnorm(evalfr(sys,exp(mk*1im)))
+                if sigmamax_mk > lb
+                    lb = sigmamax_mk
+                    ω_peak = mk
                 end
             end
-            iter += 1
         end
-        error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
     end
+    error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
 end
 
 

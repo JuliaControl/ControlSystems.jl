@@ -109,7 +109,23 @@ D_static = ss([0.704473 1.56483; -1.6661 -2.16041], 0.07)
 @test norm(D_221) ≈ 3.4490083195926426
 @test norm(ss([1],[2],[3],[4])) == Inf
 
-# Test Hinfinity norm computations
+#
+## Test Hinfinity norm computations
+#
+# Continuous
+Ninf, ω_peak = norminf(ss(-1, 1, 1, 0))
+@test Ninf ≈ 1 rtol=1e-6
+@test ω_peak ≈ 0 rtol=1e-6
+
+Ninf, ω_peak = norminf(ss(-1, 1, 1, 1))
+@test Ninf ≈ 2 rtol=1e-6
+@test ω_peak ≈ 0 rtol=1e-6
+
+Ninf, ω_peak = norminf(ss(1.5))
+@test Ninf ≈ 1.5 rtol=1e-6
+@test ω_peak ≈ 0 rtol=1e-6
+
+
 tolHinf = 1e-12
 @test norm(C_212, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
 @test norm(C_222, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
@@ -122,25 +138,84 @@ Ninf, ω_peak =  norminf(f_C_211_bis, tol=tolHinf)
 @test ω_peak ≈ 52.0
 @test norm(1/(s-1), Inf, tol=tolHinf) ≈ 1.0  # unstable system
 
+Ninf, ω_peak = norminf(C_static, tol=tolHinf)
+@test Ninf ≈ 1.760164138376307 atol=1e-12
+@test ω_peak ≈ 0 atol=1e-12
+
+
 Ninf, ω_peak = norminf(C_22tf, tol=tolHinf)
 @test Ninf ≈ 3.014974550173459 atol=(10*tolHinf)
 @test ω_peak ≈ 3.162123338668049 atol=1e-8
 
+# Complex coefficient systems
+Ninf, ω_peak = norminf(ss(-1+im, 1, 1, 0))
+@test Ninf ≈ 1 rtol=1e-6
+@test ω_peak ≈ 1 rtol=1e-3
+
+Ninf, ω_peak = norminf(ss(-1-im, 1, 1, 0))
+@test Ninf ≈ 1 rtol=1e-6
+@test ω_peak ≈ -1 rtol=1e-3
+
+# 1/(s+1)^2
+@test norminf(ss([0 1; 1 -2], [1; 0], [0 1], 0))[1] ≈ 1 rtol=1e-6
+
+# Second order resonant system with peaks at ±sqrt(2)
+Ninf, ω_peak = norminf(ss([0 1; -1 -1], [0; 1], [1 0], 0))
+@test Ninf ≈ 2/sqrt(3) rtol=1e-6
+@test ω_peak ≈ 1/sqrt(2) rtol=1e-3
+
+@test norminf(G, tol=1e-8)[1] ≈ 2/sqrt(3) rtol=1e-8
+@test norminf(G, tol=1e-10)[1] ≈ 2/sqrt(3) rtol=1e-10
+
+# Same version as above but frequency shifted by -1, i.e., two peaks at -1 ± sqrt(2)
+Ninf, ω_peak = norminf(ss([0 1; -im -(1+2im)], [0; 1], [1 0], 0))
+@test Ninf ≈ 2/sqrt(3) rtol=1e-6
+@test ω_peak ≈ -1 - 1/sqrt(2) rtol=1e-3
+
+# Same version as above but frequency shifted by +1, i.e., two peaks at 1 ± sqrt(2)
+Ninf, ω_peak = norminf( ss([0 1; im -1+2im], [0; 1], [1 0], 0))
+@test Ninf ≈ 2/sqrt(3) rtol=1e-6
+@test ω_peak ≈ 1 + 1/sqrt(2) rtol=1e-3
+
+
+
+# Discrete Time
+Ninf, ω_peak =  norminf(ss(0.8, 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 0
+
+Ninf, ω_peak =  norminf(ss(-0.8, 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ pi
+
 Ninf, ω_peak = norminf(D_221, tol=tolHinf)
 @test Ninf ≈ 17.794697451669421 atol=(20*tolHinf)
 @test ω_peak ≈ 0 atol=1e-8
+
 Ninf, ω_peak = norminf(D_422, tol=tolHinf)
 @test Ninf ≈ 3.360351099392252 atol=(10*tolHinf)
-@test ω_peak ≈ 8.320643111730551 atol=1e-8
+@test ω_peak ≈ 8.320643111730551 atol=1e-6
+
 Ninf, ω_peak = norminf(D_311, tol=tolHinf)
 @test Ninf ≈ 4.458729529942810 atol=(10*tolHinf)
 @test ω_peak ≈ 11.878021287349698 atol=1e-6
-Ninf, ω_peak = norminf(C_static, tol=tolHinf)
-@test Ninf ≈ 1.760164138376307 atol=1e-12
-@test ω_peak ≈ 0 atol=1e-12
+
 Ninf, ω_peak = norminf(D_static, tol=tolHinf)
 @test Ninf ≈ 3.205246234285972 atol=1e-12
 @test ω_peak ≈ 0 atol=1e-12
+
+# Complex coefficients
+Ninf, ω_peak =  norminf(ss(0.8*exp(1im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 1
+
+Ninf, ω_peak =  norminf(ss(0.8*exp(-1im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ -1
+
+Ninf, ω_peak =  norminf(ss(0.8*exp(2.5im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 2.5
 
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]
