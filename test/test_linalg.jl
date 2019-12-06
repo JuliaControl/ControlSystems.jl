@@ -160,7 +160,9 @@ Ninf, ω_peak = norminf(ss(-1-im, 1, 1, 0))
 @test norminf(ss([0 1; 1 -2], [1; 0], [0 1], 0))[1] ≈ 1 rtol=1e-6
 
 # Second order resonant system with peaks at ±sqrt(2)
-Ninf, ω_peak = norminf(ss([0 1; -1 -1], [0; 1], [1 0], 0))
+G = ss([0 1; -1 -1], [0; 1], [1 0], 0)
+
+Ninf, ω_peak = norminf(G)
 @test Ninf ≈ 2/sqrt(3) rtol=1e-6
 @test ω_peak ≈ 1/sqrt(2) rtol=1e-3
 
