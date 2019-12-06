@@ -178,6 +178,18 @@ Ninf, ω_peak = norminf( ss([0 1; im -1+2im], [0; 1], [1 0], 0))
 @test ω_peak ≈ 1 + 1/sqrt(2) rtol=1e-3
 
 
+# System with mutiple resonance peaks
+A = [-0.1*I        -Diagonal(1:10)
+     Diagonal(1:10) zeros(10,10)]
+
+Ninf, ω_peak = norminf(ss(A, 0.1*[ones(10); zeros(10)], [zeros(1,10) ones(1,10)], 0))
+@test Ninf ≈ 1.05871265 rtol=1e-5
+@test ω_peak ≈ 0.9874 rtol=1e-4
+
+Ninf, ω_peak = norminf(ss(A, 0.1*[ones(4); 2; ones(5); zeros(10)], [zeros(1,10) ones(1,10)], 0))
+@test Ninf ≈ 2.00918 rtol=1e-5
+@test ω_peak ≈ 4.9981 rtol=1e-4
+
 
 # Discrete Time
 Ninf, ω_peak =  norminf(ss(0.8, 1, 1, 0, 1))

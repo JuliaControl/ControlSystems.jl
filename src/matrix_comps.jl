@@ -290,13 +290,13 @@ function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=250, a
 
     # Initialization: computation of a lower bound from 3 terms
     if isreal(pole_vec)  # only real poles
-        omegap = minimum(abs.(pole_vec))
+        ω_p = minimum(abs.(pole_vec))
     else  # at least one pair of complex poles
         maxidx = argmax([abs(imag(p)/real(p))/abs(p) for p in pole_vec])
-        omegap = abs(pole_vec[maxidx])    # TODO This is highly suspicious
+        ω_p = abs(pole_vec[maxidx])
     end
 
-    m_vec_init = [0, omegap, Inf]
+    m_vec_init = [0, ω_p, Inf]
 
     (lb, idx) = findmax([opnorm(evalfr(sys, im*m)) for m in m_vec_init])
     ω_peak = m_vec_init[idx]
@@ -317,7 +317,7 @@ function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=250, a
         ω_vec = imag.(Λ_on_imag_axis)
 
         sort!(ω_vec)
-        
+
         if isempty(ω_vec)
             return (1+T(tol))*lb, ω_peak
         else  # if not empty, ω_vec contains at least two values
@@ -336,7 +336,7 @@ end
 
 # discrete-time version of normHinf_twoSteps_ct above
 function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, approxcirc=1e-8)
-    # Compuations are done in normalized frequency
+    # Compuations are done in normalized frequency θ
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
     T = promote_type(real(numeric_type(sys)), Float64)
@@ -357,15 +357,15 @@ function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, ap
 
     if isreal(pole_vec)  # not just real poles
         # find frequency of pôle closest to unit circle
-        omegap = angle(pole_vec[argmin(abs.(abs.(pole_vec).-1))])
+        θ_p = angle(pole_vec[argmin(abs.(abs.(pole_vec).-1))])
     else
-        omegap = T(pi)/2
+        θ_p = T(pi)/2
     end
 
-    m_vec_init = [0, omegap, pi]
+    m_vec_init = [0, θ_p, pi]
 
     (lb, idx) = findmax([opnorm(evalfr(sys, exp(im*m))) for m in m_vec_init])
-    ω_peak = m_vec_init[idx]
+    θ_peak = m_vec_init[idx]
 
     # Iterations
     for iter=1:maxIters
@@ -381,19 +381,19 @@ function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, ap
 
         Λ_on_imag_axis = filter(z -> on_unit_circle(z) && (numeric_type(sys) <: Complex || imag(z) >= 0), Λ)
 
-        ω_vec = angle.(Λ_on_imag_axis)
+        θ_vec = angle.(Λ_on_imag_axis)
 
-        sort!(ω_vec)
+        sort!(θ_vec)
 
-        if isempty(ω_vec)
-            return (1+T(tol))*lb, ω_peak/T(sys.Ts)
+        if isempty(θ_vec)
+            return (1+T(tol))*lb, θ_peak/T(sys.Ts)
         else  # if not empty, ω_vec contains at least two values
-            for k=1:length(ω_vec)-1
-                mk = (ω_vec[k] + ω_vec[k+1])/2
+            for k=1:length(θ_vec)-1
+                mk = (θ_vec[k] + θ_vec[k+1])/2
                 sigmamax_mk = opnorm(evalfr(sys,exp(mk*1im)))
                 if sigmamax_mk > lb
                     lb = sigmamax_mk
-                    ω_peak = mk
+                    θ_peak = mk
                 end
             end
         end
