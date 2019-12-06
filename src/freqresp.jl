@@ -17,7 +17,7 @@ function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
         sys = _preprocess_for_freqresp(sys)
     end
     ny,nu = noutputs(sys), ninputs(sys)
-    [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
+    [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu] # QUESTION: Looks inefficient..
 end
 
 # Implements algorithm found in:
@@ -128,7 +128,6 @@ frequencies `w`
 `sv` has size `(length(w), max(ny, nu))`"""
 function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    nw, ny, nu = size(resp)
     sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end

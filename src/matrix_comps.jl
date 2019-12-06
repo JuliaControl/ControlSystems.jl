@@ -317,6 +317,7 @@ function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=250, a
         ω_vec = imag.(Λ_on_imag_axis)
 
         sort!(ω_vec)
+        
         if isempty(ω_vec)
             return (1+T(tol))*lb, ω_peak
         else  # if not empty, ω_vec contains at least two values
@@ -367,8 +368,7 @@ function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, ap
     ω_peak = m_vec_init[idx]
 
     # Iterations
-    iter = 1;
-    while iter <= maxIters
+    for iter=1:maxIters
         gamma = (1+2*T(tol))*lb
         R = gamma^2*I - sys.D'*sys.D
         RinvDt = R\sys.D'
@@ -384,6 +384,7 @@ function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, ap
         ω_vec = angle.(Λ_on_imag_axis)
 
         sort!(ω_vec)
+
         if isempty(ω_vec)
             return (1+T(tol))*lb, ω_peak/T(sys.Ts)
         else  # if not empty, ω_vec contains at least two values
