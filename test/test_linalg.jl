@@ -147,6 +147,28 @@ Ninf, ω_peak = norminf(C_22tf, tol=tolHinf)
 @test Ninf ≈ 3.014974550173459 atol=(10*tolHinf)
 @test ω_peak ≈ 3.162123338668049 atol=1e-8
 
+# Poles on the imaginary axis
+# Only integrator
+Ninf, ω_peak = norminf(ss(0.0, 1, 1, 0))
+@test Ninf == Inf
+@test ω_peak ≈ 0
+
+# Integrator and lag
+Ninf, ω_peak = norminf(ss([-2.0 1; 0 0], [0; 1], [1 0], 0))
+@test Ninf == Inf
+@test ω_peak ≈ 0
+
+# 1/(s^2 + 1)
+Ninf, ω_peak = norminf(ss([0 1.0; -1.0 0], [1; 0], [0 1], 0))
+@test Ninf == Inf
+@test ω_peak ≈ 1
+
+# 1/(s - im), complex coefficients
+Ninf, ω_peak = norminf(ss(im, 1, 1, 0))
+@test Ninf == Inf
+@test ω_peak ≈ 1
+
+
 # Complex coefficient systems
 Ninf, ω_peak = norminf(ss(-1+im, 1, 1, 0))
 @test Ninf ≈ 1 rtol=1e-6
@@ -193,6 +215,7 @@ Ninf, ω_peak = norminf(ss(A, 0.1*[ones(4); 2; ones(5); zeros(10)], [zeros(1,10)
 @test ω_peak ≈ 4.9981 rtol=1e-4
 
 
+
 # Discrete Time
 Ninf, ω_peak =  norminf(ss(0.8, 1, 1, 0, 1))
 @test Ninf ≈ 5 rtol=1e-6
@@ -217,6 +240,11 @@ Ninf, ω_peak = norminf(D_311, tol=tolHinf)
 Ninf, ω_peak = norminf(D_static, tol=tolHinf)
 @test Ninf ≈ 3.205246234285972 atol=1e-12
 @test ω_peak ≈ 0 atol=1e-12
+
+# Pole on unit circle
+Ninf, ω_peak = norminf(ss(1, 1, 1, 0, 1))
+@test Ninf == Inf
+@test ω_peak ≈ 0
 
 # Complex coefficients
 Ninf, ω_peak =  norminf(ss(0.8*exp(1im), 1, 1, 0, 1))

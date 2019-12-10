@@ -284,7 +284,7 @@ function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=250, a
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(on_imag_axis, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), imag(p[pidx]))
+        return (T(Inf), imag(pole_vec[pidx]))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     end
 
@@ -333,7 +333,6 @@ function normLinf_twoSteps_ct(sys::AbstractStateSpace, tol=1e-6, maxIters=250, a
     end
     error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
 end
-
 # discrete-time version of normHinf_twoSteps_ct above
 function normLinf_twoSteps_dt(sys::AbstractStateSpace,tol=1e-6, maxIters=250, approxcirc=1e-8)
     # Compuations are done in normalized frequency θ
