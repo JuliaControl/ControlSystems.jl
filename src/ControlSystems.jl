@@ -141,6 +141,8 @@ include("delay_systems.jl")
 
 include("plotting.jl")
 
+include("reference_generators.jl")
+
 @deprecate num numvec
 @deprecate den denvec
 
