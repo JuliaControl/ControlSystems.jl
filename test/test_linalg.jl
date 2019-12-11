@@ -194,12 +194,12 @@ Ninf, ω_peak = norminf(G)
 # Same version as above but frequency shifted by -1, i.e., two peaks at -1 ± sqrt(2)
 Ninf, ω_peak = norminf(ss([0 1; -im -(1+2im)], [0; 1], [1 0], 0))
 @test Ninf ≈ 2/sqrt(3) rtol=1e-6
-@test ω_peak ≈ -1 - 1/sqrt(2) rtol=1e-3
+@test abs(ω_peak+1) ≈ 1/sqrt(2) rtol=1e-3
 
 # Same version as above but frequency shifted by +1, i.e., two peaks at 1 ± sqrt(2)
 Ninf, ω_peak = norminf( ss([0 1; im -1+2im], [0; 1], [1 0], 0))
 @test Ninf ≈ 2/sqrt(3) rtol=1e-6
-@test ω_peak ≈ 1 + 1/sqrt(2) rtol=1e-3
+@test abs(ω_peak-1) ≈ 1/sqrt(2) rtol=1e-3
 
 
 # System with mutiple resonance peaks
