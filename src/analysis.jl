@@ -138,7 +138,7 @@ function damp(sys::LTISystem)
         ps = log(ps)/Ts
     end
     Wn = abs.(ps)
-    order = sortperm(Wn)
+    order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
     Wn = Wn[order]
     ps = ps[order]
     ζ = -cos.(angle.(ps))
