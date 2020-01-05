@@ -24,7 +24,8 @@ export  LTISystem,
         lqgi,
         covar,
         norm,
-        norminf,
+        hinfnorm,
+        linfnorm,
         gram,
         ctrb,
         obsv,
@@ -143,6 +144,7 @@ include("plotting.jl")
 
 @deprecate num numvec
 @deprecate den denvec
+@deprecate norminf hinfnorm
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

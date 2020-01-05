@@ -18,7 +18,7 @@ sysmin = minreal(sys)
 
 @test size(sysmin.A,1) == 3 # Test that the reduction of sys worked
 
-@test norminf(sys - sysmin)[1] < 1e-15 # And that the answer is correct
+@test hinfnorm(sys - sysmin)[1] < 1e-15 # And that the answer is correct
 
 @test_broken balreal(sys-sysmin)
 
