@@ -33,7 +33,7 @@ Lint = P*C
 g = tf([1],[1,1])
 gfb = feedback(g)
 gfb2 = tf(feedback(ss(g)))
-@test norminf(gfb - gfb2)[1] <= 1e-14
+@test hinfnorm(gfb - gfb2)[1] <= 1e-14
 
 # Test more feedback
 s = tf("s")
