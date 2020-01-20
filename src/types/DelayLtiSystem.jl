@@ -72,7 +72,7 @@ Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
 
 function *(sys::DelayLtiSystem, n::Number)
     new_C = [sys.P.C1*n; sys.P.C2]
-    new_D = [sys.P.D11*n sys.P.D12; sys.P.D21*n sys.P.D22]
+    new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
     return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.Ts), sys.Tau)
 end
 *(n::Number, sys::DelayLtiSystem) = *(sys, n)
