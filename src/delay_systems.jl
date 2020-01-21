@@ -161,8 +161,6 @@ function _default_Ts(sys::DelayLtiSystem)
     end
 end
 
-iscontinuous(sys::DelayLtiSystem) = true
-
 function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     nu = ninputs(sys)
     if t[1] != 0

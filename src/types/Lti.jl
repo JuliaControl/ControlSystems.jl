@@ -45,10 +45,24 @@ end
 """`iscontinuous(sys)`
 
 Returns `true` if `sys` is continuous, else returns `false`."""
-function iscontinuous(sys::LTISystem)
-    return sys.Ts == 0
-end
+iscontinuous(sys::LTISystem) = iscontinuous(sys.Ts)
+"""`isdiscrete(sys)`
 
+Returns `true` if `sys` is discrete, else returns `false`."""
+isdiscrete(sys::LTISystem) = isdiscrete(sys.Ts)
+"""`isstatic(sys)`
+
+Returns `true` if `sys` is static, else returns `false`."""
+isstatic(sys::LTISystem) = isstatic(sys.Ts)
+
+"""`sampletime(sys)`
+
+Returns the sampletime of a discrete time system, throws error if the system is continuous time."""
+sampletime(sys::LTISystem) = sampletime(sys.Ts)
+
+"""`sampletype(sys)`
+Get the sampletype of system. Usually typeof(sys.Ts)."""
+sampletype(sys) = typeof(sys.Ts)
 
 """`isstable(sys)`
 

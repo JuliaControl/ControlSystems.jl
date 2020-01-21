@@ -470,8 +470,8 @@ nicholsplot
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
 
-    if !iscontinuous(systems[1])
-        w_nyquist = 2π/systems[1].Ts
+    if isdiscrete(systems[1])
+        w_nyquist = 2π/sampletime(systems[1])
         w = w[w.<= w_nyquist]
     end
     nw = length(w)
@@ -744,7 +744,7 @@ pzmap
             end
         end
 
-        if system.Ts > 0
+        if isdiscrete(system)
             v = range(0,stop=2π,length=100)
             S,C = sin.(v),cos.(v)
             @series begin

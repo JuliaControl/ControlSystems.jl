@@ -1,41 +1,29 @@
-struct TransferFunction{S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{SampleT<:AbstractSampleTime, S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
-    Ts::Float64
+    Ts::SampleT
     nu::Int
     ny::Int
-    function TransferFunction{S}(matrix::Matrix{S}, Ts::Real=0) where {S}
+    function TransferFunction{SampleT,S}(matrix::Matrix{S}, Ts::SampleT) where {S,SampleT}
         # Validate size of input and output names
         ny, nu = size(matrix)
-        # Validate sampling time
-        if Ts < 0 && Ts != -1
-            error("Ts must be either a positive number, 0
-                (continuous system), or -1 (unspecified)")
-        end
-        return new{S}(matrix, Ts, nu, ny)
+        return new{SampleT,S}(matrix, Ts, nu, ny)
     end
 end
-function TransferFunction(matrix::Matrix{S}, Ts::Float64=0) where {T<:Number, S<:SisoTf{T}}
-    return TransferFunction{S}(matrix, Ts)
+function TransferFunction(matrix::Matrix{S}, Ts::SampleT) where {SampleT<:AbstractSampleTime, T<:Number, S<:SisoTf{T}}
+    TransferFunction{SampleT, S}(matrix, Ts)
+end
+
+# Constructor for Discrete time system
+function TransferFunction(matrix::Matrix{S}, Ts::Number) where {T<:Number, S<:SisoTf{T}}
+    return TransferFunction(matrix, Discrete(Ts))
+end
+# Constructor for Continuous time system
+function TransferFunction(matrix::Matrix{S}) where {T<:Number,S<:SisoTf{T}}
+    return TransferFunction(matrix, Continuous())
 end
 
 noutputs(G::TransferFunction) = size(G.matrix, 1)
 ninputs(G::TransferFunction) = size(G.matrix, 2)
-
-# function TransferFunction{SisoRational{T}}(num::Matrix{Vector{T}}, den::Matrix{Vector{T}}, Ts::Real=0) where {T <: Number}
-#     # Validate input and output dimensions match
-#     ny, nu = size(num, 1, 2)
-#     if (ny, nu) != size(den, 1, 2)
-#         error("num and den dimensions must match")
-#     end
-#
-#     matrix = Matrix{SisoRational{T}}(ny, nu) # TODO: list comprehension seems suitable here
-#     for o=1:ny
-#         for i=1:nu
-#             matrix[o, i] = SisoRational(num[o, i], den[o, i])
-#         end
-#     end
-#     return TransferFunction(matrix, Float64(Ts))
-# end
 
 #####################################################################
 ##                          Misc. Functions                        ##
@@ -85,6 +73,7 @@ Returns `true` if the `TransferFunction` is proper. This means that order(den)
 function isproper(G::TransferFunction)
     return all(isproper(f) for f in G.matrix)
 end
+
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################
@@ -120,12 +109,10 @@ end
 function +(G1::TransferFunction, G2::TransferFunction)
     if size(G1) != size(G2)
         error("Systems have different shapes.")
-    elseif G1.Ts != G2.Ts
-        error("Sampling time mismatch")
     end
 
     matrix = G1.matrix + G2.matrix
-    return TransferFunction(matrix, G1.Ts)
+    return TransferFunction(matrix, ts_same(G1.Ts,G2.Ts))
 end
 
 +(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.Ts)
@@ -145,13 +132,10 @@ function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
     if G1.nu != G2.ny
         error("G1*G2: G1 must have same number of inputs as G2 has outputs")
-    elseif G1.Ts != G2.Ts
-        error("Sampling time mismatch")
     end
 
     matrix = G1.matrix * G2.matrix
-
-    return TransferFunction{eltype(matrix)}(matrix, G1.Ts)
+    return TransferFunction(matrix, ts_same(G1.Ts,G2.Ts))
 end
 
 *(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.Ts)
@@ -198,9 +182,9 @@ function Base.show(io::IO, G::TransferFunction)
         print(io, "\nContinuous-time transfer function model")
     else
         print(io, "\nSample Time: ")
-        if G.Ts > 0
-            print(io, G.Ts, " (seconds)")
-        elseif G.Ts == -1
+        if isdiscrete(G)
+            print(io, sampletime(G), " (seconds)")
+        elseif isstatic(G)
             print(io, "unspecified")
         end
         print(io, "\nDiscrete-time transfer function model")

@@ -4,10 +4,10 @@
 Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
 """
 struct DelayLtiSystem{T,S<:Real} <: LTISystem
-    P::PartionedStateSpace{StateSpace{T,Matrix{T}}}
+    P::PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
-    # function DelayLtiSystem(P::StateSpace{T, MT}, Tau::Vector{T})
+    # function DelayLtiSystem(P::StateSpace{Continuous,T, MT}, Tau::Vector{T})
     #     if ControlSystems.noutputs(P) < length(Tau) ||
     #         ControlSystems.noutputs(P) < length(Tau)
     #         error("Length of time-vector is too long given the size of the partitioned system P.")
@@ -16,6 +16,13 @@ struct DelayLtiSystem{T,S<:Real} <: LTISystem
     # end
 end
 
+# Fallback since system is always continuouss
+function getproperty(sys::DelayLtiSystem, s::Symbol)
+    if s == :Ts
+        return Continuous()
+    end
+    return getfield(sys, s)
+end
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
 """
@@ -31,25 +38,25 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
         throw(ArgumentError("Time vector is too long."))
     end
 
-    psys = PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys, nu, ny)
+    psys = PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}(sys, nu, ny)
     DelayLtiSystem{T,S}(psys, Tau)
 end
 # For converting DelayLtiSystem{T,S} to different T
-DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys.P), Float64[])
+DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}(sys.P), Float64[])
 DelayLtiSystem{T}(sys::StateSpace) where {T} = DelayLtiSystem{T, Float64}(sys, Float64[])
 
 # From StateSpace, infer type
-DelayLtiSystem(sys::StateSpace{T,MT}, Tau::Vector{S}) where {T, MT,S} = DelayLtiSystem{T,S}(sys, Tau)
-DelayLtiSystem(sys::StateSpace{T,MT}) where {T, MT} = DelayLtiSystem{T,T}(sys, T[])
+DelayLtiSystem(sys::StateSpace{Continuous,T,MT}, Tau::Vector{S}) where {T, MT,S} = DelayLtiSystem{T,S}(sys, Tau)
+DelayLtiSystem(sys::StateSpace{Continuous,T,MT}) where {T, MT} = DelayLtiSystem{T,T}(sys, T[])
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
-DelayLtiSystem(sys::TransferFunction{S}) where {T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{T, Matrix{T}}, sys))
+DelayLtiSystem(sys::TransferFunction{S}) where {T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
 
 # TODO: Think through these promotions and conversions
 Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 
-Base.promote_rule(::Type{<:StateSpace{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
+Base.promote_rule(::Type{<:StateSpace{Continuous,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{<:TransferFunction}, ::Type{DelayLtiSystem{T,S}}) where {T,S} = DelayLtiSystem{T,S}
 #Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
 
@@ -66,7 +73,7 @@ end
 Base.convert(::Type{<:DelayLtiSystem}, sys::TransferFunction)  = DelayLtiSystem(sys)
 # Catch convertsion between T
 Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
-    sys isa V ? sys : V(StateSpace{T,Matrix{T}}(sys.P.P), sys.Tau)
+    sys isa V ? sys : V(StateSpace{Continuous,T,Matrix{T}}(sys.P.P), sys.Tau)
 
 
 
@@ -162,6 +169,10 @@ function *(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     DelayLtiSystem(psys_new.P, Tau_new)
 end
 
+
+iscontinuous(::DelayLtiSystem) = true
+sampletime(x::DelayLtiSystem) = error("DelayLtiSystems are continuous and have no sample time")
+sampletype(::DelayLtiSystem) = Continuous
 
 function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     psys_new = feedback(sys1.P, sys2.P)

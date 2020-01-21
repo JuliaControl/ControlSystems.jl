@@ -8,7 +8,7 @@ of system `sys` over the frequency vector `w`."""
 function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
     if !iscontinuous(sys)
-        Ts = sys.Ts == -1 ? 1.0 : sys.Ts
+        Ts = isstatic(sys) ? 1.0 : sampletime(sys)
         s_vec = exp.(w_vec*(im*Ts))
     else
         s_vec = im*w_vec
@@ -53,7 +53,7 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """
-function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
+function evalfr(sys::StateSpace{<:AbstractSampleTime,T0}, s::Number) where {T0}
     T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     try
         R = s*I - sys.A
@@ -63,7 +63,7 @@ function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
     end
 end
 
-function evalfr(G::TransferFunction{<:SisoTf}, s::Number)
+function evalfr(G::TransferFunction{<:AbstractSampleTime,<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
 
@@ -80,9 +80,9 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    @assert !iscontinuous(sys) && !isstatic(sys) "It makes no sense to call this function with continuous systems"
     if map_to_unit_circle
-        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
+        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sampletime(sys))) : error("To map to the unit circle, omega should be real")
     else
         evalfr(sys,z_or_omega)
     end
@@ -178,8 +178,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w1 = 0.0
         w2 = 2.0
     end
-    if !iscontinuous(sys) # Do not draw above Nyquist freq for disc. systems
-        w2 = min(w2, log10(π/sys.Ts))
+    if !iscontinuous(sys) && !isstatic(sys) # Do not draw above Nyquist freq for disc. systems
+        w2 = min(w2, log10(π/sampletime(sys)))
     end
     return [w1, w2], zp
 end

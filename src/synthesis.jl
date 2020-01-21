@@ -153,7 +153,7 @@ feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
 #Efficient implementations
-function feedback(L::TransferFunction{T}) where T<:SisoRational
+function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where T<:SisoRational
     if size(L) != (1,1)
         error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
@@ -162,7 +162,7 @@ function feedback(L::TransferFunction{T}) where T<:SisoRational
     tf(P, P+Q, L.Ts)
 end
 
-function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
+function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where {T<:SisoZpk}
     if size(L) != (1,1)
         error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
@@ -198,7 +198,7 @@ function feedback(sys1::StateSpace,sys2::StateSpace)
     A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A,B,C,sys1.D)
+    ss(A,B,C,sys1.D,ts_same(sys1.Ts,sys2.Ts))
 end
 
 
@@ -208,7 +208,7 @@ end
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
-    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
+    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S),P.Ts)
 end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

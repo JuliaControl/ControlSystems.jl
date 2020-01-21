@@ -43,14 +43,14 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    if iscontinuous(sys) #&& method == :cont
+    if iscontinuous(sys) || isstatic(sys) #&& method == :cont
         u = (x,i) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
         imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
-        u = (x,i) -> i == t[1] ? [one(T)]/sys.Ts : [zero(T)]
+        u = (x,i) -> i == t[1] ? [one(T)]/sampletime(sys) : [zero(T)]
         imp_sys = sys
         x0s = zeros(T, nx, nu)
     end
@@ -122,7 +122,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         if iscontinuous(sys) # Looks strange to check iscontinuous again
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sys.Ts != dt
+            if sampletime(sys) != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -155,7 +155,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sys.Ts != dt
+            if sampletime(sys) != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -227,7 +227,7 @@ end
 
 function _default_Ts(sys::LTISystem)
     if !iscontinuous(sys)
-        Ts = sys.Ts
+        Ts = sampletime(sys)
     elseif !isstable(sys)
         Ts = 0.05
     else

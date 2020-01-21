@@ -8,7 +8,7 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 # converting to zpk before works better in the cases I have tested.
 pole(sys::TransferFunction) = pole(zpk(sys))
 
-function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T, TR}
+function pole(sys::TransferFunction{<:AbstractSampleTime,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
@@ -118,7 +118,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    G = convert(TransferFunction{SisoZpk}, sys)
+    G = convert(TransferFunction{sampletype(sys),SisoZpk}, sys)
 
     zs = map(x -> x.z, G.matrix)
     ps = map(x -> x.p, G.matrix)
@@ -134,7 +134,7 @@ poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if !iscontinuous(sys)
-        Ts = sys.Ts == -1 ? 1 : sys.Ts
+        Ts = isstatic(sys) ? 1 : sampletime(sys)
         ps = log(ps)/Ts
     end
     Wn = abs.(ps)
@@ -446,8 +446,8 @@ function delaymargin(G::LTISystem)
     ϕₘ   *= π/180
     ωϕₘ   = m[3][i]
     dₘ    = ϕₘ/ωϕₘ
-    if G.Ts > 0
-        dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
+    if isdiscrete(G)
+        dₘ /= sampletime(G) # Give delay margin in number of sample times, as matlab does
     end
     dₘ
 end
