@@ -55,6 +55,8 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
 end
 
 function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
+    Ts = ts_same(s1.P.Ts,s2.P.Ts)
+
     A = blockdiag(s1.A, s2.A)
 
     B = [[s1.B1; s2.B1] blockdiag(s1.B2, s2.B2)]
@@ -65,7 +67,7 @@ function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
     D = [(s1.D11 + s2.D11) s1.D12 s2.D12;
     [s1.D21; s2.D21] blockdiag(s1.D22, s2.D22)]
 
-    P = StateSpace(A, B, C, D, ts_same(s1.P.Ts,s2.P.Ts)) # How to handle discrete?
+    P = StateSpace(A, B, C, D, Ts) # How to handle discrete?
     PartionedStateSpace(P, s1.nu1 + s2.nu1, s1.ny1 + s2.ny1)
 end
 
@@ -77,6 +79,8 @@ end
     Series connection of partioned StateSpace systems.
 """
 function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
+    Ts = ts_same(s1.P.Ts,s2.P.Ts)
+
     A = [s1.A                           s1.B1*s2.C1;
     zeros(size(s2.A,1),size(s1.A,2))      s2.A]
 
@@ -91,7 +95,7 @@ function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
     s1.D21*s2.D11           s1.D22        s1.D21*s2.D12;
     s2.D21          zeros(size(s2.D22,1),size(s1.D22,2))          s2.D22        ]
 
-    P = StateSpace(A, B, C, D, ts_same(s1.P.Ts,s2.P.Ts))
+    P = StateSpace(A, B, C, D, Ts)
     PartionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
@@ -99,6 +103,7 @@ end
 
 # QUESTION: What about algebraic loops and well-posedness?! Perhaps issue warning if P1(∞)*P2(∞) > 1
 function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
+    Ts = ts_same(s1.P.Ts,s2.P.Ts)
     X_11 = (I + s2.D11*s1.D11)\[-s2.D11*s1.C1  -s2.C1]
     X_21 = (I + s1.D11*s2.D11)\[s1.C1  -s1.D11*s2.C1]
 
@@ -137,7 +142,7 @@ function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     #tmp = [blockdiag(s1.D12, s2.D12); blockdiag(s1.D22, s2.D22)]
     #D[:, end-size(tmp,2)+1:end] .+= tmp
 
-    P = StateSpace(A, B, C, D, ts_same(s1.P.Ts,s2.P.Ts))
+    P = StateSpace(A, B, C, D, Ts)
     PartionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
@@ -150,10 +155,8 @@ end
 """
 function vcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = systems[1].P.Ts
-    if !all(s.P.Ts == Ts for s in systems)
-        error("All systems have same sample time")
-    end
+    Ts = ts_same([sys.P.Ts for sys in systems]...)
+    
     nu1 = systems[1].nu1
     if !all(s.nu1 == nu1 for s in systems)
         error("All systems must have same first input dimension")
@@ -186,10 +189,8 @@ end
 """
 function hcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = systems[1].P.Ts
-    if !all(s.P.Ts == Ts for s in systems)
-        error("All systems have same sample time")
-    end
+    Ts = ts_same([sys.P.Ts for sys in systems]...)
+
     ny1 = systems[1].ny1
     if !all(s.ny1 == ny1 for s in systems)
         error("All systems must have same first ouput dimension")

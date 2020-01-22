@@ -19,26 +19,31 @@
 # Base.convert(::Type{<:TransferFunction{<:SisoRational}}, b::Number) = tf(b)
 # Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, b::Number) = zpk(b)
 #
-# Base.convert(::Type{<:TransferFunction{SampleT,<:SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {SampleT,T1, TR1, T2<:Number} = zpk(T1.(b))
-# Base.convert(::Type{<:TransferFunction{SampleT,<:SisoRational{T1}}}, b::AbstractMatrix{T2}) where {SampleT,T1, T2<:Number} = tf(T1.(b))
-# function convert(::Type{StateSpace{T,MT}}, D::AbstractMatrix{<:Number}) where {T, MT}
-#     (ny, nu) = size(D)
-#     A = MT(fill(zero(T), (0,0)))
-#     B = MT(fill(zero(T), (0,nu)))
-#     C = MT(fill(zero(T), (ny,0)))
-#     D = convert(MT, D)
-#     Ts = 0.0
-#     return StateSpace{T,MT}(A,B,C,D,Ts)
-# end
+Base.convert(::Type{TransferFunction{TimeT,SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {TimeT, T1, TR1, T2<:Number} =
+    zpk(T1.(b), unknown_time(TimeT))
+Base.convert(::Type{TransferFunction{TimeT,SisoRational{T1}}}, b::AbstractMatrix{T2}) where {TimeT, T1, T2<:Number} =
+    tf(T1.(b), unknown_time(TimeT))
 
-# TODO Handle sample times some way here, probably through implicit conversion
-Base.convert(::Type{TransferFunction{<:AbstractSampleTime,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b))
-Base.convert(::Type{TransferFunction{<:AbstractSampleTime,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b))
-Base.convert(::Type{StateSpace{<:AbstractSampleTime,T, MT}}, b::Number) where {T, MT} = convert(StateSpace{T, MT}, fill(b, (1,1)))
+function convert(::Type{StateSpace{TimeT,T,MT}}, D::AbstractMatrix{<:Number}) where {TimeT,T, MT}
+    (ny, nu) = size(D)
+    A = MT(fill(zero(T), (0,0)))
+    B = MT(fill(zero(T), (0,nu)))
+    C = MT(fill(zero(T), (ny,0)))
+    D = convert(MT, D)
+    return StateSpace{TimeT,T,MT}(A,B,C,D,unknown_time(TimeT))
+end
 
-Base.convert(::Type{TransferFunction{Continuous,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b), Continuous())
-Base.convert(::Type{TransferFunction{Continuous,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b), Continuous())
-Base.convert(::Type{StateSpace{Continuous,T, MT}}, b::Number) where {T, MT} = convert(StateSpace{Continuous,T, MT}, fill(b, (1,1)))
+# TODO We still dont have TransferFunction{..}(number/array) constructors
+Base.convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, b::Number) where {TimeT, T} =
+    tf(T(b), unknown_time(TimeT))
+Base.convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, b::Number) where {TimeT, T, TR} =
+    zpk(T(b), unknown_time(TimeT))
+Base.convert(::Type{StateSpace{TimeT,T,MT}}, b::Number) where {TimeT, T, MT} =
+    convert(StateSpace{TimeT,T,MT}, fill(b, (1,1)))
+#
+# Base.convert(::Type{TransferFunction{Continuous,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b), Continuous())
+# Base.convert(::Type{TransferFunction{Continuous,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b), Continuous())
+# Base.convert(::Type{StateSpace{Continuous,T, MT}}, b::Number) where {T, MT} = convert(StateSpace{Continuous,T, MT}, fill(b, (1,1)))
 
 #
 # Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, s::TransferFunction) = zpk(s)
@@ -54,32 +59,32 @@ Base.convert(::Type{StateSpace{Continuous,T, MT}}, b::Number) where {T, MT} = co
 # end
 #
 
-function convert(::Type{TransferFunction{SampleT,S}}, G::TransferFunction) where {SampleT,S}
+function convert(::Type{TransferFunction{TimeT,S}}, G::TransferFunction) where {TimeT,S}
     Gnew_matrix = convert.(S, G.matrix)
-    return TransferFunction{SampleT,eltype(Gnew_matrix)}(Gnew_matrix, SampleT(G.Ts))
+    return TransferFunction{TimeT,eltype(Gnew_matrix)}(Gnew_matrix, TimeT(G.Ts))
 end
 
-function convert(::Type{S}, sys::StateSpace) where {T, MT, SampleT, S <:StateSpace{SampleT,T,MT}}
+function convert(::Type{S}, sys::StateSpace) where {T, MT, TimeT, S <:StateSpace{TimeT,T,MT}}
     if sys isa S
         return sys
     else
-        return StateSpace{SampleT, T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), SampleT(sys.Ts))
+        return StateSpace{TimeT, T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), TimeT(sys.Ts))
     end
 end
 
 # TODO Maybe add convert on matrices
-Base.convert(::Type{HeteroStateSpace{SampleT1,AT,BT,CT,DT}}, s::StateSpace{SampleT2,T,MT}) where {SampleT1,SampleT2,T,MT,AT,BT,CT,DT} =
-    HeteroStateSpace{SampleT1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,SampleT1(s.Ts))
+Base.convert(::Type{HeteroStateSpace{TimeT1,AT,BT,CT,DT}}, s::StateSpace{TimeT2,T,MT}) where {TimeT1,TimeT2,T,MT,AT,BT,CT,DT} =
+    HeteroStateSpace{TimeT1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TimeT1(s.Ts))
 
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
-function Base.convert(::Type{StateSpace}, G::TransferFunction{SampleT,<:SisoTf{T0}}) where {SampleT,T0<:Number}
+function Base.convert(::Type{StateSpace}, G::TransferFunction{TimeT,<:SisoTf{T0}}) where {TimeT,T0<:Number}
     T = Base.promote_op(/,T0,T0)
-    convert(StateSpace{SampleT,T,Matrix{T}}, G)
+    convert(StateSpace{TimeT,T,Matrix{T}}, G)
 end
 
 
-function Base.convert(::Type{StateSpace{SampleT,T,MT}}, G::TransferFunction) where {SampleT,T<:Number, MT<:AbstractArray{T}}
+function Base.convert(::Type{StateSpace{TimeT,T,MT}}, G::TransferFunction) where {TimeT,T<:Number, MT<:AbstractArray{T}}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -113,7 +118,7 @@ function Base.convert(::Type{StateSpace{SampleT,T,MT}}, G::TransferFunction) whe
         end
     end
     # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
-    return StateSpace{SampleT,T,MT}(A, B, C, D, SampleT(G.Ts))
+    return StateSpace{TimeT,T,MT}(A, B, C, D, TimeT(G.Ts))
 end
 
 siso_tf_to_ss(T::Type, f::SisoTf) = siso_tf_to_ss(T, convert(SisoRational, f))
@@ -235,9 +240,9 @@ end
 balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
-convert(::Type{TransferFunction}, sys::StateSpace{SampleT}) where SampleT = convert(TransferFunction{SampleT,SisoRational}, sys)
+convert(::Type{TransferFunction}, sys::StateSpace{TimeT}) where TimeT = convert(TransferFunction{TimeT,SisoRational}, sys)
 
-function convert(::Type{TransferFunction{SampleT,SisoRational{T}}}, sys::StateSpace) where {SampleT,T<:Number}
+function convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, sys::StateSpace) where {TimeT,T<:Number}
     matrix = Matrix{SisoRational{T}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
@@ -251,15 +256,15 @@ function convert(::Type{TransferFunction{SampleT,SisoRational{T}}}, sys::StateSp
         num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
-    TransferFunction{SampleT,SisoRational{T}}(matrix, SampleT(sys.Ts))
+    TransferFunction{TimeT,SisoRational{T}}(matrix, TimeT(sys.Ts))
 end
-function convert(::Type{TransferFunction{SampleT1,SisoRational}}, sys::StateSpace{SampleT2,T0}) where {SampleT1,SampleT2,T0<:Number}
+function convert(::Type{TransferFunction{TimeT1,SisoRational}}, sys::StateSpace{TimeT2,T0}) where {TimeT1,TimeT2,T0<:Number}
     T = typeof(one(T0)/one(T0))
-    convert(TransferFunction{SampleT1,SisoRational{T}}, sys)
+    convert(TransferFunction{TimeT1,SisoRational{T}}, sys)
 end
 
 
-function convert(::Type{TransferFunction{SampleT,SisoZpk{T,TR}}}, sys::StateSpace) where {SampleT,T<:Number, TR <: Number}
+function convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, sys::StateSpace) where {TimeT,T<:Number, TR <: Number}
     matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
@@ -268,11 +273,11 @@ function convert(::Type{TransferFunction{SampleT,SisoZpk{T,TR}}}, sys::StateSpac
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
-    TransferFunction{SampleT,SisoZpk{T,TR}}(matrix, SampleT(sys.Ts))
+    TransferFunction{TimeT,SisoZpk{T,TR}}(matrix, TimeT(sys.Ts))
 end
-function convert(::Type{TransferFunction{SampleT1,SisoZpk}}, sys::StateSpace{SampleT2,T0}) where {SampleT1,SampleT2,T0<:Number}
+function convert(::Type{TransferFunction{TimeT1,SisoZpk}}, sys::StateSpace{TimeT2,T0}) where {TimeT1,TimeT2,T0<:Number}
     T = typeof(one(T0)/one(T0))
-    convert(TransferFunction{SampleT1,SisoZpk{T,complex(T)}}, sys)
+    convert(TransferFunction{TimeT1,SisoZpk{T,complex(T)}}, sys)
 end
 
 """

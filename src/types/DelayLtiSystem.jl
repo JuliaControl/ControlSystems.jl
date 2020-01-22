@@ -50,7 +50,7 @@ DelayLtiSystem(sys::StateSpace{Continuous,T,MT}, Tau::Vector{S}) where {T, MT,S}
 DelayLtiSystem(sys::StateSpace{Continuous,T,MT}) where {T, MT} = DelayLtiSystem{T,T}(sys, T[])
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
-DelayLtiSystem(sys::TransferFunction{S}) where {T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
+DelayLtiSystem(sys::TransferFunction{TimeT,S}) where {TimeT,T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
 
 # TODO: Think through these promotions and conversions
 Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}

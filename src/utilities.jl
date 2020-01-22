@@ -4,8 +4,8 @@ numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
-numeric_type(::Type{TransferFunction{SampleT,S}}) where {SampleT,S} = numeric_type(S)
-numeric_type(::Type{<:StateSpace{SampleT,T}}) where {SampleT,T} = T
+numeric_type(::Type{TransferFunction{TimeT,S}}) where {TimeT,S} = numeric_type(S)
+numeric_type(::Type{<:StateSpace{TimeT,T}}) where {TimeT,T} = T
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 

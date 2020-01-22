@@ -153,7 +153,7 @@ feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
 #Efficient implementations
-function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where T<:SisoRational
+function feedback(L::TransferFunction{<:TimeType,T}) where T<:SisoRational
     if size(L) != (1,1)
         error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
@@ -162,7 +162,7 @@ function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where T<:SisoRati
     tf(P, P+Q, L.Ts)
 end
 
-function feedback(L::TransferFunction{SampleT,T}) where {SampleT,T<:SisoZpk}
+function feedback(L::TransferFunction{TimeT,T}) where {TimeT<:TimeType,T<:SisoZpk}
     if size(L) != (1,1)
         error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
@@ -172,7 +172,7 @@ function feedback(L::TransferFunction{SampleT,T}) where {SampleT,T<:SisoZpk}
     kden = denpol[end] # Get coeff of s^n
     # Create siso system
     sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
-    return TransferFunction{SampleT,T}(fill(sisozpk,1,1), L.Ts)
+    return TransferFunction{TimeT,T}(fill(sisozpk,1,1), L.Ts)
 end
 
 """
@@ -198,7 +198,8 @@ function feedback(sys1::StateSpace,sys2::StateSpace)
     A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A,B,C,sys1.D,ts_same(sys1.Ts,sys2.Ts))
+    Ts = ts_same(sys1.Ts,sys2.Ts)
+    ss(A,B,C,sys1.D,Ts)
 end
 
 

@@ -8,7 +8,7 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 # converting to zpk before works better in the cases I have tested.
 pole(sys::TransferFunction) = pole(zpk(sys))
 
-function pole(sys::TransferFunction{<:AbstractSampleTime,SisoZpk{T,TR}}) where {T, TR}
+function pole(sys::TransferFunction{<:TimeType,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,

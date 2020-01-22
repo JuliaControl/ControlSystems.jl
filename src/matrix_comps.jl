@@ -397,7 +397,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), angle(pole_vec[pidx])/T(sys.Ts))
+        return (T(Inf), angle(pole_vec[pidx])/sampletime(sys))
     end
 
     if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
@@ -450,7 +450,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(θ_vec)
 
         if isempty(θ_vec)
-            return (1+T(tol))*lb, θ_peak/T(sys.Ts)
+            return (1+T(tol))*lb, θ_peak/sampletime(sys)
         end
 
         # Improve the lower bound

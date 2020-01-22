@@ -121,8 +121,7 @@ C_111_tf = tf(C_111)
 @test minreal(zpk([-1.0, -2.0], Float64[], 2.5)) == zpk([-1.0, -2.0], Float64[], 2.5)
 @test minreal(zpk(Float64[], [-1.0, -2.0], 2.5)) == zpk(Float64[], [-1.0, -2.0], 2.5)
 
-# Type stability Continuous and discrete time
-# QUESTION: why not use typeof instead of eltype(fill())
+# Test type inference
 @test eltype(fill(zpk("s"),2)) <: TransferFunction
 @test eltype(fill(zpk([1],[1,1],1),2)) <: TransferFunction
 @test eltype(fill(zpk(Int64[],[1,1],1.0),2)) <: TransferFunction
@@ -155,6 +154,6 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 
 
-@test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{ControlSystems.SisoZpk{Float64,Complex{Float64}}}
-@test typeof(zpk([-0.5], [], 1)) == TransferFunction{ControlSystems.SisoZpk{Float64,Float64}}
+@test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{Discrete{Float64},ControlSystems.SisoZpk{Float64,Complex{Float64}}}
+@test typeof(zpk([-0.5], [], 1)) == TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,Float64}}
 end

@@ -6,6 +6,9 @@ export  LTISystem,
         HeteroStateSpace,
         TransferFunction,
         DelayLtiSystem,
+        Continuous,
+        Discrete,
+        Static,
         ss,
         tf,
         zpk,
@@ -87,7 +90,7 @@ import Polynomials
 import Polynomials: Poly, coeffs, polyval
 using OrdinaryDiffEq, DelayDiffEq
 export Plots
-import Base: +, -, *, /, (==), (!=), (≈), isapprox, convert, promote_op
+import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
@@ -103,10 +106,10 @@ abstract type AbstractSystem end
 # issiso(::Type{SISO}) = true
 # issiso(::Type{MIMO}) = false
 
-include("types/AbstractSampleTime.jl")
+include("types/TimeType.jl")
 ## Added interface:
 #   sampletime(Lti) -> Number
-#   sampletype(Lti) -> AbstractSampleTime
+#   sampletype(Lti) -> TimeType
 
 include("types/Lti.jl")
 

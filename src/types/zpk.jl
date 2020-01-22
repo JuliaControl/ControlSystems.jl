@@ -22,7 +22,7 @@ Other uses:
 `zpk("s")`: Create the transferfunction `s`.
 
 """
-function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::SampleT) where {SampleT<:AbstractSampleTime, T0<:Number, TZ<:Number, TP<:Number}
+function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::TimeT) where {TimeT<:TimeType, T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
     if !(size(z) == size(p) == size(k))
         error("Dimensions for z, p, and k must match")
@@ -37,13 +37,13 @@ function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}
             matrix[o, i] = SisoZpk{T,TR}(z[o, i], p[o, i], k[o, i])
         end
     end
-    return TransferFunction{SampleT,SisoZpk{T,TR}}(matrix, Ts)
+    return TransferFunction{TimeT,SisoZpk{T,TR}}(matrix, Ts)
 end
-function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::SampleT) where {SampleT<:AbstractSampleTime, T<:Number, TZ<:Number, TP<:Number}
+function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::TimeT) where {TimeT<:TimeType, T<:Number, TZ<:Number, TP<:Number}
     return zpk(fill(z, 1, 1), fill(p, 1, 1), fill(k, 1, 1), Ts)
 end
 
-function zpk(z::AbstractVector, p::AbstractVector, k::T, Ts::SampleT) where {SampleT<:AbstractSampleTime, T<:Number} # To be able to send in empty vectors [] of type Any
+function zpk(z::AbstractVector, p::AbstractVector, k::T, Ts::TimeT) where {TimeT<:TimeType, T<:Number} # To be able to send in empty vectors [] of type Any
     if eltype(z) == Any && eltype(p) == Any
         @assert z == []
         @assert p == []
@@ -61,21 +61,21 @@ function zpk(z::AbstractVector, p::AbstractVector, k::T, Ts::SampleT) where {Sam
     end
 end
 
-function zpk(gain::Matrix{T}, Ts::SampleT; kwargs...) where {SampleT<:AbstractSampleTime, T <: Number}
+function zpk(gain::Matrix{T}, Ts::TimeT; kwargs...) where {TimeT<:TimeType, T <: Number}
     TR = promote_type(ComplexF64,T)
     ny, nu = size(gain)
     matrix = [SisoZpk{T, TR}(TR[],TR[], gain[o, i]) for o=1:ny, i=1:nu]
-    return TransferFunction{SampleT,SisoZpk{T,TR}}(matrix, Ts)
+    return TransferFunction{TimeT,SisoZpk{T,TR}}(matrix, Ts)
 end
 
-zpk(k::Real, Ts::AbstractSampleTime) = zpk(eltype(k)[], eltype(k)[], k, Ts)
+zpk(k::Real, Ts::TimeType) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
 
 zpk(sys::StateSpace) = zpk(tf(sys)) # FIXME: probably better with direct conversion
 
-function zpk(G::TransferFunction{SampleT,S}) where {SampleT<:AbstractSampleTime,T0, S<:SisoTf{T0}}
+function zpk(G::TransferFunction{TimeT,S}) where {TimeT<:TimeType,T0, S<:SisoTf{T0}}
     T = typeof(one(T0)/one(T0))
-    convert(TransferFunction{SampleT,SisoZpk{T, complex(T)}}, G)
+    convert(TransferFunction{TimeT,SisoZpk{T, complex(T)}}, G)
 end
 
 zpk(var::AbstractString) = zpk(tf(var))

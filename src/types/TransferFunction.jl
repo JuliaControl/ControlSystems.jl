@@ -1,16 +1,16 @@
-struct TransferFunction{SampleT<:AbstractSampleTime, S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{TimeT<:TimeType, S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
-    Ts::SampleT
+    Ts::TimeT
     nu::Int
     ny::Int
-    function TransferFunction{SampleT,S}(matrix::Matrix{S}, Ts::SampleT) where {S,SampleT}
+    function TransferFunction{TimeT,S}(matrix::Matrix{S}, Ts::TimeT) where {S,TimeT}
         # Validate size of input and output names
         ny, nu = size(matrix)
-        return new{SampleT,S}(matrix, Ts, nu, ny)
+        return new{TimeT,S}(matrix, Ts, nu, ny)
     end
 end
-function TransferFunction(matrix::Matrix{S}, Ts::SampleT) where {SampleT<:AbstractSampleTime, T<:Number, S<:SisoTf{T}}
-    TransferFunction{SampleT, S}(matrix, Ts)
+function TransferFunction(matrix::Matrix{S}, Ts::TimeT) where {TimeT<:TimeType, T<:Number, S<:SisoTf{T}}
+    TransferFunction{TimeT, S}(matrix, Ts)
 end
 
 # Constructor for Discrete time system
@@ -34,7 +34,7 @@ Base.ndims(::TransferFunction) = 2
 Base.size(G::TransferFunction) = size(G.matrix)
 Base.eltype(::Type{S}) where {S<:TransferFunction} = S
 
-function Base.getindex(G::TransferFunction{S}, inds...) where {S<:SisoTf}
+function Base.getindex(G::TransferFunction{TimeT,S}, inds...) where {TimeT,S<:SisoTf}
     if size(inds, 1) != 2
         error("Must specify 2 indices to index TransferFunction model")
     end
@@ -130,6 +130,7 @@ end
 
 function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
+    Ts = ts_same(G1.Ts,G2.Ts)
     if G1.nu != G2.ny
         error("G1*G2: G1 must have same number of inputs as G2 has outputs")
     end

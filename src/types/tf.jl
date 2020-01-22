@@ -19,7 +19,7 @@ Other uses:
 
 See also: `zpk`, `ss`
 """
-function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}, Ts::SampleT) where {SampleT<:AbstractSampleTime, T1<:Number, T2<:Number}
+function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}, Ts::TimeT) where {TimeT<:TimeType, T1<:Number, T2<:Number}
     # Validate input and output dimensions match
     ny, nu = size(num, 1), size(num, 2)
     if (ny, nu) != (size(den, 1), size(den, 2))
@@ -33,16 +33,16 @@ function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<
             matrix[o, i] = SisoRational{T}(Vector{T}(num[o, i]), Vector{T}(den[o, i]))
         end
     end
-    return TransferFunction{SampleT,SisoRational{T}}(matrix, Ts)
+    return TransferFunction{TimeT,SisoRational{T}}(matrix, Ts)
 end
 tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}, Ts::Number) where {T1,T2} =
     tf(num, den, Discrete(Ts))
 tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}) where {T1,T2} =
     tf(num, den, Continuous())
 
-function tf(num::AbstractVector{T1}, den::AbstractVector{T2}, Ts::SampleT) where {SampleT<:AbstractSampleTime,T1<:Number, T2<:Number}
+function tf(num::AbstractVector{T1}, den::AbstractVector{T2}, Ts::TimeT) where {TimeT<:TimeType,T1<:Number, T2<:Number}
     T = promote_type(T1, T2)
-    return TransferFunction{SampleT,SisoRational{T}}(fill(SisoRational{T}(num, den), 1, 1), Ts)
+    return TransferFunction{TimeT,SisoRational{T}}(fill(SisoRational{T}(num, den), 1, 1), Ts)
 end
 tf(num::AbstractVector{T1}, den::AbstractVector{T2}, Ts::Number) where {T1<:Number, T2<:Number} =
     tf(num, den, Discrete(Ts))
@@ -52,14 +52,14 @@ tf(num::AbstractVector{T1}, den::AbstractVector{T2}) where {T1<:Number, T2<:Numb
 tf(num::Number, den::Vector, args...) = tf([num], den, args...)
 
 # Cases for just static gain
-function tf(D::AbstractArray{T}, Ts::SampleT) where {SampleT<:AbstractSampleTime, T<:Number}
+function tf(D::AbstractArray{T}, Ts::TimeT) where {TimeT<:TimeType, T<:Number}
     ny, nu = size(D, 1), size(D, 2)
 
     matrix = Matrix{SisoRational{T}}(undef, ny, nu)
     for i in eachindex(D)
         matrix[i] = SisoRational{T}([D[i]], [one(T)])
     end
-    return TransferFunction{SampleT,SisoRational{T}}(matrix, Ts)
+    return TransferFunction{TimeT,SisoRational{T}}(matrix, Ts)
 end
 tf(D::AbstractArray{T}, Ts::Number) where T = tf(D, Discrete(Ts))
 tf(D::AbstractArray{T}) where T = tf(D, Continuous())
@@ -68,8 +68,8 @@ tf(n::Number, args...; kwargs...) = tf([n], args...; kwargs...)
 
 tf(sys::StateSpace) = convert(TransferFunction, sys) # NOTE: Would perhaps like to write TransferFunction{SisoRational}, but couldn't get this to work...
 
-function tf(G::TransferFunction{SampleT,<:SisoTf{T}}) where {SampleT<:AbstractSampleTime,T<:Number}
-    convert(TransferFunction{SampleT,SisoRational{T}}, G)
+function tf(G::TransferFunction{TimeT,<:SisoTf{T}}) where {TimeT<:TimeType,T<:Number}
+    convert(TransferFunction{TimeT,SisoRational{T}}, G)
 end
 
 # Function for creation of 's' or 'z' var
@@ -84,7 +84,7 @@ function tf(var::AbstractString, Ts::Real)
 end
 
 ## Constructors for polynomial inputs
-function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::SampleT) where {SampleT<:AbstractSampleTime,T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::TimeT) where {TimeT<:TimeType,T<:Number, PT <: Polynomials.Poly{T}}
     ny, nu = size(num, 1), size(num, 2)
     if (ny, nu) != (size(den, 1), size(den, 2))
         error("num and den dimensions must match")
@@ -96,14 +96,14 @@ function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::SampleT) where 
             matrix[o, i] = SisoRational{T}(num[o, i], den[o, i])
         end
     end
-    return TransferFunction{SampleT,SisoRational{T}}(matrix, Ts)
+    return TransferFunction{TimeT,SisoRational{T}}(matrix, Ts)
 end
 tf(num::AbstractArray{PT}, den::AbstractArray{PT}, Ts::Number) where {T<:Number, PT <: Polynomials.Poly{T}} =
     tf(num, den, Discrete(Ts))
 tf(num::AbstractArray{PT}, den::AbstractArray{PT}) where {T<:Number, PT <: Polynomials.Poly{T}} =
     tf(num, den, Continuous())
 
-function tf(num::PT, den::PT, Ts::SampleT) where {SampleT<:AbstractSampleTime, T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::PT, den::PT, Ts::TimeT) where {TimeT<:TimeType, T<:Number, PT <: Polynomials.Poly{T}}
     tf(fill(num,1,1), fill(den,1,1), Ts)
 end
 tf(num::PT, den::PT, Ts::Number) where {T<:Number, PT <: Polynomials.Poly{T}} =

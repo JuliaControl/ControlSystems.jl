@@ -9,9 +9,9 @@ include("framework.jl")
 eye_(n) = Matrix{Int64}(I, n, n)
 
 my_tests = [
-            "test_delayed_systems",
             "test_statespace",
             "test_transferfunction",
+            "test_delayed_systems",
             "test_zpk",
             "test_promotion",
             "test_connections",
