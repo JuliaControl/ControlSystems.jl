@@ -31,14 +31,18 @@
 #     return StateSpace{T,MT}(A,B,C,D,Ts)
 # end
 
-# TODO Handle sample times some way here, probably through implicit conversion 
-# Base.convert(::Type{TF<:TransferFunction{<:SampleT,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b))
-# Base.convert(::Type{TF<:TransferFunction{<:SampleT,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b))
-# Base.convert(::Type{StateSpace{<:SampleT,T, MT}}, b::Number) where {T, MT} = convert(StateSpace{T, MT}, fill(b, (1,1)))
+# TODO Handle sample times some way here, probably through implicit conversion
+Base.convert(::Type{TransferFunction{<:AbstractSampleTime,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b))
+Base.convert(::Type{TransferFunction{<:AbstractSampleTime,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b))
+Base.convert(::Type{StateSpace{<:AbstractSampleTime,T, MT}}, b::Number) where {T, MT} = convert(StateSpace{T, MT}, fill(b, (1,1)))
 
+Base.convert(::Type{TransferFunction{Continuous,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b), Continuous())
+Base.convert(::Type{TransferFunction{Continuous,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b), Continuous())
+Base.convert(::Type{StateSpace{Continuous,T, MT}}, b::Number) where {T, MT} = convert(StateSpace{Continuous,T, MT}, fill(b, (1,1)))
 
-#Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, s::TransferFunction) = zpk(s)
-#Base.convert(::Type{<:TransferFunction{<:SisoRational}}, s::TransferFunction) = tf(s)
+#
+# Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, s::TransferFunction) = zpk(s)
+# Base.convert(::Type{<:TransferFunction{<:SisoRational}}, s::TransferFunction) = tf(s)
 
 #
 # function Base.convert{T<:Real,S<:TransferFunction}(::Type{S}, b::VecOrMat{T})

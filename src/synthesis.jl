@@ -162,7 +162,7 @@ function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where T<:SisoRati
     tf(P, P+Q, L.Ts)
 end
 
-function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where {T<:SisoZpk}
+function feedback(L::TransferFunction{SampleT,T}) where {SampleT,T<:SisoZpk}
     if size(L) != (1,1)
         error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
     end
@@ -172,7 +172,7 @@ function feedback(L::TransferFunction{<:AbstractSampleTime,T}) where {T<:SisoZpk
     kden = denpol[end] # Get coeff of s^n
     # Create siso system
     sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
-    return TransferFunction{T}(fill(sisozpk,1,1), L.Ts)
+    return TransferFunction{SampleT,T}(fill(sisozpk,1,1), L.Ts)
 end
 
 """

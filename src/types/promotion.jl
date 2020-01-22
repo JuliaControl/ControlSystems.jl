@@ -52,7 +52,8 @@ function Base.promote_rule(::Type{StateSpace{SampleT1,T1,MT}}, ::Type{DelayLtiSy
     DelayLtiSystem{promote_type(T1,T2)}
 end
 
-Base.promote_rule(::Type{TransferFunction{SampleT1,S1}}, ::Type{TransferFunction{SampleT2,S2}}) where {SampleT1, SampleT2, S1, S2} = TransferFunction{promote_type(S1, S2)}
+Base.promote_rule(::Type{TransferFunction{SampleT1,S1}}, ::Type{TransferFunction{SampleT2,S2}}) where {SampleT1, SampleT2, S1, S2} =
+    TransferFunction{promote_type(SampleT1,SampleT2),promote_type(S1, S2)}
 #Base.promote_rule(::Type{SisoTf}, ::Type{TransferFunction}) = TransferFunction
 #Base.promote_rule(::Type{SisoZpk}, ::Type{TransferFunction}) = TransferFunction
 #Base.promote_rule(::Type{SisoRational}, ::Type{TransferFunction}) = TransferFunction
@@ -77,9 +78,11 @@ function Base.promote_rule(::Type{StateSpace{SampleT, T1, MT}}, ::Type{T2}) wher
     StateSpace{SampleT, eltype(NewMT), NewMT}
 end
 
-Base.promote_rule(::Type{TransferFunction{SampleT, SisoZpk{T1,TR1}}}, ::Type{M2}) where {SampleT, T1, TR1, T2, M2<:AbstractMatrix{T2}} = TransferFunction{SampleT, SisoZpk{T1, promote_type(TR1, T2)}}
+Base.promote_rule(::Type{TransferFunction{SampleT, SisoZpk{T1,TR1}}}, ::Type{M2}) where {SampleT, T1, TR1, T2, M2<:AbstractMatrix{T2}} =
+    TransferFunction{SampleT, SisoZpk{T1, promote_type(TR1, T2)}}
 
-Base.promote_rule(::Type{TransferFunction{SampleT, SisoRational{T1}}}, ::Type{M2}) where {SampleT, T1, T2, M2<:AbstractMatrix{T2}} = TransferFunction{SampleT, SisoRational{promote_type(T1, T2)}}
+Base.promote_rule(::Type{TransferFunction{SampleT, SisoRational{T1}}}, ::Type{M2}) where {SampleT, T1, T2, M2<:AbstractMatrix{T2}} =
+    TransferFunction{SampleT, SisoRational{promote_type(T1, T2)}}
 
 function Base.promote_rule(::Type{StateSpace{SampleT, T1, MT1}}, ::Type{MT2}) where {SampleT, T1, MT1, MT2<:AbstractMatrix}
     MT = promote_type(MT1, MT2)

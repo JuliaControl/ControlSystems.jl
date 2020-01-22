@@ -81,17 +81,16 @@ function StateSpace{SampleT,T,MT}(sys::StateSpace) where {SampleT, T, MT <: Abst
     StateSpace{SampleT,T,MT}(sys.A,sys.B,sys.C,sys.D,sys.Ts)
 end
 
-# General Discrete constructor
-function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number)
+function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::AbstractSampleTime)
     A, B, C, D, T = to_similar_matrices(A,B,C,D)
-    Ts = Discrete(Ts)
     return StateSpace{typeof(Ts),T,Matrix{T}}(A, B, C, D, Ts)
 end
+# General Discrete constructor
+StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
+    StateSpace(A, B, C, D, Discrete(Ts))
 # General continuous constructor
-function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray)
-    A, B, C, D, T = to_similar_matrices(A,B,C,D)
-    return StateSpace{Continuous,T,Matrix{T}}(A, B, C, D, Continuous())
-end
+StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray) =
+    StateSpace(A, B, C, D, Continuous())
 
 # Function for creation of static gain
 function StateSpace(D::AbstractArray{T}, Ts::AbstractSampleTime) where {T<:Number}
@@ -99,7 +98,7 @@ function StateSpace(D::AbstractArray{T}, Ts::AbstractSampleTime) where {T<:Numbe
     A = fill(zero(T), 0, 0)
     B = fill(zero(T), 0, nu)
     C = fill(zero(T), ny, 0)
-
+    D = reshape(D, (ny,nu))
     return StateSpace(A, B, C, D, Ts)
 end
 StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))

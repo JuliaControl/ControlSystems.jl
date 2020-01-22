@@ -65,7 +65,7 @@ function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
     D = [(s1.D11 + s2.D11) s1.D12 s2.D12;
     [s1.D21; s2.D21] blockdiag(s1.D22, s2.D22)]
 
-    P = StateSpace(A, B, C, D, ts_same(s1.S.Ts,s2.S.Ts)) # How to handle discrete?
+    P = StateSpace(A, B, C, D, ts_same(s1.P.Ts,s2.P.Ts)) # How to handle discrete?
     PartionedStateSpace(P, s1.nu1 + s2.nu1, s1.ny1 + s2.ny1)
 end
 
@@ -91,7 +91,7 @@ function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
     s1.D21*s2.D11           s1.D22        s1.D21*s2.D12;
     s2.D21          zeros(size(s2.D22,1),size(s1.D22,2))          s2.D22        ]
 
-    P = StateSpace(A, B, C, D, 0)
+    P = StateSpace(A, B, C, D, ts_same(s1.P.Ts,s2.P.Ts))
     PartionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
@@ -137,7 +137,7 @@ function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     #tmp = [blockdiag(s1.D12, s2.D12); blockdiag(s1.D22, s2.D22)]
     #D[:, end-size(tmp,2)+1:end] .+= tmp
 
-    P = StateSpace(A, B, C, D, 0)
+    P = StateSpace(A, B, C, D, ts_same(s1.P.Ts,s2.P.Ts))
     PartionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
