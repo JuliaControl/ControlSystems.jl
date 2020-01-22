@@ -86,11 +86,11 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
+    Ts = ts_same([s.Ts for s in systems]...)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
-    Ts = ts_same([s.Ts for s in systems]...)
 
     return ST(A, B, C, D, Ts)
 end
@@ -101,8 +101,9 @@ function Base.hcat(systems::TransferFunction...)
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
-    mat = hcat([s.matrix for s in systems]...)
+
     Ts = ts_same([s.Ts for s in systems]...)
+    mat = hcat([s.matrix for s in systems]...)
 
     return TransferFunction(mat, Ts)
 end
@@ -122,7 +123,8 @@ function Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem}
     hcat(convert.(T, X)...)
 end
 # Ambiguity
-Base.typed_hcat(::Type{T}, X::Number...) where {T<:LTISystem, N} = hcat(convert.(T, X)...)
+Base.typed_hcat(::Type{S}, X::Number...) where {S<:LTISystem} = hcat(convert.(S, X)...)
+Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:Number,2}}...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 
 # Catch special cases where inv(sys) might not be possible after promotion, like improper tf
 function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)

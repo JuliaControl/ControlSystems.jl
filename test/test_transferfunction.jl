@@ -139,7 +139,8 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException tf("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous
-@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
+
+@test [z 0] == [tf("z", 0.005) tf(0, 0.005)]
 
 # Test polynomial inputs
 Poly = ControlSystems.Polynomials.Poly

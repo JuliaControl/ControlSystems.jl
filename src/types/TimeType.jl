@@ -49,16 +49,17 @@ ts_same(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch
 ts_same(x::TimeType, y::TimeType, z...) = ts_same(ts_same(x, y), z...)
 
 function ts_same(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
-    if x != y && x != UNDEF_TIME && y != UNDEF_TIME
+    if x != y && x.Ts != UNDEF_TIME && y.Ts != UNDEF_TIME
         throw(ErrorException("Sampling time mismatch"))
     end
 
-    if x == UNDEF_TIME
+    if x.Ts == UNDEF_TIME
         return Discrete{promote_type(T1,T2)}(y)
     else
         return Discrete{promote_type(T1,T2)}(x)
     end
 end
+
 ts_same(x::Continuous, ys::Continuous...) = Continuous()
 
 ts_same(x::Static, ys::Static...) = Static()

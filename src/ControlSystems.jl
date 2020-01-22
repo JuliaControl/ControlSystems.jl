@@ -81,7 +81,8 @@ export  LTISystem,
         numvec,
         denvec,
         numpoly,
-        denpoly
+        denpoly,
+        sampletime
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools

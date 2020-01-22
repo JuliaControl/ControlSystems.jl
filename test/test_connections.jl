@@ -151,8 +151,29 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 @test (Czpk_211+1) ≈ (Ctf_211+1)
 
 
+# Concatenation of discrete system with constant
+@test [D_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0], 0.005)
+@test [1.0 D_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0], 0.005)
+# Type and sample time
+@test [D_111 1.0] isa StateSpace{Discrete{Float64},Float64,Array{Float64,2}}
+@test sampletime([D_111 1.0]) == 0.005
+# Continuous version
+@test [C_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0])
+@test [1.0 C_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0])
+@test [C_111 1.0] isa StateSpace{Continuous,Float64,Array{Float64,2}}
+# Concatenation of discrete system with matrix
+@test [D_222 fill(1.5, 2, 2)] == [D_222 ss(fill(1.5, 2, 2),0.005)]
+@test [C_222 fill(1.5, 2, 2)] == [C_222 ss(fill(1.5, 2, 2))]
 
-@test_broken [D_111 1.0] # Concatenation of discrete system with constant
-@test_broken [D_222 fill(1.5, 2, 2)] # Concatenation of discrete system with matrix
+# hvcat numbers (second row should be properly handled)
+@test [C_111 1.5; 2 3] ==
+    [C_111 ss(1.5); ss(2.0) ss(3.0)]
+@test [D_111 1.5; 2 3] ==
+    [D_111 ss(1.5,0.005); ss(2.0,0.005) ss(3.0,0.005)]
+# hvcat matrices
+@test [C_222 fill(1.5, 2, 2); fill(2, 2, 2) fill(3, 2, 2)] ==
+    [C_222 ss(fill(1.5, 2, 2)); ss(fill(2, 2, 2)) ss(fill(3, 2, 2))]
+@test [D_222 fill(1.5, 2, 2); fill(2, 2, 2) fill(3, 2, 2)] ==
+    [D_222 ss(fill(1.5, 2, 2),0.005); ss(fill(2, 2, 2),0.005) ss(fill(3, 2, 2),0.005)]
 
 end

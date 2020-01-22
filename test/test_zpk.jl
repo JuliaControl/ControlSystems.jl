@@ -29,8 +29,8 @@ z = zpk("z", 0.005)
 @test C_022 == zpk(vecarray(Int64, 2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(Int64, 2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4])
 @test D_022 == zpk(vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), vecarray(2, 2, Int64[], Int64[], Int64[], Int64[]), [4 0; 0 4], 0.005)
 @test C_022 == [zpk(4) 0;0 4]
-#TODO We might want to fix this
-@test_broken D_022 == [zpk(4, 0.005) 0;0 4]
+
+@test D_022 == [zpk(4, 0.005) 0; 0 4]
 
 # Test constructors with empty matrices of type Any
 @test zpk([-1.0], [], 1.0) == zpk([-1.0], Float64[], 1.0)
@@ -150,8 +150,8 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException zpk("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException zpk("z", 0)                # z creation can't be continuous
 @test_throws ErrorException zpk("z")                   # z creation can't be continuous
-# Remove this when inferec is implemented
-@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
+
+@test [z 0] == [zpk([0], Int64[], 1, 0.005) zpk([], [], 0, 0.005)]
 
 
 @test typeof(zpk(tf([1], [2], 0.1))) == TransferFunction{Discrete{Float64},ControlSystems.SisoZpk{Float64,Complex{Float64}}}
