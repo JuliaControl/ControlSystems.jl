@@ -1,12 +1,12 @@
 
 abstract type TimeType end
 
-const UNDEF_TIME = -1
+const UNDEF_SAMPLETIME = -1
 
 struct Discrete{T} <: TimeType
     Ts::T
     function Discrete{T}(Ts::T) where T
-        if Ts <= 0 && Ts != UNDEF_TIME
+        if Ts <= 0 && Ts != UNDEF_SAMPLETIME
             throw(ErrorException("Creating a continuous time system by setting sample time to 0 is no longer supported."))
         end
         new{T}(Ts)
@@ -32,7 +32,7 @@ sampletime(x::Discrete) = x.Ts
 sampletime(x::Continuous) = error("Continuous system has no sample time")
 sampletime(x::Static) = error("Static system has no sample time")
 
-unknown_time(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_TIME)
+unknown_time(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLETIME)
 unknown_time(::Type{Continuous}) where T = Continuous()
 unknown_time(::Type{Static}) where T = Static()
 
@@ -45,15 +45,17 @@ Base.promote_rule(::Type{Discrete{T1}}, ::Type{Discrete{T2}}) where {T1,T2}= Dis
 Base.convert(::Type{Discrete{T1}}, Ts::Discrete{T2}) where {T1,T2} = Discrete{T1}(Ts.Ts)
 
 # Promoting two or more systems systems should promote sample times
+ts_same(x::TimeType) = x
 ts_same(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch"))
 ts_same(x::TimeType, y::TimeType, z...) = ts_same(ts_same(x, y), z...)
+ts_same(a::Base.Generator) = reduce(ts_same, a)
 
 function ts_same(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
-    if x != y && x.Ts != UNDEF_TIME && y.Ts != UNDEF_TIME
+    if x != y && x.Ts != UNDEF_SAMPLETIME && y.Ts != UNDEF_SAMPLETIME
         throw(ErrorException("Sampling time mismatch"))
     end
 
-    if x.Ts == UNDEF_TIME
+    if x.Ts == UNDEF_SAMPLETIME
         return Discrete{promote_type(T1,T2)}(y)
     else
         return Discrete{promote_type(T1,T2)}(x)
@@ -61,7 +63,6 @@ function ts_same(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
 end
 
 ts_same(x::Continuous, ys::Continuous...) = Continuous()
-
 ts_same(x::Static, ys::Static...) = Static()
 
 # Check equality and similarity

@@ -16,6 +16,19 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
+to_abstract_matrix(A::AbstractMatrix) = A
+function to_abstract_matrix(A::AbstractArray)
+    try
+        return convert(AbstractMatrix,A)
+    catch
+        @warn "Could not convert $(typeof(A)) to `AbstractMatrix`. A HeteroStateSpace must consist of AbstractMatrix."
+        rethrow()
+    end
+    return A
+end
+to_abstract_matrix(A::Vector) = reshape(A, length(A), 1)
+to_abstract_matrix(A::Number) = fill(A, 1, 1)
+
 # Do no sorting of eigenvalues
 @static if VERSION > v"1.2.0-DEV.0"
     eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
@@ -24,6 +37,9 @@ else
     eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
     roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
 end
+
+issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
+issemiposdef(A::UniformScaling) = A.λ >= 0
 
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`

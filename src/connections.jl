@@ -22,17 +22,17 @@ Append systems in block diagonal form
 """
 function append(systems::(ST where ST<:AbstractStateSpace)...)
     ST = promote_type(typeof.(systems)...)
+    Ts = ts_same(s.Ts for s in systems)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = blockdiag([s.D for s in systems]...)
-    Ts = ts_same([s.Ts for s in systems]...)
     return ST(A, B, C, D, Ts)
 end
 
 function append(systems::TransferFunction...)
+    Ts = ts_same(s.Ts for s in systems)
     mat = blockdiag([s.matrix for s in systems]...)
-    Ts = ts_same([s.Ts for s in systems]...)
     return TransferFunction(mat, Ts)
 end
 
@@ -62,7 +62,7 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     B = vcat([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
-    Ts = ts_same([s.Ts for s in systems]...)
+    Ts = ts_same(s.Ts for s in systems)
     return ST(A, B, C, D, Ts)
 end
 
@@ -73,7 +73,7 @@ function Base.vcat(systems::TransferFunction...)
         error("All systems must have same input dimension")
     end
     mat = vcat([s.matrix for s in systems]...)
-    Ts = ts_same([s.Ts for s in systems]...)
+    Ts = ts_same(s.Ts for s in systems)
 
     return TransferFunction(mat, Ts)
 end
@@ -86,7 +86,7 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
-    Ts = ts_same([s.Ts for s in systems]...)
+    Ts = ts_same(s.Ts for s in systems)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = hcat([s.C for s in systems]...)
@@ -102,7 +102,7 @@ function Base.hcat(systems::TransferFunction...)
         error("All systems must have same output dimension")
     end
 
-    Ts = ts_same([s.Ts for s in systems]...)
+    Ts = ts_same(s.Ts for s in systems)
     mat = hcat([s.matrix for s in systems]...)
 
     return TransferFunction(mat, Ts)

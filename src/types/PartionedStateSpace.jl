@@ -25,7 +25,9 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     nu1 = getfield(sys, :nu1)
     ny1 = getfield(sys, :ny1)
 
-    if d === :P
+    if d === :Ts
+        return P.Ts
+    elseif d === :P
         return P
     elseif d === :nu1
         return nu1
@@ -53,6 +55,11 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
         return getfield(P, d)
     end
 end
+
+sampletime(sys::PartionedStateSpace) = sampletime(sys.P)
+iscontinuous(sys::PartionedStateSpace) = iscontinuous(sys.P)
+isdiscrete(sys::PartionedStateSpace) = isdiscrete(sys.P)
+isstatic(sys::PartionedStateSpace) = isstatic(sys.P)
 
 function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
     Ts = ts_same(s1.P.Ts,s2.P.Ts)
@@ -155,8 +162,8 @@ end
 """
 function vcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = ts_same([sys.P.Ts for sys in systems]...)
-    
+    Ts = ts_same(sys.P.Ts for sys in systems)
+
     nu1 = systems[1].nu1
     if !all(s.nu1 == nu1 for s in systems)
         error("All systems must have same first input dimension")
@@ -189,7 +196,7 @@ end
 """
 function hcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = ts_same([sys.P.Ts for sys in systems]...)
+    Ts = ts_same(sys.P.Ts for sys in systems)
 
     ny1 = systems[1].ny1
     if !all(s.ny1 == ny1 for s in systems)

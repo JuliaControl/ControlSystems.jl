@@ -41,7 +41,7 @@ Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 function dare(A, B, Q, R)
-    if (!ishermitian(Q) || minimum(eigvals(real(Q))) < 0)
+    if !issemiposdef(Q)
         error("Q must be positive-semidefinite.");
     end
     if (!isposdef(R))
@@ -51,7 +51,7 @@ function dare(A, B, Q, R)
     n = size(A, 1);
 
     E = [
-        Matrix{Float64}(I, n, n) B/R*B';
+        Matrix{Float64}(I, n, n) B*(R\B');
         zeros(size(A)) A'
     ];
     F = [
@@ -304,11 +304,10 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # QUESTION: The tolerance for determining if there are poles on the imaginary axis
     # would not be very appropriate for systems with slow dynamics?
     T = promote_type(real(numeric_type(sys)), Float64)
-
     on_imag_axis = z -> abs(real(z)) < approximag # Helper fcn for readability
 
     if sys.nx == 0  # static gain
-        return (opnorm(sys.D), T(0))
+        return (T(opnorm(sys.D)), T(0))
     end
 
     pole_vec = pole(sys)
@@ -316,7 +315,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(on_imag_axis, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), imag(pole_vec[pidx]))
+        return (T(Inf), T(imag(pole_vec[pidx])))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     end
 
@@ -363,7 +362,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(ω_vec)
 
         if isempty(ω_vec)
-            return (1+T(tol))*lb, ω_peak
+            return T((1+tol)*lb), T(ω_peak)
         end
 
         # Improve the lower bound
@@ -386,10 +385,11 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
-    T = promote_type(real(numeric_type(sys)), Float64)
+    T = promote_type(real(numeric_type(sys)), Float64, typeof(true/sampletime(sys)))
+    Tw = typeof(one(T)/sampletime(sys))
 
     if sys.nx == 0  # static gain
-        return (opnorm(sys.D), T(0))
+        return (T(opnorm(sys.D)), Tw(0))
     end
 
     pole_vec = pole(sys)
@@ -397,11 +397,11 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), angle(pole_vec[pidx])/sampletime(sys))
+        return T(Inf), Tw(angle(pole_vec[pidx])/sampletime(sys))
     end
 
     if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
-        return T(Inf), T(NaN) # The system is unstable
+        return T(Inf), Tw(NaN) # The system is unstable
     end
 
     # Initialization: computation of a lower bound from 3 terms
@@ -450,7 +450,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(θ_vec)
 
         if isempty(θ_vec)
-            return (1+T(tol))*lb, θ_peak/sampletime(sys)
+            return T((1+tol)*lb), Tw(θ_peak/sampletime(sys))
         end
 
         # Improve the lower bound

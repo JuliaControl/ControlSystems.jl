@@ -70,4 +70,33 @@ K = ControlSystems.acker(A,B,p)
 @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
 end
 
+@testset "LQR" begin
+    h = 0.1
+    A = [1 h; 0 1]
+    B = [0;1] # Note B is vector, B'B is scalar, but compatible with I
+    C = [1 0]
+    Q = I
+    R = I
+    L = dlqr(A,B,Q,R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+    sys = ss(A,B,C,0,h)
+    L = lqr(sys, Q, R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    B = reshape(B,2,1)  # Note B is matrix, B'B is compatible with I
+    L = dlqr(A,B,Q,R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    Q = eye_(2)
+    R = eye_(1)
+    L = dlqr(A,B,Q,R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    B = [0;1]   # Note B is vector, B'B is scalar and INcompatible with matrix
+    Q = eye_(2)
+    R = eye_(1)
+    @test_throws MethodError L ≈ dlqr(A,B,Q,R)
+    #L ≈ [0.5890881713787511 0.7118839434795103]
+end
+
 end

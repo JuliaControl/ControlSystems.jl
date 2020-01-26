@@ -16,13 +16,19 @@ struct DelayLtiSystem{T,S<:Real} <: LTISystem
     # end
 end
 
-# Fallback since system is always continuouss
+# Fallback since system is always continuous
 function getproperty(sys::DelayLtiSystem, s::Symbol)
     if s == :Ts
-        return Continuous()
+        return sys.P.Ts
     end
     return getfield(sys, s)
 end
+
+sampletime(sys::DelayLtiSystem) = sampletime(sys.P)
+iscontinuous(sys::DelayLtiSystem) = iscontinuous(sys.P)
+isdiscrete(sys::DelayLtiSystem) = isdiscrete(sys.P)
+isstatic(sys::DelayLtiSystem) = isstatic(sys.P)
+
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
 """
@@ -169,10 +175,6 @@ function *(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     DelayLtiSystem(psys_new.P, Tau_new)
 end
 
-
-iscontinuous(::DelayLtiSystem) = true
-sampletime(x::DelayLtiSystem) = error("DelayLtiSystems are continuous and have no sample time")
-sampletype(::DelayLtiSystem) = Continuous
 
 function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     psys_new = feedback(sys1.P, sys2.P)

@@ -126,7 +126,7 @@ TODO OUTDATED: Set Ts=-1 for a discrete-time model with unspecified sampling per
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{TimeT<:TimeType, AT<:AbstractVecOrMat,BT<:AbstractVecOrMat,CT<:AbstractVecOrMat,DT<:AbstractVecOrMat} <: AbstractStateSpace
+struct HeteroStateSpace{TimeT<:TimeType, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace
     A::AT
     B::BT
     C::CT
@@ -137,7 +137,7 @@ struct HeteroStateSpace{TimeT<:TimeType, AT<:AbstractVecOrMat,BT<:AbstractVecOrM
     ny::Int
 end
 function HeteroStateSpace(A::AT, B::BT,
-    C::CT, D::DT, Ts::TimeT) where {TimeT<:TimeType,AT<:AbstractVecOrMat,BT<:AbstractVecOrMat,CT<:AbstractVecOrMat,DT<:AbstractVecOrMat}
+    C::CT, D::DT, Ts::TimeT) where {TimeT<:TimeType,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
     nx,nu,ny = state_space_validation(A,B,C,D,Ts)
     HeteroStateSpace{TimeT,AT,BT,CT,DT}(A, B, C, D, Ts, nx, nu, ny)
 end
@@ -152,13 +152,13 @@ HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.Ts)
 
 # Base constructor
 function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::TimeType)
-    A = to_matrix(eltype(A), A)
-    B = to_matrix(eltype(B), B)
-    C = to_matrix(eltype(C), C)
+    A = to_abstract_matrix(A)
+    B = to_abstract_matrix(B)
+    C = to_abstract_matrix(C)
     if D == 0
         D = fill(zero(eltype(C)), size(C,1), size(B,2))
     else
-        D = to_matrix(eltype(D), D)
+        D = to_abstract_matrix(D)
     end
     return HeteroStateSpace{typeof(Ts),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, Ts)
 end
