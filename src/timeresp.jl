@@ -226,7 +226,7 @@ function _default_time_vector(sys::LTISystem, Tf::Real=-1)
 end
 
 function _default_Ts(sys::LTISystem)
-    if !iscontinuous(sys)
+    if isdiscrete(sys)
         Ts = sampletime(sys)
     elseif !isstable(sys)
         Ts = 0.05

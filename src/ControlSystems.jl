@@ -99,13 +99,6 @@ import Printf, Colors
 import DSP: conv
 
 abstract type AbstractSystem end
-#
-# abstract type AbstractSystemSize end
-# issiso(sm::DimT) where {DimT <: AbstractSystemSize}  = issiso(DimT)
-# struct SISO <: AbstractSystemSize end
-# struct MIMO <: AbstractSystemSize end
-# issiso(::Type{SISO}) = true
-# issiso(::Type{MIMO}) = false
 
 include("types/TimeType.jl")
 ## Added interface:
@@ -163,11 +156,6 @@ include("plotting.jl")
 @deprecate den denvec
 @deprecate norminf hinfnorm
 @deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
-# Manual deprecation:
-# diagonalize(s::AbstractStateSpace, digits)
-#     @warn "diagonalize(s::AbstractStateSpace, digits=12) has been deprecated, use diagonalize(s::AbstractStateSpace) instead"
-#     diagonalize(s::AbstractStateSpace)
-# end
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

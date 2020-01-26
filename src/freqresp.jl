@@ -40,13 +40,6 @@ function _preprocess_for_freqresp(sys::StateSpace)
 end
 
 
-#_preprocess_for_freqresp(sys::TransferFunction) = sys.matrix
-#function _preprocess_for_freqresp(sys::TransferFunction)
-#    map(sisotf -> _preprocess_for_freqresp(sisotf), sys.matrix)
-#end
-
-#_preprocess_for_freqresp(sys::SisoTf) = sys
-
 """
 `evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
@@ -145,8 +138,6 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
 end
 _default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
         [sys], plot)
-
-
 
 
 function _bounds_and_features(sys::LTISystem, plot::Val)

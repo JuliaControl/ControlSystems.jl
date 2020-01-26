@@ -39,7 +39,12 @@ else
 end
 
 issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
-issemiposdef(A::UniformScaling) = A.λ >= 0
+issemiposdef(A::UniformScaling) = real(A.λ) >= 0
+
+@static if VERSION < v"1.2.0-DEV"
+    #Added in 1.1.0-DEV
+    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
+end
 
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`

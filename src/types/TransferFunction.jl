@@ -110,9 +110,9 @@ function +(G1::TransferFunction, G2::TransferFunction)
     if size(G1) != size(G2)
         error("Systems have different shapes.")
     end
-
+    Ts = common_sample_time(G1.Ts,G2.Ts)
     matrix = G1.matrix + G2.matrix
-    return TransferFunction(matrix, ts_same(G1.Ts,G2.Ts))
+    return TransferFunction(matrix, Ts)
 end
 
 +(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.Ts)
@@ -130,13 +130,13 @@ end
 
 function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
-    Ts = ts_same(G1.Ts,G2.Ts)
+    Ts = common_sample_time(G1.Ts,G2.Ts)
     if G1.nu != G2.ny
         error("G1*G2: G1 must have same number of inputs as G2 has outputs")
     end
-
+    Ts = common_sample_time(G1.Ts,G2.Ts)
     matrix = G1.matrix * G2.matrix
-    return TransferFunction(matrix, ts_same(G1.Ts,G2.Ts))
+    return TransferFunction(matrix, Ts)
 end
 
 *(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.Ts)

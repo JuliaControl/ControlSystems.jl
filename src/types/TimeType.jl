@@ -45,12 +45,12 @@ Base.promote_rule(::Type{Discrete{T1}}, ::Type{Discrete{T2}}) where {T1,T2}= Dis
 Base.convert(::Type{Discrete{T1}}, Ts::Discrete{T2}) where {T1,T2} = Discrete{T1}(Ts.Ts)
 
 # Promoting two or more systems systems should promote sample times
-ts_same(x::TimeType) = x
-ts_same(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch"))
-ts_same(x::TimeType, y::TimeType, z...) = ts_same(ts_same(x, y), z...)
-ts_same(a::Base.Generator) = reduce(ts_same, a)
+common_sample_time(x::TimeType) = x
+common_sample_time(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch"))
+common_sample_time(x::TimeType, y::TimeType, z...) = common_sample_time(common_sample_time(x, y), z...)
+common_sample_time(a::Base.Generator) = reduce(common_sample_time, a)
 
-function ts_same(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
+function common_sample_time(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
     if x != y && x.Ts != UNDEF_SAMPLETIME && y.Ts != UNDEF_SAMPLETIME
         throw(ErrorException("Sampling time mismatch"))
     end
@@ -62,8 +62,8 @@ function ts_same(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
     end
 end
 
-ts_same(x::Continuous, ys::Continuous...) = Continuous()
-ts_same(x::Static, ys::Static...) = Static()
+common_sample_time(x::Continuous, ys::Continuous...) = Continuous()
+common_sample_time(x::Static, ys::Static...) = Static()
 
 # Check equality and similarity
 ==(x::TimeType, y::TimeType) = false

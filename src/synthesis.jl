@@ -198,7 +198,7 @@ function feedback(sys1::StateSpace,sys2::StateSpace)
     A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]
-    Ts = ts_same(sys1.Ts,sys2.Ts)
+    Ts = common_sample_time(sys1.Ts,sys2.Ts)
     ss(A,B,C,sys1.D,Ts)
 end
 

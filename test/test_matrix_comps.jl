@@ -19,6 +19,14 @@ Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
 @test sysb.A ≈ Ab
 
+# Test the 4 arg balance_statespace
+Ab2,Bb2,Cb2,T2 = ControlSystems.balance_statespace(A,B,C,D)
+
+@test Ab2*T2 ≈ T2*A
+@test Bb2 ≈ T2*B
+@test Cb2*T2 ≈ C
+@test sysb.A ≈ Ab2
+
 @test ControlSystems.balance_transform(A,B,C) ≈ ControlSystems.balance_transform(sys)
 
 W = [1 0; 0 1]

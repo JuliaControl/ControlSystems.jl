@@ -22,7 +22,7 @@ Append systems in block diagonal form
 """
 function append(systems::(ST where ST<:AbstractStateSpace)...)
     ST = promote_type(typeof.(systems)...)
-    Ts = ts_same(s.Ts for s in systems)
+    Ts = common_sample_time(s.Ts for s in systems)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
@@ -31,7 +31,7 @@ function append(systems::(ST where ST<:AbstractStateSpace)...)
 end
 
 function append(systems::TransferFunction...)
-    Ts = ts_same(s.Ts for s in systems)
+    Ts = common_sample_time(s.Ts for s in systems)
     mat = blockdiag([s.matrix for s in systems]...)
     return TransferFunction(mat, Ts)
 end
@@ -62,7 +62,7 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     B = vcat([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
-    Ts = ts_same(s.Ts for s in systems)
+    Ts = common_sample_time(s.Ts for s in systems)
     return ST(A, B, C, D, Ts)
 end
 
@@ -72,8 +72,8 @@ function Base.vcat(systems::TransferFunction...)
     if !all(s.nu == nu for s in systems)
         error("All systems must have same input dimension")
     end
+    Ts = common_sample_time(s.Ts for s in systems)
     mat = vcat([s.matrix for s in systems]...)
-    Ts = ts_same(s.Ts for s in systems)
 
     return TransferFunction(mat, Ts)
 end
@@ -86,7 +86,7 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
-    Ts = ts_same(s.Ts for s in systems)
+    Ts = common_sample_time(s.Ts for s in systems)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = hcat([s.C for s in systems]...)
@@ -101,8 +101,7 @@ function Base.hcat(systems::TransferFunction...)
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
-
-    Ts = ts_same(s.Ts for s in systems)
+    Ts = common_sample_time(s.Ts for s in systems)
     mat = hcat([s.matrix for s in systems]...)
 
     return TransferFunction(mat, Ts)
@@ -131,44 +130,6 @@ function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     sys1new, sys2new = promote(sys1, 1/sys2)
     return sys1new*sys2new
 end
-
-# function hvcat(rows::Tuple{Vararg{Int}}, systems::Union{Number,AbstractVecOrMat{<:Number},LTISystem}...)
-#     T = Base.promote_typeof(systems...)
-#     nbr = length(rows)  # number of block rows
-#     rs = Array{T,1}(nbr)
-#     a = 1
-#     for i = 1:nbr
-#         rs[i] = hcat(convert.(T,systems[a:a-1+rows[i]])...)
-#         a += rows[i]
-#     end
-#     vcat(rs...)
-# end
-
-# function _get_common_sampling_time(sys_vec::Union{AbstractVector{LTISystem},AbstractVecOrMat{<:Number},Number})
-#     Ts = -1.0 # Initalize corresponding to undefined sampling time
-#
-#     for sys in sys_vec
-#         if !all(s.Ts == Ts for s in systems])
-#             error("Sampling time mismatch")
-#         end
-#     end
-#
-# end
-
-
-# function Base.hcat{T<:Number}(systems::Union{T,AbstractVecOrMat{T},TransferFunction}...)
-#     S = promote_type(map(e->typeof(e),systems)...) # TODO: Should be simplified
-#
-#     idx_first_tf = findfirst(e -> isa(e, TransferFunction), systems)
-#     Ts = sys_tuple[idx_first_tf].Ts
-#
-#     if S <: TransferFunction
-#         hcat(map(e->convert(TransferFunction,e),systems)...)
-#     else
-#         cat(2,systems...)
-#     end
-# end
-
 
 blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
 
