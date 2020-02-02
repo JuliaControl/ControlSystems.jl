@@ -102,10 +102,10 @@ function StateSpace(D::AbstractArray{T}, Ts::TimeType) where {T<:Number}
     return StateSpace(A, B, C, D, Ts)
 end
 StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))
-StateSpace(D::AbstractArray) = StateSpace(D, Continuous())
+StateSpace(D::AbstractArray) = StateSpace(D, Static())
 
 StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d], Discrete(Ts))
-StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
+StateSpace(d::Number; kwargs...) = StateSpace([d], Static())
 
 
 # StateSpace(sys) converts to StateSpace
@@ -119,7 +119,6 @@ where `MT` is the type of matrixes `A,B,C,D`, `T` the element type and TimeT is 
 
 This is a continuous-time model if Ts is omitted.
 Otherwise, this is a discrete-time model with sampling period Ts.
-TODO OUTDATED: Set Ts=-1 for a discrete-time model with unspecified sampling period.
 
 `sys = ss(D [, Ts])` specifies a static gain matrix D.
 """
@@ -180,10 +179,10 @@ function HeteroStateSpace(D::AbstractArray{T}, Ts::TimeType) where {T<:Number}
 end
 
 HeteroStateSpace(D::AbstractArray{T}, Ts::Number) where {T<:Number} = HeteroStateSpace(D, Discrete(Ts))
-HeteroStateSpace(D::AbstractArray{T}) where {T<:Number} = HeteroStateSpace(D, Continuous())
+HeteroStateSpace(D::AbstractArray{T}) where {T<:Number} = HeteroStateSpace(D, Static())
 
 HeteroStateSpace(d::Number, Ts::Number; kwargs...) = HeteroStateSpace([d], Discrete(Ts))
-HeteroStateSpace(d::Number; kwargs...) = HeteroStateSpace([d], Continuous())
+HeteroStateSpace(d::Number; kwargs...) = HeteroStateSpace([d], Static())
 
 # HeteroStateSpace(sys) converts to HeteroStateSpace
 HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
@@ -360,12 +359,10 @@ function Base.show(io::IO, sys::AbstractStateSpace)
     # Print sample time
     if isdiscrete(sys)
         println(io, "Sample Time: ", sampletime(sys), " (seconds)")
-    elseif isstatic(sys)
-        println(io, "Sample Time: unspecified")
     end
     # Print model type
     if isstatic(sys)
-        print(io, "Static gain") # NOTE: Not quite...still has a time type
+        print(io, "Static gain state-space model")
     elseif iscontinuous(sys)
         print(io, "Continuous-time state-space model")
     else

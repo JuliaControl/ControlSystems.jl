@@ -86,4 +86,4 @@ zpk(z, p, k, Ts::Number) = zpk(z, p, k, Discrete(Ts))
 zpk(z, p, k) = zpk(z, p, k, Continuous())
 # Catch all 1(2) argument versions
 zpk(gain, Ts::Number; kwargs...) where {T <: Number} = zpk(gain, Discrete(Ts))
-zpk(gain; kwargs...) where {T <: Number} = zpk(gain, Continuous())
+zpk(gain; kwargs...) where {T <: Number} = zpk(gain, Static())

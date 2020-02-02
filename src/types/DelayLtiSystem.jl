@@ -58,11 +58,14 @@ DelayLtiSystem(sys::StateSpace{Continuous,T,MT}) where {T, MT} = DelayLtiSystem{
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
 DelayLtiSystem(sys::TransferFunction{TimeT,S}) where {TimeT,T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
 
+# To handle cases where StateSpace is static
+DelayLtiSystem(sys::StateSpace{Static,T,MT}, args...) where {T, MT,S} = DelayLtiSystem(StateSpace{Continuous,T,MT}(sys), args...)
+
 # TODO: Think through these promotions and conversions
 Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 
-Base.promote_rule(::Type{<:StateSpace{Continuous,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
+Base.promote_rule(::Type{<:StateSpace{<:TimeType,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{<:TransferFunction}, ::Type{DelayLtiSystem{T,S}}) where {T,S} = DelayLtiSystem{T,S}
 #Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
 
@@ -189,7 +192,7 @@ end
 Create a pure time delay. If `T` is not specified, the default is to choose `promote_type(T, typeof(tau))`
 """
 function delay(T::Type{<:Number}, tau)
-    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
+    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), [T(tau)])
 end
 
 function delay(tau::S) where S

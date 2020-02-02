@@ -254,7 +254,7 @@ American Control Conference, 1991.
 See also `linfnorm`.
 """
 function hinfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if iscontinuous(sys)
+    if !isdiscrete(sys) # Continuous or Static
         return _infnorm_two_steps_ct(sys, :hinf, tol)
     else
         return _infnorm_two_steps_dt(sys, :hinf, tol)

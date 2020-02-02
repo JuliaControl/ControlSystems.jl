@@ -19,14 +19,6 @@ Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
 @test sysb.A ≈ Ab
 
-# Test the 4 arg balance_statespace
-Ab2,Bb2,Cb2,T2 = ControlSystems.balance_statespace(A,B,C,D)
-
-@test Ab2*T2 ≈ T2*A
-@test Bb2 ≈ T2*B
-@test Cb2*T2 ≈ C
-@test sysb.A ≈ Ab2
-
 @test ControlSystems.balance_transform(A,B,C) ≈ ControlSystems.balance_transform(sys)
 
 W = [1 0; 0 1]
@@ -45,12 +37,11 @@ D2 = [1 0; 0 1]
 # Discrete system can have direct term
 @test covar(ss(A,B,C,D2,0.1),W) ≈ [1.00011010837831 -1.0098377309782909e-5; -1.0098377309782909e-5 1.00011010837831]
 
-# TODO test in Julia 0.7 to see if supported
 # # Test special matrices
 As = sparse(A)
 Bs = sparse(B)
 Cs = sparse(C)
-Asb,Bsb,Csb,Ts = ControlSystems.balance_statespace(As,Bs,Cs) #Error no LAPACK function
+@test_logs (:warn, "Unable to balance state-space, returning original system") ControlSystems.balance_statespace(As,Bs,Cs)
 #
 # @test Abs*Ts ≈ Ts*As
 # @test Bbs ≈ Ts*Bs

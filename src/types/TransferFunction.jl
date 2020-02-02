@@ -13,14 +13,14 @@ function TransferFunction(matrix::Matrix{S}, Ts::TimeT) where {TimeT<:TimeType, 
     TransferFunction{TimeT, S}(matrix, Ts)
 end
 
-# Constructor for Discrete time system
-function TransferFunction(matrix::Matrix{S}, Ts::Number) where {T<:Number, S<:SisoTf{T}}
-    return TransferFunction(matrix, Discrete(Ts))
-end
-# Constructor for Continuous time system
-function TransferFunction(matrix::Matrix{S}) where {T<:Number,S<:SisoTf{T}}
-    return TransferFunction(matrix, Continuous())
-end
+# # Constructor for Discrete time system
+# function TransferFunction(matrix::Matrix{S}, Ts::Number) where {T<:Number, S<:SisoTf{T}}
+#     return TransferFunction(matrix, Discrete(Ts))
+# end
+# # Constructor for Continuous time system
+# function TransferFunction(matrix::Matrix{S}) where {T<:Number,S<:SisoTf{T}}
+#     return TransferFunction(matrix, Continuous())
+# end
 
 noutputs(G::TransferFunction) = size(G.matrix, 1)
 ninputs(G::TransferFunction) = size(G.matrix, 2)
@@ -181,13 +181,10 @@ function Base.show(io::IO, G::TransferFunction)
     end
     if iscontinuous(G)
         print(io, "\nContinuous-time transfer function model")
-    else
-        print(io, "\nSample Time: ")
-        if isdiscrete(G)
-            print(io, sampletime(G), " (seconds)")
-        elseif isstatic(G)
-            print(io, "unspecified")
-        end
+    elseif isdiscrete(G)
+        print(io, "\nSample Time: ", sampletime(G), " (seconds)")
         print(io, "\nDiscrete-time transfer function model")
+    else
+        print(io, "\nStatic gain transfer function model")
     end
 end

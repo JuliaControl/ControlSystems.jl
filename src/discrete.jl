@@ -10,7 +10,7 @@ Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
-    if !iscontinuous(sys)
+    if isdiscrete(sys)
         error("sys must be a continuous time system")
     end
     A, B, C, D = ssdata(sys)

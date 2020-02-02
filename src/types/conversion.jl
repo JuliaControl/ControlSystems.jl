@@ -157,7 +157,6 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
     return A, B, C, D
 end
 
-
 """
 `A, B, C, T = balance_statespace{S}(A::Matrix{S}, B::Matrix{S}, C::Matrix{S}, perm::Bool=false)`
 
@@ -169,15 +168,37 @@ If `perm=true`, the states in `A` are allowed to be reordered.
 
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 """
-function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::AbstractMatrix{P}, perm::Bool=false) where P <: BlasFloat
+function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
+    try
+        return _balance_statespace(A,B,C, perm)
+    catch
+        @warn "Unable to balance state-space, returning original system"
+        return A,B,C,I
+    end
+ end
+
+# # First try to promote and hopefully get some types we can work with
+# function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
+#     T = promote_type(eltype(A), eltype(B), eltype(C))
+#     A2, B2, C2, D2 = promote(A,B,C, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+#     balance_statespace(A2, B2, C2, perm)
+# end
+
+function balance_statespace(sys::StateSpace, perm::Bool=false)
+    A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
+    return ss(A,B,C,sys.D,sys.Ts), T
+end
+
+# Method that might fail for some exotic types, such as TrackedArrays
+function _balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)
 
     # Compute the transformation matrix
     mag_A = abs.(A)
-    mag_B = max.(abs.(B), zero(real(P)))
-    mag_C = max.(abs.(C), zero(real(P)))
+    mag_B = max.(abs.(B), false) # false is 0 of lowest type
+    mag_C = max.(abs.(C), false)
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation
@@ -188,32 +209,14 @@ function balance_statespace(A::AbstractMatrix{P}, B::AbstractMatrix{P}, C::Abstr
     return A, B, C, T
 end
 
-#TODO Throw a warning here at least?
-# Fallback mehod for systems with exotic matrices (i.e. TrackedArrays)
-balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false) = A,B,C,I
-
-# First try to promote and see of we get BlasFloat, otherwise, fall beack on function above
-function balance_statespace(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number}, perm::Bool=false)
-    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
-    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
-    balance_statespace(A2, B2, C2, perm)
-end
-
-function balance_statespace(sys::StateSpace, perm::Bool=false)
-    A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
-    return ss(A,B,C,sys.D,sys.Ts), T
-end
-
 """
-`T = balance_transform{R}(A::Matrix{R}, B::Matrix{R}, C::Matrix{R}, perm::Bool=false)`
+`T = balance_transform{R}(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)`
 
 `T = balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(A,B,C,perm)`
 
 Computes a balancing transformation `T` that attempts to scale the system so
 that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
 If `perm=true`, the states in `A` are allowed to be reordered.
-
-No balancing will be done if `A, B C` are not BLAS compatible
 
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
 See also `balance_statespace`, `balance`

@@ -119,7 +119,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
 
     dt = Float64(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys) # Looks strange to check iscontinuous again
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sampletime(sys) != dt
@@ -152,7 +152,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
 
     dt = T(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sampletime(sys) != dt

@@ -73,7 +73,7 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    @assert !iscontinuous(sys) && !isstatic(sys) "It makes no sense to call this function with continuous systems"
+    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     if map_to_unit_circle
         isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sampletime(sys))) : error("To map to the unit circle, omega should be real")
     else
@@ -82,7 +82,7 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
 end
 
 function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
-    @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])

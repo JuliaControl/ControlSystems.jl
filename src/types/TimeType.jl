@@ -22,6 +22,8 @@ Continuous(x::Continuous) = x
 Static(x::Static) = x
 # Simple converseion
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
+Discrete{T}(::Static) where T = Discrete{T}(UNDEF_SAMPLETIME)
+Continuous(::Static) = Continuous()
 # Default to checing type
 iscontinuous(x::TimeType) = x isa Continuous
 isdiscrete(x::TimeType) = x isa Discrete
@@ -38,8 +40,8 @@ unknown_time(::Type{Static}) where T = Static()
 
 # Promotion
 # Fallback to give useful error
-Base.promote_rule(::Type{<:TimeType}, ::Type{<:TimeType}) = throw(ErrorException("Sampling time mismatch"))
-Base.promote_rule(::Type{Continuous}, ::Type{Continuous}) = Continuous
+Base.promote_rule(::Type{<:Discrete}, ::Type{Continuous}) = throw(ErrorException("Sampling time mismatch"))
+Base.promote_rule(::Type{T}, ::Type{Static}) where T <: TimeType = T
 Base.promote_rule(::Type{Discrete{T1}}, ::Type{Discrete{T2}}) where {T1,T2}= Discrete{promote_type(T1,T2)}
 
 Base.convert(::Type{Discrete{T1}}, Ts::Discrete{T2}) where {T1,T2} = Discrete{T1}(Ts.Ts)
@@ -65,13 +67,25 @@ end
 common_sample_time(x::Continuous, ys::Continuous...) = Continuous()
 common_sample_time(x::Static, ys::Static...) = Static()
 
+# Combinations with static
+common_sample_time(x::TimeType, ys::Static) = x
+common_sample_time(x::Static, y::TimeType) = y
+
 # Check equality and similarity
 ==(x::TimeType, y::TimeType) = false
 ==(x::Discrete, y::Discrete) = (x.Ts == y.Ts)
 ==(::Continuous, ::Continuous) = true
 ==(::Static, ::Static) = true
 
+# Equality with static is true
+==(::Static, ::TimeType) = true
+==(::TimeType, ::Static) = true
+
 isapprox(x::TimeType, y::TimeType, args...; kwargs...) = false
 isapprox(x::Discrete, y::Discrete, args...; kwargs...) = isapprox(x.Ts, y.Ts, args...; kwargs...)
 isapprox(::Continuous, ::Continuous, args...; kwargs...) = true
 isapprox(::Static, ::Static, args...; kwargs...) = true
+
+# Equality with static is true
+isapprox(::Static, ::TimeType, args...; kwargs...) = true
+isapprox(::TimeType, ::Static, args...; kwargs...) = true
