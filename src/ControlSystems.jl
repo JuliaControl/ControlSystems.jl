@@ -11,6 +11,7 @@ export  LTISystem,
         zpk,
         ss2tf,
         LQG,
+        isproper,
         # Linear Algebra
         balance,
         care,
@@ -56,6 +57,8 @@ export  LTISystem,
         parallel,
         feedback,
         feedback2dof,
+        starprod,
+        lft,
         # Discrete
         c2d,
         # Time Response
@@ -72,6 +75,7 @@ export  LTISystem,
         sigma,
         # delay systems
         delay,
+        pade,
         # utilities
         num,    #Deprecated
         den,    #Deprecated
@@ -89,6 +93,7 @@ using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
+import Base: exp # for exp(-sτ)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors

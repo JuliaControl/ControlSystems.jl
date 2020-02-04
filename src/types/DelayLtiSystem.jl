@@ -173,27 +173,32 @@ end
 """
     delay(T::Type{<:Number}, tau)
 
-Create a pure time delay. If `T` is not specified, the default is to choose `promote_type(T, typeof(tau))`
+Create a pure time delay of length `τ` of type `T`.
+
+The type `T` defaults to `promote_type(Float64, typeof(tau))`
 """
-function delay(T::Type{<:Number}, tau)
-    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
+function delay(T::Type{<:Number}, τ)
+    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(τ)])
 end
+delay(τ::Number) = delay(promote_type(Float64,eltype(τ)), τ)
 
-function delay(tau::S) where S
-    delay(promote_type(Float64,S), tau)
+
+"""
+    exp(G::TransferFunction{SisoRational})
+
+Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ` > 0.
+
+See also: [`delay`](@ref) which is arguably more conenient than this function.
+"""
+function Base.exp(G::TransferFunction{SisoRational})
+    if size(G.matrix) != (1,1)
+        error("G must be a scalar transfer function. Consider using `delay` instead.")
+    end
+    G_siso = G.matrix[1,1]
+
+    if degree(G_siso.den) != 0 || degree(G_siso.num) != 1 || G_siso[1].num[1] < 0
+        error("Input must be of the form -τ*s, τ>0. Consider using `delay` instead.")
+    end
+
+    return delay(-G_siso.den[1] / G_siso.den[0])
 end
-
-# function exp(G::TransferFunction)
-#     if (size(G.matrix) != [1, 1]) || ~isone(G.matrix[1].den) || length(G.matrix[1].num) >= 2
-#         error("exp only accepts TransferFunction arguemns of the form (a*s + b)")
-#     end
-#
-#     a = G.matrix[1].num[1]
-#     b = G.matrix[1].num[0]
-#
-#     if a > 0
-#         error("Delay needs to be causal.")
-#     end
-#
-#     return exp(b) * delay(a)
-# end

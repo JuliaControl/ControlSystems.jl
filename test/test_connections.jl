@@ -152,6 +152,18 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 
 
 
+
+# Test lft
+G1 = ss(-9, [2 3], [4; 5], 0)
+G2 = ss(-6, 7, 8, 0)
+
+@test lft(G1, G2) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
+@test lft(G1, G2, :l) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
+@test lft(G1, G2, :u) == ss([-9 16; 28 -6], [3; 0], [5 0], 0)
+
+#FIXME: Add more tests
+
+
 @test_broken [D_111 1.0] # Concatenation of discrete system with constant
 @test_broken [D_222 fill(1.5, 2, 2)] # Concatenation of discrete system with matrix
 

@@ -201,3 +201,62 @@ function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS
     end
     return y, tout, x
 end
+
+
+# Used for pade approximation
+"""
+`p2 = _linscale(p::Poly, a)`
+
+Given a polynomial `p` and a number `a, returns the polynomials `p2` such that
+`p2(s) == p(a*s)`.
+"""
+function _linscale(p::Poly, a)
+    # This function should perhaps be implemented in Polynomials.jl
+    coeffs_scaled = similar(p.a, promote_type(eltype(p), typeof(a)))
+    a_pow = 1
+    coeffs_scaled[1] = p.a[1]
+    for k=2:length(p.a)
+        a_pow *= a
+        coeffs_scaled[k] = p.a[k]*a_pow
+    end
+    return Poly(coeffs_scaled)
+end
+
+# Coefficeints for Padé approximations
+# Q_COEFFS = [Poly([binomial(N,i)*prod(N+1:2*N-i) for i=0:N]) for N=1:10]
+const PADE_Q_COEFFS =  [[2, 1],
+ [12, 6, 1],
+ [120, 60, 12, 1],
+ [1680, 840, 180, 20, 1],
+ [30240, 15120, 3360, 420, 30, 1],
+ [665280, 332640, 75600, 10080, 840, 42, 1],
+ [17297280, 8648640, 1995840, 277200, 25200, 1512, 56, 1],
+ [518918400, 259459200, 60540480, 8648640, 831600, 55440, 2520, 72, 1],
+ [17643225600, 8821612800, 2075673600, 302702400, 30270240, 2162160, 110880, 3960, 90, 1],
+ [670442572800, 335221286400, 79394515200, 11762150400, 1210809600, 90810720, 5045040, 205920, 5940, 110, 1]]
+
+"""
+    pade(τ::Real, N::Int)
+
+Compute the `N`th order Padé approximation of a time-delay of length `τ`.
+"""
+function pade(τ::Real, N::Int)
+    if !(1 <= N <= 10); error("Order of Padé approximation must be between 1 and 10. Got $N."); end
+
+    Q = Poly(PADE_Q_COEFFS[N])
+
+    return tf(_linscale(Q, -τ), _linscale(Q, τ)) # return Q(-τs)/Q(τs)
+end
+
+
+"""
+    pade(G::DelayLtiSystem, N)
+
+Approximate all time-delays in `G` by Padé approximations of degree `N`.
+"""
+function pade(G::DelayLtiSystem, N)
+    ny, nu = size(G)
+    nTau = length(G.Tau)
+    X = append([ss(pade(τ,N)) for τ in G.Tau]...) # Perhaps append should be renamed blockdiag
+    return lft(G.P.P, X)
+end
