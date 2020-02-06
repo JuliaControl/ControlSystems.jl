@@ -78,7 +78,7 @@ export  LTISystem,
         pade,
         # demo systems
         ssrand,
-        systemdepot,
+        DemoSystems, # A module containing some example systems
         # utilities
         num,    #Deprecated
         den,    #Deprecated
