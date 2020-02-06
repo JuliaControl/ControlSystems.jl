@@ -28,7 +28,7 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
     ny = noutputs(sys) - length(Tau)
 
     if nu < 0  || ny < 0
-        throw(ArgumentError("Time vector is too long."))
+        throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
 
     psys = PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys, nu, ny)
@@ -144,6 +144,14 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
         sys.P.Ts), sys.Tau)
 end
 
+function Base.show(io::IO, sys::DelayLtiSystem)
+    show(io, sys.P.P)
+
+    println(io, "\n\nDelays: $(sys.Tau)")
+end
+
+
+
 function +(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     psys_new = sys1.P + sys2.P
     Tau_new = [sys1.Tau; sys2.Tau]
@@ -190,15 +198,16 @@ Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ`
 
 See also: [`delay`](@ref) which is arguably more conenient than this function.
 """
-function Base.exp(G::TransferFunction{SisoRational})
-    if size(G.matrix) != (1,1)
-        error("G must be a scalar transfer function. Consider using `delay` instead.")
+function Base.exp(G::TransferFunction{<:SisoRational})
+    if size(G.matrix) != (1,1) && iscontinuous(G)
+        error("G must be a continuous-time scalar transfer function. Consider using `delay` instead.")
     end
     G_siso = G.matrix[1,1]
 
-    if degree(G_siso.den) != 0 || degree(G_siso.num) != 1 || G_siso[1].num[1] < 0
+    if !(Polynomials.degree(G_siso.den) == 0 && Polynomials.degree(G_siso.num) == 1
+        && G_siso.num[1]/G_siso.den[0] < 0 && G_siso.num[0] == 0)
         error("Input must be of the form -τ*s, τ>0. Consider using `delay` instead.")
     end
 
-    return delay(-G_siso.den[1] / G_siso.den[0])
+    return delay(-G_siso.num[1] / G_siso.den[0])
 end
