@@ -153,13 +153,55 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 
 
 
-# Test lft
+
 G1 = ss(-9, [2 3], [4; 5], 0)
 G2 = ss(-6, 7, 8, 0)
+
+K1 = ss(-1, 1, 1, 0)
+
+G3 = ss(-1, 1, 1, 1) #  Not strictly proper
+
+# Test general feedback interconnections
+
+@test feedback(G1, K1, U1=[1], Y1=[1], W1=[2], Z1=[2]) == ss([-9 -2; 4 -1], [3; 0], [5 0], 0)
+@test feedback(G1, K1, U1=[1], Y1=[1], W1=[1], Z1=[1]) == ss([-9 -2; 4 -1], [2; 0], [4 0], 0)
+@test feedback(G1, K1, U1=[2], Y1=[2], W1=[1], Z1=[1]) == ss([-9 -3; 5 -1], [2; 0], [4 0], 0)
+
+@test feedback(K1, G1, W1=Int[], Z1=Int[], U2=[1], Y2=[1], W2=[2], Z2=[2]) == ss([-1 -4; 2 -9], [0; 3], [0 5], 0)
+
+
+@test_broken feedback(G3, 1) == ss(-1.5, 2, , 0.5)
+
+
+feedback(G3, 1) == ss(-1.5, 2, )
+
+@test_throws ErrorException feedback(G1, K1, U1=1:2, Y2=1)
+
+#@test_warn feedback(G1, K1, U1=1:2, Y1=[2], Y2=[1, 1])
+#@test_logs feedback(G1, K1, U1=1:2, Y1=[2], Y2=[1, 1])
+
+
+
+@test feedback(G1, K1, U1=[1], Y1=[1], W1=[2], Z1=[2], pos_feedback=true) == ss([-9 2; 4 -1], [3; 0], [5 0], 0)
+@test feedback(G2, 1, pos_feedback=true) == ss(50, 7, 8, 0)
+
+
+feedback(G1, K1, U1=[1], Y1=[1], W1=[2], Z1=[2], pos_feedback=true)
+
+# Linear fractional transformations
 
 @test lft(G1, G2) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
 @test lft(G1, G2, :l) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
 @test lft(G1, G2, :u) == ss([-9 16; 28 -6], [3; 0], [5 0], 0)
+
+@test_throws ErrorException lft(G2, G1)
+@test_throws ErrorException lft(G2, G1, :l)
+@test_throws ErrorException lft(G2, G1, :u)
+@test_throws ErrorException lft(G1, G2, :x) # Invalid type of lft
+
+G4 = ss(-6, [7 8], [11; 12], 0)
+@test starprod(G1, G4, 1, 1) == ss([-9 33; 35 -6], [2 0; 0 8], [4 0; 0 12], zeros(2,2))
+
 
 #FIXME: Add more tests
 

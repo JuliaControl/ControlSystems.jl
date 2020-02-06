@@ -267,33 +267,42 @@ end
     feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
         U1=1:size(s1,2), Y1=1:size(s1,1), U2=1:size(s2,2), Y2=1:size(s2,1),
         W1=1:size(s1,2), Z1=1:size(s1,1), W2=Int[], Z2=Int[],
-        w_reorder=nothing, z_reorder=nothing,
-        neg_feeback::Bool=true)
+        w_reorder=nothing, z_reorder=nothing,n
+        pos_feeback::Bool=false)
 
 
 `U1`, `Y1`, `U2`, `Y2` contains the indices of the signals that should be connected.
 `W1`, `Z1`, `W2`, `Z2` contains the signal indices of `s1` and `s2` that should be kept.
 
-Specify  `Wreorder` and `Zreorder` to reorder [W1; W2] and [Z1; Z2] after matrix multiplications.
+Specify  `Wperm` and `Zperm` to reorder [W1; W2] and [Z1; Z2] in the resulting statespace model.
 
-Negative feedback is the default. Specify `neg_feedback=false` for positive feedback.
+Negative feedback is the default. Specify `pos_feedback=true` for positive feedback.
 
 See Zhou etc. for similar (somewhat less symmetric) formulas.
 """
 function feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
     U1=1:size(s1,2), Y1=1:size(s1,1), U2=1:size(s2,2), Y2=1:size(s2,1),
     W1=1:size(s1,2), Z1=1:size(s1,1), W2=Int[], Z2=Int[],
-    w_reorder=nothing, z_reorder=nothing,
-    neg_feedback::Bool=true)
+    Wperm=nothing, Zperm=nothing,
+    pos_feedback::Bool=false)
 
-    if !(allunique(Y1) && allunique(Y2))
-        warning("Connecting a single output to multiple inputs.")
+
+
+    if !allunique(Y1); @warn "Connecting single output to multiple inputs Y1=$Y1"; end
+    if !allunique(Y2); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
+    if !allunique(U1); @warn "Connecting multiple outputs to a single input U1=$U1"; end
+    if !allunique(U2); @warn "Connecting a single output to multiple inputs U2=$U2"; end
+
+    if length(U1) != length(Y2)
+        error("Dimensions of input u1 ($(length(U1))) and output y2 ($(length(Y2))) must be equal")
     end
-    if !(allunique(U1) && allunique(U2))
-        warning("Connecting multiple outputs to a single input.")
+    if length(U2) != length(Y1)
+        error("Dimensions of input u2 ($(length(U2))) and output y1 ($(length(Y2))) must be equal")
     end
 
-    α = neg_feedback ? -1 : 1 # The sign of feedback
+
+
+    α = pos_feedback ? 1 : -1 # The sign of feedback
 
     s1_B1 = s1.B[:,W1]
     s1_B2 = s1.B[:,U1]
@@ -339,9 +348,9 @@ function feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
                      s2_D12*R2*s1_D21           s2_D11 + α*s2_D12*R2*s1_D22*s2_D21]
     end
     # Return while reorganizing into the desired order
-    return StateSpace(A, isnothing(w_reorder) ? B : B[:, w_reorder],
-                         isnothing(z_reorder) ? C : C[z_reorder,:],
-                         isnothing(w_reorder) && isnothing(z_reorder) ? D : D[z_reorder, w_reorder])
+    return StateSpace(A, isnothing(Wperm) ? B : B[:, Wperm],
+                         isnothing(Zperm) ? C : C[Zperm,:],
+                         isnothing(Wperm) && isnothing(Zperm) ? D : D[Zperm, Wperm])
     #return StateSpace(A, B_tmp, C_tmp, D_tmp)
 end
 
@@ -373,9 +382,9 @@ function lft(G, Δ, type=:l) # QUESTION: Or lft_u, and lft_l instead?
     end
 
     if type == :l
-        feedback(G, Δ, U1=G.nu-Δ.ny+1:G.nu, Y1=G.ny-Δ.nu+1:G.ny, W1=1:G.ny-Δ.nu, Z1=1:G.nu-Δ.ny, neg_feedback=false)
+        feedback(G, Δ, U1=G.nu-Δ.ny+1:G.nu, Y1=G.ny-Δ.nu+1:G.ny, W1=1:G.ny-Δ.nu, Z1=1:G.nu-Δ.ny, pos_feedback=true)
     elseif type == :u
-        feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.nu+1:G.ny, Z1=Δ.nu+1:G.ny, neg_feedback=false)
+        feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.nu+1:G.ny, Z1=Δ.nu+1:G.ny, pos_feedback=true)
     else
         error("Invalid type of lft ($type). Specify type=:l (:u) for lower (upper) lft.")
     end
@@ -392,13 +401,8 @@ Compute the Redheffer star product.
 For details, see Chapter 9.3 in
 **Zhou, K. and JC Doyle**. Essentials of robust control, Prentice hall (NJ), 1998
 """
-function starprod(G1, G2, dimy::Int, dimu::Int)
-    feedback(G1, G2, U1=G1.nu-dimu+1:G1.nu, Y1=G1.ny-dimy+1:G1.ny, W1=1:G1.nu-dimu, Z1=1:G1.ny-dimy,
-                     U2=1:dimy, Y2=1:dimu, W2=dimy+1:G2.nu, Z2=dimu+1:G2.ny,
-                     neg_feedback=false)
-end
-function starprod(sys1, sys2)
-    nu = size(sys2, 2)
-    ny = size(sys2, 1)
-    starp(sys1, sys2, nu, ny)
-end
+starprod(G1, G2, dimy::Int, dimu::Int) = feedback(G1, G2,
+         U1=G1.nu-dimu+1:G1.nu, Y1=G1.ny-dimy+1:G1.ny, W1=1:G1.nu-dimu, Z1=1:G1.ny-dimy,
+         U2=1:dimy, Y2=1:dimu, W2=dimy+1:G2.nu, Z2=dimu+1:G2.ny,
+         pos_feedback=true)
+starprod(sys1, sys2) = lft(sys1, sys2, :l)
