@@ -12,7 +12,7 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
         P21_fr = P_fr[ω_idx, ny+1:end, 1:nu]
         P22_fr = P_fr[ω_idx, ny+1:end, nu+1:end]
 
-        delay_matrix_inv_fr = Diagonal(exp.(im*sys.Tau*ω[ω_idx])) # Frequency response of the diagonal matrix with delays
+        delay_matrix_inv_fr = Diagonal(exp.(im*ω[ω_idx]*sys.Tau)) # Frequency response of the diagonal matrix with delays
         # Inverse of the delay matrix, so there should not be any minus signs in the exponents
 
         G_fr[ω_idx,:,:] .= P11_fr + P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
@@ -21,6 +21,20 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
     return G_fr
 end
 
+function evalfr(sys::DelayLtiSystem, s)
+    (ny, nu) = size(sys)
+
+    P_fr = evalfr(sys.P.P, s)
+
+    P11_fr = P_fr[1:ny, 1:nu]
+    P12_fr = P_fr[1:ny, nu+1:end]
+    P21_fr = P_fr[ny+1:end, 1:nu]
+    P22_fr = P_fr[ny+1:end, nu+1:end]
+
+    delay_matrix_inv_fr = Diagonal(exp.(s*sys.Tau))
+
+    return P11_fr + P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr
+end
 
 """
     `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
@@ -223,7 +237,7 @@ function _linscale(p::Poly, a)
 end
 
 # Coefficeints for Padé approximations
-# Q_COEFFS = [Poly([binomial(N,i)*prod(N+1:2*N-i) for i=0:N]) for N=1:10]
+# PADE_Q_COEFFS = [Poly([binomial(N,i)*prod(N+1:2*N-i) for i=0:N]) for N=1:10]
 const PADE_Q_COEFFS =  [[2, 1],
  [12, 6, 1],
  [120, 60, 12, 1],

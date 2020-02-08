@@ -47,8 +47,9 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
 
-
-
+# evalfr
+s_vec = [0, 1im, 1, 1 + 1im]
+@test [evalfr(delay(2), s)[1] for s in s_vec] ≈ [exp(-2*s) for s in s_vec] rtol=1e-16
 
 ## Feedback
 # The first tests don't include delays, but the linear system is of DelayLtiForm type
