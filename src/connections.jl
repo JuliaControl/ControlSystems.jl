@@ -255,77 +255,80 @@ function feedback(sys::Union{StateSpace, DelayLtiSystem})
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)
-    sum(abs.(sys1.D)) != 0 && sum(abs.(sys2.D)) != 0 && error("There can not be a direct term (D) in both sys1 and sys2")
-    A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
+    if sys1.Ts != sys2.Ts # FIXME: replace with common_sample_time
+        error("Sampling time mismatch")
+    end
+
+    !(iszero(sys1.D) || iszero(sys2.D)) && error("There cannot be a direct term (D) in both sys1 and sys2")
+    A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C);
+         sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A,B,C,sys1.D)
+    
+    ss(A, B, C, sys1.D, sys1.Ts)
 end
 
 
 """
     feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
-        U1=1:size(s1,2), Y1=1:size(s1,1), U2=1:size(s2,2), Y2=1:size(s2,1),
-        W1=1:size(s1,2), Z1=1:size(s1,1), W2=Int[], Z2=Int[],
-        w_reorder=nothing, z_reorder=nothing,n
-        pos_feeback::Bool=false)
+             U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
+             Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
 
-`U1`, `Y1`, `U2`, `Y2` contains the indices of the signals that should be connected.
-`W1`, `Z1`, `W2`, `Z2` contains the signal indices of `s1` and `s2` that should be kept.
+`U1`, `Y1`, `U2`, `Y2` contain the indices of the signals that should be connected.
+`W1`, `Z1`, `W2`, `Z2` contain the signal indices of `s1` and `s2` that should be kept.
 
-Specify  `Wperm` and `Zperm` to reorder [W1; W2] and [Z1; Z2] in the resulting statespace model.
+Specify  `Wperm` and `Zperm` to reorder [w1; w2] and [z1; z2] in the resulting statespace model.
 
 Negative feedback is the default. Specify `pos_feedback=true` for positive feedback.
 
 See Zhou etc. for similar (somewhat less symmetric) formulas.
 """
-function feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
-    U1=1:size(s1,2), Y1=1:size(s1,1), U2=1:size(s2,2), Y2=1:size(s2,1),
-    W1=1:size(s1,2), Z1=1:size(s1,1), W2=Int[], Z2=Int[],
-    Wperm=nothing, Zperm=nothing,
-    pos_feedback::Bool=false)
+@views function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
+    U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
+    Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
+    if sys1.Ts != sys2.Ts # FIXME: replace with common_sample_time
+        error("Sampling time mismatch")
+    end
 
-
+    #= must define allunique(c::Colon) = true for the following checks to work
     if !allunique(Y1); @warn "Connecting single output to multiple inputs Y1=$Y1"; end
     if !allunique(Y2); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
     if !allunique(U1); @warn "Connecting multiple outputs to a single input U1=$U1"; end
     if !allunique(U2); @warn "Connecting a single output to multiple inputs U2=$U2"; end
+    =#
 
-    if length(U1) != length(Y2)
-        error("Dimensions of input u1 ($(length(U1))) and output y2 ($(length(Y2))) must be equal")
+    if (U1 isa Colon ? size(sys1, 2) : length(U1)) != (Y2 isa Colon ? size(sys2, 1) : length(Y2))
+        error("Lengths of U1 ($U1) and Y2 ($Y2) must be equal")
     end
-    if length(U2) != length(Y1)
-        error("Dimensions of input u2 ($(length(U2))) and output y1 ($(length(Y2))) must be equal")
+    if (U2 isa Colon ? size(sys2, 2) : length(U2)) != (Y1 isa Colon ? size(sys1, 1) : length(Y1))
+        error("Lengths of U1 ($U2) and Y2 ($Y1) must be equal")
     end
-
-
 
     α = pos_feedback ? 1 : -1 # The sign of feedback
 
-    s1_B1 = s1.B[:,W1]
-    s1_B2 = s1.B[:,U1]
-    s1_C1 = s1.C[Z1,:]
-    s1_C2 = s1.C[Y1,:]
-    s1_D11 = s1.D[Z1,W1]
-    s1_D12 = s1.D[Z1,U1]
-    s1_D21 = s1.D[Y1,W1]
-    s1_D22 = s1.D[Y1,U1]
+    s1_B1 = sys1.B[:,W1]
+    s1_B2 = sys1.B[:,U1]
+    s1_C1 = sys1.C[Z1,:]
+    s1_C2 = sys1.C[Y1,:]
+    s1_D11 = sys1.D[Z1,W1]
+    s1_D12 = sys1.D[Z1,U1]
+    s1_D21 = sys1.D[Y1,W1]
+    s1_D22 = sys1.D[Y1,U1]
 
-    s2_B1 = s2.B[:,W2]
-    s2_B2 = s2.B[:,U2]
-    s2_C1 = s2.C[Z2,:]
-    s2_C2 = s2.C[Y2,:]
-    s2_D11 = s2.D[Z2,W2]
-    s2_D12 = s2.D[Z2,U2]
-    s2_D21 = s2.D[Y2,W2]
-    s2_D22 = s2.D[Y2,U2]
-
+    s2_B1 = sys2.B[:,W2]
+    s2_B2 = sys2.B[:,U2]
+    s2_C1 = sys2.C[Z2,:]
+    s2_C2 = sys2.C[Y2,:]
+    s2_D11 = sys2.D[Z2,W2]
+    s2_D12 = sys2.D[Z2,U2]
+    s2_D21 = sys2.D[Y2,W2]
+    s2_D22 = sys2.D[Y2,U2]
 
     if iszero(s1_D22) || iszero(s2_D22)
-        A = [s1.A + α*s1_B2*s2_D22*s1_C2        α*s1_B2*s2_C2;
-                 s2_B2*s1_C2            s2.A + α*s2_B2*s1_D22*s2_C2]
+        A = [sys1.A + α*s1_B2*s2_D22*s1_C2        α*s1_B2*s2_C2;
+                 s2_B2*s1_C2            sys2.A + α*s2_B2*s1_D22*s2_C2]
 
         B = [s1_B1 + α*s1_B2*s2_D22*s1_D21        α*s1_B2*s2_D21;
                       s2_B2*s1_D21            s2_B1 + α*s2_B2*s1_D22*s2_D21]
@@ -334,25 +337,33 @@ function feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
         D = [s1_D11 + α*s1_D12*s2_D22*s1_D21        α*s1_D12*s2_D21;
                       s2_D12*s1_D21           s2_D11 + α*s2_D12*s1_D22*s2_D21]
     else
-        R1 = inv(I - α*s2_D22*s1_D22) # inv seems to be better than lu
-        R2 = inv(I - α*s1_D22*s2_D22)
+        # inv seems to be better than lu
+        R1 = try
+            inv(α*I - s2_D22*s1_D22) # slightly faster than α*inv(I - α*s2_D22*s1_D22)
+        catch
+            error("Illposed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+        end
 
-        A = [s1.A + α*s1_B2*R1*s2_D22*s1_C2        α*s1_B2*R1*s2_C2;
-                 s2_B2*R2*s1_C2            s2.A + α*s2_B2*R2*s1_D22*s2_C2]
+        R2 = try
+            inv(I - α*s1_D22*s2_D22)
+        catch
+            error("Illposed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+        end
 
-        B = [s1_B1 + α*s1_B2*R1*s2_D22*s1_D21        α*s1_B2*R1*s2_D21;
+        A = [sys1.A + s1_B2*R1*s2_D22*s1_C2        s1_B2*R1*s2_C2;
+                 s2_B2*R2*s1_C2            sys2.A + α*s2_B2*R2*s1_D22*s2_C2]
+
+        B = [s1_B1 + s1_B2*R1*s2_D22*s1_D21        s1_B2*R1*s2_D21;
                      s2_B2*R2*s1_D21            s2_B1 + α*s2_B2*R2*s1_D22*s2_D21]
-        C = [s1_C1 + α*s1_D12*R1*s2_D22*s1_C2        α*s1_D12*R1*s2_C2;
+        C = [s1_C1 + s1_D12*R1*s2_D22*s1_C2        s1_D12*R1*s2_C2;
                      s2_D12*R2*s1_C2           s2_C1 + α*s2_D12*R2*s1_D22*s2_C2]
-        D = [s1_D11 + α*s1_D12*R1*s2_D22*s1_D21        α*s1_D12*R1*s2_D21;
+        D = [s1_D11 + s1_D12*R1*s2_D22*s1_D21        s1_D12*R1*s2_D21;
                      s2_D12*R2*s1_D21           s2_D11 + α*s2_D12*R2*s1_D22*s2_D21]
     end
-    # Return while reorganizing into the desired order
-    return StateSpace(A, isnothing(Wperm) ? B : B[:, Wperm],
-                         isnothing(Zperm) ? C : C[Zperm,:],
-                         isnothing(Wperm) && isnothing(Zperm) ? D : D[Zperm, Wperm])
-    #return StateSpace(A, B_tmp, C_tmp, D_tmp)
+
+    return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], sys1.Ts)
 end
+
 
 """
 `feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
@@ -369,16 +380,19 @@ feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 """
     lft(G, Δ, type=:l)
 
-Upper linear fractional transformation between systems `G` and `Δ`.
+Lower and upper linear fractional transformation between systems `G` and `Δ`.
+
+Specify `:l` lor lower LFT, and `:u` for upper LFT.
+
 `G` must have more inputs and outputs than `Δ` has outputs and inputs.
 
 For details, see Chapter 9.1 in
 **Zhou, K. and JC Doyle**. Essentials of robust control, Prentice hall (NJ), 1998
 """
-function lft(G, Δ, type=:l) # QUESTION: Or lft_u, and lft_l instead?
+function lft(G, Δ, type=:l)
 
     if !(G.nu > Δ.ny && G.ny > Δ.nu)
-        error("Must have G.nu > Δ.ny and G.ny > Δ.nu for lower/upper lft.")
+        error("Must have G.nu > Δ.ny and G.ny > Δ.nu for lower/upper lft")
     end
 
     if type == :l
@@ -386,9 +400,10 @@ function lft(G, Δ, type=:l) # QUESTION: Or lft_u, and lft_l instead?
     elseif type == :u
         feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.nu+1:G.ny, Z1=Δ.nu+1:G.ny, pos_feedback=true)
     else
-        error("Invalid type of lft ($type). Specify type=:l (:u) for lower (upper) lft.")
+        error("Invalid type of lft ($type), specify type=:l (:u) for lower (upper) lft")
     end
 end
+
 
 
 """

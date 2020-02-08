@@ -1,11 +1,9 @@
 @testset "test_demosystems" begin
 
-
 # Just some very simple tests of systemdepot
-@test size(systemdepot("woodberry")) == (2,2)
-@test size(systemdepot("fotd")) == (1,1)
-@test size(systemdepot("fotd")) == (1,1)
-@test freqresp(systemdepot("fotd", τ=2, T=5), [0.0])[:] == [1.0]
+@test size(DemoSystems.woodberry()) == (2,2)
+@test size(DemoSystems.fotd()) == (1,1)
+@test freqresp(DemoSystems.fotd(τ=2, T=5), [0.0])[:] == [1.0]
 
 
 Random.seed!(10)
