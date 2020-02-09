@@ -9,7 +9,6 @@ export  LTISystem,
         ss,
         tf,
         zpk,
-        ss2tf,
         LQG,
         isproper,
         # Linear Algebra
