@@ -721,7 +721,7 @@ pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
     if systems[1].nu + systems[1].ny > 2
-        warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
+        @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
     seriestype := :scatter
     title --> "Pole-zero map"
