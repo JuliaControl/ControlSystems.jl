@@ -67,9 +67,9 @@ export  LTISystem,
         # Frequency Response
         freqresp,
         evalfr,
-        bode,
-        nyquist,
-        sigma,
+        bode, bodev,
+        nyquist, nyquistv,
+        sigma, sigmav,
         # delay systems
         delay,
         # utilities
@@ -93,6 +93,7 @@ import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
+using MacroTools
 
 abstract type AbstractSystem end
 

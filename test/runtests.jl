@@ -26,8 +26,8 @@ my_tests = [
             "test_matrix_comps",
             "test_lqg",
             "test_synthesis",
-            "test_autovec",
             "test_partitioned_statespace",
+            "test_autovec",
             ]
 
 
