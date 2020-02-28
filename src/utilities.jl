@@ -6,42 +6,48 @@ numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
 numeric_type(::Type{TransferFunction{S}}) where S = numeric_type(S)
 numeric_type(::Type{<:StateSpace{T}}) where T = T
+numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
-to_matrix(T, A::Vector) = Matrix{T}(reshape(A, length(A), 1))
+to_matrix(T, A::AbstractVector) = Matrix{T}(reshape(A, length(A), 1))
 to_matrix(T, A::AbstractMatrix) = T.(A)  # Fallback
 to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
+# Do no sorting of eigenvalues
+@static if VERSION > v"1.2.0-DEV.0"
+    eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+    roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
+else
+    eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
+    roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
+end
 
+""" f = printpolyfun(var)
+`fun` Prints polynomial in descending order, with variable `var`
+"""
+printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printpoly(io, p, mimetype, descending_powers=true, var=var)
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
 # Allocate for maxiumum possible length of polynomial vector?
 #
 # This function rely on that the every complex roots is followed by its exact conjugate,
-# and that the first complex root in each pair has positive real part. This formaat is always
+# and that the first complex root in each pair has positive imaginary part. This format is always
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
     poly_factors = Vector{Poly{T}}()
-
     for k=1:length(roots)
         r = roots[k]
 
         if isreal(r)
             push!(poly_factors,Poly{T}([-real(r),1]))
         else
-            @static if VERSION > v"1.2.0-DEV.0" # Flipped order in this version
-                if imag(r) > 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
-                    continue
-                end
-            else
-                if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
-                    continue
-                end
+            if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
+                continue
             end
 
             if k == length(roots) || r != conj(roots[k+1])
@@ -99,7 +105,8 @@ function unwrap!(M::Array, dim=1)
         # d = M[i,:,:,...,:] - M[i-1,:,...,:]
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
-        M[alldims(i)...] -= floor.((d .+ π) / 2π) * 2π
+        π2 = eltype(M)(2π)
+        M[alldims(i)...] -= floor.((d .+ π) / π2) * π2
     end
     return M
 end

@@ -54,9 +54,17 @@ function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
     return TransferFunction{eltype(Gnew_matrix)}(Gnew_matrix, G.Ts)
 end
 
-function convert(::Type{StateSpace{T,MT}}, sys::StateSpace) where {T, MT}
-    return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
+function convert(::Type{S}, sys::StateSpace) where {T, MT, S <:StateSpace{T,MT}}
+    if sys isa S
+        return sys
+    else
+        return StateSpace{T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), sys.Ts)
+    end
 end
+
+Base.convert(::Type{HeteroStateSpace{AT,BT,CT,DT}}, s::StateSpace{T,MT}) where {T,MT,AT,BT,CT,DT} = HeteroStateSpace{promote_type(MT,AT),promote_type(MT,BT),promote_type(MT,CT),promote_type(MT,DT)}(s.A,s.B,s.C,s.D,s.Ts)
+
+Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
 function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
     T = Base.promote_op(/,T0,T0)
@@ -236,7 +244,7 @@ function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) whe
         num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
-    TransferFunction{SisoRational{T}}(matrix, get_Ts(sys))
+    TransferFunction{SisoRational{T}}(matrix, sys.Ts)
 end
 function convert(::Type{TransferFunction{SisoRational}}, sys::StateSpace{T0}) where {T0<:Number}
     T = typeof(one(T0)/one(T0))
@@ -253,7 +261,7 @@ function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
-    TransferFunction{SisoZpk{T,TR}}(matrix, get_Ts(sys))
+    TransferFunction{SisoZpk{T,TR}}(matrix, sys.Ts)
 end
 function convert(::Type{TransferFunction{SisoZpk}}, sys::StateSpace{T0}) where {T0<:Number}
     T = typeof(one(T0)/one(T0))
@@ -277,12 +285,12 @@ end
 # TODO: Could perhaps be made more accurate. See: An accurate and efficient
 # algorithm for the computation of the # characteristic polynomial of a general square matrix.
 function charpoly(A::AbstractMatrix{<:Number})
-    Λ = eigvals(A)
+    Λ = eigvalsnosort(A)
 
     return prod(roots2poly_factors(Λ)) # Compute the polynomial factors directly?
 end
 function charpoly(A::AbstractMatrix{<:Real})
-    Λ = eigvals(A)
+    Λ = eigvalsnosort(A)
     return prod(roots2real_poly_factors(Λ))
 end
 

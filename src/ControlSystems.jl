@@ -1,8 +1,11 @@
 module ControlSystems
 
 export  LTISystem,
+        AbstractStateSpace,
         StateSpace,
+        HeteroStateSpace,
         TransferFunction,
+        DelayLtiSystem,
         ss,
         tf,
         zpk,
@@ -21,7 +24,8 @@ export  LTISystem,
         lqgi,
         covar,
         norm,
-        norminf,
+        hinfnorm,
+        linfnorm,
         gram,
         ctrb,
         obsv,
@@ -63,6 +67,11 @@ export  LTISystem,
         # Frequency Response
         freqresp,
         evalfr,
+        bode,
+        nyquist,
+        sigma,
+        # delay systems
+        delay,
         # utilities
         num,    #Deprecated
         den,    #Deprecated
@@ -73,9 +82,13 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Polynomials, OrdinaryDiffEq, Plots, LaTeXStrings, LinearAlgebra, MacroTools
+using Plots, LaTeXStrings, LinearAlgebra
+import Polynomials
+import Polynomials: Poly, coeffs, polyval
+using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
+import Base: getproperty
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
@@ -89,7 +102,6 @@ include("types/SisoTf.jl")
 
 # Transfer functions and tranfer function elemements
 include("types/TransferFunction.jl")
-include("types/SisoTfTypes/polyprint.jl")
 include("types/SisoTfTypes/SisoZpk.jl")
 include("types/SisoTfTypes/SisoRational.jl")
 include("types/SisoTfTypes/promotion.jl")
@@ -97,10 +109,12 @@ include("types/SisoTfTypes/conversion.jl")
 
 include("types/StateSpace.jl")
 
+include("types/PartionedStateSpace.jl")
+include("types/DelayLtiSystem.jl")
+
 # Convenience constructors
 include("types/tf.jl")
 include("types/zpk.jl")
-include("types/ss.jl")
 
 include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
 
@@ -124,10 +138,13 @@ include("synthesis.jl")
 include("simulators.jl")
 include("pid_design.jl")
 
+include("delay_systems.jl")
+
 include("plotting.jl")
 
 @deprecate num numvec
 @deprecate den denvec
+@deprecate norminf hinfnorm
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())
