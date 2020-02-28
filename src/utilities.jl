@@ -124,13 +124,13 @@ index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
 
-function extractvarname(a)
+function _extract_varname(a)
     if typeof(a) == Symbol
         return a
     elseif a.head == :(::)
         return a.args[1]
     else
-        return extractvarname(a.args[1])
+        return _extract_varname(a.args[1])
     end
 end
 
@@ -159,15 +159,11 @@ macro autovec(indices, nout, f)
         end
     end
 
-    args = map(dict[:args]) do a
-        a isa Expr ? a.args[1] : a
-    end
-
     fname = dict[:name]
     args = get(dict, :args, [])
     kwargs = get(dict, :kwargs, [])
-    argnames = extractvarname.(args)
-    kwargnames = extractvarname.(kwargs)
+    argnames = _extract_varname.(args)
+    kwargnames = _extract_varname.(kwargs)
     quote
         $(esc(f)) # Original function, should be at top line so that docs get correctly attached
 
