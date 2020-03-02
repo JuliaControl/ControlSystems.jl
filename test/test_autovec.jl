@@ -9,14 +9,28 @@ mag, phase, w = bode(sys)
 @test size(mag) == size(phase) == (size(w,1), 1, 1)
 
 # Check output of bodev and make sure dimensions are correct
-mag, phase, w = bodev(sys)
-@test size(mag) == size(phase) == size(w)
+magv, phasev, w = bodev(sys)
+@test size(magv) == size(phasev) == size(w)
+@test vec(mag) == magv && vec(phase) == phasev
 
 w = exp10.(LinRange(-3,3,10))
 mag, phase, _ = bodev(sys, w)
 @test size(mag) == size(phase) == size(w)
 
 # Test that we can define varous kinds of methods with autovec
+
+# Test arguments
+ControlSystems.@autovec (2,) 2 function t0(a, b::Int, c::Float64=1.0)
+    return a, [b c]
+end
+
+@test @isdefined t0
+@test @isdefined t0v
+@test t0(4, 5) == (4,[5.0 1.0])
+@test t0v(4, 5) == (4,[5.0, 1.0])
+
+@test t0v(4, 5, 6.0) == (4,[5.0, 6.0])
+@test t0v(4, 5, 6.0) == (4,[5.0, 6.0])
 
 # Test keyword arguments
 ControlSystems.@autovec (2,) 2 function t1(; kw=1)
@@ -44,7 +58,12 @@ end
 @test t2(kw=2) == (2,[2 2])
 @test t2v(kw=2) == (2,[2, 2])
 
-@test_throws MethodError t2(kw=2.) # This method should ont be defined
+@test_throws MethodError t2(kw=2.) # This method should not be defined
+
+# Check MIMO
+mimo_sys = ss([-1 1; 0 -3], [0 1; 1 2], [0 1], [0 0])
+@test_throws ArgumentError bodev(mimo_sys) # This method should throw error
+
 
 
 end

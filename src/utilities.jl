@@ -124,16 +124,6 @@ index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
 
-function _extract_varname(a)
-    if typeof(a) == Symbol
-        return a
-    elseif a.head == :(::)
-        return a.args[1]
-    else
-        return _extract_varname(a.args[1])
-    end
-end
-
 """
 @autovec (indices...) nout f() = (a, b, c)
 
@@ -165,13 +155,7 @@ macro autovec(indices, nout, f)
     argnames = _extract_varname.(args)
     kwargnames = _extract_varname.(kwargs)
     quote
-        $(esc(f)) # Original function, should be at top line so that docs get correctly attached
-
-        # TODO following row does not work, existing works... don't understand why
-        # `$($(esc(dict[:name])))v($($(esc.(get(dict, :args, []))...)); $($(esc.(get(dict, :kwargs, []))...)))`
-        # TODO works without the whereparam, but complains when it's used in f
-        # $(isempty(dict[:whereparams]) ? :() : :( where {$(esc.(get(dict, :whereparams, []))...)}))
-        # `$($(esc(dict[:name])))v($(join([arg for arg in $(esc(dict[:args]))], ", ")); $([kwarg for kwarg in $(esc(dict[:kwargs]))]...))`
+        $(esc(f)) # Original function
 
         """ 
 
@@ -188,8 +172,9 @@ macro autovec(indices, nout, f)
                                    $(map(x->Expr(:(=), esc(x), esc(x)), kwargnames)...))
             return $return_exp
         end
-
-        # Export has problems with testing, might as well just have them manually added
-        # export $(esc(fname)), $(esc(Symbol(fname, "v")))
     end
+end
+
+function _extract_varname(a)
+    typeof(a) == Symbol ? a : _extract_varname(a.args[1])
 end
