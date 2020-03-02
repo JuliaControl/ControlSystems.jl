@@ -115,8 +115,8 @@ end
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
 
-"""
-outs = index2range(ind1, ind2)
+"""outs = index2range(ind1, ind2)
+
 Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
 index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
@@ -124,8 +124,7 @@ index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
 
-"""
-@autovec (indices...) nout f() = (a, b, c)
+"""@autovec (indices...) nout f() = (a, b, c)
 
 A macro that helps in creating versions of functions where excessive dimensions 
 are removed automatically for specific outputs. `indices` are the indexes of the 
@@ -157,9 +156,9 @@ macro autovec(indices, nout, f)
     quote
         $(esc(f)) # Original function
 
-        """ 
+        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
 
-        For use with SISO systems where it acts the same as `$($(esc(dict[:name])))` 
+        For use with SISO systems where it acts the same as `$($(esc(fname)))` 
         but with the extra dimensions removed in the returned values.
         """
         function $(esc(Symbol(fname, "v")))($(args...); $(kwargs...))::$rtype where {$(get(dict, :whereparams, [])...)}
