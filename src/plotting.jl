@@ -255,7 +255,7 @@ end
 """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.
+optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
@@ -270,7 +270,7 @@ bodeplot
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
-        if _PlotScale == "dB"
+        if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
 
