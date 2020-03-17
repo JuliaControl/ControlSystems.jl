@@ -69,6 +69,28 @@ function seriesextrema(xylims, plotattributes, subplot)
 end
 extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
+function getPhaseTicks(x, minmax)
+    minx, maxx =  minmax
+    min               = ceil(minx/90)
+    max               = floor(maxx/90)
+    if max-min < 5
+        ## If we span less than a full rotation 45° steps are ok
+        major = ((min-0.5):0.5:(max+0.5)).*90
+    else
+        ## Create additional 45° before/behind first/last plot
+        ## this helps identifying at the edges.
+        major = [(min-0.5);min:max;(max+0.5)].*90
+    end
+    if Plots.backend() != Plots.GRBackend()
+        majorText = [latexstring("\$ $(round(Int64,i))\$") for i = major]
+    else
+        majorText = ["$(round(Int64,i))" for i = major]
+    end
+
+    return major, majorText
+
+end
+
 function getLogTicks(x, minmax)
     minx, maxx =  minmax
     major_minor_limit = 6
@@ -255,7 +277,7 @@ end
 """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.
+optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
@@ -270,7 +292,7 @@ bodeplot
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
-        if _PlotScale == "dB"
+        if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
 
@@ -307,6 +329,7 @@ bodeplot
                     grid      --> true
                     xscale    --> :log10
                     ylims      := ylimsphase
+                    yticks    --> getPhaseTicks(phasedata, getlims(:ylims, plotattributes, phasedata))
                     yguide    --> "Phase (deg)"
                     subplot --> s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
