@@ -60,6 +60,41 @@ end
 
 @test_throws MethodError t2(kw=2.) # This method should not be defined
 
+# Test arguments simple method definition
+ControlSystems.@autovec (2,) 2 t3(a, b::Int, c::Float64=1.0) = a, [b c]
+
+@test @isdefined t3
+@test @isdefined t3v
+@test t3(4, 5) == (4,[5.0 1.0])
+@test t3v(4, 5) == (4,[5.0, 1.0])
+
+@test t3v(4, 5, 6.0) == (4,[5.0, 6.0])
+@test t3v(4, 5, 6.0) == (4,[5.0, 6.0])
+
+# Test keyword arguments simple method definition
+ControlSystems.@autovec (2,) 2 t4(; kw=1) = kw, [kw kw]
+
+@test @isdefined t4
+@test @isdefined t4v
+@test t4() == (1,[1 1])
+@test t4v() == (1,[1, 1])
+
+@test t4(kw=2) == (2,[2 2])
+@test t4v(kw=2) == (2,[2, 2])
+
+# Test type constraints on keyword arguments simple method definition
+ControlSystems.@autovec (2,) 2 t5(; kw::T=1) where {T <: Integer} = kw, [kw kw]
+
+@test @isdefined t5
+@test @isdefined t5v
+@test t5() == (1,[1 1])
+@test t5v() == (1,[1, 1])
+
+@test t5(kw=2) == (2,[2 2])
+@test t5v(kw=2) == (2,[2, 2])
+
+@test_throws MethodError t2(kw=2.) # This method should not be defined
+
 # Check MIMO
 mimo_sys = ss([-1 1; 0 -3], [0 1; 1 2], [0 1], [0 0])
 @test_throws ArgumentError bodev(mimo_sys) # This method should throw error
