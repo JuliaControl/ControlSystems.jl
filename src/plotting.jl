@@ -298,7 +298,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, magdata
                 end
                 plotphase || continue
@@ -312,7 +312,7 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
@@ -730,7 +730,7 @@ pzmap
         z,p,k = zpkdata(system)
         if !isempty(z[1])
             @series begin
-                markershape := :c
+                markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
                 real(z[1]),imag(z[1])
@@ -738,7 +738,7 @@ pzmap
         end
         if !isempty(p[1])
             @series begin
-                markershape := :x
+                markershape --> :x
                 markersize := 15.
                 real(p[1]),imag(p[1])
             end
@@ -749,7 +749,7 @@ pzmap
             S,C = sin.(v),cos.(v)
             @series begin
                 linestyle --> :dash
-                c := :black
+                linecolor := :black
                 grid --> true
                 C,S
             end
