@@ -298,7 +298,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, magdata
                 end
                 plotphase || continue
@@ -312,7 +312,7 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
