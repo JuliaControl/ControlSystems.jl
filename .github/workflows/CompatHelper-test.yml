@@ -1,9 +1,6 @@
 name: CompatHelper
 
 on:
-  schedule:
-    - cron: '00 * * * *'
-on:
   pull_request:
     types: [opened, reopened, edited]
 
