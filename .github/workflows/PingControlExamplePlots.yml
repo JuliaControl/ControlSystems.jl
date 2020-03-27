@@ -13,4 +13,4 @@ jobs:
           curl -X POST https://api.github.com/repos/mfalt/ControlExamplePlots.jl/dispatches \
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -u ${{ secrets.ACCESS_TOKEN }} \
-          --data '{"event_type": "prupdate", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "callevent":  ${{ github.event.action }} }}'
+          --data '{"event_type": "prupdate", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "callevent":  ${{ github.event }} }}'
