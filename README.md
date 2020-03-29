@@ -1,6 +1,7 @@
 # ControlSystems.jl
 
 [![Build Status](https://travis-ci.org/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.org/JuliaControl/ControlSystems.jl)
+[![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/C/ControlSystems.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![Gitter](https://badges.gitter.im/JuliaControl/ControlSystems.jl.svg)](https://gitter.im/JuliaControl/ControlSystems.jl?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/stable)
@@ -17,6 +18,9 @@ Pkg.add("ControlSystems")
 ```
 
 ## News
+### 2019-11-03
+- Poles and zeros are "not sorted" as in Julia versions < 1.2, even on newer versions of Julia. This should imply that complex conjugates are kept together.
+
 ### 2019-05-28
 #### Delay systems
 - We now support systems with time delays. Example:
@@ -71,7 +75,7 @@ Some of the available commands are:
 ##### Constructing systems
 ss, tf, zpk, ss2tf
 ##### Analysis
-pole, tzero, norm, norminf, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
+pole, tzero, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
 ##### Synthesis
 care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
 ###### PID design

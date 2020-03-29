@@ -109,38 +109,183 @@ D_static = ss([0.704473 1.56483; -1.6661 -2.16041], 0.07)
 @test norm(D_221) ≈ 3.4490083195926426
 @test norm(ss([1],[2],[3],[4])) == Inf
 
-# Test Hinfinity norm computations
+#
+## Test Hinfinity norm computations
+#
+# Continuous
+Ninf, ω_peak = hinfnorm(ss(-1, 1, 1, 0))
+@test Ninf ≈ 1 rtol=1e-6
+@test ω_peak ≈ 0 rtol=1e-6
+
+Ninf, ω_peak = hinfnorm(ss(-1, 1, 1, 1))
+@test Ninf ≈ 2 rtol=1e-6
+@test ω_peak ≈ 0 rtol=1e-6
+
+Ninf, ω_peak = hinfnorm(ss(1.5))
+@test Ninf ≈ 1.5 rtol=1e-6
+@test ω_peak ≈ 0 rtol=1e-6
+
+
 tolHinf = 1e-12
 @test norm(C_212, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
 @test norm(C_222, Inf, tol=tolHinf) ≈ 0.242535625036333 atol=tolHinf
-Ninf, ω_peak = norminf(C_732, tol=tolHinf)
+Ninf, ω_peak = hinfnorm(C_732, tol=tolHinf)
 @test Ninf ≈ 4.899135403568278 atol=(10*tolHinf)
 @test ω_peak ≈ 6.112977387441163 atol=1e-6
 @test norm(f_C_211, Inf, tol=tolHinf) ≈ 1.0 atol=(2*tolHinf)
-Ninf, ω_peak =  norminf(f_C_211_bis, tol=tolHinf)
+Ninf, ω_peak =  hinfnorm(f_C_211_bis, tol=tolHinf)
 @test Ninf ≈ 1.0
 @test ω_peak ≈ 52.0
-@test norm(1/(s-1), Inf, tol=tolHinf) ≈ 1.0  # unstable system
 
-Ninf, ω_peak = norminf(C_22tf, tol=tolHinf)
+# unstable system
+sys = 1/(s-1)
+@inferred hinfnorm(sys)
+@test norm(sys, Inf, tol=tolHinf) ≈ Inf
+Ninf, ω_peak = hinfnorm(sys; tol=tolHinf)
+@test Ninf == Inf
+@test isnan(ω_peak)
+Ninf, ω_peak = linfnorm(sys; tol=tolHinf)
+@test Ninf ≈ 1
+@test ω_peak ≈ 0
+
+
+Ninf, ω_peak = hinfnorm(C_static, tol=tolHinf)
+@test Ninf ≈ 1.760164138376307 atol=1e-12
+@test ω_peak ≈ 0 atol=1e-12
+@inferred hinfnorm(C_static, tol=tolHinf)
+
+Ninf, ω_peak = hinfnorm(C_22tf, tol=tolHinf)
 @test Ninf ≈ 3.014974550173459 atol=(10*tolHinf)
 @test ω_peak ≈ 3.162123338668049 atol=1e-8
 
-Ninf, ω_peak = norminf(D_221, tol=tolHinf)
+# Poles on the imaginary axis
+# Only integrator
+Ninf, ω_peak = hinfnorm(ss(0.0, 1, 1, 0))
+@test Ninf == Inf
+@test ω_peak ≈ 0
+
+# Integrator and lag
+Ninf, ω_peak = hinfnorm(ss([-2.0 1; 0 0], [0; 1], [1 0], 0))
+@test Ninf == Inf
+@test ω_peak ≈ 0
+
+# 1/(s^2 + 1)
+Ninf, ω_peak = hinfnorm(ss([0 1.0; -1.0 0], [1; 0], [0 1], 0))
+@test Ninf == Inf
+@test ω_peak ≈ 1
+
+# 1/(s - im), complex coefficients
+Ninf, ω_peak = hinfnorm(ss(im, 1, 1, 0))
+@test Ninf == Inf
+@test ω_peak ≈ 1
+
+
+# Complex coefficient systems
+Ninf, ω_peak = hinfnorm(ss(-1+im, 1, 1, 0))
+@test Ninf ≈ 1 rtol=1e-6
+@test ω_peak ≈ 1 rtol=1e-3
+
+Ninf, ω_peak = hinfnorm(ss(-1-im, 1, 1, 0))
+@test Ninf ≈ 1 rtol=1e-6
+@test ω_peak ≈ -1 rtol=1e-3
+
+# 1/(s + 1)/(s - 1)
+@test hinfnorm(ss([-1 1; 0 1], [0; 1], [1 0], 0))[1] == Inf
+@test linfnorm(ss([-1 1; 0 1], [0; 1], [1 0], 0))[1] ≈ 1 rtol=1e-6
+
+# Second order resonant system with peaks at ±sqrt(2)
+G = ss([0 1; -1 -1], [0; 1], [1 0], 0)
+Ninf, ω_peak = hinfnorm(G)
+@test Ninf ≈ 2/sqrt(3) rtol=1e-6
+@test ω_peak ≈ 1/sqrt(2) rtol=1e-3
+@test hinfnorm(G, tol=1e-8)[1] ≈ 2/sqrt(3) rtol=1e-8
+@test hinfnorm(G, tol=1e-10)[1] ≈ 2/sqrt(3) rtol=1e-10
+
+# Same version as above but frequency shifted by -1, i.e., two peaks at -1 ± sqrt(2)
+Ninf, ω_peak = hinfnorm(ss([0 1; -im -(1+2im)], [0; 1], [1 0], 0))
+@test Ninf ≈ 2/sqrt(3) rtol=1e-6
+@test abs(ω_peak+1) ≈ 1/sqrt(2) rtol=1e-3
+
+# Same version as above but frequency shifted by +1, i.e., two peaks at 1 ± sqrt(2)
+Ninf, ω_peak = hinfnorm( ss([0 1; im -1+2im], [0; 1], [1 0], 0))
+@test Ninf ≈ 2/sqrt(3) rtol=1e-6
+@test abs(ω_peak-1) ≈ 1/sqrt(2) rtol=1e-3
+
+
+# System with mutiple resonance peaks
+A = [-0.1*I        -Diagonal(1:10)
+     Diagonal(1:10) zeros(10,10)]
+
+Ninf, ω_peak = hinfnorm(ss(A, 0.1*[ones(10); zeros(10)], [zeros(1,10) ones(1,10)], 0))
+@test Ninf ≈ 1.05871265 rtol=1e-5
+@test ω_peak ≈ 0.9874 rtol=1e-4
+
+Ninf, ω_peak = hinfnorm(ss(A, 0.1*[ones(4); 2; ones(5); zeros(10)], [zeros(1,10) ones(1,10)], 0))
+@test Ninf ≈ 2.00918 rtol=1e-5
+@test ω_peak ≈ 4.9981 rtol=1e-4
+
+
+
+# Discrete Time
+Ninf, ω_peak =  hinfnorm(ss(0.8, 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 0
+
+Ninf, ω_peak =  hinfnorm(ss(-0.8, 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ pi
+
+Ninf, ω_peak = hinfnorm(D_221, tol=tolHinf)
 @test Ninf ≈ 17.794697451669421 atol=(20*tolHinf)
 @test ω_peak ≈ 0 atol=1e-8
-Ninf, ω_peak = norminf(D_422, tol=tolHinf)
+
+Ninf, ω_peak = linfnorm(D_422, tol=tolHinf)
 @test Ninf ≈ 3.360351099392252 atol=(10*tolHinf)
-@test ω_peak ≈ 8.320643111730551 atol=1e-8
-Ninf, ω_peak = norminf(D_311, tol=tolHinf)
+@test ω_peak ≈ 8.320643111730551 atol=1e-6
+Ninf, ω_peak = hinfnorm(D_422, tol=tolHinf)
+@test Ninf == Inf
+@test isnan(ω_peak)
+
+
+Ninf, ω_peak = hinfnorm(D_311, tol=tolHinf)
 @test Ninf ≈ 4.458729529942810 atol=(10*tolHinf)
 @test ω_peak ≈ 11.878021287349698 atol=1e-6
-Ninf, ω_peak = norminf(C_static, tol=tolHinf)
-@test Ninf ≈ 1.760164138376307 atol=1e-12
-@test ω_peak ≈ 0 atol=1e-12
-Ninf, ω_peak = norminf(D_static, tol=tolHinf)
+
+Ninf, ω_peak = hinfnorm(D_static, tol=tolHinf)
 @test Ninf ≈ 3.205246234285972 atol=1e-12
 @test ω_peak ≈ 0 atol=1e-12
+
+# Pole on unit circle
+Ninf, ω_peak = hinfnorm(ss(1, 1, 1, 0, 1))
+@test Ninf == Inf
+@test ω_peak ≈ 0
+
+# Complex coefficients
+Ninf, ω_peak =  hinfnorm(ss(0.8*exp(1im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 1
+
+Ninf, ω_peak =  hinfnorm(ss(0.8*exp(-1im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ -1
+
+sys = hinfnorm(ss(0.8*exp(2.5im), 1, 1, 0, 1))
+Ninf, ω_peak =  hinfnorm(ss(0.8*exp(2.5im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 2.5
+Ninf, ω_peak = linfnorm(ss(0.8*exp(2.5im), 1, 1, 0, 1))
+@test Ninf ≈ 5 rtol=1e-6
+@test ω_peak ≈ 2.5
+
+
+# Unstable discrete-time system
+sys = ss(2, 3, 1, 1, 1)
+Ninf, ω_peak = hinfnorm(sys)
+@test Ninf == Inf
+@test isnan(ω_peak)
+Ninf, ω_peak = linfnorm(sys)
+@test Ninf ≈ 2.0 rtol=1e-6
+@test ω_peak ≈ 0
 
 
 A = [1  100  10000; .01  1  100; .0001  .01  1]

@@ -31,6 +31,9 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 # Substraction
 @test freqresp(P1 - delay(1), ω)[:] ≈ P1_fr .- exp.(-im*ω)
 
+## Multiplication by scalar
+@test freqresp(2*delay(1), ω)[:] ≈ 2*exp.(-im*ω)
+@test freqresp(2*(P1*delay(1)), ω)[:] ≈ 2*P1_fr.*exp.(-im*ω)
 
 ## Multiplication
 @test freqresp(P1 * delay(1), ω)[:] ≈ P1_fr .* exp.(-im*ω) rtol=1e-15
