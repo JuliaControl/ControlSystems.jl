@@ -75,14 +75,14 @@ function getLogTicks(x, minmax)
     minor_text_limit  = 8
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
-    major             = 10 .^ (min:max)
+    major             = exp10.(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
         majorText = ["10^{$(round(Int64,i))}" for i = min:max]
     end
     if max - min < major_minor_limit
-        minor     = [j*10^i for i = (min-1):(max+1) for j = 2:9]
+        minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
         if Plots.backend() != Plots.GRBackend()
             minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
         else
