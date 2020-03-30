@@ -88,6 +88,8 @@ To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a s
 Usage example:
 ```julia
 using LinearAlgebra # For identity matrix I
+using Plots
+
 A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
@@ -99,8 +101,8 @@ L = lqr(sys,Q,R)
 u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
@@ -185,10 +187,10 @@ If `x0` is not provided, a zero-vector is used.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
-function ltitr(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
-        x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
+function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::AbstractVecOrMat,
+        x0::VecOrMat=zeros(T, size(A, 1))) where T
     n = size(u, 1)
-    x = Array{T}(undef, size(A, 1), n)
+    x = similar(A, size(A, 1), n)
     for i=1:n
         x[:,i] = x0
         x0 = A * x0 + B * u[i,:]
@@ -197,11 +199,11 @@ function ltitr(A::Matrix{T}, B::Matrix{T}, u::AbstractVecOrMat{T},
 end
 
 
-function ltitr(A::Matrix{T}, B::Matrix{T}, u::Function, t,
-    x0::VecOrMat{T}=zeros(T, size(A, 1))) where T
+function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
+    x0::VecOrMat=zeros(T, size(A, 1))) where T
     iters = length(t)
-    x = Array{T}(undef, size(A, 1), iters)
-    uout = Array{T}(undef, size(B, 2), iters)
+    x = similar(A, size(A, 1), iters)
+    uout = similar(A, size(B, 2), iters)
 
     for i=1:iters
         x[:,i] = x0

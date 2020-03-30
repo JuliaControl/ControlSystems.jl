@@ -25,11 +25,11 @@ Q = I
 R = I
 L = lqr(sys,Q,R)
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lqr(A, B, Q, R)
@@ -87,21 +87,17 @@ Q = I
 R = I
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
-u(t,x) = -L*x # Form control law,
+u(x,t) = -L*x # Form control law,
 t=0:h:5
 x0 = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x, lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 """
 function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
-end
-
-function dlqr(A, B::Vector, Q, R)
-    dlqr(A, reshape(B, length(B), 1), Q, R)
 end
 
 """`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
@@ -192,9 +188,9 @@ Forms the negative feedback interconnection
 ```
 If no second system is given, negative identity feedback is assumed
 """
-function feedback(sys::StateSpace)
-    sys.ny != sys.nu && error("Use feedback(sys1::StateSpace,sys2::StateSpace) if sys.ny != sys.nu")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,sys.ny,sys.ny)))
+function feedback(sys::Union{StateSpace, DelayLtiSystem})
+    ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)

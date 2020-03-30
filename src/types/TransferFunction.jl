@@ -44,7 +44,6 @@ ninputs(G::TransferFunction) = size(G.matrix, 2)
 ## INDEXING ##
 Base.ndims(::TransferFunction) = 2
 Base.size(G::TransferFunction) = size(G.matrix)
-Base.size(G::TransferFunction, d) = size(G.matrix, d)
 Base.eltype(::Type{S}) where {S<:TransferFunction} = S
 
 function Base.getindex(G::TransferFunction{S}, inds...) where {S<:SisoTf}
@@ -141,6 +140,7 @@ end
 -(G::TransferFunction) = TransferFunction(-G.matrix, G.Ts)
 
 ## MULTIPLICATION ##
+
 function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
     if G1.nu != G2.ny
@@ -168,6 +168,7 @@ function /(n::Number, G::TransferFunction)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
+Base.:(/)(sys1::LTISystem, sys2::TransferFunction) = *(promote(sys1, ss(1/sys2))...) # This spcial case is needed to properly handle improper inverse transfer function (1/s)
 
 Base.:^(sys::TransferFunction, p::Integer) = Base.power_by_squaring(sys, p)
 

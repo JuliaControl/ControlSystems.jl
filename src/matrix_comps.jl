@@ -34,37 +34,35 @@ end
 """`dare(A, B, Q, R)`
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
-defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where A and R
-are non-singular.
+defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
 Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 function dare(A, B, Q, R)
-    G = try
-        B*inv(R)*B'
-    catch
-        error("R must be non-singular.")
+    if (!ishermitian(Q) || minimum(eigvals(real(Q))) < 0)
+        error("Q must be positive-semidefinite.");
+    end
+    if (!isposdef(R))
+        error("R must be positive definite.");
     end
 
-    Ait = try
-        inv(A)'
-    catch
-        error("A must be non-singular.")
-    end
+    n = size(A, 1);
 
-    Z = [A + G*Ait*Q   -G*Ait;
-         -Ait*Q        Ait]
+    E = [
+        Matrix{Float64}(I, n, n) B/R*B';
+        zeros(size(A)) A'
+    ];
+    F = [
+        A zeros(size(A));
+        -Q Matrix{Float64}(I, n, n)
+    ];
 
-    S = schur(Z)
-    S = ordschur(S, abs.(S.values).<=1)
-    U = S.Z
+    QZ = schur(F, E);
+    QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
 
-    (m, n) = size(U)
-    U11 = U[1:div(m, 2), 1:div(n,2)]
-    U21 = U[div(m,2)+1:m, 1:div(n,2)]
-    return U21/U11
+    return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
 end
 
 """`dlyap(A, Q)`
@@ -72,7 +70,7 @@ end
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 """
-function dlyap(A::AbstractMatrix{T}, Q) where T
+function dlyap(A::AbstractMatrix, Q)
     lhs = kron(A, conj(A))
     lhs = I - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
@@ -84,7 +82,7 @@ end
 Compute the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian. If `opt` is `:o`, computes the observability
 grammian."""
-function gram(sys::StateSpace, opt::Symbol)
+function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
@@ -107,11 +105,12 @@ Compute the observability matrix for the system described by `(A, C)` or `sys`.
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
 `gram(sys, :o)` is positive definite."""
-function obsv(A::AbstractMatrix{T}, C::AbstractMatrix{T}) where {T <: Number}
+function obsv(A::AbstractMatrix, C::AbstractMatrix)
+    T = promote_type(eltype(A), eltype(C))
     n = size(A, 1)
     ny = size(C, 1)
     if n != size(C, 2)
-        error("C must have the same number of columns as A")
+        throw(ArgumentError("C must have the same number of columns as A"))
     end
     res = fill(zero(T), n*ny, n)
     res[1:ny, :] = C
@@ -130,11 +129,12 @@ Compute the controllability matrix for the system described by `(A, B)` or
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite."""
-function ctrb(A::AbstractMatrix{T}, B::AbstractMatrix{T}) where {T <: Number}
+function ctrb(A::AbstractMatrix, B::AbstractMatrix)
+    T = promote_type(eltype(A), eltype(B))
     n = size(A, 1)
     nu = size(B, 2)
     if n != size(B, 1)
-        error("B must have the same number of rows as A")
+        throw(ArgumentError("B must have the same number of rows as A"))
     end
     res = fill(zero(T), n, n*nu)
     res[:, 1:nu] = B
@@ -153,7 +153,7 @@ white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac de
 The ouput is if Inf if the system is unstable. Passing white noise directly to
 the output will result in infinite covariance in the corresponding outputs
 (D*W*D' .!= 0) for contunuous systems."""
-function covar(sys::StateSpace, W)
+function covar(sys::AbstractStateSpace, W)
     (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
@@ -201,7 +201,7 @@ covar(C::Union{AbstractMatrix,UniformScaling}, R) = C*R*C'
 
 `norm(sys, Inf)` computes the L∞ norm of the LTI system `sys`.
 The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
-If the peak gain frequency is required as well, use the function `norminf` instead.
+If the peak gain frequency is required as well, use the function `hinfnorm` instead.
 
 `tol` is an optional keyword argument, used only for the computation of L∞ norms.
 It represents the desired relative accuracy for the computed L∞ norm
@@ -216,15 +216,11 @@ For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
 """
-function LinearAlgebra.norm(sys::StateSpace, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
     if p == 2
         return sqrt(tr(covar(sys, I)))
     elseif p == Inf
-        if sys.Ts == 0
-            return normLinf_twoSteps_ct(sys,tol)[1]
-        else
-            return normLinf_twoSteps_dt(sys,tol)[1]
-        end
+        return hinfnorm(sys; tol=tol)[1]
     else
         error("`p` must be either `2` or `Inf`")
     end
@@ -235,163 +231,240 @@ function LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
 end
 
 """
-`.. (peakgain, peakgainfrequency) = norminf(sys; tol=1e-6)`
+`   (Ninf, ω_peak) = hinfnorm(sys; tol=1e-6)`
 
-Compute the L∞ norm of the LTI system `sys`, together with the frequency
-`peakgainfrequency` (in rad/TimeUnit) at which the gain achieves its peak value `peakgain`.
-The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
+Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
+`ω_peak` at which the gain Ninf is achieved.
 
-`tol` is an optional keyword argument representing the desired relative accuracy for
-the computed L∞ norm (this is not an absolute certificate however).
+`Ninf := sup_ω σ_max[sys(iω)]`  if `G` is stable (σ_max = largest singular value)
+      :=        `Inf'           if `G` is unstable
 
-sys is first converted to a state space model if needed.
+`tol` is an optional keyword argument for the desired relative accuracy for
+the computed H∞ norm (not an absolute certificate).
+
+`sys` is first converted to a state space model if needed.
 
 The L∞ norm computation implements the 'two-step algorithm' in:
 N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
 of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
-For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
+For the discrete-time version, see: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
 calculation for generalized state space systems in continuous and discrete time',
 American Control Conference, 1991.
+
+See also `linfnorm`.
 """
-function norminf(sys::StateSpace; tol=1e-6)
-    if sys.Ts == 0
-        return normLinf_twoSteps_ct(sys,tol)
+function hinfnorm(sys::AbstractStateSpace; tol=1e-6)
+    if iscontinuous(sys)
+        return _infnorm_two_steps_ct(sys, :hinf, tol)
     else
-        return normLinf_twoSteps_dt(sys,tol)
+        return _infnorm_two_steps_dt(sys, :hinf, tol)
     end
 end
+hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
-function norminf(sys::TransferFunction, ; tol=1e-6)
-    return norminf(ss(sys), tol=tol)
+"""
+`   (Ninf, ω_peak) = linfnorm(sys; tol=1e-6)`
+
+Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
+`ω_peak` at which the gain `Ninf` is achieved.
+
+`Ninf := sup_ω σ_max[sys(iω)]` (σ_max denotes the largest singular value)
+
+`tol` is an optional keyword argument representing the desired relative accuracy for
+the computed L∞ norm (this is not an absolute certificate however).
+
+`sys` is first converted to a state space model if needed.
+
+The L∞ norm computation implements the 'two-step algorithm' in:
+N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
+of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
+For the discrete-time version, see:
+P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm calculation for generalized state
+space systems in continuous and discrete time', American Control Conference, 1991.
+
+See also `hinfnorm`.
+"""
+function linfnorm(sys::AbstractStateSpace; tol=1e-6)
+    if iscontinuous(sys)
+        return _infnorm_two_steps_ct(sys, :linf, tol)
+    else
+        return _infnorm_two_steps_dt(sys, :linf, tol)
+    end
 end
+linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol=tol)
 
-function normLinf_twoSteps_ct(sys::StateSpace, tol=1e-6, maxIters=1000, approximag=1e-10)
+function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approximag=1e-10)
+    # norm type :hinf or :linf the reason that to not use `hinfnorm(sys) = isstable(sys) : linfnorm ? (Inf, Nan)`
+    # is to avoid re computing the poles and return the peak frequencies for, e.g., 1/(s^2 + 1)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
-    # outputs: pair of Float64, namely L∞ norm approximation and frequency fpeak at which it is achieved
-    T = promote_type(numeric_type(sys), Float64)
+    # outputs: An approximatation of the L∞ norm and the frequency ω_peak at which it is achieved
+    # QUESTION: The tolerance for determining if there are poles on the imaginary axis
+    # would not be very appropriate for systems with slow dynamics?
+    T = promote_type(real(numeric_type(sys)), Float64)
+
+    on_imag_axis = z -> abs(real(z)) < approximag # Helper fcn for readability
+
     if sys.nx == 0  # static gain
-        return (svdvals(sys.D)[1], T(0))
+        return (opnorm(sys.D), T(0))
     end
-    p = pole(sys)
+
+    pole_vec = pole(sys)
+
     # Check if there is a pole on the imaginary axis
-    pidx = findfirst(map(x->isapprox(x,0.0),real(p)))
+    pidx = findfirst(on_imag_axis, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), imag(p[pidx]))
+        return (T(Inf), imag(pole_vec[pidx]))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
-    else
-        # Initialization: computation of a lower bound from 3 terms
-        lb = maximum(svdvals(sys.D))
-        fpeak = T(Inf)
-        (lb, idx) = findmax([lb, T(maximum((svdvals(evalfr(sys,0)))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = T(0)
-        end
-        if isreal(p)  # only real poles
-            omegap = minimum(abs.(p))
-        else  # at least one pair of complex poles
-            tmp = maximum(abs.(imag.(p)./(real.(p).*abs.(p))))
-            omegap = abs(p[argmax(tmp)])    # TODO This is highly suspicious
-        end
-        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, omegap*1im))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = omegap
+    end
+
+    if normtype == :hinf && any(z -> real(z) > 0, pole_vec)
+        return T(Inf), T(NaN) # The system is unstable
+    end
+
+    # Initialization: computation of a lower bound from 3 terms
+    if isreal(pole_vec)  # only real poles
+        ω_p = minimum(abs.(pole_vec))
+    else  # at least one pair of complex poles
+        maxidx = argmax([abs(imag(p)/real(p))/abs(p) for p in pole_vec])
+        ω_p = abs(pole_vec[maxidx])
+    end
+
+    m_vec_init = [0, ω_p, Inf]
+
+    (lb, idx) = findmax([opnorm(evalfr(sys, im*m_vec_init[1]));
+                         opnorm(evalfr(sys, im*m_vec_init[2]));
+                         opnorm(sys.D)])
+    ω_peak = m_vec_init[idx]
+
+    # Iterations
+    for iter=1:maxIters
+        gamma = (1+2*T(tol))*lb
+        R = sys.D'*sys.D - gamma^2*I
+        S = sys.D*sys.D' - gamma^2*I
+        M = sys.A-sys.B*(R\sys.D')*sys.C
+        H = [         M              -gamma*sys.B*(R\sys.B') ;
+               gamma*sys.C'*(S\sys.C)            -M'            ]
+
+        Λ = complex(eigvals(H)) # To make type stable
+
+        if numeric_type(sys) <: Real
+            # Only need to consider one eigenvalue in each complex-conjugate pairs
+            filter!(z -> imag(z) >= 0, Λ)
         end
 
-        # Iterations
-        iter = 1;
-        while iter <= maxIters
-            res = (1+2*T(tol))*lb
-            R = sys.D'*sys.D - res^2*I
-            S = sys.D*sys.D' - res^2*I
-            M = sys.A-sys.B*(R\sys.D')*sys.C
-            H = [         M              -res*sys.B*(R\sys.B') ;
-                   res*sys.C'*(S\sys.C)            -M'            ]
-            omegas = eigvals(H) .+ 0im # To make type stable
-            omegaps = imag.(omegas[ (abs.(real.(omegas)).<=approximag) .& (imag.(omegas).>=0) ])
-            sort!(omegaps)
-            if isempty(omegaps)
-                return (1+T(tol))*lb, fpeak
-            else  # if not empty, omegaps contains at least two values
-                ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
-                for mval in ms
-                    (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,mval*1im))))]) #TODO remove T() in julia 0.7.0
-                    if idx == 2
-                        fpeak = mval
-                    end
-                end
-            end
-            iter += 1
+        # Find eigenvalues on the imaginary axis
+        Λ_on_imag_axis = filter(on_imag_axis, Λ)
+
+        ω_vec = imag.(Λ_on_imag_axis)
+
+        sort!(ω_vec)
+
+        if isempty(ω_vec)
+            return (1+T(tol))*lb, ω_peak
         end
-        error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
+
+        # Improve the lower bound
+        # if not empty, ω_vec contains at least two values
+        for k=1:length(ω_vec)-1
+            mk = (ω_vec[k] + ω_vec[k+1])/2
+            sigmamax_mk = opnorm(evalfr(sys,mk*1im))
+            if sigmamax_mk > lb
+                lb = sigmamax_mk
+                ω_peak = mk
+            end
+        end
     end
+    error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
 end
 
-# discrete-time version of normHinf_twoSteps_ct above
-# The value fpeak returned by the function is in the range [0,pi)/sys.Ts (in rad/s)
-function normLinf_twoSteps_dt(sys::StateSpace,tol=1e-6, maxIters=1000, approxcirc=1e-8)
-    T = promote_type(numeric_type(sys), Float64)
+function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
+    # Discrete-time version of linfnorm_two_steps_ct above
+    # Compuations are done in normalized frequency θ
+
+    on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
+
+    T = promote_type(real(numeric_type(sys)), Float64)
+
     if sys.nx == 0  # static gain
-        return (svdvals(sys.D)[1], T(0))
+        return (opnorm(sys.D), T(0))
     end
-    p = pole(sys)
-    # Check first if there is a pole on the unit circle
-    pidx = findfirst(map(x->isapprox(x,1.0),abs.(p)))
+
+    pole_vec = pole(sys)
+
+    # Check if there is a pole on the unit circle
+    pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), angle(p[pidx])/abs(T(sys.Ts)))
-    else
-        # Initialization: computation of a lower bound from 3 terms
-        lb = T(maximum(svdvals(evalfr(sys,1))))  #TODO remove T() in julia 0.7.0
-        fpeak = T(0)
-        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,-1))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = T(pi)
-        end
-
-        p = p[imag(p).>0]
-        if ~isempty(p)  # not just real poles
-            # find frequency of pôle closest to unit circle
-            omegap = angle(p[findmin(abs.(abs.(p).-1))[2]])
-        else
-            omegap = T(pi)/2
-        end
-        (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys, exp(omegap*1im)))))]) #TODO remove T() in julia 0.7.0
-        if idx == 2
-            fpeak = omegap
-        end
-
-        # Iterations
-        iter = 1;
-        while iter <= maxIters
-            res = (1+2*T(tol))*lb
-            R = res^2*I - sys.D'*sys.D
-            RinvDt = R\sys.D'
-            L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
-                  zeros(T, sys.nx,sys.nx)      I]
-            M = [ I                                 zeros(T, sys.nx,sys.nx);
-                  sys.C'*(I+sys.D*RinvDt)*sys.C     L[1:sys.nx,1:sys.nx]']
-            # +0im to make type stable
-            zs = eigvals(L,M) .+ 0im # generalized eigenvalues
-            # are there eigenvalues on the unit circle?
-            omegaps = angle.(zs[ (abs.(abs.(zs).-1) .<= approxcirc) .& (imag(zs).>=0)])
-            sort!(omegaps)
-            if isempty(omegaps)
-                return (1+T(tol))*lb, fpeak/T(sys.Ts)
-            else  # if not empty, omegaps contains at least two values
-                ms = [(x+y)/2 for x=omegaps[1:end-1], y=omegaps[2:end]]
-                for mval in ms
-                    (lb, idx) = findmax([lb, T(maximum(svdvals(evalfr(sys,exp(mval*1im)))))]) #TODO remove T() in julia 0.7.0
-                    if idx == 2
-                        fpeak = mval
-                    end
-                end
-            end
-            iter += 1
-        end
-        error("In norminf: The computation of the H-infinity norm did not converge in $maxIters iterations")
+        return (T(Inf), angle(pole_vec[pidx])/T(sys.Ts))
     end
+
+    if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
+        return T(Inf), T(NaN) # The system is unstable
+    end
+
+    # Initialization: computation of a lower bound from 3 terms
+
+    if isreal(pole_vec)  # not just real poles
+        # find frequency of pôle closest to unit circle
+        θ_p = angle(pole_vec[argmin(abs.(abs.(pole_vec).-1))])
+    else
+        θ_p = T(pi)/2
+    end
+
+    if isreal(pole_vec)  # only real poles
+        ω_p = minimum(abs.(pole_vec))
+    else  # at least one pair of complex poles
+        maxidx = argmax([abs(imag(p)/real(p))/abs(p) for p in pole_vec])
+        ω_p = abs(pole_vec[maxidx])
+    end
+
+    m_vec_init = [0, θ_p, pi]
+
+    (lb, idx) = findmax([opnorm(evalfr(sys, exp(im*m))) for m in m_vec_init])
+    θ_peak = m_vec_init[idx]
+
+    # Iterations
+    for iter=1:maxIters
+        gamma = (1+2*T(tol))*lb
+        R = gamma^2*I - sys.D'*sys.D
+        RinvDt = R\sys.D'
+        L = [ sys.A+sys.B*RinvDt*sys.C  sys.B*(R\sys.B');
+              zeros(T, sys.nx,sys.nx)      I]
+        M = [ I                                 zeros(T, sys.nx,sys.nx);
+              sys.C'*(I+sys.D*RinvDt)*sys.C     L[1:sys.nx,1:sys.nx]']
+
+        Λ = complex(eigvals(L,M)) # complex is to ensure type stability
+
+        if numeric_type(sys) <: Real
+            # Only need to consider one eigenvalue in each complex-conjugate pairs
+            filter!(z -> imag(z) >= 0, Λ)
+        end
+
+        # Find eigenvalues on the unit circle
+        Λ_on_unit_cirlce = filter(on_unit_circle, Λ)
+
+        θ_vec = angle.(Λ_on_unit_cirlce)
+
+        sort!(θ_vec)
+
+        if isempty(θ_vec)
+            return (1+T(tol))*lb, θ_peak/T(sys.Ts)
+        end
+
+        # Improve the lower bound
+        # if not empty, θ_vec contains at least two values
+        for k=1:length(θ_vec)-1
+            mk = (θ_vec[k] + θ_vec[k+1])/2
+            sigmamax_mk = opnorm(evalfr(sys,exp(mk*1im)))
+            if sigmamax_mk > lb
+                lb = sigmamax_mk
+                θ_peak = mk
+            end
+        end
+    end
+    error("In _infnorm_two_steps_dt: The computation of the L∞ norm did not converge in $maxIters iterations")
 end
 
 
@@ -422,7 +495,7 @@ function balance(A, perm::Bool=true)
     return S, P, B
 end
 
-function cswap!(i::Integer, j::Integer, X::StridedMatrix{T}) where T<:Number
+function cswap!(i::Integer, j::Integer, X::StridedMatrix)
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end
@@ -439,7 +512,7 @@ See also `gram`, `baltrunc`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function balreal(sys::StateSpace)
+function balreal(sys::ST) where ST <: AbstractStateSpace
     P = gram(sys, :c)
     Q = gram(sys, :o)
 
@@ -469,7 +542,7 @@ function balreal(sys::StateSpace)
         display(Σ)
     end
 
-    sysr = ss(T*sys.A/T, T*sys.B, sys.C/T, sys.D), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.Ts), diagm(0 => Σ)
 end
 
 
@@ -482,7 +555,7 @@ See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = true)
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) where ST <: AbstractStateSpace
     sysbal, S = balreal(sys)
     S = diag(S)
     S = S[S .>= atol]
@@ -496,7 +569,7 @@ function baltrunc(sys::StateSpace; atol = sqrt(eps()), rtol = 1e-3, unitgain = t
         D = D/(C*inv(-A)*B)
     end
 
-    return ss(A,B,C,D), diagm(0 => S)
+    return ST(A,B,C,D,sys.Ts), diagm(0 => S)
 end
 
 """
@@ -509,13 +582,13 @@ C̃ = CT
 D̃ = D
 ```
 """
-function similarity_transform(sys::StateSpace, T)
+function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     Tf = factorize(T)
     A = Tf\sys.A*T
     B = Tf\sys.B
     C = sys.C*T
     D = sys.D
-    ss(A,B,C,D,sys.Ts)
+    ST(A,B,C,D,sys.Ts)
 end
 
 """
@@ -538,12 +611,12 @@ If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R
 
 See Stochastic Control, Chapter 4, Åström
 """
-function innovation_form(sys::StateSpace, R1, R2)
+function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
     K = kalman(sys, R1, R2)
-    ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
-function innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
-	ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
 end

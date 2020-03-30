@@ -44,12 +44,30 @@ default to extrema(wmag) if xlims/ylims not defined or empty
 """
 function getlims(xylims, plotattributes, wmag)
     lims = get(plotattributes, xylims, extrema(wmag))
-    if lims isa Tuple{<:Number, <:Number} # If x/ylims not supplied as empty
-        return lims
-    else
-        return extrema(wmag)
+    if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
+        lims = extrema(wmag)
+    end
+    if !isempty(get_serieslist(plotattributes))
+        subplot = get(plotattributes, :subplot, 0)
+        subplot == 0 && (return lims)
+        se = seriesextrema(xylims, plotattributes, subplot)
+        lims = extremareducer(lims, se)
+    end
+    lims
+end
+
+get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
+get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
+
+function seriesextrema(xylims, plotattributes, subplot)
+    serieslist = get_serieslist(plotattributes, subplot)
+    isempty(serieslist) && (return (Inf, -Inf))
+    sym = xylims == :xlims ? :x : :y
+    mapreduce(extremareducer, serieslist) do series
+        extrema(series[sym])
     end
 end
+extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
 function getLogTicks(x, minmax)
     minx, maxx =  minmax
@@ -57,14 +75,14 @@ function getLogTicks(x, minmax)
     minor_text_limit  = 8
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
-    major             = 10 .^ collect(min:max)
+    major             = exp10.(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
         majorText = ["10^{$(round(Int64,i))}" for i = min:max]
     end
     if max - min < major_minor_limit
-        minor     = [j*10^i for i = (min-1):(max+1) for j = 2:9]
+        minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
         if Plots.backend() != Plots.GRBackend()
             minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
         else
@@ -237,12 +255,12 @@ end
 """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.
+optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=())
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -252,7 +270,7 @@ bodeplot
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
-        if _PlotScale == "dB"
+        if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
 
@@ -280,12 +298,10 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, magdata
                 end
-                if !plotphase
-                    continue
-                end
+                plotphase || continue
 
                 @series begin
                     grid      --> true
@@ -296,8 +312,8 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
-                    w, phasedata
+                    seriescolor --> styledict[:c]
+                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
             end
@@ -370,16 +386,16 @@ nyquistplot
                 redata      = re_resp[:, i, j]
                 imdata      = im_resp[:, i, j]
                 @series begin
-                    ylims   := (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims   := (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                    ylims   --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                    xlims   --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
                     styledict = getStyleSys(si,length(systems))
                     linestyle --> styledict[:l]
+                    seriescolor --> styledict[:c]
                     hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-                    color --> styledict[:c]
                     (redata, imdata)
                 end
                 # Plot rings
@@ -387,15 +403,19 @@ nyquistplot
                     v = range(0,stop=2π,length=100)
                     S,C = sin.(v),cos.(v)
                     @series begin
-                        label := ""
+                        primary := false
                         linestyle := :dash
-                        color := :black
+                        linecolor := :black
+                        seriestype := :path
+                        markershape := :none
                         (C,S)
                     end
                     @series begin
-                        label := ""
+                        primary := false
                         linestyle := :dash
-                        color := :black
+                        linecolor := :black
+                        seriestype := :path
+                        markershape := :none
                         (C .-1,S)
                     end
                 end
@@ -629,6 +649,20 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
+                # Let's be reasonable, only plot 5 smallest gain margins
+                if length(gm) > 5
+                    @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
+                    idx = sortperm(gm)
+                    wgm = wgm[idx[1:5]]
+                    gm = gm[idx[1:5]]
+                end
+                # Let's be reasonable, only plot 5 smallest phase margins
+                if length(pm) > 5
+                    @warn "Only showing \"smallest\" 5 out of $(length(pm)) phase margins"
+                    idx = sortperm(pm)
+                    wgm = wpm[idx[1:5]]
+                    gm = pm[idx[1:5]]
+                end
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0
@@ -687,7 +721,7 @@ pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
     if systems[1].nu + systems[1].ny > 2
-        warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
+        @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
     seriestype := :scatter
     title --> "Pole-zero map"
@@ -696,7 +730,7 @@ pzmap
         z,p,k = zpkdata(system)
         if !isempty(z[1])
             @series begin
-                markershape := :c
+                markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
                 real(z[1]),imag(z[1])
@@ -704,7 +738,7 @@ pzmap
         end
         if !isempty(p[1])
             @series begin
-                markershape := :x
+                markershape --> :x
                 markersize := 15.
                 real(p[1]),imag(p[1])
             end
@@ -715,7 +749,7 @@ pzmap
             S,C = sin.(v),cos.(v)
             @series begin
                 linestyle --> :dash
-                c := :black
+                linecolor := :black
                 grid --> true
                 C,S
             end

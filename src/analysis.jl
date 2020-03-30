@@ -1,14 +1,14 @@
 """`pole(sys)`
 
 Compute the poles of system `sys`."""
-pole(sys::StateSpace) = eigvals(sys.A)
+pole(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
 pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
 # converting to zpk before works better in the cases I have tested.
 pole(sys::TransferFunction) = pole(zpk(sys))
 
-function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T<:Number, TR<:Number}
+function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
@@ -70,7 +70,7 @@ end
 
 Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
 # TODO: improve this implementation, should be more efficient ones
-function det(sys::Matrix{S}) where {T<:Number, TR, S<:SisoZpk}
+function det(sys::Matrix{S}) where {S<:SisoZpk}
     ny, nu = size(sys)
     @assert ny == nu "Matrix is not square"
     if ny == 1
@@ -102,7 +102,7 @@ as the following:
 `h(0) = D`
 
 `h(n) = C*A^(n-1)*B`"""
-function markovparam(sys::StateSpace, n::Integer)
+function markovparam(sys::AbstractStateSpace, n::Integer)
     n < 0 && error("n must be >= 0")
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
@@ -138,7 +138,7 @@ function damp(sys::LTISystem)
         ps = log(ps)/Ts
     end
     Wn = abs.(ps)
-    order = sortperm(Wn)
+    order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
     Wn = Wn[order]
     ps = ps[order]
     ζ = -cos.(angle.(ps))
@@ -190,14 +190,14 @@ end
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
 # Note that this returns either Vector{ComplexF32} or Vector{Float64}
-tzero(sys::StateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
+tzero(sys::AbstractStateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
-function tzero(A::Matrix{<:Number}, B::Matrix{<:Number}, C::Matrix{<:Number}, D::Matrix{<:Number})
+function tzero(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
-    A2, B2, C2, D2 = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
+    A2, B2, C2, D2, _ = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
     tzero(A2, B2, C2, D2)
 end
-function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:BlasFloat
+function tzero(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
@@ -224,7 +224,7 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
         m = size(D_rc, 2)
         Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
         Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
-        zs = eigvals(Af, Bf)
+        zs = eigvalsnosort(Af, Bf)
         _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
     else
         zs = complex(T)[]
@@ -232,13 +232,13 @@ function tzero(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where T<:
     return zs
 end
 
-reduce_sys(A::AbstractMatrix{<:BlasFloat}, B::AbstractMatrix{<:BlasFloat}, C::AbstractMatrix{<:BlasFloat}, D::AbstractMatrix{<:BlasFloat}, meps::BlasFloat) =
-    reduce_sys(promote(A,B,C,D)..., meps)
+
 """
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
-function reduce_sys(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}, meps::BlasFloat) where T <: BlasFloat
+function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
     Cbar, Dbar = C, D
     if isempty(A)
         return A, B, C, D
@@ -313,7 +313,7 @@ If `!allMargins`, return only the smallest margin
 If `full` return also `fullPhase`
 
 """
-function margin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
+function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
 
     if allMargins
@@ -346,7 +346,7 @@ end
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 """
-function sisomargin(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false) where S<:Real
+function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
