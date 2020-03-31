@@ -10,18 +10,18 @@ end
 using LinearAlgebra # For identity matrix I
 h       = 0.1
 A       = [1 h; 0 1]
-B       = [0;1]
+B       = [0 1]' # To handle bug TODO
 C       = [1 0]
 sys     = ss(A,B,C,0, h)
-Q       = I
-R       = I
+Q = Matrix{Float64}(I,2,2)
+R = Matrix{Float64}(I,1,1)
 L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
 t       =0:h:5
 x0      = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 
 ![](../../plots/lqrplot.svg)
@@ -92,10 +92,10 @@ P  = tf(B,A)
 
 # output
 
-TransferFunction:
-      1.0
-----------------
-s^2 + 0.4s + 1.0
+TransferFunction{ControlSystems.SisoRational{Float64}}
+         1.0
+---------------------
+1.0*s^2 + 0.4*s + 1.0
 
 Continuous-time transfer function model
 ```
@@ -130,11 +130,11 @@ The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plot
 
 ```julia
 P1 = s -> exp(-sqrt(s))
-f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)))
+f1, kp, ki = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000))); f1
 P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
-f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)))
+f2, kp, ki = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000))); f2
 P3 = tf(1,[1,1])^4
-f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)))
+f3, kp, ki = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000))); f3
 ```
 ![](../../plots/stab1.svg)
 ![](../../plots/stab2.svg)

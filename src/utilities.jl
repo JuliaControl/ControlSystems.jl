@@ -25,6 +25,9 @@ else
     roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
 end
 
+issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
+issemiposdef(A::UniformScaling) = real(A.λ) >= 0
+
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
 """

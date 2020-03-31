@@ -73,7 +73,7 @@ A state-space system is created using
 ss(A,B,C,D,Ts=0)
 ```
 and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
-```jldoctest  HSS
+```jldoctest HSS
 using StaticArrays
 import ControlSystems.HeteroStateSpace
 @inline to_static(a::Number) = a
@@ -85,6 +85,9 @@ function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
 end
 @inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.Ts,f)
 ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
+
+# output
+
 ```
 Notice the different matrix types used
 ```jldoctest HSS

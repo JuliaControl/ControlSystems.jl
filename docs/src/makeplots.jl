@@ -9,7 +9,7 @@ Plots.gr()
 # LQG design
 h = 0.1
 A = [1 h; 0 1]
-B = [0;1]
+B = [0 1]' # TODO Handle bug
 C = [1 0]
 sys = ss(A,B,C,0, h)
 Q = Matrix{Float64}(I,2,2)
@@ -37,7 +37,7 @@ Plots.savefig(plotsDir*"/pidnyquistplot.svg")
 
 
 ωp = 2
-kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)
+kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=false)
 gangoffourplot(P, [tf(1), C60])
 Plots.savefig(plotsDir*"/pidgofplot3.svg")
 nyquistplot([P, P*C60])
@@ -70,11 +70,11 @@ gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer fu
 Plots.savefig(plotsDir*"/ppgofplot.svg")
 
 P1(s) = exp(-sqrt(s))
-f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000))); Plots.savefig(plotsDir*"/stab1.svg")
+f1, kp, ki = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000))); Plots.savefig(plotsDir*"/stab1.svg")
 P2 = s -> 100*(s+6).^2 ./(s.*(s+1).^2 .*(s+50).^2)
-f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000))); Plots.savefig(plotsDir*"/stab2.svg")
+f2, kp, ki  = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000))); Plots.savefig(plotsDir*"/stab2.svg")
 P3 = tf(1,[1,1])^4
-f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000))); Plots.savefig(plotsDir*"/stab3.svg")
+f3, kp, ki = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000))); Plots.savefig(plotsDir*"/stab3.svg")
 
 
 

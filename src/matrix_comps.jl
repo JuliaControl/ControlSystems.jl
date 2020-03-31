@@ -41,7 +41,7 @@ Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 function dare(A, B, Q, R)
-    if (!ishermitian(Q) || minimum(eigvals(real(Q))) < 0)
+    if !issemiposdef(Q)
         error("Q must be positive-semidefinite.");
     end
     if (!isposdef(R))
