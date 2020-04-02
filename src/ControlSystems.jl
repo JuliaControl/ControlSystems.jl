@@ -9,8 +9,8 @@ export  LTISystem,
         ss,
         tf,
         zpk,
-        ss2tf,
         LQG,
+        isproper,
         # Linear Algebra
         balance,
         care,
@@ -56,6 +56,8 @@ export  LTISystem,
         parallel,
         feedback,
         feedback2dof,
+        starprod,
+        lft,
         # Discrete
         c2d,
         # Time Response
@@ -72,6 +74,10 @@ export  LTISystem,
         sigma,
         # delay systems
         delay,
+        pade,
+        # demo systems
+        ssrand,
+        DemoSystems, # A module containing some example systems
         # utilities
         num,    #Deprecated
         den,    #Deprecated
@@ -89,6 +95,7 @@ using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
+import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
@@ -137,6 +144,8 @@ include("synthesis.jl")
 
 include("simulators.jl")
 include("pid_design.jl")
+
+include("demo_systems.jl")
 
 include("delay_systems.jl")
 

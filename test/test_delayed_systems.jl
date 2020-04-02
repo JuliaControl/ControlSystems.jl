@@ -5,7 +5,11 @@ using DelayDiffEq
 
 # broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
 
+
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
+
+@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "StateSpace{Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+
 
 # Extremely baseic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
@@ -43,6 +47,10 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
 
+# evalfr
+s_vec = [0, 1im, 1, 1 + 1im]
+@test [evalfr(delay(2), s)[1] for s in s_vec] ≈ [exp(-2*s) for s in s_vec] rtol=1e-16
+
 ## Feedback
 # The first tests don't include delays, but the linear system is of DelayLtiForm type
 # (very simple system so easy to troubleshoot)
@@ -76,6 +84,16 @@ G_fr = 0.5 .+ 0.5*exp.(-2*im*ω)# + 0.5*exp.(-3*im*ω)
 @test freqresp(feedback(P2, G), ω)[:] ≈ P2_fr ./(1 .+ P2_fr .* G_fr) rtol=1e-15
 
 s = tf("s")
+
+# Test alternative exp constructor for delays
+d = exp(-2*s)
+@test freqresp(d, [0, 1, 2]) ≈ [1, exp(-2im), exp(-4im)]
+
+@test_throws ErrorException exp(-s^2 - 2*s)
+@test_throws ErrorException exp(-2*s+1) # in principle ok, but not allowed anyway
+@test_throws ErrorException exp([-2*s; -s])
+@test_throws ErrorException exp(2*s) # Non-causal
+
 # Random conversions
 sys1 = DelayLtiSystem(1.0/s)
 @test sys1.P.A == sys1.P.D == fill(0,1,1)
@@ -182,7 +200,5 @@ y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
 
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
-
-[s11; s12]
 
 end
