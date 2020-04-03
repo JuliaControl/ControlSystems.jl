@@ -75,14 +75,14 @@ function getLogTicks(x, minmax)
     minor_text_limit  = 8
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
-    major             = 10 .^ (min:max)
+    major             = exp10.(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
         majorText = ["10^{$(round(Int64,i))}" for i = min:max]
     end
     if max - min < major_minor_limit
-        minor     = [j*10^i for i = (min-1):(max+1) for j = 2:9]
+        minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
         if Plots.backend() != Plots.GRBackend()
             minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
         else
@@ -255,7 +255,7 @@ end
 """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.
+optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
@@ -270,7 +270,7 @@ bodeplot
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
-        if _PlotScale == "dB"
+        if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
 
@@ -298,7 +298,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, magdata
                 end
                 plotphase || continue
@@ -312,7 +312,7 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
@@ -721,7 +721,7 @@ pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
     if systems[1].nu + systems[1].ny > 2
-        warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
+        @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
     seriestype := :scatter
     title --> "Pole-zero map"
@@ -730,7 +730,7 @@ pzmap
         z,p,k = zpkdata(system)
         if !isempty(z[1])
             @series begin
-                markershape := :c
+                markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
                 real(z[1]),imag(z[1])
@@ -738,7 +738,7 @@ pzmap
         end
         if !isempty(p[1])
             @series begin
-                markershape := :x
+                markershape --> :x
                 markersize := 15.
                 real(p[1]),imag(p[1])
             end
@@ -749,7 +749,7 @@ pzmap
             S,C = sin.(v),cos.(v)
             @series begin
                 linestyle --> :dash
-                c := :black
+                linecolor := :black
                 grid --> true
                 C,S
             end
