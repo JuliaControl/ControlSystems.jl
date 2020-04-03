@@ -28,13 +28,15 @@ ssrand(T::Type, n; kwargs...) = ssrand(T, n, n, 2*n; kwargs...)
 """
     DemoSystems
 
-A module containing some different systems that are commonly used as examples in the control literature.
+A module with standard test systems from the control literature.
 
-Change the default parameter values using keyword arguments.
+The returned systems are of type `StateSpace` or `DelayLTISystem`.
+
+Default parameter can be changed using keyword arguments.
 
 SISO systems
 ============
-* `DemoSystems.fo(;T=1)`     First-order system  `1/(sT+1)`
+* `DemoSystems.lag(;T=1)`     First-order system  `1/(sT+1)`
 * `DemoSystems.fotd(;T=1, τ=1)`   First-order system with time delay `exp(-sτ)/(sT+1)`
 * `DemoSystems.sotd(;T=1, T2=10, τ=1)`   Second-order non-resonant system with time delay `exp(-sτ)/(sT+1)/(sT2 + 1)`
 * `DemoSystems.resonant(;ω0=1, ζ=0.25)`   Second-order resonant systems `ω0^2/(s^2 + 2ζ*ω0*s + ω0^2)`
@@ -53,11 +55,11 @@ using LinearAlgebra
 
 
 """
-    fo(;T=1, τ=1)
+    lag(;T=1, τ=1)
 
-Returns a first-order system `1/(sT+1)` (`StateSpace`).
+Returns a first-order system `StateSpace` with transfer function `1/(sT+1)`.
 """
-fo(;T=1) = ss(-1/T, 1, 1/T, 0)
+lag(;T=1) = ss(-1/T, 1, 1/T, 0)
 
 
 """
@@ -87,7 +89,7 @@ resonant(;ω0=1, ζ=0.25) = ss([-ζ -ω0; ω0 -ζ], [ω0; 0], [0 ω0], 0) # QUES
 """
     `doylesat(;a=10) = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)`
 
-Returns a model for the spinning body (satellite) example by Doyle,
+Returns a `StateSpace` model for the spinning body (satellite) example by Doyle,
 which is a classic example that illustrates that robustness analysis of MIMO systems
 is more involved than for SISO systems.
 
@@ -105,7 +107,8 @@ doylesat(;a=10) = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)
 """
     `woodberry()`
 
-Returns a model for the Wood--Berry distillation column, which is a classic example from the literature on process control of MIMO process.
+Returns a `DelayLTISystem` model for the Wood--Berry distillation column,
+which is a classic example from the literature on process control of MIMO process.
 
 *References:*
 
