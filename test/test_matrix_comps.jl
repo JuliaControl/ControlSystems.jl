@@ -37,6 +37,12 @@ D2 = [1 0; 0 1]
 # Discrete system can have direct term
 @test covar(ss(A,B,C,D2,0.1),W) ≈ [1.00011010837831 -1.0098377309782909e-5; -1.0098377309782909e-5 1.00011010837831]
 
+# Static systems
+R = fill(1.0,1,1)
+@test covar(ss(2.0), R) == fill(Inf, 1, 1)
+@test covar(ss(2.0, 0.2), R) == fill(4.0, 1, 1)
+
+
 # TODO test in Julia 0.7 to see if supported
 # # Test special matrices
 As = sparse(A)

@@ -186,12 +186,6 @@ end
 
 covar(sys::TransferFunction, W) = covar(ss(sys), W)
 
-"""
-    covar(C,W)
-If `C` is a matrix, return CWC'
-"""
-covar(C::Union{AbstractMatrix,UniformScaling}, R) = C*R*C'
-
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
