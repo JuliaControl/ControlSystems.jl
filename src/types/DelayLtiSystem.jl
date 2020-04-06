@@ -145,6 +145,9 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
 end
 
 function Base.show(io::IO, sys::DelayLtiSystem)
+    println(io, typeof(sys))
+
+    print(io, "\nP: ")
     show(io, sys.P.P)
 
     println(io, "\n\nDelays: $(sys.Tau)")
