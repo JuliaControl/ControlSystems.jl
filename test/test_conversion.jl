@@ -94,7 +94,7 @@ G2 = tf([1,1,-1],[1,0,-1])
 sys3 = ss([0 1;1 0],[0;1],[1 1],0)
 G3 = tf([1,1],[1,0,-1])
 
-#Test ss2tf
+#Test conversion of StateSpace to TransferFunction
 @test tf(sys2) ≈ G2 atol=1e-15
 @test tf(sys3) ≈ G3 atol=1e-15
 

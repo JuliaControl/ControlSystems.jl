@@ -27,6 +27,7 @@ my_tests = [
             "test_lqg",
             "test_synthesis",
             "test_partitioned_statespace",
+            "test_demo_systems",
             ]
 
 

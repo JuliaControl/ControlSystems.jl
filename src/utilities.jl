@@ -25,6 +25,11 @@ else
     roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
 end
 
+@static if VERSION < v"1.1"
+    isnothing(::Any) = false
+    isnothing(::Nothing) = true
+end
+
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
 """

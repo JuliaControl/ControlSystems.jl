@@ -8,15 +8,15 @@ function state_space_validation(A,B,C,D,Ts)
     ny = size(C, 1)
 
     if size(A, 2) != nx && nx != 0
-        error("A must be square")
+        error("A has dimentions $(size(A)), but must be square")
     elseif size(B, 1) != nx
-        error("B must have the same row size as A")
+        error("The number of rows of A ($(size(A,1))) and B ($(size(B,1))) are not equal")
     elseif size(C, 2) != nx
-        error("C must have the same column size as A")
+        error("The number of columns of A ($(size(A,2))) and C ($(size(C,2))) are not equal")
     elseif nu != size(D, 2)
-        error("D must have the same column size as B")
+        error("The number of columns of B ($(size(B,2))) and D ($(size(D,2))) are not equal")
     elseif ny != size(D, 1)
-        error("D must have the same row size as C")
+        error("The number of rows of C ($(size(C,1))) and D ($(size(D,1))) are not equal")
     end
 
     # Validate sampling time
@@ -160,6 +160,8 @@ ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 ninputs(sys::AbstractStateSpace) = size(sys.D, 2)
 noutputs(sys::AbstractStateSpace) = size(sys.D, 1)
 nstates(sys::AbstractStateSpace) = size(sys.A, 1)
+
+isproper(sys::AbstractStateSpace) = iszero(sys.D)
 
 #####################################################################
 ##                         Math Operators                          ##
