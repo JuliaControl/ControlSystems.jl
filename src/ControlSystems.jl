@@ -156,8 +156,8 @@ include("plotting.jl")
 @deprecate norminf hinfnorm
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
-    @warn "This call is ambiguous and will be deprecated, use `covar(ss(D), R)` or `covar(ss(D, Ts), R)`"
-    covar(ss(D, 1), R) # The implemented version assumed discrete time
+    @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
+    D*R*D'
 end
 
 
