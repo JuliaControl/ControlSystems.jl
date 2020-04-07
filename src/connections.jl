@@ -264,7 +264,7 @@ function feedback(sys1::StateSpace,sys2::StateSpace)
          sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]
-    
+
     ss(A, B, C, sys1.D, sys1.Ts)
 end
 
@@ -292,12 +292,10 @@ See Zhou etc. for similar (somewhat less symmetric) formulas.
         error("Sampling time mismatch")
     end
 
-    #= must define allunique(c::Colon) = true for the following checks to work
-    if !allunique(Y1); @warn "Connecting single output to multiple inputs Y1=$Y1"; end
-    if !allunique(Y2); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
-    if !allunique(U1); @warn "Connecting multiple outputs to a single input U1=$U1"; end
-    if !allunique(U2); @warn "Connecting a single output to multiple inputs U2=$U2"; end
-    =#
+    if !(isa(Y1, Colon) || allunique(Y1)); @warn "Connecting single output to multiple inputs Y1=$Y1"; end
+    if !(isa(Y2, Colon) || allunique(Y2)); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
+    if !(isa(U1, Colon) || allunique(U1)); @warn "Connecting multiple outputs to a single input U1=$U1"; end
+    if !(isa(U2, Colon) || allunique(U2)); @warn "Connecting a single output to multiple inputs U2=$U2"; end
 
     if (U1 isa Colon ? size(sys1, 2) : length(U1)) != (Y2 isa Colon ? size(sys2, 1) : length(Y2))
         error("Lengths of U1 ($U1) and Y2 ($Y2) must be equal")
@@ -341,13 +339,13 @@ See Zhou etc. for similar (somewhat less symmetric) formulas.
         R1 = try
             inv(α*I - s2_D22*s1_D22) # slightly faster than α*inv(I - α*s2_D22*s1_D22)
         catch
-            error("Illposed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
         end
 
         R2 = try
             inv(I - α*s1_D22*s2_D22)
         catch
-            error("Illposed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
         end
 
         A = [sys1.A + s1_B2*R1*s2_D22*s1_C2        s1_B2*R1*s2_C2;

@@ -8,7 +8,7 @@ using DelayDiffEq
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
-@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "StateSpace{Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
 
 
 # Extremely baseic tests
@@ -200,5 +200,39 @@ y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
 
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
+
+
+
+##  Test of basic pade functionality
+
+Ω = [0, 0.5, 1, 2, 5]
+@test freqresp(pade(1, 1), Ω) == freqresp(tf([-1/2, 1], [1/2, 1]), Ω)
+@test freqresp(pade(1, 2), Ω) ≈ freqresp(tf([1/12, -1/2, 1], [1/12, 1/2, 1]), Ω)
+
+for (n, tol)=enumerate([0.05; 1e-3; 1e-5; 1e-7; 1e-11; 1e-14*ones(5)])
+    G = pade(0.8, n)
+
+    @test isstable(G)
+    @test evalfr(G, 0)[1] ≈ 1
+    @test abs(evalfr(G, 2im)[1]) ≈ 1
+    @test evalfr(G, 1im)[1] ≈ exp(-0.8im) atol=tol
+end
+
+
+## Test pade applied to DelayLtiSystem
+
+@test freqresp(pade(delay(0.5), 2), Ω) ≈ freqresp(pade(0.5, 2), Ω)
+
+P = delay(1.0) * DemoSystems.lag(T=1)
+@test freqresp(pade(feedback(1,P), 2), Ω) == freqresp(feedback(1, pade(P,2)), Ω)
+
+
+Ω = [0, 0.1, 0.2]
+P_wb = DemoSystems.woodberry()
+
+@test freqresp(pade(P_wb, 2), Ω) ≈ freqresp(P_wb, Ω) atol=0.02
+@test freqresp(pade(P_wb, 3), Ω) ≈ freqresp(P_wb, Ω) atol=5e-4
+
+@test freqresp(pade(feedback(eye_(2), P_wb), 3), Ω) ≈ freqresp(feedback(eye_(2), P_wb), Ω) atol=1e-4
 
 end

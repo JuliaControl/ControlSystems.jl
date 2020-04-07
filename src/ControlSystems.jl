@@ -155,6 +155,12 @@ include("plotting.jl")
 @deprecate den denvec
 @deprecate norminf hinfnorm
 
+function covar(D::Union{AbstractMatrix,UniformScaling}, R)
+    @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
+    D*R*D'
+end
+
+
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())
 
