@@ -19,7 +19,7 @@ end
 # Fallback since system is always continuous
 function getproperty(sys::DelayLtiSystem, s::Symbol)
     if s == :Ts
-        return sys.P.Ts
+        return sys.P.Ts # Will throw deprecation until removed # DEPRECATED
     end
     return getfield(sys, s)
 end
@@ -89,7 +89,7 @@ Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
 function *(sys::DelayLtiSystem, n::Number)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
-    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.Ts), sys.Tau)
+    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.time), sys.Tau)
 end
 *(n::Number, sys::DelayLtiSystem) = *(sys, n)
 
@@ -157,7 +157,7 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
         sys.P.B[:,      colidx],
         sys.P.C[rowidx, :],
         sys.P.D[rowidx, colidx],
-        sys.P.Ts), sys.Tau)
+        sys.P.time), sys.Tau)
 end
 
 function Base.show(io::IO, sys::DelayLtiSystem)

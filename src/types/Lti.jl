@@ -45,24 +45,24 @@ end
 """`iscontinuous(sys)`
 
 Returns `true` if `sys` is continuous, else returns `false`."""
-iscontinuous(sys::LTISystem) = iscontinuous(sys.Ts)
+iscontinuous(sys::LTISystem) = iscontinuous(sys.time)
 """`isdiscrete(sys)`
 
 Returns `true` if `sys` is discrete, else returns `false`."""
-isdiscrete(sys::LTISystem) = isdiscrete(sys.Ts)
+isdiscrete(sys::LTISystem) = isdiscrete(sys.time)
 """`isstatic(sys)`
 
 Returns `true` if `sys` is static, else returns `false`."""
-isstatic(sys::LTISystem) = isstatic(sys.Ts)
+isstatic(sys::LTISystem) = isstatic(sys.time)
 
 """`sampletime(sys)`
 
-Returns the sampletime of a discrete time system, throws error if the system is continuous time."""
-sampletime(sys::LTISystem) = sampletime(sys.Ts)
+Returns the sampletime of a discrete time system, throws error if the system is continuous time or static."""
+sampletime(sys::LTISystem) = sampletime(sys.time)
 
 """`sampletype(sys)`
-Get the sampletype of system. Usually typeof(sys.Ts)."""
-sampletype(sys) = typeof(sys.Ts)
+Get the sampletype of system. Usually typeof(sys.time)."""
+sampletype(sys) = typeof(sys.time)
 
 """`isstable(sys)`
 
@@ -78,21 +78,6 @@ function isstable(sys::LTISystem)
         end
     end
     return true
-end
-
-
-
-
-
-function _check_consistent_sampling_time(systems::AbstractVector{LTISystem})
-    if !all(s.Ts == Ts for s in systems)
-       error("Sampling time mismatch")
-   end
-end
-function _check_consistent_sampling_time(sys1::LTISystem, sys2::LTISystem)
-    if sys1.Ts != sys2.Ts
-       error("Sampling time mismatch")
-   end
 end
 
 # Fallback since LTISystem not AbstractArray

@@ -1,6 +1,6 @@
 struct TransferFunction{TimeT<:TimeType, S<:SisoTf{T} where T} <: LTISystem
     matrix::Matrix{S}
-    Ts::TimeT
+    time::TimeT
     nu::Int
     ny::Int
     function TransferFunction{TimeT,S}(matrix::Matrix{S}, Ts::TimeT) where {S,TimeT}
@@ -41,11 +41,11 @@ function Base.getindex(G::TransferFunction{TimeT,S}, inds...) where {TimeT,S<:Si
     rows, cols = index2range(inds...)
     mat = Matrix{S}(undef, length(rows), length(cols))
     mat[:, :] = G.matrix[rows, cols]
-    return TransferFunction(mat, G.Ts)
+    return TransferFunction(mat, G.time)
 end
 
 function Base.copy(G::TransferFunction)
-    return TransferFunction(copy(G.matrix), G.Ts)
+    return TransferFunction(copy(G.matrix), G.time)
 end
 
 numvec(G::TransferFunction) = map(numvec, G.matrix)
@@ -63,7 +63,7 @@ function minreal(G::TransferFunction, eps::Real=sqrt(eps()))
     for i = eachindex(G.matrix)
         matrix[i] = minreal(G.matrix[i], eps)
     end
-    return TransferFunction(matrix, G.Ts)
+    return TransferFunction(matrix, G.time)
 end
 
 """`isproper(tf)`
@@ -80,7 +80,7 @@ end
 
 ## EQUALITY ##
 function ==(G1::TransferFunction, G2::TransferFunction)
-    fields = [:Ts, :ny, :nu, :matrix]
+    fields = [:time, :ny, :nu, :matrix]
     for field in fields
         if getfield(G1, field) != getfield(G2, field)
             return false
@@ -92,7 +92,7 @@ end
 ## Approximate ##
 function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
     G1, G2 = promote(G1, G2)
-    fieldsApprox = [:Ts, :matrix]
+    fieldsApprox = [:time, :matrix]
     for field in fieldsApprox
         if !(isapprox(getfield(G1, field), getfield(G2, field); kwargs...))
             return false
@@ -110,36 +110,36 @@ function +(G1::TransferFunction, G2::TransferFunction)
     if size(G1) != size(G2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(G1.Ts,G2.Ts)
+    Ts = common_sample_time(G1.time,G2.time)
     matrix = G1.matrix + G2.matrix
     return TransferFunction(matrix, Ts)
 end
 
-+(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.Ts)
++(G::TransferFunction, n::Number) = TransferFunction(G.matrix .+ n, G.time)
 +(n::Number, G::TransferFunction) = +(G, n)
 
 ## SUBTRACTION ##
--(n::Number, G::TransferFunction) = TransferFunction(n .- G.matrix, G.Ts)
+-(n::Number, G::TransferFunction) = TransferFunction(n .- G.matrix, G.time)
 -(G1::TransferFunction, G2::TransferFunction) = +(G1, -G2)
 -(G::TransferFunction, n::Number) = +(G, -n)
 
 ## NEGATION ##
--(G::TransferFunction) = TransferFunction(-G.matrix, G.Ts)
+-(G::TransferFunction) = TransferFunction(-G.matrix, G.time)
 
 ## MULTIPLICATION ##
 
 function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
-    Ts = common_sample_time(G1.Ts,G2.Ts)
+    Ts = common_sample_time(G1.time,G2.time)
     if G1.nu != G2.ny
         error("G1*G2: G1 must have same number of inputs as G2 has outputs")
     end
-    Ts = common_sample_time(G1.Ts,G2.Ts)
+    Ts = common_sample_time(G1.time,G2.time)
     matrix = G1.matrix * G2.matrix
     return TransferFunction(matrix, Ts)
 end
 
-*(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.Ts)
+*(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.time)
 *(n::Number, G::TransferFunction) = *(G, n)
 
 ## DIVISION ##
@@ -149,7 +149,7 @@ function /(n::Number, G::TransferFunction)
     else
         error("MIMO TransferFunction inversion isn't implemented yet")
     end
-    return TransferFunction(matrix, G.Ts)
+    return TransferFunction(matrix, G.time)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)

@@ -171,6 +171,18 @@ function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     D*R*D'
 end
 
+function Base.getproperty(sys::Union{StateSpace,HeteroStateSpace,TransferFunction}, s::Symbol)
+    if s == :Ts
+        if !isdiscrete(sys)
+            @warn "Getting sampletime 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access sampletime."
+            return 0.0
+        else
+            return sampletime(sys)
+        end
+    else
+        return Base.getfield(sys, s)
+    end
+end
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

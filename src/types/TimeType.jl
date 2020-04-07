@@ -24,7 +24,7 @@ Static(x::Static) = x
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 Discrete{T}(::Static) where T = Discrete{T}(UNDEF_SAMPLETIME)
 Continuous(::Static) = Continuous()
-# Default to checing type
+# Default to checkng type
 iscontinuous(x::TimeType) = x isa Continuous
 isdiscrete(x::TimeType) = x isa Discrete
 isstatic(x::TimeType) = x isa Static
@@ -44,7 +44,7 @@ Base.promote_rule(::Type{<:Discrete}, ::Type{Continuous}) = throw(ErrorException
 Base.promote_rule(::Type{T}, ::Type{Static}) where T <: TimeType = T
 Base.promote_rule(::Type{Discrete{T1}}, ::Type{Discrete{T2}}) where {T1,T2}= Discrete{promote_type(T1,T2)}
 
-Base.convert(::Type{Discrete{T1}}, Ts::Discrete{T2}) where {T1,T2} = Discrete{T1}(Ts.Ts)
+Base.convert(::Type{Discrete{T1}}, x::Discrete{T2}) where {T1,T2} = Discrete{T1}(x.Ts)
 
 # Promoting two or more systems systems should promote sample times
 common_sample_time(x::TimeType) = x

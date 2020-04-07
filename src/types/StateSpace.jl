@@ -28,7 +28,7 @@ struct StateSpace{TimeT<:TimeType, T, MT<:AbstractMatrix{T}} <: AbstractStateSpa
     B::MT
     C::MT
     D::MT
-    Ts::TimeT
+    time::TimeT
     nx::Int
     nu::Int
     ny::Int
@@ -78,7 +78,7 @@ end
 
 # Explicit conversion
 function StateSpace{TimeT,T,MT}(sys::StateSpace) where {TimeT, T, MT <: AbstractMatrix{T}}
-    StateSpace{TimeT,T,MT}(sys.A,sys.B,sys.C,sys.D,sys.Ts)
+    StateSpace{TimeT,T,MT}(sys.A,sys.B,sys.C,sys.D,sys.time)
 end
 
 function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::TimeType)
@@ -130,7 +130,7 @@ struct HeteroStateSpace{TimeT<:TimeType, AT<:AbstractMatrix,BT<:AbstractMatrix,C
     B::BT
     C::CT
     D::DT
-    Ts::TimeT
+    time::TimeT
     nx::Int
     nu::Int
     ny::Int
@@ -147,7 +147,7 @@ function HeteroStateSpace{TimeT,AT,BT,CT,DT}(A, B, C, D, Ts) where {TimeT,AT,BT,
     HeteroStateSpace{TimeT,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TimeT(Ts), nx, nu, ny)
 end
 
-HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.Ts)
+HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.time)
 
 # Base constructor
 function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::TimeType)
@@ -220,7 +220,7 @@ function +(s1::StateSpace{TimeT,T,MT}, s2::StateSpace{TimeT,T,MT}) where {TimeT,
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(s1.Ts,s2.Ts)
+    Ts = common_sample_time(s1.time,s2.time)
 
     A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
          fill(zero(T), nstates(s2), nstates(s1))        s2.A]
@@ -236,7 +236,7 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(s1.Ts,s2.Ts)
+    Ts = common_sample_time(s1.time,s2.time)
     T = promote_type(eltype(s1.A),eltype(s2.A))
     A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
          fill(zero(T), nstates(s2), nstates(s1))        s2.A]
@@ -247,7 +247,7 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     return HeteroStateSpace(A, B, C, D, Ts)
 end
 
-+(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.Ts)
++(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.time)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
 
 ## SUBTRACTION ##
@@ -256,7 +256,7 @@ end
 -(n::Number, sys::AbstractStateSpace) = +(-sys, n)
 
 ## NEGATION ##
--(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.Ts)
+-(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.time)
 
 ## MULTIPLICATION ##
 function *(sys1::StateSpace{TimeT,T,MT}, sys2::StateSpace{TimeT,T,MT}) where {TimeT,T, MT}
@@ -265,7 +265,7 @@ function *(sys1::StateSpace{TimeT,T,MT}, sys2::StateSpace{TimeT,T,MT}) where {Ti
     if sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
-    Ts = common_sample_time(sys1.Ts,sys2.Ts)
+    Ts = common_sample_time(sys1.time,sys2.time)
 
     A = [sys1.A    sys1.B*sys2.C;
          fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
@@ -281,7 +281,7 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     if sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
-    Ts = common_sample_time(sys1.Ts,sys2.Ts)
+    Ts = common_sample_time(sys1.time,sys2.time)
     T = promote_type(eltype(sys1.A),eltype(sys2.A))
     A = [sys1.A    sys1.B*sys2.C;
          fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
@@ -292,7 +292,7 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     return HeteroStateSpace(A, B, C, D, Ts)
 end
 
-*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.Ts)
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.time)
 *(n::Number, sys::AbstractStateSpace) = *(sys, n)
 
 ## DIVISION ##
@@ -306,11 +306,11 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     catch
         error("D isn't invertible")
     end
-    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.Ts)
+    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.time)
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
-/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.time)
 
 Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 
@@ -328,7 +328,7 @@ function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
-    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.Ts)
+    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.time)
 end
 
 #####################################################################

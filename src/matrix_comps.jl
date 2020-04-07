@@ -531,7 +531,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.Ts), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.time), diagm(0 => Σ)
 end
 
 
@@ -558,7 +558,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) whe
         D = D/(C*inv(-A)*B)
     end
 
-    return ST(A,B,C,D,sys.Ts), diagm(0 => S)
+    return ST(A,B,C,D,sys.time), diagm(0 => S)
 end
 
 """
@@ -577,7 +577,7 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     B = Tf\sys.B
     C = sys.C*T
     D = sys.D
-    ST(A,B,C,D,sys.Ts)
+    ST(A,B,C,D,sys.time)
 end
 
 """
@@ -602,10 +602,10 @@ See Stochastic Control, Chapter 4, Åström
 """
 function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
     K = kalman(sys, R1, R2)
-    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.time)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
-	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.time)
 end

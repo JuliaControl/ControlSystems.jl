@@ -26,7 +26,9 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     ny1 = getfield(sys, :ny1)
 
     if d === :Ts
-        return P.Ts
+        return P.Ts # Will throw deprecation until removed # DEPRECATED
+    elseif d === :time
+        return P.time
     elseif d === :P
         return P
     elseif d === :nu1
@@ -62,7 +64,7 @@ isdiscrete(sys::PartionedStateSpace) = isdiscrete(sys.P)
 isstatic(sys::PartionedStateSpace) = isstatic(sys.P)
 
 function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    Ts = common_sample_time(s1.P.Ts,s2.P.Ts)
+    Ts = common_sample_time(s1.P.time,s2.P.time)
 
     A = blockdiag(s1.A, s2.A)
 
@@ -86,7 +88,7 @@ end
     Series connection of partioned StateSpace systems.
 """
 function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    Ts = common_sample_time(s1.P.Ts,s2.P.Ts)
+    Ts = common_sample_time(s1.P.time,s2.P.time)
 
     A = [s1.A                           s1.B1*s2.C1;
     zeros(size(s2.A,1),size(s1.A,2))      s2.A]
@@ -110,7 +112,7 @@ end
 
 # QUESTION: What about algebraic loops and well-posedness?! Perhaps issue warning if P1(∞)*P2(∞) > 1
 function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    Ts = common_sample_time(s1.P.Ts,s2.P.Ts)
+    Ts = common_sample_time(s1.P.time,s2.P.time)
     X_11 = (I + s2.D11*s1.D11)\[-s2.D11*s1.C1  -s2.C1]
     X_21 = (I + s1.D11*s2.D11)\[s1.C1  -s1.D11*s2.C1]
 
@@ -162,7 +164,7 @@ end
 """
 function vcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = common_sample_time(sys.P.Ts for sys in systems)
+    Ts = common_sample_time(sys.P.time for sys in systems)
 
     nu1 = systems[1].nu1
     if !all(s.nu1 == nu1 for s in systems)
@@ -196,7 +198,7 @@ end
 """
 function hcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = common_sample_time(sys.P.Ts for sys in systems)
+    Ts = common_sample_time(sys.P.time for sys in systems)
 
     ny1 = systems[1].ny1
     if !all(s.ny1 == ny1 for s in systems)
