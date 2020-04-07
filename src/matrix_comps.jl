@@ -147,14 +147,15 @@ ctrb(sys::StateSpace) = ctrb(sys.A, sys.B)
 
 """`P = covar(sys, W)`
 
-Calculate the stationary covariance `P = E[y(t)y(t)']` of an lti-model `sys`, driven by gaussian
-white noise 'w' of covariance `E[w(t)w(τ)]=W*δ(t-τ)` where δ is the dirac delta.
+Calculate the stationary covariance `P = E[y(t)y(t)']` of the output `y` of a
+`StateSpace` model `sys` driven by white Gaussian noise `w` with covariance
+`E[w(t)w(τ)]=W*δ(t-τ)` (δ is the Dirac delta).
 
-The ouput is if Inf if the system is unstable. Passing white noise directly to
-the output will result in infinite covariance in the corresponding outputs
-(D*W*D' .!= 0) for contunuous systems."""
+Remark: If `sys` is unstable then the resulting covariance is a matrix of `Inf`s.
+Entries corresponding to direct feedthrough (D*W*D' .!= 0) will equal `Inf`
+for continuous-time systems."""
 function covar(sys::AbstractStateSpace, W)
-    (A, B, C, D) = (sys.A, sys.B, sys.C, sys.D)
+    (A, B, C, D) = ssdata(sys)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
@@ -168,11 +169,11 @@ function covar(sys::AbstractStateSpace, W)
         error("No solution to the Lyapunov equation was found in covar")
     end
     P = C*Q*C'
-    if iscontinuous(sys)
+    if !isdiscrete(sys)
         #Variance and covariance infinite for direct terms
-        directNoise = D*W*D'
+        direct_noise = D*W*D'
         for i in 1:size(C,1)
-            if directNoise[i,i] != 0
+            if direct_noise[i,i] != 0
                 P[i,:] .= Inf
                 P[:,i] .= Inf
             end
@@ -185,12 +186,6 @@ end
 
 covar(sys::TransferFunction, W) = covar(ss(sys), W)
 
-"""
-    covar(C,W)
-If `C` is a matrix, return CWC'
-"""
-covar(C::Union{AbstractMatrix,UniformScaling}, R) = C*R*C'
-
 
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
@@ -199,22 +194,16 @@ covar(C::Union{AbstractMatrix,UniformScaling}, R) = C*R*C'
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
-`norm(sys, Inf)` computes the L∞ norm of the LTI system `sys`.
-The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
+`norm(sys, Inf)` computes the H∞ norm of the LTI system `sys`.
+The H∞ norm is the same as the H∞ for stable systems, and Inf for unstable systems.
 If the peak gain frequency is required as well, use the function `hinfnorm` instead.
+See [`hinfnorm`](@ref) for further documentation.
 
 `tol` is an optional keyword argument, used only for the computation of L∞ norms.
 It represents the desired relative accuracy for the computed L∞ norm
 (this is not an absolute certificate however).
 
-sys is first converted to a state space model if needed.
-
-The L∞ norm computation implements the 'two-step algorithm' in:
-N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
-of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
-For the discrete-time version, see, e.g.,: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
-calculation for generalized state space systems in continuous and discrete time',
-American Control Conference, 1991.
+`sys` is first converted to a `StateSpace` model if needed.
 """
 function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
     if p == 2
@@ -225,10 +214,8 @@ function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
         error("`p` must be either `2` or `Inf`")
     end
 end
+LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p, tol=tol)
 
-function LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6)
-    return norm(ss(sys), p, tol=tol)
-end
 
 """
 `   (Ninf, ω_peak) = hinfnorm(sys; tol=1e-6)`
@@ -244,14 +231,15 @@ the computed H∞ norm (not an absolute certificate).
 
 `sys` is first converted to a state space model if needed.
 
-The L∞ norm computation implements the 'two-step algorithm' in:
-N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
-of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
-For the discrete-time version, see: P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm
-calculation for generalized state space systems in continuous and discrete time',
-American Control Conference, 1991.
+The continuous-time L∞ norm computation implements the 'two-step algorithm' in:\\
+**N.A. Bruinsma and M. Steinbuch**, 'A fast algorithm to compute the H∞-norm of
+a transfer function matrix', Systems and Control Letters (1990), pp. 287-293.
 
-See also `linfnorm`.
+For the discrete-time version, see:\\
+**P. Bongers, O. Bosgra, M. Steinbuch**, 'L∞-norm calculation for generalized
+state space systems in continuous and discrete time', American Control Conference, 1991.
+
+See also [`linfnorm`](@ref).
 """
 function hinfnorm(sys::AbstractStateSpace; tol=1e-6)
     if !isdiscrete(sys) # Continuous or Static
@@ -275,14 +263,15 @@ the computed L∞ norm (this is not an absolute certificate however).
 
 `sys` is first converted to a state space model if needed.
 
-The L∞ norm computation implements the 'two-step algorithm' in:
-N.A. Bruinsma and M. Steinbuch, 'A fast algorithm to compute the H∞-norm
-of a transfer function matrix', Systems and Control Letters 14 (1990), pp. 287-293.
-For the discrete-time version, see:
-P. Bongers, O. Bosgra, M. Steinbuch, 'L∞-norm calculation for generalized state
-space systems in continuous and discrete time', American Control Conference, 1991.
+The continuous-time L∞ norm computation implements the 'two-step algorithm' in:\\
+**N.A. Bruinsma and M. Steinbuch**, 'A fast algorithm to compute the H∞-norm of
+a transfer function matrix', Systems and Control Letters (1990), pp. 287-293.
 
-See also `hinfnorm`.
+For the discrete-time version, see:\\
+**P. Bongers, O. Bosgra, M. Steinbuch**, 'L∞-norm calculation for generalized
+state space systems in continuous and discrete time', American Control Conference, 1991.
+
+See also [`hinfnorm`](@ref).
 """
 function linfnorm(sys::AbstractStateSpace; tol=1e-6)
     if iscontinuous(sys)
