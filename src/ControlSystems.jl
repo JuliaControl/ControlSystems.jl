@@ -88,7 +88,10 @@ export  LTISystem,
         denvec,
         numpoly,
         denpoly,
-        sampletime
+        sampletime,
+        iscontinuous,
+        isdiscrete,
+        isstatic
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
@@ -172,15 +175,16 @@ function covar(D::Union{AbstractMatrix,UniformScaling}, R)
 end
 
 function Base.getproperty(sys::Union{StateSpace,HeteroStateSpace,TransferFunction}, s::Symbol)
-    if s == :Ts
-        if !isdiscrete(sys)
+    if s === :Ts
+        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete
+        if !isdiscrete(sys.time) # We use this instead
             @warn "Getting sampletime 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access sampletime."
             return 0.0
         else
             return sampletime(sys)
         end
     else
-        return Base.getfield(sys, s)
+        return getfield(sys, s)
     end
 end
 

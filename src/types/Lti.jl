@@ -57,7 +57,8 @@ isstatic(sys::LTISystem) = isstatic(sys.time)
 
 """`sampletime(sys)`
 
-Returns the sampletime of a discrete time system, throws error if the system is continuous time or static."""
+Returns the sampletime of a discrete time system, throws error if the system is continuous time or static.
+Always ensure `isdiscrete` before using."""
 sampletime(sys::LTISystem) = sampletime(sys.time)
 
 """`sampletype(sys)`
