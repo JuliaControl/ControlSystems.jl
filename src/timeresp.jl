@@ -106,7 +106,7 @@ plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx), method::Symbol=_issmooth(u) ? :foh : :zoh)
+        x0::Vector=zeros(sys.nx), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -118,20 +118,31 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     dt = Float64(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys) # Looks strange to check iscontinuous again
+    if !all(x -> x ≈ dt, diff(t))
+        error("time vector t must be uniformly spaced")
+    end
+
+    if iscontinuous(sys)
+        if method == :unspecified
+            method = _issmooth(u) ? :foh : :zoh
+        end
+
+        if method == :zoh
             dsys = c2d(sys, dt, :zoh)[1]
+        elseif method == :foh
+            dsys, x0map = c2d(sys, dt, :foh)
+            x0 = x0map*[x0; transpose(u)[:,1]]
         else
-            if sys.Ts != dt
-                error("Time vector must match sample time for discrete system")
-            end
-            dsys = sys
+            error("Unsupported discretization method")
         end
     else
-        dsys, x0map = c2d(sys, dt, :foh)
-        x0 = x0map*[x0; transpose(u[1:1,:])]
+        if sys.Ts != dt
+            error("Time vector must match sample time of discrete-time system")
+        end
+        dsys = sys
     end
-    x = ltitr(dsys.A, dsys.B, Float64.(u), Float64.(x0))
+
+    x = ltitr(dsys.A, dsys.B, u, x0)
     y = transpose(sys.C*transpose(x) + sys.D*transpose(u))
     return y, t, x
 end
@@ -187,17 +198,30 @@ If `x0` is not provided, a zero-vector is used.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
-function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::AbstractVecOrMat,
-        x0::VecOrMat=zeros(T, size(A, 1))) where T
+@views function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
+        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
+
+    T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
+                      LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
+
     n = size(u, 1)
-    x = similar(A, size(A, 1), n)
-    for i=1:n
-        x[:,i] = x0
-        x0 = A * x0 + B * u[i,:]
+
+    # Transposing u allows column-wise operations, which apparently is faster.
+    # See issue for discssuing the orientation of the input u and the output x.
+    ut = transpose(u)
+
+    x = Matrix{T}(undef, size(A, 1), n)
+    tmp = Vector{T}(undef, size(A, 1)) # temp vector for storing B*u[:,k]
+
+    x[:,1] .= x0
+    for k=1:n-1
+        mul!(x[:,k+1], A, x[:,k])
+
+        mul!(tmp, B, ut[:,k]) # these two lines could be replaced with 5-argument mul! (>= v1.3)
+        x[:, k+1] .+= tmp
     end
     return transpose(x)
 end
-
 
 function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
     x0::VecOrMat=zeros(T, size(A, 1))) where T
