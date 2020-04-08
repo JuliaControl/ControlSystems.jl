@@ -106,7 +106,7 @@ plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::Vector=zeros(sys.nx), method::Symbol=:unspecified)
+        x0::AbstractVector=zeros(Bool, sys.nx), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -196,10 +196,13 @@ lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
+The type of `x0` determines the matrix structure of the returned result,
+e.g, `x0` should prefereably not be a sparse vector.
+
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
 @views function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
-        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
+        x0::AbstractVector=zeros(eltype(A), size(A, 1)))
 
     T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
@@ -210,8 +213,11 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     # See issue for discssuing the orientation of the input u and the output x.
     ut = transpose(u)
 
-    x = Matrix{T}(undef, size(A, 1), n)
-    tmp = Vector{T}(undef, size(A, 1)) # temp vector for storing B*u[:,k]
+    # Using similar instead of Matrix{T} to allow for CuArrays to be used.
+    # This approach is problematic if x0 is sparse for example, but was considered
+    # to be good enough for now
+    x = similar(x0, T, (length(x0), n))
+    tmp = similar(x0, T) # temp vector for storing B*u[:,k]
 
     x[:,1] .= x0
     for k=1:n-1
