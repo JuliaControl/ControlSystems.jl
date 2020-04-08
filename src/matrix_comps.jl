@@ -87,10 +87,10 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
         error("gram only valid for stable A")
     end
     func = iscontinuous(sys) ? lyap : dlyap
-    if opt == :c
+    if opt === :c
         # TODO probably remove type check in julia 0.7.0
         return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
-    elseif opt == :o
+    elseif opt === :o
         return func(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
     else
         error("opt must be either :c for controllability grammian, or :o for
@@ -309,7 +309,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     end
 
-    if normtype == :hinf && any(z -> real(z) > 0, pole_vec)
+    if normtype === :hinf && any(z -> real(z) > 0, pole_vec)
         return T(Inf), T(NaN) # The system is unstable
     end
 
@@ -389,7 +389,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         return (T(Inf), angle(pole_vec[pidx])/T(sys.Ts))
     end
 
-    if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
+    if normtype === :hinf && any(z -> abs(z) > 1, pole_vec)
         return T(Inf), T(NaN) # The system is unstable
     end
 

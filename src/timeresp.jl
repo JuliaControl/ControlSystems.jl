@@ -43,7 +43,7 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    if iscontinuous(sys) #&& method == :cont
+    if iscontinuous(sys) #&& method === :cont
         u = (x,i) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
@@ -123,13 +123,13 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     if iscontinuous(sys)
-        if method == :unspecified
+        if method === :unspecified
             method = _issmooth(u) ? :foh : :zoh
         end
 
-        if method == :zoh
+        if method === :zoh
             dsys = c2d(sys, dt, :zoh)[1]
-        elseif method == :foh
+        elseif method === :foh
             dsys, x0map = c2d(sys, dt, :foh)
             x0 = x0map*[x0; transpose(u)[:,1]]
         else
@@ -162,7 +162,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
     T = promote_type(Float64, eltype(x0))
 
     dt = T(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
+    if !iscontinuous(sys) || method === :zoh
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else

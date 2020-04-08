@@ -16,7 +16,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     A, B, C, D = ssdata(sys)
     ny, nu = size(sys)
     nx = nstates(sys)
-    if method == :zoh
+    if method === :zoh
         M = exp([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
@@ -24,7 +24,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Cd = C
         Dd = D
         x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
-    elseif method == :foh
+    elseif method === :foh
         M = exp([A*Ts B*Ts zeros(nx, nu);
             zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
@@ -35,7 +35,7 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Cd = C
         Dd = D + C*M2
         x0map = [Matrix{Float64}(I, nx, nx)  (-M2)]
-    elseif method == :tustin || method == :matched
+    elseif method === :tustin || method === :matched
         error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
     else
         error("Unsupported method: ", method)
@@ -218,7 +218,7 @@ function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector, control_si
     end
 
     dt = Float64(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
+    if !iscontinuous(sys) || method === :zoh
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
