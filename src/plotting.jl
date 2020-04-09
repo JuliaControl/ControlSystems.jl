@@ -210,7 +210,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     titles[s2i(i,j)] = ttext
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
-                        seriestype := style
+                        seriestype --> style
                         xlabel --> "Time (s)"
                         ylabel --> ytext
                         subplot --> s2i(i,j)
@@ -739,7 +739,7 @@ pzmap
         if !isempty(p[1])
             @series begin
                 markershape --> :x
-                markersize := 15.
+                markersize --> 15.
                 real(p[1]),imag(p[1])
             end
         end
