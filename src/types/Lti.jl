@@ -29,7 +29,7 @@ abstract type LTISystem <: AbstractSystem end
 # TODO We should have proper fallbacks for matrices too
 
 feedback(sys1::Union{LTISystem,Number,AbstractMatrix{<:Number}},
-         sys2::Union{LTISystem,Number,AbstractMatrix{<:Number}}) = feedback(promote(sys1, sys2)...)
+         sys2::Union{LTISystem,Number,AbstractMatrix{<:Number}}; kwargs...) = feedback(promote(sys1, sys2)...; kwargs...)
 
 Base.inv(G::LTISystem) = 1/G
 

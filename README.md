@@ -73,7 +73,7 @@ A documentation website is available at [http://juliacontrol.github.io/ControlSy
 
 Some of the available commands are:
 ##### Constructing systems
-ss, tf, zpk, ss2tf
+ss, tf, zpk
 ##### Analysis
 pole, tzero, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
 ##### Synthesis
