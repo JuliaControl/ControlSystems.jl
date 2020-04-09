@@ -252,7 +252,7 @@ end
 
 @userplot Bodeplot
 ## FREQUENCY PLOTS ##
-"""`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
+"""`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, hz=false, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided. To change the Magnitude scale see `setPlotScale(str)`
@@ -260,13 +260,14 @@ optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
-    xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
+    xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -275,7 +276,7 @@ bodeplot
         end
 
 
-        xlab = plotphase ? "" : "Frequency (rad/s)"
+        xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
         for j=1:nu
             for i=1:ny
                 magdata = vec(mag[:, i, j])
@@ -299,7 +300,7 @@ bodeplot
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     seriescolor --> styledict[:c]
-                    w, magdata
+                    ws, magdata
                 end
                 plotphase || continue
 
@@ -309,11 +310,11 @@ bodeplot
                     ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
                     subplot --> s2i(2i,j)
-                    xguide    --> "Frequency (rad/s)"
+                    xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     seriescolor --> styledict[:c]
-                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    ws, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
             end
