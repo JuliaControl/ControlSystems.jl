@@ -26,6 +26,8 @@ abstract type LTISystem <: AbstractSystem end
 *(sys1::AbstractMatrix, sys2::LTISystem) = *(promote(sys1, sys2)...)
 /(sys1::AbstractMatrix, sys2::LTISystem) = /(promote(sys1, sys2)...)
 
+Base.:^(sys::LTISystem, p::Integer) = Base.power_by_squaring(sys, p)
+
 # TODO We should have proper fallbacks for matrices too
 
 feedback(sys1::Union{LTISystem,Number,AbstractMatrix{<:Number}},

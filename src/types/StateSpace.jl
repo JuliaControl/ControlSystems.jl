@@ -282,8 +282,6 @@ end
 Base.inv(sys::AbstractStateSpace) = 1/sys
 /(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.Ts)
 
-Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
-
 
 #####################################################################
 ##                       Indexing Functions                        ##
