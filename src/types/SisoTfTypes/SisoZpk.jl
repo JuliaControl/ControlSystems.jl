@@ -149,9 +149,9 @@ function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Num
 end
 
 
-function poly_factors2string(poly_factors::AbstractArray{<:Poly{T}}, var) where T
+function poly_factors2string(poly_factors::AbstractArray{<:Polynomial{T}}, var) where T
     if length(poly_factors) == 0
-        str = sprint(printpolyfun(var), Poly(one(T)))
+        str = sprint(printpolyfun(var), Polynomial(one(T)))
     elseif length(poly_factors) == 1
         str = sprint(printpolyfun(var), poly_factors[1])
     else
