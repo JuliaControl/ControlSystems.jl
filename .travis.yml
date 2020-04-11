@@ -12,11 +12,18 @@ notifications:
 addons:
   apt:
     packages:
+      - libgtk-3-dev
       - xvfb
 cache:
   directories:
   # This should speed up builds
   - $HOME/.julia/artifacts
+
+env:
+  # Set plot globals
+  - PLOTS_TEST="true"
+  - GKSwstype="100"
+
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   # Needed for plotting on travis
@@ -24,6 +31,7 @@ script:
   # Needed to test plots
   - $TESTCMD -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/JuliaControl/ControlExamplePlots.jl.git"))'
   - $TESTCMD -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
+
 after_success:
     - julia -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
     - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
