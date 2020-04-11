@@ -36,7 +36,10 @@ function run_tests(my_tests)
     @testset "Test Code" begin
         for test in my_tests
             println(test)
+            _t0 = time()
             include("$(test).jl")
+            _t1 = time()
+            println("Ran $test in $(round(_t1-_t0, digits=2)) seconds")
         end
     end
 end

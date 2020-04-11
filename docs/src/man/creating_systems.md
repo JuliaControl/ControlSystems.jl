@@ -12,16 +12,15 @@ tf(num, den, Ts=0)
 ```
 where `num` and `den` are the polinomial coefficients of the numerator and denominator of the polynomial and `Ts` is the sample time.
 ### Example:
-```julia
+```jldoctest
 tf([1.0],[1,2,1])
 
 # output
 
-TransferFunction{ControlSystems.SisoRational{Float64}}
+TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}
          1.0
 ---------------------
 1.0*s^2 + 2.0*s + 1.0
-
 
 Continuous-time transfer function model
 ```
@@ -35,12 +34,12 @@ zpk(zeros, poles, gain, Ts=0)
 ```
 where `zeros` and `poles` are `Vectors` of the zeros and poles for the system and `gain` is a gain coefficient.
 ### Example
-```julia
+```jldoctest
 zpk([-1.0,1], [-5, -10], 2)
 
 # output
 
-TransferFunction{ControlSystems.SisoZpk{Float64,Float64}}
+TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,Float64}}
    (1.0*s + 1.0)(1.0*s - 1.0)
 2.0---------------------------
    (1.0*s + 5.0)(1.0*s + 10.0)
@@ -52,15 +51,15 @@ The transfer functions created using this method will be of type `TransferFuncti
 
 ## Converting between types
 It is sometime useful to convert one representation to another, this is possible using the same functions, for example
-```julia
+```jldoctest
 tf(zpk([-1], [1], 2, 0.1))
 
 # output
 
-TransferFunction{ControlSystems.SisoRational{Int64}}
+TransferFunction{Discrete{Float64},ControlSystems.SisoRational{Int64}}
 2*z + 2
 -------
-1z - 1
+ z - 1
 
 Sample Time: 0.1 (seconds)
 Discrete-time transfer function model

@@ -6,33 +6,11 @@ end
 
 
 # LQR design
-```julia
+```jldoctest
 using LinearAlgebra # For identity matrix I
 h       = 0.1
 A       = [1 h; 0 1]
 B       = [0 1]' # To handle bug TODO
-C       = [1 0]
-sys     = ss(A,B,C,0, h)
-Q = Matrix{Float64}(I,2,2)
-R = Matrix{Float64}(I,1,1)
-L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
-
-u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
-t       =0:h:5
-x0      = [1,0]
-y, t, x, uout = lsim(sys,u,t,x0=x0)
-Plots.plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
-```
-
-![](../../plots/lqrplot.svg)
-
-
-# LQR design
-```julia
-using LinearAlgebra # For identity matrix I
-h       = 0.1
-A       = [1 h; 0 1]
-B       = [0;1]
 C       = [1 0]
 sys     = ss(A,B,C,0, h)
 Q       = I
@@ -43,34 +21,50 @@ u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a 
 t       =0:h:5
 x0      = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
-plot(t,x, lab=["Position", "Velocity"]', xlabel="Time [s]")
+Plots.plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
+nothing # hide
+
+# output
+
 ```
 
 ![](../../plots/lqrplot.svg)
 
 # PID design functions
 By plotting the gang of four under unit feedback for the process
-```julia
+```jldoctest PIDDESIGN
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
+nothing # hide
+
+# output
+
 ```
 ![](../../plots/pidgofplot.svg)
 
-we notice that the sensitivity function is a bit too high at around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the
+we notice that the sensitivity function is a bit too high around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the
 function `loopshapingPI` and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
 
-```julia
+```jldoctest PIDDESIGN
 ωp = 0.8
 kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)
+nothing # hide
+
+# output
+
 ```
 ![](../../plots/pidgofplot2.svg)
 ![](../../plots/pidnyquistplot.svg)
 
 
 We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like
-```julia
+```jldoctest PIDDESIGN
 ωp = 2
 kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)
+nothing # hide
+
+# output
+
 ```
 Here we specify that we want the Nyquist curve `L(iω) = P(iω)C(iω)` to pass the point `|L(iω)| = rl = 1,  arg(L(iω)) = -180 + phasemargin = -180 + 60`
 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles.
@@ -82,7 +76,7 @@ This example illustrates how we can perform advanced pole-zero placement. The ta
 
 
 Define the process
-```julia
+```jldoctest POLEPLACEMENT
 ζ = 0.2
 ω = 1
 
@@ -92,7 +86,7 @@ P  = tf(B,A)
 
 # output
 
-TransferFunction{ControlSystems.SisoRational{Float64}}
+TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}
          1.0
 ---------------------
 1.0*s^2 + 0.4*s + 1.0
@@ -101,7 +95,8 @@ Continuous-time transfer function model
 ```
 
 Define the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.
-```julia
+```jldoctest POLEPLACEMENT
+import DSP: conv
 # Control design
 ζ0 = 0.7
 ω0 = 2
@@ -119,6 +114,10 @@ Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from refer
 
 stepplot([P,Gcl]) # Visualize the open and closed loop responses.
 gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
+nothing # hide
+
+# output
+
 ```
 
 ![](../../plots/ppstepplot.svg)
@@ -128,13 +127,17 @@ gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer fu
 # Stability boundary for PID controllers
 The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plotted with the command `stabregionPID`. The process can be given in string form or as a regular LTIsystem.
 
-```julia
+```jldoctest
 P1 = s -> exp(-sqrt(s))
 f1, kp, ki = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000))); f1
 P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
 f2, kp, ki = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000))); f2
 P3 = tf(1,[1,1])^4
 f3, kp, ki = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000))); f3
+nothing # hide
+
+# output
+
 ```
 ![](../../plots/stab1.svg)
 ![](../../plots/stab2.svg)
@@ -143,7 +146,7 @@ f3, kp, ki = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000))); f3
 
 # PID plots
 This example utilizes the function `pidplots`, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
-```julia
+```jldoctest PIDPLOTS
 P = tf([1.],[1., 1])
 
 ζ = 0.5 # Desired damping
@@ -152,15 +155,23 @@ ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
 kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
 ki = ws.^2
 pidplots(P,:nyquist,:gof;kps=kp,kis=ki, ω= exp10.(range(-2, stop=2, length=500))) # Request Nyquist and Gang-of-four plots (more plots are available, see ?pidplots )
+nothing # hide
+
+# output
+
 ```
 ![](../../plots/pidplotsnyquist1.svg)
 ![](../../plots/pidplotsgof1svg)
 
 Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
-```julia
+```jldoctest PIDPLOTS
 kp = range(-1, stop=1, length=8) #
 ki = sqrt.(1 .- kp.^2)/10
 pidplots(P,:nyquist,:gof;kps=kp,kis=ki)
+nothing # hide
+
+# output
+
 ```
 ![](../../plots/pidplotsnyquist2.svg)
 ![](../../plots/pidplotsgof2.svg)
