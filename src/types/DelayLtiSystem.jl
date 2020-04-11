@@ -28,7 +28,7 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
     ny = noutputs(sys) - length(Tau)
 
     if nu < 0  || ny < 0
-        throw(ArgumentError("Time vector is too long."))
+        throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
 
     psys = PartionedStateSpace{StateSpace{T,Matrix{T}}}(sys, nu, ny)
@@ -144,6 +144,17 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
         sys.P.Ts), sys.Tau)
 end
 
+function Base.show(io::IO, sys::DelayLtiSystem)
+    println(io, typeof(sys))
+
+    print(io, "\nP: ")
+    show(io, sys.P.P)
+
+    println(io, "\n\nDelays: $(sys.Tau)")
+end
+
+
+
 function +(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     psys_new = sys1.P + sys2.P
     Tau_new = [sys1.Tau; sys2.Tau]
@@ -173,27 +184,33 @@ end
 """
     delay(T::Type{<:Number}, tau)
 
-Create a pure time delay. If `T` is not specified, the default is to choose `promote_type(T, typeof(tau))`
+Create a pure time delay of length `τ` of type `T`.
+
+The type `T` defaults to `promote_type(Float64, typeof(tau))`
 """
-function delay(T::Type{<:Number}, tau)
-    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(tau)])
+function delay(T::Type{<:Number}, τ)
+    return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)]), [T(τ)])
 end
+delay(τ::Number) = delay(promote_type(Float64,eltype(τ)), τ)
 
-function delay(tau::S) where S
-    delay(promote_type(Float64,S), tau)
+
+"""
+    exp(G::TransferFunction{SisoRational})
+
+Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ` > 0.
+
+See also: [`delay`](@ref) which is arguably more conenient than this function.
+"""
+function Base.exp(G::TransferFunction{<:SisoRational})
+    if size(G.matrix) != (1,1) && iscontinuous(G)
+        error("G must be a continuous-time scalar transfer function. Consider using `delay` instead.")
+    end
+    G_siso = G.matrix[1,1]
+
+    if !(Polynomials.degree(G_siso.den) == 0 && Polynomials.degree(G_siso.num) == 1
+        && G_siso.num[1]/G_siso.den[0] < 0 && G_siso.num[0] == 0)
+        error("Input must be of the form -τ*s, τ>0. Consider using `delay` instead.")
+    end
+
+    return delay(-G_siso.num[1] / G_siso.den[0])
 end
-
-# function exp(G::TransferFunction)
-#     if (size(G.matrix) != [1, 1]) || ~isone(G.matrix[1].den) || length(G.matrix[1].num) >= 2
-#         error("exp only accepts TransferFunction arguemns of the form (a*s + b)")
-#     end
-#
-#     a = G.matrix[1].num[1]
-#     b = G.matrix[1].num[0]
-#
-#     if a > 0
-#         error("Delay needs to be causal.")
-#     end
-#
-#     return exp(b) * delay(a)
-# end

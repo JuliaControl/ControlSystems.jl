@@ -9,8 +9,8 @@ export  LTISystem,
         ss,
         tf,
         zpk,
-        ss2tf,
         LQG,
+        isproper,
         # Linear Algebra
         balance,
         care,
@@ -56,6 +56,8 @@ export  LTISystem,
         parallel,
         feedback,
         feedback2dof,
+        starprod,
+        lft,
         # Discrete
         c2d,
         # Time Response
@@ -72,6 +74,10 @@ export  LTISystem,
         sigma,
         # delay systems
         delay,
+        pade,
+        # demo systems
+        ssrand,
+        DemoSystems, # A module containing some example systems
         # utilities
         num,    #Deprecated
         den,    #Deprecated
@@ -89,6 +95,7 @@ using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
+import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
@@ -138,6 +145,8 @@ include("synthesis.jl")
 include("simulators.jl")
 include("pid_design.jl")
 
+include("demo_systems.jl")
+
 include("delay_systems.jl")
 
 include("plotting.jl")
@@ -145,6 +154,12 @@ include("plotting.jl")
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm
+
+function covar(D::Union{AbstractMatrix,UniformScaling}, R)
+    @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
+    D*R*D'
+end
+
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())
