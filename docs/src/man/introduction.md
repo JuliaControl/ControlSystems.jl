@@ -3,7 +3,7 @@
 
 To install this package simply run
 ```julia
-Pkg.add("ControlSystems")
+using Pkg; Pkg.add("ControlSystems")
 ```
 
 ## Basic functions
@@ -51,5 +51,5 @@ using ControlSystems
 
 fig = bodeplot(tf(1,[1,2,1]))
 
-Plots.savefig(fig, "myfile.svg")
+savefig(fig, "myfile.svg")
 ```

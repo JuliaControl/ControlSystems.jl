@@ -85,21 +85,6 @@ function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
 end
 @inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.time,f)
 ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
-ERROR: UndefVarError: ControlSystems not defined
-Stacktrace:
- [1] top-level scope at /home/mattias/.julia/dev/ControlSystems/test/runtests.jl:34
-ERROR: syntax: extra token "not" after end of expression
-Stacktrace:
- [1] top-level scope at none:34
-ERROR: syntax: extra token "not" after end of expression
-Stacktrace:
- [1] top-level scope at none:34
-ERROR: syntax: extra token "not" after end of expression
-Stacktrace:
- [1] top-level scope at none:34
-ERROR: syntax: extra token "not" after end of expression
-Stacktrace:
- [1] top-level scope at none:34
 
 # output
 

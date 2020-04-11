@@ -1,8 +1,8 @@
 name: CompatHelper
 
 on:
-  schedule:
-    - cron: '00 * * * *'
+  pull_request:
+    types: [opened, reopened, edited]
 
 jobs:
   build:

@@ -1,5 +1,5 @@
-using ControlSystems, OrdinaryDiffEq, NLopt, BlackBoxOptim
-p0          = Float64[0.2,0.8,1] # Initial guess
+using ControlSystems, OrdinaryDiffEq, NLopt, BlackBoxOptim, ForwardDiff
+p0          = [0.2,0.8,1] # Initial guess
 K(kp,ki,kd) = pid(kp=kp, ki=ki, kd=kd)
 K(p)        = K(p...)
 
@@ -8,7 +8,7 @@ K(p)        = K(p...)
 ω  = 1.; ω² = ω^2
 P  = tf(ω²,[1, 2ζ*ω, ω²])*tf(1,[1,1])
 
-Ω  = logspace(-1,2,150)  # Frequency vector to eval constraints
+Ω  = exp10.(LinRange(-1,2,150))  # Frequency vector to eval constraints
 h  = 0.1 # Sample time for time-domain evaluation
 Tf = 60.  # Time horizon
 t  = 0:h:Tf-h

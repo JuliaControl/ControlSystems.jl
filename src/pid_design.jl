@@ -254,13 +254,15 @@ end
 
 
 """
-`kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin)`
+`kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin, doplot = false)`
 
 Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
 If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
 If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
+
+Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
 
 See also `pidplots`, `stabregionPID`
 """
@@ -282,8 +284,8 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
     C = pid(kp=kp, ki=ki)
 
     if doplot
-        gangoffourplot(P,[tf(1),C])
-        nyquistplot([P, P*C])
+        gangoffourplot(P,[tf(1),C]) |> display
+        nyquistplot([P, P*C]) |> display
     end
     return kp,ki,C
 end
