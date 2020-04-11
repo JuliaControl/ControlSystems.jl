@@ -1,7 +1,5 @@
 function makePlots()
 
-println("Generating plots")
-
 plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
 mkpath(plotsDir)
 Plots.gr()
@@ -20,7 +18,7 @@ u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a 
 t=0:h:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
-plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
+Plots.plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 Plots.savefig(plotsDir*"/lqrplot.svg")
 
 # PID design functions
