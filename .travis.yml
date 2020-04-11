@@ -14,15 +14,14 @@ addons:
     packages:
       - libgtk-3-dev
       - xvfb
+      - dvipng
 cache:
   directories:
   # This should speed up builds
   - $HOME/.julia/artifacts
 
 env:
-  # Set plot globals
-  - PLOTS_TEST="true"
-  - GKSwstype="100"
+  - PLOTS_TEST="true" GKSwstype="100"
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
