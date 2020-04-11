@@ -33,7 +33,7 @@ Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a â
 
 
 function run_tests(my_tests)
-    @testset "All tests" begin
+    @testset "Test Code" begin
         for test in my_tests
             println(test)
             include("$(test).jl")

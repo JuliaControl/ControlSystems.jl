@@ -2,8 +2,8 @@ function makePlots()
 
 println("Generating plots")
 
-plotsDir = (pwd()[end-3:end] == "docs") ? "build/plots" : "docs/build/plots"
-mkdir(plotsDir)
+plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
+mkpath(plotsDir)
 Plots.gr()
 
 # LQG design

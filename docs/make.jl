@@ -1,8 +1,18 @@
+# Set plot globals
+ENV["PLOTS_TEST"] = "true"
+ENV["GKSwstype"] = "100"
+
 using Documenter, ControlSystems, Plots, LinearAlgebra, DSP
 import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 
-include("src/makeplots.jl")
+dir = joinpath(dirname(pathof(ControlSystems)), "..")
+cd(dir)
+include(joinpath(dir, "docs", "src", "makeplots.jl"))
 
+println("Making plots for docs")
+makePlots()
+
+println("Making docs")
 makedocs(modules=[ControlSystems],
     format=Documenter.HTML(),
     sitename="ControlSystems.jl",
@@ -24,21 +34,5 @@ makedocs(modules=[ControlSystems],
         ],
     ]
     )
-# If not running travis, generate the plots here, even if we are not deploying
-if get(ENV, "TRAVIS", "") == ""
-    makePlots()
-end
 
-# Only build plots in travis if we are deploying
-# And dont install the dependencies unless we are deploying
-function myDeps()
-    if get(ENV, "TRAVIS", "") != ""
-        println("Installing deploy dependencies")
-        makePlots()
-    end
-end
-
-deploydocs(
-    repo = "github.com/JuliaControl/ControlSystems.jl.git",
-    deps = myDeps
-)
+deploydocs(repo = "github.com/JuliaControl/ControlSystems.jl.git")

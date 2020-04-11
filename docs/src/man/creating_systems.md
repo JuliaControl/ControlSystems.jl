@@ -73,7 +73,7 @@ A state-space system is created using
 ss(A,B,C,D,Ts=0)
 ```
 and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
-```jldoctest  HSS
+```jldoctest HSS
 using StaticArrays
 import ControlSystems.HeteroStateSpace
 @inline to_static(a::Number) = a
@@ -85,11 +85,29 @@ function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
 end
 @inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.time,f)
 ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
+ERROR: UndefVarError: ControlSystems not defined
+Stacktrace:
+ [1] top-level scope at /home/mattias/.julia/dev/ControlSystems/test/runtests.jl:34
+ERROR: syntax: extra token "not" after end of expression
+Stacktrace:
+ [1] top-level scope at none:34
+ERROR: syntax: extra token "not" after end of expression
+Stacktrace:
+ [1] top-level scope at none:34
+ERROR: syntax: extra token "not" after end of expression
+Stacktrace:
+ [1] top-level scope at none:34
+ERROR: syntax: extra token "not" after end of expression
+Stacktrace:
+ [1] top-level scope at none:34
+
+# output
+
 ```
 Notice the different matrix types used
 ```jldoctest HSS
 julia> sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
-StateSpace{Int64,Array{Int64,2}}
+StateSpace{Continuous,Int64,Array{Int64,2}}
 A =
  -5   0
   0  -5
@@ -104,7 +122,7 @@ D =
 Continuous-time state-space model
 
 julia> HeteroStateSpace(sys, to_static)
-HeteroStateSpace{SArray{Tuple{2,2},Int64,2,4},SArray{Tuple{2,1},Int64,2,2},SArray{Tuple{1,2},Int64,2,2},SArray{Tuple{1,1},Int64,2,1}}
+HeteroStateSpace{Continuous,SArray{Tuple{2,2},Int64,2,4},SArray{Tuple{2,1},Int64,2,2},SArray{Tuple{1,2},Int64,2,2},SArray{Tuple{1,1},Int64,2,1}}
 A =
  -5   0
   0  -5
@@ -119,7 +137,7 @@ D =
 Continuous-time state-space model
 
 julia> HeteroStateSpace(sys, to_sized)
-HeteroStateSpace{SizedArray{Tuple{2,2},Int64,2,2},SizedArray{Tuple{2,1},Int64,2,2},SizedArray{Tuple{1,2},Int64,2,2},SizedArray{Tuple{1,1},Int64,2,2}}
+HeteroStateSpace{Continuous,SizedArray{Tuple{2,2},Int64,2,2},SizedArray{Tuple{2,1},Int64,2,2},SizedArray{Tuple{1,2},Int64,2,2},SizedArray{Tuple{1,1},Int64,2,2}}
 A =
  -5   0
   0  -5
