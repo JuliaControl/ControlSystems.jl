@@ -2,48 +2,60 @@
 ENV["PLOTS_TEST"] = "true"
 ENV["GKSwstype"] = "100"
 
-module PlotTests
-using ControlSystems, Plots
-using ControlExamplePlots
-using Test
+using Plots
 gr()
 default(show=false)
 
-@testset "test_plots" begin
-funcs, refs, eps = getexamples()
-# Make it easier to pass tests on different systems
-# Set to a factor 2 of common errors, these are ignored now, use visual inspection
-# eps = [0.15, 0.015, 0.1, 0.01, 0.01, 0.02, 0.01, 0.15, 0.15, 0.01, 0.01]
-# res = genplots(funcs, refs, eps=eps, popup=false)
+# This function show mirror that in ControlExamplePlots.jl/genplots.jl
+# to make sure that the plots in these tests can be tested for accuracy
+"""funcs, names = getexamples()
+Get the example functions and names
+"""
+function getexamples()
+    tf1 = tf([1],[1,1])
+    tf2 = tf([1/5,2],[1,1,1])
+    sys = [tf1 tf2]
+    sysss = ss([-1 2; 0 1], [1 0; 1 1], [1 0; 0 1], [0.1 0; 0 -0.2])
 
-# ##Explicit enumeration for simpler debugging
-# PROCESSING_ERROR = ControlExamplePlots.PROCESSING_ERROR
+    ws = 10.0 .^range(-2,stop=2,length=200)
+    ts = 0:0.01:5
+    bodegen() = begin
+      setPlotScale("dB")
+      bodeplot(sys,ws)
+    end
+    nyquistgen() = nyquistplot(sysss,ws)
+    sigmagen() = sigmaplot(sysss,ws)
+    #Only siso for now
+    nicholsgen() = nicholsplot(tf1,ws)
 
-# ImageMagick needed to run image comparisons, but it doesnt work on Julia 1.0
-# see eg. https://github.com/JuliaIO/ImageMagick.jl/issues/142
+    stepgen() = stepplot(sys, ts[end], ts[2]-ts[1], l=(:dash, 4))
+    impulsegen() = impulseplot(sys, ts[end], ts[2]-ts[1], l=:blue)
+    L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
+    lsimgen() = lsimplot(sysss, (x,i)->-L*x, ts, [1;2])
 
-#"bode.png"
-@test  funcs[1]() isa Plots.Plot
-#"nyquist.png"
-@test  funcs[2]() isa Plots.Plot
-#"sigma.png"
-@test  funcs[3]() isa Plots.Plot
-#"nichols.png"
-@test  funcs[4]() isa Plots.Plot
-#"step.png"
-@test  funcs[5]() isa Plots.Plot
-#"impulse.png"
-@test  funcs[6]() isa Plots.Plot
-#"lsim.png"
-@test  funcs[7]() isa Plots.Plot
-#"margin.png"
-@test  funcs[8]() isa Plots.Plot
-#"gangoffour.png"
-@test  funcs[9]() isa Plots.Plot
-#"pzmap.png"
-@test  funcs[10]() isa Plots.Plot
-#"rlocus.png"
-@test  funcs[11]() isa Plots.Plot
+    margingen() = marginplot([tf1, tf2], ws)
+    gangoffourgen() = begin
+      setPlotScale("log10");
+      gangoffourplot(tf1, [tf(1), tf(5)])
+    end
+    pzmapgen() = pzmap(tf2, xlims=(-15,5))
+    rlocusgen() = rlocusplot(tf2)
+
+    refs = ["bode.png", "nyquist.png", "sigma.png", "nichols.png", "step.png",
+            "impulse.png", "lsim.png", "margin.png", "gangoffour.png", "pzmap.png", "rlocus.png"]
+    funcs = [bodegen, nyquistgen, sigmagen, nicholsgen, stepgen,
+             impulsegen, lsimgen, margingen, gangoffourgen, pzmapgen, rlocusgen]
+
+    funcs, refs
 end
+
+
+@testset "test_plots" begin
+  funcs, names = getexamples()
+
+  for i in eachindex(funcs)
+    println("run_plot_$(i): $(names[i])")
+    @test funcs[i]() isa Plots.Plot
+  end
 
 end

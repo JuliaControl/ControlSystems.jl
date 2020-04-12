@@ -29,7 +29,6 @@ script:
   # Needed for plotting on travis
   - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
   # Needed to test plots
-  - $TESTCMD -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/JuliaControl/ControlExamplePlots.jl.git"))'
   - $TESTCMD -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
 
 after_success:
