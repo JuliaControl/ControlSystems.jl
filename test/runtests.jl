@@ -33,27 +33,14 @@ my_tests = [
             ]
 
 @testset "All Tests" begin
+    println("test_code")
+    _t0 = time()
     run_tests(my_tests)
+    println("Ran test_code in $(round(time()-_t0, digits=2)) seconds")
 
+
+    println("test_doctests")
     _t0 = time()
-    @testset "test_plots_in_docs" begin
-        println("Test plots in docs")
-        Plots.default(show=false)
-        makeplotsfile = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "src", "makeplots.jl")
-        include(makeplotsfile)
-        # Test that generation of plots needed for documentation is working
-        makePlots()
-    end
-    _t1 = time()
-    println("Ran test_plots_in_docs in $(round(_t1-_t0, digits=2)) seconds")
-
-
-    _t0 = time()
-    @testset "Test doctests" begin
-        println("test_doctests")
-        # Test expected output from examples in documentation
-        doctest(ControlSystems)
-    end
-    _t1 = time()
-    println("Ran test_doctests in $(round(_t1-_t0, digits=2)) seconds")
+    doctest(ControlSystems)
+    println("Ran test_doctests in $(round(time()-_t0, digits=2)) seconds")
 end
