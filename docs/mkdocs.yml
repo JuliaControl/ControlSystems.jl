@@ -21,11 +21,11 @@ docs_dir: 'build'
 
 pages:
   - Home: 'index.md'
-  - Examples:
-    - Design: 'examples/example.md'
   - Guide:
     - Introduction: 'man/introduction.md'
     - 'Creating Transfer Functions': 'man/creatingtfs.md'
+  - Examples:
+    - Design: 'examples/example.md'
   - Functions:
     - Constructors: 'lib/constructors.md'
     - Analysis: 'lib/analysis.md'
