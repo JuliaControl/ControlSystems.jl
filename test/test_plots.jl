@@ -13,34 +13,37 @@ default(show=false)
 funcs, refs, eps = getexamples()
 # Make it easier to pass tests on different systems
 # Set to a factor 2 of common errors, these are ignored now, use visual inspection
-eps = [0.15, 0.015, 0.1, 0.01, 0.01, 0.02, 0.01, 0.15, 0.15, 0.01, 0.01]
-res = genplots(funcs, refs, eps=eps, popup=false)
+# eps = [0.15, 0.015, 0.1, 0.01, 0.01, 0.02, 0.01, 0.15, 0.15, 0.01, 0.01]
+# res = genplots(funcs, refs, eps=eps, popup=false)
 
-##Explicit enumeration for simpler debugging
-PROCESSING_ERROR = ControlExamplePlots.PROCESSING_ERROR
+# ##Explicit enumeration for simpler debugging
+# PROCESSING_ERROR = ControlExamplePlots.PROCESSING_ERROR
+
+# ImageMagick needed to run image comparisons, but it doesnt work on Julia 1.0
+# see eg. https://github.com/JuliaIO/ImageMagick.jl/issues/142
 
 #"bode.png"
-@test  res[1].status != PROCESSING_ERROR
+@test  funcs[1]() isa Plots.Plot
 #"nyquist.png"
-@test  res[2].status != PROCESSING_ERROR
+@test  funcs[2]() isa Plots.Plot
 #"sigma.png"
-@test  res[3].status != PROCESSING_ERROR
+@test  funcs[3]() isa Plots.Plot
 #"nichols.png"
-@test  res[4].status != PROCESSING_ERROR
+@test  funcs[4]() isa Plots.Plot
 #"step.png"
-@test  res[5].status != PROCESSING_ERROR
+@test  funcs[5]() isa Plots.Plot
 #"impulse.png"
-@test  res[6].status != PROCESSING_ERROR
+@test  funcs[6]() isa Plots.Plot
 #"lsim.png"
-@test  res[7].status != PROCESSING_ERROR
+@test  funcs[7]() isa Plots.Plot
 #"margin.png"
-@test  res[8].status != PROCESSING_ERROR
+@test  funcs[8]() isa Plots.Plot
 #"gangoffour.png"
-@test  res[9].status != PROCESSING_ERROR
+@test  funcs[9]() isa Plots.Plot
 #"pzmap.png"
-@test  res[10].status != PROCESSING_ERROR
+@test  funcs[10]() isa Plots.Plot
 #"rlocus.png"
-@test  res[11].status != PROCESSING_ERROR
+@test  funcs[11]() isa Plots.Plot
 end
 
 end

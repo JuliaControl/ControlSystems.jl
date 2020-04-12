@@ -35,7 +35,6 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
 ControlExamplePlots = "5e0795ec-8005-5a21-beb4-c9685e7e8997"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-ImageMagick = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
 
 [targets]
-test = ["Test", "Documenter", "GR", "ControlExamplePlots", "StaticArrays", "ImageMagick"]
+test = ["Test", "Documenter", "GR", "ControlExamplePlots", "StaticArrays"]
