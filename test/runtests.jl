@@ -29,6 +29,7 @@ my_tests = [
             "test_synthesis",
             "test_partitioned_statespace",
             "test_demo_systems",
+            "test_plots"
             ]
 
 @testset "All Tests" begin
@@ -54,5 +55,5 @@ my_tests = [
         doctest(ControlSystems)
     end
     _t1 = time()
-    println("Ran test_plots_in_docs in $(round(_t1-_t0, digits=2)) seconds")
+    println("Ran test_doctests in $(round(_t1-_t0, digits=2)) seconds")
 end
