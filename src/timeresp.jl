@@ -9,7 +9,7 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
-function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
+function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
@@ -38,19 +38,19 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
-function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
+function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
     if iscontinuous(sys) #&& method === :cont
-        u = (x,i) -> [zero(T)]
+        u = (x,t) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
         imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
-        u = (x,i) -> i == t[1] ? [one(T)]/sys.Ts : [zero(T)]
+        u = (x,i) -> (i == t[1] ? [one(T)]/sys.Ts : [zero(T)])
         imp_sys = sys
         x0s = zeros(T, nx, nu)
     end
@@ -105,7 +105,7 @@ y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
-function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
+function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
         x0::AbstractVector=zeros(Bool, sys.nx), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
@@ -150,7 +150,7 @@ end
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
-function lsim(sys::StateSpace, u::Function, t::AbstractVector;
+function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx

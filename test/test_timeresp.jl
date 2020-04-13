@@ -47,6 +47,18 @@ yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
 @test lsim(sys, zeros(5), 0:0.2:0.8)[1][:] == zeros(5)
 
 
+# lsim for Int system with Float64 input (regression test for #264)
+@test lsim(ss(1,1,1,1,1), ones(5), 0:4)[1][:] == 1:5
+
+# Various combinations of BigFloat
+@test lsim(ss(big.(1),1,1,1,1), ones(5), 0:4)[1][:] == 1:5
+@test lsim(ss(big.(1),1,1,1,1), big.(ones(5)), 0:4)[1][:] == 1:5
+@test lsim(ss(1,1,1,1,1), big.(ones(5)), 0:4)[1][:] == 1:5
+
+# Tests for HeteroStateSpace
+@test lsim(HeteroStateSpace(big.(1.0),1,1,1,1), ones(5), 0:4)[1][:] == 1:5
+
+
 # lsim for discrete-time complex-coefficient systems
 
 # Complex system, real input signal
@@ -152,6 +164,8 @@ y, t2, x = step(G, 2)
 
 #Make sure t was never changed
 @test t0 == t
+
+
 
 
 
