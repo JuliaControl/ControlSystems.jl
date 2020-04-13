@@ -34,5 +34,5 @@ after_success:
     - julia -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
     - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
     # Packages used in documentation
-    - $TESTCMD -e 'using Pkg; Pkg.add("DSP"); Pkg.add("Documenter"); Pkg.add("GR"); Pkg.add("Plots"); Pkg.add("StaticArrays");'
-    - $TESTCMD -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); include(joinpath("docs", "make.jl"))'
+    #- $TESTCMD -e 'using Pkg; Pkg.add("DSP"); Pkg.add("Documenter"); Pkg.add("GR"); Pkg.add("Plots"); Pkg.add("StaticArrays");'
+    - $TESTCMD --project=docs/ -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); include(joinpath("docs", "make.jl"))'
