@@ -53,7 +53,6 @@ isdiscrete(sys::LTISystem) = isdiscrete(sys.time)
 """`isstatic(sys)`
 
 Returns `true` if `sys` is static, else returns `false`."""
-isstatic(sys::LTISystem) = isstatic(sys.time)
 
 """`sampletime(sys)`
 

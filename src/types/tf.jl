@@ -62,7 +62,7 @@ function tf(D::AbstractArray{T}, Ts::TimeT) where {TimeT<:TimeType, T<:Number}
     return TransferFunction{TimeT,SisoRational{T}}(matrix, Ts)
 end
 tf(D::AbstractArray{T}, Ts::Number) where T = tf(D, Discrete(Ts))
-tf(D::AbstractArray{T}) where T = tf(D, Static())
+tf(D::AbstractArray{T}) where T = tf(D, Continuous())
 
 tf(n::Number, args...; kwargs...) = tf([n], args...; kwargs...)
 

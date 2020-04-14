@@ -102,10 +102,10 @@ function StateSpace(D::AbstractArray{T}, Ts::TimeType) where {T<:Number}
     return StateSpace(A, B, C, D, Ts)
 end
 StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))
-StateSpace(D::AbstractArray) = StateSpace(D, Static())
+StateSpace(D::AbstractArray) = StateSpace(D, Continuous())
 
 StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d], Discrete(Ts))
-StateSpace(d::Number; kwargs...) = StateSpace([d], Static())
+StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
 
 
 # StateSpace(sys) converts to StateSpace
@@ -179,10 +179,10 @@ function HeteroStateSpace(D::AbstractArray{T}, Ts::TimeType) where {T<:Number}
 end
 
 HeteroStateSpace(D::AbstractArray{T}, Ts::Number) where {T<:Number} = HeteroStateSpace(D, Discrete(Ts))
-HeteroStateSpace(D::AbstractArray{T}) where {T<:Number} = HeteroStateSpace(D, Static())
+HeteroStateSpace(D::AbstractArray{T}) where {T<:Number} = HeteroStateSpace(D, Continuous())
 
 HeteroStateSpace(d::Number, Ts::Number; kwargs...) = HeteroStateSpace([d], Discrete(Ts))
-HeteroStateSpace(d::Number; kwargs...) = HeteroStateSpace([d], Static())
+HeteroStateSpace(d::Number; kwargs...) = HeteroStateSpace([d], Continuous())
 
 # HeteroStateSpace(sys) converts to HeteroStateSpace
 HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
@@ -363,9 +363,7 @@ function Base.show(io::IO, sys::AbstractStateSpace)
         println(io, "Sample Time: ", sampletime(sys), " (seconds)")
     end
     # Print model type
-    if isstatic(sys)
-        print(io, "Static gain state-space model")
-    elseif iscontinuous(sys)
+    if iscontinuous(sys)
         print(io, "Continuous-time state-space model")
     else
         print(io, "Discrete-time state-space model")

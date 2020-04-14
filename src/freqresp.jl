@@ -7,11 +7,11 @@ Evaluate the frequency response of a linear system
 of system `sys` over the frequency vector `w`."""
 function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
-    if !iscontinuous(sys)
-        Ts = isstatic(sys) ? 1.0 : sampletime(sys)
-        s_vec = exp.(w_vec*(im*Ts))
-    else
+    if iscontinuous(sys)
         s_vec = im*w_vec
+    else
+        Ts = sampletime(sys)
+        s_vec = exp.(w_vec*(im*Ts))
     end
     if isa(sys, StateSpace)
         sys = _preprocess_for_freqresp(sys)
