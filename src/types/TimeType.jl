@@ -21,10 +21,6 @@ Continuous(x::Continuous) = x
 # Simple converseion
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
-# Interface for getting sample time
-sampletime(x::Discrete) = x.Ts
-sampletime(x::Continuous) = error("Continuous system has no sample time") # what system ?!
-#sampletime(x::Static) = error("Static system has no sample time")
 
 undef_sampletime(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLETIME)
 undef_sampletime(::Type{Continuous}) where T = Continuous()
@@ -55,7 +51,7 @@ function common_sample_time(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
     end
 end
 
-common_sample_time(x::Continuous, ys::Continuous...) = Continuous() # Splatting needed?
+common_sample_time(x::Continuous, ys::Continuous...) = Continuous()
 
 # Check equality
 ==(x::TimeType, y::TimeType) = false

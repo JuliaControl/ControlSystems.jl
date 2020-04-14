@@ -45,11 +45,13 @@ end
 """`iscontinuous(sys)`
 
 Returns `true` if `sys` is continuous, else returns `false`."""
-iscontinuous(sys::LTISystem) = sys.time isa Continuous
+iscontinuous(::LTISystem) = false
+iscontinuous(::LTISystem{<:Continuous}) = true
 """`isdiscrete(sys)`
 
 Returns `true` if `sys` is discrete, else returns `false`."""
-isdiscrete(sys::LTISystem) = sys.time isa Discrete
+isdiscrete(::LTISystem) = false
+isdiscrete(::LTISystem{<:Discrete}) = true
 """`isstatic(sys)`
 
 Returns `true` if `sys` is static, else returns `false`."""
@@ -58,11 +60,15 @@ Returns `true` if `sys` is static, else returns `false`."""
 
 Returns the sampletime of a discrete time system, throws error if the system is continuous time or static.
 Always ensure `isdiscrete` before using."""
-sampletime(sys::LTISystem) = sampletime(sys.time)
+sampletime(sys::LTISystem{<:Discrete}) = sys.time.Ts
+sampletime(::LTISystem{<:Continuous}) = error("Continuous system has no sample time")
 
 """`sampletype(sys)`
 Get the sampletype of system. Usually typeof(sys.time)."""
-sampletype(sys) = typeof(sys.time)
+sampletype(sys) = typeof(sys.time) # QUESTION: Perhaps timetype or sampletimetype instead?
+
+common_sample_time(systems::LTISystem...) = common_sample_time(s.time for s in systems)
+
 
 """`isstable(sys)`
 

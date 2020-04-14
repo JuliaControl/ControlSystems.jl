@@ -221,7 +221,7 @@ function +(s1::StateSpace{TimeT,T,MT}, s2::StateSpace{TimeT,T,MT}) where {TimeT,
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(s1.time,s2.time)
+    Ts = common_sample_time(s1,s2)
 
     A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
          fill(zero(T), nstates(s2), nstates(s1))        s2.A]
@@ -237,7 +237,7 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(s1.time,s2.time)
+    Ts = common_sample_time(s1,s2)
     T = promote_type(eltype(s1.A),eltype(s2.A))
     A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
          fill(zero(T), nstates(s2), nstates(s1))        s2.A]
@@ -266,7 +266,7 @@ function *(sys1::StateSpace{TimeT,T,MT}, sys2::StateSpace{TimeT,T,MT}) where {Ti
     if sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
-    Ts = common_sample_time(sys1.time,sys2.time)
+    Ts = common_sample_time(sys1,sys2)
 
     A = [sys1.A    sys1.B*sys2.C;
          fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
@@ -282,7 +282,7 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     if sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
-    Ts = common_sample_time(sys1.time,sys2.time)
+    Ts = common_sample_time(sys1,sys2)
     T = promote_type(eltype(sys1.A),eltype(sys2.A))
     A = [sys1.A    sys1.B*sys2.C;
          fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
