@@ -1,4 +1,4 @@
-abstract type LTISystem <: AbstractSystem end
+abstract type LTISystem{T <:TimeType} <: AbstractSystem end
 +(sys1::LTISystem, sys2::LTISystem) = +(promote(sys1, sys2)...)
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
 *(sys1::LTISystem, sys2::LTISystem) = *(promote(sys1, sys2)...)
@@ -45,11 +45,11 @@ end
 """`iscontinuous(sys)`
 
 Returns `true` if `sys` is continuous, else returns `false`."""
-iscontinuous(sys::LTISystem) = iscontinuous(sys.time)
+iscontinuous(sys::LTISystem) = sys.time isa Continuous
 """`isdiscrete(sys)`
 
 Returns `true` if `sys` is discrete, else returns `false`."""
-isdiscrete(sys::LTISystem) = isdiscrete(sys.time)
+isdiscrete(sys::LTISystem) = sys.time isa Discrete
 """`isstatic(sys)`
 
 Returns `true` if `sys` is static, else returns `false`."""

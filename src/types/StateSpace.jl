@@ -22,8 +22,9 @@ function state_space_validation(A,B,C,D,Ts::TimeType)
     nx,nu,ny
 end
 
-abstract type AbstractStateSpace <: LTISystem end
-struct StateSpace{TimeT<:TimeType, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace
+abstract type AbstractStateSpace{TimeT} <: LTISystem{TimeT} end
+
+struct StateSpace{TimeT, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace{TimeT}
     A::MT
     B::MT
     C::MT
@@ -125,7 +126,7 @@ Otherwise, this is a discrete-time model with sampling period Ts.
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{TimeT<:TimeType, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace
+struct HeteroStateSpace{TimeT, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TimeT}
     A::AT
     B::BT
     C::CT

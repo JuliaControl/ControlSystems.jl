@@ -241,13 +241,8 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-function hinfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if !isdiscrete(sys) # Continuous or Static
-        return _infnorm_two_steps_ct(sys, :hinf, tol)
-    else
-        return _infnorm_two_steps_dt(sys, :hinf, tol)
-    end
-end
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(sys, :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(sys, :hinf, tol)
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """

@@ -20,20 +20,14 @@ Discrete(x::T) where T<:Number = Discrete{T}(x)
 Continuous(x::Continuous) = x
 # Simple converseion
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
-#Discrete{T}(::Static) where T = Discrete{T}(UNDEF_SAMPLETIME)
-#Continuous(::Static) = Continuous()
-# Default to checkng type
-iscontinuous(x::TimeType) = x isa Continuous
-isdiscrete(x::TimeType) = x isa Discrete
-#isstatic(x::TimeType) = x isa Static
 
 # Interface for getting sample time
 sampletime(x::Discrete) = x.Ts
 sampletime(x::Continuous) = error("Continuous system has no sample time") # what system ?!
 #sampletime(x::Static) = error("Static system has no sample time")
 
-unknown_time(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLETIME)
-unknown_time(::Type{Continuous}) where T = Continuous()
+undef_sampletime(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLETIME)
+undef_sampletime(::Type{Continuous}) where T = Continuous()
 
 
 # Promotion
@@ -61,19 +55,12 @@ function common_sample_time(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
     end
 end
 
-
-
-
 common_sample_time(x::Continuous, ys::Continuous...) = Continuous() # Splatting needed?
 
-
-# Check equality and similarity
+# Check equality
 ==(x::TimeType, y::TimeType) = false
 ==(x::Discrete, y::Discrete) = (x.Ts == y.Ts)
 ==(::Continuous, ::Continuous) = true
-
-
-# Equality with static is true
 
 isapprox(x::TimeType, y::TimeType, args...; kwargs...) = false
 isapprox(x::Discrete, y::Discrete, args...; kwargs...) = isapprox(x.Ts, y.Ts, args...; kwargs...)

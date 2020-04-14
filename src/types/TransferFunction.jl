@@ -1,4 +1,4 @@
-struct TransferFunction{TimeT<:TimeType, S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{TimeT, S<:SisoTf{T} where T} <: LTISystem{TimeT}
     matrix::Matrix{S}
     time::TimeT
     nu::Int

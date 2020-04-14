@@ -175,8 +175,8 @@ end
 
 function Base.getproperty(sys::Union{StateSpace,HeteroStateSpace,TransferFunction}, s::Symbol)
     if s === :Ts
-        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete
-        if !isdiscrete(sys.time) # We use this instead
+        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
+        if !isdiscrete(sys)
             @warn "Getting sampletime 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access sampletime."
             return 0.0
         else

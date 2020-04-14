@@ -3,7 +3,7 @@
 
 Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
 """
-struct DelayLtiSystem{T,S<:Real} <: LTISystem
+struct DelayLtiSystem{T,S<:Real} <: LTISystem{Continuous}
     P::PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
