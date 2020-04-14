@@ -118,7 +118,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    G = convert(TransferFunction{sampletype(sys),SisoZpk}, sys)
+    G = convert(TransferFunction{timetype(sys),SisoZpk}, sys)
 
     zs = map(x -> x.z, G.matrix)
     ps = map(x -> x.p, G.matrix)

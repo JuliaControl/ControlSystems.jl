@@ -60,8 +60,8 @@ Always ensure `isdiscrete` before using."""
 sampletime(sys::LTISystem{<:Discrete}) = sys.time.Ts
 sampletime(::LTISystem{<:Continuous}) = error("Continuous-time system has no sample time")
 
-"""`sampletype(sys)`
-Get the sampletype of system. Usually typeof(sys.time)."""
+"""`timetype(sys)`
+Get the timetype of system. Usually typeof(sys.time)."""
 timetype(sys) = typeof(sys.time)
 
 common_sample_time(systems::LTISystem...) = common_sample_time(s.time for s in systems)
