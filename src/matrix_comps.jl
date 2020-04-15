@@ -86,7 +86,7 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+    func = is_continuous_time(sys) ? lyap : dlyap
     if opt == :c
         # TODO probably remove type check in julia 0.7.0
         return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
@@ -162,14 +162,14 @@ function covar(sys::AbstractStateSpace, W)
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+    func = is_continuous_time(sys) ? lyap : dlyap
     Q = try
         func(A, B*W*B')
     catch
         error("No solution to the Lyapunov equation was found in covar")
     end
     P = C*Q*C'
-    if !isdiscrete(sys)
+    if !is_discrete_time(sys)
         #Variance and covariance infinite for direct terms
         direct_noise = D*W*D'
         for i in 1:size(C,1)
@@ -269,7 +269,7 @@ state space systems in continuous and discrete time', American Control Conferenc
 See also [`hinfnorm`](@ref).
 """
 function linfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if iscontinuous(sys)
+    if is_continuous_time(sys)
         return _infnorm_two_steps_ct(sys, :linf, tol)
     else
         return _infnorm_two_steps_dt(sys, :linf, tol)
@@ -369,8 +369,8 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
-    T = promote_type(real(numeric_type(sys)), Float64, typeof(true/sampletime(sys)))
-    Tw = typeof(one(T)/sampletime(sys))
+    T = promote_type(real(numeric_type(sys)), Float64, typeof(true/sys.Ts))
+    Tw = typeof(one(T)/sys.Ts)
 
     if sys.nx == 0  # static gain
         return (T(opnorm(sys.D)), Tw(0))
@@ -381,7 +381,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return T(Inf), Tw(angle(pole_vec[pidx])/sampletime(sys))
+        return T(Inf), Tw(angle(pole_vec[pidx])/sys.Ts)
     end
 
     if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
@@ -434,7 +434,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(θ_vec)
 
         if isempty(θ_vec)
-            return T((1+tol)*lb), Tw(θ_peak/sampletime(sys))
+            return T((1+tol)*lb), Tw(θ_peak/sys.Ts)
         end
 
         # Improve the lower bound
@@ -526,7 +526,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.time), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.sampletime), diagm(0 => Σ)
 end
 
 
@@ -553,7 +553,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) whe
         D = D/(C*inv(-A)*B)
     end
 
-    return ST(A,B,C,D,sys.time), diagm(0 => S)
+    return ST(A,B,C,D,sys.sampletime), diagm(0 => S)
 end
 
 """
@@ -572,7 +572,7 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     B = Tf\sys.B
     C = sys.C*T
     D = sys.D
-    ST(A,B,C,D,sys.time)
+    ST(A,B,C,D,sys.sampletime)
 end
 
 """
@@ -597,10 +597,10 @@ See Stochastic Control, Chapter 4, Åström
 """
 function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
     K = kalman(sys, R1, R2)
-    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.time)
+    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.sampletime)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
-	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.time)
+	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.sampletime)
 end

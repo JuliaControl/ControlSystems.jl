@@ -1,4 +1,4 @@
-abstract type LTISystem{T <:TimeType} <: AbstractSystem end
+abstract type LTISystem <: AbstractSystem end
 +(sys1::LTISystem, sys2::LTISystem) = +(promote(sys1, sys2)...)
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
 *(sys1::LTISystem, sys2::LTISystem) = *(promote(sys1, sys2)...)
@@ -42,36 +42,43 @@ function issiso(sys::LTISystem)
 end
 
 
-"""`iscontinuous(sys)`
+"""`is_continuous_time(sys)`
 
 Returns `true` for a continuous-time system `sys`, else returns `false`."""
-iscontinuous(::LTISystem) = false
-iscontinuous(::LTISystem{<:Continuous}) = true
-"""`isdiscrete(sys)`
+is_continuous_time(sys::LTISystem) = sampletime(sys) isa Continuous
+"""`is_discrete_time(sys)`
 
 Returns `true` for a discrete-time system `sys`, else returns `false`."""
-isdiscrete(::LTISystem) = false
-isdiscrete(::LTISystem{<:Discrete}) = true
+is_discrete_time(sys::LTISystem) = sampletime(sys) isa Discrete
 
-"""`sampletime(sys)`
 
-Returns the sampletime of a discrete-time system, throws error if the system is continuous-time.
-Always ensure `isdiscrete` before using."""
-sampletime(sys::LTISystem{<:Discrete}) = sys.time.Ts
-sampletime(::LTISystem{<:Continuous}) = error("Continuous-time system has no sample time")
+function Base.getproperty(sys::LTISystem, s::Symbol)
+    if s === :Ts
+        # if !is_discrete_time(sys) # NOTE this line seems to be breaking inference of is_discrete_time (is there a test for this?)
+        if !is_discrete_time(sys)
+            @warn "Getting sampletime 0.0 for non-discrete systems is deprecated. Check `is_discrete_time` before trying to access sampletime."
+            return 0.0
+        else
+            return sampletime(sys).Ts
+        end
+    else
+        return getfield(sys, s)
+    end
+end
+
 
 """`timetype(sys)`
-Get the timetype of system. Usually typeof(sys.time)."""
-timetype(sys) = typeof(sys.time)
+Get the timetype of system. Usually typeof(sys.sampletime)."""
+timetype(sys) = typeof(sys.sampletime)
 
-common_sample_time(systems::LTISystem...) = common_sample_time(s.time for s in systems)
+common_sampletime(systems::LTISystem...) = common_sampletime(sampletime(sys) for sys in systems)
 
 
 """`isstable(sys)`
 
 Returns `true` if `sys` is stable, else returns `false`."""
 function isstable(sys::LTISystem)
-    if iscontinuous(sys)
+    if is_continuous_time(sys)
         if any(real.(pole(sys)).>=0)
             return false
         end

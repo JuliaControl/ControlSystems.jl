@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-function state_space_validation(A,B,C,D,Ts::TimeType)
+function state_space_validation(A,B,C,D,sampletime::TimeType)
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)
@@ -22,24 +22,26 @@ function state_space_validation(A,B,C,D,Ts::TimeType)
     nx,nu,ny
 end
 
-abstract type AbstractStateSpace{TimeT} <: LTISystem{TimeT} end
+abstract type AbstractStateSpace{TimeT<:TimeType} <: LTISystem end
+
+sampletime(sys::AbstractStateSpace) = sys.sampletime
 
 struct StateSpace{TimeT, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace{TimeT}
     A::MT
     B::MT
     C::MT
     D::MT
-    time::TimeT
+    sampletime::TimeT
     nx::Int
     nu::Int
     ny::Int
-    function StateSpace{TimeT, T, MT}(A::MT, B::MT, C::MT, D::MT, Ts::TimeT) where {TimeT<:TimeType, T, MT <: AbstractMatrix{T}}
-        nx,nu,ny = state_space_validation(A,B,C,D,Ts)
-        new{TimeT, T, MT}(A, B, C, D, Ts, nx, nu, ny)
+    function StateSpace{TimeT, T, MT}(A::MT, B::MT, C::MT, D::MT, sampletime::TimeT) where {TimeT<:TimeType, T, MT <: AbstractMatrix{T}}
+        nx,nu,ny = state_space_validation(A,B,C,D,sampletime)
+        new{TimeT, T, MT}(A, B, C, D, sampletime, nx, nu, ny)
     end
 end
-function StateSpace(A::MT, B::MT, C::MT, D::MT, Ts::TimeT) where {TimeT<:TimeType, T, MT <: AbstractMatrix{T}}
-    StateSpace{TimeT, T, MT}(A, B, C, D, Ts)
+function StateSpace(A::MT, B::MT, C::MT, D::MT, sampletime::TimeT) where {TimeT<:TimeType, T, MT <: AbstractMatrix{T}}
+    StateSpace{TimeT, T, MT}(A, B, C, D, sampletime)
 end
 # Constructor for Discrete system
 function StateSpace(A::MT, B::MT, C::MT, D::MT, Ts::Number) where {T, MT <: AbstractMatrix{T}}
@@ -72,19 +74,19 @@ end
 const AbstractNumOrArray = Union{Number, AbstractVecOrMat}
 
 # Explicit construction with different types
-function StateSpace{TimeT,T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::TimeType) where {TimeT, T, MT <: AbstractMatrix{T}}
+function StateSpace{TimeT,T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, sampletime::TimeType) where {TimeT, T, MT <: AbstractMatrix{T}}
     D = fix_D_matrix(T, B, C, D)
-    return StateSpace{TimeT, T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)), MT(D), TimeT(Ts))
+    return StateSpace{TimeT, T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)), MT(D), TimeT(sampletime))
 end
 
 # Explicit conversion
 function StateSpace{TimeT,T,MT}(sys::StateSpace) where {TimeT, T, MT <: AbstractMatrix{T}}
-    StateSpace{TimeT,T,MT}(sys.A,sys.B,sys.C,sys.D,sys.time)
+    StateSpace{TimeT,T,MT}(sys.A,sys.B,sys.C,sys.D,sys.sampletime)
 end
 
-function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::TimeType)
+function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, sampletime::TimeType)
     A, B, C, D, T = to_similar_matrices(A,B,C,D)
-    return StateSpace{typeof(Ts),T,Matrix{T}}(A, B, C, D, Ts)
+    return StateSpace{typeof(sampletime),T,Matrix{T}}(A, B, C, D, sampletime)
 end
 # General Discrete constructor
 StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
@@ -94,13 +96,13 @@ StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, 
     StateSpace(A, B, C, D, Continuous())
 
 # Function for creation of static gain
-function StateSpace(D::AbstractArray{T}, Ts::TimeType) where {T<:Number}
+function StateSpace(D::AbstractArray{T}, sampletime::TimeType) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
     A = fill(zero(T), 0, 0)
     B = fill(zero(T), 0, nu)
     C = fill(zero(T), ny, 0)
     D = reshape(D, (ny,nu))
-    return StateSpace(A, B, C, D, Ts)
+    return StateSpace(A, B, C, D, sampletime)
 end
 StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))
 StateSpace(D::AbstractArray) = StateSpace(D, Continuous())
@@ -131,27 +133,27 @@ struct HeteroStateSpace{TimeT, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:Abstrac
     B::BT
     C::CT
     D::DT
-    time::TimeT
+    sampletime::TimeT
     nx::Int
     nu::Int
     ny::Int
 end
 function HeteroStateSpace(A::AT, B::BT,
-    C::CT, D::DT, Ts::TimeT) where {TimeT<:TimeType,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
-    nx,nu,ny = state_space_validation(A,B,C,D,Ts)
-    HeteroStateSpace{TimeT,AT,BT,CT,DT}(A, B, C, D, Ts, nx, nu, ny)
+    C::CT, D::DT, sampletime::TimeT) where {TimeT<:TimeType,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
+    nx,nu,ny = state_space_validation(A,B,C,D,sampletime)
+    HeteroStateSpace{TimeT,AT,BT,CT,DT}(A, B, C, D, sampletime, nx, nu, ny)
 end
 
 # Explicit constructor
-function HeteroStateSpace{TimeT,AT,BT,CT,DT}(A, B, C, D, Ts) where {TimeT,AT,BT,CT,DT}
-    nx,nu,ny = state_space_validation(A,B,C,D,Ts)
-    HeteroStateSpace{TimeT,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TimeT(Ts), nx, nu, ny)
+function HeteroStateSpace{TimeT,AT,BT,CT,DT}(A, B, C, D, sampletime) where {TimeT,AT,BT,CT,DT}
+    nx,nu,ny = state_space_validation(A,B,C,D,sampletime)
+    HeteroStateSpace{TimeT,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TimeT(sampletime), nx, nu, ny)
 end
 
-HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.time)
+HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.sampletime)
 
 # Base constructor
-function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::TimeType)
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, sampletime::TimeType)
     A = to_abstract_matrix(A)
     B = to_abstract_matrix(B)
     C = to_abstract_matrix(C)
@@ -160,7 +162,7 @@ function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Abstr
     else
         D = to_abstract_matrix(D)
     end
-    return HeteroStateSpace{typeof(Ts),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, Ts)
+    return HeteroStateSpace{typeof(sampletime),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, sampletime)
 end
 
 HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
@@ -170,13 +172,13 @@ HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrA
 
 
 # Function for creation of static gain
-function HeteroStateSpace(D::AbstractArray{T}, Ts::TimeType) where {T<:Number}
+function HeteroStateSpace(D::AbstractArray{T}, sampletime::TimeType) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
     A = fill(zero(T), 0, 0)
     B = fill(zero(T), 0, nu)
     C = fill(zero(T), ny, 0)
 
-    return HeteroStateSpace(A, B, C, D, Ts)
+    return HeteroStateSpace(A, B, C, D, sampletime)
 end
 
 HeteroStateSpace(D::AbstractArray{T}, Ts::Number) where {T<:Number} = HeteroStateSpace(D, Discrete(Ts))
@@ -221,7 +223,7 @@ function +(s1::StateSpace{TimeT,T,MT}, s2::StateSpace{TimeT,T,MT}) where {TimeT,
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(s1,s2)
+    sampletime = common_sampletime(s1,s2)
 
     A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
          fill(zero(T), nstates(s2), nstates(s1))        s2.A]
@@ -229,7 +231,7 @@ function +(s1::StateSpace{TimeT,T,MT}, s2::StateSpace{TimeT,T,MT}) where {TimeT,
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
 
-    return StateSpace{TimeT,T,MT}(A, B, C, D, Ts)
+    return StateSpace{TimeT,T,MT}(A, B, C, D, sampletime)
 end
 
 function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
@@ -237,7 +239,7 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
-    Ts = common_sample_time(s1,s2)
+    sampletime = common_sampletime(s1,s2)
     T = promote_type(eltype(s1.A),eltype(s2.A))
     A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
          fill(zero(T), nstates(s2), nstates(s1))        s2.A]
@@ -245,10 +247,10 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
 
-    return HeteroStateSpace(A, B, C, D, Ts)
+    return HeteroStateSpace(A, B, C, D, sampletime)
 end
 
-+(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.time)
++(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.sampletime)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
 
 ## SUBTRACTION ##
@@ -257,7 +259,7 @@ end
 -(n::Number, sys::AbstractStateSpace) = +(-sys, n)
 
 ## NEGATION ##
--(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.time)
+-(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.sampletime)
 
 ## MULTIPLICATION ##
 function *(sys1::StateSpace{TimeT,T,MT}, sys2::StateSpace{TimeT,T,MT}) where {TimeT,T, MT}
@@ -266,14 +268,14 @@ function *(sys1::StateSpace{TimeT,T,MT}, sys2::StateSpace{TimeT,T,MT}) where {Ti
     if sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
-    Ts = common_sample_time(sys1,sys2)
+    sampletime = common_sampletime(sys1,sys2)
 
     A = [sys1.A    sys1.B*sys2.C;
          fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
-    return StateSpace{TimeT,T,MT}(A, B, C, D, Ts)
+    return StateSpace{TimeT,T,MT}(A, B, C, D, sampletime)
 end
 
 function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
@@ -282,7 +284,7 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     if sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
-    Ts = common_sample_time(sys1,sys2)
+    sampletime = common_sampletime(sys1,sys2)
     T = promote_type(eltype(sys1.A),eltype(sys2.A))
     A = [sys1.A    sys1.B*sys2.C;
          fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
@@ -290,10 +292,10 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
 
-    return HeteroStateSpace(A, B, C, D, Ts)
+    return HeteroStateSpace(A, B, C, D, sampletime)
 end
 
-*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.time)
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.sampletime)
 *(n::Number, sys::AbstractStateSpace) = *(sys, n)
 
 ## DIVISION ##
@@ -307,11 +309,11 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     catch
         error("D isn't invertible")
     end
-    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.time)
+    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.sampletime)
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
-/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.time)
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.sampletime)
 
 Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 
@@ -329,7 +331,7 @@ function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
-    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.time)
+    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.sampletime)
 end
 
 #####################################################################
@@ -360,11 +362,11 @@ function Base.show(io::IO, sys::AbstractStateSpace)
     end
     println(io, "D = \n", _string_mat_with_headers(sys.D), "\n")
     # Print sample time
-    if isdiscrete(sys)
-        println(io, "Sample Time: ", sampletime(sys), " (seconds)")
+    if is_discrete_time(sys)
+        println(io, "Sample Time: ", sys.Ts, " (seconds)")
     end
     # Print model type
-    if iscontinuous(sys)
+    if is_continuous_time(sys)
         print(io, "Continuous-time state-space model")
     else
         print(io, "Discrete-time state-space model")

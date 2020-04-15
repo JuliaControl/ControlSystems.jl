@@ -7,11 +7,10 @@ Evaluate the frequency response of a linear system
 of system `sys` over the frequency vector `w`."""
 function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
-    if iscontinuous(sys)
+    if is_continuous_time(sys)
         s_vec = im*w_vec
     else
-        Ts = sampletime(sys)
-        s_vec = exp.(w_vec*(im*Ts))
+        s_vec = exp.(w_vec*(im*sys.Ts))
     end
     if isa(sys, StateSpace)
         sys = _preprocess_for_freqresp(sys)
@@ -36,7 +35,7 @@ function _preprocess_for_freqresp(sys::StateSpace)
     P = C*T
     Q = T\B # TODO Type stability? # T is unitary, so mutliplication with T' should do the trick
     # FIXME; No performance improvement from Hessienberg structure, also weired renaming of matrices
-    StateSpace(F.H, Q, P, D, sys.time)
+    StateSpace(F.H, Q, P, D, sys.sampletime)
 end
 
 
@@ -73,16 +72,16 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
+    @assert is_discrete_time(sys) "It only makes no sense to call this function with discrete systems"
     if map_to_unit_circle
-        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sampletime(sys))) : error("To map to the unit circle, omega should be real")
+        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
     else
         evalfr(sys,z_or_omega)
     end
 end
 
 function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
-    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
+    @assert is_discrete_time(sys) "It only makes no sense to call this function with discrete systems"
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
@@ -169,8 +168,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w1 = 0.0
         w2 = 2.0
     end
-    if !iscontinuous(sys) && !isstatic(sys) # Do not draw above Nyquist freq for disc. systems
-        w2 = min(w2, log10(π/sampletime(sys)))
+    if !is_continuous_time(sys) && !isstatic(sys) # Do not draw above Nyquist freq for disc. systems
+        w2 = min(w2, log10(π/sys.Ts))
     end
     return [w1, w2], zp
 end

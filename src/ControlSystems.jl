@@ -88,8 +88,8 @@ export  LTISystem,
         numpoly,
         denpoly,
         sampletime,
-        iscontinuous,
-        isdiscrete,
+        is_continuous_time,
+        is_discrete_time,
         isstatic
 
 
@@ -171,20 +171,6 @@ include("plotting.jl")
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
     D*R*D'
-end
-
-function Base.getproperty(sys::Union{StateSpace,HeteroStateSpace,TransferFunction}, s::Symbol)
-    if s === :Ts
-        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
-        if !isdiscrete(sys)
-            @warn "Getting sampletime 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access sampletime."
-            return 0.0
-        else
-            return sampletime(sys)
-        end
-    else
-        return getfield(sys, s)
-    end
 end
 
 # The path has to be evaluated upon initial import

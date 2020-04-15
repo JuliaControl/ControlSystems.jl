@@ -8,7 +8,7 @@
 #
 # function Base.convert{T<:AbstractMatrix{<:Number}}(::Type{StateSpace{T}}, s::StateSpace)
 #     AT = promote_type(T, arraytype(s))
-#     StateSpace{AT}(AT(s.A),AT(s.B),AT(s.C),AT(s.D), s.time, s.statenames, s.inputnames, s.outputnames)
+#     StateSpace{AT}(AT(s.A),AT(s.B),AT(s.C),AT(s.D), s.sampletime, s.statenames, s.inputnames, s.outputnames)
 # end
 
 # TODO Fix these to use proper constructors
@@ -61,20 +61,20 @@ Base.convert(::Type{StateSpace{TimeT,T,MT}}, b::Number) where {TimeT, T, MT} =
 
 function convert(::Type{TransferFunction{TimeT,S}}, G::TransferFunction) where {TimeT,S}
     Gnew_matrix = convert.(S, G.matrix)
-    return TransferFunction{TimeT,eltype(Gnew_matrix)}(Gnew_matrix, TimeT(G.time))
+    return TransferFunction{TimeT,eltype(Gnew_matrix)}(Gnew_matrix, TimeT(G.sampletime))
 end
 
 function convert(::Type{S}, sys::StateSpace) where {T, MT, TimeT, S <:StateSpace{TimeT,T,MT}}
     if sys isa S
         return sys
     else
-        return StateSpace{TimeT, T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), TimeT(sys.time))
+        return StateSpace{TimeT, T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), TimeT(sys.sampletime))
     end
 end
 
 # TODO Maybe add convert on matrices
 Base.convert(::Type{HeteroStateSpace{TimeT1,AT,BT,CT,DT}}, s::StateSpace{TimeT2,T,MT}) where {TimeT1,TimeT2,T,MT,AT,BT,CT,DT} =
-    HeteroStateSpace{TimeT1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TimeT1(s.time))
+    HeteroStateSpace{TimeT1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TimeT1(s.sampletime))
 
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
@@ -118,7 +118,7 @@ function Base.convert(::Type{StateSpace{TimeT,T,MT}}, G::TransferFunction) where
         end
     end
     # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
-    return StateSpace{TimeT,T,MT}(A, B, C, D, TimeT(G.time))
+    return StateSpace{TimeT,T,MT}(A, B, C, D, TimeT(G.sampletime))
 end
 
 siso_tf_to_ss(T::Type, f::SisoTf) = siso_tf_to_ss(T, convert(SisoRational, f))
@@ -186,7 +186,7 @@ function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMat
 
 function balance_statespace(sys::StateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
-    return ss(A,B,C,sys.D,sys.time), T
+    return ss(A,B,C,sys.D,sys.sampletime), T
 end
 
 # Method that might fail for some exotic types, such as TrackedArrays
@@ -259,7 +259,7 @@ function convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, sys::StateSpac
         num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
-    TransferFunction{TimeT,SisoRational{T}}(matrix, TimeT(sys.time))
+    TransferFunction{TimeT,SisoRational{T}}(matrix, TimeT(sys.sampletime))
 end
 function convert(::Type{TransferFunction{TimeT1,SisoRational}}, sys::StateSpace{TimeT2,T0}) where {TimeT1,TimeT2,T0<:Number}
     T = typeof(one(T0)/one(T0))
@@ -276,7 +276,7 @@ function convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, sys::StateSpace)
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
-    TransferFunction{TimeT,SisoZpk{T,TR}}(matrix, TimeT(sys.time))
+    TransferFunction{TimeT,SisoZpk{T,TR}}(matrix, TimeT(sys.sampletime))
 end
 function convert(::Type{TransferFunction{TimeT1,SisoZpk}}, sys::StateSpace{TimeT2,T0}) where {TimeT1,TimeT2,T0<:Number}
     T = typeof(one(T0)/one(T0))

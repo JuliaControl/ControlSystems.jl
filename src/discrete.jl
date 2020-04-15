@@ -10,7 +10,7 @@ Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
-    if isdiscrete(sys)
+    if is_discrete_time(sys)
         error("sys must be a continuous time system")
     end
     A, B, C, D = ssdata(sys)
@@ -189,7 +189,7 @@ end
 
 
 function c2d(G::TransferFunction, h;kwargs...)
-    @assert iscontinuous(G)
+    @assert is_continuous_time(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
@@ -218,11 +218,11 @@ function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector, control_si
     end
 
     dt = Float64(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
+    if !is_continuous_time(sys) || method == :zoh
+        if is_continuous_time(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sampletime(sys) != dt
+            if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys

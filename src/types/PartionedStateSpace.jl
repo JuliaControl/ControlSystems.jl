@@ -11,7 +11,7 @@ u = [u1 u2]^T
 y = [y1 y2]^T
 
 """
-struct PartionedStateSpace{TimeT,S<:AbstractStateSpace{TimeT}} <: LTISystem{TimeT}
+struct PartionedStateSpace{S<:AbstractStateSpace} <: LTISystem
     P::S
     nu1::Int
     ny1::Int
@@ -27,8 +27,8 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
 
     if d === :Ts
         return P.Ts # Will throw deprecation until removed # DEPRECATED
-    elseif d === :time
-        return P.time
+    elseif d === :sampletime
+        return P.sampletime
     elseif d === :P
         return P
     elseif d === :nu1
@@ -58,9 +58,10 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     end
 end
 
+sampletime(sys::PartionedStateSpace) = sampletime(sys.P)
 
 function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    Ts = common_sample_time(s1.P,s2.P)
+    sampletime = common_sampletime(s1,s2)
 
     A = blockdiag(s1.A, s2.A)
 
@@ -72,7 +73,7 @@ function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
     D = [(s1.D11 + s2.D11) s1.D12 s2.D12;
     [s1.D21; s2.D21] blockdiag(s1.D22, s2.D22)]
 
-    P = StateSpace(A, B, C, D, Ts) # How to handle discrete?
+    P = StateSpace(A, B, C, D, sampletime) # How to handle discrete?
     PartionedStateSpace(P, s1.nu1 + s2.nu1, s1.ny1 + s2.ny1)
 end
 
@@ -84,7 +85,7 @@ end
     Series connection of partioned StateSpace systems.
 """
 function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    Ts = common_sample_time(s1.P,s2.P)
+    sampletime = common_sampletime(s1,s2)
 
     A = [s1.A                           s1.B1*s2.C1;
     zeros(size(s2.A,1),size(s1.A,2))      s2.A]
@@ -100,7 +101,7 @@ function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
     s1.D21*s2.D11           s1.D22        s1.D21*s2.D12;
     s2.D21          zeros(size(s2.D22,1),size(s1.D22,2))          s2.D22        ]
 
-    P = StateSpace(A, B, C, D, Ts)
+    P = StateSpace(A, B, C, D, sampletime)
     PartionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
@@ -108,7 +109,7 @@ end
 
 # QUESTION: What about algebraic loops and well-posedness?! Perhaps issue warning if P1(∞)*P2(∞) > 1
 function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
-    Ts = common_sample_time(s1.P,s2.P)
+    sampletime = common_sampletime(s1,s2)
     X_11 = (I + s2.D11*s1.D11)\[-s2.D11*s1.C1  -s2.C1]
     X_21 = (I + s1.D11*s2.D11)\[s1.C1  -s1.D11*s2.C1]
 
@@ -147,7 +148,7 @@ function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     #tmp = [blockdiag(s1.D12, s2.D12); blockdiag(s1.D22, s2.D22)]
     #D[:, end-size(tmp,2)+1:end] .+= tmp
 
-    P = StateSpace(A, B, C, D, Ts)
+    P = StateSpace(A, B, C, D, sampletime)
     PartionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
@@ -160,7 +161,7 @@ end
 """
 function vcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = common_sample_time(sys.P for sys in systems)
+    sampletime = common_sampletime(systems...)
 
     nu1 = systems[1].nu1
     if !all(s.nu1 == nu1 for s in systems)
@@ -180,7 +181,7 @@ function vcat_1(systems::PartionedStateSpace...)
     D21 = reduce(vcat, [s.D21 for s in systems])
     D22 = blockdiag([s.D22 for s in systems]...)
 
-    sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], Ts)
+    sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], sampletime)
     return PartionedStateSpace(sysnew, nu1, sum(s -> s.ny1, systems))
 end
 
@@ -194,7 +195,7 @@ end
 """
 function hcat_1(systems::PartionedStateSpace...)
     # Perform checks
-    Ts = common_sample_time(sys.P for sys in systems)
+    sampletime = common_sampletime(systems...)
 
     ny1 = systems[1].ny1
     if !all(s.ny1 == ny1 for s in systems)
@@ -214,7 +215,7 @@ function hcat_1(systems::PartionedStateSpace...)
     D21 = blockdiag([s.D21 for s in systems]...)
     D22 = blockdiag([s.D22 for s in systems]...)
 
-    sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], Ts)
+    sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], sampletime)
     return PartionedStateSpace(sysnew, sum(s -> s.nu1, systems), ny1)
 end
 

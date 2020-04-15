@@ -156,7 +156,8 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 @test [1.0 D_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0], 0.005)
 # Type and sample time
 @test [D_111 1.0] isa StateSpace{Discrete{Float64},Float64,Array{Float64,2}}
-@test sampletime([D_111 1.0]) == 0.005
+@test sampletime([D_111 1.0]) == Discrete(0.005)
+@test [D_111 1.0].Ts == 0.005
 # Continuous version
 @test [C_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0])
 @test [1.0 C_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0])

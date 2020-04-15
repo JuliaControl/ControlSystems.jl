@@ -22,18 +22,18 @@ Append systems in block diagonal form
 """
 function append(systems::(ST where ST<:AbstractStateSpace)...)
     ST = promote_type(typeof.(systems)...)
-    Ts = common_sample_time(systems...)
+    sampletime = common_sampletime(systems...)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = blockdiag([s.D for s in systems]...)
-    return ST(A, B, C, D, Ts)
+    return ST(A, B, C, D, sampletime)
 end
 
 function append(systems::TransferFunction...)
-    Ts = common_sample_time(systems...)
+    sampletime = common_sampletime(systems...)
     mat = blockdiag([s.matrix for s in systems]...)
-    return TransferFunction(mat, Ts)
+    return TransferFunction(mat, sampletime)
 end
 
 append(systems::LTISystem...) = append(promote(systems...)...)
@@ -62,8 +62,8 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     B = vcat([s.B for s in systems]...)
     C = blockdiag([s.C for s in systems]...)
     D = vcat([s.D for s in systems]...)
-    Ts = common_sample_time(systems...)
-    return ST(A, B, C, D, Ts)
+    sampletime = common_sampletime(systems...)
+    return ST(A, B, C, D, sampletime)
 end
 
 function Base.vcat(systems::TransferFunction...)
@@ -72,10 +72,10 @@ function Base.vcat(systems::TransferFunction...)
     if !all(s.nu == nu for s in systems)
         error("All systems must have same input dimension")
     end
-    Ts = common_sample_time(systems...)
+    sampletime = common_sampletime(systems...)
     mat = vcat([s.matrix for s in systems]...)
 
-    return TransferFunction(mat, Ts)
+    return TransferFunction(mat, sampletime)
 end
 
 Base.vcat(systems::LTISystem...) = vcat(promote(systems...)...)
@@ -86,13 +86,13 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
-    Ts = common_sample_time(systems...)
+    sampletime = common_sampletime(systems...)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
     C = hcat([s.C for s in systems]...)
     D = hcat([s.D for s in systems]...)
 
-    return ST(A, B, C, D, Ts)
+    return ST(A, B, C, D, sampletime)
 end
 
 function Base.hcat(systems::TransferFunction...)
@@ -101,10 +101,10 @@ function Base.hcat(systems::TransferFunction...)
     if !all(s.ny == ny for s in systems)
         error("All systems must have same output dimension")
     end
-    Ts = common_sample_time(systems...)
+    sampletime = common_sampletime(systems...)
     mat = hcat([s.matrix for s in systems]...)
 
-    return TransferFunction(mat, Ts)
+    return TransferFunction(mat, sampletime)
 end
 
 Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
@@ -166,7 +166,7 @@ function feedback(L::TransferFunction{<:TimeType,T}) where T<:SisoRational
     end
     P = numpoly(L)
     Q = denpoly(L)
-    tf(P, P+Q, L.time)
+    tf(P, P+Q, L.sampletime)
 end
 
 function feedback(L::TransferFunction{TimeT, T}) where {TimeT<:TimeType, T<:SisoZpk}
@@ -179,7 +179,7 @@ function feedback(L::TransferFunction{TimeT, T}) where {TimeT<:TimeType, T<:Siso
     kden = denpol[end] # Get coeff of s^n
     # Create siso system
     sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
-    return TransferFunction{TimeT,T}(fill(sisozpk,1,1), L.time)
+    return TransferFunction{TimeT,T}(fill(sisozpk,1,1), L.sampletime)
 end
 
 """
@@ -201,13 +201,13 @@ function feedback(sys::Union{StateSpace, DelayLtiSystem})
 end
 
 function feedback(sys1::StateSpace,sys2::StateSpace)
-    Ts = common_sample_time(sys1,sys2)
+    sampletime = common_sampletime(sys1,sys2)
     !(iszero(sys1.D) || iszero(sys2.D)) && error("There cannot be a direct term (D) in both sys1 and sys2")
     A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C);
          sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
     B = [sys1.B; sys2.B*sys1.D]
     C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A, B, C, sys1.D, Ts)
+    ss(A, B, C, sys1.D, sampletime)
 end
 
 
@@ -230,7 +230,7 @@ See Zhou etc. for similar (somewhat less symmetric) formulas.
     U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
     Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
-    Ts = common_sample_time(sys1,sys2)
+    sampletime = common_sampletime(sys1,sys2)
 
     if !(isa(Y1, Colon) || allunique(Y1)); @warn "Connecting single output to multiple inputs Y1=$Y1"; end
     if !(isa(Y2, Colon) || allunique(Y2)); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
@@ -299,7 +299,7 @@ See Zhou etc. for similar (somewhat less symmetric) formulas.
                      s2_D12*R2*s1_D21           s2_D11 + α*s2_D12*R2*s1_D22*s2_D21]
     end
 
-    return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], Ts)
+    return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], sampletime)
 end
 
 
@@ -309,7 +309,7 @@ end
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
-    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S), P.time)
+    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S), P.sampletime)
 end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

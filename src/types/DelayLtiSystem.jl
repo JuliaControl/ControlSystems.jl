@@ -3,8 +3,8 @@
 
 Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
 """
-struct DelayLtiSystem{T,S<:Real} <: LTISystem{Continuous}
-    P::PartionedStateSpace{Continuous,StateSpace{Continuous,T,Matrix{T}}}
+struct DelayLtiSystem{T,S<:Real} <: LTISystem
+    P::PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
     # function DelayLtiSystem(P::StateSpace{Continuous,T, MT}, Tau::Vector{T})
@@ -16,18 +16,7 @@ struct DelayLtiSystem{T,S<:Real} <: LTISystem{Continuous}
     # end
 end
 
-# Fallback since system is always continuous
-function getproperty(sys::DelayLtiSystem, s::Symbol)
-    if s == :Ts
-        return sys.P.Ts # Will throw deprecation until removed # DEPRECATED
-    end
-    return getfield(sys, s)
-end
-
 sampletime(sys::DelayLtiSystem) = sampletime(sys.P)
-iscontinuous(sys::DelayLtiSystem) = iscontinuous(sys.P)
-isdiscrete(sys::DelayLtiSystem) = isdiscrete(sys.P)
-isstatic(sys::DelayLtiSystem) = isstatic(sys.P)
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
@@ -44,7 +33,7 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
         throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
 
-    psys = PartionedStateSpace{Continuous,StateSpace{Continuous,T,Matrix{T}}}(sys, nu, ny)
+    psys = PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}(sys, nu, ny)
     DelayLtiSystem{T,S}(psys, Tau)
 end
 # For converting DelayLtiSystem{T,S} to different T
@@ -87,7 +76,7 @@ Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
 function *(sys::DelayLtiSystem, n::Number)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
-    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.time), sys.Tau)
+    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.sampletime), sys.Tau)
 end
 *(n::Number, sys::DelayLtiSystem) = *(sys, n)
 
@@ -155,7 +144,7 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
         sys.P.B[:,      colidx],
         sys.P.C[rowidx, :],
         sys.P.D[rowidx, colidx],
-        sys.P.time), sys.Tau)
+        sys.P.sampletime), sys.Tau)
 end
 
 function Base.show(io::IO, sys::DelayLtiSystem)
@@ -217,7 +206,7 @@ Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ`
 See also: [`delay`](@ref) which is arguably more conenient than this function.
 """
 function Base.exp(G::TransferFunction{Continuous,<:SisoRational})
-    if size(G.matrix) != (1,1) && iscontinuous(G)
+    if size(G.matrix) != (1,1) && is_continuous_time(G)
         error("G must be a continuous-time scalar transfer function. Consider using `delay` instead.")
     end
     G_siso = G.matrix[1,1]

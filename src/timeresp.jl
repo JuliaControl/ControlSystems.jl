@@ -43,14 +43,14 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    if iscontinuous(sys) || isstatic(sys) #&& method == :cont
+    if is_continuous_time(sys) || isstatic(sys) #&& method == :cont
         u = (x,i) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
         imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
-        u = (x,i) -> i == t[1] ? [one(T)]/sampletime(sys) : [zero(T)]
+        u = (x,i) -> i == t[1] ? [one(T)]/sys.Ts : [zero(T)]
         imp_sys = sys
         x0s = zeros(T, nx, nu)
     end
@@ -118,11 +118,11 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     dt = Float64(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if !isdiscrete(sys)
+    if !is_continuous_time(sys) || method == :zoh
+        if !is_discrete_time(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sampletime(sys) != dt
+            if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -151,11 +151,11 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
     T = promote_type(Float64, eltype(x0))
 
     dt = T(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if !isdiscrete(sys)
+    if !is_continuous_time(sys) || method == :zoh
+        if !is_discrete_time(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sampletime(sys) != dt
+            if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -226,8 +226,8 @@ function _default_time_vector(sys::LTISystem, Tf::Real=-1)
 end
 
 function _default_Ts(sys::LTISystem)
-    if isdiscrete(sys)
-        Ts = sampletime(sys)
+    if is_discrete_time(sys)
+        Ts = sys.Ts
     elseif !isstable(sys)
         Ts = 0.05
     else

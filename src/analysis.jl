@@ -91,7 +91,7 @@ Compute the dcgain of system `sys`.
 
 equal to G(0) for continuous-time systems and G(1) for discrete-time systems."""
 function dcgain(sys::LTISystem)
-    return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
+    return is_continuous_time(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
 """`markovparam(sys, n)`
@@ -133,9 +133,8 @@ Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
-    if !iscontinuous(sys)
-        Ts = isstatic(sys) ? 1 : sampletime(sys)
-        ps = log(ps)/Ts
+    if is_discrete_time(sys)
+        ps = log(ps)/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
@@ -446,8 +445,8 @@ function delaymargin(G::LTISystem)
     ϕₘ   *= π/180
     ωϕₘ   = m[3][i]
     dₘ    = ϕₘ/ωϕₘ
-    if isdiscrete(G)
-        dₘ /= sampletime(G) # Give delay margin in number of sample times, as matlab does
+    if is_discrete_time(G)
+        dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
     dₘ
 end
