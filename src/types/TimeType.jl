@@ -1,12 +1,12 @@
 
 abstract type TimeType end
 
-const UNDEF_SAMPLETIME = -1
+const UNDEF_TS = -1 # For handling promotion of Matrix to LTISystem
 
 struct Discrete{T} <: TimeType
     Ts::T
     function Discrete{T}(Ts::T) where T
-        if Ts <= 0 && Ts != UNDEF_SAMPLETIME
+        if Ts <= 0 && Ts != UNDEF_TS
             throw(ErrorException("Creating a continuous time system by setting sample time to 0 is no longer supported."))
         end
         new{T}(Ts)
@@ -22,8 +22,8 @@ Continuous(x::Continuous) = x
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
 
-undef_sampletime(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLETIME)
-undef_sampletime(::Type{Continuous}) where T = Continuous()
+undef_Ts(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_TS)
+undef_Ts(::Type{Continuous}) where T = Continuous()
 
 
 # Promotion
@@ -40,11 +40,11 @@ common_sampletime(x::TimeType, y::TimeType, z...) = common_sampletime(common_sam
 common_sampletime(a::Base.Generator) = reduce(common_sampletime, a)
 
 function common_sampletime(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
-    if x != y && x.Ts != UNDEF_SAMPLETIME && y.Ts != UNDEF_SAMPLETIME
+    if x != y && x.Ts != UNDEF_TS && y.Ts != UNDEF_TS
          throw(ErrorException("Sampling time mismatch"))
     end
 
-    if x.Ts == UNDEF_SAMPLETIME
+    if x.Ts == UNDEF_TS
         return Discrete{promote_type(T1,T2)}(y)
     else
         return Discrete{promote_type(T1,T2)}(x)

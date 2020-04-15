@@ -10,7 +10,7 @@ The syntax for creating a transfer function is
 ```julia
 tf(num, den, Ts=0)
 ```
-where `num` and `den` are the polinomial coefficients of the numerator and denominator of the polynomial and `Ts` is the sample time.
+where `num` and `den` are the polynomial coefficients of the numerator and denominator of the polynomial and `Ts` is the sample time.
 ### Example:
 ```julia
 tf([1.0],[1,2,1])
@@ -29,7 +29,7 @@ Continuous-time transfer function model
 The transfer functions created using this method will be of type `TransferFunction{SisoRational}`.
 
 ## zpk - Pole-Zero-Gain Representation
-Sometimes it's better to represent the transferfunction by its poles, zeros and gain, this can be done using
+Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using
 ```julia
 zpk(zeros, poles, gain, Ts=0)
 ```
@@ -72,7 +72,7 @@ A state-space system is created using
 ```julia
 ss(A,B,C,D,Ts=0)
 ```
-and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
+and they behave similarly to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
 ```jldoctest  HSS
 using StaticArrays
 import ControlSystems.HeteroStateSpace
@@ -83,7 +83,7 @@ import ControlSystems.HeteroStateSpace
 function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
     HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
 end
-@inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.time,f)
+@inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.sampletime,f)
 ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
 ```
 Notice the different matrix types used

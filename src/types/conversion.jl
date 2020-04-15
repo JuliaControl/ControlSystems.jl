@@ -20,9 +20,9 @@
 # Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, b::Number) = zpk(b)
 #
 Base.convert(::Type{TransferFunction{TimeT,SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {TimeT, T1, TR1, T2<:Number} =
-    zpk(T1.(b), undef_sampletime(TimeT))
+    zpk(T1.(b), undef_Ts(TimeT))
 Base.convert(::Type{TransferFunction{TimeT,SisoRational{T1}}}, b::AbstractMatrix{T2}) where {TimeT, T1, T2<:Number} =
-    tf(T1.(b), undef_sampletime(TimeT))
+    tf(T1.(b), undef_Ts(TimeT))
 
 function convert(::Type{StateSpace{TimeT,T,MT}}, D::AbstractMatrix{<:Number}) where {TimeT,T, MT}
     (ny, nu) = size(D)
@@ -30,14 +30,14 @@ function convert(::Type{StateSpace{TimeT,T,MT}}, D::AbstractMatrix{<:Number}) wh
     B = MT(fill(zero(T), (0,nu)))
     C = MT(fill(zero(T), (ny,0)))
     D = convert(MT, D)
-    return StateSpace{TimeT,T,MT}(A,B,C,D,undef_sampletime(TimeT))
+    return StateSpace{TimeT,T,MT}(A,B,C,D,undef_Ts(TimeT))
 end
 
 # TODO We still dont have TransferFunction{..}(number/array) constructors
 Base.convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, b::Number) where {TimeT, T} =
-    tf(T(b), undef_sampletime(TimeT))
+    tf(T(b), undef_Ts(TimeT))
 Base.convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, b::Number) where {TimeT, T, TR} =
-    zpk(T(b), undef_sampletime(TimeT))
+    zpk(T(b), undef_Ts(TimeT))
 Base.convert(::Type{StateSpace{TimeT,T,MT}}, b::Number) where {TimeT, T, MT} =
     convert(StateSpace{TimeT,T,MT}, fill(b, (1,1)))
 #
