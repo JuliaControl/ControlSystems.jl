@@ -217,29 +217,30 @@ end
 
 # TODO: This is a poor heuristic to estimate a "good" time vector to use for
 # simulation, in cases when one isn't provided.
-function _default_time_vector(sys::LTISystem, Tf::Real=-1)
-    Ts = _default_Ts(sys)
-    if Tf == -1
-        Tf = 100*Ts
+function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
+    dt = _default_dt(sys)
+    if tfinal == -1
+        tfinal = 100*dt
     end
-    return 0:Ts:Tf
+    return 0:dt:tfinal
 end
 
-function _default_Ts(sys::LTISystem)
+function _default_dt(sys::LTISystem)
     if is_discrete_time(sys)
-        Ts = sys.Ts
+        dt = sys.Ts
     elseif !isstable(sys)
-        Ts = 0.05
+        dt = 0.05
     else
         ps = pole(sys)
         r = minimum([abs.(real.(ps));0])
         if r == 0.0
             r = 1.0
         end
-        Ts = 0.07/r
+        dt = 0.07/r
     end
-    return Ts
+    return dt
 end
+
 
 
 #TODO a reasonable check
