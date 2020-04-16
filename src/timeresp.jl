@@ -43,7 +43,7 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    if is_continuous_time(sys) || isstatic(sys) #&& method == :cont
+    if iscontinuous(sys) || isstatic(sys) #&& method == :cont
         u = (x,i) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
@@ -118,8 +118,8 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     dt = Float64(t[2] - t[1])
-    if !is_continuous_time(sys) || method == :zoh
-        if !is_discrete_time(sys)
+    if !iscontinuous(sys) || method == :zoh
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -151,8 +151,8 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
     T = promote_type(Float64, eltype(x0))
 
     dt = T(t[2] - t[1])
-    if !is_continuous_time(sys) || method == :zoh
-        if !is_discrete_time(sys)
+    if !iscontinuous(sys) || method == :zoh
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -226,7 +226,7 @@ function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
 end
 
 function _default_dt(sys::LTISystem)
-    if is_discrete_time(sys)
+    if isdiscrete(sys)
         dt = sys.Ts
     elseif !isstable(sys)
         dt = 0.05

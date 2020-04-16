@@ -42,24 +42,24 @@ function issiso(sys::LTISystem)
 end
 
 
-"""`is_continuous_time(sys)`
+"""`iscontinuous(sys)`
 
 Returns `true` for a continuous-time system `sys`, else returns `false`."""
-is_continuous_time(sys::LTISystem) = sampletime(sys) isa Continuous
-"""`is_discrete_time(sys)`
+iscontinuous(sys::LTISystem) = time(sys) isa Continuous
+"""`isdiscrete(sys)`
 
 Returns `true` for a discrete-time system `sys`, else returns `false`."""
-is_discrete_time(sys::LTISystem) = sampletime(sys) isa Discrete
+isdiscrete(sys::LTISystem) = time(sys) isa Discrete
 
 
 function Base.getproperty(sys::LTISystem, s::Symbol)
     if s === :Ts
-        # if !is_discrete_time(sys) # NOTE this line seems to be breaking inference of is_discrete_time (is there a test for this?)
-        if !is_discrete_time(sys)
-            @warn "Getting sampletime 0.0 for non-discrete systems is deprecated. Check `is_discrete_time` before trying to access sampletime."
+        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
+        if !isdiscrete(sys)
+            @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
             return 0.0
         else
-            return sampletime(sys).Ts
+            return time(sys).Ts
         end
     else
         return getfield(sys, s)
@@ -68,17 +68,17 @@ end
 
 
 """`timetype(sys)`
-Get the timetype of system. Usually typeof(sys.sampletime)."""
-timetype(sys) = typeof(sys.sampletime)
+Get the timetype of system. Usually typeof(sys.time)."""
+timetype(sys) = typeof(sys.time)
 
-common_sampletime(systems::LTISystem...) = common_sampletime(sampletime(sys) for sys in systems)
+common_time(systems::LTISystem...) = common_time(time(sys) for sys in systems)
 
 
 """`isstable(sys)`
 
 Returns `true` if `sys` is stable, else returns `false`."""
 function isstable(sys::LTISystem)
-    if is_continuous_time(sys)
+    if iscontinuous(sys)
         if any(real.(pole(sys)).>=0)
             return false
         end

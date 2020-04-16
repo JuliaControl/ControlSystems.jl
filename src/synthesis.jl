@@ -48,7 +48,7 @@ See also `LQG`
 kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
 function lqr(sys::StateSpace, Q, R)
-    if is_continuous_time(sys)
+    if iscontinuous(sys)
         return lqr(sys.A, sys.B, Q, R)
     else
         return dlqr(sys.A, sys.B, Q, R)
@@ -56,7 +56,7 @@ function lqr(sys::StateSpace, Q, R)
 end
 
 function kalman(sys::StateSpace, R1,R2)
-    if is_continuous_time(sys)
+    if iscontinuous(sys)
         return Matrix(lqr(sys.A', sys.C', R1,R2)')
     else
         return Matrix(dlqr(sys.A', sys.C', R1,R2)')

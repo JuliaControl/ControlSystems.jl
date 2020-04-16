@@ -1,12 +1,12 @@
 
 abstract type TimeType end
 
-const UNDEF_TS = -1 # For handling promotion of Matrix to LTISystem
+const UNDEF_SAMPLEPERIOD = -1 # For handling promotion of Matrix to LTISystem
 
 struct Discrete{T} <: TimeType
     Ts::T
     function Discrete{T}(Ts::T) where T
-        if Ts <= 0 && Ts != UNDEF_TS
+        if Ts <= 0 && Ts != UNDEF_SAMPLEPERIOD
             throw(ErrorException("Creating a continuous time system by setting sample time to 0 is no longer supported."))
         end
         new{T}(Ts)
@@ -22,8 +22,8 @@ Continuous(x::Continuous) = x
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
 
-undef_Ts(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_TS)
-undef_Ts(::Type{Continuous}) where T = Continuous()
+undef_sampleperiod(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLEPERIOD)
+undef_sampleperiod(::Type{Continuous}) where T = Continuous()
 
 
 # Promotion
@@ -34,24 +34,24 @@ Base.promote_rule(::Type{Discrete{T1}}, ::Type{Discrete{T2}}) where {T1,T2}= Dis
 Base.convert(::Type{Discrete{T1}}, x::Discrete{T2}) where {T1,T2} = Discrete{T1}(x.Ts)
 
 # Promoting two or more systems systems should promote sample times
-common_sampletime(x::TimeType) = x
-common_sampletime(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch"))
-common_sampletime(x::TimeType, y::TimeType, z...) = common_sampletime(common_sampletime(x, y), z...)
-common_sampletime(a::Base.Generator) = reduce(common_sampletime, a)
+common_time(x::TimeType) = x
+common_time(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch"))
+common_time(x::TimeType, y::TimeType, z...) = common_time(common_time(x, y), z...)
+common_time(a::Base.Generator) = reduce(common_time, a)
 
-function common_sampletime(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
-    if x != y && x.Ts != UNDEF_TS && y.Ts != UNDEF_TS
+function common_time(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
+    if x != y && x.Ts != UNDEF_SAMPLEPERIOD && y.Ts != UNDEF_SAMPLEPERIOD
          throw(ErrorException("Sampling time mismatch"))
     end
 
-    if x.Ts == UNDEF_TS
+    if x.Ts == UNDEF_SAMPLEPERIOD
         return Discrete{promote_type(T1,T2)}(y)
     else
         return Discrete{promote_type(T1,T2)}(x)
     end
 end
 
-common_sampletime(x::Continuous, ys::Continuous...) = Continuous()
+common_time(x::Continuous, ys::Continuous...) = Continuous()
 
 # Check equality
 ==(x::TimeType, y::TimeType) = false

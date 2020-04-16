@@ -141,7 +141,7 @@ lsimplot
         s = systems[si]
         y = length(p.args) >= 4 ? lsim(s, u, t, x0=p.args[4], method=method)[1] : lsim(s, u, t, method=method)[1]
         styledict = getStyleSys(si,length(systems))
-        seriestype := is_continuous_time(s) ? :path : :steppost
+        seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
             @series begin
@@ -205,7 +205,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
             for i=1:ny
                 for j=1:nu
                     ydata = reshape(y[:, i, j], size(t, 1))
-                    style = is_continuous_time(s) ? :path : :steppost
+                    style = iscontinuous(s) ? :path : :steppost
                     ttext = (nu > 1 && i==1) ? title*" from: u($j) " : title
                     titles[s2i(i,j)] = ttext
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
@@ -470,8 +470,8 @@ nicholsplot
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
 
-    if is_discrete_time(systems[1])
-        w_nyquist = 2π/sampletime(systems[1])
+    if isdiscrete(systems[1])
+        w_nyquist = 2π/time(systems[1])
         w = w[w.<= w_nyquist]
     end
     nw = length(w)
@@ -744,7 +744,7 @@ pzmap
             end
         end
 
-        if is_discrete_time(system)
+        if isdiscrete(system)
             v = range(0,stop=2π,length=100)
             S,C = sin.(v),cos.(v)
             @series begin

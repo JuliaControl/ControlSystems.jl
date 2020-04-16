@@ -16,7 +16,7 @@ struct DelayLtiSystem{T,S<:Real} <: LTISystem
     # end
 end
 
-sampletime(sys::DelayLtiSystem) = sampletime(sys.P)
+time(sys::DelayLtiSystem) = time(sys.P)
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
@@ -76,7 +76,7 @@ Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
 function *(sys::DelayLtiSystem, n::Number)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
-    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.sampletime), sys.Tau)
+    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.time), sys.Tau)
 end
 *(n::Number, sys::DelayLtiSystem) = *(sys, n)
 
@@ -144,7 +144,7 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
         sys.P.B[:,      colidx],
         sys.P.C[rowidx, :],
         sys.P.D[rowidx, colidx],
-        sys.P.sampletime), sys.Tau)
+        sys.P.time), sys.Tau)
 end
 
 function Base.show(io::IO, sys::DelayLtiSystem)
@@ -206,7 +206,7 @@ Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ`
 See also: [`delay`](@ref) which is arguably more conenient than this function.
 """
 function Base.exp(G::TransferFunction{Continuous,<:SisoRational})
-    if size(G.matrix) != (1,1) && is_continuous_time(G)
+    if size(G.matrix) != (1,1) && iscontinuous(G)
         error("G must be a continuous-time scalar transfer function. Consider using `delay` instead.")
     end
     G_siso = G.matrix[1,1]

@@ -7,7 +7,7 @@ Evaluate the frequency response of a linear system
 of system `sys` over the frequency vector `w`."""
 function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
-    if is_continuous_time(sys)
+    if iscontinuous(sys)
         s_vec = im*w_vec
     else
         s_vec = exp.(w_vec*(im*sys.Ts))
@@ -35,7 +35,7 @@ function _preprocess_for_freqresp(sys::StateSpace)
     P = C*T
     Q = T\B # TODO Type stability? # T is unitary, so mutliplication with T' should do the trick
     # FIXME; No performance improvement from Hessienberg structure, also weired renaming of matrices
-    StateSpace(F.H, Q, P, D, sys.sampletime)
+    StateSpace(F.H, Q, P, D, sys.time)
 end
 
 
@@ -64,7 +64,7 @@ end
 
 Notation for frequency response evaluation.
 - F(s) evaluates the continuous-time transfer function F at s.
-- F(omega,true) evaluates the discrete-time transfer function F at exp(i*Ts*omega)
+- F(omega,true) evaluates the discrete-time transfer function F at exp(im*ts*omega)
 - F(z,false) evaluates the discrete-time transfer function F at z
 """
 function (sys::TransferFunction)(s)
@@ -72,7 +72,7 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    @assert is_discrete_time(sys) "It only makes no sense to call this function with discrete systems"
+    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     if map_to_unit_circle
         isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
     else
@@ -81,7 +81,7 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
 end
 
 function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
-    @assert is_discrete_time(sys) "It only makes no sense to call this function with discrete systems"
+    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
@@ -168,7 +168,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w1 = 0.0
         w2 = 2.0
     end
-    if !is_continuous_time(sys) && !isstatic(sys) # Do not draw above Nyquist freq for disc. systems
+    if !iscontinuous(sys) && !isstatic(sys) # Do not draw above Nyquist freq for disc. systems
         w2 = min(w2, log10(π/sys.Ts))
     end
     return [w1, w2], zp

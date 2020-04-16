@@ -87,9 +87,9 @@ export  LTISystem,
         denvec,
         numpoly,
         denpoly,
-        sampletime,
-        is_continuous_time,
-        is_discrete_time,
+        time,
+        iscontinuous,
+        isdiscrete,
         isstatic
 
 
@@ -111,8 +111,7 @@ abstract type AbstractSystem end
 
 include("types/TimeType.jl")
 ## Added interface:
-#   sampletime(Lti) -> Number
-#   timetype(Lti) -> TimeType
+#   time(Lti) -> Number
 
 include("types/Lti.jl")
 

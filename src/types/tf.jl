@@ -40,9 +40,9 @@ tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:Abstract
 tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}) where {T1,T2} =
     tf(num, den, Continuous())
 
-function tf(num::AbstractVector{T1}, den::AbstractVector{T2}, sampletime::TimeT) where {TimeT<:TimeType,T1<:Number, T2<:Number}
+function tf(num::AbstractVector{T1}, den::AbstractVector{T2}, time::TimeT) where {TimeT<:TimeType,T1<:Number, T2<:Number}
     T = promote_type(T1, T2)
-    return TransferFunction{TimeT,SisoRational{T}}(fill(SisoRational{T}(num, den), 1, 1), sampletime)
+    return TransferFunction{TimeT,SisoRational{T}}(fill(SisoRational{T}(num, den), 1, 1), time)
 end
 tf(num::AbstractVector{T1}, den::AbstractVector{T2}, Ts::Number) where {T1<:Number, T2<:Number} =
     tf(num, den, Discrete(Ts))
@@ -52,14 +52,14 @@ tf(num::AbstractVector{T1}, den::AbstractVector{T2}) where {T1<:Number, T2<:Numb
 tf(num::Number, den::Vector, args...) = tf([num], den, args...)
 
 # Cases for just static gain
-function tf(D::AbstractArray{T}, sampletime::TimeT) where {TimeT<:TimeType, T<:Number}
+function tf(D::AbstractArray{T}, time::TimeT) where {TimeT<:TimeType, T<:Number}
     ny, nu = size(D, 1), size(D, 2)
 
     matrix = Matrix{SisoRational{T}}(undef, ny, nu)
     for i in eachindex(D)
         matrix[i] = SisoRational{T}([D[i]], [one(T)])
     end
-    return TransferFunction{TimeT,SisoRational{T}}(matrix, sampletime)
+    return TransferFunction{TimeT,SisoRational{T}}(matrix, time)
 end
 tf(D::AbstractArray{T}, Ts::Number) where T = tf(D, Discrete(Ts))
 tf(D::AbstractArray{T}) where T = tf(D, Continuous())
@@ -84,7 +84,7 @@ function tf(var::AbstractString, Ts::Real)
 end
 
 ## Constructors for polynomial inputs
-function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  sampletime::TimeT) where {TimeT<:TimeType,T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  time::TimeT) where {TimeT<:TimeType,T<:Number, PT <: Polynomials.Poly{T}}
     ny, nu = size(num, 1), size(num, 2)
     if (ny, nu) != (size(den, 1), size(den, 2))
         error("num and den dimensions must match")
@@ -96,15 +96,15 @@ function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  sampletime::TimeT) 
             matrix[o, i] = SisoRational{T}(num[o, i], den[o, i])
         end
     end
-    return TransferFunction{TimeT,SisoRational{T}}(matrix, sampletime)
+    return TransferFunction{TimeT,SisoRational{T}}(matrix, time)
 end
 tf(num::AbstractArray{PT}, den::AbstractArray{PT}, Ts::Number) where {T<:Number, PT <: Polynomials.Poly{T}} =
     tf(num, den, Discrete(Ts))
 tf(num::AbstractArray{PT}, den::AbstractArray{PT}) where {T<:Number, PT <: Polynomials.Poly{T}} =
     tf(num, den, Continuous())
 
-function tf(num::PT, den::PT, sampletime::TimeT) where {TimeT<:TimeType, T<:Number, PT <: Polynomials.Poly{T}}
-    tf(fill(num,1,1), fill(den,1,1), sampletime)
+function tf(num::PT, den::PT, time::TimeT) where {TimeT<:TimeType, T<:Number, PT <: Polynomials.Poly{T}}
+    tf(fill(num,1,1), fill(den,1,1), time)
 end
 tf(num::PT, den::PT, Ts::Number) where {T<:Number, PT <: Polynomials.Poly{T}} =
     tf(num, den, Discrete(Number))
