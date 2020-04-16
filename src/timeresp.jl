@@ -43,7 +43,7 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    if iscontinuous(sys) || isstatic(sys) #&& method == :cont
+    if iscontinuous(sys) #&& method == :cont
         u = (x,i) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
