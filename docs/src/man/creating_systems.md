@@ -83,7 +83,7 @@ import ControlSystems.HeteroStateSpace
 function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
     HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
 end
-@inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.sampletime,f)
+@inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.time,f)
 ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
 ```
 Notice the different matrix types used
