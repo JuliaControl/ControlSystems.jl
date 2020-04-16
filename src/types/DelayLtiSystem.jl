@@ -16,9 +16,7 @@ struct DelayLtiSystem{T,S<:Real} <: LTISystem
     # end
 end
 
-sampletime(sys::DelayLtiSystem) = sampletime(sys.P)
-iscontinuous(sys::DelayLtiSystem) = iscontinuous(sys.P)
-isdiscrete(sys::DelayLtiSystem) = isdiscrete(sys.P)
+time(sys::DelayLtiSystem) = time(sys.P)
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)

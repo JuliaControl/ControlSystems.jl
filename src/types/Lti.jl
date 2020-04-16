@@ -72,7 +72,7 @@ end
 
 """`sampletime(sys)`
 Get the sampletime of system, same as `sys.Ts` but throws error on `Continous` systems."""
-sampletime(sys::LTISystem) = sampletime(sys.time)
+sampletime(sys::LTISystem) = sampletime(time(sys))
 
 common_time(systems::LTISystem...) = common_time(time(sys) for sys in systems)
 

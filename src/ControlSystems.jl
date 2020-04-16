@@ -110,8 +110,9 @@ abstract type AbstractSystem end
 
 include("types/TimeType.jl")
 ## Added interface:
-#   sampletime(Lti) -> Number
 #   time(Lti) -> TimeType (not exported)
+#   sampletime(Lti) = sampletime(time(Lti)) -> Number (exported)
+
 
 include("types/Lti.jl")
 
