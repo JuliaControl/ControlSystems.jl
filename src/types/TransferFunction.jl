@@ -183,7 +183,7 @@ function Base.show(io::IO, G::TransferFunction)
     if iscontinuous(G)
         print(io, "\nContinuous-time transfer function model")
     elseif isdiscrete(G)
-        print(io, "\nSample Time: ", time(G), " (seconds)")
+        print(io, "\nSample Time: ", G.Ts, " (seconds)")
         print(io, "\nDiscrete-time transfer function model")
     else
         print(io, "\nStatic gain transfer function model")
