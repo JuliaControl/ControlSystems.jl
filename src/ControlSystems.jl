@@ -87,7 +87,6 @@ export  LTISystem,
         denvec,
         numpoly,
         denpoly,
-        time,
         iscontinuous,
         isdiscrete,
         isstatic

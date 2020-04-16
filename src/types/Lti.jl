@@ -55,15 +55,25 @@ isdiscrete(sys::LTISystem) = time(sys) isa Discrete
 function Base.getproperty(sys::LTISystem, s::Symbol)
     if s === :Ts
         # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
-        if !isdiscrete(sys)
+        if isdiscrete(sys)
+            return time(sys).Ts
+        else
             @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
             return 0.0
-        else
-            return time(sys).Ts
         end
     else
         return getfield(sys, s)
     end
+end
+
+function Base.propertynames(sys::LTISystem, private::Bool=false)
+    names = if private
+        fieldnames(typeof(sys))
+    else
+        filter(!=(:time), fieldnames(typeof(sys)))
+    end
+
+    (names..., (isdiscrete(sys) ? (:Ts,) : ())...)
 end
 
 

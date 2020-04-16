@@ -90,6 +90,14 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
+# Accessing Ts through .Ts
+@test D_111.Ts == 0.005
+
+# propertynames
+@test propertynames(C_111) == (:matrix, :nu, :ny)
+@test propertynames(D_111) == (:matrix, :nu, :ny, :Ts)
+
+
 # Errors
 @test_throws ErrorException tf(vecarray(1, 1, [1,7,13,15]),
    vecarray(2, 1, [1,10,31,30], [1,10,31,30]))

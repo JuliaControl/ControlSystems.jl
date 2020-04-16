@@ -98,6 +98,12 @@
 
         @test -sys == SS(A, B, -C, -D)
 
+        # Accessing Ts through .Ts
+        @test D_111.Ts == 0.005
+
+        # propertynames
+        propertynames(C_111) = (:A, :B, :C, :D, :nx, :nu, :ny, :Ts)
+        propertynames(D_111) = (:A, :B, :C, :D, :nx, :nu, :ny)
 
         # Printing
         if SS <: StateSpace
