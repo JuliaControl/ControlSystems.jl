@@ -1,15 +1,15 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-"""`[sysd, x0map] = c2d(sys, ts, method=:zoh)`
+"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
 
 Convert the continuous system `sys` into a discrete system with sample time
-`ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
+`Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
 
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
-function c2d(sys::StateSpace, ts::Real, method::Symbol=:zoh)
+function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
     if isdiscrete(sys)
         error("sys must be a continuous time system")
     end
@@ -17,7 +17,7 @@ function c2d(sys::StateSpace, ts::Real, method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method == :zoh
-        M = exp([A*ts  B*ts;
+        M = exp([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
@@ -25,7 +25,7 @@ function c2d(sys::StateSpace, ts::Real, method::Symbol=:zoh)
         Dd = D
         x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
     elseif method == :foh
-        M = exp([A*ts B*ts zeros(nx, nu);
+        M = exp([A*Ts B*Ts zeros(nx, nu);
             zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
@@ -40,7 +40,7 @@ function c2d(sys::StateSpace, ts::Real, method::Symbol=:zoh)
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, ts), x0map
+    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
 end
 
 
@@ -222,7 +222,7 @@ function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector, control_si
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sys.ts != dt
+            if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys

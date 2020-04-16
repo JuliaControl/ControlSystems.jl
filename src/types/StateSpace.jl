@@ -44,8 +44,8 @@ function StateSpace(A::MT, B::MT, C::MT, D::MT, time::TimeT) where {TimeT<:TimeT
     StateSpace{TimeT, T, MT}(A, B, C, D, time)
 end
 # Constructor for Discrete system
-function StateSpace(A::MT, B::MT, C::MT, D::MT, ts::Number) where {T, MT <: AbstractMatrix{T}}
-    StateSpace(A, B, C, D, Discrete(ts))
+function StateSpace(A::MT, B::MT, C::MT, D::MT, Ts::Number) where {T, MT <: AbstractMatrix{T}}
+    StateSpace(A, B, C, D, Discrete(Ts))
 end
 # Constructor for Continuous system
 function StateSpace(A::MT, B::MT, C::MT, D::MT) where {T, MT <: AbstractMatrix{T}}
@@ -89,8 +89,8 @@ function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNum
     return StateSpace{typeof(time),T,Matrix{T}}(A, B, C, D, time)
 end
 # General Discrete constructor
-StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, ts::Number) =
-    StateSpace(A, B, C, D, Discrete(ts))
+StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
+    StateSpace(A, B, C, D, Discrete(Ts))
 # General continuous constructor
 StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray) =
     StateSpace(A, B, C, D, Continuous())
@@ -104,10 +104,10 @@ function StateSpace(D::AbstractArray{T}, time::TimeType) where {T<:Number}
     D = reshape(D, (ny,nu))
     return StateSpace(A, B, C, D, time)
 end
-StateSpace(D::AbstractArray, ts::Number) = StateSpace(D, Discrete(ts))
+StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))
 StateSpace(D::AbstractArray) = StateSpace(D, Continuous())
 
-StateSpace(d::Number, ts::Number; kwargs...) = StateSpace([d], Discrete(ts))
+StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d], Discrete(Ts))
 StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
 
 
@@ -115,15 +115,15 @@ StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
 StateSpace(sys::LTISystem) = convert(StateSpace, sys)
 
 """
-    `sys = ss(A, B, C, D [,ts])`
+    `sys = ss(A, B, C, D [,Ts])`
 
 Create a state-space model `sys::StateSpace{TimeT, T, MT<:AbstractMatrix{T}}`
 where `MT` is the type of matrixes `A,B,C,D`, `T` the element type and TimeT is Continuous or Discrete.
 
-This is a continuous-time model if `ts` is omitted.
+This is a continuous-time model if `Ts` is omitted.
 Otherwise, this is a discrete-time model with sampling period Ts.
 
-`sys = ss(D [, ts])` specifies a static gain matrix D.
+`sys = ss(D [, Ts])` specifies a static gain matrix D.
 """
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
@@ -165,8 +165,8 @@ function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Abstr
     return HeteroStateSpace{typeof(time),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, time)
 end
 
-HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, ts::Number) =
-    HeteroStateSpace(A, B, C, D, Discrete(ts))
+HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
+    HeteroStateSpace(A, B, C, D, Discrete(Ts))
 HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray) =
     HeteroStateSpace(A, B, C, D, Continuous())
 
@@ -181,10 +181,10 @@ function HeteroStateSpace(D::AbstractArray{T}, time::TimeType) where {T<:Number}
     return HeteroStateSpace(A, B, C, D, time)
 end
 
-HeteroStateSpace(D::AbstractArray{T}, ts::Number) where {T<:Number} = HeteroStateSpace(D, Discrete(ts))
+HeteroStateSpace(D::AbstractArray{T}, Ts::Number) where {T<:Number} = HeteroStateSpace(D, Discrete(Ts))
 HeteroStateSpace(D::AbstractArray{T}) where {T<:Number} = HeteroStateSpace(D, Continuous())
 
-HeteroStateSpace(d::Number, ts::Number; kwargs...) = HeteroStateSpace([d], Discrete(ts))
+HeteroStateSpace(d::Number, Ts::Number; kwargs...) = HeteroStateSpace([d], Discrete(Ts))
 HeteroStateSpace(d::Number; kwargs...) = HeteroStateSpace([d], Continuous())
 
 # HeteroStateSpace(sys) converts to HeteroStateSpace
