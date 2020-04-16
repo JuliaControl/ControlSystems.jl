@@ -217,14 +217,14 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     # This approach is problematic if x0 is sparse for example, but was considered
     # to be good enough for now
     x = similar(x0, T, (length(x0), n))
-    tmp = similar(x0, T) # temp vector for storing B*u[:,k]
 
     x[:,1] .= x0
-    for k=1:n-1
-        mul!(x[:,k+1], A, x[:,k])
+    mul!(x[:, 2:end], B, transpose(u[1:end-1, :])) # Do all multiplications B*u[:,k] to save view allocations
 
-        mul!(tmp, B, ut[:,k]) # these two lines could be replaced with 5-argument mul! (>= v1.3)
-        x[:, k+1] .+= tmp
+    tmp = similar(x0, T) # temporary vector for storing A*x[:,k]
+    for k=1:n-1
+        mul!(tmp, A, x[:,k])
+        x[:,k+1] .+= tmp
     end
     return transpose(x)
 end
