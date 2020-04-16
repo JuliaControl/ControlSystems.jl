@@ -26,7 +26,7 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     ny1 = getfield(sys, :ny1)
 
     if d === :Ts
-        return P.Ts # Will throw deprecation until removed # DEPRECATED
+        return sampletime(P) # Will throw deprecation until removed # DEPRECATED
     elseif d === :time
         return P.time
     elseif d === :P

@@ -50,7 +50,7 @@ function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
         imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
-        u = (x,i) -> i == t[1] ? [one(T)]/sys.Ts : [zero(T)]
+        u = (x,i) -> i == t[1] ? [one(T)]/sampletime(sys) : [zero(T)]
         imp_sys = sys
         x0s = zeros(T, nx, nu)
     end
@@ -122,7 +122,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sys.Ts != dt
+            if sampletime(sys) != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -155,7 +155,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sys.Ts != dt
+            if sampletime(sys) != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -227,18 +227,17 @@ end
 
 function _default_dt(sys::LTISystem)
     if isdiscrete(sys)
-        dt = sys.Ts
+        return sampletime(sys)
     elseif !isstable(sys)
-        dt = 0.05
+        return 0.05
     else
         ps = pole(sys)
         r = minimum([abs.(real.(ps));0])
         if r == 0.0
             r = 1.0
         end
-        dt = 0.07/r
+        return 0.07/r
     end
-    return dt
 end
 
 

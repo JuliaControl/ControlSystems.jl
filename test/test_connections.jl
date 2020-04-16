@@ -157,10 +157,16 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 # Type and sample time
 @test [D_111 1.0] isa StateSpace{Discrete{Float64},Float64,Array{Float64,2}}
 @test [D_111 1.0].Ts == 0.005
+@test sampletime([D_111 1.0]) == 0.005
 # Continuous version
 @test [C_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0])
 @test [1.0 C_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0])
 @test [C_111 1.0] isa StateSpace{Continuous,Float64,Array{Float64,2}}
+@test [C_111 1.0].Ts == 0.0
+@test_logs (:warn,
+            "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
+            ) [C_111 1.0].Ts
+@test_throws ErrorException ControlSystems.sampletime([C_111 1.0])
 # Concatenation of discrete system with matrix
 @test [D_222 fill(1.5, 2, 2)] == [D_222 ss(fill(1.5, 2, 2),0.005)]
 @test [C_222 fill(1.5, 2, 2)] == [C_222 ss(fill(1.5, 2, 2))]

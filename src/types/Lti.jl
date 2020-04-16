@@ -41,6 +41,9 @@ function issiso(sys::LTISystem)
     return ninputs(sys) == 1 && noutputs(sys) == 1
 end
 
+"""`time(sys::LTISystem)`
+Get the time::TimeType from system `sys`, usually sys.time """
+time(sys::LTISystem) = sys.time
 
 """`iscontinuous(sys)`
 
@@ -56,7 +59,7 @@ function Base.getproperty(sys::LTISystem, s::Symbol)
     if s === :Ts
         # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
         if isdiscrete(sys)
-            return time(sys).Ts
+            return sampletime(sys)
         else
             @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
             return 0.0
@@ -66,20 +69,10 @@ function Base.getproperty(sys::LTISystem, s::Symbol)
     end
 end
 
-function Base.propertynames(sys::LTISystem, private::Bool=false)
-    names = if private
-        fieldnames(typeof(sys))
-    else
-        filter(!=(:time), fieldnames(typeof(sys)))
-    end
 
-    (names..., (isdiscrete(sys) ? (:Ts,) : ())...)
-end
-
-
-"""`timetype(sys)`
-Get the timetype of system. Usually typeof(sys.time)."""
-timetype(sys) = typeof(sys.time)
+"""`sampletime(sys)`
+Get the sampletime of system, same as `sys.Ts` but throws error on `Continous` systems."""
+sampletime(sys::LTISystem) = sampletime(sys.time)
 
 common_time(systems::LTISystem...) = common_time(time(sys) for sys in systems)
 

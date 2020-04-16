@@ -10,7 +10,7 @@ function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     if iscontinuous(sys)
         s_vec = im*w_vec
     else
-        s_vec = exp.(w_vec*(im*sys.Ts))
+        s_vec = exp.(w_vec*(im*sampletime(sys)))
     end
     if isa(sys, StateSpace)
         sys = _preprocess_for_freqresp(sys)
@@ -74,7 +74,8 @@ end
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
     @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     if map_to_unit_circle
-        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
+        dt = sampletime(sys)
+        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*dt)) : error("To map to the unit circle, omega should be real")
     else
         evalfr(sys,z_or_omega)
     end
@@ -169,7 +170,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w2 = 2.0
     end
     if isdiscrete(sys) # Do not draw above Nyquist freq for disc. systems
-        w2 = min(w2, log10(π/sys.Ts))
+        w2 = min(w2, log10(π/sampletime(sys)))
     end
     return [w1, w2], zp
 end

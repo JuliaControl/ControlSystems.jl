@@ -93,10 +93,6 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 # Accessing Ts through .Ts
 @test D_111.Ts == 0.005
 
-# propertynames
-@test propertynames(C_111) == (:matrix, :nu, :ny)
-@test propertynames(D_111) == (:matrix, :nu, :ny, :Ts)
-
 
 # Errors
 @test_throws ErrorException tf(vecarray(1, 1, [1,7,13,15]),

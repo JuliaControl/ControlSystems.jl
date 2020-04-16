@@ -118,7 +118,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    G = convert(TransferFunction{timetype(sys),SisoZpk}, sys)
+    G = convert(TransferFunction{typeof(time(sys)),SisoZpk}, sys)
 
     zs = map(x -> x.z, G.matrix)
     ps = map(x -> x.p, G.matrix)
@@ -134,7 +134,7 @@ poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if isdiscrete(sys)
-        ps = log(ps)/sys.Ts
+        ps = log(ps)/sampletime(sys)
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
@@ -446,7 +446,7 @@ function delaymargin(G::LTISystem)
     ωϕₘ   = m[3][i]
     dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
-        dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
+        dₘ /= sampletime(G) # Give delay margin in number of sample times, as matlab does
     end
     dₘ
 end

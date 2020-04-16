@@ -369,8 +369,9 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
-    T = promote_type(real(numeric_type(sys)), Float64, typeof(true/sys.Ts))
-    Tw = typeof(one(T)/sys.Ts)
+    dt = sampletime(sys)
+    T = promote_type(real(numeric_type(sys)), Float64, typeof(true/dt))
+    Tw = typeof(one(T)/dt)
 
     if sys.nx == 0  # static gain
         return (T(opnorm(sys.D)), Tw(0))
@@ -381,7 +382,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return T(Inf), Tw(angle(pole_vec[pidx])/sys.Ts)
+        return T(Inf), Tw(angle(pole_vec[pidx])/dt)
     end
 
     if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
@@ -434,7 +435,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(θ_vec)
 
         if isempty(θ_vec)
-            return T((1+tol)*lb), Tw(θ_peak/sys.Ts)
+            return T((1+tol)*lb), Tw(θ_peak/dt)
         end
 
         # Improve the lower bound

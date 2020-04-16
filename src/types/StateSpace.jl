@@ -24,8 +24,6 @@ end
 
 abstract type AbstractStateSpace{TimeT<:TimeType} <: LTISystem end
 
-time(sys::AbstractStateSpace) = sys.time
-
 struct StateSpace{TimeT, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace{TimeT}
     A::MT
     B::MT
@@ -363,7 +361,7 @@ function Base.show(io::IO, sys::AbstractStateSpace)
     println(io, "D = \n", _string_mat_with_headers(sys.D), "\n")
     # Print sample time
     if isdiscrete(sys)
-        println(io, "Sample Time: ", sys.Ts, " (seconds)")
+        println(io, "Sample Time: ", sampletime(sys), " (seconds)")
     end
     # Print model type
     if iscontinuous(sys)
