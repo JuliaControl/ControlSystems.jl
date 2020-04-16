@@ -471,7 +471,7 @@ nicholsplot
     ny, nu = size(systems[1])
 
     if isdiscrete(systems[1])
-        w_nyquist = 2π/time(systems[1])
+        w_nyquist = 2π/systems[1].Ts
         w = w[w.<= w_nyquist]
     end
     nw = length(w)
