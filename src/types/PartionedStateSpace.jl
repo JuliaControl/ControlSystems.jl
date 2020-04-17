@@ -27,8 +27,6 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
 
     if d === :Ts
         return P.Ts # Will throw deprecation until removed # DEPRECATED
-    elseif d === :time
-        return P.time
     elseif d === :P
         return P
     elseif d === :nu1

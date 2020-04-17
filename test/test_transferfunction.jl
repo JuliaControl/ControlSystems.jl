@@ -94,8 +94,8 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test D_111.Ts == 0.005
 
 # propertynames
-@test propertynames(C_111) == (:matrix, :nu, :ny)
-@test propertynames(D_111) == (:matrix, :nu, :ny, :Ts)
+@test propertynames(C_111) == (:matrix, :time, :nu, :ny)
+@test propertynames(D_111) == (:matrix, :time, :nu, :ny, :Ts)
 
 
 # Errors

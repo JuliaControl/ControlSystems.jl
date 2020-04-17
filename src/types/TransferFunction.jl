@@ -22,7 +22,6 @@ end
 #     return TransferFunction(matrix, Continuous())
 # end
 
-time(G) = G.time
 
 noutputs(G::TransferFunction) = size(G.matrix, 1)
 ninputs(G::TransferFunction) = size(G.matrix, 2)

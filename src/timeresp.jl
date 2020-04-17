@@ -227,18 +227,17 @@ end
 
 function _default_dt(sys::LTISystem)
     if isdiscrete(sys)
-        dt = sys.Ts
+        return sys.Ts
     elseif !isstable(sys)
-        dt = 0.05
+        return 0.05
     else
         ps = pole(sys)
         r = minimum([abs.(real.(ps));0])
         if r == 0.0
             r = 1.0
         end
-        dt = 0.07/r
+        return 0.07/r
     end
-    return dt
 end
 
 

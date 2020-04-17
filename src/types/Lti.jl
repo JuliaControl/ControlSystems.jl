@@ -41,6 +41,9 @@ function issiso(sys::LTISystem)
     return ninputs(sys) == 1 && noutputs(sys) == 1
 end
 
+"""`time(sys::LTISystem)`
+Get the time::TimeType from system `sys`, usually sys.time """
+time(sys::LTISystem) = sys.time
 
 """`iscontinuous(sys)`
 
@@ -66,20 +69,11 @@ function Base.getproperty(sys::LTISystem, s::Symbol)
     end
 end
 
-function Base.propertynames(sys::LTISystem, private::Bool=false)
-    names = if private
-        fieldnames(typeof(sys))
-    else
-        filter(!=(:time), fieldnames(typeof(sys)))
-    end
-
-    (names..., (isdiscrete(sys) ? (:Ts,) : ())...)
-end
+Base.propertynames(sys::LTISystem, private::Bool=false) =
+    (fieldnames(typeof(sys))..., (isdiscrete(sys) ? (:Ts,) : ())...)
 
 
-"""`timetype(sys)`
-Get the timetype of system. Usually typeof(sys.time)."""
-timetype(sys) = typeof(sys.time)
+
 
 common_time(systems::LTISystem...) = common_time(time(sys) for sys in systems)
 

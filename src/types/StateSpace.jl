@@ -24,8 +24,6 @@ end
 
 abstract type AbstractStateSpace{TimeT<:TimeType} <: LTISystem end
 
-time(sys::AbstractStateSpace) = sys.time
-
 struct StateSpace{TimeT, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace{TimeT}
     A::MT
     B::MT
