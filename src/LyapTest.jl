@@ -328,9 +328,9 @@ function _sylvd_schur!(A::AbstractMatrix, B::Matrix, C::AbstractMatrix, alg::Uni
             Gij = view(G, ba[i], bb[j])
 
             if i > 1 # Compute Gij up to the contribution from Aii*Yij which is added at the end of each iteration
-                @views mul!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
+                @views muladdrc!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
             end
-            @views mul!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
+            @views muladdrc!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
 
 
             _sylvd!(Aii, Bjj, Cij)
