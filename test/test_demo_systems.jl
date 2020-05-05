@@ -13,6 +13,10 @@ sys = ssrand(1,proper=true)
 @test ControlSystems.nstates(sys) == 2
 @test iszero(sys.D)
 
+@test all(isstable, ssrand(1,1,2,stable=true) for _=1:100)
+@test all(isstable, ssrand(1,1,2,stable=true,Ts=0.1) for _=1:100)
+@test all(isstable, ssrand(1,1,2,stable=true,Ts=10) for _=1:100)
+
 sys = ssrand(2,2,5,proper=false,stable=true)
 @test size(sys) == (2,2)
 @test ControlSystems.nstates(sys) == 5
