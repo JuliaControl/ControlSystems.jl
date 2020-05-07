@@ -8,6 +8,7 @@ using StaticArrays
 * Perhaps it would be better with separate methods for the real and
   complex versions of the block solve algorithms
 * What convention for signs and tranposes?
+* Should error checking be done? In that case where?
 =#
 
 """
@@ -49,28 +50,6 @@ function _schurstructure(R::AbstractMatrix, ul=Val(:u)::Union{Val{:u}, Val{:l}})
     return d, b, k
 end
 
-# A step range representing -Inf:1:Inf
-# for efficient reuse of blocked real algorithms for scalar complex version
-struct FullStepRange end
-Base.getindex(::FullStepRange, k::Int) = k
-
-# If the C entry is a 1x1 (0-dimenional view), then
-# vector vector multiplication is interpreted as tranpose(A)*B
-muladdrc!(C, A, B, α, β) = mul!(C, A, B, α, β)
-function muladdrc!(c::Base.SubArray{<:Any,0}, A::Base.SubArray{<:Any,1}, B::Base.SubArray{<:Any,1}, α, β)
-    c[1] *= β
-    if eltype(A) <: ComplexF64 && eltype(B) <: ComplexF64
-        c[1] += α*LinearAlgebra.BLAS.dotu(A, B)
-    else
-        c[1] += α*sum(A[k]*B[k] for k=1:length(A))
-    end
-end
-function muladdrc!(c::Base.SubArray{<:Any,0}, A::Base.SubArray{<:Any,0}, B, α, β)
-    c[1] *= β
-    c[1] += α*A[1]*B[1]
-end
-
-
 
 """
 
@@ -87,7 +66,7 @@ function _sylvc!(X::AbstractMatrix, A::SMatrix, B::SMatrix, C::SMatrix) where {T
     m, n = size(C)
     Xv = (kron(I(n), A) + kron(transpose(B), I(m))) \ Cv # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X)
 
-    if any(isinf, Xv); error("Matrix equation has no solution, see ?sylvc or ?lyapc"); end
+    if any(!isfinite, Xv); error("Matrix equation has no solution, see ?sylvc or ?lyapc"); end
 
     X .= SMatrix{size(C,1),size(C,2)}(reshape(Xv, size(C,1), size(C,2)))
 end
@@ -105,12 +84,6 @@ function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     end
     return C
 end
-function _sylvc!(a::Number, b::Number, c::SubArray{<:Any,0})
-    c[1] = c[1] / (a + b)
-
-    if isinf(c[1]); error("Matrix equation has no solution, see ?sylvc or ?lyapc"); end
-end
-
 
 
 """
@@ -141,15 +114,11 @@ function _sylvd!(X::AbstractMatrix, A::SMatrix, B::SMatrix, C::SMatrix) where {T
     Cv = C[:] # vectorization of C
     Xv = (kron(transpose(B), A) - I) \ Cv # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X)
 
-    if any(isinf, Xv); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
+    if any(!isfinite, Xv); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
 
     X .= reshape(Xv, size(C,1), size(C,2))
 end
-function _sylvd!(a::Number, b::Number, c::SubArray{<:Any,0})
-    c[1] /= (a * b - 1)
 
-    if isinf(c[1]); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
-end
 
 
 
@@ -173,6 +142,13 @@ function sylvc(A, B, C)
 
     X = UA*Y*UB'
 end
+@inline function sylvc(a::Number, b::Number, c::Number)
+    x = c / (a + b)
+
+    if !isfinite(x); error("Matrix equation has no solution, see ?sylvc or ?lyapc"); end
+
+    x
+end
 
 """
     Solve the discrete-time Sylvester equation
@@ -193,6 +169,13 @@ function sylvd(A, B, C)
     Y = _sylvd_schur!(Matrix(A2'), B2, C2, Val(:sylv), isreal(A2) ? Val(:real) : Val(:complex))
 
     X = UA*Y*UB'
+end
+@inline function sylvd(a::Number, b::Number, c::Number)
+    x = c / (a * b - 1)
+
+    if !isfinite(x); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
+
+    x
 end
 
 """
@@ -264,118 +247,95 @@ end
 # It should also hold that `eltype(C) = eltype(C / (A + B))`
 function _sylvc_schur!(A::AbstractMatrix, B::Matrix, C::AbstractMatrix, alg::Union{Val{:sylv},Val{:lyap}}, schurtype::Union{Val{:real},Val{:complex}}) where {T <: Number}
     # get block indices and nbr of blocks
-    realschur = (schurtype == Val(:real))
-    if realschur
+    if schurtype == Val(:real)
         _, ba, nblocksa = _schurstructure(A, Val(:l)) # A is assumed upper triangualar
         _, bb, nblocksb = _schurstructure(B, Val(:u))
     else
-        n = LinearAlgebra.checksquare(A)
-        ba, nblocksa = (FullStepRange(), n)
-        bb, nblocksb = (FullStepRange(), n)
+        nblocksa = size(A, 1)
+        nblocksb = size(B, 1)
     end
 
     for j=1:nblocksb
         i0 = (alg == Val(:lyap) ? j : 1)
         for i=i0:nblocksa
+            if schurtype == Val(:complex)
+                if i > 1; C[i,j] -= sum(A[i, k] * C[k, j] for k=1:i-1); end
+                if j > 1; C[i,j] -= sum(C[i, k] * B[k, j] for k=1:j-1); end
 
-            Cij = view(C, ba[i], bb[j])
+                C[i,j] = sylvc(A[i, i], B[j, j], C[i, j]) # C[i,j] now contains  solution Y[i,j]
 
-            if i > 1
-                @views muladdrc!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1) # views ?
+                if alg == Val(:lyap) && i > j
+                    C[j,i] = conj(C[i,j])
+                end
+            else
+                Cij = view(C, ba[i], bb[j])
+
+                if i > 1; @views mul!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1); end
+                if j > 1; @views mul!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1); end
+
+                @views _sylvc!(A[ba[i], ba[i]], B[bb[j], bb[j]], Cij) # Cij now contains the solution Yij
+
+                if alg == Val(:lyap) && i > j
+                    view(C, ba[j], bb[i]) .= Cij'
+                end
             end
-            if j > 1
-                @views muladdrc!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1)
-            end
-
-            @views _sylvc!(A[ba[i], ba[i]], B[bb[j], bb[j]], Cij)
-            # Cij now contains the solution Yij
-
-            if alg == Val(:lyap) && i > j
-                # adjoint is not defined for 0-dimensional views...
-                view(C, ba[j], bb[i]) .= (realschur ? Cij' : conj(Cij[1]))
-            end
-
         end
     end
     return C
 end
-
 
 # Should have eltype(C) = eltype(C / (A + B))
 function _sylvd_schur!(A::AbstractMatrix, B::Matrix, C::AbstractMatrix, alg::Union{Val{:sylv},Val{:lyap}}, schurtype::Union{Val{:real},Val{:complex}}) where {T <: Number}
-    n = LinearAlgebra.checksquare(A)
-
     # The matrix C is gradually replaced with the solution X
-    G = zeros(eltype(C), n, n) # This matrix contains A*X
+
+    G = zeros(eltype(C), size(A,1), size(B, 1)) # This matrix contains A*X for increased performance
 
     # get block dimensions, block indices, nbr of blocks
-    realschur = (schurtype == Val(:real))
-    if realschur
+    if schurtype == Val(:real)
         _, ba, nblocksa = _schurstructure(A, Val(:l)) # A is assumed upper triangualar
         _, bb, nblocksb = _schurstructure(B, Val(:u))
     else
-        ba, nblocksa = (FullStepRange(), size(A, 1))
-        bb, nblocksb = (FullStepRange(), size(B, 1))
+        nblocksa = size(A, 1)
+        nblocksb = size(B, 1)
     end
 
     for j=1:nblocksb
         i0 = (alg == Val(:lyap) ? j : 1)
         for i=i0:nblocksa
-            Aii = A[ba[i], ba[i]]
-            Bjj = B[bb[j], bb[j]]
+            if schurtype == Val(:complex)
+                # Compute Gij up to the contribution from Aii*Yij which is added at the end of each iteration
+                if i > 1; G[i,j] += sum(A[i,k] * C[k,j] for k=1:i-1); end
 
-            Cij = view(C, ba[i], bb[j])
-            Gij = view(G, ba[i], bb[j])
+                C[i,j] -= sum(G[i,k] * B[k,j] for k=1:j)
 
-            if i > 1 # Compute Gij up to the contribution from Aii*Yij which is added at the end of each iteration
-                @views muladdrc!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
+                C[i,j] = sylvd(A[i,i], B[j,j], C[i,j]) # C[i,j] now contains  solution Y[i,j]
+
+                if alg == Val(:lyap) && i > j
+                    C[j,i] = conj(C[i,j])
+                end
+
+                G[i,j] += A[i, i] * C[i, j]
+            else
+                Aii = A[ba[i], ba[i]]
+                Bjj = B[bb[j], bb[j]]
+
+                Cij = view(C, ba[i], bb[j])
+                Gij = view(G, ba[i], bb[j])
+
+                if i > 1
+                    @views mul!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
+                end
+
+                @views mul!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
+
+                _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
+
+                if alg == Val(:lyap) && i > j
+                    view(C, ba[j], bb[i]) .= Cij'
+                end
+
+                mul!(Gij, Aii, Cij, 1, 1)
             end
-            @views muladdrc!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
-
-
-            _sylvd!(Aii, Bjj, Cij)
-            # Cij now contains the solution Yij
-
-            if alg == Val(:lyap) && i > j
-                # adjoint is not defined for 0-dimensional views...
-                view(C, ba[j], bb[i]) .= (realschur ? Cij' : conj(Cij[1]))
-            end
-
-            mul!(Gij, Aii, Cij, 1, 1)
-        end
-    end
-    return C
-end
-
-# Alternative version that avoids views, about twice as fast..
-function _sylvd_schurc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, alg::Union{Val{:sylv},Val{:lyap}}, ::Val{:complex}) where {T <: Number}
-    n = LinearAlgebra.checksquare(A)
-
-    # The matrix C is gradually replaced with the solution X
-    G = zeros(eltype(C), n, n) # This matrix contains A*X
-
-    # get block dimensions, block indices, nbr of blocks
-    for j=1:n
-        i0 = (alg == Val(:lyap) ? j : 1)
-        for i=i0:n
-            if i > 1 # Compute Gij up to the contribution from Aii*Yij which is added at the end of each iteration
-                #@views G[i,j] += transpose(A[i, 1:i-1])*C[1:i-1, j]
-                G[i,j] += sum(A[i, k] * C[k, j] for k=1:i-1)
-            end
-
-            C[i,j] -= sum(G[i, k] * B[k, j] for k=1:j)
-
-            C[i,j] /= (A[i, i] * B[j, j] - 1)
-            # Cij now contains the solution Yij
-
-            if isinf(C[i,j]); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
-
-            if alg == Val(:lyap) && i > j
-                # adjoint is not defined for 0-dimensional views...
-                C[j,i] = conj(C[i,j])
-            end
-
-            G[i,j] += A[i, i] * C[i, j]
         end
     end
     return C
