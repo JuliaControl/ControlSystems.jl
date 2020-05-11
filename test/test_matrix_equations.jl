@@ -80,7 +80,6 @@ Cherm = [1.0 2+im; 2-im 1]
 @test LyapTest.lyapd(Ac, Cherm) ≈ sylvd_diag(ac, conj(ac), -Cherm)
 
 
-
 #
 # Further tests with non-diagonal matrices
 #
