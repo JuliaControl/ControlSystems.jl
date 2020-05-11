@@ -1,6 +1,7 @@
 module LyapTest
 
 #=
+
 * Symmetry is not exploited when solving diagonal entries
 * Perhaps it would be better with separate methods for the real and
   complex versions of the block solve algorithms
@@ -8,9 +9,10 @@ module LyapTest
 * Should error checking be done? In that case where?
 =#
 
-
 using LinearAlgebra
 using StaticArrays
+
+
 
 """
     `b, d, nblocks = _schurstructure(R::AbstractMatrix)`
@@ -83,7 +85,7 @@ Solve the continuous-time sylvester equation
 
 for small matrices (1x1, 1x2, 2x1, 2x2)
 """
-function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
+@inline function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
     if M == 2 && N == 2
         _sylvc!(C, A, B, C, Val{2}(), Val{2}())
@@ -98,10 +100,10 @@ function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     end
     return C
 end
-function _sylvc!(X::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
+@inline function _sylvc!(X::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
     A′ = SMatrix{M,M}(A)
     B′ = SMatrix{N,N}(B)
-    Cv = SVector{M*N}(C[:]) # vectorization of C
+    Cv = SMatrix{M,N}(C)[:] # vectorization of C
 
     Xv = lu(kron(SMatrix{N,N}(I), A′) + kron(transpose(B′), SMatrix{M,M}(I))) \ Cv # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X) (with A = I or B = I)
 
@@ -138,7 +140,7 @@ end
 function _sylvd!(X::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
     A′ = SMatrix{M,M}(A)
     B′ = SMatrix{N,N}(B)
-    Cv = SVector{M*N}(C[:]) # vectorization of C
+    Cv = SMatrix{M,N}(C)[:] # vectorization of C
 
     Xv = (kron(transpose(B′), A′) - I) \ Cv # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X)
 
@@ -165,11 +167,11 @@ function sylvc(A, B, C)
     At2, UA = schur(A')
     B2, UB = schur(B)
 
-    C2 = UA'*C*UB # C2 should have the right type
+    C2 = UA'*C*UB # This should give C2 the right type
 
     Y = _sylvc_schur!(Matrix(At2'), B2, C2, Val(:sylv))
 
-    X = UA*Y*UB'
+    X = mul!(Y, UA, Y*UB')
 end
 @inline function sylvc(a::Number, b::Number, c::Number)
     x = c / (a + b)
@@ -201,7 +203,7 @@ function sylvd(A, B, C)
 
     Y = _sylvd_schur!(Matrix(At2'), B2, C2, Val(:sylv))
 
-    X = UA*Y*UB'
+    X = mul!(Y, UA, Y*UB')
 end
 @inline function sylvd(a::Number, b::Number, c::Number)
     x = c / (a * b - 1)
@@ -233,7 +235,7 @@ function lyapc(A, Q)
 
     Y = _sylvc_schur!(Matrix(At2'), At2, lmul!(-1, Q2), Val(:lyap))
 
-    X = U*Y*U' # Small savings could be possible here, see [1]
+    X = mul!(Y, U, Y*U') # Small savings could be possible here, see [1]
 end
 """
     `X = lyapd(A, Q)`
@@ -258,13 +260,11 @@ function lyapd(A, Q)
 
     At2, U = schur(A')
 
-    #tmp = similar(Q, sylvdsoltype(A,A,Q))
-    #Q2 = U'*mul!(tmp, Q, U) # Some savings could be possible here, see [1]
-    Q2 = U'*Q*U # Some savings could be possible here, see [1]
+    Q2 = U'*Q*U
 
     Y = _sylvd_schur!(Matrix(At2'), At2, lmul!(-1, Q2), Val(:lyap))
 
-    X = U*Y*U' # mul!(Y.data, U, mul!(tmp, Y, U')) # Y*U*U' # Some savings could be possible here, see [1]
+    X = mul!(Y, U, Y*U')
 end
 
 
@@ -326,20 +326,22 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
             else
                 Cij = view(C, ba[i], bb[j])
 
-                if i > 1; @views mul!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1); end
-                if j > 1; @views mul!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1); end
+
+                if i > 1; @inbounds @views mul!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1); end
+                if j > 1; @inbounds @views mul!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1); end
 
                 @views _sylvc!(A[ba[i], ba[i]], B[bb[j], bb[j]], Cij) # Cij now contains the solution Yij
 
+
                 if alg == Val(:lyap) && i > j
-                    #copyto_noalias!(view(C, ba[j], bb[i]), Cij')
-                    view(C, ba[j], bb[i]) .= Cij'
+                    copyto_noalias!(view(C, ba[j], bb[i]), Cij')
                 end
             end
         end
     end
     return C
 end
+
 
 """
 Solve the discrete-time Sylvester equation
@@ -412,8 +414,7 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
                 _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
-                    #copyto_noalias!(view(C, ba[j], bb[i]), Cij')
-                    view(C, ba[j], bb[i]) .= Cij'
+                    copyto_noalias!(view(C, ba[j], bb[i]), Cij')                    
                 end
 
                 mul!(Gij, Aii, Cij, 1, 1)

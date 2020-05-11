@@ -1,7 +1,7 @@
 using MatrixEquations
 include("src/LyapTest.jl")
 
-BenchmarkTools.DEFAULT_PARAMETERS.seconds = 2
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 5
 
 bg = BenchmarkGroup()
 for T in [Float64, ComplexF64]
@@ -34,9 +34,9 @@ results = run(bg)
 using PrettyTables
 
 
-sorted_results = sort(collect(results.data), by=x->(x[1][1], x[1][3]==Float64, x[1][2], x[1][4]))
+sr = sort(collect(results.data), by=x->(x[1][1], x[1][3]==Float64, x[1][2], x[1][4]))
 
-sr = [sorted_results; fill(NaN, 12)]
+
 
 for k=1:4
     data = reshape(sr[9*(k-1) .+ (1:9)], 3, 3)
@@ -45,6 +45,18 @@ for k=1:4
     table_content = Matrix{Any}(fill(NaN, 3, 4))
     table_content[1:3,1] = [x[1][4] for x in sorted_results[1:3]]
     table_content[1:3,2:4] = [string(BenchmarkTools.prettytime(median(x[2]).time), " (", x[2].allocs, " allocs, ", BenchmarkTools.prettymemory(x[2].memory), ")") for x in data]
+
+    pretty_table(table_content, ["", "LyapTest", "MatrixEquations", "julia"])
+end
+
+for k=1:4
+    data = reshape(sr[36 + 6*(k-1) .+ (1:6)], 3, 2)
+
+    #println(data)
+    println("$(data[1][1][1]), $(data[1][1][3])")
+    table_content = Matrix{Any}(fill(NaN, 3, 3))
+    table_content[1:3,1] = [x[1][4] for x in sorted_results[1:3]]
+    table_content[1:3,2:3] = [string(BenchmarkTools.prettytime(median(x[2]).time), " (", x[2].allocs, " allocs, ", BenchmarkTools.prettymemory(x[2].memory), ")") for x in data]
 
     pretty_table(table_content, ["", "LyapTest", "MatrixEquations", "julia"])
 end
