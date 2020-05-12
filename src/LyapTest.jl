@@ -79,7 +79,7 @@ sylvdsoltype(A, B, C) = Base.promote_op(sylvd, eltype(A), eltype(B), eltype(C))
 """
     _sylvc!(A, B, C)
 
-Solve the continuous-time sylvester equation
+Find the solution `X` to the continuous-time Sylvester equation
 
 `AX + XB = C`
 
@@ -88,19 +88,19 @@ for small matrices (1x1, 1x2, 2x1, 2x2)
 @inline function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
     if M == 2 && N == 2
-        _sylvc!(C, A, B, C, Val{2}(), Val{2}())
+        _sylvc!(A, B, C, Val{2}(), Val{2}())
     elseif M == 2 && N == 1
-        _sylvc!(C, A, B, C, Val{2}(), Val{1}())
+        _sylvc!(A, B, C, Val{2}(), Val{1}())
     elseif M == 1 && N == 2
-        _sylvc!(C, A, B, C, Val{1}(), Val{2}())
+        _sylvc!(A, B, C, Val{1}(), Val{2}())
     elseif M == 1 && N == 1
-        _sylvc!(C, A, B, C, Val{1}(), Val{1}())
+        _sylvc!(A, B, C, Val{1}(), Val{1}())
     else
         error("Matrix dimensionsins should not be greater than 2")
     end
     return C
 end
-@inline function _sylvc!(X::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
+@inline function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
     A′ = SMatrix{M,M}(A)
     B′ = SMatrix{N,N}(B)
     Cv = SMatrix{M,N}(C)[:] # vectorization of C
@@ -109,14 +109,14 @@ end
 
     if any(!isfinite, Xv); error("Matrix equation has no solution, see ?sylvc or ?lyapc"); end
 
-    X .= reshape(Xv, M, N)
+    C .= reshape(Xv, M, N)
 end
 
 
 """
     _sylvd!(X, A, B, C)
 
-Solve the discrete-time sylvester equation
+Find the solution `X` to the discrete-time Sylvester equation
 
 `AXB - X = C`
 
@@ -125,19 +125,19 @@ for small matrices (1x1, 1x2, 2x1, 2x2).
 function _sylvd!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
     if M == 2 && N == 2
-        _sylvd!(C, A, B, C, Val{2}(), Val{2}())
+        _sylvd!(A, B, C, Val{2}(), Val{2}())
     elseif M == 2 && N == 1
-        _sylvd!(C, A, B, C, Val{2}(), Val{1}())
+        _sylvd!(A, B, C, Val{2}(), Val{1}())
     elseif M == 1 && N == 2
-        _sylvd!(C, A, B, C, Val{1}(), Val{2}())
+        _sylvd!(A, B, C, Val{1}(), Val{2}())
     elseif M == 1 && N == 1
-        _sylvd!(C, A, B, C, Val{1}(), Val{1}())
+        _sylvd!(A, B, C, Val{1}(), Val{1}())
     else
         error("Matrix dimensionsins should not be greater than 2")
     end
     return C
 end
-function _sylvd!(X::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
+function _sylvd!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
     A′ = SMatrix{M,M}(A)
     B′ = SMatrix{N,N}(B)
     Cv = SMatrix{M,N}(C)[:] # vectorization of C
@@ -146,17 +146,17 @@ function _sylvd!(X::AbstractMatrix, A::AbstractMatrix, B::AbstractMatrix, C::Abs
 
     if any(!isfinite, Xv); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
 
-    X .= reshape(Xv, M, N)
+    C .= reshape(Xv, M, N)
 end
 
 """
     sylvc(A, B, C)
 
-Solve the continuous-time Sylvester equation
+Find the solution `X` to the continuous-time Sylvester equation
 
 `AX + XB = C`
 
-A solution `X` exists unless `A` and `B` have eigenvalues `λ` and `μ` such that λ + μ = 0.
+A solution exists unless `A` and `B` have eigenvalues `λ` and `μ` such that λ + μ = 0.
 
 [1] **Bartels, R. H., & Stewart, G. W.** (1972). "Solution of the matrix
     equation AX + XB = C" Communications of the ACM, 15(9), 820-826.
@@ -184,11 +184,11 @@ end
 """
     sylvd(A, B, C)
 
-Solve the discrete-time Sylvester equation
+Find the solution `X` to the discrete-time Sylvester equation
 
 `AXB - X = C`
 
-A solution `X` exists unless `A` and `B` have eigenvalues `λ` and `μ` such that λμ = 1.
+A solution exists unless `A` and `B` have eigenvalues `λ` and `μ` such that λμ = 1.
 
 [1] **Bartels, R. H., & Stewart, G. W.** (1972). "Solution of the matrix
     equation AX + XB = C" Communications of the ACM, 15(9), 820-826.
@@ -244,7 +244,7 @@ Find the solution `X` to the discrete-time Lyapunov equation
 
 `AXA' - X + Q = 0`
 
-A solution `X` unless `A` has an eigenvalue λ = ±1 or an eigenvalue pair λ₁λ₂ = 1 .
+A solution exists unless `A` has an eigenvalue λ = ±1 or an eigenvalue pair λ₁λ₂ = 1 .
 
 
 [1] **Barraud, A.** (1977) "A numerical algorithm to solve A'XA - X = Q"
@@ -326,12 +326,10 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
             else
                 Cij = view(C, ba[i], bb[j])
 
-
                 if i > 1; @inbounds @views mul!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1); end
                 if j > 1; @inbounds @views mul!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1); end
 
                 @views _sylvc!(A[ba[i], ba[i]], B[bb[j], bb[j]], Cij) # Cij now contains the solution Yij
-
 
                 if alg == Val(:lyap) && i > j
                     copyto_noalias!(view(C, ba[j], bb[i]), Cij')
@@ -414,7 +412,7 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
                 _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
-                    copyto_noalias!(view(C, ba[j], bb[i]), Cij')                    
+                    copyto_noalias!(view(C, ba[j], bb[i]), Cij')
                 end
 
                 mul!(Gij, Aii, Cij, 1, 1)

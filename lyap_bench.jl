@@ -58,23 +58,8 @@ for k=1:4
     table_content[1:3,1] = [x[1][4] for x in sorted_results[1:3]]
     table_content[1:3,2:3] = [string(BenchmarkTools.prettytime(median(x[2]).time), " (", x[2].allocs, " allocs, ", BenchmarkTools.prettymemory(x[2].memory), ")") for x in data]
 
-    pretty_table(table_content, ["", "LyapTest", "MatrixEquations", "julia"])
+    pretty_table(table_content, ["", "LyapTest", "MatrixEquations"])
 end
-
-f = sr[1][2]
-f
-
-table_content = Matrix{Any}(fill(NaN, 8, 4))
-table_content[1:8,1] = ["$(x[1][1]), $(x[1][3])" for x in sorted_results[1:8]]
-table_content[1:8,2:3] = [string(median(x[2])) for x in sorted_results[1:16]]
-table_content[1:4,4] = [string(median(x[2])) for x in sorted_results[17:20]]
-
-pretty_table(table_content)
-
-
-@pt table_content
-
-
 
 
 n = 100
