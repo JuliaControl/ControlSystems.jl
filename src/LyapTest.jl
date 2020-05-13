@@ -1,12 +1,17 @@
 module LyapTest
 
 #=
+The implementaiton is intended to be simple and fast. However in order to maintain
+ readability, a few small optimizations have not been persued, for example:
+* Symmetry is not exploited when solving diagonal entries of Lyapuniv equations
+* Could use one more in-place multiplication in the top level functions
+* Small savings could be possible when compting U*Q*U' where Q is symmetric, see [1]
+* Could make the traiangular solve methods accepts various combinations of upper/lower
+  Schur matrices but this seems to add quite a bit of code at quite a bit of code for quite a small gain.
 
-* Symmetry is not exploited when solving diagonal entries
-* Perhaps it would be better with separate methods for the real and
-  complex versions of the block solve algorithms
+# Some other questions
 * What convention for signs and tranposes?
-* Should error checking be done? In that case where?
+* Should error checking be done after each block solve or at the end of the algorithm?
 =#
 
 using LinearAlgebra
@@ -15,9 +20,11 @@ using StaticArrays
 
 
 """
-    `b, d, nblocks = _schurstructure(R::AbstractMatrix)`
+    `_schurstructure(R::AbstractMatrix, ul=Union{Val{:U}, Val{:L}}) -> (b, d, nblocks)`
 
-Return the block strucutre of a quasi-traingular Schur matrix `R`.
+Return the block strucutre of an upper quasi-traingular Schur matrix `R`.
+`ul` indicates if R is upper (`ul=Val(:U)`) or lower (`ul=Val(:L)`) triangular.
+
 
 `d` contains the block sizees of each diagonal block (`1` or `2`)
 
@@ -32,7 +39,7 @@ function _schurstructure(R::AbstractMatrix, ul=Val(:U)::Union{Val{:U}, Val{:L}})
     d = Vector{Int}(undef, n) # block sizes
     b = Vector{UnitRange{Int64}}(undef, n) # block indices
 
-    j = 1 # column if ul=:u, row if ul=:l
+    j = 1 # column if ul=:U, row if ul=:L
     k = 0 # block number
     while j <= n
         k += 1
@@ -231,11 +238,11 @@ function lyapc(A, Q)
 
     At2, U = schur(A')
 
-    Q2 = U'*Q*U # Could use in-place, Small savings could be possible here, see [1]
+    Q2 = U'*Q*U
 
     Y = _sylvc_schur!(Matrix(At2'), At2, lmul!(-1, Q2), Val(:lyap))
 
-    X = mul!(Y, U, Y*U') # Small savings could be possible here, see [1]
+    X = mul!(Y, U, Y*U')
 end
 """
     `X = lyapd(A, Q)`
@@ -269,18 +276,12 @@ end
 
 
 """
-Solve the continuous-time Sylvester equation
+Find the solution `X` to the continuous-time Sylvester equation
 
 `AX + XB = C`
 
-where
-`A` is assumed to have lower Schur form (quasi-triangular, 1x1 & 2x2 blocks on the diagonal)
+where `A` is assumed to have lower Schur form (quasi-triangular, 1x1 & 2x2 blocks on the diagonal)
 `B` is assumed to have upper Schur form
-
-If `alg == Val(:lyap)` then `C` should be Hermitian
-
-The input matrix `C` is overwritten with the solution `X`,
-so this matrix should have the same type as the solution, typically `typeof(C[1] / (A[1] + B[1]))`
 
 See also `sylvc`
 """
@@ -315,10 +316,10 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
         i0 = (alg == Val(:lyap) ? j : 1)
         for i=i0:nblocksa
             if schurtype == Val(:complex)
-                if i > 1; C[i,j] -= sum(A[i, k] * C[k, j] for k=1:i-1); end
-                if j > 1; C[i,j] -= sum(C[i, k] * B[k, j] for k=1:j-1); end
+                if i > 1; @inbounds C[i,j] -= sum(A[i, k] * C[k, j] for k=1:i-1); end
+                if j > 1; @inbounds C[i,j] -= sum(C[i, k] * B[k, j] for k=1:j-1); end
 
-                C[i,j] = sylvc(A[i, i], B[j, j], C[i, j]) # C[i,j] now contains  solution Y[i,j]
+                @inbounds C[i,j] = sylvc(A[i, i], B[j, j], C[i, j]) # C[i,j] now contains  solution Y[i,j]
 
                 if alg == Val(:lyap) && i > j
                     C[j,i] = conj(C[i,j])
@@ -342,6 +343,8 @@ end
 
 
 """
+    sylvd_schur!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
+
 Solve the discrete-time Sylvester equation
 
 `AXB - X = C`
@@ -349,10 +352,7 @@ Solve the discrete-time Sylvester equation
 where `A` is assumed to have lower Schur form (quasi-triangular, 1x1 & 2x2 blocks on the diagonal)
 `B` is assumed to have upper Schur form
 
-If `alg == Val(:lyap)` then `C` should be Hermitian
-
-The input matrix `C` is overwritten with the solution `X`,
-so this matrix should have the same type as the solution, typically `typeof(C[1] / (A[1] * B[1] - 1)`
+If the matrix `C` has the right type, it is overwritten with the solution `X`.
 
 See also `sylvd`
 """
@@ -397,19 +397,19 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
 
                 G[i,j] += A[i, i] * C[i, j]
             else
-                Aii = A[ba[i], ba[i]]
-                Bjj = B[bb[j], bb[j]]
-
                 Cij = view(C, ba[i], bb[j])
                 Gij = view(G, ba[i], bb[j])
 
+                Aii = A[ba[i], ba[i]]
+                Bjj = B[bb[j], bb[j]]
+
                 if i > 1
-                    @views mul!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
+                    @views @inbounds mul!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
                 end
 
-                @views mul!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
+                @views @inbounds mul!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
 
-                _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
+                @inbounds _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
                     copyto_noalias!(view(C, ba[j], bb[i]), Cij')
