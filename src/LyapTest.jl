@@ -333,7 +333,9 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
                 @views _sylvc!(A[ba[i], ba[i]], B[bb[j], bb[j]], Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
-                    copyto_noalias!(view(C, ba[j], bb[i]), Cij')
+                    @inbounds for l=bb[j], k=ba[i]
+                        C[l,k] = conj(C[k,l])
+                    end
                 end
             end
         end
@@ -412,7 +414,9 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
                 @inbounds _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
-                    copyto_noalias!(view(C, ba[j], bb[i]), Cij')
+                    @inbounds for l=bb[j], k=ba[i] # Avoids aliasing of copyto!
+                        C[l,k] = conj(C[k,l])
+                    end
                 end
 
                 mul!(Gij, Aii, Cij, 1, 1)
@@ -422,15 +426,6 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
     return C
 end
 
-
-
-
-function copyto_noalias!(dest::AbstractArray{T1,N}, src::AbstractArray{T2,N}) where {T1,T2,N}
-     for I in eachindex(IndexStyle(src,dest), src)
-         @inbounds dest[I] = src[I]
-     end
-     dest
-end
 
 
 end
