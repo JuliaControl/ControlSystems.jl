@@ -312,28 +312,30 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
         nblocksb = size(B, 1)
     end
 
-    for j=1:nblocksb
+    @inbounds for j=1:nblocksb
         i0 = (alg == Val(:lyap) ? j : 1)
         for i=i0:nblocksa
             if schurtype == Val(:complex)
-                if i > 1; @inbounds C[i,j] -= sum(A[i, k] * C[k, j] for k=1:i-1); end
-                if j > 1; @inbounds C[i,j] -= sum(C[i, k] * B[k, j] for k=1:j-1); end
+                if i > 1; C[i,j] -= sum(A[i, k] * C[k, j] for k=1:i-1); end
+                if j > 1; C[i,j] -= sum(C[i, k] * B[k, j] for k=1:j-1); end
 
-                @inbounds C[i,j] = sylvc(A[i, i], B[j, j], C[i, j]) # C[i,j] now contains  solution Y[i,j]
+                C[i,j] = sylvc(A[i, i], B[j, j], C[i, j]) # C[i,j] now contains  solution Y[i,j]
 
                 if alg == Val(:lyap) && i > j
                     C[j,i] = conj(C[i,j])
                 end
             else
+                Aii = view(A, ba[i], ba[i])
+                Bjj = view(B, bb[j], bb[j])
                 Cij = view(C, ba[i], bb[j])
 
-                if i > 1; @inbounds @views mul!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1); end
-                if j > 1; @inbounds @views mul!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1); end
+                if i > 1; @views mul!(Cij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], -1, 1); end
+                if j > 1; @views mul!(Cij, C[ba[i], 1:bb[j-1][end]], B[1:bb[j-1][end], bb[j]], -1, 1); end
 
-                @views _sylvc!(A[ba[i], ba[i]], B[bb[j], bb[j]], Cij) # Cij now contains the solution Yij
+                _sylvc!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
-                    @inbounds for l=bb[j], k=ba[i]
+                    for l=bb[j], k=ba[i]
                         C[l,k] = conj(C[k,l])
                     end
                 end
@@ -382,7 +384,7 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
         nblocksb = size(B, 1)
     end
 
-    for j=1:nblocksb
+    @inbounds for j=1:nblocksb
         i0 = (alg == Val(:lyap) ? j : 1)
         for i=i0:nblocksa
             if schurtype == Val(:complex)
@@ -399,22 +401,22 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
 
                 G[i,j] += A[i, i] * C[i, j]
             else
+                Aii = view(A, ba[i], ba[i])
+                Bjj = view(B, bb[j], bb[j])
                 Cij = view(C, ba[i], bb[j])
+
                 Gij = view(G, ba[i], bb[j])
 
-                Aii = A[ba[i], ba[i]]
-                Bjj = B[bb[j], bb[j]]
-
                 if i > 1
-                    @views @inbounds mul!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
+                    @views mul!(Gij, A[ba[i], 1:ba[i-1][end]], C[1:ba[i-1][end], bb[j]], 1, 1)
                 end
 
-                @views @inbounds mul!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
+                @views mul!(Cij, G[ba[i], 1:bb[j][end]], B[1:bb[j][end], bb[j]], -1, 1)
 
-                @inbounds _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
+                _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
                 if alg == Val(:lyap) && i > j
-                    @inbounds for l=bb[j], k=ba[i] # Avoids aliasing of copyto!
+                    for l=bb[j], k=ba[i] # Avoids aliasing of copyto!
                         C[l,k] = conj(C[k,l])
                     end
                 end

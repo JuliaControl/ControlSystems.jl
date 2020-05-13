@@ -34,12 +34,10 @@ results = run(bg)
 using PrettyTables
 
 
-sr = sort(collect(results.data), by=x->(x[1][1], x[1][3]==Float64, x[1][2], x[1][4]))
-
-
+sorted_results = sort(collect(results.data), by=x->(x[1][1], x[1][3]==Float64, x[1][2], x[1][4]))
 
 for k=1:4
-    data = reshape(sr[9*(k-1) .+ (1:9)], 3, 3)
+    data = reshape(sorted_results[9*(k-1) .+ (1:9)], 3, 3)
 
     println("$(data[1][1][1]), $(data[1][1][3])")
     table_content = Matrix{Any}(fill(NaN, 3, 4))
@@ -50,7 +48,7 @@ for k=1:4
 end
 
 for k=1:4
-    data = reshape(sr[36 + 6*(k-1) .+ (1:6)], 3, 2)
+    data = reshape(sorted_results[36 + 6*(k-1) .+ (1:6)], 3, 2)
 
     #println(data)
     println("$(data[1][1][1]), $(data[1][1][3])")
@@ -63,6 +61,7 @@ end
 
 
 n = 100
+
 for (numtype, T) in [(:real, Float64), (:complex, ComplexF64)]
     A = randn(T, n, n)
     B = randn(T, n, n)
