@@ -84,13 +84,13 @@ sylvcsoltype(A, B, C) = Base.promote_op(sylvc, eltype(A), eltype(B), eltype(C))
 sylvdsoltype(A, B, C) = Base.promote_op(sylvd, eltype(A), eltype(B), eltype(C))
 
 """
-    _sylvc!(A, B, C)
+    _sylvc!(A, B, C) -> X
 
 Find the solution `X` to the continuous-time Sylvester equation
 
 `AX + XB = C`
 
-for small matrices (1x1, 1x2, 2x1, 2x2)
+for small matrices (1x1, 1x2, 2x1, 2x2), overwriting the input `C`.
 """
 @inline function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
@@ -121,13 +121,13 @@ end
 
 
 """
-    _sylvd!(X, A, B, C)
+    _sylvd!(A, B, C) -> X
 
 Find the solution `X` to the discrete-time Sylvester equation
 
 `AXB - X = C`
 
-for small matrices (1x1, 1x2, 2x1, 2x2).
+for small matrices (1x1, 1x2, 2x1, 2x2), overwriting the input `C`.
 """
 function _sylvd!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
@@ -157,7 +157,7 @@ function _sylvd!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{
 end
 
 """
-    sylvc(A, B, C)
+    sylvc(A, B, C) -> X
 
 Find the solution `X` to the continuous-time Sylvester equation
 
@@ -189,7 +189,7 @@ end
 end
 
 """
-    sylvd(A, B, C)
+    sylvd(A, B, C) -> X
 
 Find the solution `X` to the discrete-time Sylvester equation
 
@@ -221,7 +221,7 @@ end
 end
 
 """
-    lyapc(A, Q)
+    lyapc(A, Q) -> X
 
 Computes the solution `X` of the continuous-time Lyapunov equation
 
@@ -245,7 +245,7 @@ function lyapc(A, Q)
     X = mul!(Y, U, Y*U')
 end
 """
-    `X = lyapd(A, Q)`
+    X = lyapd(A, Q) -> X
 
 Find the solution `X` to the discrete-time Lyapunov equation
 
@@ -276,6 +276,8 @@ end
 
 
 """
+    sylvc_schur!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix) -> X
+
 Find the solution `X` to the continuous-time Sylvester equation
 
 `AX + XB = C`
@@ -347,7 +349,7 @@ end
 
 
 """
-    sylvd_schur!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
+    sylvd_schur!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix) -> X
 
 Solve the discrete-time Sylvester equation
 
