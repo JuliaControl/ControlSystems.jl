@@ -3,6 +3,9 @@ include("src/LyapTest.jl")
 
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = 5
 
+using Random
+Random.seed!(0)
+
 bg = BenchmarkGroup()
 for T in [Float64, ComplexF64]
     for k=[5,50,500]#[5, 20, 200]
@@ -44,7 +47,7 @@ for k=1:4
     table_content[1:3,1] = [x[1][4] for x in sorted_results[1:3]]
     table_content[1:3,2:4] = [string(BenchmarkTools.prettytime(median(x[2]).time), " (", x[2].allocs, " allocs, ", BenchmarkTools.prettymemory(x[2].memory), ")") for x in data]
 
-    pretty_table(table_content, ["", "LyapTest", "MatrixEquations", "julia"])
+    pretty_table(table_content, ["N", "LyapTest", "MatrixEquations", "LinearAlgebra"])
 end
 
 for k=1:4
@@ -56,7 +59,7 @@ for k=1:4
     table_content[1:3,1] = [x[1][4] for x in sorted_results[1:3]]
     table_content[1:3,2:3] = [string(BenchmarkTools.prettytime(median(x[2]).time), " (", x[2].allocs, " allocs, ", BenchmarkTools.prettymemory(x[2].memory), ")") for x in data]
 
-    pretty_table(table_content, ["", "LyapTest", "MatrixEquations"])
+    pretty_table(table_content, ["N", "LyapTest", "MatrixEquations"])
 end
 
 
