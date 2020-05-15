@@ -46,7 +46,7 @@ function _schurstructure(R::AbstractMatrix, ul=Val(:U)::Union{Val{:U}, Val{:L}})
         if j == n
             d[k] = 1
         else
-            if ul == Val(:U)
+            if ul === Val(:U)
                 d[k] = iszero(R[j+1, j]) ? 1 : 2
             else
                 d[k] = iszero(R[j, j+1]) ? 1 : 2
@@ -95,24 +95,24 @@ for small matrices (1x1, 1x2, 2x1, 2x2), overwriting the input `C`.
 @inline function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
     if M == 2 && N == 2
-        _sylvc!(A, B, C, Val{2}(), Val{2}())
+        _sylvc!(A, B, C, Val(2), Val(2))
     elseif M == 2 && N == 1
-        _sylvc!(A, B, C, Val{2}(), Val{1}())
+        _sylvc!(A, B, C, Val(2), Val(1))
     elseif M == 1 && N == 2
-        _sylvc!(A, B, C, Val{1}(), Val{2}())
+        _sylvc!(A, B, C, Val(1), Val(2))
     elseif M == 1 && N == 1
-        _sylvc!(A, B, C, Val{1}(), Val{1}())
+        _sylvc!(A, B, C, Val(1), Val(1))
     else
         error("Matrix dimensionsins should not be greater than 2")
     end
     return C
 end
 @inline function _sylvc!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
-    A′ = SMatrix{M,M}(A)
-    B′ = SMatrix{N,N}(B)
-    Cv = SMatrix{M,N}(C)[:] # vectorization of C
+    As = SMatrix{M,M}(A)
+    Bs = SMatrix{N,N}(B)
+    Cvs = SMatrix{M,N}(C)[:] # vectorization of C
 
-    Xv = lu(kron(SMatrix{N,N}(I), A′) + kron(transpose(B′), SMatrix{M,M}(I))) \ Cv # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X) (with A = I or B = I)
+    Xv = lu(kron(SMatrix{N,N}(I), As) + kron(transpose(Bs), SMatrix{M,M}(I))) \ Cvs # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X) (with A = I or B = I)
 
     if any(!isfinite, Xv); error("Matrix equation has no solution, see ?sylvc or ?lyapc"); end
 
@@ -132,24 +132,24 @@ for small matrices (1x1, 1x2, 2x1, 2x2), overwriting the input `C`.
 function _sylvd!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix)
     M, N = size(C)
     if M == 2 && N == 2
-        _sylvd!(A, B, C, Val{2}(), Val{2}())
+        _sylvd!(A, B, C, Val(2), Val(2))
     elseif M == 2 && N == 1
-        _sylvd!(A, B, C, Val{2}(), Val{1}())
+        _sylvd!(A, B, C, Val(2), Val(1))
     elseif M == 1 && N == 2
-        _sylvd!(A, B, C, Val{1}(), Val{2}())
+        _sylvd!(A, B, C, Val(1), Val(2))
     elseif M == 1 && N == 1
-        _sylvd!(A, B, C, Val{1}(), Val{1}())
+        _sylvd!(A, B, C, Val(1), Val(1))
     else
         error("Matrix dimensionsins should not be greater than 2")
     end
     return C
 end
 function _sylvd!(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, ::Val{M}, ::Val{N}) where {T <: Number, M, N}
-    A′ = SMatrix{M,M}(A)
-    B′ = SMatrix{N,N}(B)
-    Cv = SMatrix{M,N}(C)[:] # vectorization of C
+    As = SMatrix{M,M}(A)
+    Bs = SMatrix{N,N}(B)
+    Cvs = SMatrix{M,N}(C)[:] # vectorization of C
 
-    Xv = (kron(transpose(B′), A′) - I) \ Cv # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X)
+    Xv = (kron(transpose(Bs), As) - SMatrix{M*N,M*N}(I)) \ Cvs # using the vectorization identity vec(AXB) = kron(B'*A)*vec(X)
 
     if any(!isfinite, Xv); error("Matrix equation has no solution, see ?sylvd or ?lyapd"); end
 
@@ -302,11 +302,11 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
     # The user should preferably use sylvc_schur! and lyapc_schur!
     # I.e., this method does not check whether C is hermitian
     # The matrix C is successively replaced with the solution X
-    # if alg == Val(:lyap), only the lower triangle of C is computed
+    # if alg === Val(:lyap), only the lower triangle of C is computed
     # after which an Hermitian view is applied
 
     # get block indices and nbr of blocks
-    if schurtype == Val(:real)
+    if schurtype === Val(:real)
         _, ba, nblocksa = _schurstructure(A, Val(:L)) # A is assumed upper triangualar
         _, bb, nblocksb = _schurstructure(B, Val(:U))
     else
@@ -315,15 +315,15 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
     end
 
     @inbounds for j=1:nblocksb
-        i0 = (alg == Val(:lyap) ? j : 1)
+        i0 = (alg === Val(:lyap) ? j : 1)
         for i=i0:nblocksa
-            if schurtype == Val(:complex)
+            if schurtype === Val(:complex)
                 if i > 1; C[i,j] -= sum(A[i, k] * C[k, j] for k=1:i-1); end
                 if j > 1; C[i,j] -= sum(C[i, k] * B[k, j] for k=1:j-1); end
 
                 C[i,j] = sylvc(A[i, i], B[j, j], C[i, j]) # C[i,j] now contains  solution Y[i,j]
 
-                if alg == Val(:lyap) && i > j
+                if alg === Val(:lyap) && i > j
                     C[j,i] = conj(C[i,j])
                 end
             else
@@ -336,7 +336,7 @@ function _sylvc_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
 
                 _sylvc!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
-                if alg == Val(:lyap) && i > j
+                if alg === Val(:lyap) && i > j
                     for l=bb[j], k=ba[i]
                         C[l,k] = conj(C[k,l])
                     end
@@ -378,7 +378,7 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
     G = zeros(eltype(C), size(A,1), size(B, 1)) # Keep track of A*X for improved performance
 
     # get block dimensions, block indices, nbr of blocks
-    if schurtype == Val(:real)
+    if schurtype === Val(:real)
         _, ba, nblocksa = _schurstructure(A, Val(:L)) # A is assumed upper triangualar
         _, bb, nblocksb = _schurstructure(B, Val(:U))
     else
@@ -387,9 +387,9 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
     end
 
     @inbounds for j=1:nblocksb
-        i0 = (alg == Val(:lyap) ? j : 1)
+        i0 = (alg === Val(:lyap) ? j : 1)
         for i=i0:nblocksa
-            if schurtype == Val(:complex)
+            if schurtype === Val(:complex)
                 # Compute Gij up to the contribution from Aii*Yij which is added at the end of each iteration
                 if i > 1; G[i,j] += sum(A[i,k] * C[k,j] for k=1:i-1); end
 
@@ -397,7 +397,7 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
 
                 C[i,j] = sylvd(A[i,i], B[j,j], C[i,j]) # C[i,j] now contains  solution Y[i,j]
 
-                if alg == Val(:lyap) && i > j
+                if alg === Val(:lyap) && i > j
                     C[j,i] = conj(C[i,j])
                 end
 
@@ -417,7 +417,7 @@ function _sylvd_schur!(A::Matrix, B::Matrix, C::Matrix, alg::Union{Val{:sylv},Va
 
                 _sylvd!(Aii, Bjj, Cij) # Cij now contains the solution Yij
 
-                if alg == Val(:lyap) && i > j
+                if alg === Val(:lyap) && i > j
                     for l=bb[j], k=ba[i] # Avoids aliasing of copyto!
                         C[l,k] = conj(C[k,l])
                     end

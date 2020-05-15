@@ -8,7 +8,7 @@ using MatrixEquations
 Random.seed!(0)
 
 
-include("src/LyapTest.jl")
+include("../src/LyapTest.jl")
 
 # Test _schurstructure
 R = diagm(0 => [1, 1, 1, 1, 1, 1, 1, 1], -1 => [1, 0, 0, 0, 1, 0, 0])
