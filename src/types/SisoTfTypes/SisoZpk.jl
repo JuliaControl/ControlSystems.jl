@@ -233,7 +233,7 @@ function +(f1::SisoZpk{T1,TR1}, f2::SisoZpk{T2,TR2}) where {T1<:Number,T2<:Numbe
     # FIXME:
     # Threshold for pole-zero cancellation should depend on the roots of the system
     # Note the difference between continuous and discrete-time systems...
-    minreal(SisoZpk(z,p,k), sqrt(eps()))
+    minreal(SisoZpk(z::Vector{TRnew},p::Vector{TRnew},k), sqrt(eps())) # type assert required or inference
 end
 
 

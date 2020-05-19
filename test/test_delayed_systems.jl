@@ -177,7 +177,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-13
+@test ystep ≈ y_expected.(t, K) atol = 1e-10
 
 function dy_expected(t, K)
       if t < 1
