@@ -1,8 +1,8 @@
 ## User should just use TransferFunction
 struct SisoRational{T} <: SisoTf{T}
-    num::Poly{T}
-    den::Poly{T}
-    function SisoRational{T}(num::Poly{T}, den::Poly{T}) where T <: Number
+    num::Polynomial{T}
+    den::Polynomial{T}
+    function SisoRational{T}(num::Polynomial{T}, den::Polynomial{T}) where T <: Number
         if all(den == zero(den))
             error("Cannot create SisoRational with zero denominator")
         elseif all(num == zero(num))
@@ -12,14 +12,14 @@ struct SisoRational{T} <: SisoTf{T}
         new{T}(num, den)
     end
 end
-function SisoRational(num::Poly{T1}, den::Poly{T2}) where T1 <: Number where T2 <: Number
+function SisoRational(num::Polynomial{T1}, den::Polynomial{T2}) where T1 <: Number where T2 <: Number
     T = promote_type(T1,T2)
-    SisoRational{T}(Poly{T}(num.a), Poly{T}(den.a))
+    SisoRational{T}(Polynomial{T}(num.coeffs), Polynomial{T}(den.coeffs))
 end
-SisoRational{T}(num::Poly, den::Poly) where T = SisoRational{T}(convert(Poly{T}, num), convert(Poly{T}, den))
+SisoRational{T}(num::Polynomial, den::Polynomial) where T = SisoRational{T}(convert(Polynomial{T}, num), convert(Polynomial{T}, den))
 
 function SisoRational{T}(num::AbstractVector, den::AbstractVector) where T <: Number # NOTE: Typearguemnts on the parameters?
-    SisoRational{T}(Poly{T}(reverse(num)), Poly{T}(reverse(den)))
+    SisoRational{T}(Polynomial{T}(reverse(num)), Polynomial{T}(reverse(den)))
 end
 function SisoRational(num::AbstractVector{T1}, den::AbstractVector{T2}) where T1 <: Number where T2 <: Number
     T = promote_type(T1,T2)
@@ -81,11 +81,11 @@ pole(f::SisoRational) = roots(f.den)
 
 function evalfr(f::SisoRational{T}, s::Number) where T
     S = promote_op(/, promote_type(T, typeof(s)), promote_type(T, typeof(s)))
-    den = polyval(f.den, s)
+    den = f.den(s)
     if den == zero(S)
         convert(S,Inf)
     else
-        polyval(f.num, s)/den
+        f.num(s)/den
     end
 end
 

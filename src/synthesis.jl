@@ -132,7 +132,7 @@ end
 function acker(A,B,P)
     n = length(P)
     #Calculate characteristic polynomial
-    poly = mapreduce(p -> Poly([1, -p]), *, P, init=Poly(one(eltype(P))))
+    poly = mapreduce(p -> Polynomial([1, -p]), *, P, init=Polynomial(one(eltype(P))))
     q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
         q += A^(n-i)*poly[i]

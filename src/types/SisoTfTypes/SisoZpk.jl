@@ -149,9 +149,9 @@ function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Num
 end
 
 
-function poly_factors2string(poly_factors::AbstractArray{<:Poly{T}}, var) where T
+function poly_factors2string(poly_factors::AbstractArray{<:Polynomial{T}}, var) where T
     if length(poly_factors) == 0
-        str = sprint(printpolyfun(var), Poly(one(T)))
+        str = sprint(printpolyfun(var), Polynomial(one(T)))
     elseif length(poly_factors) == 1
         str = sprint(printpolyfun(var), poly_factors[1])
     else
@@ -233,7 +233,7 @@ function +(f1::SisoZpk{T1,TR1}, f2::SisoZpk{T2,TR2}) where {T1<:Number,T2<:Numbe
     # FIXME:
     # Threshold for pole-zero cancellation should depend on the roots of the system
     # Note the difference between continuous and discrete-time systems...
-    minreal(SisoZpk(z,p,k), sqrt(eps()))
+    minreal(SisoZpk(z::Vector{TRnew},p::Vector{TRnew},k), sqrt(eps())) # type assert required or inference
 end
 
 
