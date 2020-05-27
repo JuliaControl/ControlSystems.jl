@@ -46,12 +46,19 @@ end
 
 const AbstractNumOrArray = Union{Number, AbstractVecOrMat}
 
-function StateSpace{T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
+function StateSpace{T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{UniformScaling,AbstractNumOrArray}, D::AbstractNumOrArray, Ts::Real) where {T, MT <: AbstractMatrix{T}}
+    if typeof(C) <: UniformScaling
+        C = Matrix{T}(C*I, size(A, 1), size(A, 1))
+    else
+        C = to_matrix(T, C)
+    end
+
     if D == 0
         D = fill(zero(T), size(C,1), size(B,2))
     else
         D = to_matrix(T, D)
     end
+
     return StateSpace{T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)), MT(D), Float64(Ts))
 end
 
@@ -59,16 +66,23 @@ function StateSpace{T,MT}(sys::StateSpace) where {T, MT <: AbstractMatrix{T}}
     StateSpace{T,MT}(sys.A,sys.B,sys.C,sys.D,sys.Ts)
 end
 
-function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Real=0)
+function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{UniformScaling,AbstractNumOrArray}, D::AbstractNumOrArray, Ts::Real=0)
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     A = to_matrix(T, A)
     B = to_matrix(T, B)
-    C = to_matrix(T, C)
+
+    if typeof(C) <: UniformScaling
+        C = Matrix{T}(C*I, size(A, 1), size(A, 1))
+    else
+        C = to_matrix(T, C)
+    end
+
     if D == 0
         D = fill(zero(T), size(C,1), size(B,2))
     else
         D = to_matrix(T, D)
     end
+
     return StateSpace{T,Matrix{T}}(A, B, C, D, Float64(Ts))
 end
 
