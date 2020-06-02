@@ -76,6 +76,9 @@ Cherm = [1.0 2+im; 2-im 1]
 @test LyapTest.lyapd(A, C) ≈ sylvd_diag(a, a, -C)
 @test LyapTest.lyapd(Ac, Cherm) ≈ sylvd_diag(ac, conj(ac), -Cherm)
 
+# A few tests for the naive version, should have more
+@test LyapTest.sylvc(A, B, C, Val(:naive)) ≈ sylvc_diag(a, a, -C)
+@test LyapTest.lyapc(A, C, Val(:naive)) ≈ sylvc_diag(a, a, -C)
 
 
 
