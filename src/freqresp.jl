@@ -104,7 +104,13 @@ at frequencies `w`
 `mag` and `phase` has size `(length(w), ny, nu)`"""
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
+    phase = rad2deg.(unwrap!(angle.(resp),1))
+    offset = if first(phase > 0)
+        -360.0
+    else
+        0
+    end
+    return abs.(resp), phase .+ offset, w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
