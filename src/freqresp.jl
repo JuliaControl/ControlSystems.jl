@@ -102,13 +102,13 @@ Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
 `mag` and `phase` has size `(length(w), ny, nu)`"""
-function bode(sys::LTISystem, w::AbstractVector)
+function bode(sys::LTISystem, w::AbstractVector; unit_circle_threshold = 1e-5, zero_threshold = 1e-8)
     resp = freqresp(sys, w)
     
     # use the number of integrators in the system to estimate initial phase at w=0
-    count_unit_circle = x -> count(y -> abs(abs(y) - 1.0) < 1e-5, x) 
-    count_zeros = x -> count(y -> abs(y) < 1e-8, x)
-    
+    count_unit_circle = x -> count(y -> abs(abs(y) - 1.0) < unit_circle_threshold, x) 
+    count_zeros = x -> count(y -> abs(y) < zero_threshold, x)
+
     zpk_sys = zpk(sys)
     phase0 = if sys.Ts == 0.0
         pi/2 * (count_zeros(zpk_sys.matrix[1].z) - count_zeros(zpk_sys.matrix[1].p))
@@ -118,7 +118,7 @@ function bode(sys::LTISystem, w::AbstractVector)
     phase = rad2deg.(unwrap!(angle.(resp), 1, init = phase0))
     return abs.(resp), phase, w
 end
-bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+bode(sys::LTISystem; kwargs...) = bode(sys, _default_freq_vector(sys, Val{:bode}()); kwargs...)
 
 """`re, im, w = nyquist(sys[, w])`
 
