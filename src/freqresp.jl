@@ -108,12 +108,13 @@ function bode(sys::LTISystem, w::AbstractVector)
     count_unit_circle = x -> count(abs.(abs.(x) .- 1.0) .< 1e-5) 
     count_zeros = x -> count(abs.(x) .< 1e-8)
     
+    zpk_sys = zpk(sys)
     phase0 = if sys.Ts == 0.0
-        pi/2 * (count_zeros(zpk(sys).matrix[1].z) - count_zeros(zpk(sys).matrix[1].p))
+        pi/2 * (count_zeros(zpk_sys.matrix[1].z) - count_zeros(zpk_sys.matrix[1].p))
     else
-        pi/2 * (count_unit_circle(zpk(sys).matrix[1].z) - count_unit_circle(zpk(sys).matrix[1].p))
+        pi/2 * (count_unit_circle(zpk_sys.matrix[1].z) - count_unit_circle(zpk_sys.matrix[1].p))
     end
-    phase = rad2deg.(unwrap!(vcat(phase0, angle.(resp)),1))[2:end]
+    phase = rad2deg.(unwrap!(angle.(resp), 1, init = phase0))
     return abs.(resp), phase, w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
