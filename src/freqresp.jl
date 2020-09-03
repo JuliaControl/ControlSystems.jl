@@ -104,13 +104,17 @@ at frequencies `w`
 `mag` and `phase` has size `(length(w), ny, nu)`"""
 function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    phase = rad2deg.(unwrap!(angle.(resp),1))
-    offset = if first(phase > 0)
-        -360.0
+    # use the number of integrators in the system to estimate initial phase
+    count_unit_circle = x -> count(abs.(abs.(x) .- 1.0) .< 1e-5) 
+    count_zeros = x -> count(abs.(x) .< 1e-8)
+    
+    phase0 = if sys.Ts == 0.0
+        pi/2 * (count_zeros(zpk(sys).matrix[1].z) - count_zeros(zpk(sys).matrix[1].p))
     else
-        0
+        pi/2 * (count_unit_circle(zpk(sys).matrix[1].z) - count_unit_circle(zpk(sys).matrix[1].p))
     end
-    return abs.(resp), phase .+ offset, w
+    phase = rad2deg.(unwrap!(vcat(phase0, angle.(resp)),1))[2:end]
+    return abs.(resp), phase, w
 end
 bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
