@@ -313,7 +313,7 @@ bodeplot
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
                     seriescolor --> styledict[:c]
-                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180), init = deg2rad(first(phasedata))).*(180/pi) : phasedata
                 end
 
             end
