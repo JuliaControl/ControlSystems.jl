@@ -113,9 +113,9 @@ function unwrap!(M::Array, dim=1; init = 0)
         prev = if i > 1
             M[alldims(i-1)...]
         else
-            fill(eltype(M)(init), size(M[alldims(1)...]))
+            eltype(M)(init)
         end
-        d = M[alldims(i)...] - prev
+        d = M[alldims(i)...] .- prev
         π2 = eltype(M)(2π)
         M[alldims(i)...] -= floor.((d .+ π) / π2) * π2
     end
