@@ -109,11 +109,15 @@ function bode(sys::LTISystem, w::AbstractVector; unit_circle_threshold = 1e-5, z
     count_unit_circle = x -> count(y -> abs(abs(y) - 1.0) < unit_circle_threshold, x) 
     count_zeros = x -> count(y -> abs(y) < zero_threshold, x)
 
-    zpk_sys = zpk(sys)
-    phase0 = if sys.Ts == 0.0
-        pi/2 * (count_zeros(zpk_sys.matrix[1].z) - count_zeros(zpk_sys.matrix[1].p))
+    phase0 = if isa(sys, DelayLtiSystem)
+        0.0
     else
-        pi/2 * (count_unit_circle(zpk_sys.matrix[1].z) - count_unit_circle(zpk_sys.matrix[1].p))
+        zpk_sys = zpk(sys)
+        if sys.Ts == 0.0
+            pi/2 * (count_zeros(zpk_sys.matrix[1].z) - count_zeros(zpk_sys.matrix[1].p))
+        else
+            pi/2 * (count_unit_circle(zpk_sys.matrix[1].z) - count_unit_circle(zpk_sys.matrix[1].p))
+        end
     end
     phase = rad2deg.(unwrap!(angle.(resp), 1, init = phase0))
     return abs.(resp), phase, w
