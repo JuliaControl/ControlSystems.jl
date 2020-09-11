@@ -10,8 +10,7 @@ eye_(n) = Matrix{Int64}(I, n, n)
 
 my_tests = [
             "test_statespace",
-            "test_transferfunction",
-            "test_delayed_systems",
+            "test_transferfunction",            
             "test_zpk",
             "test_promotion",
             "test_connections",
@@ -27,6 +26,7 @@ my_tests = [
             "test_lqg",
             "test_synthesis",
             "test_partitioned_statespace",
+            "test_delayed_systems",
             "test_demo_systems",
             ]
 
