@@ -1,7 +1,7 @@
 # Base.convert(::Type{<:SisoTf}, b::Real) = Base.convert(SisoRational, b)
 # Base.convert{T<:Real}(::Type{<:SisoZpk}, b::T) = SisoZpk(T[], T[], b)
 # Base.convert{T<:Real}(::Type{<:SisoRational}, b::T) = SisoRational([b], [one(T)])
-# Base.convert{T1}(::Type{SisoRational{Vector{T1}}}, t::SisoRational) =  SisoRational(Poly(T1.(t.num.a)),Poly(T1.(t.den.a)))
+# Base.convert{T1}(::Type{SisoRational{Vector{T1}}}, t::SisoRational) =  SisoRational(Polynomial(T1.(t.num.coeffs$1),Polynomial(T1.(t.den.coeffs$1))
 # Base.convert(::Type{<:StateSpace}, t::Real) = ss(t)
 #
 
@@ -137,7 +137,7 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
     # Get numerator coefficient of the same order as the denominator
     bN = length(num) == N+1 ? num[1] : 0
 
-    if N==0 #|| num == zero(Poly{T})
+    if N==0 #|| num == zero(Polynomial{T})
         A = fill(zero(T), 0, 0)
         B = fill(zero(T), 0, 1)
         C = fill(zero(T), 1, 0)
@@ -314,7 +314,7 @@ end
 #     λ = eigvals(A);
 #     T = promote_type(primitivetype(A), Float64)
 #     I = one(T)
-#     p = reduce(*,Poly([I]), Poly[Poly([I, -λᵢ]) for λᵢ in λ]);
+#     p = reduce(*,Polynomial([I]), Polynomial[Polynomial([I, -λᵢ]) for λᵢ in λ]);
 #     if maximum(imag.(p[:])./(I+abs.(real.(p[:])))) < sqrt(eps(T))
 #         for i = 1:length(p)
 #             p[i] = real(p[i])

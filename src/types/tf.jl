@@ -84,7 +84,7 @@ function tf(var::AbstractString, Ts::Real)
 end
 
 ## Constructors for polynomial inputs
-function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  time::TimeT) where {TimeT<:TimeType,T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  time::TimeT) where {TimeT<:TimeType,T<:Number, PT <: Polynomials.Polynomial{T}}
     ny, nu = size(num, 1), size(num, 2)
     if (ny, nu) != (size(den, 1), size(den, 2))
         error("num and den dimensions must match")
@@ -98,15 +98,15 @@ function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  time::TimeT) where 
     end
     return TransferFunction{TimeT,SisoRational{T}}(matrix, time)
 end
-tf(num::AbstractArray{PT}, den::AbstractArray{PT}, Ts::Number) where {T<:Number, PT <: Polynomials.Poly{T}} =
+tf(num::AbstractArray{PT}, den::AbstractArray{PT}, Ts::Number) where {T<:Number, PT <: Polynomials.Polynomial{T}} =
     tf(num, den, Discrete(Ts))
-tf(num::AbstractArray{PT}, den::AbstractArray{PT}) where {T<:Number, PT <: Polynomials.Poly{T}} =
+tf(num::AbstractArray{PT}, den::AbstractArray{PT}) where {T<:Number, PT <: Polynomials.Polynomial{T}} =
     tf(num, den, Continuous())
 
-function tf(num::PT, den::PT, time::TimeT) where {TimeT<:TimeType, T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::PT, den::PT, time::TimeT) where {TimeT<:TimeType, T<:Number, PT <: Polynomials.Polynomial{T}}
     tf(fill(num,1,1), fill(den,1,1), time)
 end
-tf(num::PT, den::PT, Ts::Number) where {T<:Number, PT <: Polynomials.Poly{T}} =
+tf(num::PT, den::PT, Ts::Number) where {T<:Number, PT <: Polynomials.Polynomial{T}} =
     tf(num, den, Discrete(Number))
-tf(num::PT, den::PT) where {T<:Number, PT <: Polynomials.Poly{T}} =
+tf(num::PT, den::PT) where {T<:Number, PT <: Polynomials.Polynomial{T}} =
     tf(num, den, Continuous())

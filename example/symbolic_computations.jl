@@ -12,7 +12,7 @@ using SymPy
 Base.complex(::Type{SymPy.Sym}) = Sym
 Base.eigvals(a::Matrix{Sym}) = Vector{Sym}(collect(keys(call_matrix_meth(a, :eigenvals))))
 
-function Polynomials.roots(p::Polynomials.Poly{SymPy.Sym})
+function Polynomials.roots(p::Polynomials.Polynomial{SymPy.Sym})
     x = Sym("x")
     return SymPy.solve(p(x), x)
 end

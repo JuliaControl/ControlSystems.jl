@@ -1,4 +1,4 @@
-# Base.eltype{T}(::Type{Poly{T}}) = T
+# Base.eltype{T}(::Type{Polynomial{T}}) = T
 # Base.eltype{T}(::Type{TransferFunction{T}}) = T
 # Base.eltype{T}(::Type{SisoZpk{T}}) = T
 # Base.eltype{T}(::Type{SisoRational{T}}) = T
@@ -149,5 +149,5 @@ Base.promote_rule(::Type{SisoRational{T1}}, ::Type{T2}) where {T1, T2<:Number} =
 # Base.zero(::SisoTf) = zero(SisoRational)
 # Base.zero(::Type{<:SisoZpk}) = SisoZpk(Float64[],Float64[],0.0)
 # Base.zero(::SisoZpk) = Base.zero(SisoZpk)
-# Base.zero{T}(::Type{SisoRational{T}}) = SisoRational(zero(Poly{T}), one(Poly{T})) # FIXME: Is the in analogy with how zero for SisoRational is createdzer?
+# Base.zero{T}(::Type{SisoRational{T}}) = SisoRational(zero(Polynomial{T}), one(Polynomial{T})) # FIXME: Is the in analogy with how zero for SisoRational is createdzer?
 # Base.zero{T}(::SisoRational{T}) = Base.zero(SisoRational{T})

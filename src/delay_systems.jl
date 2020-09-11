@@ -87,13 +87,13 @@ end
 function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
     P = sys.P
 
-    if ~iszero(P.D22)
+    if !iszero(P.D22)
         throw(ArgumentError("non-zero D22-matrix block is not supported")) # Due to limitations in differential equations
     end
 
     t0 = first(t)
     dt = t[2] - t[1]
-    if ~all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
+    if !all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
         error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
     end
 
@@ -217,25 +217,25 @@ end
 
 # Used for pade approximation
 """
-`p2 = _linscale(p::Poly, a)`
+`p2 = _linscale(p::Polynomial, a)`
 
 Given a polynomial `p` and a number `a, returns the polynomials `p2` such that
 `p2(s) == p(a*s)`.
 """
-function _linscale(p::Poly, a)
+function _linscale(p::Polynomial, a)
     # This function should perhaps be implemented in Polynomials.jl
-    coeffs_scaled = similar(p.a, promote_type(eltype(p), typeof(a)))
+    coeffs_scaled = similar(p.coeffs, promote_type(eltype(p), typeof(a)))
     a_pow = 1
-    coeffs_scaled[1] = p.a[1]
-    for k=2:length(p.a)
+    coeffs_scaled[1] = p.coeffs[1]
+    for k=2:length(p.coeffs)
         a_pow *= a
-        coeffs_scaled[k] = p.a[k]*a_pow
+        coeffs_scaled[k] = p.coeffs[k]*a_pow
     end
-    return Poly(coeffs_scaled)
+    return Polynomial(coeffs_scaled)
 end
 
 # Coefficeints for Padé approximations
-# PADE_Q_COEFFS = [Poly([binomial(N,i)*prod(N+1:2*N-i) for i=0:N]) for N=1:10]
+# PADE_Q_COEFFS = [Polynomial([binomial(N,i)*prod(N+1:2*N-i) for i=0:N]) for N=1:10]
 const PADE_Q_COEFFS =  [[2, 1],
  [12, 6, 1],
  [120, 60, 12, 1],
@@ -255,7 +255,7 @@ Compute the `N`th order Padé approximation of a time-delay of length `τ`.
 function pade(τ::Real, N::Int)
     if !(1 <= N <= 10); error("Order of Padé approximation must be between 1 and 10. Got $N."); end
 
-    Q = Poly(PADE_Q_COEFFS[N])
+    Q = Polynomials.Polynomial(PADE_Q_COEFFS[N])
 
     return tf(_linscale(Q, -τ), _linscale(Q, τ)) # return Q(-τs)/Q(τs)
 end

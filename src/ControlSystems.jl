@@ -94,7 +94,7 @@ export  LTISystem,
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Plots, LaTeXStrings, LinearAlgebra
 import Polynomials
-import Polynomials: Poly, coeffs, polyval
+import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
