@@ -1,12 +1,12 @@
 
-abstract type TimeType end
+abstract type TimeEvolution end
 
-const UNDEF_SAMPLEPERIOD = -1 # For handling promotion of Matrix to LTISystem
+const UNDEF_SAMPLEPETIME = -1 # For handling promotion of Matrix to LTISystem
 
-struct Discrete{T} <: TimeType
+struct Discrete{T} <: TimeEvolution
     Ts::T
     function Discrete{T}(Ts::T) where T
-        if Ts <= 0 && Ts != UNDEF_SAMPLEPERIOD
+        if Ts <= 0 && Ts != UNDEF_SAMPLEPETIME
             throw(ErrorException("Creating a continuous time system by setting sample time to 0 is no longer supported."))
         end
         new{T}(Ts)
@@ -14,7 +14,7 @@ struct Discrete{T} <: TimeType
 end
 Discrete{T}(x) where T = Discrete{T}(T(x))
 
-struct Continuous <: TimeType end
+struct Continuous <: TimeEvolution end
 # Basic Constructors
 Discrete(x::T) where T<:Number = Discrete{T}(x)
 Continuous(x::Continuous) = x
@@ -22,8 +22,8 @@ Continuous(x::Continuous) = x
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
 
-undef_sampleperiod(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLEPERIOD)
-undef_sampleperiod(::Type{Continuous}) where T = Continuous()
+undef_sampletime(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLEPETIME)
+undef_sampletime(::Type{Continuous}) where T = Continuous()
 
 
 # Promotion
@@ -34,30 +34,30 @@ Base.promote_rule(::Type{Discrete{T1}}, ::Type{Discrete{T2}}) where {T1,T2}= Dis
 Base.convert(::Type{Discrete{T1}}, x::Discrete{T2}) where {T1,T2} = Discrete{T1}(x.Ts)
 
 # Promoting two or more systems systems should promote sample times
-common_time(x::TimeType) = x
-common_time(x::TimeType, y::TimeType) = throw(ErrorException("Sampling time mismatch"))
-common_time(x::TimeType, y::TimeType, z...) = common_time(common_time(x, y), z...)
-common_time(a::Base.Generator) = reduce(common_time, a)
+common_timeevol(x::TimeEvolution) = x
+common_timeevol(x::TimeEvolution, y::TimeEvolution) = throw(ErrorException("Sampling time mismatch"))
+common_timeevol(x::TimeEvolution, y::TimeEvolution, z...) = common_timeevol(common_timeevol(x, y), z...)
+common_timeevol(a::Base.Generator) = reduce(common_timeevol, a)
 
-function common_time(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
-    if x != y && x.Ts != UNDEF_SAMPLEPERIOD && y.Ts != UNDEF_SAMPLEPERIOD
+function common_timeevol(x::Discrete{T1}, y::Discrete{T2}) where {T1,T2}
+    if x != y && x.Ts != UNDEF_SAMPLEPETIME && y.Ts != UNDEF_SAMPLEPETIME
          throw(ErrorException("Sampling time mismatch"))
     end
 
-    if x.Ts == UNDEF_SAMPLEPERIOD
+    if x.Ts == UNDEF_SAMPLEPETIME
         return Discrete{promote_type(T1,T2)}(y)
     else
         return Discrete{promote_type(T1,T2)}(x)
     end
 end
 
-common_time(x::Continuous, ys::Continuous...) = Continuous()
+common_timeevol(x::Continuous, ys::Continuous...) = Continuous()
 
 # Check equality
-==(x::TimeType, y::TimeType) = false
+==(x::TimeEvolution, y::TimeEvolution) = false
 ==(x::Discrete, y::Discrete) = (x.Ts == y.Ts)
 ==(::Continuous, ::Continuous) = true
 
-isapprox(x::TimeType, y::TimeType, args...; kwargs...) = false
+isapprox(x::TimeEvolution, y::TimeEvolution, args...; kwargs...) = false
 isapprox(x::Discrete, y::Discrete, args...; kwargs...) = isapprox(x.Ts, y.Ts, args...; kwargs...)
 isapprox(::Continuous, ::Continuous, args...; kwargs...) = true

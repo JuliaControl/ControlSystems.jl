@@ -16,7 +16,7 @@ struct DelayLtiSystem{T,S<:Real} <: LTISystem
     # end
 end
 
-time(sys::DelayLtiSystem) = time(sys.P)
+timeevol(sys::DelayLtiSystem) = timeevol(sys.P)
 
 # QUESTION: would psys be a good standard variable name for a PartionedStateSpace
 #           and perhaps dsys for a delayed system, (ambigous with discrete system though)
@@ -45,14 +45,14 @@ DelayLtiSystem(sys::StateSpace{Continuous,T,MT}, Tau::Vector{S}) where {T, MT,S}
 DelayLtiSystem(sys::StateSpace{Continuous,T,MT}) where {T, MT} = DelayLtiSystem{T,T}(sys, T[])
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
-DelayLtiSystem(sys::TransferFunction{TimeT,S}) where {TimeT,T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
+DelayLtiSystem(sys::TransferFunction{TE,S}) where {TE,T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
 
 
 # TODO: Think through these promotions and conversions
 Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 
-Base.promote_rule(::Type{<:StateSpace{<:TimeType,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
+Base.promote_rule(::Type{<:StateSpace{<:TimeEvolution,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{<:TransferFunction}, ::Type{DelayLtiSystem{T,S}}) where {T,S} = DelayLtiSystem{T,S}
 #Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
 
@@ -76,7 +76,7 @@ Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
 function *(sys::DelayLtiSystem, n::Number)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
-    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.time), sys.Tau)
+    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.timeevol), sys.Tau)
 end
 *(n::Number, sys::DelayLtiSystem) = *(sys, n)
 
@@ -144,7 +144,7 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
         sys.P.B[:,      colidx],
         sys.P.C[rowidx, :],
         sys.P.D[rowidx, colidx],
-        sys.P.time), sys.Tau)
+        sys.P.timeevol), sys.Tau)
 end
 
 function Base.show(io::IO, sys::DelayLtiSystem)

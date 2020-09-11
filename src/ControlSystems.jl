@@ -107,9 +107,9 @@ import DSP: conv
 
 abstract type AbstractSystem end
 
-include("types/TimeType.jl")
+include("types/TimeEvolution.jl")
 ## Added interface:
-#   time(Lti) -> TimeType (not exported)
+#   timeevol(Lti) -> TimeEvolution (not exported)
 
 
 include("types/Lti.jl")

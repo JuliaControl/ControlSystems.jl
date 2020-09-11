@@ -8,7 +8,7 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 # converting to zpk before works better in the cases I have tested.
 pole(sys::TransferFunction) = pole(zpk(sys))
 
-function pole(sys::TransferFunction{<:TimeType,SisoZpk{T,TR}}) where {T, TR}
+function pole(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
@@ -118,7 +118,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    G = convert(TransferFunction{typeof(time(sys)),SisoZpk}, sys)
+    G = convert(TransferFunction{typeof(timeevol(sys)),SisoZpk}, sys)
 
     zs = map(x -> x.z, G.matrix)
     ps = map(x -> x.p, G.matrix)

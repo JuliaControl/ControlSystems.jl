@@ -35,7 +35,7 @@ function _preprocess_for_freqresp(sys::StateSpace)
     P = C*T
     Q = T\B # TODO Type stability? # T is unitary, so mutliplication with T' should do the trick
     # FIXME; No performance improvement from Hessienberg structure, also weired renaming of matrices
-    StateSpace(F.H, Q, P, D, sys.time)
+    StateSpace(F.H, Q, P, D, sys.timeevol)
 end
 
 
@@ -45,7 +45,7 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """
-function evalfr(sys::StateSpace{<:TimeType,T0}, s::Number) where {T0}
+function evalfr(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
     T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
     try
         R = s*I - sys.A
@@ -55,7 +55,7 @@ function evalfr(sys::StateSpace{<:TimeType,T0}, s::Number) where {T0}
     end
 end
 
-function evalfr(G::TransferFunction{<:TimeType,<:SisoTf}, s::Number)
+function evalfr(G::TransferFunction{<:TimeEvolution,<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
 

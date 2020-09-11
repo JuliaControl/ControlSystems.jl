@@ -8,7 +8,7 @@
 #
 # function Base.convert{T<:AbstractMatrix{<:Number}}(::Type{StateSpace{T}}, s::StateSpace)
 #     AT = promote_type(T, arraytype(s))
-#     StateSpace{AT}(AT(s.A),AT(s.B),AT(s.C),AT(s.D), s.time, s.statenames, s.inputnames, s.outputnames)
+#     StateSpace{AT}(AT(s.A),AT(s.B),AT(s.C),AT(s.D), s.timeevol, s.statenames, s.inputnames, s.outputnames)
 # end
 
 # TODO Fix these to use proper constructors
@@ -19,27 +19,27 @@
 # Base.convert(::Type{<:TransferFunction{<:SisoRational}}, b::Number) = tf(b)
 # Base.convert(::Type{<:TransferFunction{<:SisoZpk}}, b::Number) = zpk(b)
 #
-Base.convert(::Type{TransferFunction{TimeT,SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {TimeT, T1, TR1, T2<:Number} =
-    zpk(T1.(b), undef_sampleperiod(TimeT))
-Base.convert(::Type{TransferFunction{TimeT,SisoRational{T1}}}, b::AbstractMatrix{T2}) where {TimeT, T1, T2<:Number} =
-    tf(T1.(b), undef_sampleperiod(TimeT))
+Base.convert(::Type{TransferFunction{TE,SisoZpk{T1, TR1}}}, b::AbstractMatrix{T2}) where {TE, T1, TR1, T2<:Number} =
+    zpk(T1.(b), undef_sampletime(TE))
+Base.convert(::Type{TransferFunction{TE,SisoRational{T1}}}, b::AbstractMatrix{T2}) where {TE, T1, T2<:Number} =
+    tf(T1.(b), undef_sampletime(TE))
 
-function convert(::Type{StateSpace{TimeT,T,MT}}, D::AbstractMatrix{<:Number}) where {TimeT,T, MT}
+function convert(::Type{StateSpace{TE,T,MT}}, D::AbstractMatrix{<:Number}) where {TE,T, MT}
     (ny, nu) = size(D)
     A = MT(fill(zero(T), (0,0)))
     B = MT(fill(zero(T), (0,nu)))
     C = MT(fill(zero(T), (ny,0)))
     D = convert(MT, D)
-    return StateSpace{TimeT,T,MT}(A,B,C,D,undef_sampleperiod(TimeT))
+    return StateSpace{TE,T,MT}(A,B,C,D,undef_sampletime(TE))
 end
 
 # TODO We still dont have TransferFunction{..}(number/array) constructors
-Base.convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, b::Number) where {TimeT, T} =
-    tf(T(b), undef_sampleperiod(TimeT))
-Base.convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, b::Number) where {TimeT, T, TR} =
-    zpk(T(b), undef_sampleperiod(TimeT))
-Base.convert(::Type{StateSpace{TimeT,T,MT}}, b::Number) where {TimeT, T, MT} =
-    convert(StateSpace{TimeT,T,MT}, fill(b, (1,1)))
+Base.convert(::Type{TransferFunction{TE,SisoRational{T}}}, b::Number) where {TE, T} =
+    tf(T(b), undef_sampletime(TE))
+Base.convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, b::Number) where {TE, T, TR} =
+    zpk(T(b), undef_sampletime(TE))
+Base.convert(::Type{StateSpace{TE,T,MT}}, b::Number) where {TE, T, MT} =
+    convert(StateSpace{TE,T,MT}, fill(b, (1,1)))
 #
 # Base.convert(::Type{TransferFunction{Continuous,<:SisoRational{T}}}, b::Number) where {T} = tf(T(b), Continuous())
 # Base.convert(::Type{TransferFunction{Continuous,<:SisoZpk{T, TR}}}, b::Number) where {T, TR} = zpk(T(b), Continuous())
@@ -59,32 +59,32 @@ Base.convert(::Type{StateSpace{TimeT,T,MT}}, b::Number) where {TimeT, T, MT} =
 # end
 #
 
-function convert(::Type{TransferFunction{TimeT,S}}, G::TransferFunction) where {TimeT,S}
+function convert(::Type{TransferFunction{TE,S}}, G::TransferFunction) where {TE,S}
     Gnew_matrix = convert.(S, G.matrix)
-    return TransferFunction{TimeT,eltype(Gnew_matrix)}(Gnew_matrix, TimeT(G.time))
+    return TransferFunction{TE,eltype(Gnew_matrix)}(Gnew_matrix, TE(G.timeevol))
 end
 
-function convert(::Type{S}, sys::StateSpace) where {T, MT, TimeT, S <:StateSpace{TimeT,T,MT}}
+function convert(::Type{S}, sys::StateSpace) where {T, MT, TE, S <:StateSpace{TE,T,MT}}
     if sys isa S
         return sys
     else
-        return StateSpace{TimeT, T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), TimeT(sys.time))
+        return StateSpace{TE, T,MT}(convert(MT, sys.A), convert(MT, sys.B), convert(MT, sys.C), convert(MT, sys.D), TE(sys.timeevol))
     end
 end
 
 # TODO Maybe add convert on matrices
-Base.convert(::Type{HeteroStateSpace{TimeT1,AT,BT,CT,DT}}, s::StateSpace{TimeT2,T,MT}) where {TimeT1,TimeT2,T,MT,AT,BT,CT,DT} =
-    HeteroStateSpace{TimeT1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TimeT1(s.time))
+Base.convert(::Type{HeteroStateSpace{TE1,AT,BT,CT,DT}}, s::StateSpace{TE2,T,MT}) where {TE1,TE2,T,MT,AT,BT,CT,DT} =
+    HeteroStateSpace{TE1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TE1(s.timeevol))
 
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
-function Base.convert(::Type{StateSpace}, G::TransferFunction{TimeT,<:SisoTf{T0}}) where {TimeT,T0<:Number}
+function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}) where {TE,T0<:Number}
     T = Base.promote_op(/,T0,T0)
-    convert(StateSpace{TimeT,T,Matrix{T}}, G)
+    convert(StateSpace{TE,T,Matrix{T}}, G)
 end
 
 
-function Base.convert(::Type{StateSpace{TimeT,T,MT}}, G::TransferFunction) where {TimeT,T<:Number, MT<:AbstractArray{T}}
+function Base.convert(::Type{StateSpace{TE,T,MT}}, G::TransferFunction) where {TE,T<:Number, MT<:AbstractArray{T}}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -118,7 +118,7 @@ function Base.convert(::Type{StateSpace{TimeT,T,MT}}, G::TransferFunction) where
         end
     end
     # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
-    return StateSpace{TimeT,T,MT}(A, B, C, D, TimeT(G.time))
+    return StateSpace{TE,T,MT}(A, B, C, D, TE(G.timeevol))
 end
 
 siso_tf_to_ss(T::Type, f::SisoTf) = siso_tf_to_ss(T, convert(SisoRational, f))
@@ -186,7 +186,7 @@ function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMat
 
 function balance_statespace(sys::StateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
-    return ss(A,B,C,sys.D,sys.time), T
+    return ss(A,B,C,sys.D,sys.timeevol), T
 end
 
 # Method that might fail for some exotic types, such as TrackedArrays
@@ -243,9 +243,9 @@ end
 balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
-convert(::Type{TransferFunction}, sys::StateSpace{TimeT}) where TimeT = convert(TransferFunction{TimeT,SisoRational}, sys)
+convert(::Type{TransferFunction}, sys::StateSpace{TE}) where TE = convert(TransferFunction{TE,SisoRational}, sys)
 
-function convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, sys::StateSpace) where {TimeT,T<:Number}
+function convert(::Type{TransferFunction{TE,SisoRational{T}}}, sys::StateSpace) where {TE,T<:Number}
     matrix = Matrix{SisoRational{T}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
@@ -259,15 +259,15 @@ function convert(::Type{TransferFunction{TimeT,SisoRational{T}}}, sys::StateSpac
         num = charpoly(A-B[:,i:i]*C[j:j,:]) - charpolyA + D[j, i]*charpolyA
         matrix[j, i] = SisoRational{T}(num, charpolyA)
     end
-    TransferFunction{TimeT,SisoRational{T}}(matrix, TimeT(sys.time))
+    TransferFunction{TE,SisoRational{T}}(matrix, TE(sys.timeevol))
 end
-function convert(::Type{TransferFunction{TimeT1,SisoRational}}, sys::StateSpace{TimeT2,T0}) where {TimeT1,TimeT2,T0<:Number}
+function convert(::Type{TransferFunction{TE1,SisoRational}}, sys::StateSpace{TE2,T0}) where {TE1,TE2,T0<:Number}
     T = typeof(one(T0)/one(T0))
-    convert(TransferFunction{TimeT1,SisoRational{T}}, sys)
+    convert(TransferFunction{TE1,SisoRational{T}}, sys)
 end
 
 
-function convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, sys::StateSpace) where {TimeT,T<:Number, TR <: Number}
+function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::StateSpace) where {TE,T<:Number, TR <: Number}
     matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
@@ -276,11 +276,11 @@ function convert(::Type{TransferFunction{TimeT,SisoZpk{T,TR}}}, sys::StateSpace)
         z, p, k = siso_ss_to_zpk(sys, i, j)
         matrix[i, j] = SisoZpk{T,TR}(z, p, k)
     end
-    TransferFunction{TimeT,SisoZpk{T,TR}}(matrix, TimeT(sys.time))
+    TransferFunction{TE,SisoZpk{T,TR}}(matrix, TE(sys.timeevol))
 end
-function convert(::Type{TransferFunction{TimeT1,SisoZpk}}, sys::StateSpace{TimeT2,T0}) where {TimeT1,TimeT2,T0<:Number}
+function convert(::Type{TransferFunction{TE1,SisoZpk}}, sys::StateSpace{TE2,T0}) where {TE1,TE2,T0<:Number}
     T = typeof(one(T0)/one(T0))
-    convert(TransferFunction{TimeT1,SisoZpk{T,complex(T)}}, sys)
+    convert(TransferFunction{TE1,SisoZpk{T,complex(T)}}, sys)
 end
 
 """

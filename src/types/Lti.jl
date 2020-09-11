@@ -41,25 +41,25 @@ function issiso(sys::LTISystem)
     return ninputs(sys) == 1 && noutputs(sys) == 1
 end
 
-"""`time(sys::LTISystem)`
-Get the time::TimeType from system `sys`, usually sys.time """
-time(sys::LTISystem) = sys.time
+"""`timeevol(sys::LTISystem)`
+Get the timeevol::TimeEvolution from system `sys`, usually sys.timeevol """
+timeevol(sys::LTISystem) = sys.timeevol
 
 """`iscontinuous(sys)`
 
 Returns `true` for a continuous-time system `sys`, else returns `false`."""
-iscontinuous(sys::LTISystem) = time(sys) isa Continuous
+iscontinuous(sys::LTISystem) = timeevol(sys) isa Continuous
 """`isdiscrete(sys)`
 
 Returns `true` for a discrete-time system `sys`, else returns `false`."""
-isdiscrete(sys::LTISystem) = time(sys) isa Discrete
+isdiscrete(sys::LTISystem) = timeevol(sys) isa Discrete
 
 
 function Base.getproperty(sys::LTISystem, s::Symbol)
     if s === :Ts
         # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
         if isdiscrete(sys)
-            return time(sys).Ts
+            return timeevol(sys).Ts
         else
             @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
             return 0.0
@@ -75,7 +75,7 @@ Base.propertynames(sys::LTISystem, private::Bool=false) =
 
 
 
-common_time(systems::LTISystem...) = common_time(time(sys) for sys in systems)
+common_timeevol(systems::LTISystem...) = common_timeevol(timeevol(sys) for sys in systems)
 
 
 """`isstable(sys)`
