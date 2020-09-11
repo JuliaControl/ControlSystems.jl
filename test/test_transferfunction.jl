@@ -142,9 +142,9 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
 
 # Test polynomial inputs
-Poly = ControlSystems.Polynomials.Poly
+Polynomial = ControlSystems.Polynomials.Polynomial
 v1, v2, v3, v4 = [1,2,3], [4,5,6], [7,8], [9,10,11]
-p1, p2, p3, p4 = Poly.(reverse.((v1,v2,v3,v4)))
+p1, p2, p3, p4 = Polynomial.(reverse.((v1,v2,v3,v4)))
 
 S1v = tf(v1, v2)
 S2v = tf(v3, v4)

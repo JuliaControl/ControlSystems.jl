@@ -113,7 +113,7 @@ function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
 end
 
 function isapprox(G1::Array{T}, G2::Array{S}; kwargs...) where {T<:SisoTf, S<:SisoTf}
-    all(i -> isapprox(G1[i], G2[i]; kwargs...), eachindex(G1))
+    all(i -> isapprox(promote(G1[i], G2[i])...; kwargs...), eachindex(G1))
 end
 
 ## ADDITION ##

@@ -71,7 +71,7 @@ function tf(var::AbstractString, Ts::Real)
 end
 
 ## Constructors for polynomial inputs
-function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::Real=0.0) where {T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::Real=0.0) where {T<:Number, PT <: Polynomials.Polynomial{T}}
     ny, nu = size(num, 1), size(num, 2)
     if (ny, nu) != (size(den, 1), size(den, 2))
         error("num and den dimensions must match")
@@ -86,6 +86,6 @@ function tf(num::AbstractArray{PT}, den::AbstractArray{PT},  Ts::Real=0.0) where
     return TransferFunction{SisoRational{T}}(matrix, Ts)
 end
 
-function tf(num::PT, den::PT,  Ts::Real=0.0) where {T<:Number, PT <: Polynomials.Poly{T}}
+function tf(num::PT, den::PT,  Ts::Real=0.0) where {T<:Number, PT <: Polynomials.Polynomial{T}}
     tf(fill(num,1,1), fill(den,1,1), Ts)
 end
