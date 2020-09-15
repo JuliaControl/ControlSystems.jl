@@ -98,6 +98,10 @@
 
         @test -sys == SS(A, B, -C, -D)
 
+        ## Test specifying time using TimeEvolution struct
+        @test SS(A, B, C, D) == SS(A, B, C, D, Continuous())
+        @test SS(A, B, C, D, 1.5) == SS(A, B, C, D, Discrete(1.5))
+
         # Accessing Ts through .Ts
         @test D_111.Ts == 0.005
 

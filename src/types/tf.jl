@@ -107,6 +107,6 @@ function tf(num::PT, den::PT, timeevol::TE) where {TE<:TimeEvolution, T<:Number,
     tf(fill(num,1,1), fill(den,1,1), timeevol)
 end
 tf(num::PT, den::PT, Ts::Number) where {T<:Number, PT <: Polynomials.Polynomial{T}} =
-    tf(num, den, Discrete(Number))
+    tf(num, den, Discrete(Ts))
 tf(num::PT, den::PT) where {T<:Number, PT <: Polynomials.Polynomial{T}} =
     tf(num, den, Continuous())

@@ -164,6 +164,17 @@ S1p = tf(p1,p2)
 # Test polynomial matrix MIMO constructor
 Sp = tf([p1 p3; 2p1 3p3], [p2 p4; p2 p4])
 
+## Test specifying time with TimeEvolution struct
+a = [1.0, 2, 1.0]
+b = [1.0, 3.0]
+@test tf(b, a) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)))
+@test tf(b, a) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)), Continuous())
+@test tf(b, a, 1.5) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)), 1.5)
+@test tf(b, a, 1.5) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)), Discrete(1.5))
+
+
+
+
 @test S1v == S1p
 @test Sv == Sp
 

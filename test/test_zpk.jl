@@ -103,6 +103,17 @@ C_111_tf = tf(C_111)
 @test C_212_tf*C_111 ≈ C_212*C_111
 @test C_212_tf*C_111 ≈ C_212_tf*C_111_tf
 
+
+
+## Test specifying time with TimeEvolution struct
+zvec = [0.5]
+pvec = [-0.2 + 0.3im, -0.2 - 0.3im]
+k = 0.3
+@test zpk(zvec, pvec, k) == zpk(zvec, pvec, k, Continuous())
+@test zpk(zvec, pvec, k, 0.2) == zpk(zvec, pvec, k, Discrete(0.2))
+
+
+
 # TODO test printing when it is implemented better
 
 # Tests of minreal
