@@ -586,7 +586,7 @@ nicholsplot
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
             hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-            color --> styledict[:c]
+            seriescolor --> styledict[:c]
             angles, mag
         end
     end
@@ -622,7 +622,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 w, sv[:, i]
             end
         end
