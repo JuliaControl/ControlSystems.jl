@@ -119,7 +119,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
 
     dt = Float64(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys) # Looks strange to check iscontinuous again
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -152,7 +152,7 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
 
     dt = T(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -217,29 +217,29 @@ end
 
 # TODO: This is a poor heuristic to estimate a "good" time vector to use for
 # simulation, in cases when one isn't provided.
-function _default_time_vector(sys::LTISystem, Tf::Real=-1)
-    Ts = _default_Ts(sys)
-    if Tf == -1
-        Tf = 100*Ts
+function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
+    dt = _default_dt(sys)
+    if tfinal == -1
+        tfinal = 100*dt
     end
-    return 0:Ts:Tf
+    return 0:dt:tfinal
 end
 
-function _default_Ts(sys::LTISystem)
-    if !iscontinuous(sys)
-        Ts = sys.Ts
+function _default_dt(sys::LTISystem)
+    if isdiscrete(sys)
+        return sys.Ts
     elseif !isstable(sys)
-        Ts = 0.05
+        return 0.05
     else
         ps = pole(sys)
         r = minimum([abs.(real.(ps));0])
         if r == 0.0
             r = 1.0
         end
-        Ts = 0.07/r
+        return 0.07/r
     end
-    return Ts
 end
+
 
 
 #TODO a reasonable check

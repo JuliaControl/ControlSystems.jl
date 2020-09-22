@@ -8,7 +8,7 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 # converting to zpk before works better in the cases I have tested.
 pole(sys::TransferFunction) = pole(zpk(sys))
 
-function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T, TR}
+function pole(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
@@ -118,7 +118,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    G = convert(TransferFunction{SisoZpk}, sys)
+    G = convert(TransferFunction{typeof(timeevol(sys)),SisoZpk}, sys)
 
     zs = map(x -> x.z, G.matrix)
     ps = map(x -> x.p, G.matrix)
@@ -133,9 +133,8 @@ Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
-    if !iscontinuous(sys)
-        Ts = sys.Ts == -1 ? 1 : sys.Ts
-        ps = log(ps)/Ts
+    if isdiscrete(sys)
+        ps = log(ps)/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
@@ -446,7 +445,7 @@ function delaymargin(G::LTISystem)
     ϕₘ   *= π/180
     ωϕₘ   = m[3][i]
     dₘ    = ϕₘ/ωϕₘ
-    if G.Ts > 0
+    if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
     dₘ

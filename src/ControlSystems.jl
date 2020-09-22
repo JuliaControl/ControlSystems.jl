@@ -6,6 +6,8 @@ export  LTISystem,
         HeteroStateSpace,
         TransferFunction,
         DelayLtiSystem,
+        Continuous,
+        Discrete,
         ss,
         tf,
         zpk,
@@ -84,7 +86,9 @@ export  LTISystem,
         numvec,
         denvec,
         numpoly,
-        denpoly
+        denpoly,
+        iscontinuous,
+        isdiscrete
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
@@ -103,6 +107,11 @@ import DSP: conv
 
 abstract type AbstractSystem end
 
+include("types/TimeEvolution.jl")
+## Added interface:
+#   timeevol(Lti) -> TimeEvolution (not exported)
+
+
 include("types/Lti.jl")
 
 include("types/SisoTf.jl")
@@ -116,6 +125,7 @@ include("types/SisoTfTypes/conversion.jl")
 
 include("types/StateSpace.jl")
 
+# TODO Sample time
 include("types/PartionedStateSpace.jl")
 include("types/DelayLtiSystem.jl")
 
@@ -154,12 +164,12 @@ include("plotting.jl")
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm
+@deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
     D*R*D'
 end
-
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

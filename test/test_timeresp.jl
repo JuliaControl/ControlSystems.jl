@@ -109,7 +109,7 @@ xreal[:,3,2] = exp.(-t).*t
 G = tf([1], [1; zeros(3)], 1)
 y, t2, x = step(G, 10)
 @test y ≈ [zeros(3); ones(8)] atol=1e-5
-@test t2 ≈ 0:1:10 atol=1e-5
+@test t2 == 0:1:10 # isapprox is broken for ranges (julia 1.3.1)
 
 #Impulse response of discrete system to final time that is not mulitple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)

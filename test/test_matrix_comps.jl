@@ -48,7 +48,7 @@ R = fill(1.0,1,1)
 As = sparse(A)
 Bs = sparse(B)
 Cs = sparse(C)
-Asb,Bsb,Csb,Ts = ControlSystems.balance_statespace(As,Bs,Cs) #Error no LAPACK function
+@test_logs (:warn, "Unable to balance state-space, returning original system") ControlSystems.balance_statespace(As,Bs,Cs)
 #
 # @test Abs*Ts ≈ Ts*As
 # @test Bbs ≈ Ts*Bs
