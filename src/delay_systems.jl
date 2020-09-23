@@ -161,7 +161,7 @@ function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
 end
 
 # Againm we have to do something for default vectors, more or less a copy from timeresp.jl
-function _default_Ts(sys::DelayLtiSystem)
+function _default_dt(sys::DelayLtiSystem)
     if !isstable(sys.P.P)
         return 0.05   # Something small
     else
@@ -174,8 +174,6 @@ function _default_Ts(sys::DelayLtiSystem)
         return 0.07/r
     end
 end
-
-iscontinuous(sys::DelayLtiSystem) = true
 
 function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     nu = ninputs(sys)
