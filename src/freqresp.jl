@@ -51,7 +51,6 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 For many values of `x`, use `freqresp` instead.
 """
 function evalfr(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
-    prod = one(T0)*one(typeof(s))
     T = _evalfr_return_type(sys, s)
     try
         R = s*I - sys.A
