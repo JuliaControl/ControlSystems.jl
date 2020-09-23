@@ -39,7 +39,7 @@ function _preprocess_for_freqresp(sys::StateSpace)
 end
 
 
-function _evalfr_return_type(sys::AbstractStateSpace, s::Number)
+function _evalfr_return_type(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
     temp_product = one(T0)*one(typeof(s))
     typeof(temp_product/temp_product)
 end
