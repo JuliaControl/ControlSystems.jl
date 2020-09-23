@@ -143,9 +143,10 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
+    u0 = u(x0,1)
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
-    elseif size(u(x0,1)) != (nu,) && size(u(x0,1)) != (nu,1)
+    elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
         error("return value of u must be of size nu")
     end
     T = promote_type(Float64, eltype(x0))
@@ -207,7 +208,7 @@ function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
 
     for i=1:iters
         x[:,i] = x0
-        uout[:,i] = u(x0,t[i])
+        uout[:,i] .= u(x0,t[i])
         x0 = A * x0 + B * uout[:,i]
     end
     return transpose(x), transpose(uout)
