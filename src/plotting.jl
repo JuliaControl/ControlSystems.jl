@@ -151,7 +151,7 @@ lsimplot
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 t,  y[:, i]
             end
         end
@@ -211,12 +211,12 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
                         seriestype := style
-                        xlabel --> "Time (s)"
-                        ylabel --> ytext
+                        xguide --> "Time (s)"
+                        yguide --> ytext
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
                         linestyle --> styledict[:l]
-                        color --> styledict[:c]
+                        seriescolor --> styledict[:c]
                         t, ydata
                     end
                 end
@@ -586,7 +586,7 @@ nicholsplot
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
             hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-            color --> styledict[:c]
+            seriescolor --> styledict[:c]
             angles, mag
         end
     end
@@ -622,7 +622,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 w, sv[:, i]
             end
         end
