@@ -464,7 +464,7 @@ Given a transfer function describing the Plant `P` and a transferfunction descri
 `T = PC/(1+PC)` Complementary sensitivity function
 
 Only supports SISO systems"""
-function gangoffour(P::TransferFunction,C::TransferFunction)
+function gangoffour(P::LTISystem,C::LTISystem)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
     end
