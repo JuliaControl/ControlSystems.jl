@@ -46,7 +46,8 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 For many values of `x`, use `freqresp` instead.
 """
 function evalfr(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
-    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
+    prod = one(T0)*one(typeof(s))
+    T = typeof(prod/prod)
     try
         R = s*I - sys.A
         sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
