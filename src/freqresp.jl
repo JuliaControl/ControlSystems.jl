@@ -39,6 +39,11 @@ function _preprocess_for_freqresp(sys::StateSpace)
 end
 
 
+function _evalfr_return_type(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
+    temp_product = one(T0)*one(typeof(s))
+    typeof(temp_product/temp_product)
+end
+
 """
 `evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
@@ -46,7 +51,7 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 For many values of `x`, use `freqresp` instead.
 """
 function evalfr(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
-    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
+    T = _evalfr_return_type(sys, s)
     try
         R = s*I - sys.A
         sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
