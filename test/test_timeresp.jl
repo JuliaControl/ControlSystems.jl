@@ -33,10 +33,15 @@ sysd = c2d(sys, 0.1)[1]
 sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
 yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
-
 @test y ≈ yd
 @test x ≈ xd
 
+# Test that the discrete lsim accepts u function that returns scalar
+L = lqr(sysd,Q,R)
+u(x,i) = -L*x
+yd, td, xd = lsim(sysd, u, t, x0=x0)
+@test norm(y - yd)/norm(y) < 0.05 # Since the cost matrices are not discretized, these will differ a bit
+@test norm(x - xd)/norm(x) < 0.05
 
 #Test step and impulse Continuous
 t0 = 0:0.05:2
