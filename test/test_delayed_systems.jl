@@ -3,13 +3,16 @@ using DelayDiffEq
 @testset "test_delay_system" begin
 ω = 0.0:8
 
-# broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
 
+@test typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64,Float64}
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
-@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
-
+if VERSION >= v"1.6.0-DEV.0"
+    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64, Matrix{Float64}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+else
+    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Continuous,Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+end
 
 # Extremely baseic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
@@ -131,6 +134,9 @@ w = 10 .^ (-2:0.1:2)
 
 # This used to be a weird bug
 @test freqresp(s11, w) ≈ freqresp(f2[1,1], w) rtol=1e-15
+
+
+@test propertynames(delay(1.0)) == (:P, :Tau)
 
 
 #FIXME: A lot more tests, including MIMO systems in particular
