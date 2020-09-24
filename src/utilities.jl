@@ -151,8 +151,8 @@ macro autovec(indices, nout, f)
     fname = dict[:name]
     args = get(dict, :args, [])
     kwargs = get(dict, :kwargs, [])
-    argnames = extract_varname.(args)
-    kwargnames = extract_varname.(kwargs)
+    argnames = extractvarname.(args)
+    kwargnames = extractvarname.(kwargs)
     quote
         $(esc(f)) # Original function
 
@@ -174,6 +174,6 @@ macro autovec(indices, nout, f)
     end
 end
 
-function extract_varname(a)
-    typeof(a) == Symbol ? a : extract_varname(a.args[1])
+function extractvarname(a)
+    typeof(a) == Symbol ? a : extractvarname(a.args[1])
 end
