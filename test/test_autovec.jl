@@ -20,7 +20,7 @@ mag, phase, _ = bodev(sys, w)
 # Test that we can define varous kinds of methods with autovec
 
 # Test arguments
-ControlSystems.@autovec (2,) 2 function t0(a, b::Int, c::Float64=1.0)
+ControlSystems.@autovec (2,) function t0(a, b::Int, c::Float64=1.0)
     return a, [b c]
 end
 
@@ -33,7 +33,7 @@ end
 @test t0v(4, 5, 6.0) == (4,[5.0, 6.0])
 
 # Test keyword arguments
-ControlSystems.@autovec (2,) 2 function t1(; kw=1)
+ControlSystems.@autovec (2,) function t1(; kw=1)
     return kw, [kw kw]
 end
 
@@ -46,7 +46,7 @@ end
 @test t1v(kw=2) == (2,[2, 2])
 
 # Test type constraints on keyword arguments
-ControlSystems.@autovec (2,) 2 function t2(; kw::T=1) where {T <: Integer}
+ControlSystems.@autovec (2,) function t2(; kw::T=1) where {T <: Integer}
     return kw, [kw kw]
 end
 
@@ -61,7 +61,7 @@ end
 @test_throws MethodError t2(kw=2.) # This method should not be defined
 
 # Test arguments simple method definition
-ControlSystems.@autovec (2,) 2 t3(a, b::Int, c::Float64=1.0) = a, [b c]
+ControlSystems.@autovec (2,) t3(a, b::Int, c::Float64=1.0) = a, [b c]
 
 @test @isdefined t3
 @test @isdefined t3v
@@ -72,7 +72,7 @@ ControlSystems.@autovec (2,) 2 t3(a, b::Int, c::Float64=1.0) = a, [b c]
 @test t3v(4, 5, 6.0) == (4,[5.0, 6.0])
 
 # Test keyword arguments simple method definition
-ControlSystems.@autovec (2,) 2 t4(; kw=1) = kw, [kw kw]
+ControlSystems.@autovec (2,) t4(; kw=1) = kw, [kw kw]
 
 @test @isdefined t4
 @test @isdefined t4v
@@ -83,7 +83,7 @@ ControlSystems.@autovec (2,) 2 t4(; kw=1) = kw, [kw kw]
 @test t4v(kw=2) == (2,[2, 2])
 
 # Test type constraints on keyword arguments simple method definition
-ControlSystems.@autovec (2,) 2 t5(; kw::T=1) where {T <: Integer} = kw, [kw kw]
+ControlSystems.@autovec (2,) t5(; kw::T=1) where {T <: Integer} = kw, [kw kw]
 
 @test @isdefined t5
 @test @isdefined t5v

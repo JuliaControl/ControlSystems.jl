@@ -124,29 +124,30 @@ index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
 
-"""@autovec (indices...) nout f() = (a, b, c)
+"""@autovec (indices...) f() = (a, b, c)
 
-A macro that helps in creating versions of functions where excessive dimensions 
-are removed automatically for specific outputs. `indices` are the indexes of the 
-outputs of the functions which should be flattened and  `nout` is the total
-number of outputs. `f()` is the original function and `fv()` will be the version
-with flattened outputs.
+A macro that helps in creating versions of functions where excessive dimensions are 
+removed automatically for specific outputs. `indices` are the indexes of the outputs 
+of the functions which should be flattened. 
+`f()` is the original function and `fv()` will be the version with flattened outputs.
 """
-macro autovec(indices, nout, f) 
+macro autovec(indices, f) 
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
     indices = eval(indices)
     maxidx = max(indices...)
 
     # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ indices
+    idxmax = maximum(indices)
     return_exp = :()
-    for i in 1:nout
+    for i in 1:idxmax
         if i in indices
             return_exp = :($return_exp..., vec(result[$i]))
         else
             return_exp = :($return_exp..., result[$i])
         end
     end
+    return_exp = :($return_exp..., result[idxmax+1:end]...)
 
     fname = dict[:name]
     args = get(dict, :args, [])
