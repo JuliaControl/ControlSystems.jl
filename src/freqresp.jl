@@ -23,6 +23,7 @@ end
 # Laub, A.J., "Efficient Multivariable Frequency Response Computations",
 # IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
 function _preprocess_for_freqresp(sys::StateSpace)
+    return sys
     if isempty(sys.A) # hessfact does not work for empty matrices
         return sys
     end
