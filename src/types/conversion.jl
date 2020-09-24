@@ -54,7 +54,7 @@ function convert(::Type{TransferFunction{S}}, G::TransferFunction) where S
     return TransferFunction{eltype(Gnew_matrix)}(Gnew_matrix, G.Ts)
 end
 
-function convert(::Type{S}, sys::StateSpace) where {T, MT, S <:StateSpace{T,MT}}
+function convert(::Type{S}, sys::AbstractStateSpace) where {T, MT, S <:StateSpace{T,MT}}
     if sys isa S
         return sys
     else
@@ -65,6 +65,8 @@ end
 Base.convert(::Type{HeteroStateSpace{AT,BT,CT,DT}}, s::StateSpace{T,MT}) where {T,MT,AT,BT,CT,DT} = HeteroStateSpace{promote_type(MT,AT),promote_type(MT,BT),promote_type(MT,CT),promote_type(MT,DT)}(s.A,s.B,s.C,s.D,s.Ts)
 
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
+
+Base.convert(::Type{StateSpace}, s::HeteroStateSpace) = StateSpace(s.A, s.B, s.C, s.D, s.Ts)
 
 function Base.convert(::Type{StateSpace}, G::TransferFunction{<:SisoTf{T0}}) where {T0<:Number}
     T = Base.promote_op(/,T0,T0)
@@ -228,9 +230,9 @@ end
 balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
-convert(::Type{TransferFunction}, sys::StateSpace) = convert(TransferFunction{SisoRational}, sys)
+convert(::Type{TransferFunction}, sys::AbstractStateSpace) = convert(TransferFunction{SisoRational{numeric_type(sys)}}, sys)
 
-function convert(::Type{TransferFunction{SisoRational{T}}}, sys::StateSpace) where {T<:Number}
+function convert(::Type{TransferFunction{SisoRational{T}}}, sys::AbstractStateSpace) where {T<:Number}
     matrix = Matrix{SisoRational{T}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
@@ -254,8 +256,6 @@ end
 
 function convert(::Type{TransferFunction{SisoZpk{T,TR}}}, sys::StateSpace) where {T<:Number, TR <: Number}
     matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
-
-    A, B, C, D = ssdata(sys)
 
     for i=1:noutputs(sys), j=1:ninputs(sys)
         z, p, k = siso_ss_to_zpk(sys, i, j)
