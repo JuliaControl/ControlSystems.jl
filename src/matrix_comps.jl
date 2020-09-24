@@ -41,7 +41,7 @@ Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 function dare(A, B, Q, R)
-    if (!ishermitian(Q) || minimum(eigvals(real(Q))) < 0)
+    if !issemiposdef(Q)
         error("Q must be positive-semidefinite.");
     end
     if (!isposdef(R))
@@ -51,7 +51,7 @@ function dare(A, B, Q, R)
     n = size(A, 1);
 
     E = [
-        Matrix{Float64}(I, n, n) B/R*B';
+        Matrix{Float64}(I, n, n) B*(R\B');
         zeros(size(A)) A'
     ];
     F = [
@@ -169,7 +169,7 @@ function covar(sys::AbstractStateSpace, W)
         error("No solution to the Lyapunov equation was found in covar")
     end
     P = C*Q*C'
-    if iscontinuous(sys)
+    if !isdiscrete(sys)
         #Variance and covariance infinite for direct terms
         direct_noise = D*W*D'
         for i in 1:size(C,1)
@@ -241,13 +241,8 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-function hinfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if iscontinuous(sys)
-        return _infnorm_two_steps_ct(sys, :hinf, tol)
-    else
-        return _infnorm_two_steps_dt(sys, :hinf, tol)
-    end
-end
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(sys, :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(sys, :hinf, tol)
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
@@ -293,11 +288,10 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # QUESTION: The tolerance for determining if there are poles on the imaginary axis
     # would not be very appropriate for systems with slow dynamics?
     T = promote_type(real(numeric_type(sys)), Float64)
-
     on_imag_axis = z -> abs(real(z)) < approximag # Helper fcn for readability
 
     if sys.nx == 0  # static gain
-        return (opnorm(sys.D), T(0))
+        return (T(opnorm(sys.D)), T(0))
     end
 
     pole_vec = pole(sys)
@@ -305,7 +299,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(on_imag_axis, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), imag(pole_vec[pidx]))
+        return (T(Inf), T(imag(pole_vec[pidx])))
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     end
 
@@ -352,7 +346,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(ω_vec)
 
         if isempty(ω_vec)
-            return (1+T(tol))*lb, ω_peak
+            return T((1+tol)*lb), T(ω_peak)
         end
 
         # Improve the lower bound
@@ -375,10 +369,11 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
-    T = promote_type(real(numeric_type(sys)), Float64)
+    T = promote_type(real(numeric_type(sys)), Float64, typeof(true/sys.Ts))
+    Tw = typeof(one(T)/sys.Ts)
 
     if sys.nx == 0  # static gain
-        return (opnorm(sys.D), T(0))
+        return (T(opnorm(sys.D)), Tw(0))
     end
 
     pole_vec = pole(sys)
@@ -386,11 +381,11 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)
     if !(pidx isa Nothing)
-        return (T(Inf), angle(pole_vec[pidx])/T(sys.Ts))
+        return T(Inf), Tw(angle(pole_vec[pidx])/sys.Ts)
     end
 
     if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
-        return T(Inf), T(NaN) # The system is unstable
+        return T(Inf), Tw(NaN) # The system is unstable
     end
 
     # Initialization: computation of a lower bound from 3 terms
@@ -439,7 +434,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         sort!(θ_vec)
 
         if isempty(θ_vec)
-            return (1+T(tol))*lb, θ_peak/T(sys.Ts)
+            return T((1+tol)*lb), Tw(θ_peak/sys.Ts)
         end
 
         # Improve the lower bound
@@ -531,7 +526,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.Ts), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(0 => Σ)
 end
 
 
@@ -558,7 +553,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) whe
         D = D/(C*inv(-A)*B)
     end
 
-    return ST(A,B,C,D,sys.Ts), diagm(0 => S)
+    return ST(A,B,C,D,sys.timeevol), diagm(0 => S)
 end
 
 """
@@ -577,7 +572,7 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     B = Tf\sys.B
     C = sys.C*T
     D = sys.D
-    ST(A,B,C,D,sys.Ts)
+    ST(A,B,C,D,sys.timeevol)
 end
 
 """
@@ -602,10 +597,10 @@ See Stochastic Control, Chapter 4, Åström
 """
 function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
     K = kalman(sys, R1, R2)
-    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
-	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.Ts)
+	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
 end

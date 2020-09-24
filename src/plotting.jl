@@ -151,7 +151,7 @@ lsimplot
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 t,  y[:, i]
             end
         end
@@ -161,15 +161,15 @@ end
 @userplot Stepplot
 @userplot Impulseplot
 """
-    stepplot(sys[, Tf[,  Ts]])
-Plot step response of `sys` with optional final time `Tf` and discretization time `Ts`.
+    stepplot(sys[, tfinal[,  dt]])
+Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
 If not defined, suitable values are chosen based on `sys`.
 """
 stepplot
 
 """
-    impulseplot(sys[, Tf[,  Ts]])
-Plot step response of `sys` with optional final time `Tf` and discretization time `Ts`.
+    impulseplot(sys[, tfinal[,  dt]])
+Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
 If not defined, suitable values are chosen based on `sys`.
 """
 impulseplot
@@ -183,12 +183,12 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
             systems = [systems]
         end
         if length(p.args) < 2
-            Ts_list, Tf = _default_time_data(systems)
+            dt_list, tfinal = _default_time_data(systems)
         elseif length(p.args) == 2
-            Ts_list = _default_Ts.(systems)
-            Tf = p.args[2]
+            dt_list = _default_dt.(systems)
+            tfinal = p.args[2]
         else
-            Tf, Ts_list = p.args[2:3]
+            tfinal, dt_list = p.args[2:3]
         end
         if !_same_io_dims(systems...)
             error("All systems must have the same input/output dimensions")
@@ -198,8 +198,8 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
         titles = fill("", 1, ny*nu)
         title --> titles
         s2i(i,j) = LinearIndices((ny,nu))[i,j]
-        for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
-            t = 0:Ts:Tf
+        for (si,(s, dt)) in enumerate(zip(systems, dt_list))
+            t = 0:dt:tfinal
             y = func(s, t)[1]
             styledict = getStyleSys(si,length(systems))
             for i=1:ny
@@ -211,12 +211,12 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
                         seriestype := style
-                        xlabel --> "Time (s)"
-                        ylabel --> ytext
+                        xguide --> "Time (s)"
+                        yguide --> ytext
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
                         linestyle --> styledict[:l]
-                        color --> styledict[:c]
+                        seriescolor --> styledict[:c]
                         t, ydata
                     end
                 end
@@ -470,7 +470,7 @@ nicholsplot
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
 
-    if !iscontinuous(systems[1])
+    if isdiscrete(systems[1])
         w_nyquist = 2π/systems[1].Ts
         w = w[w.<= w_nyquist]
     end
@@ -586,7 +586,7 @@ nicholsplot
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
             hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-            color --> styledict[:c]
+            seriescolor --> styledict[:c]
             angles, mag
         end
     end
@@ -622,7 +622,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 w, sv[:, i]
             end
         end
@@ -706,9 +706,9 @@ function _same_io_dims(systems::LTISystem...)
 end
 
 function _default_time_data(systems::Vector{T}) where T<:LTISystem
-    sample_times = [_default_Ts(i) for i in systems]
-    Tf = 100*maximum(sample_times)
-    return sample_times, Tf
+    sample_times = [_default_dt(i) for i in systems]
+    tfinal = 100*maximum(sample_times)
+    return sample_times, tfinal
 end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
@@ -744,7 +744,7 @@ pzmap
             end
         end
 
-        if system.Ts > 0
+        if isdiscrete(system)
             v = range(0,stop=2π,length=100)
             S,C = sin.(v),cos.(v)
             @series begin

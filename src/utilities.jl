@@ -4,9 +4,9 @@ numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
-numeric_type(::Type{TransferFunction{S}}) where S = numeric_type(S)
-numeric_type(::Type{<:StateSpace{T}}) where T = T
-numeric_type(::Type{<:HeteroStateSpace{AT}}) where AT = eltype(AT)
+numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
+numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
+numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
@@ -17,6 +17,19 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
+to_abstract_matrix(A::AbstractMatrix) = A
+function to_abstract_matrix(A::AbstractArray)
+    try
+        return convert(AbstractMatrix,A)
+    catch
+        @warn "Could not convert $(typeof(A)) to `AbstractMatrix`. A HeteroStateSpace must consist of AbstractMatrix."
+        rethrow()
+    end
+    return A
+end
+to_abstract_matrix(A::Vector) = reshape(A, length(A), 1)
+to_abstract_matrix(A::Number) = fill(A, 1, 1)
+
 # Do no sorting of eigenvalues
 @static if VERSION > v"1.2.0-DEV.0"
     eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
@@ -24,6 +37,14 @@ to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matri
 else
     eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
     roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
+end
+
+issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
+issemiposdef(A::UniformScaling) = real(A.λ) >= 0
+
+@static if VERSION < v"1.1.0-DEV"
+    #Added in 1.1.0-DEV
+    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
 end
 
 @static if VERSION < v"1.1"
