@@ -131,7 +131,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         dsys, x0map = c2d(sys, dt, :foh)
         x0 = x0map*[x0; transpose(u[1:1,:])]
     end
-    x = ltitr(dsys.A, dsys.B, Float64.(u), x0)
+    x = ltitr(dsys.A, dsys.B, u, x0)
     y = transpose(sys.C*transpose(x) + sys.D*transpose(u))
     return y, t, x
 end
@@ -190,7 +190,7 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
 function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::AbstractVecOrMat,
         x0::VecOrMat=zeros(T, size(A, 1))) where T
     n = size(u, 1)
-    S = promote_type(T, typeof(x0)) # Useful if either eltype is Dual
+    S = promote_type(T, eltype(x0), eltype(u)) # Useful if either eltype is Dual
     x = Array{S}(undef, size(A, 1), n)
     for i=1:n
         x[:,i] = x0
