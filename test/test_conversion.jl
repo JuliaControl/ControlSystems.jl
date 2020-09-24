@@ -94,7 +94,7 @@ G2 = tf([1,1,-1],[1,0,-1])
 sys3 = ss([0 1;1 0],[0;1],[1 1],0)
 G3 = tf([1,1],[1,0,-1])
 
-#Test ss2tf
+#Test conversion of StateSpace to TransferFunction
 @test tf(sys2) ≈ G2 atol=1e-15
 @test tf(sys3) ≈ G3 atol=1e-15
 
@@ -108,9 +108,9 @@ G3 = tf([1,1],[1,0,-1])
 
 
 ## Test some BigFloat
-SSBigFloat = StateSpace{BigFloat,Array{BigFloat,2}}
-ZpkBigFloat = TransferFunction{ControlSystems.SisoZpk{BigFloat,Complex{BigFloat}}}
-RationalBigFloat = TransferFunction{ControlSystems.SisoRational{BigFloat}}
+SSBigFloat = StateSpace{Continuous,BigFloat,Array{BigFloat,2}}
+ZpkBigFloat = TransferFunction{Continuous,ControlSystems.SisoZpk{BigFloat,Complex{BigFloat}}}
+RationalBigFloat = TransferFunction{Continuous,ControlSystems.SisoRational{BigFloat}}
 
 s = tf("s")
 f = zpk(1.0*(2s+3)/((5s+7)*(11s+13)))
@@ -132,14 +132,14 @@ fb = BigFloat(1.0)*f
 b = 1.5
 D22 = [1.0 2.0; 3.0 4.0]
 
-@test convert(StateSpace{Float64,Matrix{Float64}}, D22) == ss(D22)
-@test convert(StateSpace{Float64,Matrix{Float64}}, b) == ss(b)
+@test convert(StateSpace{Continuous,Float64,Matrix{Float64}}, D22) == ss(D22)
+@test convert(StateSpace{Continuous,Float64,Matrix{Float64}}, b) == ss(b)
 
-@test convert(TransferFunction{ControlSystems.SisoRational{Float64}}, D22) == tf(D22)
-@test convert(TransferFunction{ControlSystems.SisoRational{Float64}}, b) == tf(b)
+@test convert(TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}, D22) == tf(D22)
+@test convert(TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}, b) == tf(b)
 
-@test convert(TransferFunction{ControlSystems.SisoZpk{Float64,ComplexF64}}, D22) == zpk(D22)
-@test convert(TransferFunction{ControlSystems.SisoZpk{Float64,ComplexF64}}, b) == zpk(b)
+@test convert(TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,ComplexF64}}, D22) == zpk(D22)
+@test convert(TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,ComplexF64}}, b) == zpk(b)
 
 
 # Error, not proper

@@ -3,9 +3,16 @@ using DelayDiffEq
 @testset "test_delay_system" begin
 ω = 0.0:8
 
-# broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
+
+@test typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64,Float64}
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
+
+if VERSION >= v"1.6.0-DEV.0"
+    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64, Matrix{Float64}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+else
+    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Continuous,Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+end
 
 # Extremely baseic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
@@ -43,6 +50,10 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
 
+# evalfr
+s_vec = [0, 1im, 1, 1 + 1im]
+@test [evalfr(delay(2), s)[1] for s in s_vec] ≈ [exp(-2*s) for s in s_vec] rtol=1e-16
+
 ## Feedback
 # The first tests don't include delays, but the linear system is of DelayLtiForm type
 # (very simple system so easy to troubleshoot)
@@ -76,6 +87,16 @@ G_fr = 0.5 .+ 0.5*exp.(-2*im*ω)# + 0.5*exp.(-3*im*ω)
 @test freqresp(feedback(P2, G), ω)[:] ≈ P2_fr ./(1 .+ P2_fr .* G_fr) rtol=1e-15
 
 s = tf("s")
+
+# Test alternative exp constructor for delays
+d = exp(-2*s)
+@test freqresp(d, [0, 1, 2]) ≈ [1, exp(-2im), exp(-4im)]
+
+@test_throws ErrorException exp(-s^2 - 2*s)
+@test_throws ErrorException exp(-2*s+1) # in principle ok, but not allowed anyway
+@test_throws ErrorException exp([-2*s; -s])
+@test_throws ErrorException exp(2*s) # Non-causal
+
 # Random conversions
 sys1 = DelayLtiSystem(1.0/s)
 @test sys1.P.A == sys1.P.D == fill(0,1,1)
@@ -113,6 +134,9 @@ w = 10 .^ (-2:0.1:2)
 
 # This used to be a weird bug
 @test freqresp(s11, w) ≈ freqresp(f2[1,1], w) rtol=1e-15
+
+
+@test propertynames(delay(1.0)) == (:P, :Tau)
 
 
 #FIXME: A lot more tests, including MIMO systems in particular
@@ -159,7 +183,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-13
+@test ystep ≈ y_expected.(t, K) atol = 1e-10
 
 function dy_expected(t, K)
       if t < 1
@@ -183,6 +207,38 @@ y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
 
-[s11; s12]
+
+
+##  Test of basic pade functionality
+
+Ω = [0, 0.5, 1, 2, 5]
+@test freqresp(pade(1, 1), Ω) == freqresp(tf([-1/2, 1], [1/2, 1]), Ω)
+@test freqresp(pade(1, 2), Ω) ≈ freqresp(tf([1/12, -1/2, 1], [1/12, 1/2, 1]), Ω)
+
+for (n, tol)=enumerate([0.05; 1e-3; 1e-5; 1e-7; 1e-11; 1e-14*ones(5)])
+    G = pade(0.8, n)
+
+    @test isstable(G)
+    @test evalfr(G, 0)[1] ≈ 1
+    @test abs(evalfr(G, 2im)[1]) ≈ 1
+    @test evalfr(G, 1im)[1] ≈ exp(-0.8im) atol=tol
+end
+
+
+## Test pade applied to DelayLtiSystem
+
+@test freqresp(pade(delay(0.5), 2), Ω) ≈ freqresp(pade(0.5, 2), Ω)
+
+P = delay(1.0) * DemoSystems.lag(T=1)
+@test freqresp(pade(feedback(1,P), 2), Ω) == freqresp(feedback(1, pade(P,2)), Ω)
+
+
+Ω = [0, 0.1, 0.2]
+P_wb = DemoSystems.woodberry()
+
+@test freqresp(pade(P_wb, 2), Ω) ≈ freqresp(P_wb, Ω) atol=0.02
+@test freqresp(pade(P_wb, 3), Ω) ≈ freqresp(P_wb, Ω) atol=5e-4
+
+@test freqresp(pade(feedback(eye_(2), P_wb), 3), Ω) ≈ freqresp(feedback(eye_(2), P_wb), Ω) atol=1e-4
 
 end

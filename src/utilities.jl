@@ -4,8 +4,8 @@ numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
-numeric_type(::Type{TransferFunction{S}}) where S = numeric_type(S)
-numeric_type(::Type{<:StateSpace{T}}) where T = T
+numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
+numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
@@ -16,6 +16,19 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
+to_abstract_matrix(A::AbstractMatrix) = A
+function to_abstract_matrix(A::AbstractArray)
+    try
+        return convert(AbstractMatrix,A)
+    catch
+        @warn "Could not convert $(typeof(A)) to `AbstractMatrix`. A HeteroStateSpace must consist of AbstractMatrix."
+        rethrow()
+    end
+    return A
+end
+to_abstract_matrix(A::Vector) = reshape(A, length(A), 1)
+to_abstract_matrix(A::Number) = fill(A, 1, 1)
+
 # Do no sorting of eigenvalues
 @static if VERSION > v"1.2.0-DEV.0"
     eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
@@ -25,10 +38,23 @@ else
     roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
 end
 
+issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
+issemiposdef(A::UniformScaling) = real(A.λ) >= 0
+
+@static if VERSION < v"1.1.0-DEV"
+    #Added in 1.1.0-DEV
+    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
+end
+
+@static if VERSION < v"1.1"
+    isnothing(::Any) = false
+    isnothing(::Nothing) = true
+end
+
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
 """
-printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printpoly(io, p, mimetype, descending_powers=true, var=var)
+printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printpoly(io, Polynomial(p.coeffs, var), mimetype, descending_powers=true)
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
@@ -39,12 +65,12 @@ printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printp
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
-    poly_factors = Vector{Poly{T}}()
+    poly_factors = Vector{Polynomial{T}}()
     for k=1:length(roots)
         r = roots[k]
 
         if isreal(r)
-            push!(poly_factors,Poly{T}([-real(r),1]))
+            push!(poly_factors,Polynomial{T}([-real(r),1]))
         else
             if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
                 continue
@@ -54,7 +80,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
                 throw(AssertionError("Found pole without matching conjugate."))
             end
 
-            push!(poly_factors,Poly{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))
+            push!(poly_factors,Polynomial{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))
             # k += 1 # Skip one iteration in the loop
         end
     end
@@ -63,7 +89,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 end
 # This function should hande both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
-    return [Poly{T}([-r, 1]) for r in roots]
+    return [Polynomial{T}([-r, 1]) for r in roots]
 end
 
 
@@ -94,7 +120,7 @@ function _fix_conjugate_pairs!(v::AbstractVector{<:Real})
 end
 
 # Should probably try to get rif of this function...
-poly2vec(p::Poly) = p.a[1:end]
+poly2vec(p::Polynomial) = p.coeffs[1:end]
 
 
 function unwrap!(M::Array, dim=1)

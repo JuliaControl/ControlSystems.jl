@@ -1,0 +1,20 @@
+name: Ping Control Example Plots
+
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+
+jobs:
+  ping-control-example-plots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR ping ControlExamplePlots
+        run: |
+         if [ "$SECRET" != "" ]; then
+          curl -X POST https://api.github.com/repos/JuliaControl/ControlExamplePlots.jl/dispatches \
+          -H 'Accept: application/vnd.github.everest-preview+json' \
+          -u ${{ secrets.ACCESS_TOKEN_BOT }} \
+          --data '{"event_type": "prupdate", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'", "pr_number":  ${{ github.event.number }} }}'
+         fi
+        env:
+          SECRET: ${{ secrets.ACCESS_TOKEN_BOT }}

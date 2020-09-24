@@ -75,14 +75,14 @@ function getLogTicks(x, minmax)
     minor_text_limit  = 8
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
-    major             = 10 .^ (min:max)
+    major             = exp10.(min:max)
     if Plots.backend() != Plots.GRBackend()
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
         majorText = ["10^{$(round(Int64,i))}" for i = min:max]
     end
     if max - min < major_minor_limit
-        minor     = [j*10^i for i = (min-1):(max+1) for j = 2:9]
+        minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
         if Plots.backend() != Plots.GRBackend()
             minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
         else
@@ -151,7 +151,7 @@ lsimplot
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 t,  y[:, i]
             end
         end
@@ -161,15 +161,15 @@ end
 @userplot Stepplot
 @userplot Impulseplot
 """
-    stepplot(sys[, Tf[,  Ts]])
-Plot step response of `sys` with optional final time `Tf` and discretization time `Ts`.
+    stepplot(sys[, tfinal[,  dt]])
+Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
 If not defined, suitable values are chosen based on `sys`.
 """
 stepplot
 
 """
-    impulseplot(sys[, Tf[,  Ts]])
-Plot step response of `sys` with optional final time `Tf` and discretization time `Ts`.
+    impulseplot(sys[, tfinal[,  dt]])
+Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
 If not defined, suitable values are chosen based on `sys`.
 """
 impulseplot
@@ -183,12 +183,12 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
             systems = [systems]
         end
         if length(p.args) < 2
-            Ts_list, Tf = _default_time_data(systems)
+            dt_list, tfinal = _default_time_data(systems)
         elseif length(p.args) == 2
-            Ts_list = _default_Ts.(systems)
-            Tf = p.args[2]
+            dt_list = _default_dt.(systems)
+            tfinal = p.args[2]
         else
-            Tf, Ts_list = p.args[2:3]
+            tfinal, dt_list = p.args[2:3]
         end
         if !_same_io_dims(systems...)
             error("All systems must have the same input/output dimensions")
@@ -198,8 +198,8 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
         titles = fill("", 1, ny*nu)
         title --> titles
         s2i(i,j) = LinearIndices((ny,nu))[i,j]
-        for (si,(s, Ts)) in enumerate(zip(systems, Ts_list))
-            t = 0:Ts:Tf
+        for (si,(s, dt)) in enumerate(zip(systems, dt_list))
+            t = 0:dt:tfinal
             y = func(s, t)[1]
             styledict = getStyleSys(si,length(systems))
             for i=1:ny
@@ -211,12 +211,12 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
                         seriestype := style
-                        xlabel --> "Time (s)"
-                        ylabel --> ytext
+                        xguide --> "Time (s)"
+                        yguide --> ytext
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
                         linestyle --> styledict[:l]
-                        color --> styledict[:c]
+                        seriescolor --> styledict[:c]
                         t, ydata
                     end
                 end
@@ -255,7 +255,7 @@ end
 """`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided.
+optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
@@ -270,7 +270,7 @@ bodeplot
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
-        if _PlotScale == "dB"
+        if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
 
@@ -298,7 +298,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, magdata
                 end
                 plotphase || continue
@@ -312,7 +312,7 @@ bodeplot
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
                     linestyle --> styledict[:l]
-                    color --> styledict[:c]
+                    seriescolor --> styledict[:c]
                     w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
@@ -470,7 +470,7 @@ nicholsplot
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
 
-    if !iscontinuous(systems[1])
+    if isdiscrete(systems[1])
         w_nyquist = 2π/systems[1].Ts
         w = w[w.<= w_nyquist]
     end
@@ -586,7 +586,7 @@ nicholsplot
             styledict = getStyleSys(sysi,length(systems))
             linestyle --> styledict[:l]
             hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-            color --> styledict[:c]
+            seriescolor --> styledict[:c]
             angles, mag
         end
     end
@@ -622,7 +622,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 linestyle --> styledict[:l]
-                color --> styledict[:c]
+                seriescolor --> styledict[:c]
                 w, sv[:, i]
             end
         end
@@ -706,9 +706,9 @@ function _same_io_dims(systems::LTISystem...)
 end
 
 function _default_time_data(systems::Vector{T}) where T<:LTISystem
-    sample_times = [_default_Ts(i) for i in systems]
-    Tf = 100*maximum(sample_times)
-    return sample_times, Tf
+    sample_times = [_default_dt(i) for i in systems]
+    tfinal = 100*maximum(sample_times)
+    return sample_times, tfinal
 end
 _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
@@ -730,7 +730,7 @@ pzmap
         z,p,k = zpkdata(system)
         if !isempty(z[1])
             @series begin
-                markershape := :c
+                markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
                 real(z[1]),imag(z[1])
@@ -738,18 +738,18 @@ pzmap
         end
         if !isempty(p[1])
             @series begin
-                markershape := :x
+                markershape --> :x
                 markersize := 15.
                 real(p[1]),imag(p[1])
             end
         end
 
-        if system.Ts > 0
+        if isdiscrete(system)
             v = range(0,stop=2π,length=100)
             S,C = sin.(v),cos.(v)
             @series begin
                 linestyle --> :dash
-                c := :black
+                linecolor := :black
                 grid --> true
                 C,S
             end

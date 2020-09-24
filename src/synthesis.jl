@@ -132,7 +132,7 @@ end
 function acker(A,B,P)
     n = length(P)
     #Calculate characteristic polynomial
-    poly = mapreduce(p -> Poly([1, -p]), *, P, init=Poly(one(eltype(P))))
+    poly = mapreduce(p -> Polynomial([1, -p]), *, P, init=Polynomial(one(eltype(P))))
     q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
         q += A^(n-i)*poly[i]
@@ -143,72 +143,3 @@ function acker(A,B,P)
     end
     return [zeros(1,n-1) 1]*(S\q)
 end
-
-
-"""
-`feedback(L)` Returns L/(1+L)
-`feedback(P1,P2)` Returns P1/(1+P1*P2)
-"""
-feedback(L::TransferFunction) = L/(1+L)
-feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
-
-#Efficient implementations
-function feedback(L::TransferFunction{T}) where T<:SisoRational
-    if size(L) != (1,1)
-        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
-    end
-    P = numpoly(L)
-    Q = denpoly(L)
-    tf(P, P+Q, L.Ts)
-end
-
-function feedback(L::TransferFunction{T}) where {T<:SisoZpk}
-    if size(L) != (1,1)
-        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
-    end
-    #Extract polynomials and create P/(P+Q)
-    k = L.matrix[1].k
-    denpol = numpoly(L)[1]+denpoly(L)[1]
-    kden = denpol[end] # Get coeff of s^n
-    # Create siso system
-    sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
-    return TransferFunction{T}(fill(sisozpk,1,1), L.Ts)
-end
-
-"""
-`feedback(sys)`
-
-`feedback(sys1,sys2)`
-
-Forms the negative feedback interconnection
-```julia
->-+ sys1 +-->
-  |      |
- (-)sys2 +
-```
-If no second system is given, negative identity feedback is assumed
-"""
-function feedback(sys::Union{StateSpace, DelayLtiSystem})
-    ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
-end
-
-function feedback(sys1::StateSpace,sys2::StateSpace)
-    sum(abs.(sys1.D)) != 0 && sum(abs.(sys2.D)) != 0 && error("There can not be a direct term (D) in both sys1 and sys2")
-    A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C); sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
-    B = [sys1.B; sys2.B*sys1.D]
-    C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A,B,C,sys1.D)
-end
-
-
-"""
-`feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
-`feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
-"""
-function feedback2dof(P::TransferFunction,R,S,T)
-    !issiso(P) && error("Feedback not implemented for MIMO systems")
-    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S))
-end
-
-feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
