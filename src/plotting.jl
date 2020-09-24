@@ -256,6 +256,8 @@ end
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided. To change the Magnitude scale see `setPlotScale(str)`
+                                            
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
