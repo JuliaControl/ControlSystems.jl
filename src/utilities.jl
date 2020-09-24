@@ -173,7 +173,7 @@ macro autovec(indices, f)
             return_exp = :($return_exp..., result[$i])
         end
     end
-    return_exp = :($return_exp..., result[idxmax+1:end]...)
+    return_exp = :($return_exp..., result[$idxmax+1:end]...)
 
     fname = dict[:name]
     args = get(dict, :args, [])
