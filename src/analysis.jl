@@ -8,7 +8,7 @@ pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 # converting to zpk before works better in the cases I have tested.
 pole(sys::TransferFunction) = pole(zpk(sys))
 
-function pole(sys::TransferFunction{SisoZpk{T,TR}}) where {T, TR}
+function pole(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
@@ -118,7 +118,7 @@ Compute the zeros, poles, and gains of system `sys`.
 
 `k` : Matrix{Float64}, (ny x nu)"""
 function zpkdata(sys::LTISystem)
-    G = convert(TransferFunction{SisoZpk}, sys)
+    G = convert(TransferFunction{typeof(timeevol(sys)),SisoZpk}, sys)
 
     zs = map(x -> x.z, G.matrix)
     ps = map(x -> x.p, G.matrix)
@@ -133,9 +133,8 @@ Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
-    if !iscontinuous(sys)
-        Ts = sys.Ts == -1 ? 1 : sys.Ts
-        ps = log(ps)/Ts
+    if isdiscrete(sys)
+        ps = log(ps)/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
@@ -446,15 +445,19 @@ function delaymargin(G::LTISystem)
     ϕₘ   *= π/180
     ωϕₘ   = m[3][i]
     dₘ    = ϕₘ/ωϕₘ
-    if G.Ts > 0
+    if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
     dₘ
 end
 
-"""`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
+"""
+    S,D,N,T = gangoffour(P,C; minimal=true)
+    gangoffour(P::AbstractVector,C::AbstractVector; minimal=true)
 
-Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+Given a transfer function describing the Plant `P` and a transfer function describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+
+`minimal` determines whether or not to call `minreal` on the computed systems.
 
 `S = 1/(1+PC)` Sensitivity function
 
@@ -465,29 +468,31 @@ Given a transfer function describing the Plant `P` and a transferfunction descri
 `T = PC/(1+PC)` Complementary sensitivity function
 
 Only supports SISO systems"""
-function gangoffour(P::TransferFunction,C::TransferFunction)
+function gangoffour(P::LTISystem,C::LTISystem; minimal=true)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
     end
-    S = minreal(1/(1+P*C))
-    D = minreal(P*S)
-    N = minreal(C*S)
-    T = minreal(P*N)
+    minfun = minimal ? minreal : identity
+    S = (1/(1+P*C)) |> minfun
+    D = (P*S)       |> minfun
+    N = (C*S)       |> minfun
+    T = (P*N)       |> minfun
     return S, D, N, T
 end
 
 
-function gangoffour(P::AbstractVector, C::AbstractVector)
+function gangoffour(P::AbstractVector, C::AbstractVector; minimal=true)
     Base.depwarn("Deprecrated use of gangoffour(::Vector, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
         error("gangoffour only supports SISO systems")
     end
     length(P) == length(C) || error("P has to be the same length as C")
+    minfun = minimal ? minreal : identity
     n = length(P)
-    S = [minreal(1/(1+P[i]*C[i])) for i in 1:n]
-    D = [minreal(P[i]*S[i]) for i in 1:n]
-    N = [minreal(C[i]*S[i]) for i in 1:n]
-    T = [minreal(P[i]*N[i]) for i in 1:n]
+    S = [minfun(1/(1+P[i]*C[i])) for i in 1:n]
+    D = [minfun(P[i]*S[i]) for i in 1:n]
+    N = [minfun(C[i]*S[i]) for i in 1:n]
+    T = [minfun(P[i]*N[i]) for i in 1:n]
     return S, D, N, T
 end
 
