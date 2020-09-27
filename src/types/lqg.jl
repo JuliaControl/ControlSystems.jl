@@ -27,24 +27,22 @@ When the LQG-object is populated by the lqg-function, the following fields have 
 - `K` is the kalman gain such that `A-KC` is stable
 - `sysc` is a dynamical system describing the controller `u=L*inv(A-BL-KC+KDL)Ky`
 
-# Functions
-Several other properties of the object are accessible with the indexing function `getindex()`
-and are called with the syntax `G[:function]`. The available functions are
+Several other properties of the object are accessible as properties. The available properties are
 (some have many alternative names, separated with / )
 
--`G[:cl] / G[:closedloop]` is the closed-loop system, including observer, from reference to output, precompensated to have static gain 1 (`u = −Lx + lᵣr`).
--`G[:S] / G[:Sin]` Input sensitivity function
--`G[:T] / G[:Tin]` Input complementary sensitivity function
--`G[:Sout]` Output sensitivity function
--`G[:Tout]` Output complementary sensitivity function
--`G[:CS]` The transfer function from measurement noise to control signal
--`G[:DS]` The transfer function from input load disturbance to output
--`G[:lt] / G[:looptransfer] / G[:loopgain]  =  PC`
--`G[:rd] / G[:returndifference]  =  I + PC`
--`G[:sr] / G[:stabilityrobustness]  =  I + inv(PC)`
--`G[:sysc] / G[:controller]` Returns the controller as a StateSpace-system
+-`G.cl / G.closedloop` is the closed-loop system, including observer, from reference to output, precompensated to have static gain 1 (`u = −Lx + lᵣr`).
+-`G.S / G.Sin` Input sensitivity function
+-`G.T / G.Tin` Input complementary sensitivity function
+-`G.Sout` Output sensitivity function
+-`G.Tout` Output complementary sensitivity function
+-`G.CS` The transfer function from measurement noise to control signal
+-`G.DS` The transfer function from input load disturbance to output
+-`G.lt / G.looptransfer / G.loopgain  =  PC`
+-`G.rd / G.returndifference  =  I + PC`
+-`G.sr / G.stabilityrobustness  =  I + inv(PC)`
+-`G.sysc / G.controller` Returns the controller as a StateSpace-system
 
-It is also possible to access all fileds using the `G[:symbol]` syntax, the fields are `P
+It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P
 ,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
 
 # Example
@@ -64,9 +62,9 @@ R2 = 1eye(2)
 
 G = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
 
-Gcl = G[:cl]
-T = G[:T]
-S = G[:S]
+Gcl = G.cl
+T = G.T
+S = G.S
 sigmaplot([S,T],exp10.(range(-3, stop=3, length=1000)))
 stepplot(Gcl)
 ```
@@ -149,23 +147,18 @@ function _LQGi(A,B,C,D, Q1, Q2, R1, R2, qQ, qR)
     LQG(ss(A,B,C,D),Q1,Q2,R1,R2, qQ, qR, sysc, Le, K, true)
 end
 
+Base.getindex(G::LQG, s::Symbol) = getfield(G, s)
 
-function Base.getindex(G::LQG, s)
-    s == :A && return G.P.A
-    s == :B && return G.P.B
-    s == :C && return G.P.C
-    s == :D && return G.P.D
-    s == :L  && return G.L
-    s == :K  && return G.K
-    s == :Q1 && return G.Q1
-    s == :Q2 && return G.Q2
-    s == :R1 && return G.R1
-    s == :R2 && return G.R2
-    s == :qQ && return G.qQ
-    s == :qR && return G.qR
-    s ∈ [:sys, :P]  && return G.P
-    s ∈ [:sysc, :controller] && return G.sysc
-    s == :integrator && return G.integrator
+function Base.getproperty(G::LQG, s::Symbol)
+    if s ∈ (:L, :K, :Q1, :Q2, :R1, :R2, :qQ, :qR, :integrator, :P)
+        return getfield(G, s)
+    end
+    s === :A && return G.P.A
+    s === :B && return G.P.B
+    s === :C && return G.P.C
+    s === :D && return G.P.D
+    s ∈ (:sys, :P)  && return getfield(G, :P)
+    s ∈ (:sysc, :controller) && return getfield(G, :sysc)
 
     A = G.P.A
     B = G.P.B
@@ -197,23 +190,23 @@ function Base.getindex(G::LQG, s)
         Ccl = [C zero(C)]
         Bcl = Bcl/(P.C*inv(P.B*L[:,1:n]-P.A)*P.B) # B*lᵣ # Always normalized with nominal plant static gain
         return syscl = ss(Acl,Bcl,Ccl,0)
-    elseif s ∈ [:Sin, :S] # Sensitivity function
+    elseif s ∈ (:Sin, :S) # Sensitivity function
         return feedback(ss(Matrix{numeric_type(PC)}(I, m, m)),PC)
-    elseif s ∈ [:Tin, :T] # Complementary sensitivity function
+    elseif s ∈ (:Tin, :T) # Complementary sensitivity function
         return feedback(PC)
-    elseif s == :Sout # Sensitivity function, output
+    elseif s === :Sout # Sensitivity function, output
         return feedback(ss(Matrix{numeric_type(sys_c)}(I, m, m)),sysc*P)
-    elseif s == :Tout # Complementary sensitivity function, output
+    elseif s === :Tout # Complementary sensitivity function, output
         return feedback(sysc*P)
-    elseif s == :PS # Load disturbance to output
-        return P*G[:S]
-    elseif s == :CS # Noise to control signal
-        return sysc*G[:S]
-    elseif s ∈ [:lt, :looptransfer, :loopgain]
+    elseif s === :PS # Load disturbance to output
+        return P*G.S
+    elseif s === :CS # Noise to control signal
+        return sysc*G.S
+    elseif s ∈ (:lt, :looptransfer, :loopgain)
         return PC
-    elseif s ∈ [:rd, :returndifference]
+    elseif s ∈ (:rd, :returndifference)
         return  ss(Matrix{numeric_type(PC)}(I, p, p)) + PC
-    elseif s ∈ [:sr, :stabilityrobustness]
+    elseif s ∈ (:sr, :stabilityrobustness)
         return  ss(Matrix{numeric_type(PC)}(I, p, p)) + inv(PC)
     end
     error("The symbol $s does not have a function associated with it.")
@@ -224,7 +217,7 @@ Base.:(==)(G1::LQG, G2::LQG) = G1.K == G2.K && G1.L == G2.L && G1.P == G2.P && G
 
 plot(G::LQG) = gangoffourplot(G)
 function gangoffour(G::LQG)
-    return G[:S], G[:PS], G[:CS], G[:T]
+    return G.S, G.PS, G.CS, G.T
 end
 
 function gangoffourplot(G::LQG; kwargs...)
