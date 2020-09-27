@@ -305,6 +305,7 @@ bodeplot
 
                 @series begin
                     grid      --> true
+                    primary --> false
                     xscale    --> :log10
                     ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
