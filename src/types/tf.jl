@@ -66,7 +66,7 @@ tf(D::AbstractArray{T}) where T = tf(D, Continuous())
 
 tf(n::Number, args...; kwargs...) = tf([n], args...; kwargs...)
 
-tf(sys::StateSpace) = convert(TransferFunction, sys) # NOTE: Would perhaps like to write TransferFunction{SisoRational}, but couldn't get this to work...
+tf(sys::AbstractStateSpace) = convert(TransferFunction, sys) # NOTE: Would perhaps like to write TransferFunction{SisoRational}, but couldn't get this to work...
 
 function tf(G::TransferFunction{TE,<:SisoTf{T}}) where {TE<:TimeEvolution,T<:Number}
     convert(TransferFunction{TE,SisoRational{T}}, G)

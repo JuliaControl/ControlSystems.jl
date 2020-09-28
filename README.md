@@ -18,6 +18,10 @@ Pkg.add("ControlSystems")
 ```
 
 ## News
+
+### 2020-09-24
+Release v0.7 introduces a new `TimeEvolution` type to handle `Discrete/Continuous` systems. See the [release notes](https://github.com/JuliaControl/ControlSystems.jl/releases/tag/v0.7.0).
+
 ### 2019-11-03
 - Poles and zeros are "not sorted" as in Julia versions < 1.2, even on newer versions of Julia. This should imply that complex conjugates are kept together.
 
@@ -42,27 +46,6 @@ System identification using [ControlSystemIdentification.jl](https://github.com/
 - [ARX/PLR](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_arx.ipynb)
 - [Transfer-function estimation using spectral methods](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_spectral.ipynb)
 - [Impulse-response estimation](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_impulse_response.ipynb)
-
-### 2018-09-30
-Support for Julia 0.7/1.0 added.
-
-### 2018-09-01
-- LTISystem types are now more generic and can hold matrices/vectors of arbitrary type. Examples (partly pseudo-code):
-```julia
-ss(1)
-ss(1.)
-ss(1im)
-ss(ForwardDiff.Dual(1.))
-ss(GPUArray([1]))
-ss(SparseMatrix([1]))
-```
-Similar for `tf,zpk` etc.
-- Continuous time systems are simulated with continuous time solvers from `OrdinaryDiffEq.jl`
-- Freqresp now returns frequencies in the first dimension.
-- Breaking: `lsim(sys, u::Function)` syntax has changed from `u(t,x)` to `u(x,t)` to be consistent with `OrdinaryDiffEq`
-- Breaking: `feedback(P,C)` no longer returns `feedback(P*C)`. The behavior is changed to `feedback(P1, P2) = P1/(1+P1*P2)`.
-- Type `Simulator` provides lower level interface to continuous time simulation.
-- Example [autodiff.jl](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example/autodiff.jl) provides an illustration of how the new generic types can be used for automatic differentiation of a cost function through the continuous-time solver, which allows for optimization of the cost function w.r.t. PID parameters.
 
 
 ## Documentation
