@@ -212,8 +212,8 @@ function Base.getproperty(G::LQG, s::Symbol)
     PC = P * sysc # Loop gain
 
     # Compensate for static gain, pp. 264 G.L.
-    @show svdvals(P.B*L[:,1:n]-P.A)
-    @show dcg = (P.C * inv(P.B*L[:,1:n]-P.A) * P.B)
+    svdvals(P.B*L[:,1:n]-P.A)
+    dcg = (P.C * inv(P.B*L[:,1:n]-P.A) * P.B)
     Acl = [A-B*L B*L; zero(A) A-K*C]
     Bcl = [B/dcg; zero(B)]
     Ccl = [M zero(M)]
