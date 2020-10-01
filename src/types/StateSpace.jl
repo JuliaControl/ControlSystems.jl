@@ -126,7 +126,7 @@ Otherwise, this is a discrete-time model with sampling period Ts.
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{TE, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
+struct HeteroStateSpace{TE, AT<:AbstractMatrix,BT<:AbstractVecOrMat,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
     A::AT
     B::BT
     C::CT
