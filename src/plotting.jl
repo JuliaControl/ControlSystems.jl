@@ -725,6 +725,7 @@ pzmap
         @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
     seriestype := :scatter
+    framestyle --> :zerolines
     title --> "Pole-zero map"
     legend --> false
     for system in systems
