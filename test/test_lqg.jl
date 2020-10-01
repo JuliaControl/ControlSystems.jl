@@ -1,4 +1,6 @@
 
+# NOTE: Glad, Ljung chap 9 contains several numerical examples that can be used as test cases
+
 @testset "test_lqg" begin
 
 
