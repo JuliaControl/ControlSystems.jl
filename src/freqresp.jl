@@ -56,7 +56,6 @@ function evalfr(sys::AbstractStateSpace, s::Number)
     try
         R = s*I - sys.A
         sys.D + sys.C*((R\sys.B))
-        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
     catch e
         @warn "Got exception $e, returning Inf" max_log=1
         fill(convert(T, Inf), size(sys))
