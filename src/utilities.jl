@@ -6,6 +6,7 @@ numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
 numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
 numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
+numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
@@ -141,11 +142,66 @@ end
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
 
-"""
-outs = index2range(ind1, ind2)
+"""outs = index2range(ind1, ind2)
+
 Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
 index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
 index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
+
+"""@autovec (indices...) f() = (a, b, c)
+
+A macro that helps in creating versions of functions where excessive dimensions are 
+removed automatically for specific outputs. `indices` are the indexes of the outputs 
+of the functions which should be flattened. 
+`f()` is the original function and `fv()` will be the version with flattened outputs.
+"""
+macro autovec(indices, f) 
+    dict = MacroTools.splitdef(f)
+    rtype = get(dict, :rtype, :Any)
+    indices = eval(indices)
+    maxidx = max(indices...)
+
+    # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ indices
+    idxmax = maximum(indices)
+    return_exp = :()
+    for i in 1:idxmax
+        if i in indices
+            return_exp = :($return_exp..., vec(result[$i]))
+        else
+            return_exp = :($return_exp..., result[$i])
+        end
+    end
+    return_exp = :($return_exp..., result[$idxmax+1:end]...)
+
+    fname = dict[:name]
+    args = get(dict, :args, [])
+    kwargs = get(dict, :kwargs, [])
+    argnames = extractvarname.(args)
+    kwargnames = extractvarname.(kwargs)
+    quote
+        $(esc(f)) # Original function
+
+        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
+
+        For use with SISO systems where it acts the same as `$($(esc(fname)))` 
+        but with the extra dimensions removed in the returned values.
+        """
+        function $(esc(Symbol(fname, "v")))($(args...); $(kwargs...))::$rtype where {$(get(dict, :whereparams, [])...)}
+            for a in ($(argnames...),)
+                if a isa LTISystem
+                    issiso(a) || throw(ArgumentError($(string("Only SISO systems accepted to ", Symbol(fname, "v")))))
+                end
+            end
+            result = $(esc(fname))($(argnames...); 
+                                   $(map(x->Expr(:(=), esc(x), esc(x)), kwargnames)...))
+            return $return_exp
+        end
+    end
+end
+
+function extractvarname(a)
+    typeof(a) == Symbol ? a : extractvarname(a.args[1])
+end

@@ -451,9 +451,13 @@ function delaymargin(G::LTISystem)
     dₘ
 end
 
-"""`S,D,N,T = gangoffour(P,C)`, `gangoffour(P::AbstractVector,C::AbstractVector)`
+"""
+    S,D,N,T = gangoffour(P,C; minimal=true)
+    gangoffour(P::AbstractVector,C::AbstractVector; minimal=true)
 
-Given a transfer function describing the Plant `P` and a transferfunction describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+Given a transfer function describing the Plant `P` and a transfer function describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+
+`minimal` determines whether or not to call `minreal` on the computed systems.
 
 `S = 1/(1+PC)` Sensitivity function
 
@@ -464,29 +468,31 @@ Given a transfer function describing the Plant `P` and a transferfunction descri
 `T = PC/(1+PC)` Complementary sensitivity function
 
 Only supports SISO systems"""
-function gangoffour(P::LTISystem,C::LTISystem)
+function gangoffour(P::LTISystem,C::LTISystem; minimal=true)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
     end
-    S = minreal(1/(1+P*C))
-    D = minreal(P*S)
-    N = minreal(C*S)
-    T = minreal(P*N)
+    minfun = minimal ? minreal : identity
+    S = (1/(1+P*C)) |> minfun
+    D = (P*S)       |> minfun
+    N = (C*S)       |> minfun
+    T = (P*N)       |> minfun
     return S, D, N, T
 end
 
 
-function gangoffour(P::AbstractVector, C::AbstractVector)
+function gangoffour(P::AbstractVector, C::AbstractVector; minimal=true)
     Base.depwarn("Deprecrated use of gangoffour(::Vector, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
     if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
         error("gangoffour only supports SISO systems")
     end
     length(P) == length(C) || error("P has to be the same length as C")
+    minfun = minimal ? minreal : identity
     n = length(P)
-    S = [minreal(1/(1+P[i]*C[i])) for i in 1:n]
-    D = [minreal(P[i]*S[i]) for i in 1:n]
-    N = [minreal(C[i]*S[i]) for i in 1:n]
-    T = [minreal(P[i]*N[i]) for i in 1:n]
+    S = [minfun(1/(1+P[i]*C[i])) for i in 1:n]
+    D = [minfun(P[i]*S[i]) for i in 1:n]
+    N = [minfun(C[i]*S[i]) for i in 1:n]
+    T = [minfun(P[i]*N[i]) for i in 1:n]
     return S, D, N, T
 end
 
