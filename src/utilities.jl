@@ -4,8 +4,9 @@ numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 
-numeric_type(::Type{TransferFunction{S}}) where S = numeric_type(S)
-numeric_type(::Type{<:StateSpace{T}}) where T = T
+numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
+numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
+numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
@@ -16,6 +17,19 @@ to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
 
+to_abstract_matrix(A::AbstractMatrix) = A
+function to_abstract_matrix(A::AbstractArray)
+    try
+        return convert(AbstractMatrix,A)
+    catch
+        @warn "Could not convert $(typeof(A)) to `AbstractMatrix`. A HeteroStateSpace must consist of AbstractMatrix."
+        rethrow()
+    end
+    return A
+end
+to_abstract_matrix(A::Vector) = reshape(A, length(A), 1)
+to_abstract_matrix(A::Number) = fill(A, 1, 1)
+
 # Do no sorting of eigenvalues
 @static if VERSION > v"1.2.0-DEV.0"
     eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
@@ -23,6 +37,14 @@ to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matri
 else
     eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
     roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
+end
+
+issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
+issemiposdef(A::UniformScaling) = real(A.λ) >= 0
+
+@static if VERSION < v"1.1.0-DEV"
+    #Added in 1.1.0-DEV
+    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
 end
 
 @static if VERSION < v"1.1"
@@ -120,11 +142,66 @@ end
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
 
-"""
-outs = index2range(ind1, ind2)
+"""outs = index2range(ind1, ind2)
+
 Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
 index2range(ind1, ind2) = (index2range(ind1), index2range(ind2))
 index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
+
+"""@autovec (indices...) f() = (a, b, c)
+
+A macro that helps in creating versions of functions where excessive dimensions are 
+removed automatically for specific outputs. `indices` are the indexes of the outputs 
+of the functions which should be flattened. 
+`f()` is the original function and `fv()` will be the version with flattened outputs.
+"""
+macro autovec(indices, f) 
+    dict = MacroTools.splitdef(f)
+    rtype = get(dict, :rtype, :Any)
+    indices = eval(indices)
+    maxidx = max(indices...)
+
+    # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ indices
+    idxmax = maximum(indices)
+    return_exp = :()
+    for i in 1:idxmax
+        if i in indices
+            return_exp = :($return_exp..., vec(result[$i]))
+        else
+            return_exp = :($return_exp..., result[$i])
+        end
+    end
+    return_exp = :($return_exp..., result[$idxmax+1:end]...)
+
+    fname = dict[:name]
+    args = get(dict, :args, [])
+    kwargs = get(dict, :kwargs, [])
+    argnames = extractvarname.(args)
+    kwargnames = extractvarname.(kwargs)
+    quote
+        $(esc(f)) # Original function
+
+        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
+
+        For use with SISO systems where it acts the same as `$($(esc(fname)))` 
+        but with the extra dimensions removed in the returned values.
+        """
+        function $(esc(Symbol(fname, "v")))($(args...); $(kwargs...))::$rtype where {$(get(dict, :whereparams, [])...)}
+            for a in ($(argnames...),)
+                if a isa LTISystem
+                    issiso(a) || throw(ArgumentError($(string("Only SISO systems accepted to ", Symbol(fname, "v")))))
+                end
+            end
+            result = $(esc(fname))($(argnames...); 
+                                   $(map(x->Expr(:(=), esc(x), esc(x)), kwargnames)...))
+            return $return_exp
+        end
+    end
+end
+
+function extractvarname(a)
+    typeof(a) == Symbol ? a : extractvarname(a.args[1])
+end

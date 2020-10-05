@@ -119,7 +119,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
 
     dt = Float64(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys) # Looks strange to check iscontinuous again
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -131,7 +131,7 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
         dsys, x0map = c2d(sys, dt, :foh)
         x0 = x0map*[x0; transpose(u[1:1,:])]
     end
-    x = ltitr(dsys.A, dsys.B, Float64.(u), Float64.(x0))
+    x = ltitr(dsys.A, dsys.B, u, x0)
     y = transpose(sys.C*transpose(x) + sys.D*transpose(u))
     return y, t, x
 end
@@ -143,16 +143,17 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
+    u0 = u(x0,1)
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
-    elseif size(u(x0,1)) != (nu,) && size(u(x0,1)) != (nu,1)
+    elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
         error("return value of u must be of size nu")
     end
     T = promote_type(Float64, eltype(x0))
 
     dt = T(t[2] - t[1])
     if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
+        if !isdiscrete(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -190,7 +191,8 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
 function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::AbstractVecOrMat,
         x0::VecOrMat=zeros(T, size(A, 1))) where T
     n = size(u, 1)
-    x = similar(A, size(A, 1), n)
+    S = promote_type(T, eltype(x0), eltype(u)) # Useful if either eltype is Dual
+    x = Array{S}(undef, size(A, 1), n)
     for i=1:n
         x[:,i] = x0
         x0 = A * x0 + B * u[i,:]
@@ -207,7 +209,7 @@ function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
 
     for i=1:iters
         x[:,i] = x0
-        uout[:,i] = u(x0,t[i])
+        uout[:,i] .= u(x0,t[i])
         x0 = A * x0 + B * uout[:,i]
     end
     return transpose(x), transpose(uout)
@@ -217,29 +219,29 @@ end
 
 # TODO: This is a poor heuristic to estimate a "good" time vector to use for
 # simulation, in cases when one isn't provided.
-function _default_time_vector(sys::LTISystem, Tf::Real=-1)
-    Ts = _default_Ts(sys)
-    if Tf == -1
-        Tf = 100*Ts
+function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
+    dt = _default_dt(sys)
+    if tfinal == -1
+        tfinal = 100*dt
     end
-    return 0:Ts:Tf
+    return 0:dt:tfinal
 end
 
-function _default_Ts(sys::LTISystem)
-    if !iscontinuous(sys)
-        Ts = sys.Ts
+function _default_dt(sys::LTISystem)
+    if isdiscrete(sys)
+        return sys.Ts
     elseif !isstable(sys)
-        Ts = 0.05
+        return 0.05
     else
         ps = pole(sys)
         r = minimum([abs.(real.(ps));0])
         if r == 0.0
             r = 1.0
         end
-        Ts = 0.07/r
+        return 0.07/r
     end
-    return Ts
 end
+
 
 
 #TODO a reasonable check
