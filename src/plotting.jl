@@ -182,14 +182,6 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
         if !isa(systems, AbstractArray)
             systems = [systems]
         end
-        if length(p.args) < 2
-            dt_list, tfinal = _default_time_data(systems)
-        elseif length(p.args) == 2
-            dt_list = _default_dt.(systems)
-            tfinal = p.args[2]
-        else
-            tfinal, dt_list = p.args[2:3]
-        end
         if !_same_io_dims(systems...)
             error("All systems must have the same input/output dimensions")
         end
@@ -198,10 +190,8 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
         titles = fill("", 1, ny*nu)
         title --> titles
         s2i(i,j) = LinearIndices((ny,nu))[i,j]
-        for (si,(s, dt)) in enumerate(zip(systems, dt_list))
-            t = 0:dt:tfinal
-            y = func(s, t)[1]
-            styledict = getStyleSys(si,length(systems))
+        for (si,s) in enumerate(systems)
+            y,t = func(s, p.args[2:end]...)
             for i=1:ny
                 for j=1:nu
                     ydata = reshape(y[:, i, j], size(t, 1))
