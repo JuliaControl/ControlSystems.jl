@@ -136,6 +136,11 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
     return y, t, x
 end
 
+function lsim(sys::StateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
+    t = range(0, length=length(u), step=sys.Ts)
+    lsim(sys, u, t; kwargs...)
+end
+
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
