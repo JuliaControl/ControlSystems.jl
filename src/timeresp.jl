@@ -70,7 +70,7 @@ impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(
 impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
 impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
-"""`y, t, x = lsim(sys, u, t; x0, method])`
+"""`y, t, x = lsim(sys, u[, t]; x0, method])`
 
 `y, t, x, uout = lsim(sys, u::Function, t; x0, method)`
 
