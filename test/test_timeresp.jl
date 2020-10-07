@@ -43,6 +43,13 @@ yd, td, xd = lsim(sysd, u, t, x0=x0)
 @test norm(y - yd)/norm(y) < 0.05 # Since the cost matrices are not discretized, these will differ a bit
 @test norm(x - xd)/norm(x) < 0.05
 
+# Test lsim with default time vector
+uv = randn(length(t))
+y,t = lsim(c2d(sys,0.1)[1],uv,t,x0=x0)
+yd,td = lsim(c2d(sys,0.1)[1],uv,x0=x0)
+@test yd == y
+@test td == t
+
 #Test step and impulse Continuous
 t0 = 0:0.05:2
 systf = [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
