@@ -81,7 +81,7 @@ end
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
     @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     if map_to_unit_circle
-        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sampletime(sys))) : error("To map to the unit circle, omega should be real")
+        isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
     else
         evalfr(sys,z_or_omega)
     end

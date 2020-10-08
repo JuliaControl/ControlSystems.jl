@@ -221,7 +221,7 @@ function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector, control_si
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
-            if sampletime(sys) != dt
+            if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys

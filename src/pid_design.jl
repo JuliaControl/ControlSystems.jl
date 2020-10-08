@@ -58,7 +58,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
         kd = kds[i]
         label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
 
-        C = pid(kp=kp,ki=ki,kd=kd,timeevol=timeevol,series=series)
+        C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
         push!(Cs, C)
         push!(PCs, P*C)
