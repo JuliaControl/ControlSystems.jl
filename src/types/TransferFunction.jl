@@ -155,7 +155,6 @@ end
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
 Base.:(/)(sys1::LTISystem, sys2::TransferFunction) = *(promote(sys1, ss(1/sys2))...) # This spcial case is needed to properly handle improper inverse transfer function (1/s)
 
-Base.:^(sys::TransferFunction, p::Integer) = Base.power_by_squaring(sys, p)
 
 #####################################################################
 ##                        Display Functions                        ##
