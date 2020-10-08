@@ -3,13 +3,16 @@ using DelayDiffEq
 @testset "test_delay_system" begin
 ω = 0.0:8
 
-# broken: typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64}
 
+@test typeof(promote(delay(0.2), ss(1))[1]) == DelayLtiSystem{Float64,Float64}
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
-@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
-
+if VERSION >= v"1.6.0-DEV.0"
+    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64, Matrix{Float64}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+else
+    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Continuous,Float64,Array{Float64,2}}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
+end
 
 # Extremely baseic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
@@ -94,6 +97,19 @@ d = exp(-2*s)
 @test_throws ErrorException exp([-2*s; -s])
 @test_throws ErrorException exp(2*s) # Non-causal
 
+
+Ω = [0.5, 1.0, 1.5, 2.0]
+# Test for internal function delayd_ss
+@test freqresp(ControlSystems.delayd_ss(1.0, 0.2), Ω)[:] ≈ exp.(-im*Ω) atol=1e-14
+@test freqresp(ControlSystems.delayd_ss(3.2, 0.4), Ω)[:] ≈ exp.(-3.2*im*Ω) atol=1e-14
+@test_throws ErrorException freqresp(ControlSystems.delayd_ss(3.2, 0.5), Ω)
+
+# Simple tests for c2d of DelayLtiSystems
+@test freqresp(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
+@test freqresp(c2d(feedback(delay(1.5), delay(1.0)), 0.5), Ω) ≈ [z^-3/(1 + z^-5) for z in exp.(im*Ω*0.5)]
+@test freqresp(c2d(feedback(0.5, delay(1.5)), 0.5), Ω) ≈ [0.5/(1 + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
+
+
 # Random conversions
 sys1 = DelayLtiSystem(1.0/s)
 @test sys1.P.A == sys1.P.D == fill(0,1,1)
@@ -131,6 +147,9 @@ w = 10 .^ (-2:0.1:2)
 
 # This used to be a weird bug
 @test freqresp(s11, w) ≈ freqresp(f2[1,1], w) rtol=1e-15
+
+
+@test propertynames(delay(1.0)) == (:P, :Tau)
 
 
 #FIXME: A lot more tests, including MIMO systems in particular
@@ -177,7 +196,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-13
+@test ystep ≈ y_expected.(t, K) atol = 1e-10
 
 function dy_expected(t, K)
       if t < 1

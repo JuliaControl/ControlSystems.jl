@@ -33,7 +33,6 @@ sysd = c2d(sys, 0.1)[1]
 sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
 yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
-
 @test y ≈ yd
 @test x ≈ xd
 
@@ -82,6 +81,19 @@ G2 = ss(1.0im, 1, 1, 0, 1)
 @test lsim(ss(1.0im, 1, 1, 0, 1), [1.0, 1im, 1], 0:2)[1][:] == [0.0, 1, 2im]
 
 
+# Test that the discrete lsim accepts u function that returns scalar
+L = lqr(sysd,Q,R)
+u(x,i) = -L*x
+yd, td, xd = lsim(sysd, u, t, x0=x0)
+@test norm(y - yd)/norm(y) < 0.05 # Since the cost matrices are not discretized, these will differ a bit
+@test norm(x - xd)/norm(x) < 0.05
+
+# Test lsim with default time vector
+uv = randn(length(t))
+y,t = lsim(c2d(sys,0.1)[1],uv,t,x0=x0)
+yd,td = lsim(c2d(sys,0.1)[1],uv,x0=x0)
+@test yd == y
+@test td == t
 
 #Test step and impulse Continuous
 t0 = 0:0.05:2
@@ -154,7 +166,7 @@ xreal[:,3,2] = exp.(-t).*t
 G = tf([1], [1; zeros(3)], 1)
 y, t2, x = step(G, 10)
 @test y ≈ [zeros(3); ones(8)] atol=1e-5
-@test t2 ≈ 0:1:10 atol=1e-5
+@test t2 == 0:1:10 # isapprox is broken for ranges (julia 1.3.1)
 
 #Impulse response of discrete system to final time that is not mulitple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)

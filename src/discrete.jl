@@ -10,7 +10,7 @@ Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
-    if !iscontinuous(sys)
+    if isdiscrete(sys)
         error("sys must be a continuous time system")
     end
     A, B, C, D = ssdata(sys)
@@ -166,7 +166,6 @@ function toeplitz(c,r)
     A
 end
 
-import Polynomials
 
 """
 `c2d_roots2poly(ro,h)`
@@ -174,7 +173,7 @@ import Polynomials
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
 function c2d_roots2poly(ro,h)
-    return real((Polynomials.poly(exp(ro.*h))).a[end:-1:1])
+    return real((Polynomials.poly(exp(ro.*h))).coeffs[end:-1:1])
 end
 
 """
@@ -183,8 +182,8 @@ end
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
 function c2d_poly2poly(p,h)
-    ro = Polynomials.roots(Polynomials.Poly(p[end:-1:1]))
-    return real(Polynomials.poly(exp(ro.*h)).a[end:-1:1])
+    ro = Polynomials.roots(Polynomials.Polynomial(p[end:-1:1]))
+    return real(Polynomials.poly(exp(ro.*h)).coeffs[end:-1:1])
 end
 
 

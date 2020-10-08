@@ -6,6 +6,8 @@ export  LTISystem,
         HeteroStateSpace,
         TransferFunction,
         DelayLtiSystem,
+        Continuous,
+        Discrete,
         ss,
         tf,
         zpk,
@@ -69,9 +71,9 @@ export  LTISystem,
         # Frequency Response
         freqresp,
         evalfr,
-        bode,
-        nyquist,
-        sigma,
+        bode, bodev,
+        nyquist, nyquistv,
+        sigma, sigmav,
         # delay systems
         delay,
         pade,
@@ -84,13 +86,15 @@ export  LTISystem,
         numvec,
         denvec,
         numpoly,
-        denpoly
+        denpoly,
+        iscontinuous,
+        isdiscrete
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Plots, LaTeXStrings, LinearAlgebra
 import Polynomials
-import Polynomials: Poly, coeffs, polyval
+import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
@@ -100,8 +104,14 @@ import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
+using MacroTools
 
 abstract type AbstractSystem end
+
+include("types/TimeEvolution.jl")
+## Added interface:
+#   timeevol(Lti) -> TimeEvolution (not exported)
+
 
 include("types/Lti.jl")
 
@@ -116,6 +126,7 @@ include("types/SisoTfTypes/conversion.jl")
 
 include("types/StateSpace.jl")
 
+# TODO Sample time
 include("types/PartionedStateSpace.jl")
 include("types/DelayLtiSystem.jl")
 
@@ -154,12 +165,12 @@ include("plotting.jl")
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm
+@deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
     D*R*D'
 end
-
 
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())

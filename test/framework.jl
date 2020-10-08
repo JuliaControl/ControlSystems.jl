@@ -1,6 +1,6 @@
 # Length not defined for StateSpace, so use custom function
 function Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
-    fields = [:Ts, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
+    fields = [:timeevol, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
     for field in fields
         if getfield(va, field) != getfield(vb, field)
             return false
