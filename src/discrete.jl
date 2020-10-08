@@ -44,6 +44,37 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
 end
 
 
+"""`sysc = d2c(sys, method=:zoh)`
+Convert the discrete system `sys` into a continous system using
+the provided method. Currently only `:zoh` are provided.
+Returns the discrete system `sysc`
+"""
+function d2c(sys::StateSpace,method::Symbol=:zoh)
+    if !isdiscrete(sys)
+        error("sys must be a discrete time system")
+    end
+    val_1 = one( eltype(sys.A) )
+    if method == :zoh
+        A_c = real.(  (val_1/sys.timeevol.Ts) .* log(sys.A)  )
+        B_c = inv(sys.A - I) * A_c * sys.B
+        C_c = sys.C
+        D_c = sys.D
+        return ss(A_c,B_c,C_c,D_c)
+    elseif method == :foh || method == :tustin || method == :matched
+        error("NotImplemented: Only `:zoh` is implemented so far")
+    else
+        error("Unsupported method: ", method)
+    end
+end
+
+function d2c(G::TransferFunction,method::Symbol=:zoh)
+    if !isdiscrete(G)
+        error("TransferFunc must be a discrete time system")
+    end
+    return tf(  d2c(ss(G),method)  )
+end
+
+
 function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
 
     ae      = conv(a,ar)
