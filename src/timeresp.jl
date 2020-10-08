@@ -217,7 +217,6 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     n = size(u, 1)
   
     # Transposing u allows column-wise operations, which apparently is faster.
-    # See issue for discssuing the orientation of the input u and the output x.
     ut = transpose(u)
 
     # Using similar instead of Matrix{T} to allow for CuArrays to be used.
