@@ -179,10 +179,18 @@ ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
 kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
 ki = ws.^2
 
-ω = exp10.(range(-3, stop=2, length=500))
-pidplots(P,:nyquist;kps=kp,kis=ki,ω=ω, ylims=(-2,2), xlims=(-3,3))
+ω = exp10.(range(-3, stop = 2, length = 500))
+pidplots(
+    P,
+    :nyquist;
+    kps = kp,
+    kis = ki,
+    ω = ω,
+    ylims = (-2, 2),
+    xlims = (-3, 3),
+)
 save_docs_plot("pidplotsnyquist1.svg") # hide
-pidplots(P,:gof;kps=kp,kis=ki,ω=ω,legend=false)
+pidplots(P, :gof; kps = kp, kis = ki, ω = ω, legend = false)
 # You can also request both Nyquist and Gang-of-four plots (more plots are available, see ?pidplots ):
 # pidplots(P,:nyquist,:gof;kps=kp,kis=ki,ω=ω);
 save_docs_plot("pidplotsgof1.svg"); # hide
