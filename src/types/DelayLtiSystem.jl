@@ -168,41 +168,60 @@ end
 -(sys1::DelayLtiSystem, sys2::DelayLtiSystem) = +(sys1, -sys2)
 -(sys::DelayLtiSystem{T}) where {T} = *(sys, T(-1))
 
+""" 
+    reducedelays(sys::DelayLtiSystem)    
+
+Checks if `sys` has any delays in series that can be reduced to a single delay.
+Returns a new system with reductions applied.
+"""
+function reducedelays(sys::DelayLtiSystem)
+    # Should I copy?
+    B, C, D = sys.P.B, sys.P.C, sys.P.D
+    Tau = copy(sys.Tau)
+    # Check for delays that are only dependent on other delays and reduce them
+    i = sys.P.ny1
+    while i < size(C, 1)
+        i += 1
+        # Check if delay signal i is only update from other delay, if so call that delay j
+        if count(!=(0), view(C, i, :)) == 0 && count(!=(0), view(D, i, :)) == 1 
+            j = findfirst(!=(0), view(D, i, :))
+            # Check if delay j is not used to update anything but delay i
+            if j > sys.P.nu1 && count(!=(0), view(B, :, j)) == 0 && count(!=(0), view(D, :, j)) == 1 
+                scale = D[i,j] # Save this to later rescale with
+
+                i2 = i - sys.P.ny1 + sys.P.nu1 # Column of i
+                j2 = j - sys.P.nu1 + sys.P.ny1 # Row of j
+
+                # Swap i2 and j, drop what is on i2 after swap (i.e. old j column)
+                if i2 < j
+                    B = [view(B, :, [1:i2-1; i2+1:j-1])                          scale * view(B, :, i2)                          view(B, :, j+1:size(B,2))]
+                    D = [view(D, [1:i-1; i+1:size(D,1)], [1:i2-1; i2+1:j-1])     scale * view(D, [1:i-1; i+1:size(D,1)], i2)     view(D, [1:i-1; i+1:size(D, 1)], j+1:size(D,2))]
+                else
+                    B = [view(B, :, 1:j-1)                         scale * view(B, :, i2)                         view(B, :, [j+1:i2-1; i2+1:size(B,2)])]
+                    D = [view(D, [1:i-1; i+1:size(D,1)], 1:j-1)    scale * view(D, [1:i-1; i+1:size(D,1)], i2)    view(D, [1:i-1; i+1:size(D, 1)], [j+1:i2-1; i2+1:size(D,2)])]
+                end
+
+                C = collect(view(C, [1:i-1; i+1:size(C,1)], :))
+
+                m = i - sys.P.ny1
+                n = j - sys.P.nu1
+                Tau[n] += Tau[m]
+                Tau = [view(Tau, 1:m-1); view(Tau, m+1:size(Tau, 1))]
+
+                i -= 1
+            end
+        end
+    end
+    P = StateSpace(copy(sys.P.A), B, C, D, timeevol(sys))
+    P = PartionedStateSpace(P, sys.P.nu1, sys.P.ny1)
+    DelayLtiSystem(P, Tau)
+end
 
 function *(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     psys_new = sys1.P * sys2.P
     Tau_new = [sys1.Tau; sys2.Tau]
 
-    # Check for delays that are only dependent on other delays and reduce them
-    # TODO @views 
-    for i in 1:size(psys_new.C2, 1)
-        # Check if delay signal i is only update from other delay, if so call that delay j
-        if all(psys_new.C2[i, :] .== 0) && all(psys_new.D21[i, :] .== 0) && sum(psys_new.D22[i, :] .!= 0) == 1
-            j = findfirst(psys_new.D22[i, :] .!= 0)
-            # Check if delay j is not used to update anything but delay i
-            if all(psys_new.B2[:, j] .== 0) && all(psys_new.D12[:, j] .== 0) && sum(psys_new.D22[:, j] .!= 0) == 1
-                Tau_new[j] += Tau_new[i]
-                Tau_new = [Tau_new[1:i-1]; Tau_new[i+1:end]]
-
-                i = i + psys_new.ny1
-                j = j + psys_new.nu1
-                if i < j
-                    B = view(psys_new.P.B, :, [1:i-1; i+1:j-1; i; j+1:size(psys_new.P.B, 2)])
-                    D = view(psys_new.P.D, [1:i-1; i+1:size(psys_new.P.C, 1)], [1:i-1; i+1:j-1; i; j+1:size(psys_new.P.B, 2)])
-                else
-                    B = view(psys_new.P.B, :, [1:j-1; i; j+1:i-1; i+1:size(B2, 2)])
-                    D = view(psys_new.P.D, [1:i-1; i+1:size(psys_new.P.C, 1)], [1:j-1; i; j+1:i-1; i+1:size(psys_new.P.B, 2)])
-                end
-                C = view(psys_new.P.C, [1:i-1; i+1:size(psys_new.P.C, 1)], :)
-
-                P = StateSpace(psys_new.P.A, B, C, D, psys_new.P.timeevol)
-                psys_new = PartionedStateSpace{StateSpace{Continuous, Float64, Matrix{Float64}}}(P, psys_new.nu1, psys_new.ny1)
-                break
-            end
-        end
-    end
-
-    DelayLtiSystem(psys_new.P, Tau_new)
+    reducedelays(DelayLtiSystem(psys_new.P, Tau_new))
 end
 
 
