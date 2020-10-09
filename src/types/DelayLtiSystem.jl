@@ -118,7 +118,7 @@ Base.size(sys::DelayLtiSystem) = (noutputs(sys), ninputs(sys))
 # Fallbacks, TODO We should sort this out for all types, maybe after SISO/MIMO
 # {Array, Number}, Colon
 Base.getindex(sys::DelayLtiSystem, i, ::Colon) =
-    getindex(sys, index2range(i), 1:size(sys,2g;))
+    getindex(sys, index2range(i), 1:size(sys,2))
 # Colon, {Array, Number}
 Base.getindex(sys::DelayLtiSystem, ::Colon, j) =
     getindex(sys, 1:size(sys,1), index2range(j))
