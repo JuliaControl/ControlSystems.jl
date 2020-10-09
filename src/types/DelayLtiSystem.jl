@@ -118,7 +118,7 @@ Base.size(sys::DelayLtiSystem) = (noutputs(sys), ninputs(sys))
 # Fallbacks, TODO We should sort this out for all types, maybe after SISO/MIMO
 # {Array, Number}, Colon
 Base.getindex(sys::DelayLtiSystem, i, ::Colon) =
-    getindex(sys, index2range(i), 1:size(sys,2))
+    getindex(sys, index2range(i), 1:size(sys,2g;))
 # Colon, {Array, Number}
 Base.getindex(sys::DelayLtiSystem, ::Colon, j) =
     getindex(sys, 1:size(sys,1), index2range(j))
@@ -172,6 +172,35 @@ end
 function *(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
     psys_new = sys1.P * sys2.P
     Tau_new = [sys1.Tau; sys2.Tau]
+
+    # Check for delays that are only dependent on other delays and reduce them
+    # TODO @views 
+    for i in 1:size(psys_new.C2, 1)
+        # Check if delay signal i is only update from other delay, if so call that delay j
+        if all(psys_new.C2[i, :] .== 0) && all(psys_new.D21[i, :] .== 0) && sum(psys_new.D22[i, :] .!= 0) == 1
+            j = findfirst(psys_new.D22[i, :] .!= 0)
+            # Check if delay j is not used to update anything but delay i
+            if all(psys_new.B2[:, j] .== 0) && all(psys_new.D12[:, j] .== 0) && sum(psys_new.D22[:, j] .!= 0) == 1
+                Tau_new[j] += Tau_new[i]
+                Tau_new = [Tau_new[1:i-1]; Tau_new[i+1:end]]
+
+                i = i + psys_new.ny1
+                j = j + psys_new.nu1
+                if i < j
+                    B = view(psys_new.P.B, :, [1:i-1; i+1:j-1; i; j+1:size(psys_new.P.B, 2)])
+                    D = view(psys_new.P.D, [1:i-1; i+1:size(psys_new.P.C, 1)], [1:i-1; i+1:j-1; i; j+1:size(psys_new.P.B, 2)])
+                else
+                    B = view(psys_new.P.B, :, [1:j-1; i; j+1:i-1; i+1:size(B2, 2)])
+                    D = view(psys_new.P.D, [1:i-1; i+1:size(psys_new.P.C, 1)], [1:j-1; i; j+1:i-1; i+1:size(psys_new.P.B, 2)])
+                end
+                C = view(psys_new.P.C, [1:i-1; i+1:size(psys_new.P.C, 1)], :)
+
+                P = StateSpace(psys_new.P.A, B, C, D, psys_new.P.timeevol)
+                psys_new = PartionedStateSpace{StateSpace{Continuous, Float64, Matrix{Float64}}}(P, psys_new.nu1, psys_new.ny1)
+                break
+            end
+        end
+    end
 
     DelayLtiSystem(psys_new.P, Tau_new)
 end
