@@ -4,19 +4,9 @@ Pages = ["plotting.md"]
 
 # Plotting functions
 
-```@docs
-bodeplot
-gangoffourplot
-impulseplot
-leadlinkcurve
-lsimplot
-marginplot
-nicholsplot
-nyquistplot
-pidplots
-pzmap
-rlocus
-sigmaplot
-setPlotScale
-stepplot
+```@autodocs
+Modules = [ControlSystems]
+Pages   = ["plotting.jl"]
+Order   = [:function]
+Private = false
 ```
