@@ -8,7 +8,7 @@ Connect systems in series, equivalent to `sys2*sys1`
 series(sys1::LTISystem, sys2::LTISystem) = sys2*sys1
 
 """
-`series(sys1::LTISystem, sys2::LTISystem)`
+    parallel(sys1::LTISystem, sys2::LTISystem)
 
 Connect systems in parallel, equivalent to `sys2+sys1`
 """
