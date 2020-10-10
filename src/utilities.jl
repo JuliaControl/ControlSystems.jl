@@ -46,7 +46,6 @@ issemiposdef(A::UniformScaling) = real(A.λ) >= 0
     #Added in 1.1.0-DEV
     LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
 end
-
 @static if VERSION < v"1.1"
     isnothing(::Any) = false
     isnothing(::Nothing) = true

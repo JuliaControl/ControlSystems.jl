@@ -9,7 +9,7 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
-function Base.step(sys::StateSpace, t::AbstractVector; method=:cont)
+function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
@@ -38,19 +38,19 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
-function impulse(sys::StateSpace, t::AbstractVector; method=:cont)
+function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    if iscontinuous(sys) #&& method == :cont
-        u = (x,i) -> [zero(T)]
+    if iscontinuous(sys) #&& method === :cont
+        u = (x,t) -> [zero(T)]
         # impulse response equivalent to unforced response of
         # ss(A, 0, C, 0) with x0 = B.
         imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
         x0s = sys.B
     else
-        u = (x,i) -> i == t[1] ? [one(T)]/sys.Ts : [zero(T)]
+        u = (x,i) -> (i == t[1] ? [one(T)]/sys.Ts : [zero(T)])
         imp_sys = sys
         x0s = zeros(T, nx, nu)
     end
@@ -70,7 +70,7 @@ impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(
 impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
 impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
-"""`y, t, x = lsim(sys, u, t; x0, method])`
+"""`y, t, x = lsim(sys, u[, t]; x0, method])`
 
 `y, t, x, uout = lsim(sys, u::Function, t; x0, method)`
 
@@ -105,8 +105,8 @@ y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
-function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx), method::Symbol=_issmooth(u) ? :foh : :zoh)
+function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
+        x0::AbstractVector=zeros(Bool, sys.nx), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -118,28 +118,44 @@ function lsim(sys::StateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     dt = Float64(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if !isdiscrete(sys)
+    if !all(x -> x ≈ dt, diff(t))
+        error("time vector t must be uniformly spaced")
+    end
+
+    if iscontinuous(sys)
+        if method === :unspecified
+            method = _issmooth(u) ? :foh : :zoh
+        end
+
+        if method === :zoh
             dsys = c2d(sys, dt, :zoh)[1]
+        elseif method === :foh
+            dsys, x0map = c2d(sys, dt, :foh)
+            x0 = x0map*[x0; transpose(u)[:,1]]
         else
-            if sys.Ts != dt
-                error("Time vector must match sample time for discrete system")
-            end
-            dsys = sys
+            error("Unsupported discretization method")
         end
     else
-        dsys, x0map = c2d(sys, dt, :foh)
-        x0 = x0map*[x0; transpose(u[1:1,:])]
+        if sys.Ts != dt
+            error("Time vector must match sample time of discrete-time system")
+        end
+        dsys = sys
     end
+
     x = ltitr(dsys.A, dsys.B, u, x0)
     y = transpose(sys.C*transpose(x) + sys.D*transpose(u))
     return y, t, x
 end
 
+function lsim(sys::StateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
+    t = range(0, length=length(u), step=sys.Ts)
+    lsim(sys, u, t; kwargs...)
+end
+
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
-function lsim(sys::StateSpace, u::Function, t::AbstractVector;
+function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
@@ -152,8 +168,9 @@ function lsim(sys::StateSpace, u::Function, t::AbstractVector;
     T = promote_type(Float64, eltype(x0))
 
     dt = T(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if !isdiscrete(sys)
+
+    if !iscontinuous(sys) || method === :zoh
+        if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)[1]
         else
             if sys.Ts != dt
@@ -186,20 +203,37 @@ lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
+The type of `x0` determines the matrix structure of the returned result,
+e.g, `x0` should prefereably not be a sparse vector.
+
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
-function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::AbstractVecOrMat,
-        x0::VecOrMat=zeros(T, size(A, 1))) where T
+@views function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
+        x0::AbstractVector=zeros(eltype(A), size(A, 1)))
+
+    T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
+                      LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
+
     n = size(u, 1)
-    S = promote_type(T, eltype(x0), eltype(u)) # Useful if either eltype is Dual
-    x = Array{S}(undef, size(A, 1), n)
-    for i=1:n
-        x[:,i] = x0
-        x0 = A * x0 + B * u[i,:]
+  
+    # Transposing u allows column-wise operations, which apparently is faster.
+    ut = transpose(u)
+
+    # Using similar instead of Matrix{T} to allow for CuArrays to be used.
+    # This approach is problematic if x0 is sparse for example, but was considered
+    # to be good enough for now
+    x = similar(x0, T, (length(x0), n))
+
+    x[:,1] .= x0
+    mul!(x[:, 2:end], B, transpose(u[1:end-1, :])) # Do all multiplications B*u[:,k] to save view allocations
+
+    tmp = similar(x0, T) # temporary vector for storing A*x[:,k]
+    for k=1:n-1
+        mul!(tmp, A, x[:,k])
+        x[:,k+1] .+= tmp
     end
     return transpose(x)
 end
-
 
 function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
     x0::VecOrMat=zeros(T, size(A, 1))) where T

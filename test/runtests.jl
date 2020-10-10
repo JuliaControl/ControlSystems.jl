@@ -1,8 +1,9 @@
 using ControlSystems
 using Test, LinearAlgebra, Random
-import Base.isapprox
-import SparseArrays: sparse
-import DSP: conv
+using Documenter            # For doctests
+import Base.isapprox        # In framework and test_synthesis
+import SparseArrays: sparse # In test_matrix_comps
+import DSP: conv            # In test_conversion and test_synthesis
 include("framework.jl")
 
 # Local definition to make sure we get warnings if we use eye
@@ -30,15 +31,18 @@ my_tests = [
             "test_delayed_systems",
             "test_demo_systems",
             "test_autovec",
+            "test_plots"
             ]
 
+@testset "All Tests" begin
+    println("Testing code")
+    _t0 = time()
+    run_tests(my_tests)
+    println("Ran all code tests in $(round(time()-_t0, digits=2)) seconds")
 
-# try
-#     Pkg.installed("ControlExamplePlots")
-#     push!(my_tests, "test_plots")
-# catch
-#     warn("The unregistered package ControlExamplePlots is currently needed to test plots, install using:
-#     Pkg.clone(\"https://github.com/JuliaControl/ControlExamplePlots.jl.git\")")
-# end
 
-run_tests(my_tests)
+    println("Test Doctests")
+    _t0 = time()
+    doctest(ControlSystems)
+    println("Ran Doctests in $(round(time()-_t0, digits=2)) seconds")
+end

@@ -1,7 +1,7 @@
 language: julia
 julia:
   - 1.0
-  - 1.5
+  - 1
   - nightly
 matrix:
   allow_failures:
@@ -9,7 +9,31 @@ matrix:
   fast_finish: true
 notifications:
     email: false
+branches:
+  only: 
+    - master
+addons:
+  apt:
+    packages:
+      - libgtk-3-dev
+      - xvfb
+      - dvipng
+      - texlive
+cache:
+  directories:
+  # This should speed up builds
+  - $HOME/.julia/artifacts
+
+env:
+  - PLOTS_TEST="true" GKSwstype="100"
+
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  # Needed for plotting on travis
+  - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
+  - $TESTCMD -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
+
 after_success:
-    - julia -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
-    - julia -e 'using Pkg; Pkg.add("Documenter"); Pkg.add("GR"); Pkg.add("Plots"); Pkg.add("DSP")'
-    - julia -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); include(joinpath("docs", "make.jl"))'
+    - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+    - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
+    - $TESTCMD --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate();import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); include(joinpath("docs", "make.jl"))'

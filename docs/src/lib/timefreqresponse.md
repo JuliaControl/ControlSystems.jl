@@ -11,12 +11,9 @@ Any `TransferFunction` can be evaluated at a point using
 - `F(omega,true)` evaluates the discrete-time transfer function `F` at `exp(i*Ts*omega)`
 - `F(z,false)` evaluates the discrete-time transfer function `F` at `z`
 
-```@docs
-bode
-evalfr
-freqresp
-impulse
-lsim
-nyquist
-step
+```@autodocs
+Modules = [ControlSystems]
+Pages   = ["timeresp.jl", "freqresp.jl", "simulators.jl"]
+Order   = [:function, :type]
+Private = false
 ```

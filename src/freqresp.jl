@@ -39,7 +39,8 @@ function _preprocess_for_freqresp(sys::StateSpace)
 end
 
 
-function _evalfr_return_type(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
+function _evalfr_return_type(sys::AbstractStateSpace, s::Number)
+    T0 = numeric_type(sys)
     temp_product = one(T0)*one(typeof(s))
     typeof(temp_product/temp_product)
 end
@@ -50,12 +51,13 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """
-function evalfr(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
+function evalfr(sys::AbstractStateSpace, s::Number)
     T = _evalfr_return_type(sys, s)
     try
         R = s*I - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
-    catch
+        sys.D + sys.C*((R\sys.B))
+    catch e
+        @warn "Got exception $e, returning Inf" max_log=1
         fill(convert(T, Inf), size(sys))
     end
 end
