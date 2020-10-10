@@ -9,6 +9,9 @@ matrix:
   fast_finish: true
 notifications:
     email: false
+branches:
+  only: 
+    - master
 addons:
   apt:
     packages:
