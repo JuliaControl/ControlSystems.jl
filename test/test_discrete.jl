@@ -67,7 +67,7 @@ Gd = c2d(G, 0.2)
 
 
 # d2c
-@static if VERSION < v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
+@static if VERSION > v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
     @test d2c(c2d(C_111, 0.01)[1]) ≈ C_111
     @test d2c(c2d(C_212, 0.01)[1]) ≈ C_212
     @test d2c(c2d(C_221, 0.01)[1]) ≈ C_221
