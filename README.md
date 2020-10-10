@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.com/JuliaControl/ControlSystems.jl)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/C/ControlSystems.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![Gitter](https://badges.gitter.im/JuliaControl/ControlSystems.jl.svg)](https://gitter.im/JuliaControl/ControlSystems.jl?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![codecov](https://codecov.io/gh/JuliaControl/ControlSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaControl/ControlSystems.jl)
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/stable)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/latest)
