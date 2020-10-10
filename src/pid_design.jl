@@ -238,7 +238,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplo
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title=latexstring("{\\textnormal{Stability region of P,     }}k_d = $(round(kd, digits=4))")), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
@@ -248,7 +248,7 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title=latexstring("{\\textnormal{Stability region of P,     } }k_d = $(round(kd, digits=4))")), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
