@@ -28,8 +28,8 @@ function getexamples()
     #Only siso for now
     nicholsgen() = nicholsplot(tf1,ws)
 
-    stepgen() = stepplot(sys, ts[end], ts[2]-ts[1], l=(:dash, 4))
-    impulsegen() = impulseplot(sys, ts[end], ts[2]-ts[1], l=:blue)
+    stepgen() = stepplot(sys, ts[end], l=(:dash, 4))
+    impulsegen() = impulseplot(sys, ts[end], l=:blue)
     L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
     lsimgen() = lsimplot(sysss, (x,i)->-L*x, ts, [1;2])
 

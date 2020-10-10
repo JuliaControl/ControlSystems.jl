@@ -143,16 +143,22 @@ end
 @userplot Stepplot
 @userplot Impulseplot
 """
-    stepplot(sys[, tfinal[,  dt]])
-Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
+`stepeplot(sys[, Tf]; kwargs...)`` or `stepplot(sys[, t]; kwargs...)``
+Plot step response of  `sys` until final time `Tf` or at time points in the vector `t`.
 If not defined, suitable values are chosen based on `sys`.
+See also [`step`](@ref)
+
+`kwargs` is sent as argument to Plots.plot.
 """
 stepplot
 
 """
-    impulseplot(sys[, tfinal[,  dt]])
-Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
+    `impulseplot(sys[, Tf]; kwargs...)`` or `impulseplot(sys[, t]; kwargs...)``
+Plot impulse response of `sys` until final time `Tf` or at time points in the vector `t`.
 If not defined, suitable values are chosen based on `sys`.
+See also [`impulse`](@ref)
+
+`kwargs` is sent as argument to Plots.plot.
 """
 impulseplot
 
