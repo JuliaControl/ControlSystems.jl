@@ -8,6 +8,9 @@ matrix:
   fast_finish: true
 notifications:
     email: false
+branches:
+  only: 
+    - master
 addons:
   apt:
     packages:
@@ -30,6 +33,6 @@ script:
   - $TESTCMD -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
 
 after_success:
-    - julia -e 'using Pkg; import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+    - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
     - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
     - $TESTCMD --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate();import ControlSystems; cd(joinpath(dirname(pathof(ControlSystems)), "..")); include(joinpath("docs", "make.jl"))'
