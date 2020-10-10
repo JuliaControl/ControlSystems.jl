@@ -62,6 +62,7 @@ export  LTISystem,
         lft,
         # Discrete
         c2d,
+        d2c,
         # Time Response
         step,
         impulse,
