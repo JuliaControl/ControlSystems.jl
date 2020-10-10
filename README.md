@@ -19,6 +19,10 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
+
+### 2020-10
+- New function `d2c` for conversion from discrete to continuous.
+
 ### 2020-09-24
 Release v0.7 introduces a new `TimeEvolution` type to handle `Discrete/Continuous` systems. See the [release notes](https://github.com/JuliaControl/ControlSystems.jl/releases/tag/v0.7.0).
 

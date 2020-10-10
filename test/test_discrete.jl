@@ -64,4 +64,19 @@ Gd = c2d(G, 0.2)
 # ERRORS
 @test_throws ErrorException c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
 @test_throws ErrorException c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
+
+
+# d2c
+@static if VERSION > v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
+    @test d2c(c2d(C_111, 0.01)[1]) ≈ C_111
+    @test d2c(c2d(C_212, 0.01)[1]) ≈ C_212
+    @test d2c(c2d(C_221, 0.01)[1]) ≈ C_221
+    @test d2c(c2d(C_222_d, 0.01)[1]) ≈ C_222_d
+    @test d2c(Gd) ≈ G
+
+    sys = ss([0 1; 0 0], [0;1], [1 0], 0)
+    sysd = c2d(sys, 1)[1]
+    @test d2c(sysd) ≈ sys
+end
+
 end

@@ -44,6 +44,29 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
 end
 
 
+function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh)
+    A, B, C, D = ssdata(sys)
+    ny, nu = size(sys)
+    nx = nstates(sys)
+    if method == :zoh
+        M = log([A  B;
+            zeros(nu, nx) I])./sys.Ts
+        Ac = M[1:nx, 1:nx]
+        Bc = M[1:nx, nx+1:nx+nu]
+        Cc = C
+        Dc = D
+        if eltype(A) <: Real
+            Ac,Bc = real.((Ac, Bc))
+        end
+    else
+        error("Unsupported method: ", method)
+    end
+    return StateSpace(Ac, Bc, Cc, Dc)
+end
+
+d2c(sys::TransferFunction{<:Discrete}, args...) = tf(d2c(ss(sys), args...))
+
+
 function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
 
     ae      = conv(a,ar)
