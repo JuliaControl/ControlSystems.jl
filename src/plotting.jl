@@ -47,7 +47,7 @@ get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[
 function seriesextrema(xylims, plotattributes, subplot)
     serieslist = get_serieslist(plotattributes, subplot)
     isempty(serieslist) && (return (Inf, -Inf))
-    sym = xylims == :xlims ? :x : :y
+    sym = xylims === :xlims ? :x : :y
     mapreduce(extremareducer, serieslist) do series
         extrema(series[sym])
     end
