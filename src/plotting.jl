@@ -492,7 +492,7 @@ nicholsplot
                     offset  = (l+1)
                     TextX   = Niϕ(k,210) .+offset
                     TextY   = Ni_Ga(k,210)
-                    annotation := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
+                    annotations := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
                 end
                 ϕVals .+ 360(l+1),GVals
             end
@@ -537,7 +537,7 @@ nicholsplot
             end
         end
         TextX
-        annotation := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
+        annotations := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
 
         title --> "Nichols chart"
         grid --> false
