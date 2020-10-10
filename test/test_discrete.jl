@@ -77,16 +77,6 @@ Gd = c2d(G, 0.2)
     sys = ss([0 1; 0 0], [0;1], [1 0], 0)
     sysd = c2d(sys, 1)[1]
     @test d2c(sysd) ≈ sys
-else
-    @test d2c(c2d(C_111, 0.01)[1]) ≈ C_111
-    # @test_broken d2c(c2d(C_212, 0.01)[1]) ≈ C_212 # Unreliable
-    # @test_broken d2c(c2d(C_221, 0.01)[1]) ≈ C_221 # Unreliable
-    # @test_broken d2c(c2d(C_222_d, 0.01)[1]) ≈ C_222_d # Unreliable
-    @test d2c(Gd) ≈ G
-
-    sys = ss([0 1; 0 0], [0;1], [1 0], 0)
-    sysd = c2d(sys, 1)[1]
-    @test d2c(sysd) ≈ sys
 end
 
 end
