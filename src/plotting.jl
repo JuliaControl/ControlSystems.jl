@@ -607,7 +607,7 @@ A frequency vector `w` can be optionally provided.
 function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
     systems, w = _processfreqplot(Val{:bode}(), systems, args...)
     ny, nu = size(systems[1])
-    fig = bodeplot(systems, w, kwargs...)
+    fig = bodeplot(systems, w; kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
@@ -641,7 +641,7 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                 end
                 for k=1:length(wgm)
                     #Plot gain margins
-                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]], lab="", subplot=s2i(2i-1,j); group=si)
+                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]]; lab="", subplot=s2i(2i-1,j), group=si)
                 end
                 #Plot gain line at 1
                 Plots.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
@@ -649,9 +649,9 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 for k=1:length(wpm)
                     #Plot the phase margins
-                    Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab="", subplot=s2i(2i,j); group=si)
+                    Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]]; lab="", subplot=s2i(2i,j))
                     #Plot the line at 360*k
-                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
+                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2); l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
                 end
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
