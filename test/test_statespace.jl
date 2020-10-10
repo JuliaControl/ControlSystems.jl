@@ -119,12 +119,9 @@
             else
                 @test sprint(show, C_222) == "StateSpace{Continuous,Int64,Array{Int64,2}}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\n\nContinuous-time state-space model"
                 @test sprint(show, C_022) == "StateSpace{Continuous,Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nContinuous-time state-space model"
-                @test sprint(show, D_022) == "StateSpace{Discrete{Float64},Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"                                            
-                if VERSION > v"1.4.0-DEV.0" # Spurious blank space in matrix_print_row was removed in #33298
-                    @test sprint(show, D_222) == "StateSpace{Discrete{Float64},Float64,Array{Float64,2}}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-                else
-                    @test sprint(show, D_222) == "StateSpace{Discrete{Float64},Float64,Array{Float64,2}}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-                end
+                @test sprint(show, D_022) == "StateSpace{Discrete{Float64},Float64,Array{Float64,2}}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
+                @test sprint(show, D_222) == "StateSpace{Discrete{Float64},Float64,Array{Float64,2}}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
+
             end
         end
 

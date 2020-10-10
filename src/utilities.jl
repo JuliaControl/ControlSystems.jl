@@ -31,25 +31,12 @@ to_abstract_matrix(A::Vector) = reshape(A, length(A), 1)
 to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
-@static if VERSION > v"1.2.0-DEV.0"
-    eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
-    roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
-else
-    eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
-    roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
-end
+eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 
 issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
 issemiposdef(A::UniformScaling) = real(A.λ) >= 0
 
-@static if VERSION < v"1.1.0-DEV"
-    #Added in 1.1.0-DEV
-    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
-end
-@static if VERSION < v"1.1"
-    isnothing(::Any) = false
-    isnothing(::Nothing) = true
-end
 
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
@@ -152,12 +139,12 @@ index2range(ind::Colon) = ind
 
 """@autovec (indices...) f() = (a, b, c)
 
-A macro that helps in creating versions of functions where excessive dimensions are 
-removed automatically for specific outputs. `indices` are the indexes of the outputs 
-of the functions which should be flattened. 
+A macro that helps in creating versions of functions where excessive dimensions are
+removed automatically for specific outputs. `indices` are the indexes of the outputs
+of the functions which should be flattened.
 `f()` is the original function and `fv()` will be the version with flattened outputs.
 """
-macro autovec(indices, f) 
+macro autovec(indices, f)
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
     indices = eval(indices)
@@ -183,9 +170,9 @@ macro autovec(indices, f)
     quote
         $(esc(f)) # Original function
 
-        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
+        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))`
 
-        For use with SISO systems where it acts the same as `$($(esc(fname)))` 
+        For use with SISO systems where it acts the same as `$($(esc(fname)))`
         but with the extra dimensions removed in the returned values.
         """
         function $(esc(Symbol(fname, "v")))($(args...); $(kwargs...))::$rtype where {$(get(dict, :whereparams, [])...)}
@@ -194,7 +181,7 @@ macro autovec(indices, f)
                     issiso(a) || throw(ArgumentError($(string("Only SISO systems accepted to ", Symbol(fname, "v")))))
                 end
             end
-            result = $(esc(fname))($(argnames...); 
+            result = $(esc(fname))($(argnames...);
                                    $(map(x->Expr(:(=), esc(x), esc(x)), kwargnames)...))
             return $return_exp
         end
