@@ -62,7 +62,7 @@ get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[
 function seriesextrema(xylims, plotattributes, subplot)
     serieslist = get_serieslist(plotattributes, subplot)
     isempty(serieslist) && (return (Inf, -Inf))
-    sym = xylims == :xlims ? :x : :y
+    sym = xylims === :xlims ? :x : :y
     mapreduce(extremareducer, serieslist) do series
         extrema(series[sym])
     end
@@ -93,7 +93,7 @@ function getLogTicks(x, minmax)
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
-            minorText = [L" " for t in minorText]#fill!(minorText, L" ")
+            minorText = [" " for t in minorText]#fill!(minorText, L" ")
         end
         perm = sortperm([major; minor])
         return [major; minor][perm], [majorText; minorText][perm]
