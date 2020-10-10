@@ -8,7 +8,7 @@ Connect systems in series, equivalent to `sys2*sys1`
 series(sys1::LTISystem, sys2::LTISystem) = sys2*sys1
 
 """
-`series(sys1::LTISystem, sys2::LTISystem)`
+    parallel(sys1::LTISystem, sys2::LTISystem)
 
 Connect systems in parallel, equivalent to `sys2+sys1`
 """
@@ -333,9 +333,9 @@ function lft(G, Δ, type=:l)
         error("Must have G.nu > Δ.ny and G.ny > Δ.nu for lower/upper lft")
     end
 
-    if type == :l
+    if type === :l
         feedback(G, Δ, U1=G.nu-Δ.ny+1:G.nu, Y1=G.ny-Δ.nu+1:G.ny, W1=1:G.ny-Δ.nu, Z1=1:G.nu-Δ.ny, pos_feedback=true)
-    elseif type == :u
+    elseif type === :u
         feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.nu+1:G.ny, Z1=Δ.nu+1:G.ny, pos_feedback=true)
     else
         error("Invalid type of lft ($type), specify type=:l (:u) for lower (upper) lft")

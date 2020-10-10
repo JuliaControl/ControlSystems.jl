@@ -62,7 +62,7 @@ get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[
 function seriesextrema(xylims, plotattributes, subplot)
     serieslist = get_serieslist(plotattributes, subplot)
     isempty(serieslist) && (return (Inf, -Inf))
-    sym = xylims == :xlims ? :x : :y
+    sym = xylims === :xlims ? :x : :y
     mapreduce(extremareducer, serieslist) do series
         extrema(series[sym])
     end
@@ -76,14 +76,14 @@ function getLogTicks(x, minmax)
     min               = ceil(log10(minx))
     max               = floor(log10(maxx))
     major             = exp10.(min:max)
-    if Plots.backend() != Plots.GRBackend()
+    if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
         majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
     else
         majorText = ["10^{$(round(Int64,i))}" for i = min:max]
     end
     if max - min < major_minor_limit
         minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
-        if Plots.backend() != Plots.GRBackend()
+        if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
             minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
         else
             minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
@@ -93,7 +93,7 @@ function getLogTicks(x, minmax)
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
-            minorText = [L" " for t in minorText]#fill!(minorText, L" ")
+            minorText = [" " for t in minorText]#fill!(minorText, L" ")
         end
         perm = sortperm([major; minor])
         return [major; minor][perm], [majorText; minorText][perm]
@@ -305,6 +305,7 @@ bodeplot
 
                 @series begin
                     grid      --> true
+                    primary   --> false
                     xscale    --> :log10
                     ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
@@ -724,6 +725,7 @@ pzmap
         @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
     end
     seriestype := :scatter
+    framestyle --> :zerolines
     title --> "Pole-zero map"
     legend --> false
     for system in systems

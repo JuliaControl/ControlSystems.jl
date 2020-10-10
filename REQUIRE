@@ -7,4 +7,5 @@ OrdinaryDiffEq
 IterTools
 Colors
 DSP
+MacroTools
 Interpolations

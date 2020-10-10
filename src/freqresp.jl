@@ -39,7 +39,8 @@ function _preprocess_for_freqresp(sys::StateSpace)
 end
 
 
-function _evalfr_return_type(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
+function _evalfr_return_type(sys::AbstractStateSpace, s::Number)
+    T0 = numeric_type(sys)
     temp_product = one(T0)*one(typeof(s))
     typeof(temp_product/temp_product)
 end
@@ -50,12 +51,13 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """
-function evalfr(sys::StateSpace{<:TimeEvolution,T0}, s::Number) where {T0}
+function evalfr(sys::AbstractStateSpace, s::Number)
     T = _evalfr_return_type(sys, s)
     try
         R = s*I - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
-    catch
+        sys.D + sys.C*((R\sys.B))
+    catch e
+        @warn "Got exception $e, returning Inf" max_log=1
         fill(convert(T, Inf), size(sys))
     end
 end
@@ -98,37 +100,37 @@ end
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
-`mag` and `phase` has size `(length(w), ny, nu)`"""
-function bode(sys::LTISystem, w::AbstractVector)
+`mag` and `phase` has size `(length(w), ny, nu)`""" bode
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
 """`re, im, w = nyquist(sys[, w])`
 
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`
 
-`re` and `im` has size `(length(w), ny, nu)`"""
-function nyquist(sys::LTISystem, w::AbstractVector)
+`re` and `im` has size `(length(w), ny, nu)`""" nyquist
+@autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
+@autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
 """`sv, w = sigma(sys[, w])`
 
 Compute the singular values of the frequency response of system `sys` at
 frequencies `w`
 
-`sv` has size `(length(w), max(ny, nu))`"""
-function sigma(sys::LTISystem, w::AbstractVector)
+`sv` has size `(length(w), max(ny, nu))`""" sigma
+@autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end
-sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
+@autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
 function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     min_pt_per_dec = 60
