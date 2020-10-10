@@ -19,6 +19,9 @@ Pkg.add("ControlSystems")
 
 ## News
 
+### 2020-10
+- `lsimplot, stepplot, impulseplot` now have the same signatures as the corresponding non-plotting function.
+
 ### 2020-09-24
 Release v0.7 introduces a new `TimeEvolution` type to handle `Discrete/Continuous` systems. See the [release notes](https://github.com/JuliaControl/ControlSystems.jl/releases/tag/v0.7.0).
 
