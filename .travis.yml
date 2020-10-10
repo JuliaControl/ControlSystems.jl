@@ -9,7 +9,7 @@ matrix:
 notifications:
     email: false
 branches:
-  only: 
+  only:
     - master
 addons:
   apt:
