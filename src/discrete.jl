@@ -4,7 +4,7 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
 """`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
 
 Convert the continuous system `sys` into a discrete system with sample time
-`Ts`, using the provided method. Currently only `:zoh`, `:foh` and `:fwdeuler` are provided.
+`Ts`, using the provided method. Currently only `:zoh`, `:foh` and `:fwdeuler` are provided. Note that the forward-Euler method generally requires the sample time to be very small in relation to the time-constants of the system.
 
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
