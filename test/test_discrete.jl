@@ -87,4 +87,11 @@ end
 @test d2c(c2d(C_222_d, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_222_d
 @test d2c(c2d(G, 0.01, :fwdeuler), :fwdeuler) ≈ G
 
+
+Cd = c2d(C_111, 0.001, :fwdeuler)[1]
+t = 0:0.001:2
+y,_ = step(C_111, t)
+yd,_ = step(Cd, t)
+@test norm(yd-y) / norm(y) < 1e-3
+
 end

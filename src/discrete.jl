@@ -34,7 +34,7 @@ function c2d(sys::StateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh)
         Dd = D + C*M2
         x0map = [Matrix{T}(I, nx, nx)  (-M2)]
     elseif method === :fwdeuler
-        Ad, Bd, Cd, Dd = (I+Ts*A), B, C, D
+        Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
         x0map = I(nx)
     elseif method === :tustin || method === :matched
         error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
@@ -63,7 +63,7 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh)
         end
     elseif method === :fwdeuler
         Ac = (A-I)./sys.Ts
-        Bc = B
+        Bc = B./sys.Ts
     else
         error("Unsupported method: ", method)
     end
