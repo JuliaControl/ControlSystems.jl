@@ -79,4 +79,12 @@ Gd = c2d(G, 0.2)
     @test d2c(sysd) ≈ sys
 end
 
+# forward euler
+@test c2d(C_111, 1, :fwdeuler)[1].A == I + C_111.A
+@test d2c(c2d(C_111, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_111
+@test d2c(c2d(C_212, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_212
+@test d2c(c2d(C_221, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_221
+@test d2c(c2d(C_222_d, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_222_d
+@test d2c(c2d(G, 0.01, :fwdeuler), :fwdeuler) ≈ G
+
 end
