@@ -62,8 +62,8 @@ Gd = c2d(G, 0.2)
 
 
 # ERRORS
-@test_throws ErrorException c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
-@test_throws ErrorException c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
+@test_throws MethodError c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
+@test_throws MethodError c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
 
 
 # d2c
