@@ -592,6 +592,7 @@ sigmaplot
             @series begin
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
+                seriescolor --> si
                 w, sv[:, i]
             end
         end
