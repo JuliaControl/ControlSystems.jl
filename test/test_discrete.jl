@@ -81,17 +81,20 @@ end
 
 # forward euler
 @test c2d(C_111, 1, :fwdeuler)[1].A == I + C_111.A
-@test d2c(c2d(C_111, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_111
-@test d2c(c2d(C_212, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_212
-@test d2c(c2d(C_221, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_221
-@test d2c(c2d(C_222_d, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_222_d
-@test d2c(c2d(G, 0.01, :fwdeuler), :fwdeuler) ≈ G
+method = :tustin
+for method in (:fwdeuler, :tustin)
+    @test d2c(c2d(C_111, 0.01, method)[1], method) ≈ C_111 atol = sqrt(eps())
+    @test d2c(c2d(C_212, 0.01, method)[1], method) ≈ C_212 atol = sqrt(eps())
+    @test d2c(c2d(C_221, 0.01, method)[1], method) ≈ C_221 atol = sqrt(eps())
+    @test d2c(c2d(C_222_d, 0.01, method)[1], method) ≈ C_222_d atol = sqrt(eps())
+    @test d2c(c2d(G, 0.01, method), method) ≈ G atol = sqrt(eps())
 
 
-Cd = c2d(C_111, 0.001, :fwdeuler)[1]
-t = 0:0.001:2
-y,_ = step(C_111, t)
-yd,_ = step(Cd, t)
-@test norm(yd-y) / norm(y) < 1e-3
+    Cd = c2d(C_111, 0.001, method)[1]
+    t = 0:0.001:2
+    y,_ = step(C_111, t)
+    yd,_ = step(Cd, t)
+    @test norm(yd-y) / norm(y) < 1e-2
+end
 
 end
