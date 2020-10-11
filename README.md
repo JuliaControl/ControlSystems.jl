@@ -19,8 +19,8 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
-
 ### 2020-10
+- `lsimplot, stepplot, impulseplot` now have the same signatures as the corresponding non-plotting function.
 - New function `d2c` for conversion from discrete to continuous.
 
 ### 2020-09-24
