@@ -132,7 +132,8 @@ R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomia
 
 Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
 
-stepplot([P,Gcl]) # Visualize the open and closed loop responses.
+stepplot(P)
+stepplot!(Gcl) # Visualize the open and closed loop responses.
 save_docs_plot("ppstepplot.svg") # hide
 gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
 save_docs_plot("ppgofplot.svg"); # hide
