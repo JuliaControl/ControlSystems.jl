@@ -639,7 +639,7 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                 end
                 for k=1:length(wgm)
                     #Plot gain margins
-                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]]; lab="", subplot=s2i(2i-1,j), group=si)
+                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]]; lab="", subplot=s2i(2i-1,j))
                 end
                 #Plot gain line at 1
                 Plots.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
