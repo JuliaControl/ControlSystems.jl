@@ -188,9 +188,9 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     titles[s2i(i,j)] = ttext
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
-                        seriestype := style
-                        xguide --> "Time (s)"
-                        yguide --> ytext
+                        seriestype --> style
+                        xlabel --> "Time (s)"
+                        ylabel --> ytext
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
                         t, ydata
@@ -228,7 +228,7 @@ end
 
 @userplot Bodeplot
 ## FREQUENCY PLOTS ##
-"""`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
+"""`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, hz=false, kwargs...)`
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided. To change the Magnitude scale see `setPlotScale(str)`
@@ -236,13 +236,14 @@ optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 `kwargs` is sent as argument to Plots.plot."""
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
-    xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
+    xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -251,8 +252,7 @@ bodeplot
         end
 
 
-        xlab = plotphase ? "" : "Frequency (rad/s)"
-        group_ind = 0
+        xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
         for j=1:nu
             for i=1:ny
                 group_ind += 1
@@ -275,7 +275,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
-                    w, magdata
+                    ws, magdata
                 end
                 plotphase || continue
 
@@ -285,10 +285,10 @@ bodeplot
                     ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
                     subplot   --> s2i(2i,j)
-                    xguide    --> "Frequency (rad/s)"
+                    xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
-                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    ws, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
             end
@@ -707,7 +707,7 @@ pzmap
         if !isempty(p[1])
             @series begin
                 markershape --> :x
-                markersize := 15.
+                markersize --> 15.
                 real(p[1]),imag(p[1])
             end
         end
