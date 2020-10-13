@@ -251,7 +251,7 @@ bodeplot
             mag = 20*log10.(mag)
         end
 
-
+        group_ind = 0
         xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
         for j=1:nu
             for i=1:ny
