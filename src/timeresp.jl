@@ -148,7 +148,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
 end
 
 function lsim(sys::StateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
-    t = range(0, length=length(u), step=sys.Ts)
+    t = range(0, length=size(u, 1), step=sys.Ts)
     lsim(sys, u, t; kwargs...)
 end
 
