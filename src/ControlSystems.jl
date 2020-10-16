@@ -62,6 +62,7 @@ export  LTISystem,
         lft,
         # Discrete
         c2d,
+        d2c,
         # Time Response
         step,
         impulse,
@@ -71,9 +72,9 @@ export  LTISystem,
         # Frequency Response
         freqresp,
         evalfr,
-        bode,
-        nyquist,
-        sigma,
+        bode, bodev,
+        nyquist, nyquistv,
+        sigma, sigmav,
         # delay systems
         delay,
         pade,
@@ -98,12 +99,13 @@ import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
-import Base: getproperty
+import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
+using MacroTools
 
 abstract type AbstractSystem end
 

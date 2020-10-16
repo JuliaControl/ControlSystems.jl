@@ -126,7 +126,7 @@ Otherwise, this is a discrete-time model with sampling period Ts.
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{TE, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
+struct HeteroStateSpace{TE, AT<:AbstractMatrix,BT<:AbstractVecOrMat,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
     A::AT
     B::BT
     C::CT
@@ -210,9 +210,9 @@ function ==(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractSt
 end
 
 ## Approximate ##
-function isapprox(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
+function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
     fieldnames(ST1) == fieldnames(ST2) || (return false)
-    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(ST1))
+    return all(isapprox(getfield(sys1, f), getfield(sys2, f); kwargs...) for f in fieldnames(ST1))
 end
 
 ## ADDITION ##
@@ -312,8 +312,6 @@ end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
 /(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
-
-Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
 
 
 #####################################################################

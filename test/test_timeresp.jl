@@ -36,12 +36,64 @@ yd, td, xd = lsim(sysdfb, zeros(501), t, x0=x0)
 @test y ≈ yd
 @test x ≈ xd
 
+# Error for nonuniformly spaced vector
+@test_throws ErrorException lsim(sys, [1, 2, 3, 4], [0, 1, 1, 2])
+
+# Error for mismatch of sample rates of discrete-system and signal
+@test_throws ErrorException lsim(sysd, [1, 2, 3, 4], 0:0.2:0.6)
+
+# Test for problem with broadcast dimensions
+@test lsim(sys, zeros(5), 0:0.2:0.8)[1][:] == zeros(5)
+
+
+# lsim for Int system with Float64 input (regression test for #264)
+@test lsim(ss(1,1,1,1,1), ones(5), 0:4)[1][:] == 1:5
+
+# Various combinations of BigFloat
+@test lsim(ss(big.(1),1,1,1,1), ones(5), 0:4)[1][:] == 1:5
+@test lsim(ss(big.(1),1,1,1,1), big.(ones(5)), 0:4)[1][:] == 1:5
+@test lsim(ss(1,1,1,1,1), big.(ones(5)), 0:4)[1][:] == 1:5
+
+# Tests for HeteroStateSpace
+@test lsim(HeteroStateSpace(big.(1.0),1,1,1,1), ones(5), 0:4)[1][:] == 1:5
+
+
+# lsim for discrete-time complex-coefficient systems
+
+# Complex system, real input signal
+G1 = ss(1.0im, 1)
+@test lsim(G1, [1, 2], 0:1)[1][:] == 1.0im*[1, 2]
+@test impulse(G1, 4)[1][:] == [1.0im; zeros(4)]
+@test step(G1, 4)[1][:] == fill(1.0im, 5)
+
+G2 = ss(1.0im, 1, 1, 0, 1)
+@test lsim(G2, ones(3), 0:2)[1][:] == [0.0, 1, 1 + im]
+@test impulse(G2, 4)[1][:] == [0.0, 1, im, -1, -im]
+@test step(G2, 4)[1][:] == [0.0, 1, 1+im, 1+im-1, 0]
+
+# Real system, complex input signal
+@test lsim(ss(1, 1), [1.0, 1.0im], 0:1)[1][:] == [1.0, 1.0im]
+@test lsim(ss(1.0, 1), [1.0, 1.0im], 0:1)[1][:] == [1.0, 1.0im]
+@test lsim(ss(1, 1, 1, 0, 1), [1.0, 1im, 1], 0:2)[1][:] == [0.0, 1, 1 + im]
+
+# Complex system, complex input signal
+@test lsim(ss(1.0im, 1), [1im, 2], 0:1)[1][:] == [-1, 2im]
+@test lsim(ss(1.0im, 1, 1, 0, 1), [1.0, 1im, 1], 0:2)[1][:] == [0.0, 1, 2im]
+
+
 # Test that the discrete lsim accepts u function that returns scalar
 L = lqr(sysd,Q,R)
 u(x,i) = -L*x
 yd, td, xd = lsim(sysd, u, t, x0=x0)
 @test norm(y - yd)/norm(y) < 0.05 # Since the cost matrices are not discretized, these will differ a bit
 @test norm(x - xd)/norm(x) < 0.05
+
+# Test lsim with default time vector
+uv = randn(length(t))
+y,t = lsim(c2d(sys,0.1)[1],uv,t,x0=x0)
+yd,td = lsim(c2d(sys,0.1)[1],uv,x0=x0)
+@test yd == y
+@test td == t
 
 #Test step and impulse Continuous
 t0 = 0:0.05:2
@@ -124,6 +176,12 @@ y, t2, x = step(G, 2)
 
 #Make sure t was never changed
 @test t0 == t
+
+
+
+
+
+
 
 
 @testset "Simulators" begin
