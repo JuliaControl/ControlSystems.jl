@@ -95,7 +95,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zer
         _lsim(sys, u!, t, x0, alg; kwargs...)
     else
         @warn("Non-zero D22-matrix block in delayed system: results will be inaccurate. Algorithm set to MethodOfSteps(ImplicitEuler())")
-        _lsim_dae(sys, u!, t, x0, MethodOfSteps(ImplicitEuler()); kwargs...)
+        _lsim_dae(sys, u!, t, x0, MethodOfSteps(ImplicitEuler(autodiff=false)); kwargs...)
     end
 end
 
