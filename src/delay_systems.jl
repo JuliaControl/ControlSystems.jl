@@ -81,7 +81,7 @@ end
 
     Returns: times `t`, and `y` and `x` at those times.
 """
-function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...) where {T,S}
+function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5()), method= :simple, kwargs...) where {T,S}
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
         (uout, t) -> uout .= u
@@ -90,7 +90,13 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zer
     else                                            # If u is a regular u(t) function
         (out, t) -> (out .= u(t))
     end
-    _lsim(sys, u!, t, x0, alg; kwargs...)
+
+    if method === :simple && iszero(sys.P.D22)
+        _lsim(sys, u!, t, x0, alg; kwargs...)
+    else
+        @warn("Non-zero D22-matrix block in delayed system: results will be inaccurate. Algorithm set to MethodOfSteps(ImplicitEuler())")
+        _lsim_dae(sys, u!, t, x0, MethodOfSteps(ImplicitEuler()); kwargs...)
+    end
 end
 
 function dde_param(dx, x, h!, p, t)
@@ -176,6 +182,100 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     return y', t, reduce(hcat ,x)'
 end
 
+
+function dde_param_dae(du, u, h, p, t)
+    A, B1, B2, C2, D21, D22, Tau, u!, uout, hout, tmpx, tmpd = p
+
+    nx = size(A,1)
+    nd = length(Tau)
+
+    dx = view(du, 1:nx)
+    dd = view(du, (nx+1):(nx+nd))
+    x = view(u, 1:nx)
+    d = view(u, (nx+1):(nx+nd))
+
+    u!(uout, t)     # uout = u(t)
+
+    # hout = d(t-Tau)
+    for k=1:length(Tau)
+        hout[k] = h(p, t-Tau[k], idxs=(nx+k))
+    end
+    #dx(t) .= A*x(t) + B1*u(t) +B2*d(t-tau)
+    mul!(dx, A, x)
+    mul!(tmpx, B1, uout)
+    dx .+= tmpx
+    mul!(tmpx, B2, hout)
+    dx .+= tmpx
+
+    # dd(t) = 0 = -d(t) + C2*x(t) + D21*u(t) + D22*d(t-Tau)
+    dd .= -d
+    mul!(tmpd, C2, x)
+    dd .+= tmpd
+    mul!(tmpd, D21, uout)
+    dd .+= tmpd
+    mul!(tmpd, D22, hout)
+    dd .+= tmpd
+
+    return
+end
+
+function _lsim_dae(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
+    P = sys.P
+
+    t0 = first(t)
+    dt = t[2] - t[1]
+    if !all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
+        error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
+    end
+
+    # Get all matrices to save on allocations
+    A, B1, B2, C1, C2, D11, D12, D21, D22 = P.A, P.B1, P.B2, P.C1, P.C2, P.D11, P.D12, P.D21, P.D22
+    Tau = sys.Tau
+    nx = size(A,1)
+    nd = length(Tau)
+    ny = size(C1,1)
+
+    xd0 = [x0; zeros(T,nd)]
+
+    hout = fill(zero(T), nd)  # in place storage for delays
+    uout = fill(zero(T), ninputs(sys)) # in place storage for u
+    tmpx = similar(xd0, nx)
+    tmpd = similar(xd0, nd)
+
+    h(p, t; idxs=i) = zero(T) # Assume states and delayed signal is 0 before time starts
+
+    dde = DDEFunction(dde_param_dae, mass_matrix = Matrix(Diagonal([ones(T,nx); zeros(T,nd)])))
+    p = (A, B1, B2, C2, D21, D22, Tau, u!, uout, hout, tmpx, tmpd)
+    prob = DDEProblem{true}(dde, xd0, h, (T(t[1]), T(t[end])), p, constant_lags=Tau, stop_at=[0;Tau])
+
+    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
+
+    solu = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
+
+    nt = length(t)
+    x = Matrix{T}(undef, nx, nt)
+    y = Matrix{T}(undef, ny, nt)
+    d = Matrix{T}(undef, nd, nt)
+    # Build x,y,d signals
+    C1D12 = [C1 D12]
+    for k = 1:nt
+        x[:,k] .= sol.u[k][1:nx]
+        d[:,k] .= sol.u[k][(nx+1):(nx+nd)]
+
+        u!(uout, t[k])
+        for i in 1:length(Tau)
+            ti = t[k] - Tau[i]
+            # Depending on lag, we use either <0 history function, or interpolation
+            if ti < t0
+                hout[i] = h(p, ti, idxs=nx+i)
+            else
+                hout[i] = sol(ti, idxs=nx+i)
+            end
+        end
+        y[:,k] = C1*x[:,k] + D11*uout + D12*hout
+    end
+    return y', t, x'#, d'
+end
 
 # We have to default to something, look at the sys.P.P and delays
 function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
