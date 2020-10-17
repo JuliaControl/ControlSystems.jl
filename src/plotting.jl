@@ -1,21 +1,6 @@
 import Colors
 export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
-getColorSys(i,Nsys)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8))
-function getStyleSys(i,Nsys)
-    Ncmax = 5
-    if Nsys <= Ncmax
-        return Dict(:c => convert(Colors.RGB,Colors.HSV(360*((i-1)/Nsys)^1.5,0.9,0.8)) , :l => :solid)
-    end
-    styles = [:solid, :dash, :dot, :dashdot]
-    Nstyles = min(ceil(Int,Nsys/Ncmax), length(styles))
-    Nc = ceil(Int,Nsys / Nstyles)
-    istyle = min(floor(Int,i/Nc)+1 , length(styles))
-    c = convert(Colors.RGB,Colors.HSV(360*((mod(i-1,Nc)/Nc))^1.5,0.9,0.8))
-
-    return Dict(:c => c, :l => styles[istyle])
-end
-
 _PlotScale = "log10"
 _PlotScaleFunc = :log10
 _PlotScaleStr = ""
@@ -62,7 +47,7 @@ get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[
 function seriesextrema(xylims, plotattributes, subplot)
     serieslist = get_serieslist(plotattributes, subplot)
     isempty(serieslist) && (return (Inf, -Inf))
-    sym = xylims == :xlims ? :x : :y
+    sym = xylims === :xlims ? :x : :y
     mapreduce(extremareducer, serieslist) do series
         extrema(series[sym])
     end
@@ -93,7 +78,7 @@ function getLogTicks(x, minmax)
         minor     = minor[ind]
         minorText = minorText[ind]
         if length(minor) > minor_text_limit
-            minorText = [L" " for t in minorText]#fill!(minorText, L" ")
+            minorText = [" " for t in minorText]#fill!(minorText, L" ")
         end
         perm = sortperm([major; minor])
         return [major; minor][perm], [majorText; minorText][perm]
@@ -140,7 +125,6 @@ lsimplot
     for (si,s) in enumerate(systems)
         s = systems[si]
         y = length(p.args) >= 4 ? lsim(s, u, t, x0=p.args[4], method=method)[1] : lsim(s, u, t, method=method)[1]
-        styledict = getStyleSys(si,length(systems))
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
@@ -150,8 +134,6 @@ lsimplot
                 title   --> "System Response"
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
-                linestyle --> styledict[:l]
-                seriescolor --> styledict[:c]
                 t,  y[:, i]
             end
         end
@@ -161,16 +143,22 @@ end
 @userplot Stepplot
 @userplot Impulseplot
 """
-    stepplot(sys[, tfinal[,  dt]])
-Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
+`stepeplot(sys[, Tf]; kwargs...)`` or `stepplot(sys[, t]; kwargs...)``
+Plot step response of  `sys` until final time `Tf` or at time points in the vector `t`.
 If not defined, suitable values are chosen based on `sys`.
+See also [`step`](@ref)
+
+`kwargs` is sent as argument to Plots.plot.
 """
 stepplot
 
 """
-    impulseplot(sys[, tfinal[,  dt]])
-Plot step response of `sys` with optional final time `tfinal` and discretization time `dt`.
+    `impulseplot(sys[, Tf]; kwargs...)`` or `impulseplot(sys[, t]; kwargs...)``
+Plot impulse response of `sys` until final time `Tf` or at time points in the vector `t`.
 If not defined, suitable values are chosen based on `sys`.
+See also [`impulse`](@ref)
+
+`kwargs` is sent as argument to Plots.plot.
 """
 impulseplot
 
@@ -182,14 +170,6 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
         if !isa(systems, AbstractArray)
             systems = [systems]
         end
-        if length(p.args) < 2
-            dt_list, tfinal = _default_time_data(systems)
-        elseif length(p.args) == 2
-            dt_list = _default_dt.(systems)
-            tfinal = p.args[2]
-        else
-            tfinal, dt_list = p.args[2:3]
-        end
         if !_same_io_dims(systems...)
             error("All systems must have the same input/output dimensions")
         end
@@ -198,10 +178,8 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
         titles = fill("", 1, ny*nu)
         title --> titles
         s2i(i,j) = LinearIndices((ny,nu))[i,j]
-        for (si,(s, dt)) in enumerate(zip(systems, dt_list))
-            t = 0:dt:tfinal
-            y = func(s, t)[1]
-            styledict = getStyleSys(si,length(systems))
+        for (si,s) in enumerate(systems)
+            y,t = func(s, p.args[2:end]...)
             for i=1:ny
                 for j=1:nu
                     ydata = reshape(y[:, i, j], size(t, 1))
@@ -215,8 +193,6 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                         yguide --> ytext
                         subplot --> s2i(i,j)
                         label --> "\$G_{$(si)}\$"
-                        linestyle --> styledict[:l]
-                        seriescolor --> styledict[:c]
                         t, ydata
                     end
                 end
@@ -276,15 +252,16 @@ bodeplot
 
 
         xlab = plotphase ? "" : "Frequency (rad/s)"
+        group_ind = 0
         for j=1:nu
             for i=1:ny
+                group_ind += 1
                 magdata = vec(mag[:, i, j])
                 if all(magdata .== -Inf)
                     # 0 system, don't plot anything
                     continue
                 end
                 phasedata = vec(phase[:, i, j])
-                styledict = getStyleSys(si,length(systems))
                 @series begin
                     grid      --> true
                     yscale    --> _PlotScaleFunc
@@ -294,26 +271,23 @@ bodeplot
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
-                    subplot --> s2i((plotphase ? (2i-1) : i),j)
+                    subplot   --> s2i((plotphase ? (2i-1) : i),j)
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
-                    linestyle --> styledict[:l]
-                    seriescolor --> styledict[:c]
+                    group     --> group_ind
                     w, magdata
                 end
                 plotphase || continue
 
                 @series begin
                     grid      --> true
-                    primary   --> false
                     xscale    --> :log10
                     ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
-                    subplot --> s2i(2i,j)
+                    subplot   --> s2i(2i,j)
                     xguide    --> "Frequency (rad/s)"
                     label     --> "\$G_{$(si)}\$"
-                    linestyle --> styledict[:l]
-                    seriescolor --> styledict[:c]
+                    group     --> group_ind
                     w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
@@ -393,9 +367,6 @@ nyquistplot
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
-                    styledict = getStyleSys(si,length(systems))
-                    linestyle --> styledict[:l]
-                    seriescolor --> styledict[:c]
                     hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
                     (redata, imdata)
                 end
@@ -518,7 +489,7 @@ nicholsplot
                     offset  = (l+1)
                     TextX   = Niϕ(k,210) .+offset
                     TextY   = Ni_Ga(k,210)
-                    annotation := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
+                    annotations := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
                 end
                 ϕVals .+ 360(l+1),GVals
             end
@@ -563,7 +534,7 @@ nicholsplot
             end
         end
         TextX
-        annotation := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
+        annotations := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
 
         title --> "Nichols chart"
         grid --> false
@@ -584,10 +555,7 @@ nicholsplot
         extremas = extrema([extremas..., extrema(mag)...])
         @series begin
             linewidth --> 2
-            styledict = getStyleSys(sysi,length(systems))
-            linestyle --> styledict[:l]
             hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
-            seriescolor --> styledict[:c]
             angles, mag
         end
     end
@@ -617,13 +585,11 @@ sigmaplot
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
         end
-        styledict = getStyleSys(si,length(systems))
         for i in 1:size(sv, 2)
             @series begin
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
-                linestyle --> styledict[:l]
-                seriescolor --> styledict[:c]
+                seriescolor --> si
                 w, sv[:, i]
             end
         end
@@ -639,7 +605,7 @@ A frequency vector `w` can be optionally provided.
 function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
     systems, w = _processfreqplot(Val{:bode}(), systems, args...)
     ny, nu = size(systems[1])
-    fig = bodeplot(systems, w, kwargs...)
+    fig = bodeplot(systems, w; kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
@@ -673,7 +639,7 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                 end
                 for k=1:length(wgm)
                     #Plot gain margins
-                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]], lab="", subplot=s2i(2i-1,j); getStyleSys(si,length(systems))...)
+                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]]; lab="", subplot=s2i(2i-1,j), group=si)
                 end
                 #Plot gain line at 1
                 Plots.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
@@ -681,9 +647,9 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 for k=1:length(wpm)
                     #Plot the phase margins
-                    Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab="", subplot=s2i(2i,j); getStyleSys(si,length(systems))...)
+                    Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]]; lab="", subplot=s2i(2i,j))
                     #Plot the line at 360*k
-                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
+                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2); l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
                 end
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "

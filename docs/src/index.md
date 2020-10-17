@@ -4,17 +4,17 @@
 CurrentModule = ControlSystems
 ```
 
-## Examples
-```@contents
-Pages = ["examples/example.md"]
-Depth = 2
-```
-
 ## Guide
 
 ```@contents
 Pages = ["man/introduction.md", "man/creating_systems.md"]
 Depth = 1
+```
+
+## Examples
+```@contents
+Pages = ["examples/example.md"]
+Depth = 2
 ```
 
 ## Functions

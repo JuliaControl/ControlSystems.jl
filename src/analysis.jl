@@ -480,32 +480,6 @@ function gangoffour(P::LTISystem,C::LTISystem; minimal=true)
     return S, D, N, T
 end
 
-
-function gangoffour(P::AbstractVector, C::AbstractVector; minimal=true)
-    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
-    if P[1].nu + P[1].ny + C[1].nu + C[1].ny > 4
-        error("gangoffour only supports SISO systems")
-    end
-    length(P) == length(C) || error("P has to be the same length as C")
-    minfun = minimal ? minreal : identity
-    n = length(P)
-    S = [minfun(1/(1+P[i]*C[i])) for i in 1:n]
-    D = [minfun(P[i]*S[i]) for i in 1:n]
-    N = [minfun(C[i]*S[i]) for i in 1:n]
-    T = [minfun(P[i]*N[i]) for i in 1:n]
-    return S, D, N, T
-end
-
-function gangoffour(P::TransferFunction, C::AbstractVector)
-    Base.depwarn("Deprecrated use of gangoffour(::TransferFunction, ::Vector), use `broadcast` and `zip` instead", :gangoffour)
-    gangoffour(fill(P,length(C)), C)
-end
-
-function gangoffour(P::AbstractVector, C::TransferFunction)
-    Base.depwarn("Deprecrated use of gangoffour(::Vector, ::TransferFunction), use `broadcast` and `zip` instead", :gangoffour)
-    gangoffour(P, fill(C,length(P)))
-end
-
 """`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
 
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,

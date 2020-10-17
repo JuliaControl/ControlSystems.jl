@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.com/JuliaControl/ControlSystems.jl)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/C/ControlSystems.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![Gitter](https://badges.gitter.im/JuliaControl/ControlSystems.jl.svg)](https://gitter.im/JuliaControl/ControlSystems.jl?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![codecov](https://codecov.io/gh/JuliaControl/ControlSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaControl/ControlSystems.jl)
 
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/stable)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/latest)
@@ -14,10 +14,14 @@ A control systems design toolbox for Julia.
 To install, in the Julia REPL:
 
 ```julia
-Pkg.add("ControlSystems")
+using Pkg; Pkg.add("ControlSystems")
 ```
 
 ## News
+
+### 2020-10
+- `lsimplot, stepplot, impulseplot` now have the same signatures as the corresponding non-plotting function.
+- New function `d2c` for conversion from discrete to continuous.
 
 ### 2020-09-24
 Release v0.7 introduces a new `TimeEvolution` type to handle `Discrete/Continuous` systems. See the [release notes](https://github.com/JuliaControl/ControlSystems.jl/releases/tag/v0.7.0).
@@ -109,7 +113,7 @@ CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 # Any keyword arguments supported in Plots.jl can be supplied
-stepplot(CLs, label=["Kp = 1", "Kp = 5", "Kp = 15"])
+stepplot(CLs, label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ```
 
 ![StepResponse](/example/step_response.png)

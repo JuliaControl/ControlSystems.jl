@@ -56,9 +56,9 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
-        label = "\$k_p\$ = $(round(kp, digits=3)),      \$k_i\$ = $(round(ki, digits=3)),      \$k_d\$ = $(round(kd, digits=3))"
+        label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
 
-        C = pid(kp=kp,ki=ki,kd=kd,timeevol=timeevol,series=series)
+        C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
         push!(Cs, C)
         push!(PCs, P*C)
@@ -238,7 +238,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplo
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
@@ -248,19 +248,20 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
-
 """
-`kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin)`
+`kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin, doplot = false)`
 
 Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
 If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
 If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
+
+Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
 
 See also `pidplots`, `stabregionPID`
 """
@@ -282,8 +283,8 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
     C = pid(kp=kp, ki=ki)
 
     if doplot
-        gangoffourplot(P,[tf(1),C])
-        nyquistplot([P, P*C])
+        gangoffourplot(P,[tf(1),C]) |> display
+        nyquistplot([P, P*C]) |> display
     end
     return kp,ki,C
 end
