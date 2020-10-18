@@ -31,26 +31,55 @@ Base.first(b::DDEBuffer, indx::Int) = first(b.buff[indx])
 
 # add an element to the back
 function Base.push!(b::DDEBuffer, t, val, indx::Int)
+    if !isempty(b,indx) && last(b, indx).t > t
+        throw(AssertionError("Can only push times after the buffer end"))
+    end
     push!(b.buff[indx], TimedVal(t, val))
-    
-    # println(length(b.buff[indx]))
 end
 
 # Get last value before time t
 function (b::DDEBuffer)(t, indx::Int)
     bi = b.buff[indx]
-    val = first(bi).val
+    v1 = nothing
+    t1 = nothing
+    v2 = nothing
+    t2 = nothing
+
     if first(bi).t > t
-        error("time $t is before start of buffer")
+        throw(AssertionError("time $t is before start of buffer"))
     end
+    found = false
     for vt in bi
         if vt.t <= t
-            val = vt.val
+            # Keep updating as long as vt.t < t
+            v1 = vt.val
+            t1 = vt.t
         else
+            # We found te last value, now get one more
+            v2 = vt.val
+            t2 = vt.t
             break
+
         end
     end
-    return val
+    # Error if no value found
+    v1 === nothing && throw(AssertionError("Value not in buffer range at t: $t"))
+
+    if t1 == t
+        # If exact value
+        return v1
+    elseif v2 === nothing
+        # If extrapolating forward
+        @warn "Interpolation inaccurate at t=$t"
+        return v1
+    elseif t2 <= t1
+        @warn "Interpolation found two equal time steps at t=$t"
+        return val
+    else
+        # Interpolate
+        return (v1*(t2 - t) + v2*(t - t1))/(t2-t1)
+    end
+    return val # Can't happen
 end
 
 """

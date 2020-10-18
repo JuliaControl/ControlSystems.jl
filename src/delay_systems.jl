@@ -81,7 +81,11 @@ end
 
     Returns: times `t`, and `y` and `x` at those times.
 """
-function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=MethodOfSteps(Tsit5()), method= :simple, kwargs...) where {T,S}
+function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=Tsit5(), kwargs...) where {T,S}
+    if nstates(sys) == 0
+        # TODO We can easily fix this, but solver obviously throws error
+        throw(ArgumentError("Delay system does not have any states, lsim is not possible"))
+    end
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
         (uout, t) -> uout .= u
@@ -91,8 +95,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zer
         (out, t) -> (out .= u(t))
     end
 
-    # TODO MethodOfSteps?
-    _lsim(sys, u!, t, x0, Tsit5(); kwargs...)
+    _lsim(sys, u!, t, x0, alg; kwargs...)
 end
 
 function dde_param(dx, x, p, t)
@@ -147,10 +150,9 @@ function dde_param_saver(x,t,integrator)
         mul!(tmpy1, C1, x)
         mul!(tmpy2, D11, uout)
         tmpy1 .+= tmpy2
-        mul!(tmpy2, D12, tmpd2)
+        mul!(tmpy2, D12, hout)
         tmpy1 .+= tmpy2
         push!(y, copy(tmpy1))
-        println("Saving y t: $t")
     end
 
 end
@@ -190,14 +192,14 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
                         func_start = false)
     # TODO Check what the real limit is on the stepsize
     tau_min = length(Tau)>0 ? minimum(Tau)/2 : 10.0
-    tau_min = min(tau_min, dt/100) # TODO This seems to increase the accuracy linearly
+    tau_min = min(tau_min, dt/2) # TODO This seems to increase the accuracy
     cb2 = StepsizeLimiter((u,p,t) -> tau_min)
     prob = ODEProblem{true}(dde_param, x0,
                 (T(t[1]), T(t[end])),
                 p,
                 callback=CallbackSet(cb1,cb2))#, constant_lags=Tau, stop_at=[0;Tau])
 
-    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs..., abstol=1e-10, reltol=1e-10)
+    sol = OrdinaryDiffEq.solve(prob, alg; saveat=t, abstol=1e-6, reltol=1e-6, kwargs...)
 
     solu = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
 
@@ -205,6 +207,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
         x[:,k] .= sol.u[k]
     end
     # TODO Handle y better
+    # Currently y is saved for every integrator step (which often coincides with saveat)
     return reduce(hcat,y[1:end-1])', t, x'
 end
 
@@ -255,7 +258,7 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
 end
 
 
-function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS3()), kwargs...) where T
+function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=BS3(), kwargs...) where T
     nu = ninputs(sys)
     iszero(sys.P.D12) || @warn("Impulse with a direct term from input to delay vector leads to poor accuracy.")
     if t[1] != 0

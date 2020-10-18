@@ -1,5 +1,3 @@
-using DelayDiffEq
-
 @testset "test_delay_system" begin
 ω = 0.0:8
 
@@ -173,7 +171,7 @@ y3, t3, x3 = step([s11; s12], t)
 
 y1, t1, x1 = step(DelayLtiSystem([1.0/s 2/s; 3/s 4/s]), t)
 y2, t2, x2 = step([1.0/s 2/s; 3/s 4/s], t)
-@test y1 ≈ y2 rtol=1e-15
+@test y1 ≈ y2 rtol=1e-14
 @test size(x1,1) == length(t)
 @test size(x1,3) == 2
 
@@ -182,7 +180,7 @@ y2, t2, x2 = step([1.0/s 2/s; 3/s 4/s], t)
 K = 2.0
 sys_known = feedback(delay(1)*K/s, 1)
 
-ystep, t, _ = step(sys_known, 3)
+ystep, t, _ = step(sys_known, 3, abstol=1e-11, reltol=1e-11)
 
 function y_expected(t, K)
       if t < 1
@@ -196,7 +194,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-10
+@test ystep ≈ y_expected.(t, K) atol = 1e-8
 
 function dy_expected(t, K)
       if t < 1
@@ -215,12 +213,38 @@ y_impulse, t, _ = impulse(sys_known, 3)
 # TODO Better accuracy for impulse
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-4
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-3
-y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
+y_impulse, t, _ = impulse(sys_known, 3, alg=ControlSystems.Tsit5())
 
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
 
+## Test delay with D22 term
 
+sys = delay(1)
+# Broken when no states
+@test_broken step(sys, 2)
+
+sys = delay(1)*delay(1)*1/s
+
+t = 0:0.01:4
+y, t, x = step(sys, t)
+
+y_sol = [zeros(200);0:0.01:2]
+
+@test maximum(abs,y-y_sol) < 1e-15
+@test maximum(abs,x-collect(0:0.01:4)) < 1e-15
+
+# TODO For some reason really bad accuracy here
+# Looks like a lag in time
+sys = 1/s*delay(1)*delay(1)
+
+y, t, x = step(sys, t)
+@test maximum(abs,y-y_sol) < 0.0022
+@test maximum(abs,x-y_sol) < 0.0022
+
+t = 0:0.001:0.1
+y, t, x = step(sys, t)
+@test_broken length(y) == lenth(t)
 
 ##  Test of basic pade functionality
 

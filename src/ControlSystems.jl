@@ -96,7 +96,7 @@ export  LTISystem,
 using Plots, LaTeXStrings, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
-using OrdinaryDiffEq, DelayDiffEq
+using OrdinaryDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty
