@@ -91,115 +91,21 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zer
         (out, t) -> (out .= u(t))
     end
 
-    if method === :simple && iszero(sys.P.D22)
-        _lsim(sys, u!, t, x0, alg; kwargs...)
-    else
-        @warn("Non-zero D22-matrix block in delayed system: results will be inaccurate. Algorithm set to MethodOfSteps(ImplicitEuler())")
-        _lsim_dae(sys, u!, t, x0, MethodOfSteps(ImplicitEuler(autodiff=false)); kwargs...)
-    end
+    # TODO MethodOfSteps?
+    _lsim(sys, u!, t, x0, Tsit5(); kwargs...)
 end
 
-function dde_param(dx, x, h!, p, t)
-    A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp = p
+function dde_param(dx, x, p, t)
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tsave = p
 
-    u!(uout, t)     # uout = u(t)
-
-    #dx .= A*x + B1*ut
-    mul!(dx, A, x)
-    mul!(tmp, B1, uout)
-    dx .+= tmp
-
-    @views for k=1:length(Tau)     # Add each of the delayed signals
-        u!(uout, t-Tau[k])      # uout = u(t-tau[k])
-        h!(hout, p, t-Tau[k])
-        dk_delayed = dot(C2[k,:], hout) + dot(D21[k,:], uout)
-        dx .+= B2[:, k] .* dk_delayed
-    end
-    return
-end
-
-# TODO Discontinuities in u are not handled well yet.
-function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
-    P = sys.P
-
-    if !iszero(P.D22)
-        throw(ArgumentError("non-zero D22-matrix block is not supported")) # Due to limitations in differential equations
-    end
-
-    t0 = first(t)
-    dt = t[2] - t[1]
-    if !all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
-        error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
-    end
-
-    # Get all matrices to save on allocations
-    A, B1, B2, C1, C2, D11, D12, D21, D22 = P.A, P.B1, P.B2, P.C1, P.C2, P.D11, P.D12, P.D21, P.D22
-    Tau = sys.Tau
-
-    hout = fill(zero(T), nstates(sys))  # in place storage for h
-    uout = fill(zero(T), ninputs(sys)) # in place storage for u
-    tmp = similar(x0)
-
-    h!(out, p, t) = (out .= 0)      # History function
-
-    p = (A, B1, B2, C2, D21, Tau, u!, uout, hout, tmp)
-    prob = DDEProblem{true}(dde_param, x0, h!, (T(t[1]), T(t[end])), p, constant_lags=sys.Tau)
-
-    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
-
-    x = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
-
-    y = Matrix{T}(undef, noutputs(sys), length(t))
-    d = Matrix{T}(undef, size(C2,1), length(t))
-    # Build y signal (without d term)
-    for k = 1:length(t)
-        u!(uout, t[k])
-        y[:,k] = C1*x[k] + D11*uout
-        #d[:,k] = C2*x[k] + D21*uout
-    end
-
-    dtmp = Vector{T}(undef, size(C2,1))
-    # Function to evaluate d(t)_i at an arbitrary time
-    # X is continuous, so interpoate, u is not
-    function dfunc!(tmp::Array{T1}, t, i) where T1
-        tmp .= if t < t0
-            T1(0)
-        else
-            sol(t) # solution object has built in interpolator of same order as solver.
-        end
-        u!(uout, t)
-        return dot(view(C2,i,:),tmp) + dot(view(D21,i,:),uout)
-    end
-
-    # Account for the effect of the delayed d-signal on y
-    for k=1:length(Tau)
-        for j=1:length(t)
-            di = dfunc!(tmp, t[j] - Tau[k], k)
-            y[:, j] .+= view(D12,:, k) .* di
-        end
-    end
-
-    return y', t, reduce(hcat ,x)'
-end
-
-
-function dde_param_dae(du, u, h, p, t)
-    A, B1, B2, C2, D21, D22, Tau, u!, uout, hout, tmpx, tmpd = p
-
-    nx = size(A,1)
-    nd = length(Tau)
-
-    dx = view(du, 1:nx)
-    dd = view(du, (nx+1):(nx+nd))
-    x = view(u, 1:nx)
-    d = view(u, (nx+1):(nx+nd))
-
-    u!(uout, t)     # uout = u(t)
+    # uout = u(t)
+    u!(uout, t)
 
     # hout = d(t-Tau)
     for k=1:length(Tau)
-        hout[k] = h(p, t-Tau[k], idxs=(nx+k))
+        hout[k] = h(t-Tau[k], k)
     end
+
     #dx(t) .= A*x(t) + B1*u(t) +B2*d(t-tau)
     mul!(dx, A, x)
     mul!(tmpx, B1, uout)
@@ -207,26 +113,53 @@ function dde_param_dae(du, u, h, p, t)
     mul!(tmpx, B2, hout)
     dx .+= tmpx
 
-    # dd(t) = 0 = -d(t) + C2*x(t) + D21*u(t) + D22*d(t-Tau)
-    dd .= -d
-    mul!(tmpd, C2, x)
-    dd .+= tmpd
-    mul!(tmpd, D21, uout)
-    dd .+= tmpd
-    mul!(tmpd, D22, hout)
-    dd .+= tmpd
-
     return
 end
 
-function _lsim_dae(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
+# Save d(t) and y(t) in history
+function dde_param_saver(x,t,integrator)
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tsave = integrator.p
+
+    nd = length(Tau)
+
+    # uout = u(t)
+    u!(uout, t)
+
+    # hout = d(t-Tau)
+    for k=1:length(Tau)
+        hout[k] = h(t-Tau[k], k) 
+    end
+
+    # tmpd1 = d(t) = C2*x + D21*u(t) + D22*d(t-Tau)
+    mul!(tmpd1, C2, x)
+    mul!(tmpd2, D21, uout)
+    tmpd1 .+= tmpd2
+    mul!(tmpd2, D22, hout)
+    tmpd1 .+= tmpd2
+
+    # Save delay d(t)
+    for k=1:length(Tau)
+        h[t,k] = tmpd1[k]
+    end
+
+    if t in tsave
+        # tmpy1 = y(t) = C1*x + D11*u(t) + D12*d(t-Tau)
+        mul!(tmpy1, C1, x)
+        mul!(tmpy2, D11, uout)
+        tmpy1 .+= tmpy2
+        mul!(tmpy2, D12, tmpd2)
+        tmpy1 .+= tmpy2
+        push!(y, copy(tmpy1))
+        println("Saving y t: $t")
+    end
+
+end
+
+function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
     P = sys.P
 
     t0 = first(t)
     dt = t[2] - t[1]
-    if !all(diff(t) .≈ dt) # QUESTION Does this work or are there precision problems?
-        error("The t-vector should be uniformly spaced, t[2] - t[1] = $dt.") # Perhaps dedicated function for checking this?
-    end
 
     # Get all matrices to save on allocations
     A, B1, B2, C1, C2, D11, D12, D21, D22 = P.A, P.B1, P.B2, P.C1, P.C2, P.D11, P.D12, P.D21, P.D22
@@ -234,47 +167,45 @@ function _lsim_dae(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::Abstract
     nx = size(A,1)
     nd = length(Tau)
     ny = size(C1,1)
+    nt = length(t)
 
-    xd0 = [x0; zeros(T,nd)]
+    hout = fill(zero(T), nd)            # in place storage for delays
+    uout = fill(zero(T), ninputs(sys))  # in place storage for u
+    tmpx = similar(x0, nx)              # in place storage for x
+    tmpy1 = similar(x0, ny)             # in place storage for output
+    tmpy2 = similar(x0, ny)             # in place storage for output
+    tmpd1 = similar(x0, nd)             # in place storage for delays
+    tmpd2 = similar(x0, nd)             # in place storage for delays
+    y = Vector{T}[] #Matrix{T}(undef, ny, nt)        # Output matrix
+    x = Matrix{T}(undef, nx, nt)        # State matrix
 
-    hout = fill(zero(T), nd)  # in place storage for delays
-    uout = fill(zero(T), ninputs(sys)) # in place storage for u
-    tmpx = similar(xd0, nx)
-    tmpd = similar(xd0, nd)
+    # History function for delayed variables
+    h = HistoryFunction(T, (t,indx) -> 0.0, 0.0, Tau)
 
-    h(p, t; idxs=i) = zero(T) # Assume states and delayed signal is 0 before time starts
+    p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, t)
+    # This callback computes and stores the delay term
+    cb1 = FunctionCallingCallback(dde_param_saver,
+                        funcat = t,
+                        func_everystep=true,
+                        func_start = false)
+    # TODO Check what the real limit is on the stepsize
+    tau_min = length(Tau)>0 ? minimum(Tau)/2 : 10.0
+    tau_min = min(tau_min, dt/100) # TODO This seems to increase the accuracy linearly
+    cb2 = StepsizeLimiter((u,p,t) -> tau_min)
+    prob = ODEProblem{true}(dde_param, x0,
+                (T(t[1]), T(t[end])),
+                p,
+                callback=CallbackSet(cb1,cb2))#, constant_lags=Tau, stop_at=[0;Tau])
 
-    dde = DDEFunction(dde_param_dae, mass_matrix = Matrix(Diagonal([ones(T,nx); zeros(T,nd)])))
-    p = (A, B1, B2, C2, D21, D22, Tau, u!, uout, hout, tmpx, tmpd)
-    prob = DDEProblem{true}(dde, xd0, h, (T(t[1]), T(t[end])), p, constant_lags=Tau, stop_at=[0;Tau])
-
-    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
+    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs..., abstol=1e-10, reltol=1e-10)
 
     solu = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
 
-    nt = length(t)
-    x = Matrix{T}(undef, nx, nt)
-    y = Matrix{T}(undef, ny, nt)
-    d = Matrix{T}(undef, nd, nt)
-    # Build x,y,d signals
-    C1D12 = [C1 D12]
     for k = 1:nt
-        x[:,k] .= sol.u[k][1:nx]
-        d[:,k] .= sol.u[k][(nx+1):(nx+nd)]
-
-        u!(uout, t[k])
-        for i in 1:length(Tau)
-            ti = t[k] - Tau[i]
-            # Depending on lag, we use either <0 history function, or interpolation
-            if ti < t0
-                hout[i] = h(p, ti, idxs=nx+i)
-            else
-                hout[i] = sol(ti, idxs=nx+i)
-            end
-        end
-        y[:,k] = C1*x[:,k] + D11*uout + D12*hout
+        x[:,k] .= sol.u[k]
     end
-    return y', t, x'#, d'
+    # TODO Handle y better
+    return reduce(hcat,y[1:end-1])', t, x'
 end
 
 # We have to default to something, look at the sys.P.P and delays

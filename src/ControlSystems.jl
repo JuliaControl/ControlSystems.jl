@@ -105,6 +105,8 @@ import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
+import DataStructures: Deque # For DDE history simulation
+import DiffEqCallbacks: FunctionCallingCallback, StepsizeLimiter
 using MacroTools
 
 abstract type AbstractSystem end
@@ -159,6 +161,7 @@ include("pid_design.jl")
 
 include("demo_systems.jl")
 
+include("delay_history.jl")
 include("delay_systems.jl")
 
 include("plotting.jl")
