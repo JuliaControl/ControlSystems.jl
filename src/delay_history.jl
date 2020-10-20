@@ -1,4 +1,3 @@
-
 struct TimedVal{ValT, TimeT}
     t::TimeT
     val::ValT
@@ -8,9 +7,10 @@ end
 struct DDEBuffer{ValT, TimeT}
     buff::Vector{Deque{TimedVal{ValT,TimeT}}}
     τ::Vector{TimeT}
+    disc::Vector{ValT}
     function DDEBuffer(::Type{ValT}, τ::AbstractVector{TimeT}) where {ValT,TimeT}
         buff = [Deque{TimedVal{ValT,TimeT}}() for i in 1:length(τ)]
-        new{ValT,TimeT}(buff, copy(τ))
+        new{ValT,TimeT}(buff, copy(τ), ValT[])
     end
 end
 
@@ -40,6 +40,8 @@ end
 # Get last value before time t
 function (b::DDEBuffer)(t, indx::Int)
     bi = b.buff[indx]
+    v0 = nothing
+    t0 = nothing
     v1 = nothing
     t1 = nothing
     v2 = nothing
@@ -48,10 +50,14 @@ function (b::DDEBuffer)(t, indx::Int)
     if first(bi).t > t
         throw(AssertionError("time $t is before start of buffer"))
     end
-    found = false
+
     for vt in bi
         if vt.t <= t
             # Keep updating as long as vt.t < t
+            # Save prev value
+            v0 = v1
+            t0 = t1
+            # Current value
             v1 = vt.val
             t1 = vt.t
         else
@@ -74,12 +80,26 @@ function (b::DDEBuffer)(t, indx::Int)
         return v1
     elseif t2 <= t1
         @warn "Interpolation found two equal time steps at t=$t"
-        return val
+        return v1
+    elseif t2 in b.disc
+        # Next time point is a discontinuity
+        if v0 === nothing
+            # Not no provious point exists
+            @warn "Discontinuity found at next time point, no interpolation t=$t, t2=$t2"
+            return v1
+        elseif t0 == t1
+            # Previous point is same as current
+            @warn "Discontinuity found at next time point, two equal vals t=$t, t2=$t2"
+            return v1
+        else
+            # Extrapolate linearly from two previous points
+            return (v0*(t1 - t) + v1*(t - t0))/(t1-t0)
+        end
     else
-        # Interpolate
+        # Interpolate between current and next
         return (v1*(t2 - t) + v2*(t - t1))/(t2-t1)
     end
-    return val # Can't happen
+    return v1 # Can't happen
 end
 
 """
@@ -119,9 +139,13 @@ function (hf::HistoryFunction)(t, indx::Int)
     end
 end
 
-function Base.setindex!(hf::HistoryFunction, val, t, indx::Int)
+function Base.setindex!(hf::HistoryFunction, val, t, indx::Int, integrator)
     # Push to buffer
     push!(hf.buff, t, val, indx)
+    # Add potential discontinuity to list
+    if !isempty(integrator.opts.d_discontinuities) && first(integrator.opts.d_discontinuities) == t
+        !(t in hf.buff.disc) && push!(hf.buff.disc, t)
+    end
     # Erase history before t-τ
     t0 = t-hf.buff.τ[indx] - hf.eps
     

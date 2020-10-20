@@ -165,7 +165,7 @@ println("Simulating first delay system:")
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)
 # TODO Figure out which is inexact here
-@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-6
+@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-5
 
 y3, t3, x3 = step([s11; s12], t)
 @test y3[:,1,1] ≈ step(s11, t)[1] rtol = 1e-5
@@ -218,7 +218,6 @@ y_impulse, t, _ = impulse(sys_known, 3)
 
 y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
 # Two orders of magnitude better with BS3 in this case, which is default for impulse
-# NO LONGER TRUE
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-5
 @test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-4
 
@@ -243,8 +242,8 @@ y_sol = [zeros(200);0:0.01:2]
 sys = 1/s*delay(1)*delay(1)
 
 y, t, x = step(sys, t)
-@test maximum(abs,y-y_sol) < 0.0022
-@test maximum(abs,x-y_sol) < 0.0022
+@test maximum(abs,y-y_sol) < 1e-5
+@test maximum(abs,x-y_sol) < 1e-5
 
 t = 0:0.001:0.1
 y, t, x = step(sys, t)

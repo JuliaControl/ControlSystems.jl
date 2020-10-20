@@ -81,7 +81,12 @@ end
 
     Returns: times `t`, and `y` and `x` at those times.
 """
-function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=DelayDiffEq.MethodOfSteps(Tsit5()), kwargs...) where {T,S}
+function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
+        x0=fill(zero(T), nstates(sys)),
+        alg=DelayDiffEq.MethodOfSteps(Tsit5()),
+        abstol=1e-6, reltol=1e-6,
+        kwargs...) where {T,S}
+
     if nstates(sys) == 0
         # TODO We can easily fix this, but solver obviously throws error
         throw(ArgumentError("Delay system does not have any states, lsim is not possible"))
@@ -95,7 +100,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zer
         (out, t) -> (out .= u(t))
     end
 
-    _lsim(sys, u!, t, x0, alg; kwargs...)
+    _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
 end
 
 function dde_param(dx, x, h, p, t)
@@ -140,7 +145,7 @@ function dde_param_saver(x,t,integrator)
 
     # Save delay d(t)
     for k=1:length(Tau)
-        h[t,k] = tmpd1[k]
+        h[t,k,integrator] = tmpd1[k]
     end
 
     return
@@ -178,6 +183,7 @@ function dde_param_saver2(x,t,integrator)
 end
 
 function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
+
     P = sys.P
 
     t0 = first(t)
@@ -213,20 +219,20 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     sv = SavedValues(Float64, Tuple{Float64,Vector{Float64}})
     cb11 = SavingCallback(dde_param_saver2, sv, saveat = t)
     # TODO Check what the real limit is on the stepsize
-    tau_min = length(Tau)>0 ? minimum(Tau)/2 : 10.0
+    tau_min = length(Tau)>0 ? minimum(Tau)/2 : dt/2
     tau_min = min(tau_min, dt/2) # TODO This seems to increase the accuracy
-    cb2 = StepsizeLimiter((u,p,ti) -> (ti in t ? sqrt(eps(T)) : tau_min))
+    cb2 = StepsizeLimiter((u,p,ti) -> tau_min)
     # Fake histort function
     h!(out, p, t) = out
 
     prob = DDEProblem{true}(dde_param, x0, h!,
                 (T(t[1]), T(t[end])),
                 p,
-                constant_lags=sort([Tau;Tau.-sqrt(eps(T))]),
+                constant_lags=sort(Tau),
                 neutral=true,
                 callback=CallbackSet(cb1,cb11,cb2))
 
-    sol = DelayDiffEq.solve(prob, alg; saveat=t, abstol=1e-6, reltol=1e-6, kwargs...)
+    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
 
     solu = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
 
