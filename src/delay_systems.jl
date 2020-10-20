@@ -81,7 +81,7 @@ end
 
     Returns: times `t`, and `y` and `x` at those times.
 """
-function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=Tsit5(), kwargs...) where {T,S}
+function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zero(T), nstates(sys)), alg=DelayDiffEq.MethodOfSteps(Tsit5()), kwargs...) where {T,S}
     if nstates(sys) == 0
         # TODO We can easily fix this, but solver obviously throws error
         throw(ArgumentError("Delay system does not have any states, lsim is not possible"))
@@ -98,7 +98,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real}; x0=fill(zer
     _lsim(sys, u!, t, x0, alg; kwargs...)
 end
 
-function dde_param(dx, x, p, t)
+function dde_param(dx, x, h, p, t)
     A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tsave = p
 
     # uout = u(t)
@@ -119,11 +119,9 @@ function dde_param(dx, x, p, t)
     return
 end
 
-# Save d(t) and y(t) in history
+# Compute d(t) and y(t)
 function dde_param_saver(x,t,integrator)
     A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tsave = integrator.p
-
-    nd = length(Tau)
 
     # uout = u(t)
     u!(uout, t)
@@ -145,16 +143,38 @@ function dde_param_saver(x,t,integrator)
         h[t,k] = tmpd1[k]
     end
 
-    if t in tsave
-        # tmpy1 = y(t) = C1*x + D11*u(t) + D12*d(t-Tau)
-        mul!(tmpy1, C1, x)
-        mul!(tmpy2, D11, uout)
-        tmpy1 .+= tmpy2
-        mul!(tmpy2, D12, hout)
-        tmpy1 .+= tmpy2
-        push!(y, copy(tmpy1))
+    return
+end
+
+# Save d(t) and y(t) to output
+function dde_param_saver2(x,t,integrator)
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tsave = integrator.p
+    # We already have uout = u(t) and hout = d(t-Tau) from dde_param_saver
+    # For some reason we need to recalculate, previous saver is called at a future time
+
+    # uout = u(t)
+    u!(uout, t)
+
+    # hout = d(t-Tau)
+    for k=1:length(Tau)
+        hout[k] = h(t-Tau[k], k)
     end
 
+    # tmpd1 = d(t) = C2*x + D21*u(t) + D22*d(t-Tau)
+    mul!(tmpd1, C2, x)
+    mul!(tmpd2, D21, uout)
+    tmpd1 .+= tmpd2
+    mul!(tmpd2, D22, hout)
+    tmpd1 .+= tmpd2
+
+    # tmpy1 = y(t) = C1*x + D11*u(t) + D12*d(t-Tau)
+    mul!(tmpy1, C1, x)
+    mul!(tmpy2, D11, uout)
+    tmpy1 .+= tmpy2
+    mul!(tmpy2, D12, hout)
+    tmpy1 .+= tmpy2
+
+    t, copy(tmpy1)
 end
 
 function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
@@ -178,37 +198,44 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     tmpy2 = similar(x0, ny)             # in place storage for output
     tmpd1 = similar(x0, nd)             # in place storage for delays
     tmpd2 = similar(x0, nd)             # in place storage for delays
-    y = Vector{T}[] #Matrix{T}(undef, ny, nt)        # Output matrix
+    y = Matrix{T}(undef, ny, nt)        # Output matrix
     x = Matrix{T}(undef, nx, nt)        # State matrix
 
-    # History function for delayed variables
-    h = HistoryFunction(T, (t,indx) -> 0.0, 0.0, Tau)
+    # History function for delayed variables. Integrator might be ahead of time
+    h = HistoryFunction(T, (t,indx) -> 0.0, 0.0, 2 .* Tau)
 
     p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, h, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, t)
     # This callback computes and stores the delay term
     cb1 = FunctionCallingCallback(dde_param_saver,
                         funcat = t,
                         func_everystep=true,
-                        func_start = false)
+                        func_start = true)
+    sv = SavedValues(Float64, Tuple{Float64,Vector{Float64}})
+    cb11 = SavingCallback(dde_param_saver2, sv, saveat = t)
     # TODO Check what the real limit is on the stepsize
     tau_min = length(Tau)>0 ? minimum(Tau)/2 : 10.0
     tau_min = min(tau_min, dt/2) # TODO This seems to increase the accuracy
-    cb2 = StepsizeLimiter((u,p,t) -> tau_min)
-    prob = ODEProblem{true}(dde_param, x0,
+    cb2 = StepsizeLimiter((u,p,ti) -> (ti in t ? sqrt(eps(T)) : tau_min))
+    # Fake histort function
+    h!(out, p, t) = out
+
+    prob = DDEProblem{true}(dde_param, x0, h!,
                 (T(t[1]), T(t[end])),
                 p,
-                callback=CallbackSet(cb1,cb2))#, constant_lags=Tau, stop_at=[0;Tau])
+                constant_lags=sort([Tau;Tau.-sqrt(eps(T))]),
+                neutral=true,
+                callback=CallbackSet(cb1,cb11,cb2))
 
-    sol = OrdinaryDiffEq.solve(prob, alg; saveat=t, abstol=1e-6, reltol=1e-6, kwargs...)
+    sol = DelayDiffEq.solve(prob, alg; saveat=t, abstol=1e-6, reltol=1e-6, kwargs...)
 
     solu = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
 
     for k = 1:nt
         x[:,k] .= sol.u[k]
+        y[:,k] .= sv.saveval[k][2]
     end
-    # TODO Handle y better
-    # Currently y is saved for every integrator step (which often coincides with saveat)
-    return reduce(hcat,y[1:end-1])', t, x'
+
+    return y', t, x'
 end
 
 # We have to default to something, look at the sys.P.P and delays
@@ -258,7 +285,7 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
 end
 
 
-function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=BS3(), kwargs...) where T
+function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS3()), kwargs...) where T
     nu = ninputs(sys)
     iszero(sys.P.D12) || @warn("Impulse with a direct term from input to delay vector leads to poor accuracy.")
     if t[1] != 0

@@ -1,3 +1,5 @@
+import DelayDiffEq: MethodOfSteps, Tsit5
+
 @testset "test_delay_system" begin
 ω = 0.0:8
 
@@ -163,10 +165,10 @@ println("Simulating first delay system:")
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)
 # TODO Figure out which is inexact here
-@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-5
+@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-6
 
 y3, t3, x3 = step([s11; s12], t)
-@test y3[:,1,1] ≈ step(s11, t)[1] rtol = 1e-4
+@test y3[:,1,1] ≈ step(s11, t)[1] rtol = 1e-5
 @test y3[:,2,1] ≈ step(s12, t)[1] rtol = 1e-14
 
 y1, t1, x1 = step(DelayLtiSystem([1.0/s 2/s; 3/s 4/s]), t)
@@ -180,7 +182,7 @@ y2, t2, x2 = step([1.0/s 2/s; 3/s 4/s], t)
 K = 2.0
 sys_known = feedback(delay(1)*K/s, 1)
 
-ystep, t, _ = step(sys_known, 3, abstol=1e-11, reltol=1e-11)
+ystep, t, _ = step(sys_known, 3)
 
 function y_expected(t, K)
       if t < 1
@@ -194,7 +196,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-8
+@test ystep ≈ y_expected.(t, K) atol = 1e-14
 
 function dy_expected(t, K)
       if t < 1
@@ -211,12 +213,14 @@ end
 y_impulse, t, _ = impulse(sys_known, 3)
 
 # TODO Better accuracy for impulse
-@test y_impulse ≈ dy_expected.(t, K) rtol=1e-4
-@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-3
-y_impulse, t, _ = impulse(sys_known, 3, alg=ControlSystems.Tsit5())
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-14
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-14
 
-@test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
-@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
+y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
+# Two orders of magnitude better with BS3 in this case, which is default for impulse
+# NO LONGER TRUE
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-5
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-4
 
 ## Test delay with D22 term
 
@@ -244,7 +248,7 @@ y, t, x = step(sys, t)
 
 t = 0:0.001:0.1
 y, t, x = step(sys, t)
-@test_broken length(y) == lenth(t)
+@test length(y) == length(t)
 
 ##  Test of basic pade functionality
 
