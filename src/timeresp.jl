@@ -113,7 +113,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
     end
-    if !(size(u) in [(length(t), nu) (length(t),)])
+    if !(size(u) in ((length(t), nu), (length(t),)))
         error("u must be of size (length(t), nu)")
     end
 
@@ -215,7 +215,7 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
 
     n = size(u, 1)
-  
+
     # Transposing u allows column-wise operations, which apparently is faster.
     ut = transpose(u)
 
