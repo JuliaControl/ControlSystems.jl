@@ -58,7 +58,7 @@ function getLogTicks(x, minmax)
     minx, maxx =  minmax
     major_minor_limit = 6
     minor_text_limit  = 8
-    min               = ceil(log10(minx))
+    min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
     max               = floor(log10(maxx))
     major             = exp10.(min:max)
     if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
