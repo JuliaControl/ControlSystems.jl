@@ -35,10 +35,10 @@ my_tests = [
             ]
 
 @testset "All Tests" begin
-    #println("Testing code")
-    #_t0 = time()
-    #run_tests(my_tests)
-    #println("Ran all code tests in $(round(time()-_t0, digits=2)) seconds")
+    println("Testing code")
+    _t0 = time()
+    run_tests(my_tests)
+    println("Ran all code tests in $(round(time()-_t0, digits=2)) seconds")
 
 
     println("Test Doctests")

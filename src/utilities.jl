@@ -206,7 +206,7 @@ function extractvarname(a)
 end
 
 """
-`conv(a,b)` makes a convolution between vectors `a` and `b`
+`conv(a,b)` creates a convolution of vectors `a` and `b`
 """
 function conv(a::AbstractArray{T}, b::AbstractArray{S}) where {T, S}
     n, m = length(a), length(b) 
