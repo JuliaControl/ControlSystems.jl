@@ -104,7 +104,6 @@ import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
-import DSP: conv
 using MacroTools
 
 abstract type AbstractSystem end

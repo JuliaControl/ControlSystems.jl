@@ -204,3 +204,27 @@ end
 function extractvarname(a)
     typeof(a) == Symbol ? a : extractvarname(a.args[1])
 end
+
+"""
+`conv(a,b)` makes a convolution between vectors `a` and `b`
+"""
+function conv(a::AbstractArray{T}, b::AbstractArray{S}) where {T, S}
+    n, m = length(a), length(b) 
+    R = promote_type(T, S)
+    c = zeros(R, m + n - 1)
+    for i in 1:n, j in 1:m
+        @inbounds c[i + j - 1] += a[i] * b[j]
+    end
+    return c
+end
+
+"""
+`zpconv(a,r,b,s)` form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+"""
+function zpconv(a,r,b,s)
+    d = length(a)+length(r)-length(b)-length(s)
+    if d > 0
+        b = [zeros(d);b]
+    end
+    conv(a,r) + conv(b,s)
+end
