@@ -37,4 +37,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 
 [targets]
-test = ["Test", "Documenter", "GR", "StaticArrays"]
+test = ["Test", "Documenter", "GR", "StaticArrays", "DSP"]
