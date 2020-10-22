@@ -87,10 +87,6 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
         abstol=1e-6, reltol=1e-6,
         kwargs...) where {T,S}
 
-    if nstates(sys) == 0
-        # TODO We can easily fix this, but solver obviously throws error
-        throw(ArgumentError("Delay system does not have any states, lsim is not possible"))
-    end
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
         (uout, t) -> uout .= u
@@ -103,10 +99,10 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
     _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
 end
 
+# We actually simulate the integral of y and d here.
 function dde_param(du, u, h, p, t)
-    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tmpnyx, tsave = p
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpnyx, tsave = p
 
-    println("u:",u)
     nx = size(A,1)
     nd = length(Tau)
     ny = size(C1,1)
@@ -121,6 +117,7 @@ function dde_param(du, u, h, p, t)
 
     # hout = d(t-Tau)
     for k=1:length(Tau)
+        # Get the derivative of the history for d at indices corresponding to Tau
         hout[k] = h(p, t-Tau[k], Val{1}, idxs=(nx+ny+k))
     end
 
@@ -133,33 +130,32 @@ function dde_param(du, u, h, p, t)
 
     # dy = y(t) = C1*x + D11*u(t) + D12*d(t-Tau)
     mul!(dy, C1, x)
-    mul!(tmpy2, D11, uout)
-    dy .+= tmpy2
-    mul!(tmpy2, D12, hout)
-    dy .+= tmpy2
+    mul!(tmpy1, D11, uout)
+    dy .+= tmpy1
+    mul!(tmpy1, D12, hout)
+    dy .+= tmpy1
 
     # dd = d(t) = C2*x + D21*u(t) + D22*d(t-Tau)
     mul!(dd, C2, x)
-    mul!(tmpd2, D21, uout)
-    dd .+= tmpd2
-    mul!(tmpd2, D22, hout)
-    dd .+= tmpd2
+    mul!(tmpd1, D21, uout)
+    dd .+= tmpd1
+    mul!(tmpd1, D22, hout)
+    dd .+= tmpd1
 
+    # Save y value in tmpy1 to be used by dde_saver
+    if t in tsave
+        # The value of y at this time is given by the derivative
+        tmpy2 .= dy
+    end
     return
 end
 
-# Save d(t) and y(t) to output
-function dde_param_saver2(u,t,integrator)
-    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tmpnyx, tsave = integrator.p
-
+# Save x(t) and y(t) to output
+function dde_saver(u,t,integrator)
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpnyx, tsave = integrator.p
     nx = size(A,1)
-    nd = length(Tau)
-    ny = size(C1,1)
-
-    # Get all derivatives
-    #h!(tmpnyx, p, t, Val{1})#, idxs=(nx+ny+k))
-
-    u[1:nx]#, tmpnyx[(nx+1):(nx+ny)], tmpnyx[(nx+ny+1):(nx+ny+nd)]
+    # y is already saved in tmpy2
+    u[1:nx], copy(tmpy2)
 end
 
 function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
@@ -183,38 +179,35 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     tmpy1 = similar(x0, ny)             # in place storage for output
     tmpy2 = similar(x0, ny)             # in place storage for output
     tmpd1 = similar(x0, nd)             # in place storage for delays
-    tmpd2 = similar(x0, nd)             # in place storage for delays
-    tmpnyx = similar(x0, nx+ny+nd)
+    tmpnyx = similar(x0, nx+ny+nd)      # in place storage x,y,d
     y = Matrix{T}(undef, ny, nt)        # Output matrix
     x = Matrix{T}(undef, nx, nt)        # State matrix
 
-    p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpd2, tmpnyx, t)
-    # This callback computes and stores the delay term
+    p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpnyx, t)
 
-    sv = SavedValues(Float64, Vector{Float64})#Tuple{Vector{Float64},Vector{Float64},Vector{Float64}})
-    cb1 = SavingCallback(dde_param_saver2, sv, saveat = t)
-    # TODO Check what the real limit is on the stepsize
-    tau_min = length(Tau)>0 ? minimum(Tau)/2 : dt/2
-    tau_min = min(tau_min, dt/2) # TODO This seems to increase the accuracy
-    cb2 = StepsizeLimiter((u,p,ti) -> tau_min)
+    # This callback computes and stores the delay term
+    sv = SavedValues(Float64, Tuple{Vector{Float64},Vector{Float64}})
+    cb = SavingCallback(dde_saver, sv, saveat = t)
+
     # History function, only used for d
+    # The true d(t) is stored as a derivative
     h!(p, t, deriv::Type{Val{1}}; idxs=0) = zero(T)
 
+    # The states are x(t), Y(t), D(t), where Y, D are integrals of y(t), d(t)
     u0 = [x0;zeros(T,ny);zeros(T,nd)]
     prob = DDEProblem{true}(dde_param, u0, h!,
                 (T(t[1]), T(t[end])),
                 p,
-                constant_lags=sort(Tau),
-                neutral=true,
-                callback=CallbackSet(cb1,cb2))
+                constant_lags=sort(Tau),# Not sure if sort needed
+                neutral=true,           # We have derivatives on RHS (d(t)) 
+                callback=cb)
+    # Important to stop at t since we can not access derivatives in SavingCallback
+    sol = DelayDiffEq.solve(prob, alg; tstops=t, saveat=t, kwargs...)
 
-    sol = DelayDiffEq.solve(prob, alg; saveat=t, kwargs...)
-
-    solu = sol.u::Vector{Vector{T}} # the states are labeled u in DelayDiffEq
-
+    # Retrive the saved values
     for k = 1:nt
         x[:,k] .= sv.saveval[k][1]
-        y[:,k] .= sol(t[k], Val{1})[(nx+1):(nx+ny)]
+        y[:,k] .= sv.saveval[k][2]
     end
 
     return y', t, x'

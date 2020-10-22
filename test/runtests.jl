@@ -28,7 +28,6 @@ my_tests = [
             "test_lqg",
             "test_synthesis",
             "test_partitioned_statespace",
-            "test_delay_history",
             "test_delayed_systems",
             "test_demo_systems",
             "test_autovec",

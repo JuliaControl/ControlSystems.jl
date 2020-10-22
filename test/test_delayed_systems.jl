@@ -165,10 +165,10 @@ println("Simulating first delay system:")
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)
 # TODO Figure out which is inexact here
-@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-5
+@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-14
 
 y3, t3, x3 = step([s11; s12], t)
-@test y3[:,1,1] ≈ step(s11, t)[1] rtol = 1e-5
+@test y3[:,1,1] ≈ step(s11, t)[1] rtol = 1e-14
 @test y3[:,2,1] ≈ step(s12, t)[1] rtol = 1e-14
 
 y1, t1, x1 = step(DelayLtiSystem([1.0/s 2/s; 3/s 4/s]), t)
@@ -196,7 +196,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-14
+@test ystep ≈ y_expected.(t, K) atol = 1e-12
 
 function dy_expected(t, K)
       if t < 1
@@ -213,28 +213,30 @@ end
 y_impulse, t, _ = impulse(sys_known, 3)
 
 # TODO Better accuracy for impulse
-@test y_impulse ≈ dy_expected.(t, K) rtol=1e-14
-@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-14
+@test y_impulse ≈ dy_expected.(t, K) rtol=1e-13
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-12
 
 y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test y_impulse ≈ dy_expected.(t, K) rtol=1e-5
-@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-4
+@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-5
 
 ## Test delay with D22 term
+t = 0:0.01:4
 
 sys = delay(1)
-# Broken when no states
-@test_broken step(sys, 2)
+
+y, t, x = step(sys, t)
+@test y[:] ≈ [zeros(100); ones(301)] atol = 1e-12
+@test size(x) == (401,0)
 
 sys = delay(1)*delay(1)*1/s
 
-t = 0:0.01:4
 y, t, x = step(sys, t)
 
 y_sol = [zeros(200);0:0.01:2]
 
-@test maximum(abs,y-y_sol) < 1e-15
+@test maximum(abs,y-y_sol) < 1e-13
 @test maximum(abs,x-collect(0:0.01:4)) < 1e-15
 
 # TODO For some reason really bad accuracy here
