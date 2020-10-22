@@ -161,7 +161,6 @@ include("pid_design.jl")
 
 include("demo_systems.jl")
 
-include("delay_history.jl")
 include("delay_systems.jl")
 
 include("plotting.jl")
