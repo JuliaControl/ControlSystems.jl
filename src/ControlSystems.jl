@@ -105,8 +105,7 @@ import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
-import DataStructures: Deque # For DDE history simulation
-import DiffEqCallbacks: FunctionCallingCallback, StepsizeLimiter, SavingCallback, SavedValues
+import DiffEqCallbacks: SavingCallback, SavedValues
 using DelayDiffEq
 using MacroTools
 
