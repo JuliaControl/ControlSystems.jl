@@ -152,6 +152,11 @@ function lsim(sys::StateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
     lsim(sys, u, t; kwargs...)
 end
 
+function lsim(sys::TransferFunction{<:Discrete}, u::AbstractVecOrMat; kwargs...)
+    t = range(0, length=size(u, 1), step=sys.Ts)
+    lsim(sys, u, t; kwargs...)
+end
+
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
