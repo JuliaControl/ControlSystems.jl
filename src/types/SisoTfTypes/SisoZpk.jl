@@ -12,9 +12,9 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
             z = TR[]
         end
         if TR <: Complex && T <: Real
-            sort_conjugates!(z)
+            order_conjugates!(z)
             @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-            sort_conjugates!(p)
+            order_conjugates!(p)
             @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
         end
         new{T,TR}(z, p, k)
@@ -197,18 +197,18 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
     println(io, denstr)
 end
 
-function sort_conjugates!(x)
+function order_conjugates!(x)
     i = 0
     while i < length(x)
         i += 1
         imag(x[i]) == 0 && continue
         for j in i+1:length(x)
             if x[i] == conj(x[j])
-                if imag(x[i]) > imag(x[j])
+                if imag(x[i]) > imag(x[j]) # Swap i+1 <-> j
                     tmp = x[i+1]
                     x[i+1] = x[j]
                     x[j] = tmp
-                else
+                else # Rotate i -> i+1 -> j -> i
                     tmp = x[i]
                     x[i] = x[j]
                     x[j] = x[i+1]
