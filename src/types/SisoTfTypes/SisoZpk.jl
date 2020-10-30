@@ -12,7 +12,9 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
             z = TR[]
         end
         if TR <: Complex && T <: Real
+            order_conjugates!(z)
             @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
+            order_conjugates!(p)
             @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
         end
         new{T,TR}(z, p, k)
@@ -27,13 +29,6 @@ function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
 end
 function SisoZpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T) where {T<:Number, TZ<:Number, TP<:Number} # NOTE: is this constructor really needed?
     TR = promote_type(TZ,TP)
-    # Could check if complex roots come with their conjugates,
-    # i.e., if the SisoZpk corresponds to a real-valued system
-
-    if TR <: Complex && T <: Real
-        @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-        @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
-    end
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), k)
 end
 
@@ -133,7 +128,29 @@ function check_real(r_vec::AbstractVector{<:Complex})
     return true
 end
 
-
+function order_conjugates!(x)
+    i = 0
+    while i < length(x)
+        i += 1
+        imag(x[i]) == 0 && continue
+        for j in i+1:length(x)
+            if x[i] == conj(x[j])
+                if imag(x[i]) > imag(x[j]) # Swap i+1 <-> j
+                    tmp = x[i+1]
+                    x[i+1] = x[j]
+                    x[j] = tmp
+                else # Rotate i -> i+1 -> j -> i
+                    tmp = x[i]
+                    x[i] = x[j]
+                    x[j] = x[i+1]
+                    x[i+1] = tmp
+                end
+                i += 1
+                break
+            end
+        end
+    end
+end
 
 function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
     T0 = promote_type(T2, TR)
