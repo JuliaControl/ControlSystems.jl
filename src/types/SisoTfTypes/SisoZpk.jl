@@ -12,7 +12,9 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
             z = TR[]
         end
         if TR <: Complex && T <: Real
+            sort_conjugates!(z)
             @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
+            sort_conjugates!(p)
             @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
         end
         new{T,TR}(z, p, k)
@@ -27,13 +29,6 @@ function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
 end
 function SisoZpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T) where {T<:Number, TZ<:Number, TP<:Number} # NOTE: is this constructor really needed?
     TR = promote_type(TZ,TP)
-    # Could check if complex roots come with their conjugates,
-    # i.e., if the SisoZpk corresponds to a real-valued system
-
-    if TR <: Complex && T <: Real
-        @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-        @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
-    end
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), k)
 end
 
@@ -202,9 +197,29 @@ function print_siso(io::IO, t::SisoZpk, var=:s)
     println(io, denstr)
 end
 
-
-
-
+function sort_conjugates!(x)
+    i = 0
+    while i < length(x)
+        i += 1
+        imag(x[i]) == 0 && continue
+        for j in i+1:length(x)
+            if x[i] == conj(x[j])
+                if imag(x[i]) > imag(x[j])
+                    tmp = x[i+1]
+                    x[i+1] = x[j]
+                    x[j] = tmp
+                else
+                    tmp = x[i]
+                    x[i] = x[j]
+                    x[j] = x[i+1]
+                    x[i+1] = tmp
+                end
+                i += 1
+                break
+            end
+        end
+    end
+end
 
 ==(f1::SisoZpk, f2::SisoZpk) = (f1-f2).k == 0
 function isapprox(f1::SisoZpk, f2::SisoZpk; rtol::Real=sqrt(eps()), atol::Real=sqrt(eps()))
