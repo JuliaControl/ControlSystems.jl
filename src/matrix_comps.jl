@@ -533,20 +533,26 @@ end
 
 
 """
-`sysr, G = baltrunc(sys::StateSpace, atol = √ϵ, rtol=1e-3, unitgain=true)`
+    sysr, G = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
 
-Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed. If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
+Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
+
+If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
 
 See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n = nothing) where ST <: AbstractStateSpace
     sysbal, S = balreal(sys)
     S = diag(S)
-    S = S[S .>= atol]
-    S = S[S .>= S[1]*rtol]
-    n = length(S)
+    if n === nothing
+        S = S[S .>= atol]
+        S = S[S .>= S[1]*rtol]
+        n = length(S)
+    else
+        S = S[1:n]
+    end
     A = sysbal.A[1:n,1:n]
     B = sysbal.B[1:n,:]
     C = sysbal.C[:,1:n]
