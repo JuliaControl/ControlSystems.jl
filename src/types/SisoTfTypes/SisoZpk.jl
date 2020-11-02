@@ -12,10 +12,8 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
             z = TR[]
         end
         if TR <: Complex && T <: Real
-            order_conjugates!(z)
-            @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-            order_conjugates!(p)
-            @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
+            @assert pairup_conjugates!(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
+            @assert pairup_conjugates!(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
         end
         new{T,TR}(z, p, k)
     end
@@ -104,35 +102,14 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
     SisoZpk{T, TR}(newZ, newP, sys.k)
 end
 
-# FIXME: Perhaps move to some other file with auxilliary functions,
-# the name could also be imporoved. Perhaps this functionality can be found in some other package.
-""" If TR is Complex and T is Real, check that every pole is matched to its conjugate
-    this assumes that the compelx poles are ordered as they are output by the LAPACK
-    routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)"""
-function check_real(r_vec::AbstractVector{<:Complex})
-    k = 1
-    while k <= length(r_vec)
-        if isreal(r_vec[k])
-            # Do nothing
-        else
-            if k == length(r_vec) # Element is complex and there is no more elements to match up with
-                return false
-            elseif conj(r_vec[k]) == r_vec[k+1] # Element is complex and succeeding element is its conjugate
-                k=k+1
-            else
-                return false
-            end
-        end
-        k += 1
-    end
-    return true
-end
-
-function order_conjugates!(x)
+""" If TR is Complex and T is Real, pair up every pole with its conjugate as they are ordered 
+    by the LAPACK routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)"""
+function pairup_conjugates!(x)
     i = 0
     while i < length(x)
         i += 1
         imag(x[i]) == 0 && continue
+        foundconj = false
         for j in i+1:length(x)
             if x[i] == conj(x[j])
                 if imag(x[i]) > imag(x[j]) # Swap i+1 <-> j
@@ -145,11 +122,16 @@ function order_conjugates!(x)
                     x[j] = x[i+1]
                     x[i+1] = tmp
                 end
-                i += 1
+                foundconj = true
                 break
             end
         end
+        if !foundconj 
+            return false
+        end
+        i += 1 # Since it is a pair and the conjugate was found
     end
+    return true
 end
 
 function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
