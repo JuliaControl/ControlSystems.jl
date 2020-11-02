@@ -6,19 +6,20 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
     z::Vector{TR}
     p::Vector{TR}
     k::T
-    function SisoZpk{T,TR}(z::Vector{TR}, p::Vector{TR}, k::T) where  {T<:Number, TR<:Number}
+    function SisoZpk{T,TR}(z::Vector{TR}, p::Vector{TR}, k::T) where {T<:Number, TR<:Number}
         if k == zero(T)
             p = TR[]
             z = TR[]
         end
         if TR <: Complex && T <: Real
+            z, p = copy(z), copy(p)
             @assert pairup_conjugates!(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
             @assert pairup_conjugates!(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
         end
         new{T,TR}(z, p, k)
     end
 end
-function SisoZpk{T,TR}(z::Vector, p::Vector, k::Number) where  {T<:Number, TR<:Number}
+function SisoZpk{T,TR}(z::Vector, p::Vector, k::Number) where {T<:Number, TR<:Number}
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), T(k))
 end
 function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
