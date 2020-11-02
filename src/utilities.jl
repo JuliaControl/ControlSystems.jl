@@ -181,7 +181,7 @@ macro autovec(indices, f)
     argnames = extractvarname.(args)
     kwargnames = extractvarname.(kwargs)
     quote
-        $(esc(f)) # Original function
+        Core.@__doc__ $(esc(f)) # Original function
 
         """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
 
