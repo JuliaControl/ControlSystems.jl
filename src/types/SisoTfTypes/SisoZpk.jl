@@ -123,9 +123,6 @@ function pairup_conjugates!(x::AbstractVector)
             x[i+1] = x[i]
             x[i] = tmp
         end
-        if !foundconj 
-            return false
-        end
         i += 1 # Since it is a pair and the conjugate was found
     end
     return true
