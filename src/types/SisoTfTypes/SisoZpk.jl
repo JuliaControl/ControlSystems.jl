@@ -103,8 +103,7 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
     SisoZpk{T, TR}(newZ, newP, sys.k)
 end
 
-""" If TR is Complex and T is Real, pair up every pole with its conjugate as they are ordered 
-    by the LAPACK routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)"""
+"""Reorder the vector x of complex numbers so that complex conjugates come after each other, with the one with positive imaginary part first. Returns true if the conjugates can be paired and otherwise false."""
 function pairup_conjugates!(x)
     i = 0
     while i < length(x)
