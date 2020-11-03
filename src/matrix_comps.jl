@@ -514,19 +514,19 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
 
     Pz = T*P*T'
     Qz = inv(T')*Q*inv(T)
-    if norm(Pz-Qz) > sqrt(eps())
-        @warn("balreal: Result may be inaccurate")
-        println("Controllability gramian before transform")
-        display(P)
-        println("Controllability gramian after transform")
-        display(Pz)
-        println("Observability gramian before transform")
-        display(Q)
-        println("Observability gramian after transform")
-        display(Qz)
-        println("Singular values of PQ")
-        display(Σ)
-    end
+    # if norm(Pz-Qz) > sqrt(eps())
+    #     @warn("balreal: Result may be inaccurate")
+    #     println("Controllability gramian before transform")
+    #     display(P)
+    #     println("Controllability gramian after transform")
+    #     display(Pz)
+    #     println("Observability gramian before transform")
+    #     display(Q)
+    #     println("Observability gramian after transform")
+    #     display(Qz)
+    #     println("Singular values of PQ")
+    #     display(Σ)
+    # end
 
     sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(0 => Σ)
 end

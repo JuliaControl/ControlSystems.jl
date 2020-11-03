@@ -9,7 +9,7 @@ Convert the continuous system `sys` into a discrete system with sample time
 Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
-function c2d(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh; ω0=Ts/2)
+function c2d(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh; a=Ts/2)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
@@ -37,12 +37,12 @@ function c2d(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh; ω0=Ts/
         Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
         x0map = I(nx)
     elseif method === :tustin
-        ω0 > 0 || throw(DomainError("A positive ω0 must be provided for method Tustin"))
-        AI = (I-ω0*A)
-        Ad = (I+ω0*A)/AI
-        Bd = 1/sqrt(2ω0)*AI\B
-        Cd = sqrt(2ω0)*C/AI
-        Dd = sqrt(2ω0)*C*Bd + D
+        a > 0 || throw(DomainError("A positive a must be provided for method Tustin"))
+        AI = (I-a*A)
+        Ad = AI\(I+a*A)
+        Bd = 2a*(AI\B)
+        Cd = C/AI
+        Dd = a*Cd*B + D
         x0map = I(nx)
     elseif method === :matched
         error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
@@ -57,7 +57,7 @@ end
 
 Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
 """
-function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; ω0=sys.Ts/2)
+function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; a=sys.Ts/2)
     A, B, C, D = ssdata(sys)
     ny, nu = size(sys)
     nx = nstates(sys)
@@ -75,12 +75,12 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; ω0=sys.T
         Bc = B./sys.Ts
         Cc, Dc = C, D
     elseif method === :tustin
-        ω0 > 0 || throw(DomainError("A positive ω0 must be provided for method Tustin"))
-        AI = ω0*(A+I)
+        a > 0 || throw(DomainError("A positive a must be provided for method Tustin"))
+        AI = a*(A+I)
         Ac = (A-I)/AI
-        Bc = 1/sqrt(2ω0)*AI\B
-        Cc = sqrt(2ω0)*C/AI
-        Dc = D - Cc*B*sqrt(2ω0)
+        Bc = AI\B
+        Cc = 2a*C/AI
+        Dc = D - Cc*B/2
     else
         error("Unsupported method: ", method)
     end
