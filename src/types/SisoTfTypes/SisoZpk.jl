@@ -109,22 +109,19 @@ function pairup_conjugates!(x::AbstractVector)
     while i < length(x)
         i += 1
         imag(x[i]) == 0 && continue
-        foundconj = false
-        for j in i+1:length(x)
-            if x[i] == conj(x[j])
-                if imag(x[i]) > imag(x[j]) # Swap i+1 <-> j
-                    tmp = x[i+1]
-                    x[i+1] = x[j]
-                    x[j] = tmp
-                else # Rotate i -> i+1 -> j -> i
-                    tmp = x[i]
-                    x[i] = x[j]
-                    x[j] = x[i+1]
-                    x[i+1] = tmp
-                end
-                foundconj = true
-                break
-            end
+
+        # Attempt to find a matching conjugate to x[i]
+        j = findnext(==(conj(x[i])), x, i+1)
+        j === nothing && return false
+
+        tmp = x[j]
+        x[j] = x[i+1]
+        # Make sure that the complex number with positive imaginary part comes first
+        if imag(x[i]) > 0
+            x[i+1] = tmp
+        else
+            x[i+1] = x[i]
+            x[i] = tmp
         end
         if !foundconj 
             return false
