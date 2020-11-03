@@ -2,7 +2,9 @@
 @testset "test_autovec" begin
 
 
+# Test all different autovecd methods
 sys = tf([1], [1, 2])
+w = exp10.(LinRange(-3,3,10))
 
 # Check output of bode and make sure dimensions are correct
 mag, phase, w = bode(sys)
@@ -13,9 +15,32 @@ magv, phasev, w = bodev(sys)
 @test size(magv) == size(phasev) == size(w)
 @test vec(mag) == magv && vec(phase) == phasev
 
-w = exp10.(LinRange(-3,3,10))
 mag, phase, _ = bodev(sys, w)
 @test size(mag) == size(phase) == size(w)
+
+# Check output of nyquist and make sure dimensions are correct
+real, imag, w = nyquist(sys)
+@test size(real) == size(imag) == (size(w,1), 1, 1)
+
+# Check output of nyquistv and make sure dimensions are correct
+realv, imagv, w = nyquistv(sys)
+@test size(realv) == size(imagv) == size(w)
+@test vec(real) == realv && vec(imag) == imagv
+
+real, imag, _ = nyquistv(sys, w)
+@test size(real) == size(imag) == size(w)
+
+# Check output of sigma and make sure dimensions are correct
+sv, w = sigma(sys)
+@test size(sv) == (size(w,1), 1)
+
+# Check output of sigmav and make sure dimensions are correct
+svv, w = sigmav(sys)
+@test size(svv) == size(w)
+@test vec(sv) == svv 
+
+sv, _ = sigmav(sys, w)
+@test size(sv) == size(w)
 
 # Test that we can define varous kinds of methods with autovec
 
