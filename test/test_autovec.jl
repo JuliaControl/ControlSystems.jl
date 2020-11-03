@@ -1,4 +1,3 @@
-
 @testset "test_autovec" begin
 
 
@@ -41,6 +40,20 @@ svv, w = sigmav(sys)
 
 sv, _ = sigmav(sys, w)
 @test size(sv) == size(w)
+
+# Check output of freqresp and make sure dimensions are correct
+fs = freqresp(sys, w)
+@test size(fs) == (size(w,1), 1, 1)
+
+# Check output of freqrespv and make sure dimensions are correct
+fsv = freqrespv(sys, w)
+@test size(fsv) == size(w)
+@test vec(fs) == fsv 
+
+
+
+
+
 
 # Test that we can define varous kinds of methods with autovec
 
