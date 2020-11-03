@@ -104,7 +104,7 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
 end
 
 """Reorder the vector x of complex numbers so that complex conjugates come after each other, with the one with positive imaginary part first. Returns true if the conjugates can be paired and otherwise false."""
-function pairup_conjugates!(x)
+function pairup_conjugates!(x::AbstractVector)
     i = 0
     while i < length(x)
         i += 1
