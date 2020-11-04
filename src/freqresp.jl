@@ -5,7 +5,7 @@ Evaluate the frequency response of a linear system
 `w -> C*((iw*im -A)^-1)*B + D`
 
 of system `sys` over the frequency vector `w`."""
-@autovec (1) function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
+@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
     if iscontinuous(sys)
         s_vec = im*w_vec

@@ -162,7 +162,6 @@ macro autovec(indices, f)
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
     indices = eval(indices)
-    maxidx = max(indices...)
 
     # If indices is empty it means we vec the entire return value
     if length(indices) == 0
