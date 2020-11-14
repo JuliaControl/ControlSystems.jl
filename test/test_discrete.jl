@@ -56,6 +56,10 @@ G = tf([1, 1], [1, 3, 1])
 Gd = c2d(G, 0.2)
 @test Gd ≈ tf([0, 0.165883310712090, -0.135903621603238], [1.0, -1.518831946985175, 0.548811636094027], 0.2) rtol=1e-14
 
+# Issue #391
+@test c2d(tf(C_111), 0.01, :zoh) ≈ tf(c2d(C_111, 0.01, :zoh)[1])
+@test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh)[1])
+
 # c2d on a zpk model should arguably return a zpk model
 @test_broken typeof(c2d(zpk(G), 1)) <: TransferFunction{<:ControlSystems.SisoZpk}
 

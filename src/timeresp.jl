@@ -167,7 +167,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
         error("return value of u must be of size nu")
     end
-    T = promote_type(Float64, eltype(x0))
+    T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
     dt = T(t[2] - t[1])
 
