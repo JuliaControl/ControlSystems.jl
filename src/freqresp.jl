@@ -121,7 +121,7 @@ end
 
 """`sv, w = sigma(sys[, w])`
 
-Compute the singular values of the frequency response of system `sys` at
+Compute the singular values `sv` of the frequency response of system `sys` at
 frequencies `w`
 
 `sv` has size `(length(w), max(ny, nu))`""" 
