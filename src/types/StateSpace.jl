@@ -50,7 +50,16 @@ function StateSpace(A::MT, B::MT, C::MT, D::MT) where {T, MT <: AbstractMatrix{T
     StateSpace(A, B, C, D, Continuous())
 end
 # Necessary for functions that rebuild structs
-StateSpace(A, B, C, D, timeevol, nx, nu, ny) = StateSpace(A, B, C, D, timeevol)
+function StateSpace(A, B, C, D, timeevol, nx, nu, ny)
+    if size(A, 1) != nx
+        error("The number of rows of A ($(size(A,1))) is not equal to nx ($nx)")
+    elseif size(B, 2) != nu
+        error("The number of columns of B ($(size(B,2))) is not equal to nu ($nu)")
+    elseif size(C, 1) != ny
+        error("The number of rows of C ($(size(C,1))) is not equal to ny ($ny)")
+    end
+    return StateSpace(A, B, C, D, timeevol)
+end
 
 """ If D=0 then convert to correct size and type, else, create 1x1 matrix"""
 function fix_D_matrix(T::Type,B,C,D)
@@ -151,6 +160,18 @@ function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,
 end
 
 HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol)
+
+# Necessary for functions that rebuild structs
+function HeteroStateSpace(A, B, C, D, timeevol, nx, nu, ny)
+    if size(A, 1) != nx
+        error("The number of rows of A ($(size(A,1))) is not equal to nx ($nx)")
+    elseif size(B, 2) != nu
+        error("The number of columns of B ($(size(B,2))) is not equal to nu ($nu)")
+    elseif size(C, 1) != ny
+        error("The number of rows of C ($(size(C,1))) is not equal to ny ($ny)")
+    end
+    return HeteroStateSpace(A, B, C, D, timeevol)
+end
 
 # Base constructor
 function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)

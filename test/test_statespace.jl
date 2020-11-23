@@ -146,7 +146,9 @@
         @test_throws ErrorException SS([1], [2], [3 4], [1])      # I/0 dim mismatch
         @test_throws ErrorException SS([1], [2], [3], [4], -0.1)  # Negative samping time
         @test_throws ErrorException SS(eye_(2), eye_(2), eye_(2), [0]) # Dimension mismatch
-
+        @test_throws ErrorException SS([1], [2], [3], [4], 0.1, 2, 1, 1) # Explicit dimension mismatch
+        @test_throws ErrorException SS([1], [2], [3], [4], 0.1, 1, 2, 1) # Explicit dimension mismatch
+        @test_throws ErrorException SS([1], [2], [3], [4], 0.1, 1, 1, 2) # Explicit dimension mismatch
     end
 
 end
