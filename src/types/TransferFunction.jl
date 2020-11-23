@@ -12,6 +12,8 @@ end
 function TransferFunction(matrix::Matrix{S}, timeevol::TE) where {TE<:TimeEvolution, T<:Number, S<:SisoTf{T}}
     TransferFunction{TE, S}(matrix, timeevol)
 end
+# Necessary for functions that rebuild structs
+TransferFunction(matrix, timeevol, nu, ny) = TransferFunction(matrix, timeevol)
 
 # # Constructor for Discrete time system
 # function TransferFunction(matrix::Matrix{S}, Ts::Number) where {T<:Number, S<:SisoTf{T}}

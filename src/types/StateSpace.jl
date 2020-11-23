@@ -49,6 +49,8 @@ end
 function StateSpace(A::MT, B::MT, C::MT, D::MT) where {T, MT <: AbstractMatrix{T}}
     StateSpace(A, B, C, D, Continuous())
 end
+# Necessary for functions that rebuild structs
+StateSpace(A, B, C, D, timeevol, nx, nu, ny) = StateSpace(A, B, C, D, timeevol)
 
 """ If D=0 then convert to correct size and type, else, create 1x1 matrix"""
 function fix_D_matrix(T::Type,B,C,D)
