@@ -25,7 +25,6 @@ cache:
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  # Needed for plotting on travis
   - julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
 
 after_success:
