@@ -1,3 +1,7 @@
+# Set plot globals
+ENV["PLOTS_TEST"] = "true"
+ENV["GKSwstype"] = "100"
+
 using Plots
 gr()
 default(show=false)

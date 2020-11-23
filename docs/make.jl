@@ -1,3 +1,7 @@
+# Set plot globals
+ENV["PLOTS_TEST"] = "true"
+ENV["GKSwstype"] = "100"
+
 using Documenter, ControlSystems, Plots, LinearAlgebra, DSP
 import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 gr()
