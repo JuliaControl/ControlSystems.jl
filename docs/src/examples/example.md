@@ -107,9 +107,9 @@ P  = tf(B,A)
 # output
 
 TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}
-         1.0
----------------------
-1.0*s^2 + 0.4*s + 1.0
+        1.0
+-------------------
+1.0s^2 + 0.4s + 1.0
 
 Continuous-time transfer function model
 ```
