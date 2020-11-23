@@ -23,9 +23,6 @@ cache:
   # This should speed up builds
   - $HOME/.julia/artifacts
 
-env:
-  - PLOTS_TEST="true" GKSwstype="nul"
-
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'

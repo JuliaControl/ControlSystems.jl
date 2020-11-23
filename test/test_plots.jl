@@ -1,7 +1,3 @@
-# Set plot globals
-ENV["PLOTS_TEST"] = "true"
-ENV["GKSwstype"] = "nul"
-
 using Plots
 gr()
 default(show=false)
