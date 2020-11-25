@@ -119,8 +119,12 @@ function place(A, B, p)
     n != size(B,1) && error("A and B must have same number of rows")
     if size(B,2) == 1
         acker(A,B,p)
+    elseif size(B, 2) <= size(A, 1)
+        placemimo(A, B, p)
+    elseif size(B, 2) == size(A, 1)
+        println("This should be implemented")
     else
-        error("place only implemented for SISO systems")
+        error("Should this work?")
     end
 end
 
@@ -142,4 +146,57 @@ function acker(A,B,P)
         S[:,i+1] = A^i*B
     end
     return [zeros(1,n-1) 1]*(S\q)
+end
+
+# Implemented according to method 0 in https://perso.uclouvain.be/paul.vandooren/publications/KautskyNV85.pdf
+# The method is not guaranteed to converge (compared to method 1) but is much simpler and faster.
+function placemimo(A, B, p; max_iter=100000, tol=1e-3)
+    n, m = size(B)
+    if n == m
+        error("Can't handle nu == nx yet")
+    end
+
+    # Step A
+    Q, R = qr(B)
+    U₀, U₁ = Q[:, 1:m], Q[:, m:end]
+    Z = R
+
+    S = Vector{Array{eltype(Q), 2}}(undef, length(p))
+    for i in eachindex(p)
+        Q, = qr((A' - p[i]*I) * U₁)
+        S[i] = Q[:, n-m:end]
+    end
+
+    # Step X
+    X = Array{Float64, 2}(undef, size(A))
+    for j in 1:n
+        proj = S[j]' * randn(n, 1)
+        X[:, j] = S[j] * proj / norm(proj)
+    end
+    # Think the init should work like this with high prob, otherwise could do xi = Si*yi and find yi with some linear optimization?
+    @assert rank(X) == n "X is incorrectly initialized"
+    
+    for i in 1:max_iter
+        @show i
+        ν₂ = cond(X)
+
+        for j in 1:n
+            Q, = qr(X[:, 1:end .!= j])
+            γ = Q[:, end]                       # γ is the most orthogonal vector to [x1, x2, ..., xj-1, xj+1, ..., xn]
+            proj = S[j]' * γ                    # project γ onto the nullspace for this element, and set xj to that
+            X[:, j] = S[j] * proj / norm(proj)
+        end
+
+        nν₂ = cond(X)
+        if abs(ν₂ - nν₂) < tol  # TODO should this be abs?
+            print("finished on tol")
+            break # Break if change in conditioning number is small enough
+        end
+        ν₂ = nν₂
+    end
+
+    # Step F
+    Λ = diagm(p)
+    M = (lu(X') \ (X * Λ)')'
+    return -R \ U₀' * (M - A) 
 end
