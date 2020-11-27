@@ -113,16 +113,14 @@ Calculate gain matrix `K` such that
 the poles of `(A-BK)` in are in `p`.
 
 Uses Ackermann's formula."""
-function place(A, B, p)
+function place(A, B, p; kwargs...)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")
     n != size(B,1) && error("A and B must have same number of rows")
     if size(B,2) == 1
         acker(A,B,p)
     elseif size(B, 2) <= size(A, 1)
-        placemimo(A, B, p)
-    elseif size(B, 2) == size(A, 1)
-        println("This should be implemented")
+        placemimo(A, B, p; kwargs...)
     else
         error("Should this work?")
     end
@@ -150,53 +148,54 @@ end
 
 # Implemented according to method 0 in https://perso.uclouvain.be/paul.vandooren/publications/KautskyNV85.pdf
 # The method is not guaranteed to converge (compared to method 1) but is much simpler and faster.
-function placemimo(A, B, p; max_iter=100000, tol=1e-3)
+function placemimo(A, B, p; max_iter=10000, tol=1e-7, method=:qr)
     n, m = size(B)
-    if n == m
-        error("Can't handle nu == nx yet")
-    end
+    k = min(n, m)
 
-    # Step A
-    Q, R = qr(B)
-    U₀, U₁ = Q[:, 1:m], Q[:, m:end]
-    Z = R
+    U, Z = qr(B) # Assume B is full rank, so U0 is nxk
+    U₀ = U[:, 1:k]
 
-    S = Vector{Array{eltype(Q), 2}}(undef, length(p))
-    for i in eachindex(p)
-        Q, = qr((A' - p[i]*I) * U₁)
-        S[i] = Q[:, n-m:end]
-    end
+    if n <= m # If n <= m we use X=I and just need to calculate the last step
+        Λ = diagm(p)
+        return -Z \ U₀' * (Λ - A) 
+    else
+        U₁ = U[:, k+1:end]
+        # TODO is this type correct?
+        T = promote_type(eltype(U), eltype(p))
+        S = Vector{Matrix{T}}(undef, length(p))
+        for i in eachindex(p)
+            Q, = qr((A' - p[i]*I) * U₁) # Here we don't assume full rank and need to check where to cut Q
+            S[i] = Q[:, end-k+1:end]
+        end
 
-    # Step X
-    X = Array{Float64, 2}(undef, size(A))
-    for j in 1:n
-        proj = S[j]' * randn(n, 1)
-        X[:, j] = S[j] * proj / norm(proj)
-    end
-    # Think the init should work like this with high prob, otherwise could do xi = Si*yi and find yi with some linear optimization?
-    @assert rank(X) == n "X is incorrectly initialized"
-    
-    for i in 1:max_iter
-        @show i
-        ν₂ = cond(X)
-
+        X = Matrix{T}(undef, size(A))
         for j in 1:n
-            Q, = qr(X[:, 1:end .!= j])
-            γ = Q[:, end]                       # γ is the most orthogonal vector to [x1, x2, ..., xj-1, xj+1, ..., xn]
-            proj = S[j]' * γ                    # project γ onto the nullspace for this element, and set xj to that
+            proj = S[j]' * randn(n, 1)
             X[:, j] = S[j] * proj / norm(proj)
         end
+        # Think the init should work like this with high prob, otherwise could do xi = Si*yi and find yi with some linear optimization?
+        # Should this work as well with identity matrix projected on the nullspaces?
+        # Seems like this will be a problem when #same poles > m since m sets the dimension of the nullspaces Sj and same pole => same Sj
+        @assert rank(X) == n "X=$X is incorrectly initialized"
+        
+        for i in 1:max_iter
+            ν₂ = cond(X)
 
-        nν₂ = cond(X)
-        if abs(ν₂ - nν₂) < tol  # TODO should this be abs?
-            print("finished on tol")
-            break # Break if change in conditioning number is small enough
+            for j in 1:n
+                Q, = qr(X[:, 1:end .!= j])
+                γ = Q[:, end]                       # γ is the most orthogonal vector to [x1, x2, ..., xj-1, xj+1, ..., xn]
+                proj = S[j]' * γ                    # project γ onto the nullspace for this element, and set xj to that
+                X[:, j] = S[j] * proj / norm(proj)
+            end
+
+            nν₂ = cond(X)
+            if ν₂ - nν₂ < tol  
+                Λ = diagm(p)
+                M = (lu(X') \ (X * Λ)')'
+                return -Z \ U₀' * (M - A) 
+            end
+            ν₂ = nν₂
         end
-        ν₂ = nν₂
+        error("Condition number did not converge, try to increase `max_iter` or reduce `tol`.")
     end
-
-    # Step F
-    Λ = diagm(p)
-    M = (lu(X') \ (X * Λ)')'
-    return -R \ U₀' * (M - A) 
 end

@@ -70,6 +70,33 @@ K = ControlSystems.acker(A,B,p)
 @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
 end
 
+@testset "placemimo" begin
+Random.seed!(0)
+A = randn(3, 3)
+for m in 1:4 # Test (m=1), 1<m<n, m=n, m>n
+    @show m
+    B = randn(3, m)
+
+    p = [-3.0, -2, 1.3]
+    K = ControlSystems.placemimo(A, B, p)
+    @test sort(eigvals(A-B*K)) ≈ sort(p)
+
+    # p = [-3.0, -2, -2]
+    # K = ControlSystems.placemimo(A, B, p)
+    # @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
+
+    # p = [-1+im, -1-im, -1]
+    # K = ControlSystems.placemimo(A, B, p)
+    # @test sort(eigvals(A-B*K)) ≈ sort(p)
+end
+@test_throws ErrorException ControlSystems.placemimo(A, randn(3, 2), randn(3), max_iter=1)
+end
+# test where B is not full rank but it is still possible? should maybe not work according to article? test throws?
+# test where A, B not controllable? what should happen
+# test where B = nxm and m < multiplicity(pole_i) which maybe should not work either?
+# testa vilken som är effektivast för single column B
+# en test throws @test_throws som visar bra felmeddelande
+
 @testset "LQR" begin
     h = 0.1
     A = [1 h; 0 1]
