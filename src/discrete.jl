@@ -1,12 +1,14 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
+"""
+    `sysd, x0map = c2d(sys::StateSpace, Ts, method=:zoh)`
+    `sysd = c2d(sys::TransferFunction, Ts, method=:zoh)`
 
 Convert the continuous system `sys` into a discrete system with sample time
 `Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
 
-Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
+Returns the discrete system `sysd`, and for StateSpace systems a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
@@ -210,12 +212,12 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h;kwargs...)
+function c2d(G::TransferFunction, h, args...)
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys, h, kwargs...)[1]
+    sysd = c2d(sys, h, args...)[1]
     return convert(TransferFunction, sysd)
 end
 

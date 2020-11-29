@@ -54,7 +54,7 @@ end
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
 """
-printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printpoly(io, Polynomial(p.coeffs, var), mimetype, descending_powers=true)
+printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printpoly(io, Polynomial(p.coeffs, var), mimetype, descending_powers=true, mulsymbol="")
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
