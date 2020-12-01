@@ -126,8 +126,8 @@ function place(A, B, p; kwargs...)
     end
 end
 
-function place(sys::StateSpace, p)
-    return place(sys.A, sys.B, p)
+function place(sys::StateSpace, p; kwargs...)
+    return place(sys.A, sys.B, p; kwargs...)
 end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p
@@ -148,24 +148,29 @@ end
 
 # Implemented according to method 0 in https://perso.uclouvain.be/paul.vandooren/publications/KautskyNV85.pdf
 # The method is not guaranteed to converge (compared to method 1) but is much simpler and faster.
-function placemimo(A, B, p; max_iter=10000, tol=1e-7, method=:qr)
+function placemimo(A, B, p; max_iter=10000, tol=1e-7)
     n, m = size(B)
-    k = min(n, m)
 
-    U, Z = qr(B) # Assume B is full rank, so U0 is nxk
-    U₀ = U[:, 1:k]
+    U, Z = qr(B) # Assume B is full rank. Should this be assertion?
+    
+    # Check for more errors?
+
+    # Check for controllability (just temporary)
+    #@assert isposdef(gram(ss(A, B, zeros(1, size(A, 2)), zeros(1, size(B, 2))), :c)) "(A, B) is not controllable"
+    @assert rank(ctrb(A, B)) == size(A, 1) "(A, B) is not controllable"
 
     if n <= m # If n <= m we use X=I and just need to calculate the last step
-        Λ = diagm(p)
-        return -Z \ U₀' * (Λ - A) 
-    else
-        U₁ = U[:, k+1:end]
-        # TODO is this type correct?
+        return -Z \ U' * (Diagonal(p) - A) 
+    else # We find an initial X and iteratively improve it
+        U₀, U₁ = U[:, 1:m], U[:, m+1:end]
+        # TODO is this type correct? Probably not
         T = promote_type(eltype(U), eltype(p))
         S = Vector{Matrix{T}}(undef, length(p))
         for i in eachindex(p)
             Q, = qr((A' - p[i]*I) * U₁) # Here we don't assume full rank and need to check where to cut Q
-            S[i] = Q[:, end-k+1:end]
+            k = n - m - rank(U₁'*(A-p[i]*I)) # Not efficient? Can we do this smarter?
+            @show k, p[i]
+            S[i] = Q[:, end-(m+k-1):end]
         end
 
         X = Matrix{T}(undef, size(A))
@@ -178,9 +183,8 @@ function placemimo(A, B, p; max_iter=10000, tol=1e-7, method=:qr)
         # Seems like this will be a problem when #same poles > m since m sets the dimension of the nullspaces Sj and same pole => same Sj
         @assert rank(X) == n "X=$X is incorrectly initialized"
         
+        ν₂ = cond(X)
         for i in 1:max_iter
-            ν₂ = cond(X)
-
             for j in 1:n
                 Q, = qr(X[:, 1:end .!= j])
                 γ = Q[:, end]                       # γ is the most orthogonal vector to [x1, x2, ..., xj-1, xj+1, ..., xn]
@@ -189,12 +193,13 @@ function placemimo(A, B, p; max_iter=10000, tol=1e-7, method=:qr)
             end
 
             nν₂ = cond(X)
+            @show ν₂, nν₂
             if ν₂ - nν₂ < tol  
-                Λ = diagm(p)
-                M = (lu(X') \ (X * Λ)')'
+                M = (lu(X') \ (X * Diagonal(p))')'
                 return -Z \ U₀' * (M - A) 
             end
-            ν₂ = nν₂
+            #ν₂ = nν₂
+            ν₂ = (nν₂ + ν₂) / 2
         end
         error("Condition number did not converge, try to increase `max_iter` or reduce `tol`.")
     end

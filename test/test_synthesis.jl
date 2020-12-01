@@ -73,17 +73,26 @@ end
 @testset "placemimo" begin
 Random.seed!(0)
 A = randn(3, 3)
-for m in 1:4 # Test (m=1), 1<m<n, m=n, m>n
-    @show m
+B = randn(3, 1)
+
+p = [-3.0, -2, 1.3]
+K = ControlSystems.placemimo(A, B, p)
+@test sort(eigvals(A-B*K)) ≈ sort(p)
+
+# Should not be able to place if there is a pole with multiplicity higher than m given that (A, B) is controllable
+p = [-3.0, -2, -2]
+@test_throws AssertionError ControlSystems.placemimo(A, B, p)
+
+for m in 2:4 # Test 1<m<n, m=n, m>n
     B = randn(3, m)
 
     p = [-3.0, -2, 1.3]
     K = ControlSystems.placemimo(A, B, p)
     @test sort(eigvals(A-B*K)) ≈ sort(p)
 
-    # p = [-3.0, -2, -2]
-    # K = ControlSystems.placemimo(A, B, p)
-    # @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
+    p = [-3.0, -2, -2]
+    K = ControlSystems.placemimo(A, B, p)
+    @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
 
     # p = [-1+im, -1-im, -1]
     # K = ControlSystems.placemimo(A, B, p)
