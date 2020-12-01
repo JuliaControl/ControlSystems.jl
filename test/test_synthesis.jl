@@ -94,9 +94,9 @@ for m in 2:4 # Test 1<m<n, m=n, m>n
     K = ControlSystems.placemimo(A, B, p)
     @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
 
-    # p = [-1+im, -1-im, -1]
-    # K = ControlSystems.placemimo(A, B, p)
-    # @test sort(eigvals(A-B*K)) ≈ sort(p)
+    p = [-1+im, -1-im, -1]
+    K = ControlSystems.placemimo(A, B, p)
+    @test sort(eigvals(A-B*K)) ≈ sort(p)
 end
 @test_throws ErrorException ControlSystems.placemimo(A, randn(3, 2), randn(3), max_iter=1)
 end

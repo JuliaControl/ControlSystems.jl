@@ -119,10 +119,8 @@ function place(A, B, p; kwargs...)
     n != size(B,1) && error("A and B must have same number of rows")
     if size(B,2) == 1
         acker(A,B,p)
-    elseif size(B, 2) <= size(A, 1)
+    else 
         placemimo(A, B, p; kwargs...)
-    else
-        error("Should this work?")
     end
 end
 
@@ -148,6 +146,7 @@ end
 
 # Implemented according to method 0 in https://perso.uclouvain.be/paul.vandooren/publications/KautskyNV85.pdf
 # The method is not guaranteed to converge (compared to method 1) but is much simpler and faster.
+# A and B should be real and controllable, p is complex and closed under conjugation
 function placemimo(A, B, p; max_iter=10000, tol=1e-7)
     n, m = size(B)
 
@@ -167,15 +166,13 @@ function placemimo(A, B, p; max_iter=10000, tol=1e-7)
         T = promote_type(eltype(U), eltype(p))
         S = Vector{Matrix{T}}(undef, length(p))
         for i in eachindex(p)
-            Q, = qr((A' - p[i]*I) * U₁) # Here we don't assume full rank and need to check where to cut Q
-            k = n - m - rank(U₁'*(A-p[i]*I)) # Not efficient? Can we do this smarter?
-            @show k, p[i]
-            S[i] = Q[:, end-(m+k-1):end]
+            Q, R = qr((A' - p[i]*I) * U₁) # Here we don't assume full rank and need to check where to cut Q
+            S[i] = Q[:, rank(R)+1:end] # Extract vectors describing nullspace of U1'*(A-pI), can we do this more efficient? rank(R) = m if (A, B) controllable
         end
 
         X = Matrix{T}(undef, size(A))
         for j in 1:n
-            proj = S[j]' * randn(n, 1)
+            proj = transpose(S[j]) * randn(T, n, 1)
             X[:, j] = S[j] * proj / norm(proj)
         end
         # Think the init should work like this with high prob, otherwise could do xi = Si*yi and find yi with some linear optimization?
@@ -188,14 +185,14 @@ function placemimo(A, B, p; max_iter=10000, tol=1e-7)
             for j in 1:n
                 Q, = qr(X[:, 1:end .!= j])
                 γ = Q[:, end]                       # γ is the most orthogonal vector to [x1, x2, ..., xj-1, xj+1, ..., xn]
-                proj = S[j]' * γ                    # project γ onto the nullspace for this element, and set xj to that
+                proj = transpose(S[j]) * γ                    # project γ onto the nullspace for this element, and set xj to that
                 X[:, j] = S[j] * proj / norm(proj)
             end
 
             nν₂ = cond(X)
             @show ν₂, nν₂
             if ν₂ - nν₂ < tol  
-                M = (lu(X') \ (X * Diagonal(p))')'
+                M = transpose(lu(transpose(X)) \ transpose(X * Diagonal(p)))
                 return -Z \ U₀' * (M - A) 
             end
             #ν₂ = nν₂
