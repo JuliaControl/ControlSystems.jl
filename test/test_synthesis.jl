@@ -73,36 +73,36 @@ end
 @testset "placemimo" begin
 Random.seed!(0)
 A = randn(3, 3)
-B = randn(3, 1)
+B = randn(3, 4)
 
 p = [-3.0, -2, 1.3]
-K = ControlSystems.placemimo(A, B, p)
-@test sort(eigvals(A-B*K)) ≈ sort(p)
+for m in 1:4 # Test for m=1, 1<m<n, m=n, m>n
+    K = ControlSystems.placemimo(A, B[:, 1:m], p)
+    @test eigvals(A-B[:, 1:m]*K) ≈ p
+end
+
+p = [-3.0, -2, -2]
+K = ControlSystems.placemimo(A, B[:, 1:2], p)
+@test eigvals(A-B[:, 1:2]*K) ≈ p
+K = ControlSystems.placemimo(A, B[:, 1:3], p)
+@test eigvals(A-B[:, 1:3]*K) ≈ p
+
+p = [-2.0, -1-im, -1+im]
+K = ControlSystems.placemimo(A, B[:, 1:1], p)
+@test eigvals(A-B[:, 1:1]*K) ≈ p
+K = ControlSystems.placemimo(A, B[:, 1:2], p)
+@test eigvals(A-B[:, 1:2]*K) ≈ p
 
 # Should not be able to place if there is a pole with multiplicity higher than m given that (A, B) is controllable
 p = [-3.0, -2, -2]
-@test_throws AssertionError ControlSystems.placemimo(A, B, p)
+@test_throws AssertionError ControlSystems.placemimo(A, B[:, 1:1], p)
 
-for m in 2:4 # Test 1<m<n, m=n, m>n
-    B = randn(3, m)
-
-    p = [-3.0, -2, 1.3]
-    K = ControlSystems.placemimo(A, B, p)
-    @test sort(eigvals(A-B*K)) ≈ sort(p)
-
-    p = [-3.0, -2, -2]
-    K = ControlSystems.placemimo(A, B, p)
-    @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
-
-    p = [-1+im, -1-im, -1]
-    K = ControlSystems.placemimo(A, B, p)
-    @test sort(eigvals(A-B*K)) ≈ sort(p)
-end
-@test_throws ErrorException ControlSystems.placemimo(A, randn(3, 2), randn(3), max_iter=1)
+# Not sure how interesting this is
+@test_throws ErrorException ControlSystems.placemimo(A, B[:, 1:2], p, max_iter=1)
 end
 # test where B is not full rank but it is still possible? should maybe not work according to article? test throws?
-# test where A, B not controllable? what should happen
-# test where B = nxm and m < multiplicity(pole_i) which maybe should not work either?
+# test where A, B not controllable? but controllable mode is in poles, should work
+# test where B = nxm and m < multiplicity(pole_i) which should not work
 # testa vilken som är effektivast för single column B
 # en test throws @test_throws som visar bra felmeddelande
 
