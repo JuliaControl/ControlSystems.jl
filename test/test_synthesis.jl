@@ -98,7 +98,13 @@ p = [-3.0, -2, -2]
 @test_throws AssertionError ControlSystems.placemimo(A, B[:, 1:1], p)
 
 # Not sure how interesting this is
+p = [-3.0, -2, 1.3]
 @test_throws ErrorException ControlSystems.placemimo(A, B[:, 1:2], p, max_iter=1)
+
+p = [-3.0, -2, -2]
+@inferred ControlSystems.placemimo(A, B[:, 1:2], p)
+p = [-2.0, -1-im, -1+im]
+@inferred ControlSystems.placemimo(A, B[:, 1:2], p)
 end
 # test where B is not full rank but it is still possible? should maybe not work according to article? test throws?
 # test where A, B not controllable? but controllable mode is in poles, should work
