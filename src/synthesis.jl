@@ -172,7 +172,7 @@ function placemimo(A, B, p; max_iter=10000, tol=1e-7)
 
         X = Matrix{T}(undef, size(A))
         for j in 1:n
-            proj = transpose(S[j]) * randn(T, n, 1)
+            proj = adjoint(S[j]) * randn(T, n, 1) # Should random here be complex if complex poles?
             X[:, j] = S[j] * proj / norm(proj)
         end
         # Think the init should work like this with high prob, otherwise could do xi = Si*yi and find yi with some linear optimization?
@@ -185,12 +185,12 @@ function placemimo(A, B, p; max_iter=10000, tol=1e-7)
             for j in 1:n
                 Q, = qr(X[:, 1:end .!= j])
                 γ = Q[:, end]                       # γ is the most orthogonal vector to [x1, x2, ..., xj-1, xj+1, ..., xn]
-                proj = transpose(S[j]) * γ                    # project γ onto the nullspace for this element, and set xj to that
+                proj = adjoint(S[j]) * γ                    # project γ onto the nullspace for this element, and set xj to that
                 X[:, j] = S[j] * proj / norm(proj)
             end
 
             nν₂ = cond(X)
-            @show ν₂, nν₂
+            #@show ν₂, nν₂
             if ν₂ - nν₂ < tol  
                 M = transpose(lu(transpose(X)) \ transpose(X * Diagonal(p)))
                 return -Z \ U₀' * (M - A) 
