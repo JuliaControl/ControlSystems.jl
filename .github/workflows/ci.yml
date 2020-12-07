@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install apt deps
-        run: apt-get install libgtk-3-dev dvipng texlive
+        run: sudo apt-get install libgtk-3-dev dvipng texlive
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
@@ -55,7 +55,7 @@ jobs:
         with:
           version: '1'
       - name: Install apt deps
-        run: apt-get install libgtk-3-dev dvipng texlive
+        run: sudo apt-get install libgtk-3-dev dvipng texlive
       - run: |
           julia --project=docs -e '
             using Pkg
