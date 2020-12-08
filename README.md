@@ -1,6 +1,6 @@
 # ControlSystems.jl
 
-[![Build Status](https://travis-ci.com/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.com/JuliaControl/ControlSystems.jl)
+[![Build Status](https://github.com/JuliaControl/ControlSystems.jl/workflows/CI/badge.svg)](https://github.com/JuliaControl/ControlSystems.jl/actions)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/C/ControlSystems.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![codecov](https://codecov.io/gh/JuliaControl/ControlSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaControl/ControlSystems.jl)
 
