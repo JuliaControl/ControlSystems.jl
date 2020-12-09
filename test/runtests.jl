@@ -1,5 +1,6 @@
 using ControlSystems
 using Test, LinearAlgebra, Random
+using Documenter
 import Base.isapprox        # In framework and test_synthesis
 import SparseArrays: sparse # In test_matrix_comps
 import DSP: conv            # In test_conversion and test_synthesis
@@ -38,4 +39,10 @@ my_tests = [
     _t0 = time()
     run_tests(my_tests)
     println("Ran all code tests in $(round(time()-_t0, digits=2)) seconds")
+    
+
+    println("Test Doctests")
+    _t0 = time()
+    doctest(ControlSystems)
+    println("Ran Doctests in $(round(time()-_t0, digits=2)) seconds")
 end
