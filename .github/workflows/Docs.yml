@@ -27,18 +27,7 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
-      - name: Run doctest
-        run: |
-          julia --project=docs -e '
-            ENV["PLOTS_TEST"] = "true"
-            ENV["GKSwstype"] = "nul"
-            using Documenter: doctest
-            using ControlSystems
-            using Plots, LinearAlgebra, DSP
-            gr()
-            default(show=false, size=(800,450))
-            doctest(ControlSystems)'
-      - name: Generate documentation
+      - name: Generate and test documentation
         run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
