@@ -21,21 +21,25 @@ jobs:
           version: '1'
       - name: Install apt deps
         run: sudo apt-get install libgtk-3-dev dvipng texlive
-      - run: |
+      - name: Setup docs environment
+        run: |
           julia --project=docs -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
-      - run: |
+      - name: Run doctest
+        run: |
           julia --project=docs -e '
             ENV["PLOTS_TEST"] = "true"
             ENV["GKSwstype"] = "nul"
             using Documenter: doctest
-            using ControlSystems, Plots
+            using ControlSystems
+            using Plots, LinearAlgebra, DSP
             gr()
             default(show=false, size=(800,450))
             doctest(ControlSystems)'
-      - run: julia --project=docs docs/make.jl
+      - name: Generate documentation
+        run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
