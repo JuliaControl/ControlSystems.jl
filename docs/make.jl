@@ -3,7 +3,7 @@ ENV["PLOTS_TEST"] = "true"
 ENV["GKSwstype"] = "nul"
 
 using Documenter, ControlSystems, Plots, LinearAlgebra, DSP
-import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
+#import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 gr()
 default(show=false, size=(800,450))
 
