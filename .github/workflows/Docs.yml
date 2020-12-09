@@ -25,9 +25,7 @@ jobs:
           julia --project=docs -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
-            Pkg.instantiate()'
-      - run: |
-          julia --project=docs -e '
+            Pkg.instantiate()
             using Documenter: doctest
             using ControlSystems
             doctest(ControlSystems)' 
