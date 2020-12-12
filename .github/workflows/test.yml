@@ -27,6 +27,8 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
+      - name: Install apt deps
+        run: sudo apt-get install libgtk-3-dev dvipng texlive
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
