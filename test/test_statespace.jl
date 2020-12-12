@@ -106,8 +106,8 @@
         @test D_111.Ts == 0.005
 
         # propertynames
-        @test propertynames(C_111) == (:A, :B, :C, :D, :timeevol, :nx, :nu, :ny)
-        @test propertynames(D_111) == (:A, :B, :C, :D, :timeevol, :nx, :nu, :ny, :Ts)
+        @test propertynames(C_111) == (:A, :B, :C, :D, :timeevol)
+        @test propertynames(D_111) == (:A, :B, :C, :D, :timeevol, :Ts)
 
         # Printing
         if SS <: StateSpace

@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-function state_space_validation(A,B,C,D,timeevol::TimeEvolution)
+function state_space_validation(A,B,C,D)
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)
@@ -30,23 +30,23 @@ struct StateSpace{TE, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace{TE}
     C::MT
     D::MT
     timeevol::TE
-    nx::Int
-    nu::Int
-    ny::Int
     function StateSpace{TE, T, MT}(A::MT, B::MT, C::MT, D::MT, timeevol::TE) where {TE<:TimeEvolution, T, MT <: AbstractMatrix{T}}
-        nx,nu,ny = state_space_validation(A,B,C,D,timeevol)
-        new{TE, T, MT}(A, B, C, D, timeevol, nx, nu, ny)
+        state_space_validation(A,B,C,D)
+        new{TE, T, MT}(A, B, C, D, timeevol)
     end
-end
-function StateSpace(A::MT, B::MT, C::MT, D::MT, timeevol::TE) where {TE<:TimeEvolution, T, MT <: AbstractMatrix{T}}
-    StateSpace{TE, T, MT}(A, B, C, D, timeevol)
+    function StateSpace(A::MT, B::MT, C::MT, D::MT, timeevol::TE) where {TE<:TimeEvolution, T, MT <: AbstractMatrix{T}}
+        state_space_validation(A,B,C,D)
+        new{TE, T, MT}(A, B, C, D, timeevol)
+    end
 end
 # Constructor for Discrete system
 function StateSpace(A::MT, B::MT, C::MT, D::MT, Ts::Number) where {T, MT <: AbstractMatrix{T}}
+    state_space_validation(A,B,C,D)
     StateSpace(A, B, C, D, Discrete(Ts))
 end
 # Constructor for Continuous system
 function StateSpace(A::MT, B::MT, C::MT, D::MT) where {T, MT <: AbstractMatrix{T}}
+    state_space_validation(A,B,C,D)
     StateSpace(A, B, C, D, Continuous())
 end
 
@@ -126,47 +126,45 @@ Otherwise, this is a discrete-time model with sampling period Ts.
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{TE, AT<:AbstractMatrix,BT<:AbstractVecOrMat,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
+struct HeteroStateSpace{TE <: TimeEvolution, AT<:AbstractMatrix,BT<:AbstractVecOrMat,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
     A::AT
     B::BT
     C::CT
     D::DT
     timeevol::TE
-    nx::Int
-    nu::Int
-    ny::Int
-end
-function HeteroStateSpace(A::AT, B::BT,
-    C::CT, D::DT, timeevol::TE) where {TE<:TimeEvolution,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
-    nx,nu,ny = state_space_validation(A,B,C,D,timeevol)
-    HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol, nx, nu, ny)
+    function HeteroStateSpace(A::AT, B::BT,
+        C::CT, D::DT, timeevol::TE) where {TE<:TimeEvolution,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
+        state_space_validation(A,B,C,D)
+        new{TE,AT,BT,CT,DT}(A, B, C, D, timeevol)
+    end
+    # Explicit constructor
+    function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,CT,DT}
+        state_space_validation(A,B,C,D)
+        new{TE,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TE(timeevol))
+    end
+    # Base constructor
+    function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
+        A = to_abstract_matrix(A)
+        B = to_abstract_matrix(B)
+        C = to_abstract_matrix(C)
+        if D == 0
+            D = fill(zero(eltype(C)), size(C,1), size(B,2))
+        else
+            D = to_abstract_matrix(D)
+        end
+        state_space_validation(A,B,C,D)
+        return new{typeof(timeevol),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, timeevol)
+    end
 end
 
-# Explicit constructor
-function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,CT,DT}
-    nx,nu,ny = state_space_validation(A,B,C,D,timeevol)
-    HeteroStateSpace{TE,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TE(timeevol), nx, nu, ny)
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number)
+    HeteroStateSpace(A, B, C, D, Discrete(Ts))
 end
-
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray)
+    HeteroStateSpace(A, B, C, D, Continuous())
+end
 HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol)
 
-# Base constructor
-function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
-    A = to_abstract_matrix(A)
-    B = to_abstract_matrix(B)
-    C = to_abstract_matrix(C)
-    if D == 0
-        D = fill(zero(eltype(C)), size(C,1), size(B,2))
-    else
-        D = to_abstract_matrix(D)
-    end
-    return HeteroStateSpace{typeof(timeevol),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, timeevol)
-end
-
-HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
-    HeteroStateSpace(A, B, C, D, Discrete(Ts))
-HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray) =
-    HeteroStateSpace(A, B, C, D, Continuous())
 
 
 # Function for creation of static gain
@@ -328,6 +326,26 @@ function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
     return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.timeevol)
+end
+
+function Base.getproperty(sys::AbstractStateSpace, s::Symbol)
+    if s === :Ts
+        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
+        if isdiscrete(sys)
+            return timeevol(sys).Ts
+        else
+            @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
+            return 0.0
+        end
+    elseif s === :nx
+        return nstates(sys)
+    elseif s === :nu
+        return ninputs(sys)
+    elseif s === :ny
+        return noutputs(sys)
+    else
+        return getfield(sys, s)
+    end
 end
 
 #####################################################################
