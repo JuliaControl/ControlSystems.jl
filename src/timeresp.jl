@@ -155,13 +155,13 @@ end
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
-function lsim(sys::AbstractStateSpace, u::Function, t::Union{AbstractVector, Real};
+function lsim(sys::AbstractStateSpace, u::Function, Tf::Real, args...; kwargs...)
+    t = range(0, stop=Tf, step=sys.Ts)
+    lsim(sys, u, t, args...; kwargs...)
+end
+
+function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
-
-    if t isa Number
-        t = range(0, stop=t, step=sys.Ts)
-    end
-
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
