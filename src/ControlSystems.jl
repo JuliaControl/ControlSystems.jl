@@ -93,7 +93,9 @@ export  LTISystem,
         # model augmentation
         add_disturbance,
         add_low_frequency_disturbance,
-        add_resonant_disturbance
+        add_resonant_disturbance,
+        # DSP interface
+        seriesform
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
@@ -108,6 +110,7 @@ import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
+import DSP
 import DSP: conv
 using MacroTools
 
@@ -165,6 +168,8 @@ include("demo_systems.jl")
 include("model_augmentation.jl")
 
 include("delay_systems.jl")
+
+include("dsp.jl")
 
 include("plotting.jl")
 
