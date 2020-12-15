@@ -33,7 +33,7 @@ jobs:
           julia --project=docs -e '
             using Documenter: doctest
             using ControlSystems
-            doctest(ControlSystems)''
+            doctest(ControlSystems)'
       - name: Generate documentation
         run: julia --project=docs docs/make.jl
         env:
