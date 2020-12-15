@@ -28,7 +28,13 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
-      - name: Generate and test documentation
+      - name: Test docs
+        run: |
+          julia --project=docs -e '
+            using Documenter: doctest
+            using ControlSystems
+            doctest(ControlSystems)''
+      - name: Generate documentation
         run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
