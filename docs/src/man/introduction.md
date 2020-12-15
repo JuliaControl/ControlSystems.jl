@@ -14,8 +14,6 @@ DocTestSetup = quote
     T = P/(1+P)
     plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
     mkpath(plotsDir)
-    ENV["PLOTS_TEST"] = "true"
-    ENV["GKSwstype"] = "nul"
     save_docs_plot(name) = Plots.savefig(joinpath(plotsDir,name))
     save_docs_plot(p, name) = Plots.savefig(p, joinpath(plotsDir,name))
 end
