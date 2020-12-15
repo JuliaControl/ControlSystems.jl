@@ -31,6 +31,8 @@ jobs:
       - name: Test docs
         run: |
           julia --project=docs -e '
+            ENV["PLOTS_TEST"] = "true"
+            ENV["GKSwstype"] = "nul"
             using Documenter: doctest
             using ControlSystems
             doctest(ControlSystems)'
