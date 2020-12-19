@@ -277,13 +277,13 @@ bodeplot
 
                 @series begin
                     grid      --> true
-                    primary --> false
+                    # primary --> false
                     xscale    --> :log10
                     ylims      := ylimsphase
                     yguide    --> "Phase (deg)"
                     subplot   --> s2i(2i,j)
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
-                    label     --> "\$G_{$(si)}\$"
+                    label     := ""
                     group     --> group_ind
                     ws, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
