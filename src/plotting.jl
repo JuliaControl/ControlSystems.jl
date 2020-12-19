@@ -34,7 +34,7 @@ function getlims(xylims, plotattributes, wmag)
     end
     if !isempty(get_serieslist(plotattributes))
         subplot = get(plotattributes, :subplot, 0)
-        subplot == 0 && (return lims)
+        (subplot == 0 || (subplot isa Array)) && (return lims)
         se = seriesextrema(xylims, plotattributes, subplot)
         lims = extremareducer(lims, se)
     end
