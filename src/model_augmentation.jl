@@ -21,16 +21,16 @@ function add_disturbance(sys::AbstractStateSpace{Continuous}, Ad::AbstractMatrix
     ss(Ae,Be,Ce,De)
 end
 
-function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}, Ai::Integer)
+function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}, Ai::Integer; ϵ=0)
     nx,nu,ny = sys.nx,sys.nu,sys.ny
     Cd = zeros(nx, 1)
     Cd[Ai] = 1
-    add_disturbance(sys, zeros(1,1), Cd)
+    add_disturbance(sys, fill(-ϵ, 1, 1), Cd)
 end
 
-function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous})
+function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}; ϵ=0)
     Cd = sys.B
-    add_disturbance(sys, zeros(1,1), Cd)
+    add_disturbance(sys, fill(-ϵ, 1, 1), Cd)
 end
 
 function add_resonant_disturbance(sys::AbstractStateSpace{Continuous}, ω, ζ, Ai::Integer)
