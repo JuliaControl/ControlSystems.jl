@@ -1,4 +1,5 @@
-ControlSystems.tf(p::DSP.PolynomialRatio, h::Real = 1) = tf(coefb(p), coefa(p), h)
+ControlSystems.tf(p::DSP.PolynomialRatio, h::Real = 1) = tf(DSP.coefb(p), DSP.coefa(p), h)
+ControlSystems.tf(p::DSP.ZeroPoleGain, h::Real = 1) = tf(DSP.PolynomialRatio(p), h)
 
 DSP.PolynomialRatio(G::TransferFunction) = DSP.PolynomialRatio(numpoly(G)[], denpoly(G)[])
 
@@ -28,10 +29,3 @@ function ControlSystems.zpk(p::DSP.ZeroPoleGain, h::Real)
     z,p,k = p.z, p.p, p.z
     zpk(z,p,k,h)
 end
-
-using Test
-G = DemoSystems.resonant()*DemoSystems.resonant(ω0=2) |> tf
-Gd = c2d(G, 0.1)
-Gs, k = seriesform(Gd)
-@test k*prod(Gs) ≈ Gd
-Gds = DSP.SecondOrderSections(Gd)
