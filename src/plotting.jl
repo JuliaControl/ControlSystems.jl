@@ -344,11 +344,12 @@ the sensitivity and complementary sensitivity functions.
 
 `kwargs` is sent as argument to plot."""
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
+@recipe function nyquistplot(p::Nyquistplot; gaincircles=true, Ms = 2)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
     layout --> (ny,nu)
+    framestyle --> :zerolines
     s2i(i,j) = LinearIndices((ny,nu))[j,i]
     # Ensure that `axes` is always a matrix of handles
     for (si,s) = enumerate(systems)
@@ -373,19 +374,26 @@ nyquistplot
                     S,C = sin.(v),cos.(v)
                     @series begin
                         primary := false
-                        linestyle := :dash
-                        linecolor := :black
-                        seriestype := :path
-                        markershape := :none
-                        (C,S)
+                        markercolor --> :red
+                        seriestype := :scatter
+                        markershape := :c
+                        [-1], [0]
                     end
                     @series begin
                         primary := false
                         linestyle := :dash
-                        linecolor := :black
+                        linecolor := :gray
                         seriestype := :path
                         markershape := :none
-                        (C .-1,S)
+                        ((1/Ms).*(C.-2),(1/Ms).*S)
+                    end
+                    @series begin
+                        primary := false
+                        linestyle := :dash
+                        linecolor := :gray
+                        seriestype := :path
+                        markershape := :none
+                        (C,S)
                     end
                 end
 
