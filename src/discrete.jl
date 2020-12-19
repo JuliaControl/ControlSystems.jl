@@ -11,7 +11,7 @@ Convert the continuous system `sys` into a discrete system with sample time
 Returns the discrete system `sysd`, and for StateSpace systems a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
-function c2d(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh; a=Ts/2)
+function c2d(sys::Union{StateSpace{Continuous},HeteroStateSpace{Continuous}}, Ts::Real, method::Symbol=:zoh; a=Ts/2)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
