@@ -104,17 +104,11 @@ method is chosen based on the smoothness of the input signal. Optionally, the
 """
 lsimplot
 
-@recipe function lsimplot(p::Lsimplot; method=nothing)
-    if length(p.args) < 3
-        error("Wrong number of arguments")
-    end
-    systems,u,t = p.args[1:3]
+@recipe function lsimplot(p::Lsimplot)
+    systems = p.args[1]
 
     if !isa(systems,AbstractArray)
         systems = [systems]
-    end
-    if method == nothing
-        method = _issmooth(u) ? :foh : :zoh
     end
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
@@ -124,7 +118,7 @@ lsimplot
     s2i(i,j) = LinearIndices((ny,1))[j,i]
     for (si,s) in enumerate(systems)
         s = systems[si]
-        y = length(p.args) >= 4 ? lsim(s, u, t, x0=p.args[4], method=method)[1] : lsim(s, u, t, method=method)[1]
+        y, t = lsim(s, p.args[2:end]...)
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
