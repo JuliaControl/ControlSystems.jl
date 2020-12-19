@@ -10,6 +10,7 @@ include("framework.jl")
 eye_(n) = Matrix{Int64}(I, n, n)
 
 my_tests = [
+            "test_dsp",
             "test_timeevol",
             "test_statespace",
             "test_transferfunction",            
