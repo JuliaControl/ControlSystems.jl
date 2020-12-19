@@ -699,21 +699,25 @@ pzmap
     framestyle --> :zerolines
     title --> "Pole-zero map"
     legend --> false
-    for system in systems
-        z,p,k = zpkdata(system)
-        if !isempty(z[1])
+    for (i, system) in enumerate(systems)
+        p = pole(system)
+        z = tzero(system)
+        if !isempty(z)
             @series begin
+                group --> i
                 markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
-                real(z[1]),imag(z[1])
+                real(z),imag(z)
             end
         end
-        if !isempty(p[1])
+        if !isempty(p)
             @series begin
-                markershape --> :x
+                group --> i
+                markershape --> :xcross
                 markersize --> 15.
-                real(p[1]),imag(p[1])
+                markeralpha --> 0.5
+                real(p),imag(p)
             end
         end
 
