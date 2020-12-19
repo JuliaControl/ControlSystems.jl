@@ -741,13 +741,14 @@ pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 Gang-of-Four plot.
 
 `kwargs` is sent as argument to Plots.plot."""
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)
     # Array of (S,D,N,T)
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
-    sys = gangoffour.(P,C)
+    sys = gangoffour.(P,C; minimal)
     fig = bodeplot([[sys[i][1] sys[i][2]; sys[i][3] sys[i][4]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
+    hline!([1 1 1 1], l=(:black, :dash), primary=false)
     titles = fill("", 1, plotphase ? 8 : 4)
     # Empty titles on phase
     titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
