@@ -113,6 +113,7 @@ import Printf, Colors
 import DSP
 import DSP: conv
 using MacroTools
+using MatrixEquations
 
 abstract type AbstractSystem end
 

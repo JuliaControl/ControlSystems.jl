@@ -86,7 +86,7 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+    func = iscontinuous(sys) ? lyapc : lyapd
     if opt === :c
         # TODO probably remove type check in julia 0.7.0
         return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
