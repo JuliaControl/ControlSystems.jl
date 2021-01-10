@@ -269,7 +269,7 @@ function _default_dt(sys::LTISystem)
     else
         ps = pole(sys)
         r = minimum([abs.(real.(ps)); Inf])
-        if r == 0.0 || r == Inf
+        if r == Inf
             r = 1.0
         end
         return 0.07/r
