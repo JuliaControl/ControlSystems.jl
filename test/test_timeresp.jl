@@ -179,14 +179,16 @@ y, t2, x = step(G, 2)
 
 
 # Test _default_dt 
-sysstab1 = tf(1, [1, 0.5])
-sysstab2 = tf(1, [1, 0])
+sysstab = tf(1, [1, 0.5])
+sysstatic = zpk([], [], 1.0)
 sysunstab = tf(1, [1, -1])
+sysint = tf(1, [1, 0])
 sysd = tf(1, [1, 1], 0.01)
 
-@test ControlSystems._default_dt(sysstab1) == 0.14
-@test ControlSystems._default_dt(sysstab2) == 0.07
-@test ControlSystems._default_dt(sysinstab) == 0.05
+@test ControlSystems._default_dt(sysstab) == 0.14
+@test ControlSystems._default_dt(sysstatic) == 0.07
+@test ControlSystems._default_dt(sysunstab) == 0.05
+@test ControlSystems._default_dt(sysint) == 0.05
 @test ControlSystems._default_dt(sysd) == 0.01
 
 
