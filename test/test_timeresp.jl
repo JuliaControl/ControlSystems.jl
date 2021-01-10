@@ -178,6 +178,16 @@ y, t2, x = step(G, 2)
 @test t0 == t
 
 
+# Test _default_dt 
+sysstab1 = tf(1, [1, 0.5])
+sysstab2 = tf(1, [1, 0])
+sysunstab = tf(1, [1, -1])
+sysd = tf(1, [1, 1], 0.01)
+
+@test ControlSystems._default_dt(sysstab1) == 0.14
+@test ControlSystems._default_dt(sysstab2) == 0.07
+@test ControlSystems._default_dt(sysinstab) == 0.05
+@test ControlSystems._default_dt(sysd) == 0.01
 
 
 
