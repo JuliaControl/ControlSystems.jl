@@ -30,6 +30,7 @@ println("Making docs")
 makedocs(modules=[ControlSystems],
     format=Documenter.HTML(),
     sitename="ControlSystems.jl",
+    strict=true,
     pages=[
         "Home" => "index.md",
         "Guide" => Any[
@@ -47,6 +48,6 @@ makedocs(modules=[ControlSystems],
             "Plotting" => "lib/plotting.md",
         ],
     ]
-    )
+)
 
 deploydocs(repo = "github.com/JuliaControl/ControlSystems.jl.git")
