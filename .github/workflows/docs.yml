@@ -12,14 +12,14 @@ on:
 
 jobs:
   docs:
-    name: Documentation
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }} 
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       matrix:
         version: [1]
-        arch: [x86]
         os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+        arch: [x64]
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -44,7 +44,15 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
-      - name: Test and generate documentation
+      - name: Test docs # Test are also run in the makedocs, but there they don't error properly unless we set strict in which case warnings also error
+        run: |
+          julia --project=docs -e '
+            ENV["PLOTS_TEST"] = "true"
+            ENV["GKSwstype"] = "nul"
+            using Documenter: doctest
+            using ControlSystems
+            doctest(ControlSystems)'
+      - name: Generate documentation
         run: julia --project=docs --color=yes docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -30,7 +30,7 @@ println("Making docs")
 makedocs(modules=[ControlSystems],
     format=Documenter.HTML(),
     sitename="ControlSystems.jl",
-    strict=true,
+    #strict=true,
     pages=[
         "Home" => "index.md",
         "Guide" => Any[
