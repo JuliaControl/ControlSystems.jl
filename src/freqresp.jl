@@ -58,7 +58,7 @@ function evalfr(sys::AbstractStateSpace, s::Number)
         R = s*I - sys.A
         sys.D + sys.C*((R\sys.B))
     catch e
-        @warn "Got exception $e, returning Inf" max_log=1
+        @warn "Got exception $e, returning Inf" maxlog=1
         fill(convert(T, Inf), size(sys))
     end
 end
