@@ -240,6 +240,7 @@ bodeplot
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
     xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
+    grid   --> true
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -259,7 +260,6 @@ bodeplot
                 end
                 phasedata = vec(phase[:, i, j])
                 @series begin
-                    grid      --> true
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
                     if _PlotScale != "dB"
@@ -276,7 +276,6 @@ bodeplot
                 plotphase || continue
 
                 @series begin
-                    grid      --> true
                     # primary --> false
                     xscale    --> :log10
                     ylims      := ylimsphase
