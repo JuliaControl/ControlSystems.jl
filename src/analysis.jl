@@ -451,6 +451,14 @@ function delaymargin(G::LTISystem)
     dₘ
 end
 
+function robust_minreal(G, args...; kwargs...)
+    try 
+        return minreal(G, args...; kwargs...)
+    catch
+        return G
+    end
+end
+
 """
     S,D,N,T = gangoffour(P,C; minimal=true)
     gangoffour(P::AbstractVector,C::AbstractVector; minimal=true)
@@ -467,12 +475,13 @@ Given a transfer function describing the Plant `P` and a transfer function descr
 
 `T = PC/(1+PC)` Complementary sensitivity function
 
-Only supports SISO systems"""
+Only supports SISO systems
+"""
 function gangoffour(P::LTISystem,C::LTISystem; minimal=true)
     if P.nu + P.ny + C.nu + C.ny > 4
         error("gangoffour only supports SISO systems")
     end
-    minfun = minimal ? minreal : identity
+    minfun = minimal ? robust_minreal : identity
     S = (1/(1+P*C)) |> minfun
     D = (P*S)       |> minfun
     N = (C*S)       |> minfun
