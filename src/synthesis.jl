@@ -1,6 +1,6 @@
 """`lqr(A, B, Q, R)`
 
-Calculate the optimal gain matrix `K` for the state-feedback law `u = K*x` that
+Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
 
 J = integral(x'Qx + u'Ru, 0, inf).
@@ -66,7 +66,7 @@ end
 
 """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
 
-Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = K*x[k]` that
+Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = -K*x[k]` that
 minimizes the cost function:
 
 J = sum(x'Qx + u'Ru, 0, inf).
