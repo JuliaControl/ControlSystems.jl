@@ -1,7 +1,7 @@
 ControlSystems.tf(p::DSP.PolynomialRatio, h::Real = 1) = tf(DSP.coefb(p), DSP.coefa(p), h)
 ControlSystems.tf(p::DSP.ZeroPoleGain, h::Real = 1) = tf(DSP.PolynomialRatio(p), h)
 
-DSP.PolynomialRatio(G::TransferFunction) = DSP.PolynomialRatio(numpoly(G)[], denpoly(G)[])
+DSP.PolynomialRatio(G::TransferFunction{<:Discrete}) = DSP.PolynomialRatio(numpoly(G)[], denpoly(G)[])
 
 function ControlSystems.TransferFunction(b::DSP.Biquad, h::Real = 1)
     b0, b1, b2, a1, a2 = b.b0, b.b1, b.b2, b.a1, b.a2
