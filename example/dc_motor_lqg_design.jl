@@ -4,7 +4,7 @@ Example for designing an LQG speed controller for an electrical DC motor.
 """
 
 # Constants
-Ke = 0.006156                                # electromotive force constant in V/rpm
+Ke                      = 0.006156           # electromotive force constant in V/rpm
 Kt                      = 0.0728             # Torque constant (Nm/A)
 J                       = 2.8*700e-6;        # Inertia of motor plus load (kgm^2)
 Rel                     = 0.11;              # DC motor resistance (Ω)
@@ -29,8 +29,8 @@ function motor(Ke, Kt, L, R, J, b=1e-3)
 end
 
 p60 = motor(Ke, Kt, L, Rel, J)
-stepplot(p60, 0.2, 0.001)
-bodeplot(p60)
+f1 = stepplot(p60)
+f2 = bodeplot(p60)
 
 # LQR control
 Q = [1.     0;
@@ -39,7 +39,7 @@ Q = [1.     0;
 R = 20.
 K = lqr(p60.A, p60.B, Q, R)
 # needs to be modified if Nbar is not a scalar
-Nbar = 1. / (p60.D - (p60.C - p60.D*K) * inv(p60.A - p60.B*K) * p60.B)
+Nbar = 1. ./ (p60.D - (p60.C - p60.D*K) * inv(p60.A - p60.B*K) * p60.B)
 
 # Kalman filter based observer
 Vd = [10.     0   # covariance of the speed estimation
@@ -49,6 +49,8 @@ G = LQG(p60, Q, mat(R), Vd, mat(Vn))
 Gcl = G[:cl]
 T = G[:T]
 S = G[:S];
-f1 = sigmaplot([S,T],logspace(-3,3,1000))
-f2 = stepplot(Gcl, label=["Closed loop system using LQG"])
-Plots.plot(f1,f2)
+
+# 1000 logarithmically spaced values from -3 to 3
+f3 = sigmaplot([S,T], exp10.(range(-3, stop=3, length=1000)))
+f4 = stepplot(Gcl, label=["Closed loop system using LQG"])
+Plots.plot(f1, f2, f3, f4, layout=(2,2), size=(800, 600))
