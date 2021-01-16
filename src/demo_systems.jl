@@ -81,7 +81,7 @@ sotd(;T=1, T2=10, τ=1) = ss(-1/T, 1, 1/T, 0)*ss(-1/T2, 1, 1/T2, 0)*delay(τ)
 """
     resonant(;ω0=1, ζ=0.25)
 
-Returns a second-order system + a time delay `exp(-sτ)/(sT+1)/(sT2 + 1)` (`DelayLTISystem`).
+
 """
 resonant(;ω0=1, ζ=0.25) = ss([-ζ -ω0; ω0 -ζ], [ω0; 0], [0 ω0], 0) # QUESTION: Is this the form that we like? Perhhaps not.
 
