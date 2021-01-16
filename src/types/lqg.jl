@@ -8,7 +8,7 @@ that penalizes state deviations and control signal variance respectively, and co
 matrices `R1,R2` which specify state drift and measurement covariance respectively.
 This constructor calls [`lqr`](@ref) and [`kalman`](@ref) and forms the closed-loop system.
 
-If `integrator=true`, the resulting controller will have intregral action.
+If `integrator=true`, the resulting controller will have integral action.
 This is achieved by adding a model of a constant disturbance on the inputs to the system
 described by `sys`.
 
@@ -24,7 +24,7 @@ y = C*x
 z = M*x
 ```
 
-# Fields
+# Fields and properties
 When the LQG-object is populated by the lqg-function, the following fields have been made available
 - `L` is the feedback matrix, such that `A-BL` is stable. Note that the length of the state vector (and the width of L) is increased by the number of inputs if the option `integrator=true`.
 - `K` is the kalman gain such that `A-KC` is stable
@@ -45,8 +45,7 @@ Several other properties of the object are accessible as properties. The availab
 -`G.sr / G.stabilityrobustness  =  I + inv(PC)`
 -`G.sysc / G.controller` Returns the controller as a StateSpace-system
 
-It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P
-,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
+It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
 
 # Example
 
@@ -211,15 +210,14 @@ function Base.getproperty(G::LQG, s::Symbol)
 
     PC = P * sysc # Loop gain
 
-    # Compensate for static gain, pp. 264 G.L.
-    svdvals(P.B*L[:,1:n]-P.A)
-    dcg = (P.C * inv(P.B*L[:,1:n]-P.A) * P.B)
-    Acl = [A-B*L B*L; zero(A) A-K*C]
-    Bcl = [B/dcg; zero(B)]
-    Ccl = [M zero(M)]
-    # rank(dcg) == size(A,1) && (Bcl = Bcl / dcg) # B*lᵣ # Always normalized with nominal plant static gain
-    syscl = ss(Acl, Bcl, Ccl, 0)
     if s ∈ (:cl, :closedloop, :ry) # Closed-loop system
+        # Compensate for static gain, pp. 264 G.L.
+        dcg = P.C * ((P.B*L[:,1:n]-P.A) / P.B)
+        Acl = [A-B*L B*L; zero(A) A-K*C]
+        Bcl = [B/dcg; zero(B)]
+        Ccl = [M zero(M)]
+        # rank(dcg) == size(A,1) && (Bcl = Bcl / dcg) # B*lᵣ # Always normalized with nominal plant static gain
+        syscl = ss(Acl, Bcl, Ccl, 0)
         # return ss(A-B*L, B/dcg, M, 0)
         return syscl
     elseif s ∈ (:Sin, :S) # Sensitivity function
