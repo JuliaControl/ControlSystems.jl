@@ -86,12 +86,13 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? lyapc : lyapd
+    lyapf = iscontinuous(sys) ? lyapc : lyapd
+    # lyapf = iscontinuous(sys) ? lyap : dlyap
     if opt === :c
         # TODO probably remove type check in julia 0.7.0
-        return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
+        return lyapf(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
     elseif opt === :o
-        return func(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
+        return lyapf(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -502,11 +503,11 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
     P = gram(sys, :c)
     Q = gram(sys, :o)
 
-    Q1 = try
-        cholesky(Hermitian(Q)).U
-    catch
-        throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
-    end
+
+    L = cholesky(Hermitian((Q+Q')./2), check=false)
+    issuccess(L) || @warn("Balanced realization failed: Observability grammian not positive definite, system needs to be observable. Result may be inaccurate.")
+
+    Q1 = L.U
     U,Σ,V = svd(Q1*P*Q1')
     Σ .= sqrt.(Σ)
     Σ1 = diagm(0 => sqrt.(Σ))
