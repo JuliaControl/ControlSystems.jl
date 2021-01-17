@@ -97,6 +97,19 @@ d = exp(-2*s)
 @test_throws ErrorException exp([-2*s; -s])
 @test_throws ErrorException exp(2*s) # Non-causal
 
+
+Ω = [0.5, 1.0, 1.5, 2.0]
+# Test for internal function delayd_ss
+@test freqresp(ControlSystems.delayd_ss(1.0, 0.2), Ω)[:] ≈ exp.(-im*Ω) atol=1e-14
+@test freqresp(ControlSystems.delayd_ss(3.2, 0.4), Ω)[:] ≈ exp.(-3.2*im*Ω) atol=1e-14
+@test_throws ErrorException freqresp(ControlSystems.delayd_ss(3.2, 0.5), Ω)
+
+# Simple tests for c2d of DelayLtiSystems
+@test freqresp(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
+@test freqresp(c2d(feedback(delay(1.5), delay(1.0)), 0.5), Ω) ≈ [z^-3/(1 + z^-5) for z in exp.(im*Ω*0.5)]
+@test freqresp(c2d(feedback(0.5, delay(1.5)), 0.5), Ω) ≈ [0.5/(1 + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
+
+
 # Random conversions
 sys1 = DelayLtiSystem(1.0/s)
 @test sys1.P.A == sys1.P.D == fill(0,1,1)

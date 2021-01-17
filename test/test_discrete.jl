@@ -56,12 +56,78 @@ G = tf([1, 1], [1, 3, 1])
 Gd = c2d(G, 0.2)
 @test Gd ≈ tf([0, 0.165883310712090, -0.135903621603238], [1.0, -1.518831946985175, 0.548811636094027], 0.2) rtol=1e-14
 
+# Issue #391
+@test c2d(tf(C_111), 0.01, :zoh) ≈ tf(c2d(C_111, 0.01, :zoh)[1])
+@test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh)[1])
+
 # c2d on a zpk model should arguably return a zpk model
 @test_broken typeof(c2d(zpk(G), 1)) <: TransferFunction{<:ControlSystems.SisoZpk}
 
 
 
 # ERRORS
-@test_throws ErrorException c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
-@test_throws ErrorException c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
+@test_throws MethodError c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
+@test_throws MethodError c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
+
+
+# d2c
+@static if VERSION > v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
+    @test d2c(c2d(C_111, 0.01)[1]) ≈ C_111
+    @test d2c(c2d(C_212, 0.01)[1]) ≈ C_212
+    @test d2c(c2d(C_221, 0.01)[1]) ≈ C_221
+    @test d2c(c2d(C_222_d, 0.01)[1]) ≈ C_222_d
+    @test d2c(Gd) ≈ G
+
+    sys = ss([0 1; 0 0], [0;1], [1 0], 0)
+    sysd = c2d(sys, 1)[1]
+    @test d2c(sysd) ≈ sys
 end
+
+# forward euler
+@test c2d(C_111, 1, :fwdeuler)[1].A == I + C_111.A
+@test d2c(c2d(C_111, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_111
+@test d2c(c2d(C_212, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_212
+@test d2c(c2d(C_221, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_221
+@test d2c(c2d(C_222_d, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_222_d
+@test d2c(c2d(G, 0.01, :fwdeuler), :fwdeuler) ≈ G
+
+
+Cd = c2d(C_111, 0.001, :fwdeuler)[1]
+t = 0:0.001:2
+y,_ = step(C_111, t)
+yd,_ = step(Cd, t)
+@test norm(yd-y) / norm(y) < 1e-3
+
+# dab
+import DSP: conv
+ζ = 0.2
+ω = 1
+B = [1]
+A   = [1, 2ζ*ω, ω^2]
+P  = tf(B,A)
+# Control design
+ζ0 = 0.7
+ω0 = 2
+Am = [1, 2ζ0*ω0, ω0^2]
+Ao = conv(2Am, [1/2, 1]) # Observer polynomial, add extra pole due to the integrator
+AR = [1,0] # Force the controller to contain an integrator ( 1/(s+0) )
+
+B⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ where B⁻ contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)
+B⁻  = [1]
+Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process
+
+R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
+
+Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
+
+@test ControlSystems.isstable(Gcl)
+
+p = pole(Gcl)
+# Test that all desired poles are in the closed-loop system
+@test norm(minimum(abs.((pole(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+# Test that the observer poles are in the closed-loop system
+@test norm(minimum(abs.((pole(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+
+
+end
+

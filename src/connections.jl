@@ -1,14 +1,14 @@
 # Model interconnections
 
 """
-`series(sys1::LTISystem, sys2::LTISystem)`
+    series(sys1::LTISystem, sys2::LTISystem)
 
 Connect systems in series, equivalent to `sys2*sys1`
 """
 series(sys1::LTISystem, sys2::LTISystem) = sys2*sys1
 
 """
-`series(sys1::LTISystem, sys2::LTISystem)`
+    parallel(sys1::LTISystem, sys2::LTISystem)
 
 Connect systems in parallel, equivalent to `sys2+sys1`
 """
@@ -16,7 +16,7 @@ parallel(sys1::LTISystem, sys2::LTISystem) = sys1 + sys2
 
 append() = LTISystem[]
 """
-`append(systems::StateSpace...), append(systems::TransferFunction...)`
+    append(systems::StateSpace...), append(systems::TransferFunction...)
 
 Append systems in block diagonal form
 """
@@ -153,8 +153,10 @@ end
 
 
 """
-`feedback(L)` Returns L/(1+L)
-`feedback(P1,P2)` Returns P1/(1+P1*P2)
+    feedback(L)
+    feedback(P1,P2)
+
+Returns `L/(1+L)` or `P1/(1+P1*P2)`
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
@@ -183,9 +185,8 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
 end
 
 """
-`feedback(sys)`
-
-`feedback(sys1,sys2)`
+    feedback(sys)
+    feedback(sys1,sys2)
 
 Forms the negative feedback interconnection
 ```julia
@@ -304,8 +305,11 @@ end
 
 
 """
-`feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
-`feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
+    feedback2dof(P,R,S,T)
+    feedback2dof(B,A,R,S,T)
+
+- Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+- Return `BT/(AR+ST)`
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
@@ -333,9 +337,9 @@ function lft(G, Δ, type=:l)
         error("Must have G.nu > Δ.ny and G.ny > Δ.nu for lower/upper lft")
     end
 
-    if type == :l
+    if type === :l
         feedback(G, Δ, U1=G.nu-Δ.ny+1:G.nu, Y1=G.ny-Δ.nu+1:G.ny, W1=1:G.ny-Δ.nu, Z1=1:G.nu-Δ.ny, pos_feedback=true)
-    elseif type == :u
+    elseif type === :u
         feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.nu+1:G.ny, Z1=Δ.nu+1:G.ny, pos_feedback=true)
     else
         error("Invalid type of lft ($type), specify type=:l (:u) for lower (upper) lft")

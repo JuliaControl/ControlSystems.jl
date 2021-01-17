@@ -36,6 +36,35 @@ function evalfr(sys::DelayLtiSystem, s)
     return P11_fr + P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr
 end
 
+
+"""
+    delayd_ss(τ, Ts)
+Discrete-time statespace realization of a delay τ sampled with period Ts,
+i.e. of z^-N where N = τ / Ts.
+
+τ must be a multiple of Ts.
+"""
+function delayd_ss(τ::Number, h::Number)
+    n = Int(round(τ / h))
+    if !(τ - n*h ≈ 0)
+        error("The delay τ must be a multiple of the sample time Ts")
+    end
+    ss(diagm(1 => ones(n-1)), [zeros(n-1,1); 1], [1 zeros(1,n-1)], 0, h)
+end
+
+"""
+    c2d(G::DelayLtiSystem, Ts, method=:zoh)
+"""
+function c2d(G::DelayLtiSystem, h::Real, method=:zoh)
+    if !(method === :zoh)
+        error("c2d for DelayLtiSystems only supports zero-order hold")
+    end
+    X = append([delayd_ss(τ, h) for τ in G.Tau]...)
+    Pd = c2d(G.P.P, h)[1]
+    return lft(Pd, X)
+end
+
+
 """
     `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
 

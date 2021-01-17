@@ -62,6 +62,7 @@ export  LTISystem,
         lft,
         # Discrete
         c2d,
+        d2c,
         # Time Response
         step,
         impulse,
@@ -69,7 +70,7 @@ export  LTISystem,
         solve,
         Simulator,
         # Frequency Response
-        freqresp,
+        freqresp, freqrespv,
         evalfr,
         bode, bodev,
         nyquist, nyquistv,

@@ -1,6 +1,9 @@
 
+import Base.getindex
+
 """
-    G = LQG(sys::AbstractStateSpace, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false, M = sys.C)
+    G = LQG(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false)
+    G = LQG(sys, args...; kwargs...)
 
 Return an LQG object that describes the closed control loop around the process `sys=ss(A,B,C,D)`
 where the controller is of LQG-type. The controller is specified by weight matrices `Q1,Q2`
@@ -121,6 +124,11 @@ function LQG(
     integrator ? _LQGi(sys, Q1, Q2, R1, R2, qQ, qR; kwargs...) :
     _LQG(sys, Q1, Q2, R1, R2, qQ, qR; kwargs...)
 end # (2) Dispatches to final
+
+# (3) For conveniece of sending a sys, dispatches to (1/2)
+LQG(sys::LTISystem, args...; kwargs...) = LQG(sys.A,sys.B,sys.C,sys.D,args...; kwargs...)
+
+
 
 # This function does the actual initialization in the standard case withput integrator
 function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
@@ -250,18 +258,26 @@ Base.:(==)(G1::LQG, G2::LQG) =
 
 plot(G::LQG) = gangoffourplot(G)
 function gangoffour(G::LQG)
-    return G.S, G.PS, G.CS, G.T
+    return G[:S], G[:PS], G[:CS], G[:T]
 end
 
 function gangoffourplot(G::LQG; kwargs...)
-    S, D, N, T = gangoffour(G)
-    f1 = sigmaplot(S, show = false, kwargs...)
-    Plots.plot!(title = "\$S = 1/(1+PC)\$")
-    f2 = sigmaplot(D, show = false, kwargs...)
-    Plots.plot!(title = "\$D = P/(1+PC)\$")
-    f3 = sigmaplot(N, show = false, kwargs...)
-    Plots.plot!(title = "\$N = C/(1+PC)\$")
-    f4 = sigmaplot(T, show = false, kwargs...)
-    Plots.plot!(title = "\$T = PC/(1+PC\$)")
-    Plots.plot(f1, f2, f3, f4)
+    S,D,N,T = gangoffour(G)
+    f1 = sigmaplot(S, show=false, kwargs...); Plots.plot!(title="\$S = 1/(1+PC)\$")
+    f2 = sigmaplot(D, show=false, kwargs...); Plots.plot!(title="\$D = P/(1+PC)\$")
+    f3 = sigmaplot(N, show=false, kwargs...); Plots.plot!(title="\$N = C/(1+PC)\$")
+    f4 = sigmaplot(T, show=false, kwargs...); Plots.plot!(title="\$T = PC/(1+PC\$)")
+    Plots.plot(f1,f2,f3,f4)
 end
+
+
+
+# function gangoffourplot(G::LQG, args...)
+#     S,D,N,T = gangoffour(G)
+#     fig = subplot(n=4,nc=2)
+#     Plots.plot!(fig[1,1],sigmaplot(S, args...), title="\$S = 1/(1+PC)\$")
+#     Plots.plot!(fig[1,2],sigmaplot(D, args...), title="\$D = P/(1+PC)\$")
+#     Plots.plot!(fig[2,1],sigmaplot(N, args...), title="\$N = C/(1+PC)\$")
+#     Plots.plot!(fig[2,2],sigmaplot(T, args...), title="\$T = PC/(1+PC\$)")
+#     return fig
+# end

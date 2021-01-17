@@ -1,8 +1,9 @@
-
 @testset "test_autovec" begin
 
 
+# Test all different autovecd methods
 sys = tf([1], [1, 2])
+w = exp10.(LinRange(-3,3,10))
 
 # Check output of bode and make sure dimensions are correct
 mag, phase, w = bode(sys)
@@ -13,11 +14,58 @@ magv, phasev, w = bodev(sys)
 @test size(magv) == size(phasev) == size(w)
 @test vec(mag) == magv && vec(phase) == phasev
 
-w = exp10.(LinRange(-3,3,10))
 mag, phase, _ = bodev(sys, w)
 @test size(mag) == size(phase) == size(w)
 
+# Check output of nyquist and make sure dimensions are correct
+real, imag, w = nyquist(sys)
+@test size(real) == size(imag) == (size(w,1), 1, 1)
+
+# Check output of nyquistv and make sure dimensions are correct
+realv, imagv, w = nyquistv(sys)
+@test size(realv) == size(imagv) == size(w)
+@test vec(real) == realv && vec(imag) == imagv
+
+real, imag, _ = nyquistv(sys, w)
+@test size(real) == size(imag) == size(w)
+
+# Check output of sigma and make sure dimensions are correct
+sv, w = sigma(sys)
+@test size(sv) == (size(w,1), 1)
+
+# Check output of sigmav and make sure dimensions are correct
+svv, w = sigmav(sys)
+@test size(svv) == size(w)
+@test vec(sv) == svv 
+
+sv, _ = sigmav(sys, w)
+@test size(sv) == size(w)
+
+# Check output of freqresp and make sure dimensions are correct
+fs = freqresp(sys, w)
+@test size(fs) == (size(w,1), 1, 1)
+
+# Check output of freqrespv and make sure dimensions are correct
+fsv = freqrespv(sys, w)
+@test size(fsv) == size(w)
+@test vec(fs) == fsv 
+
+
+
+
+
+
 # Test that we can define varous kinds of methods with autovec
+
+# Test arguments for single output
+ControlSystems.@autovec () function t0(b::Int, c::Float64=1.0)
+    return [b c]
+end
+
+@test @isdefined t0
+@test @isdefined t0v
+@test t0(5) == [5.0 1.0]
+@test t0v(5) == [5.0, 1.0]
 
 # Test arguments
 ControlSystems.@autovec (2,) function t0(a, b::Int, c::Float64=1.0)
