@@ -2,7 +2,9 @@
 
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
-"""`y, t, x = step(sys[, Tf])` or `y, t, x = step(sys[, t])`
+"""
+    y, t, x = step(sys[, Tf])
+    y, t, x = step(sys[, t])
 
 Calculate the step response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
@@ -31,7 +33,9 @@ Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
 Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t::AbstractVector; kwargs...)
 
-"""`y, t, x = impulse(sys[, Tf])` or `y, t, x = impulse(sys[, t])`
+"""
+    y, t, x = impulse(sys[, Tf])
+    y, t, x = impulse(sys[, t])
 
 Calculate the impulse response of system `sys`. If the final time `Tf` or time
 vector `t` is not provided, one is calculated based on the system pole
@@ -70,9 +74,9 @@ impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(
 impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
 impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
-"""`y, t, x = lsim(sys, u[, t]; x0, method])`
-
-`y, t, x, uout = lsim(sys, u::Function, t; x0, method)`
+"""
+    y, t, x = lsim(sys, u[, t]; x0, method])
+    y, t, x, uout = lsim(sys, u::Function, t; x0, method)
 
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
 a zero vector is used.
@@ -201,9 +205,9 @@ end
 lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
 
 
-"""`ltitr(A, B, u[,x0])`
-
-`ltitr(A, B, u::Function, iters[,x0])`
+"""
+    ltitr(A, B, u[,x0])
+    ltitr(A, B, u::Function, iters[,x0])
 
 Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.

@@ -26,6 +26,7 @@ my_tests = [
             "test_matrix_comps",
             "test_lqg",
             "test_synthesis",
+            "test_pid_design",
             "test_partitioned_statespace",
             "test_delayed_systems",
             "test_demo_systems",

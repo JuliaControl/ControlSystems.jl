@@ -2,8 +2,8 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
 
 
 """
-    `sysd, x0map = c2d(sys::StateSpace, Ts, method=:zoh)`
-    `sysd = c2d(sys::TransferFunction, Ts, method=:zoh)`
+    sysd, x0map = c2d(sys::StateSpace, Ts, method=:zoh)
+    sysd = c2d(sys::TransferFunction, Ts, method=:zoh)
 
 Convert the continuous system `sys` into a discrete system with sample time
 `Ts`, using the provided method. Currently only `:zoh`, `:foh` and `:fwdeuler` are provided. Note that the forward-Euler method generally requires the sample time to be very small in relation to the time-constants of the system.
@@ -103,13 +103,11 @@ See ?rstd for the discerte case
 rstc(args...)=rst(args..., ;cont=true)
 
 """
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)
+
 rstd  Polynomial synthesis in discrete time.
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)`
 
 Polynomial synthesis according to CCS ch 10 to
 design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
@@ -127,7 +125,7 @@ e.g notch filter [1, 0, w^2]
 
 Outputs: R,S,T  : Polynomials in controller
 
-See function DAB how the solution to the Diophantine-
+See function `dab` how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
 
 See Computer-Controlled Systems: Theory and Design, Third Edition
@@ -137,9 +135,9 @@ rstd(args...)=rst(args..., ;cont=false)
 
 
 """
-DAB   Solves the Diophantine-Aryabhatta-Bezout identity
+    X,Y = dab(A,B,C)
 
-`X,Y = DAB(A,B,C)`
+DAB   Solves the Diophantine-Aryabhatta-Bezout identity
 
 AX + BY = C, where A, B, C, X and Y are polynomials
 and deg Y = deg A - 1.
@@ -199,7 +197,7 @@ end
 
 
 """
-`c2d_roots2poly(ro,h)`
+    c2d_roots2poly(ro,h)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
@@ -208,7 +206,7 @@ function c2d_roots2poly(ro,h)
 end
 
 """
-`c2d_poly2poly(ro,h)`
+    c2d_poly2poly(ro,h)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
@@ -227,7 +225,9 @@ function c2d(G::TransferFunction{<:Continuous}, h, args...; kwargs...)
 end
 
 """
-`zpc(a,r,b,s)` form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+    zpc(a,r,b,s)
+    
+form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
 """
 function zpconv(a,r,b,s)
     d = length(a)+length(r)-length(b)-length(s)

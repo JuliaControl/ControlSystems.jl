@@ -1,4 +1,5 @@
-"""`sminreal(sys)`
+"""
+    sminreal(sys)
 
 Compute the structurally minimal realization of the state-space system `sys`. A
 structurally minimal realization is one where only states that can be

@@ -17,6 +17,7 @@ Q2 = 1eye_(2)
 R1 = 100eye_(4)
 R2 = 1eye_(2)
 G = LQG(sys, Q1, Q2, R1, R2)
+gangoffourplot(G) # Test that it at least does not error
 @test approxsetequal(eigvals(G.sysc.A), [ -31.6209+0.0im, -1.40629+0.0im, -15.9993+0.911174im, -15.9993-0.911174im, ], rtol = 1e-3)
 
 qQ = 1
@@ -26,6 +27,7 @@ Q2 = 1eye_(2)
 R1 = 1eye_(6)
 R2 = 1eye_(2)
 Gi = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true)
+gangoffourplot(Gi) # Test that it at least does not error
 @test approxsetequal(eigvals(Gi.sysc.A), [0.0, 0.0, -47.4832, -44.3442, -3.40255, -1.15355 ], rtol = 1e-3)
 
 @test approxsetequal(eigvals(G[:cl].A), [-1.0, -14.1774, -2.21811, -14.3206, -1.60615, -22.526, -1.0, -14.1774], rtol=1e-3)
