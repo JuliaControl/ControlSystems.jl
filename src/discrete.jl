@@ -6,16 +6,14 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
     sysd = c2d(sys::TransferFunction, Ts, method=:zoh)
 
 Convert the continuous system `sys` into a discrete system with sample time
-`Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
+`Ts`, using the provided method. Currently only `:zoh`, `:foh` and `:fwdeuler` are provided. Note that the forward-Euler method generally requires the sample time to be very small in relation to the time-constants of the system.
 
 Returns the discrete system `sysd`, and for StateSpace systems a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
-function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
-    if isdiscrete(sys)
-        error("sys must be a continuous time system")
-    end
+function c2d(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh)
     A, B, C, D = ssdata(sys)
+    T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method === :zoh
@@ -25,10 +23,10 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
+        x0map = [Matrix{T}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
     elseif method === :foh
         M = exp([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
+            zeros(nu, nx + nu) Matrix{T}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -36,30 +34,38 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [Matrix{Float64}(I, nx, nx)  (-M2)]
+        x0map = [Matrix{T}(I, nx, nx)  (-M2)]
+    elseif method === :fwdeuler
+        Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
+        x0map = I(nx)
     elseif method === :tustin || method === :matched
-        error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
+        error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
     end
     return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
 end
 
+"""
+    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh)
 
+Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
+"""
 function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh)
-    A, B, C, D = ssdata(sys)
+    A, B, Cc, Dc = ssdata(sys)
     ny, nu = size(sys)
     nx = nstates(sys)
-    if method == :zoh
+    if method === :zoh
         M = log([A  B;
             zeros(nu, nx) I])./sys.Ts
         Ac = M[1:nx, 1:nx]
         Bc = M[1:nx, nx+1:nx+nu]
-        Cc = C
-        Dc = D
         if eltype(A) <: Real
             Ac,Bc = real.((Ac, Bc))
         end
+    elseif method === :fwdeuler
+        Ac = (A-I)./sys.Ts
+        Bc = B./sys.Ts
     else
         error("Unsupported method: ", method)
     end
@@ -210,12 +216,11 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h, args...)
-    @assert iscontinuous(G)
+function c2d(G::TransferFunction{<:Continuous}, h, args...; kwargs...)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys, h, args...)[1]
+    sysd = c2d(sys, h, args...; kwargs...)[1]
     return convert(TransferFunction, sysd)
 end
 
