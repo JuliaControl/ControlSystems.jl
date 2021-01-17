@@ -8,4 +8,19 @@ gangoffourplot(ss(P),ss(1))
 kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)
 @test kp ≈ 0.82274734724854
 @test ki ≈ -0.45472580052281375
+
+C = pid(;kp = 1, ki = 1, kd=1) 
+@test C == tf(1) + tf(1,[1,0]) + tf([1,0],[1])
+pidplots(C, :nyquist,:gof,:pz,:controller, grid=true) # Simply test that the functions runs and not errors
+pidplots(C, :nyquist,:gof,:pz,:controller, grid=false)
+leadlinkcurve()
+
+stabregionPID(tf(1,[1,0]))
+stabregionPID(s -> exp(-sqrt(s)))
+
+P = tf(1,[1, 1, 1])
+kp,ki,C = loopshapingPI(P,10; phasemargin = 30, doplot = false)
+_,_,_,pm = margin(P*C)
+@test pm[] > 30
+
 end
