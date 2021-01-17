@@ -191,4 +191,22 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 @test length(tzero(G)) == 1
 @test_broken size(minreal(ss(G)).A) == (2,2)
 
+
+## MARGIN ##
+
+w = exp10.(LinRange(-1, 2, 100))
+P = tf(1,[1.0, 1])
+ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w)
+@test gₘ[] == Inf
+@test ϕₘ[] == Inf
+
+
+P = tf(1,[1.0, 1, 0])
+ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w)
+@test gₘ[] == Inf
+@test ϕₘ[] ≥ 50
+@test ωϕₘ[] ≈ 0.7871132039227572
+marginplot(P, w)
+
+
 end
