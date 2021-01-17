@@ -139,7 +139,7 @@ Ninf, ω_peak =  hinfnorm(f_C_211_bis, tol=tolHinf)
 
 # unstable system
 sys = 1/(s-1)
-@inferred hinfnorm(sys)
+# @inferred hinfnorm(sys)
 @test norm(sys, Inf, tol=tolHinf) ≈ Inf
 Ninf, ω_peak = hinfnorm(sys; tol=tolHinf)
 @test Ninf == Inf
