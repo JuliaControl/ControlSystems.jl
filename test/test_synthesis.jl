@@ -12,7 +12,7 @@ S = [1]
 T = [1]
 @testset "minreal + feedback" begin
 @test isapprox(minreal(feedback(P,C),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5)
-@test isapprox(numpoly(minreal(feedback(L),1e-5))[1].a, numpoly(tf(1,[1,1]))[1].a)# This test is ugly, but numerical stability is poor for minreal
+@test isapprox(numpoly(minreal(feedback(L),1e-5))[1].coeffs, numpoly(tf(1,[1,1]))[1].coeffs)# This test is ugly, but numerical stability is poor for minreal
 @test feedback2dof(B,A,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
 @test feedback2dof(P,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
 @test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
@@ -22,7 +22,7 @@ Cint = tf([1,1],[1,0])
 Lint = P*C
 
 @test isapprox(minreal(feedback(Pint,Cint),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5) # TODO consider keeping minreal of Int system Int
-@test isapprox(numpoly(minreal(feedback(Lint),1e-5))[1].a, numpoly(tf(1,[1,1]))[1].a)# This test is ugly, but numerical stability is poor for minreal
+@test isapprox(numpoly(minreal(feedback(Lint),1e-5))[1].coeffs, numpoly(tf(1,[1,1]))[1].coeffs)# This test is ugly, but numerical stability is poor for minreal
 @test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
 
 
@@ -68,6 +68,38 @@ K = ControlSystems.acker(A,B,p)
 p = [-1+im, -1-im, -1]
 K = ControlSystems.acker(A,B,p)
 @test ControlSystems.eigvalsnosort(A-B*K) ≈ p
+end
+
+@testset "LQR" begin
+    h = 0.1
+    A = [1 h; 0 1]
+    B = [0;1] # Note B is vector, B'B is scalar, but compatible with I
+    C = [1 0]
+    Q = I
+    R = I
+    L = dlqr(A,B,Q,R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+    sys = ss(A,B,C,0,h)
+    L = lqr(sys, Q, R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    L = dlqr(sys, Q, R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    B = reshape(B,2,1)  # Note B is matrix, B'B is compatible with I
+    L = dlqr(A,B,Q,R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    Q = eye_(2)
+    R = eye_(1)
+    L = dlqr(A,B,Q,R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
+    B = [0;1]   # Note B is vector, B'B is scalar and INcompatible with matrix
+    Q = eye_(2)
+    R = eye_(1)
+    @test_throws MethodError L ≈ dlqr(A,B,Q,R)
+    #L ≈ [0.5890881713787511 0.7118839434795103]
 end
 
 end

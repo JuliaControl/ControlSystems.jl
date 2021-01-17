@@ -7,11 +7,10 @@ Evaluate the frequency response of a linear system
 of system `sys` over the frequency vector `w`."""
 function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     # Create imaginary freq vector s
-    if !iscontinuous(sys)
-        Ts = sys.Ts == -1 ? 1.0 : sys.Ts
-        s_vec = exp.(w_vec*(im*Ts))
-    else
+    if iscontinuous(sys)
         s_vec = im*w_vec
+    else
+        s_vec = exp.(w_vec*(im*sys.Ts))
     end
     if isa(sys, StateSpace)
         sys = _preprocess_for_freqresp(sys)
@@ -36,16 +35,15 @@ function _preprocess_for_freqresp(sys::StateSpace)
     P = C*T
     Q = T\B # TODO Type stability? # T is unitary, so mutliplication with T' should do the trick
     # FIXME; No performance improvement from Hessienberg structure, also weired renaming of matrices
-    StateSpace(F.H, Q, P, D, sys.Ts)
+    StateSpace(F.H, Q, P, D, sys.timeevol)
 end
 
 
-#_preprocess_for_freqresp(sys::TransferFunction) = sys.matrix
-#function _preprocess_for_freqresp(sys::TransferFunction)
-#    map(sisotf -> _preprocess_for_freqresp(sisotf), sys.matrix)
-#end
-
-#_preprocess_for_freqresp(sys::SisoTf) = sys
+function _evalfr_return_type(sys::AbstractStateSpace, s::Number)
+    T0 = numeric_type(sys)
+    temp_product = one(T0)*one(typeof(s))
+    typeof(temp_product/temp_product)
+end
 
 """
 `evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
@@ -53,17 +51,18 @@ at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
 """
-function evalfr(sys::StateSpace{T0}, s::Number) where {T0}
-    T = promote_type(T0, typeof(one(T0)*one(typeof(s))/(one(T0)*one(typeof(s)))))
+function evalfr(sys::AbstractStateSpace, s::Number)
+    T = _evalfr_return_type(sys, s)
     try
         R = s*I - sys.A
-        sys.D + sys.C*((R\sys.B)::Matrix{T})  # Weird type stability issue
-    catch
+        sys.D + sys.C*((R\sys.B))
+    catch e
+        @warn "Got exception $e, returning Inf" max_log=1
         fill(convert(T, Inf), size(sys))
     end
 end
 
-function evalfr(G::TransferFunction{<:SisoTf}, s::Number)
+function evalfr(G::TransferFunction{<:TimeEvolution,<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
 
@@ -72,7 +71,7 @@ end
 
 Notation for frequency response evaluation.
 - F(s) evaluates the continuous-time transfer function F at s.
-- F(omega,true) evaluates the discrete-time transfer function F at exp(i*Ts*omega)
+- F(omega,true) evaluates the discrete-time transfer function F at exp(im*Ts*omega)
 - F(z,false) evaluates the discrete-time transfer function F at z
 """
 function (sys::TransferFunction)(s)
@@ -80,7 +79,7 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     if map_to_unit_circle
         isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
     else
@@ -89,7 +88,7 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
 end
 
 function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
-    @assert !iscontinuous(sys) "It makes no sense to call this function with continuous systems"
+    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
@@ -101,37 +100,37 @@ end
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
-`mag` and `phase` has size `(length(w), ny, nu)`"""
-function bode(sys::LTISystem, w::AbstractVector)
+`mag` and `phase` has size `(length(w), ny, nu)`""" bode
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
 """`re, im, w = nyquist(sys[, w])`
 
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`
 
-`re` and `im` has size `(length(w), ny, nu)`"""
-function nyquist(sys::LTISystem, w::AbstractVector)
+`re` and `im` has size `(length(w), ny, nu)`""" nyquist
+@autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
+@autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
 """`sv, w = sigma(sys[, w])`
 
 Compute the singular values of the frequency response of system `sys` at
 frequencies `w`
 
-`sv` has size `(length(w), max(ny, nu))`"""
-function sigma(sys::LTISystem, w::AbstractVector)
+`sv` has size `(length(w), max(ny, nu))`""" sigma
+@autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
     return sv, w
 end
-sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
+@autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
 function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     min_pt_per_dec = 60
@@ -145,8 +144,6 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
 end
 _default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
         [sys], plot)
-
-
 
 
 function _bounds_and_features(sys::LTISystem, plot::Val)
@@ -167,8 +164,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
     fzp = sort!(fzp)
     # Determine the bounds on the frequency vector
     if !isempty(fzp)
-        w1 = floor(fzp[1] - 0.2)
-        w2 = ceil(fzp[end] + 0.2)
+        w1 = floor(fzp[1] - 1.2)
+        w2 = ceil(fzp[end] + 1.2)
         # Expand the range for nyquist plots
         if plot isa Val{:nyquist}
             w1 -= 1.0
@@ -178,7 +175,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w1 = 0.0
         w2 = 2.0
     end
-    if !iscontinuous(sys) # Do not draw above Nyquist freq for disc. systems
+    if isdiscrete(sys) # Do not draw above Nyquist freq for disc. systems
         w2 = min(w2, log10(π/sys.Ts))
     end
     return [w1, w2], zp

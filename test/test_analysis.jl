@@ -53,7 +53,7 @@ D = [0]
 ex_6 = ss(A, B, C, D)
 @test tzero(ex_6) == Float64[]
 
-@test_broken ss(A, [0 0 1]', C, D)
+@test ss(A, [0 0 1]', C, D) == ex_6
 
 # Example 7
 ex_7 = ss(zeros(2, 2), [0;1], [-1 0], [0])
@@ -189,6 +189,6 @@ damp_output = damp(ex_11)
 G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 @test_broken length(pole(G)) == 1
 @test length(tzero(G)) == 1
-@test_broken size(minreal(ss(G)).A) == fill(2.0, 1, 1)
+@test_broken size(minreal(ss(G)).A) == (2,2)
 
 end

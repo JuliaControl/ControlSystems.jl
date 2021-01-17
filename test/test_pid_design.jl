@@ -3,6 +3,7 @@
 
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
+gangoffourplot(ss(P),ss(1))
 ωp = 0.8
 kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)
 @test kp ≈ 0.82274734724854

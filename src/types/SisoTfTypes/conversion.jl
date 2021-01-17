@@ -21,7 +21,7 @@ end
 
 
 function Base.convert(::Type{SisoRational{T}}, f::SisoRational) where {T<:Number}
-    return SisoRational{T}(convert(Poly{T}, f.num), convert(Poly{T}, f.den))
+    return SisoRational{T}(convert(Polynomial{T}, f.num), convert(Polynomial{T}, f.den))
 end
 
 function Base.convert(::Type{SisoRational{T1}}, f::SisoZpk{T2,TR}) where {T1<:Number, T2<:Number,TR<:Number}

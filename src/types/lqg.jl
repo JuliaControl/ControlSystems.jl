@@ -151,21 +151,21 @@ end
 
 
 function Base.getindex(G::LQG, s)
-    s == :A && return G.P.A
-    s == :B && return G.P.B
-    s == :C && return G.P.C
-    s == :D && return G.P.D
-    s == :L  && return G.L
-    s == :K  && return G.K
-    s == :Q1 && return G.Q1
-    s == :Q2 && return G.Q2
-    s == :R1 && return G.R1
-    s == :R2 && return G.R2
-    s == :qQ && return G.qQ
-    s == :qR && return G.qR
+    s === :A && return G.P.A
+    s === :B && return G.P.B
+    s === :C && return G.P.C
+    s === :D && return G.P.D
+    s === :L  && return G.L
+    s === :K  && return G.K
+    s === :Q1 && return G.Q1
+    s === :Q2 && return G.Q2
+    s === :R1 && return G.R1
+    s === :R2 && return G.R2
+    s === :qQ && return G.qQ
+    s === :qR && return G.qR
     s ∈ [:sys, :P]  && return G.P
     s ∈ [:sysc, :controller] && return G.sysc
-    s == :integrator && return G.integrator
+    s === :integrator && return G.integrator
 
     A = G.P.A
     B = G.P.B
@@ -201,13 +201,13 @@ function Base.getindex(G::LQG, s)
         return feedback(ss(Matrix{numeric_type(PC)}(I, m, m)),PC)
     elseif s ∈ [:Tin, :T] # Complementary sensitivity function
         return feedback(PC)
-    elseif s == :Sout # Sensitivity function, output
+    elseif s === :Sout # Sensitivity function, output
         return feedback(ss(Matrix{numeric_type(sys_c)}(I, m, m)),sysc*P)
-    elseif s == :Tout # Complementary sensitivity function, output
+    elseif s === :Tout # Complementary sensitivity function, output
         return feedback(sysc*P)
-    elseif s == :PS # Load disturbance to output
+    elseif s === :PS # Load disturbance to output
         return P*G[:S]
-    elseif s == :CS # Noise to control signal
+    elseif s === :CS # Noise to control signal
         return sysc*G[:S]
     elseif s ∈ [:lt, :looptransfer, :loopgain]
         return PC

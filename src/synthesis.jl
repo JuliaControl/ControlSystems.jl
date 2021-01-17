@@ -1,6 +1,6 @@
 """`lqr(A, B, Q, R)`
 
-Calculate the optimal gain matrix `K` for the state-feedback law `u = K*x` that
+Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
 
 J = integral(x'Qx + u'Ru, 0, inf).
@@ -66,7 +66,7 @@ end
 
 """`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
 
-Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = K*x[k]` that
+Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = -K*x[k]` that
 minimizes the cost function:
 
 J = sum(x'Qx + u'Ru, 0, inf).
@@ -98,6 +98,11 @@ function dlqr(A, B, Q, R)
     S = dare(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
+end
+
+function dlqr(sys::StateSpace, Q, R)
+    !isdiscrete(sys) && throw(ArgumentError("Input argument sys must be discrete-time system"))
+    return dlqr(sys.A, sys.B, Q, R)
 end
 
 """`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
@@ -132,7 +137,7 @@ end
 function acker(A,B,P)
     n = length(P)
     #Calculate characteristic polynomial
-    poly = mapreduce(p -> Poly([1, -p]), *, P, init=Poly(one(eltype(P))))
+    poly = mapreduce(p -> Polynomial([1, -p]), *, P, init=Polynomial(one(eltype(P))))
     q = zero(Array{promote_type(eltype(A),Float64),2}(undef, n,n))
     for i = n:-1:0
         q += A^(n-i)*poly[i]

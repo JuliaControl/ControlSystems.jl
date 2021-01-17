@@ -56,12 +56,31 @@ G = tf([1, 1], [1, 3, 1])
 Gd = c2d(G, 0.2)
 @test Gd ≈ tf([0, 0.165883310712090, -0.135903621603238], [1.0, -1.518831946985175, 0.548811636094027], 0.2) rtol=1e-14
 
+# Issue #391
+@test c2d(tf(C_111), 0.01, :zoh) ≈ tf(c2d(C_111, 0.01, :zoh)[1])
+@test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh)[1])
+
 # c2d on a zpk model should arguably return a zpk model
-@test_broken typeof(c2d(zpk(f), 1)) <: TransferFunction{<:ControlSystems.SisoZpk}
+@test_broken typeof(c2d(zpk(G), 1)) <: TransferFunction{<:ControlSystems.SisoZpk}
 
 
 
 # ERRORS
 @test_throws ErrorException c2d(ss([1], [2], [3], [4], 0.01), 0.01)   # Already discrete
 @test_throws ErrorException c2d(ss([1], [2], [3], [4], -1), 0.01)     # Already discrete
+
+
+# d2c
+@static if VERSION > v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
+    @test d2c(c2d(C_111, 0.01)[1]) ≈ C_111
+    @test d2c(c2d(C_212, 0.01)[1]) ≈ C_212
+    @test d2c(c2d(C_221, 0.01)[1]) ≈ C_221
+    @test d2c(c2d(C_222_d, 0.01)[1]) ≈ C_222_d
+    @test d2c(Gd) ≈ G
+
+    sys = ss([0 1; 0 0], [0;1], [1 0], 0)
+    sysd = c2d(sys, 1)[1]
+    @test d2c(sysd) ≈ sys
+end
+
 end

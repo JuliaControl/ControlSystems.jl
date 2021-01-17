@@ -90,16 +90,24 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test C_222[1,1:2] == C_221
 @test size(C_222[1,[]]) == (1,0)
 
+# Accessing Ts through .Ts
+@test D_111.Ts == 0.005
+
+# propertynames
+@test propertynames(C_111) == (:matrix, :timeevol, :nu, :ny)
+@test propertynames(D_111) == (:matrix, :timeevol, :nu, :ny, :Ts)
+
+
 # Errors
 @test_throws ErrorException tf(vecarray(1, 1, [1,7,13,15]),
    vecarray(2, 1, [1,10,31,30], [1,10,31,30]))
 
 
 # Printing
-res = ("TransferFunction:\nInput 1 to Output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to Output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
-@test_broken sprint(show, C_222) == res
-res = ("TransferFunction:\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
-@test_broken sprint(show, D_222) == res
+res = ("TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}\nInput 1 to output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
+@test sprint(show, C_222) == res
+res = ("TransferFunction{Discrete{Float64},ControlSystems.SisoRational{Float64}}\nInput 1 to output 1\n1.0z^2 + 2.0z + 3.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nInput 1 to output 2\n1.0z^2 + 2.0z + 3.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nInput 2 to output 1\n     1.0z + 2.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nInput 2 to output 2\n     1.0z + 2.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
+@test sprint(show, D_222) == res
 
 
 @test tf(zpk([1.0 2; 3 4])) == tf([1 2; 3 4])
@@ -139,12 +147,13 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException tf("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous
-@test_throws ErrorException [z 0]                     # Sampling time mismatch (inferec could be implemented)
+
+@test [z 0] == [tf("z", 0.005) tf(0, 0.005)]
 
 # Test polynomial inputs
-Poly = ControlSystems.Polynomials.Poly
+Polynomial = ControlSystems.Polynomials.Polynomial
 v1, v2, v3, v4 = [1,2,3], [4,5,6], [7,8], [9,10,11]
-p1, p2, p3, p4 = Poly.(reverse.((v1,v2,v3,v4)))
+p1, p2, p3, p4 = Polynomial.(reverse.((v1,v2,v3,v4)))
 
 S1v = tf(v1, v2)
 S2v = tf(v3, v4)
@@ -154,6 +163,17 @@ Sv = [S1v S2v; 2S1v 3S2v]
 S1p = tf(p1,p2)
 # Test polynomial matrix MIMO constructor
 Sp = tf([p1 p3; 2p1 3p3], [p2 p4; p2 p4])
+
+## Test specifying time with TimeEvolution struct
+a = [1.0, 2, 1.0]
+b = [1.0, 3.0]
+@test tf(b, a) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)))
+@test tf(b, a) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)), Continuous())
+@test tf(b, a, 1.5) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)), 1.5)
+@test tf(b, a, 1.5) == tf(Polynomial(reverse(b)), Polynomial(reverse(a)), Discrete(1.5))
+
+
+
 
 @test S1v == S1p
 @test Sv == Sp
