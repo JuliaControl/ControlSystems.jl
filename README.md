@@ -1,6 +1,8 @@
 # ControlSystems.jl
 
-[![Build Status](https://travis-ci.com/JuliaControl/ControlSystems.jl.svg?branch=master)](https://travis-ci.com/JuliaControl/ControlSystems.jl)
+[![Build Status](https://github.com/JuliaControl/ControlSystems.jl/workflows/CI/badge.svg)](https://github.com/JuliaControl/ControlSystems.jl/actions?query=workflow%3ACI)
+[![Documentation Status](https://github.com/JuliaControl/ControlSystems.jl/workflows/Docs/badge.svg)](https://github.com/JuliaControl/ControlSystems.jl/actions?query=workflow%3ADocs)
+
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/C/ControlSystems.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![codecov](https://codecov.io/gh/JuliaControl/ControlSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaControl/ControlSystems.jl)
 
@@ -113,7 +115,7 @@ CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 # Any keyword arguments supported in Plots.jl can be supplied
-stepplot(CLs, label=["Kp = 1", "Kp = 5", "Kp = 15"])
+stepplot(CLs, label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ```
 
 ![StepResponse](/example/step_response.png)

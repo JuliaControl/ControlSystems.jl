@@ -164,8 +164,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
     fzp = sort!(fzp)
     # Determine the bounds on the frequency vector
     if !isempty(fzp)
-        w1 = floor(fzp[1] - 0.2)
-        w2 = ceil(fzp[end] + 0.2)
+        w1 = floor(fzp[1] - 1.2)
+        w2 = ceil(fzp[end] + 1.2)
         # Expand the range for nyquist plots
         if plot isa Val{:nyquist}
             w1 -= 1.0
