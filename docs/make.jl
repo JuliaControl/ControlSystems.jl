@@ -1,9 +1,9 @@
 # Set plot globals
 ENV["PLOTS_TEST"] = "true"
-ENV["GKSwstype"] = "100"
+ENV["GKSwstype"] = "nul"
 
 using Documenter, ControlSystems, Plots, LinearAlgebra
-import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
+#import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 gr()
 default(show=false, size=(800,450))
 
@@ -30,6 +30,7 @@ println("Making docs")
 makedocs(modules=[ControlSystems],
     format=Documenter.HTML(),
     sitename="ControlSystems.jl",
+    #strict=true,
     pages=[
         "Home" => "index.md",
         "Guide" => Any[
@@ -47,6 +48,6 @@ makedocs(modules=[ControlSystems],
             "Plotting" => "lib/plotting.md",
         ],
     ]
-    )
+)
 
 deploydocs(repo = "github.com/JuliaControl/ControlSystems.jl.git")

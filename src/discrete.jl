@@ -1,12 +1,14 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
+"""
+    sysd, x0map = c2d(sys::StateSpace, Ts, method=:zoh)
+    sysd = c2d(sys::TransferFunction, Ts, method=:zoh)
 
 Convert the continuous system `sys` into a discrete system with sample time
 `Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
 
-Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
+Returns the discrete system `sysd`, and for StateSpace systems a matrix `x0map` that transforms the
 initial conditions to the discrete domain by
 `x0_discrete = x0map*[x0; u0]`"""
 function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
@@ -95,13 +97,11 @@ See ?rstd for the discerte case
 rstc(args...)=rst(args..., ;cont=true)
 
 """
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)
+
 rstd  Polynomial synthesis in discrete time.
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)`
 
 Polynomial synthesis according to CCS ch 10 to
 design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
@@ -119,7 +119,7 @@ e.g notch filter [1, 0, w^2]
 
 Outputs: R,S,T  : Polynomials in controller
 
-See function DAB how the solution to the Diophantine-
+See function `dab` how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
 
 See Computer-Controlled Systems: Theory and Design, Third Edition
@@ -129,9 +129,9 @@ rstd(args...)=rst(args..., ;cont=false)
 
 
 """
-DAB   Solves the Diophantine-Aryabhatta-Bezout identity
+    X,Y = dab(A,B,C)
 
-`X,Y = DAB(A,B,C)`
+DAB   Solves the Diophantine-Aryabhatta-Bezout identity
 
 AX + BY = C, where A, B, C, X and Y are polynomials
 and deg Y = deg A - 1.
@@ -191,7 +191,7 @@ end
 
 
 """
-`c2d_roots2poly(ro,h)`
+    c2d_roots2poly(ro,h)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
@@ -200,7 +200,7 @@ function c2d_roots2poly(ro,h)
 end
 
 """
-`c2d_poly2poly(ro,h)`
+    c2d_poly2poly(ro,h)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
@@ -210,11 +210,24 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h;kwargs...)
+function c2d(G::TransferFunction, h, args...)
     @assert iscontinuous(G)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys, h, kwargs...)[1]
+    sysd = c2d(sys, h, args...)[1]
     return convert(TransferFunction, sysd)
+end
+
+"""
+    zpc(a,r,b,s)
+    
+form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+"""
+function zpconv(a,r,b,s)
+    d = length(a)+length(r)-length(b)-length(s)
+    if d > 0
+        b = [zeros(d);b]
+    end
+    conv(a,r) + conv(b,s)
 end

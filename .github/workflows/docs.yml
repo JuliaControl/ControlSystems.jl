@@ -1,0 +1,58 @@
+name: Docs
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+    tags: 
+      - '*'
+
+jobs:
+  docs:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }} 
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        version: [1]
+        os: [ubuntu-latest]
+        arch: [x64]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - name: Install apt deps
+        run: sudo apt-get install libgtk-3-dev dvipng texlive
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - name: Setup docs environment
+        run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+      - name: Test docs # Test are also run in the makedocs, but there they don't error properly unless we set strict in which case warnings also error
+        run: |
+          julia --project=docs -e '
+            ENV["PLOTS_TEST"] = "true"
+            ENV["GKSwstype"] = "nul"
+            using Documenter: doctest
+            using ControlSystems
+            doctest(ControlSystems)'
+      - name: Generate documentation
+        run: julia --project=docs --color=yes docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
