@@ -153,8 +153,10 @@ end
 
 
 """
-`feedback(L)` Returns L/(1+L)
-`feedback(P1,P2)` Returns P1/(1+P1*P2)
+    feedback(L)
+    feedback(P1,P2)
+
+Returns `L/(1+L)` or `P1/(1+P1*P2)`
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
