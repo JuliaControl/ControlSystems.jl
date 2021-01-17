@@ -35,8 +35,7 @@ julia = "1.0"
 [extras]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Documenter", "GR", "StaticArrays"]
+test = ["Test", "Documenter", "GR"]
