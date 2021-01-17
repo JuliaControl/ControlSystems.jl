@@ -7,10 +7,12 @@ _PlotScaleStr = ""
 
 
 
-"""`setPlotScale(str)`
+"""
+    setPlotScale(str)
 
 Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
-`str` should be either `"dB"` or `"log10"`."""
+`str` should be either `"dB"` or `"log10"`.
+"""
 function setPlotScale(str::AbstractString)
     if str == "dB"
         plotSettings = (str, :identity, "(dB)")
@@ -91,9 +93,9 @@ end
 
 @userplot Lsimplot
 
-"""`fig = lsimplot(sys::LTISystem, u, t; x0=0, method)`
-
-`lsimplot(LTISystem[sys1, sys2...], u, t; x0, method)`
+"""
+    fig = lsimplot(sys::LTISystem, u, t; x0=0, method)
+    lsimplot(LTISystem[sys1, sys2...], u, t; x0, method)
 
 Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
 not specified, a zero vector is used.
@@ -228,12 +230,15 @@ end
 
 @userplot Bodeplot
 ## FREQUENCY PLOTS ##
-"""`fig = bodeplot(sys, args...)`, `bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)`
+"""
+    fig = bodeplot(sys, args...)
+    bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided. To change the Magnitude scale see `setPlotScale(str)`
 
-`kwargs` is sent as argument to Plots.plot."""
+`kwargs` is sent as argument to Plots.plot.
+"""
 bodeplot
 
 @recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
@@ -337,7 +342,9 @@ end
 
 
 @userplot Nyquistplot
-"""`fig = nyquistplot(sys; gaincircles=true, kwargs...)`, `nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)`
+"""
+    fig = nyquistplot(sys; gaincircles=true, kwargs...)
+    nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
@@ -345,7 +352,8 @@ optionally provided.
 `gaincircles` plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are
 the sensitivity and complementary sensitivity functions.
 
-`kwargs` is sent as argument to plot."""
+`kwargs` is sent as argument to plot.
+"""
 nyquistplot
 @recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
@@ -566,12 +574,15 @@ nicholsplot
 end
 
 @userplot Sigmaplot
-"""`sigmaplot(sys, args...)`, `sigmaplot(LTISystem[sys1, sys2...], args...)`
+"""
+    sigmaplot(sys, args...)
+    sigmaplot(LTISystem[sys1, sys2...], args...)
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
-`kwargs` is sent as argument to Plots.plot."""
+`kwargs` is sent as argument to Plots.plot.
+"""
 sigmaplot
 @recipe function sigmaplot(p::Sigmaplot)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
@@ -596,12 +607,15 @@ sigmaplot
     end
 end
 
-"""`fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)`, `marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)`
+"""
+    fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)
+    marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
 A frequency vector `w` can be optionally provided.
 
-`kwargs` is sent as argument to Plots.plot."""
+`kwargs` is sent as argument to Plots.plot.
+"""
 function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
     systems, w = _processfreqplot(Val{:bode}(), systems, args...)
     ny, nu = size(systems[1])
@@ -681,9 +695,11 @@ _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
 
 @userplot Pzmap
-"""`fig = pzmap(fig, system, args...; kwargs...)`
+"""
+    fig = pzmap(fig, system, args...; kwargs...)
 
-Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command."""
+Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.
+"""
 pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
@@ -727,11 +743,14 @@ end
 pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
 pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
-"""`fig = gangoffourplot(P::LTISystem, C::LTISystem)`, `gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)`
+"""
+    fig = gangoffourplot(P::LTISystem, C::LTISystem)
+    gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)
 
 Gang-of-Four plot.
 
-`kwargs` is sent as argument to Plots.plot."""
+`kwargs` is sent as argument to Plots.plot.
+"""
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
     # Array of (S,D,N,T)
     if P isa LTISystem # Don't broadcast over scalar (with size?)
