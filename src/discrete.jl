@@ -121,7 +121,7 @@ e.g notch filter [1, 0, w^2]
 
 Outputs: R,S,T  : Polynomials in controller
 
-See function DAB how the solution to the Diophantine-
+See function `dab` how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
 
 See Computer-Controlled Systems: Theory and Design, Third Edition
@@ -133,7 +133,7 @@ rstd(args...)=rst(args..., ;cont=false)
 """
 DAB   Solves the Diophantine-Aryabhatta-Bezout identity
 
-`X,Y = DAB(A,B,C)`
+`X,Y = dab(A,B,C)`
 
 AX + BY = C, where A, B, C, X and Y are polynomials
 and deg Y = deg A - 1.
