@@ -218,16 +218,3 @@ function c2d(G::TransferFunction, h, args...)
     sysd = c2d(sys, h, args...)[1]
     return convert(TransferFunction, sysd)
 end
-
-"""
-    zpc(a,r,b,s)
-    
-form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
-"""
-function zpconv(a,r,b,s)
-    d = length(a)+length(r)-length(b)-length(s)
-    if d > 0
-        b = [zeros(d);b]
-    end
-    conv(a,r) + conv(b,s)
-end
