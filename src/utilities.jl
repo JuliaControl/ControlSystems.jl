@@ -153,27 +153,31 @@ index2range(ind::Colon) = ind
 """@autovec (indices...) f() = (a, b, c)
 
 A macro that helps in creating versions of functions where excessive dimensions are 
-removed automatically for specific outputs. `indices` are the indexes of the outputs 
-of the functions which should be flattened. 
+removed automatically for specific outputs. `indices` contains each index for which 
+the output tuple should be flattened. If the function only has a single output it 
+(not a tuple with a single item) it should be called as `@autovec () f() = ...`.
 `f()` is the original function and `fv()` will be the version with flattened outputs.
 """
 macro autovec(indices, f) 
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
     indices = eval(indices)
-    maxidx = max(indices...)
 
-    # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ indices
-    idxmax = maximum(indices)
-    return_exp = :()
-    for i in 1:idxmax
-        if i in indices
-            return_exp = :($return_exp..., vec(result[$i]))
-        else
-            return_exp = :($return_exp..., result[$i])
+    # If indices is empty it means we vec the entire return value
+    if length(indices) == 0
+        return_exp = :(vec(result))
+    else # Build the returned expression on the form (ret[1], vec(ret[2]), ret[3]...) where 2 ∈ indices
+        idxmax = maximum(indices)
+        return_exp = :()
+        for i in 1:idxmax
+            if i in indices
+                return_exp = :($return_exp..., vec(result[$i]))
+            else
+                return_exp = :($return_exp..., result[$i])
+            end
         end
+        return_exp = :($return_exp..., result[$idxmax+1:end]...)
     end
-    return_exp = :($return_exp..., result[$idxmax+1:end]...)
 
     fname = dict[:name]
     args = get(dict, :args, [])
@@ -181,7 +185,7 @@ macro autovec(indices, f)
     argnames = extractvarname.(args)
     kwargnames = extractvarname.(kwargs)
     quote
-        $(esc(f)) # Original function
+        Core.@__doc__ $(esc(f)) # Original function
 
         """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
 

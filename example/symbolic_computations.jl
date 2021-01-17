@@ -4,7 +4,8 @@ using SymPy
 
 # Some basic demonstations of working with symbolic LTI systems
 # Functionality is rather limited, and for complicated expressions the
-# printing is awful. Anyway, let's get started...
+# printing is awful.
+# For additional functionality, see https://github.com/JuliaControl/SymbolicControlSystems.jl
 
 
 # Need to modify some functions, to work with the Sym type

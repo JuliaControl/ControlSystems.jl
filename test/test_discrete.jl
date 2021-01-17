@@ -92,13 +92,43 @@ for method in (:fwdeuler, :tustin)
     @test d2c(c2d(C_221, 0.01, method)[1], method) ≈ C_221 atol = sqrt(eps())
     @test d2c(c2d(C_222_d, 0.01, method)[1], method) ≈ C_222_d atol = sqrt(eps())
     @test d2c(c2d(G, 0.01, method), method) ≈ G atol = sqrt(eps())
-
-
-    Cd = c2d(C_111, 0.001, method)[1]
-    t = 0:0.001:2
-    y,_ = step(C_111, t)
-    yd,_ = step(Cd, t)
-    @test norm(yd-y) / norm(y) < 1e-2
 end
+
+Cd = c2d(C_111, 0.001, :fwdeuler)[1]
+t = 0:0.001:2
+y,_ = step(C_111, t)
+yd,_ = step(Cd, t)
+@test norm(yd-y) / norm(y) < 1e-3
+
+# dab
+import DSP: conv
+ζ = 0.2
+ω = 1
+B = [1]
+A   = [1, 2ζ*ω, ω^2]
+P  = tf(B,A)
+# Control design
+ζ0 = 0.7
+ω0 = 2
+Am = [1, 2ζ0*ω0, ω0^2]
+Ao = conv(2Am, [1/2, 1]) # Observer polynomial, add extra pole due to the integrator
+AR = [1,0] # Force the controller to contain an integrator ( 1/(s+0) )
+
+B⁺  = [1] # The process numerator polynomial can be facored as B = B⁺B⁻ where B⁻ contains the zeros we do not want to cancel (non-minimum phase and poorly damped zeros)
+B⁻  = [1]
+Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of the process
+
+R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
+
+Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
+
+@test ControlSystems.isstable(Gcl)
+
+p = pole(Gcl)
+# Test that all desired poles are in the closed-loop system
+@test norm(minimum(abs.((pole(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+# Test that the observer poles are in the closed-loop system
+@test norm(minimum(abs.((pole(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+
 
 end

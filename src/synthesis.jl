@@ -1,4 +1,5 @@
-"""`lqr(A, B, Q, R)`
+"""
+    lqr(A, B, Q, R)
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
@@ -38,12 +39,13 @@ function lqr(A, B, Q, R)
     return K
 end
 
-"""`kalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+"""
+    kalman(A, C, R1, R2)
+    kalman(sys, R1, R2)
 
 Calculate the optimal Kalman gain
 
 See also `LQG`
-
 """
 kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
@@ -64,7 +66,9 @@ function kalman(sys::StateSpace, R1,R2)
 end
 
 
-"""`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
+"""
+    dlqr(A, B, Q, R)
+    dlqr(sys, Q, R)
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = -K*x[k]` that
 minimizes the cost function:
@@ -105,14 +109,18 @@ function dlqr(sys::StateSpace, Q, R)
     return dlqr(sys.A, sys.B, Q, R)
 end
 
-"""`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+"""
+    dkalman(A, C, R1, R2)
+    dkalman(sys, R1, R2)
 
 Calculate the optimal Kalman gain for discrete time systems
 
 """
 dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 
-"""`place(A, B, p)`, `place(sys::StateSpace, p)`
+"""
+    place(A, B, p)
+    place(sys::StateSpace, p)
 
 Calculate gain matrix `K` such that
 the poles of `(A-BK)` in are in `p`.
