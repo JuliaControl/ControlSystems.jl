@@ -1,7 +1,7 @@
 # Model interconnections
 
 """
-`series(sys1::LTISystem, sys2::LTISystem)`
+    series(sys1::LTISystem, sys2::LTISystem)
 
 Connect systems in series, equivalent to `sys2*sys1`
 """
@@ -16,7 +16,7 @@ parallel(sys1::LTISystem, sys2::LTISystem) = sys1 + sys2
 
 append() = LTISystem[]
 """
-`append(systems::StateSpace...), append(systems::TransferFunction...)`
+    append(systems::StateSpace...), append(systems::TransferFunction...)
 
 Append systems in block diagonal form
 """
@@ -183,9 +183,8 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
 end
 
 """
-`feedback(sys)`
-
-`feedback(sys1,sys2)`
+    feedback(sys)
+    feedback(sys1,sys2)
 
 Forms the negative feedback interconnection
 ```julia
@@ -304,8 +303,11 @@ end
 
 
 """
-`feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
-`feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
+    feedback2dof(P,R,S,T)
+    feedback2dof(B,A,R,S,T)
+
+- Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+- Return `BT/(AR+ST)`
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
