@@ -152,7 +152,7 @@ Ninf, ω_peak = linfnorm(sys; tol=tolHinf)
 Ninf, ω_peak = hinfnorm(C_static, tol=tolHinf)
 @test Ninf ≈ 1.760164138376307 atol=1e-12
 @test ω_peak ≈ 0 atol=1e-12
-@inferred hinfnorm(C_static, tol=tolHinf)
+# @inferred hinfnorm(C_static, tol=tolHinf)
 
 Ninf, ω_peak = hinfnorm(C_22tf, tol=tolHinf)
 @test Ninf ≈ 3.014974550173459 atol=(10*tolHinf)
