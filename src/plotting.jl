@@ -56,6 +56,28 @@ function seriesextrema(xylims, plotattributes, subplot)
 end
 extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
+function getPhaseTicks(x, minmax)
+    minx, maxx =  minmax
+    min               = ceil(minx/90)
+    max               = floor(maxx/90)
+    if max-min < 5
+        ## If we span less than a full rotation 45° steps are ok
+        major = ((min-0.5):0.5:(max+0.5)).*90
+    else
+        ## Create additional 45° before/behind first/last plot
+        ## this helps identifying at the edges.
+        major = [(min-0.5);min:max;(max+0.5)].*90
+    end
+    if Plots.backend() != Plots.GRBackend()
+        majorText = [latexstring("\$ $(round(Int64,i))\$") for i = major]
+    else
+        majorText = ["$(round(Int64,i))" for i = major]
+    end
+
+    return major, majorText
+
+end
+
 function getLogTicks(x, minmax)
     minx, maxx =  minmax
     major_minor_limit = 6
