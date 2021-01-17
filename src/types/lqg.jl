@@ -214,7 +214,7 @@ function Base.getproperty(G::LQG, s::Symbol)
 
     if s ∈ (:cl, :closedloop, :ry) # Closed-loop system
         # Compensate for static gain, pp. 264 G.L.
-        dcg = P.C * ((P.B * L[:, 1:n] - P.A) / P.B)
+        dcg = P.C * ((P.B * L[:, 1:n] - P.A) \ P.B)
         Acl = [A-B*L B*L; zero(A) A-K*C]
         Bcl = [B / dcg; zero(B)]
         Ccl = [M zero(M)]
