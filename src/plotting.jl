@@ -190,7 +190,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
                     titles[s2i(i,j)] = ttext
                     ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
                     @series begin
-                        seriestype := style
+                        seriestype --> style
                         xguide --> "Time (s)"
                         yguide --> ytext
                         subplot --> s2i(i,j)
@@ -236,18 +236,21 @@ end
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided. To change the Magnitude scale see `setPlotScale(str)`
+                                            
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 
 `kwargs` is sent as argument to Plots.plot.
 """
 bodeplot
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
-    xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
+    xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -256,7 +259,7 @@ bodeplot
         end
 
 
-        xlab = plotphase ? "" : "Frequency (rad/s)"
+        xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
         group_ind = 0
         for j=1:nu
             for i=1:ny
@@ -280,7 +283,7 @@ bodeplot
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
-                    w, magdata
+                    ws, magdata
                 end
                 plotphase || continue
 
@@ -288,12 +291,13 @@ bodeplot
                     grid      --> true
                     xscale    --> :log10
                     ylims      := ylimsphase
+                    yticks    --> getPhaseTicks(phasedata, getlims(:ylims, plotattributes, phasedata))
                     yguide    --> "Phase (deg)"
                     subplot   --> s2i(2i,j)
-                    xguide    --> "Frequency (rad/s)"
+                    xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
-                    w, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    ws, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
 
             end
@@ -723,7 +727,7 @@ pzmap
         if !isempty(p[1])
             @series begin
                 markershape --> :x
-                markersize := 15.
+                markersize --> 15.
                 real(p[1]),imag(p[1])
             end
         end
@@ -744,20 +748,19 @@ pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
 pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 """
-    fig = gangoffourplot(P::LTISystem, C::LTISystem)
-    gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; plotphase=false)
+    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, kwargs...)
+    gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; minimal=true, plotphase=false, kwargs...)
 
-Gang-of-Four plot.
-
-`kwargs` is sent as argument to Plots.plot.
+Gang-of-Four plot. `kwargs` is sent as argument to Plots.plot.
 """
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; plotphase=false, kwargs...)
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)
     # Array of (S,D,N,T)
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
-    sys = gangoffour.(P,C)
+    sys = gangoffour.(P,C; minimal=minimal)
     fig = bodeplot([[sys[i][1] sys[i][2]; sys[i][3] sys[i][4]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
+    hline!([1 1 1 1], l=(:black, :dash), primary=false)
     titles = fill("", 1, plotphase ? 8 : 4)
     # Empty titles on phase
     titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
