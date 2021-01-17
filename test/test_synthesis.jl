@@ -83,6 +83,9 @@ end
     L = lqr(sys, Q, R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
+    L = dlqr(sys, Q, R)
+    @test L ≈ [0.5890881713787511 0.7118839434795103]
+
     B = reshape(B,2,1)  # Note B is matrix, B'B is compatible with I
     L = dlqr(A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]

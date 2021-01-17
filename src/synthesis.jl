@@ -100,6 +100,11 @@ function dlqr(A, B, Q, R)
     return K
 end
 
+function dlqr(sys::StateSpace, Q, R)
+    !isdiscrete(sys) && throw(ArgumentError("Input argument sys must be discrete-time system"))
+    return dlqr(sys.A, sys.B, Q, R)
+end
+
 """`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
 
 Calculate the optimal Kalman gain for discrete time systems
