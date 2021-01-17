@@ -147,13 +147,18 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     return y, t, x
 end
 
-function lsim(sys::StateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
+function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
     t = range(0, length=size(u, 1), step=sys.Ts)
     lsim(sys, u, t; kwargs...)
 end
 
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
+
+function lsim(sys::AbstractStateSpace, u::Function, Tf::Real, args...; kwargs...)
+    t = _default_time_vector(sys, Tf)
+    lsim(sys, u, t, args...; kwargs...)
+end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
