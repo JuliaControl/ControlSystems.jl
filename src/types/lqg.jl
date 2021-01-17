@@ -33,17 +33,17 @@ When the LQG-object is populated by the lqg-function, the following fields have 
 Several other properties of the object are accessible as properties. The available properties are
 (some have many alternative names, separated with / )
 
--`G.cl / G.closedloop` is the closed-loop system, including observer, from reference to output, precompensated to have static gain 1 (`u = −Lx + lᵣr`).
--`G.S / G.Sin` Input sensitivity function
--`G.T / G.Tin` Input complementary sensitivity function
--`G.Sout` Output sensitivity function
--`G.Tout` Output complementary sensitivity function
--`G.CS` The transfer function from measurement noise to control signal
--`G.DS` The transfer function from input load disturbance to output
--`G.lt / G.looptransfer / G.loopgain  =  PC`
--`G.rd / G.returndifference  =  I + PC`
--`G.sr / G.stabilityrobustness  =  I + inv(PC)`
--`G.sysc / G.controller` Returns the controller as a StateSpace-system
+- `G.cl / G.closedloop` is the closed-loop system, including observer, from reference to output, precompensated to have static gain 1 (`u = −Lx + lᵣr`).
+- `G.S / G.Sin` Input sensitivity function
+- `G.T / G.Tin` Input complementary sensitivity function
+- `G.Sout` Output sensitivity function
+- `G.Tout` Output complementary sensitivity function
+- `G.CS` The transfer function from measurement noise to control signal
+- `G.DS` The transfer function from input load disturbance to output
+- `G.lt / G.looptransfer / G.loopgain  =  PC`
+- `G.rd / G.returndifference  =  I + PC`
+- `G.sr / G.stabilityrobustness  =  I + inv(PC)`
+- `G.sysc / G.controller` Returns the controller as a StateSpace-system
 
 It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
 
