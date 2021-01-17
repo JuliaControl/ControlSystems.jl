@@ -368,7 +368,7 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; gaincircles=true, kwargs...)
+    fig = nyquistplot(sys; gaincircles=true, Ms = 2, kwargs...)
     nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
@@ -376,6 +376,8 @@ optionally provided.
 
 `gaincircles` plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are
 the sensitivity and complementary sensitivity functions.
+                                            
+`Ms` denotes a maximum allowed value of the sensitivity function, a circle around -1 will be drawn with `1/Ms` radius. 
 
 `kwargs` is sent as argument to plot.
 """
