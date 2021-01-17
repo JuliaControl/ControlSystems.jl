@@ -2,8 +2,7 @@
 import Base.getindex
 
 """
-    G = LQG(A,B,C,D, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false)
-    G = LQG(sys, args...; kwargs...)
+    G = LQG(sys::AbstractStateSpace, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false, M = sys.C)
 
 Return an LQG object that describes the closed control loop around the process `sys=ss(A,B,C,D)`
 where the controller is of LQG-type. The controller is specified by weight matrices `Q1,Q2`
@@ -125,10 +124,6 @@ function LQG(
     _LQG(sys, Q1, Q2, R1, R2, qQ, qR; kwargs...)
 end # (2) Dispatches to final
 
-# (3) For conveniece of sending a sys, dispatches to (1/2)
-LQG(sys::LTISystem, args...; kwargs...) = LQG(sys.A,sys.B,sys.C,sys.D,args...; kwargs...)
-
-
 
 # This function does the actual initialization in the standard case withput integrator
 function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
@@ -162,7 +157,6 @@ function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
     Be = [B; zeros(m, m)]
     Ce = [C zeros(p, m)]
     De = D
-
 
     L = lqr(A, B, Q1 + qQ * C'C, Q2)
     Le = [L I]
@@ -255,10 +249,10 @@ Base.:(==)(G1::LQG, G2::LQG) =
     G1.K == G2.K && G1.L == G2.L && G1.P == G2.P && G1.sysc == G2.sysc
 
 
-
 plot(G::LQG) = gangoffourplot(G)
+
 function gangoffour(G::LQG)
-    return G[:S], G[:PS], G[:CS], G[:T]
+    G.S, G.PS, G.CS, G.T
 end
 
 function gangoffourplot(G::LQG; kwargs...)
