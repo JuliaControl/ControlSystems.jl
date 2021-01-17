@@ -40,7 +40,7 @@ function Simulator(P::AbstractStateSpace, u::F = (x,t) -> 0) where F
     @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
     f = (dx,x,p,t) -> dx .= P.A*x .+ P.B*u(x,t)
     y(x,t) = P.C*x .+ P.D*u(x,t)
-    y(sol::ODESolution,t) = P.C*sol(t)
+    y(sol::ODESolution,t) = P.C*sol(t) .+ P.D*u(sol(t),t)
     Simulator(P, f, y)
 end
 
