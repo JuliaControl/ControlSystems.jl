@@ -148,7 +148,7 @@ lsimplot
     s2i(i,j) = LinearIndices((ny,1))[j,i]
     for (si,s) in enumerate(systems)
         s = systems[si]
-        y = length(p.args) >= 4 ? lsim(s, u, t, x0=p.args[4], method=method)[1] : lsim(s, u, t, method=method)[1]
+        y, t = lsim(s, p.args[2:end]...)
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
@@ -273,6 +273,7 @@ bodeplot
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
     xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
+    grid   --> true
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -293,7 +294,6 @@ bodeplot
                 end
                 phasedata = vec(phase[:, i, j])
                 @series begin
-                    grid      --> true
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
                     if _PlotScale != "dB"
@@ -310,7 +310,6 @@ bodeplot
                 plotphase || continue
 
                 @series begin
-                    grid      --> true
                     xscale    --> :log10
                     ylims      := ylimsphase
                     yticks    --> getPhaseTicks(phasedata, getlims(:ylims, plotattributes, phasedata))
@@ -381,11 +380,12 @@ the sensitivity and complementary sensitivity functions.
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
+@recipe function nyquistplot(p::Nyquistplot; gaincircles=true, Ms = 2)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
     layout --> (ny,nu)
+    framestyle --> :zerolines
     s2i(i,j) = LinearIndices((ny,nu))[j,i]
     # Ensure that `axes` is always a matrix of handles
     for (si,s) = enumerate(systems)
@@ -411,18 +411,18 @@ nyquistplot
                     @series begin
                         primary := false
                         linestyle := :dash
-                        linecolor := :black
+                        linecolor := :gray
                         seriestype := :path
                         markershape := :none
-                        (C,S)
+                        ((1/Ms).*(C.-2),(1/Ms).*S)
                     end
                     @series begin
                         primary := false
                         linestyle := :dash
-                        linecolor := :black
+                        linecolor := :gray
                         seriestype := :path
                         markershape := :none
-                        (C .-1,S)
+                        (C,S)
                     end
                 end
 
@@ -736,21 +736,25 @@ pzmap
     framestyle --> :zerolines
     title --> "Pole-zero map"
     legend --> false
-    for system in systems
-        z,p,k = zpkdata(system)
-        if !isempty(z[1])
+    for (i, system) in enumerate(systems)
+        p = pole(system)
+        z = tzero(system)
+        if !isempty(z)
             @series begin
+                group --> i
                 markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
-                real(z[1]),imag(z[1])
+                real(z),imag(z)
             end
         end
         if !isempty(p[1])
             @series begin
-                markershape --> :x
+                group --> i
+                markershape --> :xcross
                 markersize --> 15.
-                real(p[1]),imag(p[1])
+                markeralpha --> 0.5
+                real(p),imag(p)
             end
         end
 
