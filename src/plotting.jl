@@ -748,7 +748,7 @@ pzmap
                 real(z),imag(z)
             end
         end
-        if !isempty(p[1])
+        if !isempty(p)
             @series begin
                 group --> i
                 markershape --> :xcross
