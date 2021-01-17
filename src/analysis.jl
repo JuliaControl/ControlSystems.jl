@@ -1,4 +1,5 @@
-"""`pole(sys)`
+"""
+    pole(sys)
 
 Compute the poles of system `sys`."""
 pole(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
@@ -34,7 +35,8 @@ function pole(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR
     return lcmpoles
 end
 
-"""`minorpoles(sys)`
+"""
+    minorpoles(sys)
 
 Compute the poles of all minors of the system."""
 # TODO: Improve implementation, should be more efficient ways.
@@ -66,7 +68,8 @@ function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     return minors
 end
 
-"""`det(sys)`
+"""
+    det(sys)
 
 Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
 # TODO: improve this implementation, should be more efficient ones
@@ -85,7 +88,8 @@ function det(sys::Matrix{S}) where {S<:SisoZpk}
     return tot
 end
 
-"""`dcgain(sys)`
+"""
+    dcgain(sys)
 
 Compute the dcgain of system `sys`.
 
@@ -94,7 +98,8 @@ function dcgain(sys::LTISystem)
     return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
 end
 
-"""`markovparam(sys, n)`
+"""
+    markovparam(sys, n)
 
 Compute the `n`th markov parameter of state-space system `sys`. This is defined
 as the following:
@@ -107,7 +112,8 @@ function markovparam(sys::AbstractStateSpace, n::Integer)
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
 
-"""`z, p, k = zpkdata(sys)`
+"""
+    z, p, k = zpkdata(sys)
 
 Compute the zeros, poles, and gains of system `sys`.
 
@@ -127,7 +133,8 @@ function zpkdata(sys::LTISystem)
     return zs, ps, ks
 end
 
-"""`Wn, zeta, ps = damp(sys)`
+"""
+    Wn, zeta, ps = damp(sys)
 
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`"""
@@ -144,7 +151,8 @@ function damp(sys::LTISystem)
     return Wn, ζ, ps
 end
 
-"""`dampreport(sys)`
+"""
+    dampreport(sys)
 
 Display a report of the poles, damping ratio, natural frequency, and time
 constant of the system `sys`"""
@@ -172,7 +180,8 @@ end
 dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 
-"""`tzero(sys)`
+"""
+    tzero(sys)
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
 realization, these are also the transmission zeros."""
@@ -432,7 +441,8 @@ function _findCrossings(w, n, res)
     wcross, tcross
 end
 
-"""`dₘ = delaymargin(G::LTISystem)`
+"""
+    dₘ = delaymargin(G::LTISystem)
 
 Only supports SISO systems"""
 function delaymargin(G::LTISystem)
@@ -485,7 +495,8 @@ function gangoffour(P::LTISystem,C::LTISystem; minimal=true)
     return S, D, N, T
 end
 
-"""`S, D, N, T, RY, RU, RE = gangofseven(P,C,F)`
+"""
+    S, D, N, T, RY, RU, RE = gangofseven(P,C,F)
 
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
 computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
