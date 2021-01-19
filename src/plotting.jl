@@ -388,17 +388,18 @@ nyquistplot
     nw = length(w)
     layout --> (ny,nu)
     framestyle --> :zerolines
-    s2i(i,j) = LinearIndices((ny,nu))[j,i]
-    # Ensure that `axes` is always a matrix of handles
+    s2i(i,j) = LinearIndices((nu,ny))[j,i]
+    v = range(0, stop=2π, length=100)
+    S,C = sin.(v),cos.(v)
     for (si,s) = enumerate(systems)
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata      = re_resp[:, i, j]
-                imdata      = im_resp[:, i, j]
+                redata = re_resp[:, i, j]
+                imdata = im_resp[:, i, j]
                 @series begin
-                    ylims   --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims   --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                    ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                    xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
@@ -407,34 +408,34 @@ nyquistplot
                     (redata, imdata)
                 end
                 # Plot rings
+                if si == length(systems)
+                    for Ms in Ms
+                        @series begin
+                            primary := false
+                            linestyle := :dash
+                            linecolor := :gray
+                            seriestype := :path
+                            markershape := :none
+                            label := "Ms = $(round(Ms, digits=2))"
+                            ((1/Ms).*(C.-Ms),(1/Ms).*S)
+                        end
+                    end
+                    if gaincircle
+                        @series begin
+                            primary := false
+                            linestyle := :dash
+                            linecolor := :gray
+                            seriestype := :path
+                            markershape := :none
+                            (C,S)
+                        end
+                    end
+                end
                 
             end
         end
     end
 
-    v = range(0, stop=2π, length=100)
-    S,C = sin.(v),cos.(v)
-    for Ms in Ms
-        @series begin
-            primary := false
-            linestyle := :dash
-            linecolor := :gray
-            seriestype := :path
-            markershape := :none
-            label := "Ms = $(round(Ms, digits=2))"
-            ((1/Ms).*(C.-Ms),(1/Ms).*S)
-        end
-    end
-    if gaincircle
-        @series begin
-            primary := false
-            linestyle := :dash
-            linecolor := :gray
-            seriestype := :path
-            markershape := :none
-            (C,S)
-        end
-    end
 
 end
 
