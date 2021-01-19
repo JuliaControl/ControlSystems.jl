@@ -368,21 +368,21 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; gaincircles=true, Ms = 2, kwargs...)
-    nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)
+    fig = nyquistplot(sys; gaincircle=false, Ms = 1.5, kwargs...)
+    nyquistplot(LTISystem[sys1, sys2...]; gaincircle=false, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`gaincircles` plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are
-the sensitivity and complementary sensitivity functions.
+`gaincircle` plots the circle corresponding to |T(iω)| = 1, where `T` is
+the complementary sensitivity function.
                                             
-`Ms` denotes a maximum allowed value of the sensitivity function, a circle around -1 will be drawn with `1/Ms` radius. 
+`Ms` denotes a maximum allowed value of the sensitivity function, a circle around -1 will be drawn with `1/Ms` radius. `Ms` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `acos((2Ms^2-1)/2Ms^2)` rad and a gain margin of at least `Ms/(Ms-1)`, which for Ms = 1.5 yields `ϕₘ > 38.9°` and `gₘ > 3`.
 
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; gaincircles=true, Ms = 2)
+@recipe function nyquistplot(p::Nyquistplot; gaincircle=false, Ms = 1.5)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -407,30 +407,35 @@ nyquistplot
                     (redata, imdata)
                 end
                 # Plot rings
-                if gaincircles && si == length(systems)
-                    v = range(0,stop=2π,length=100)
-                    S,C = sin.(v),cos.(v)
-                    @series begin
-                        primary := false
-                        linestyle := :dash
-                        linecolor := :gray
-                        seriestype := :path
-                        markershape := :none
-                        ((1/Ms).*(C.-2),(1/Ms).*S)
-                    end
-                    @series begin
-                        primary := false
-                        linestyle := :dash
-                        linecolor := :gray
-                        seriestype := :path
-                        markershape := :none
-                        (C,S)
-                    end
-                end
-
+                
             end
         end
     end
+
+    v = range(0, stop=2π, length=100)
+    S,C = sin.(v),cos.(v)
+    for Ms in Ms
+        @series begin
+            primary := false
+            linestyle := :dash
+            linecolor := :gray
+            seriestype := :path
+            markershape := :none
+            label := "Ms = $(round(Ms, digits=2))"
+            ((1/Ms).*(C.-Ms),(1/Ms).*S)
+        end
+    end
+    if gaincircle
+        @series begin
+            primary := false
+            linestyle := :dash
+            linecolor := :gray
+            seriestype := :path
+            markershape := :none
+            (C,S)
+        end
+    end
+
 end
 
 
