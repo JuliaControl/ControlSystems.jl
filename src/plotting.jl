@@ -377,7 +377,7 @@ optionally provided.
 `gaincircle` plots the circle corresponding to |T(iω)| = 1, where `T` is
 the complementary sensitivity function.
                                             
-`Ms` denotes a maximum allowed value of the sensitivity function, a circle around -1 will be drawn with `1/Ms` radius. `Ms` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `acos((2Ms^2-1)/2Ms^2)` rad and a gain margin of at least `Ms/(Ms-1)`, which for Ms = 1.5 yields `ϕₘ > 38.9°` and `gₘ > 3`.
+`Ms` denotes a maximum allowed value of the sensitivity function, a circle around -1 will be drawn with `1/Ms` radius. `Ms` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`, which for Ms = 1.5 yields `ϕₘ > 38.9°` and `gₘ > 3`.
 
 `kwargs` is sent as argument to plot.
 """
@@ -409,8 +409,17 @@ nyquistplot
                 end
                 # Plot rings
                 if si == length(systems)
+                    @series begin
+                        subplot --> s2i(i,j)
+                        primary := false
+                        seriescolor := :red
+                        markershape := :cross
+                        seriesstyle := :scatter
+                        [-1], [0]
+                    end
                     for Ms in Ms
                         @series begin
+                            subplot --> s2i(i,j)
                             primary := false
                             linestyle := :dash
                             linecolor := :gray
@@ -422,6 +431,7 @@ nyquistplot
                     end
                     if gaincircle
                         @series begin
+                            subplot --> s2i(i,j)
                             primary := false
                             linestyle := :dash
                             linecolor := :gray
