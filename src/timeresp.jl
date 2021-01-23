@@ -256,7 +256,7 @@ end
 function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
     dt = _default_dt(sys)
     if tfinal == -1
-        tfinal = 100*dt
+        tfinal = 200dt
     end
     return 0:dt:tfinal
 end
@@ -264,15 +264,12 @@ end
 function _default_dt(sys::LTISystem)
     if isdiscrete(sys)
         return sys.Ts
-    elseif !isstable(sys)
+    elseif all(iszero, pole(sys)) # Static or pure integrators
         return 0.05
     else
-        ps = pole(sys)
-        r = minimum([abs.(real.(ps)); Inf])
-        if r == Inf
-            r = 1.0
-        end
-        return 0.07/r
+        ω0_max = maximum(abs.(pole(sys)))
+        dt = round(1/(12*ω0_max), sigdigits=2)
+        return dt
     end
 end
 

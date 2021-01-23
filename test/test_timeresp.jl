@@ -185,9 +185,9 @@ sysunstab = tf(1, [1, -1])
 sysint = tf(1, [1, 0])
 sysd = tf(1, [1, 1], 0.01)
 
-@test ControlSystems._default_dt(sysstab) == 0.14
-@test ControlSystems._default_dt(sysstatic) == 0.07
-@test ControlSystems._default_dt(sysunstab) == 0.05
+@test ControlSystems._default_dt(sysstab) == 0.17
+@test ControlSystems._default_dt(sysstatic) == 0.05
+@test ControlSystems._default_dt(sysunstab) == 0.083
 @test ControlSystems._default_dt(sysint) == 0.05
 @test ControlSystems._default_dt(sysd) == 0.01
 
