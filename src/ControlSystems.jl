@@ -70,7 +70,7 @@ export  LTISystem,
         solve,
         Simulator,
         # Frequency Response
-        freqresp,
+        freqresp, freqrespv,
         evalfr,
         bode, bodev,
         nyquist, nyquistv,
@@ -99,7 +99,7 @@ import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq, DelayDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
-import Base: getproperty
+import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
