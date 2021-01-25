@@ -5,9 +5,9 @@ C_212 = ss([-5 -3; 2 -9], [1; 2], [1 0; 0 1], [0; 0])
 C_221 = ss([-5 -3; 2 -9], [1 0; 0 2], [1 0], [0 0])
 C_222_d = ss([-5 -3; 2 -9], [1 0; 0 2], [1 0; 0 1], [1 0; 0 1])
 
-@test c2d(ss(4*[1 0; 0 1]), 0.5, :zoh) == (ss(4*[1 0; 0 1], 0.5), zeros(0, 2))
-@test c2d(ss(4*[1 0; 0 1]), 0.5, :foh) == (ss(4*[1 0; 0 1], 0.5), zeros(0, 2))
-@test_c2d(c2d(C_111, 0.01, :zoh),
+@test c2d_x0map(ss(4*[1 0; 0 1]), 0.5, :zoh) == (ss(4*[1 0; 0 1], 0.5), zeros(0, 2))
+@test c2d_x0map(ss(4*[1 0; 0 1]), 0.5, :foh) == (ss(4*[1 0; 0 1], 0.5), zeros(0, 2))
+@test_c2d(c2d_x0map(C_111, 0.01, :zoh),
     ss([0.951229424500714], [0.019508230199714396], [3], [0], 0.01), [1 0], true)
 @test_c2d(c2d(C_111, 0.01, :foh),
     ss([0.951229424500714], [0.01902855227625244], [3], [0.029506188017136226], 0.01),
@@ -57,8 +57,8 @@ Gd = c2d(G, 0.2)
 @test Gd ≈ tf([0, 0.165883310712090, -0.135903621603238], [1.0, -1.518831946985175, 0.548811636094027], 0.2) rtol=1e-14
 
 # Issue #391
-@test c2d(tf(C_111), 0.01, :zoh) ≈ tf(c2d(C_111, 0.01, :zoh)[1])
-@test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh)[1])
+@test c2d(tf(C_111), 0.01, :zoh) ≈ tf(c2d(C_111, 0.01, :zoh))
+@test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh))
 
 # c2d on a zpk model should arguably return a zpk model
 @test_broken typeof(c2d(zpk(G), 1)) <: TransferFunction{<:ControlSystems.SisoZpk}
@@ -72,27 +72,27 @@ Gd = c2d(G, 0.2)
 
 # d2c
 @static if VERSION > v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
-    @test d2c(c2d(C_111, 0.01)[1]) ≈ C_111
-    @test d2c(c2d(C_212, 0.01)[1]) ≈ C_212
-    @test d2c(c2d(C_221, 0.01)[1]) ≈ C_221
-    @test d2c(c2d(C_222_d, 0.01)[1]) ≈ C_222_d
+    @test d2c(c2d(C_111, 0.01)) ≈ C_111
+    @test d2c(c2d(C_212, 0.01)) ≈ C_212
+    @test d2c(c2d(C_221, 0.01)) ≈ C_221
+    @test d2c(c2d(C_222_d, 0.01)) ≈ C_222_d
     @test d2c(Gd) ≈ G
 
     sys = ss([0 1; 0 0], [0;1], [1 0], 0)
-    sysd = c2d(sys, 1)[1]
+    sysd = c2d(sys, 1)
     @test d2c(sysd) ≈ sys
 end
 
 # forward euler
-@test c2d(C_111, 1, :fwdeuler)[1].A == I + C_111.A
-@test d2c(c2d(C_111, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_111
-@test d2c(c2d(C_212, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_212
-@test d2c(c2d(C_221, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_221
-@test d2c(c2d(C_222_d, 0.01, :fwdeuler)[1], :fwdeuler) ≈ C_222_d
+@test c2d(C_111, 1, :fwdeuler).A == I + C_111.A
+@test d2c(c2d(C_111, 0.01, :fwdeuler), :fwdeuler) ≈ C_111
+@test d2c(c2d(C_212, 0.01, :fwdeuler), :fwdeuler) ≈ C_212
+@test d2c(c2d(C_221, 0.01, :fwdeuler), :fwdeuler) ≈ C_221
+@test d2c(c2d(C_222_d, 0.01, :fwdeuler), :fwdeuler) ≈ C_222_d
 @test d2c(c2d(G, 0.01, :fwdeuler), :fwdeuler) ≈ G
 
 
-Cd = c2d(C_111, 0.001, :fwdeuler)[1]
+Cd = c2d(C_111, 0.001, :fwdeuler)
 t = 0:0.001:2
 y,_ = step(C_111, t)
 yd,_ = step(Cd, t)
@@ -130,4 +130,3 @@ p = pole(Gcl)
 
 
 end
-
