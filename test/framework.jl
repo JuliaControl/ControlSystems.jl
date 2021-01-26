@@ -70,20 +70,16 @@ macro test_array_vecs_eps(a, b, tol)
     end
 end
 
-macro test_c2d(ex, sys_sol, mat_sol, op)
-    if op == true
-        quote
-            sys, mat = $(esc(ex))
-            @test sys ≈ $(esc(sys_sol)) && mat ≈ $(esc(mat_sol))
-        end
-    else
-        quote
-            sys, mat = $(esc(ex))
-            @test !(sys ≈ $(esc(sys_sol))) || !(mat ≈ $(esc(mat_sol)))
-        end
+# Currently only works for two return values
+macro test_tupleapprox(ex, y1true, y2true)
+    quote
+        y1, y2 = $(esc(ex))
+        @test y1 ≈ $(esc(y1true)) && y2 ≈ $(esc(y2true))
     end
 end
 
 
 approxin(el,col;kwargs...) = any(colel -> isapprox(el, colel; kwargs...), col)
 approxsetequal(s1,s2;kwargs...) = all(approxin(p,s1;kwargs...) for p in s2) && all(approxin(p,s2;kwargs...) for p in s1)
+
+dropwhitespace(str) = filter(!isspace, str)
