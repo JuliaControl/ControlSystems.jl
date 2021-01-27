@@ -12,7 +12,7 @@ numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
 to_matrix(T, A::AbstractVector) = Matrix{T}(reshape(A, length(A), 1))
-to_matrix(T, A::AbstractMatrix) = T.(A)  # Fallback
+to_matrix(T, A::AbstractMatrix) = convert(Matrix{T}, A)  # Fallback
 to_matrix(T, A::Number) = fill(T(A), 1, 1)
 # Handle Adjoint Matrices
 to_matrix(T, A::Adjoint{R, MT}) where {R<:Number, MT<:AbstractMatrix} = to_matrix(T, MT(A))
@@ -152,13 +152,13 @@ index2range(ind::Colon) = ind
 
 """@autovec (indices...) f() = (a, b, c)
 
-A macro that helps in creating versions of functions where excessive dimensions are 
-removed automatically for specific outputs. `indices` contains each index for which 
-the output tuple should be flattened. If the function only has a single output it 
+A macro that helps in creating versions of functions where excessive dimensions are
+removed automatically for specific outputs. `indices` contains each index for which
+the output tuple should be flattened. If the function only has a single output it
 (not a tuple with a single item) it should be called as `@autovec () f() = ...`.
 `f()` is the original function and `fv()` will be the version with flattened outputs.
 """
-macro autovec(indices, f) 
+macro autovec(indices, f)
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
     indices = eval(indices)
@@ -187,9 +187,9 @@ macro autovec(indices, f)
     quote
         Core.@__doc__ $(esc(f)) # Original function
 
-        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))` 
+        """`$($(esc(fname)))v($(join($(args), ", ")); $(join($(kwargs), ", ")))`
 
-        For use with SISO systems where it acts the same as `$($(esc(fname)))` 
+        For use with SISO systems where it acts the same as `$($(esc(fname)))`
         but with the extra dimensions removed in the returned values.
         """
         function $(esc(Symbol(fname, "v")))($(args...); $(kwargs...))::$rtype where {$(get(dict, :whereparams, [])...)}
@@ -198,7 +198,7 @@ macro autovec(indices, f)
                     issiso(a) || throw(ArgumentError($(string("Only SISO systems accepted to ", Symbol(fname, "v")))))
                 end
             end
-            result = $(esc(fname))($(argnames...); 
+            result = $(esc(fname))($(argnames...);
                                    $(map(x->Expr(:(=), esc(x), esc(x)), kwargnames)...))
             return $return_exp
         end
