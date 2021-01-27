@@ -1,6 +1,8 @@
 using DelayDiffEq
 
 @testset "test_delay_system" begin
+
+# For simplicity, equality of DelayLtiSystems are tested over a finite set of frequencies
 ω = 0.0:8
 
 
@@ -49,6 +51,10 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(P2 * delay(1), ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
+
+# Equality
+@test P1 == deepcopy(P1)
+@test P1 != deepcopy(P2)
 
 # evalfr
 s_vec = [0, 1im, 1, 1 + 1im]

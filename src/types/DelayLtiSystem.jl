@@ -109,6 +109,13 @@ function /(anything, sys::DelayLtiSystem)
     /(anything, sys.P.P) # If all delays are zero, invert the inner system
 end
 
+
+# Test equality (of realizations)
+function ==(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
+    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(DelayLtiSystem))
+end
+
+
 ninputs(sys::DelayLtiSystem) = size(sys.P.P, 2) - length(sys.Tau)
 noutputs(sys::DelayLtiSystem) = size(sys.P.P, 1) - length(sys.Tau)
 nstates(sys::DelayLtiSystem) = nstates(sys.P.P)

@@ -91,6 +91,9 @@ s = tf("s")
 @test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
 @test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
 
+# Combination of DelayLtiSystem with TransferFunction and StateSpace
+@test [delay(1.0) tf(1, [1,2])] == [delay(1.0) ss(-2.0,1,1,0)]
+@test [delay(1.0) zpk([], [-2], 1)] == [delay(1.0) ss(-2.0,1,1,0)]
 
 # hcat and vcat for StateSpace and Matrix
 A = [-1.1 -1.2; -1.3 -1.4]

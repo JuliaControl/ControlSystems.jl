@@ -91,7 +91,7 @@ ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_
 Notice the different matrix types used
 ```jldoctest HSS
 julia> sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
-StateSpace{Continuous,Int64,Array{Int64,2}}
+StateSpace{Continuous,Int64}
 A =
  -5   0
   0  -5
