@@ -84,38 +84,34 @@ function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}) 
     convert(StateSpace{TE,T}, G)
 end
 
-
 function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
 
-    # TODO : These are added due to scoped for blocks, but is a hack. This
-    # could be much cleaner.
-    #T = Base.promote_op(/, T0, T0)
+    ny, nu = size(G)
 
-    Ac = Bc = Cc = Dc = A = B = C = D = Matrix{T}(undef, 0, 0)
-    for i=1:ninputs(G)
-        for j=1:noutputs(G)
-            a, b, c, d = siso_tf_to_ss(T, G.matrix[j, i])
-            if j > 1
-                # vcat
-                Ac = blockdiag(Ac, a)
-                Bc = vcat(Bc, b)
-                Cc = blockdiag(Cc, c)
-                Dc = vcat(Dc, d)
-            else
-                Ac, Bc, Cc, Dc = a, b, c, d
-            end
-        end
-        if i > 1
-            # hcat
-            A = blockdiag(A, Ac)
-            B = blockdiag(B, Bc)
-            C = hcat(C, Cc)
-            D = hcat(D, Dc)
-        else
-            A, B, C, D = Ac, Bc, Cc, Dc
+    # A, B, C, D matrices for each element of the transfer function matrix
+    abcd_vec = [siso_tf_to_ss(T, g) for g in G.matrix[:]]
+
+    # Number of states for each transfer function element realization
+    nvec = [size(abcd[1], 1) for abcd in abcd_vec]
+    ntot = sum(nvec)
+
+    A = zeros(T, (ntot, ntot))
+    B = zeros(T, (ntot, nu))
+    C = zeros(T, (ny, ntot))
+    D = zeros(T, (ny, nu))
+
+    inds = -1:0
+    for j=1:nu
+        for i=1:ny
+            k = (j-1)*ny + i
+
+            # states correpsonding to the transfer function element (i,j)
+            inds = (inds.stop+1):(inds.stop+nvec[k])
+
+            A[inds,inds], B[inds,j:j], C[i:i,inds], D[i:i,j:j] = abcd_vec[k]
         end
     end
     # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
