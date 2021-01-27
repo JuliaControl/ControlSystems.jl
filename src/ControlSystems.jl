@@ -62,6 +62,7 @@ export  LTISystem,
         lft,
         # Discrete
         c2d,
+        c2d_x0map,
         d2c,
         # Time Response
         step,
