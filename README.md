@@ -21,6 +21,15 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
+### 2021-01
+- *Breaking*: Support for julia versions older than 1.3 is dropped
+- *Breaking*: `c2d(::StateSpace)` now returns only the system, not the `x0map`. See `c2d_x0map` for the old functionality.
+- System order can be specified in `baltrunc`.
+- New discretization methods in `c2d`. We now support `:zoh,:foh,:fwdeuler,:tustin`
+- Symbolic computation utilities in [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl)
+
+More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/releases).
+
 ### 2020-10
 - `lsimplot, stepplot, impulseplot` now have the same signatures as the corresponding non-plotting function.
 - New function `d2c` for conversion from discrete to continuous.
@@ -46,13 +55,6 @@ nyquistplot(sys)
 - [Robust PID optimization](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/robust_controller_opt.jl)
 ### 2019-05-22
 New state-space type `HeteroStateSpace` that accepts matrices of heterogeneous types: [example using `StaticArrays`](https://juliacontrol.github.io/ControlSystems.jl/latest/man/creating_systems/#Creating-State-Space-Systems-1).
-### 2019-01-31
-System identification using [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is now available. The [readme](https://github.com/baggepinnen/ControlSystemIdentification.jl) together with a series of notebooks serve as documentation.
-- [State-space identification](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_statespace.ipynb)
-- [ARX/PLR](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_arx.ipynb)
-- [Transfer-function estimation using spectral methods](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_spectral.ipynb)
-- [Impulse-response estimation](https://github.com/JuliaControl/ControlExamples.jl/blob/master/identification_impulse_response.ipynb)
-
 
 ## Documentation
 
@@ -121,4 +123,4 @@ stepplot(CLs, label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ![StepResponse](/example/step_response.png)
 
 ### Additional examples
-See the examples folder
+See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/)
