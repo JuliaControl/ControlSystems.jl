@@ -23,6 +23,7 @@ using Pkg; Pkg.add("ControlSystems")
 
 ### 2021-01
 - *Breaking*: Support for julia versions older than 1.3 is dropped
+- *Breaking*: `c2d(::StateSpace)` now returns only the system, not the `x0map`. See `c2d_x0map` for the old functionality.
 - System order can be specified in `baltrunc`.
 - New discretization methods in `c2d`. We now support `:zoh,:foh,:fwdeuler,:tustin`
 - Symbolic computation utilities in [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl)
