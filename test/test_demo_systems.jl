@@ -36,4 +36,26 @@ sys = ssrand(2,2,5,proper=false,stable=true, Ts=0.5)
 sys = ssrand(2,2,5,proper=false,stable=false, Ts=0.5)
 @test !isstable(sys)
 
+
+
+c = [2.5]
+sysd = DemoSystems.ssfir(c)
+y = impulse(sysd, 10)[1]
+@test y[1] == c[1]
+@test y[2:11] == zeros(10)
+
+
+c = [0.1, 2.5]
+sysd = DemoSystems.ssfir(c)
+y = impulse(sysd, 10)[1]
+@test y[1:2] == c[1:2]
+@test y[3:11] == zeros(9)
+
+
+c = [1,2,5,3]
+sysd = DemoSystems.ssfir(c)
+y = impulse(sysd, 10)[1]
+@test y[1:4] == c
+@test y[5:11] == zeros(7)
+
 end
