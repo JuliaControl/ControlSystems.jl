@@ -4,34 +4,34 @@ b = [0  1]'
 c = [1 -1]
 r = 3
 
-@test care(a, b, c'*c, r) ≈ [0.5895174372762604 1.8215747248860816; 1.8215747248860823 8.818839806923107]
-@test dare(a, b, c'*c, r) ≈ [240.73344504496302 -131.09928700089387; -131.0992870008943 75.93413176750603]
+@test care(a, b, c'*c, r)[1] ≈ [0.5895174372762604 1.8215747248860816; 1.8215747248860823 8.818839806923107]
+@test dare(a, b, c'*c, r)[1] ≈ [240.73344504496302 -131.09928700089387; -131.0992870008943 75.93413176750603]
 
 ## Test dare method for non invertible matrices
-A = [0 1; 0 0];
-B0 = [0; 1];
-Q = Matrix{Float64}(I, 2, 2);
+A = [0 1; 0 0]
+B0 = [0; 1]
+Q = Matrix{Float64}(I, 2, 2)
 R0 = 1
-X = dare(A, B0, Q, R0);
+X = dare(A, B0, Q, R0)[1]
 # Reshape for matrix expression
 B = reshape(B0, 2, 1)
 R = fill(R0, 1, 1)
 @test norm(A'X*A - X - (A'X*B)*((B'X*B + R)\(B'X*A)) + Q) < 1e-14
 ## Test dare for scalars
-A = 1.0;
-B = 1.0;
-Q = 1.0;
-R = 1.0;
-X0 = dare(A, B, Q, R);
+A = 1.0
+B = 1.0
+Q = 1.0
+R = 1.0
+X0 = dare(A, B, Q, R)[1]
 X = X0[1]
 @test norm(A'X*A - X - (A'X*B)*((B'X*B + R)\(B'X*A)) + Q) < 1e-14
 # Test for complex matrices
 I2 = Matrix{Float64}(I, 2, 2)
-@test dare([1.0 im; im 1.0], I2, I2, I2) ≈ [1 + sqrt(2) 0; 0 1 + sqrt(2)]
+@test dare([1.0 im; im 1.0], I2, I2, I2)[1] ≈ [1 + sqrt(2) 0; 0 1 + sqrt(2)]
 # And complex scalars
-@test dare(1.0, 1, 1, 1) ≈ fill((1 + sqrt(5))/2, 1, 1)
-@test dare(1.0im, 1, 1, 1) ≈ fill((1 + sqrt(5))/2, 1, 1)
-@test dare(1.0, 1im, 1, 1) ≈ fill((1 + sqrt(5))/2, 1, 1)
+@test dare(1.0, 1, 1, 1)[1] ≈ fill((1 + sqrt(5))/2, 1, 1)
+@test dare(1.0im, 1, 1, 1)[1] ≈ fill((1 + sqrt(5))/2, 1, 1)
+@test dare(1.0, 1im, 1, 1)[1] ≈ fill((1 + sqrt(5))/2, 1, 1)
 
 ## Test gram, ctrb, obsv
 a_2 = [-5 -3; 2 -9]
@@ -108,6 +108,16 @@ D_static = ss([0.704473 1.56483; -1.6661 -2.16041], 0.07)
 @test norm(D_222) ≈ 4.940973856125768
 @test norm(D_221) ≈ 3.4490083195926426
 @test norm(ss([1],[2],[3],[4])) == Inf
+
+
+# Test discrete time 2 norms
+c = [1,2,-1,3,5,-2]
+@test norm(DemoSystems.ssfir(c)) == norm(c)
+c = 1:100
+@test norm(DemoSystems.ssfir(c)) == norm(c)
+c = 1:300 # typically enough to break a "naive" Lyapunov solver
+@test norm(DemoSystems.ssfir(c)) == norm(c)
+
 
 #
 ## Test Hinfinity norm computations

@@ -7,75 +7,65 @@ Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
-function care(A, B, Q, R)
-    G = try
-        B*inv(R)*B'
-    catch y
-        if y isa SingularException
-            error("R must be non-singular in care.")
-        else
-            throw(y)
-        end
-    end
+# function care(A, B, Q, R)
+#     G = try
+#         B*inv(R)*B'
+#     catch y
+#         if y isa SingularException
+#             error("R must be non-singular in care.")
+#         else
+#             throw(y)
+#         end
+#     end
+#
+#     Z = [A  -G;
+#         -Q  -A']
+#
+#     S = schur(Z)
+#     S = ordschur(S, real(S.values).<0)
+#     U = S.Z
+#
+#     (m, n) = size(U)
+#     U11 = U[1:div(m, 2), 1:div(n,2)]
+#     U21 = U[div(m,2)+1:m, 1:div(n,2)]
+#     return U21/U11
+# end
+#
+# """`dare(A, B, Q, R)`
+#
+# Compute `X`, the solution to the discrete-time algebraic Riccati equation,
+# defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
+#
+# Algorithm taken from:
+# Laub, "A Schur Method for Solving Algebraic Riccati Equations."
+# http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
+# """
+# function dare(A, B, Q, R)
+#     if !ishermitian(Q)# !issemiposdef(Q)
+#         error("Q must be Hermitian");
+#     end
+#     if (!isposdef(R))
+#         error("R must be positive definite");
+#     end
+#
+#     n = size(A, 1);
+#
+#     E = [
+#         Matrix{Float64}(I, n, n) B*(R\B');
+#         zeros(size(A)) A'
+#     ];
+#     F = [
+#         A zeros(size(A));
+#         -Q Matrix{Float64}(I, n, n)
+#     ];
+#
+#     QZ = schur(F, E);
+#     QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
+#
+#     return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
+# end
 
-    Z = [A  -G;
-        -Q  -A']
 
-    S = schur(Z)
-    S = ordschur(S, real(S.values).<0)
-    U = S.Z
-
-    (m, n) = size(U)
-    U11 = U[1:div(m, 2), 1:div(n,2)]
-    U21 = U[div(m,2)+1:m, 1:div(n,2)]
-    return U21/U11
-end
-
-"""`dare(A, B, Q, R)`
-
-Compute `X`, the solution to the discrete-time algebraic Riccati equation,
-defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
-
-Algorithm taken from:
-Laub, "A Schur Method for Solving Algebraic Riccati Equations."
-http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
-"""
-function dare(A, B, Q, R)
-    if !issemiposdef(Q)
-        error("Q must be positive-semidefinite.");
-    end
-    if (!isposdef(R))
-        error("R must be positive definite.");
-    end
-
-    n = size(A, 1);
-
-    E = [
-        Matrix{Float64}(I, n, n) B*(R\B');
-        zeros(size(A)) A'
-    ];
-    F = [
-        A zeros(size(A));
-        -Q Matrix{Float64}(I, n, n)
-    ];
-
-    QZ = schur(F, E);
-    QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
-
-    return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
-end
-
-"""`dlyap(A, Q)`
-
-Compute the solution `X` to the discrete Lyapunov equation
-`AXA' - X + Q = 0`.
-"""
-function dlyap(A::AbstractMatrix, Q)
-    lhs = kron(A, conj(A))
-    lhs = I - lhs
-    x = lhs\reshape(Q, prod(size(Q)), 1)
-    return reshape(x, size(Q))
-end
 
 """`gram(sys, opt)`
 
@@ -86,7 +76,7 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+    func = iscontinuous(sys) ? lyapc : lyapd
     if opt === :c
         # TODO probably remove type check in julia 0.7.0
         return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
@@ -162,14 +152,14 @@ function covar(sys::AbstractStateSpace, W)
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+
     Q = try
-        func(A, B*W*B')
+        iscontinuous(sys) ? lyapc(A, B*W*B') : lyapd(A, B*W*B')
     catch
         error("No solution to the Lyapunov equation was found in covar")
     end
     P = C*Q*C'
-    if !isdiscrete(sys)
+    if iscontinuous(sys)
         #Variance and covariance infinite for direct terms
         direct_noise = D*W*D'
         for i in 1:size(C,1)

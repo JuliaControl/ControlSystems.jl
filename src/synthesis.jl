@@ -34,7 +34,7 @@ plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lqr(A, B, Q, R)
-    S = care(A, B, Q, R)
+    S = care(A, B, Q, R)[1]
     K = R\B'*S
     return K
 end
@@ -99,7 +99,7 @@ plot(t,x, lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 """
 function dlqr(A, B, Q, R)
-    S = dare(A, B, Q, R)
+    S = dare(A, B, Q, R)[1]
     K = (B'*S*B + R)\(B'S*A)
     return K
 end

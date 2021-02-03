@@ -103,10 +103,14 @@ import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
-export lyap # Make sure LinearAlgebra.lyap is available
+import ControlMatrixEquations: ared, arec, lyapc, lyapd
+export lyapd, lyapc
+export ared, arec
 import Printf, Colors
 import DSP: conv
 using MacroTools
+
+
 
 abstract type AbstractSystem end
 
@@ -168,6 +172,10 @@ include("plotting.jl")
 @deprecate den denvec
 @deprecate norminf hinfnorm
 @deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
+
+@deprecate dlyap lyapd
+@deprecate dare ared
+@deprecate care arec
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
