@@ -167,7 +167,8 @@ end
 @userplot Stepplot
 @userplot Impulseplot
 """
-`stepeplot(sys[, Tf]; kwargs...)`` or `stepplot(sys[, t]; kwargs...)``
+    stepplot(sys[, Tf]; kwargs...) or stepplot(sys[, t]; kwargs...)
+
 Plot step response of  `sys` until final time `Tf` or at time points in the vector `t`.
 If not defined, suitable values are chosen based on `sys`.
 See also [`step`](@ref)
@@ -177,7 +178,8 @@ See also [`step`](@ref)
 stepplot
 
 """
-    `impulseplot(sys[, Tf]; kwargs...)`` or `impulseplot(sys[, t]; kwargs...)``
+    impulseplot(sys[, Tf]; kwargs...) or impulseplot(sys[, t]; kwargs...)
+
 Plot impulse response of `sys` until final time `Tf` or at time points in the vector `t`.
 If not defined, suitable values are chosen based on `sys`.
 See also [`impulse`](@ref)
@@ -230,10 +232,10 @@ end
     _processfreqplot(plottype, system::LTISystem, [w])
     _processfreqplot(plottype, system::AbstractVector{<:LTISystem}, [w])
 
-    Calculate default frequency vector and put system in array of not already array.
-    `plottype` is one of `Val{:bode}, Val{:nyquist}, ...`
-    for which `_default_freq_vector` is defined.
-    Check that system dimensions are compatible.
+Calculate default frequency vector and put system in array of not already array.
+`plottype` is one of `Val{:bode}, Val{:nyquist}, ...`
+for which `_default_freq_vector` is defined.
+Check that system dimensions are compatible.
 """
 _processfreqplot(plottype, system::LTISystem, args...) =
     _processfreqplot(plottype, [system], args...)
@@ -435,7 +437,7 @@ end
 @userplot Nicholsplot
 
 """
-fig = `nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)`
+    fig = nicholsplot{T<:LTISystem}(systems::Vector{T}, w::AbstractVector; kwargs...)
 
 Create a Nichols plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
