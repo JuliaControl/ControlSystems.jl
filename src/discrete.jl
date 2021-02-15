@@ -227,11 +227,11 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction{TE, T}, h, args...; kwargs...) where {TE<:Continuous, T<:SisoTf}
+function c2d(G::TransferFunction{<:Continuous, T}, h, args...; kwargs...) where {T<:SisoTf}
     @assert issiso(G) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
     sysd = c2d(sys, h, args...; kwargs...)
-    return convert(TransferFunction{typeof(Discrete(h)), T}, sysd)
+    return convert(TransferFunction{typeof(sysd.timeevol), Base.typename(T)}, sysd)
 end
 
 """
