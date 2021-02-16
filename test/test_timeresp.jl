@@ -187,9 +187,9 @@ y, t2, x = step(G, 2)
 @testset "Simulators" begin
 
 
-h              = 0.1
+Ts              = 0.1
 Tf             = 20
-t              = 0:h:Tf
+t              = 0:Ts:Tf
 P              = ss(tf(1,[2,1])^2)
 reference(x,t) = [1.]
 s              = Simulator(P, reference)

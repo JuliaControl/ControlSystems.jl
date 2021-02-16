@@ -9,9 +9,9 @@ K(p)        = K(p...)
 P  = tf(ω²,[1, 2ζ*ω, ω²])*tf(1,[1,1])
 
 Ω  = exp10.(LinRange(-1,2,150))  # Frequency vector to eval constraints
-h  = 0.1 # Sample time for time-domain evaluation
+Ts  = 0.1 # Sample time for time-domain evaluation
 Tf = 60.  # Time horizon
-t  = 0:h:Tf-h
+t  = 0:Ts:Tf-Ts
 
 Ms = 1.4 # Maximum allowed magnitude of sensitivity function
 Mt = 1.4 # Maximum allowed magnitude of complimentary sensitivity function

@@ -87,7 +87,7 @@ Continuous time systems are simulated using an ODE solver if `u` is a function. 
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a step at `t=5`, use (x,i)-> (i*h >= 5) etc.
+To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
 
 Usage example:
 ```julia

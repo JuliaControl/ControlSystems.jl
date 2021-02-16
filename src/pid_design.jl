@@ -150,21 +150,21 @@ rlocus
 end
 
 """
-    laglink(a, M; h=0)
+    laglink(a, M; Ts=0)
 
 Returns a phase retarding link, the rule of thumb `a = 0.1ωc` guarantees less than 6 degrees phase margin loss. The bode curve will go from `M`, bend down at `a/M` and level out at 1 for frequencies > `a`
 """
-function laglink(a, M; h=0)
+function laglink(a, M; Ts=0)
     numerator = [1/a, 1]
     denominator = [M/a, 1]
     gain = M
     G = tf(gain*numerator,denominator)
-    return  h <= 0 ? G : c2d(G,h)
+    return  Ts <= 0 ? G : c2d(G,Ts)
 end
 
 
 """
-    leadlink(b, N, K; h=0)
+    leadlink(b, N, K; Ts=0)
 
 Returns a phase advancing link, the top of the phase curve is located at `ω = b√(N)` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `b` and level out at `KN` for frequencies > `bN`
 
@@ -174,17 +174,17 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlinkat` `laglink`
 """
-function leadlink(b, N, K; h=0)
+function leadlink(b, N, K; Ts=0)
     numerator = [1/b, 1]
     denominator = [1/(b*N), 1]
     gain = K
     G = tf(gain*numerator,denominator)
-    return  h <= 0 ? G : c2d(G,h)
+    return  Ts <= 0 ? G : c2d(G,Ts)
 
 end
 
 """
-    leadlinkat(ω, N, K; h=0)
+    leadlinkat(ω, N, K; Ts=0)
 
 Returns a phase advancing link, the top of the phase curve is located at `ω` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `ω/√(N)` and level out at `KN` for frequencies > `ω√(N)`
 
@@ -194,9 +194,9 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlink` `laglink`
 """
-function leadlinkat(ω, N, K; h=0)
+function leadlinkat(ω, N, K; Ts=0)
     b = ω / sqrt(N)
-    return leadlink(b,N,K,h=h)
+    return leadlink(b,N,K,Ts=Ts)
 end
 
 """
