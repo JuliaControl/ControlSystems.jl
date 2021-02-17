@@ -23,9 +23,9 @@ Used to simulate continuous-time systems. See function `?solve` for additional i
 # Usage:
 ```
 using OrdinaryDiffEq
-Ts             = 0.1
+dt             = 0.1
 Tf             = 20
-t              = 0:Ts:Tf
+t              = 0:dt:Tf
 P              = ss(tf(1,[2,1])^2)
 K              = 5
 reference(x,t) = [1.]
