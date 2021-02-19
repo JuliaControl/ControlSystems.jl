@@ -84,11 +84,11 @@ Base.convert(::Type{StateSpace}, s::HeteroStateSpace{Continuous}) = StateSpace(s
 function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}) where {TE,T0<:Number}
 
     T = Base.promote_op(/,T0,T0)
-    convert(StateSpace{TE,T,Matrix{T}}, G)
+    convert(StateSpace{TE,T,Matrix{T}}, G; kwargs...)
 end
 
 
-function Base.convert(::Type{StateSpace{TE,T,MT}}, G::TransferFunction) where {TE,T<:Number, MT<:AbstractArray{T}}
+function Base.convert(::Type{StateSpace{TE,T,MT}}, G::TransferFunction; balance=true) where {TE,T<:Number, MT<:AbstractArray{T}}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -97,7 +97,7 @@ function Base.convert(::Type{StateSpace{TE,T,MT}}, G::TransferFunction) where {T
     # could be much cleaner.
     #T = Base.promote_op(/, T0, T0)
 
-    Ac = Bc = Cc = Dc = A = B = C = D = Array{T}(undef, 0, 0)
+    local Ac, Bc, Cc, Dc, A, B, C, D
     for i=1:ninputs(G)
         for j=1:noutputs(G)
             a, b, c, d = siso_tf_to_ss(T, G.matrix[j, i])
@@ -121,7 +121,9 @@ function Base.convert(::Type{StateSpace{TE,T,MT}}, G::TransferFunction) where {T
             A, B, C, D = Ac, Bc, Cc, Dc
         end
     end
-    # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
+    if balance
+        A, B, C = balance_statespace(A, B, C)[1:3] 
+    end
     return StateSpace{TE,T,MT}(A, B, C, D, TE(G.timeevol))
 end
 
