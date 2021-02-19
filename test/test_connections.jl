@@ -244,4 +244,15 @@ G4 = ss(-6, [7 8], [11; 12], 0)
 @test starprod(G1, G4, 1, 1) == ss([-9 33; 35 -6], [2 0; 0 8], [4 0; 0 12], zeros(2,2))
 
 
+
+# Feedback2dof
+
+P0 = tf(1.0, [1, 1, 1])
+C = pid(kp=1, ki=1, kd=1)
+F = tf(1.0, [1,1])
+@test feedback2dof(P0, 0*C, F) == P0*F
+@test feedback2dof(P0, C, 0*F) == feedback(P0*C)
+@test_nowarn feedback2dof(P0, C, F)
+
+
 end
