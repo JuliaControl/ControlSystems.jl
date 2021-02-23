@@ -338,13 +338,15 @@ r  |  -  |       |    |    |       |    y
       |                                |
       +--------------------------------+
 """
-function feedback2dof(P::TransferFunction{T}, C::TransferFunction{T}, F::TransferFunction{T}) where T
+function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
     !issiso(P) && error("Feedback not implemented for MIMO systems")
+    timeevol = common_timeevol(P, C, F)
+    
     Pn,Pd = numpoly(P)[], denpoly(P)[]
     Cn,Cd = numpoly(C)[], denpoly(C)[]
     Fn,Fd = numpoly(F)[], denpoly(F)[]
     den = (Cd*Pd + Pn*Cn)*Fd
-    isdiscrete(P) ? tf(Cd*Pn*Fn + Pn*Cn*Fd, den, P.Ts) : tf(Cd*Pn*Fn + Pn*Cn*Fd, den)
+    tf(Cd*Pn*Fn + Pn*Cn*Fd, den, timeevol)
 end
 
 """
