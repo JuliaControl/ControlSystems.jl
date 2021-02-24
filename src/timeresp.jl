@@ -3,10 +3,10 @@
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
 """
-    y, t, x = step(sys[, Tf])
+    y, t, x = step(sys[, tfinal])
     y, t, x = step(sys[, t])
 
-Calculate the step response of system `sys`. If the final time `Tf` or time
+Calculate the step response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
@@ -29,15 +29,15 @@ function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     return y, t, x
 end
 
-Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(sys, Tf); kwargs...)
+Base.step(sys::LTISystem, tfinal::Real; kwargs...) = step(sys, _default_time_vector(sys, tfinal); kwargs...)
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
 Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t::AbstractVector; kwargs...)
 
 """
-    y, t, x = impulse(sys[, Tf])
+    y, t, x = impulse(sys[, tfinal])
     y, t, x = impulse(sys[, t])
 
-Calculate the impulse response of system `sys`. If the final time `Tf` or time
+Calculate the impulse response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
@@ -70,7 +70,7 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     return y, t, x
 end
 
-impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(sys, Tf); kwags...)
+impulse(sys::LTISystem, tfinal::Real; kwags...) = impulse(sys, _default_time_vector(sys, tfinal); kwags...)
 impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
 impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
@@ -159,8 +159,8 @@ end
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
-function lsim(sys::AbstractStateSpace, u::Function, Tf::Real, args...; kwargs...)
-    t = _default_time_vector(sys, Tf)
+function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwargs...)
+    t = _default_time_vector(sys, tfinal)
     lsim(sys, u, t, args...; kwargs...)
 end
 

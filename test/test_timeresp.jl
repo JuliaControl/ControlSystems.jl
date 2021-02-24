@@ -187,14 +187,14 @@ y, t2, x = step(G, 2)
 @testset "Simulators" begin
 
 
-Ts              = 0.1
-Tf             = 20
-t              = 0:Ts:Tf
+Ts             = 0.1
+tfinal         = 20
+t              = 0:Ts:tfinal
 P              = ss(tf(1,[2,1])^2)
 reference(x,t) = [1.]
 s              = Simulator(P, reference)
 x0             = [0.,0]
-tspan          = (0.0,Tf)
+tspan          = (0.0,tfinal)
 sol            = solve(s, x0, tspan, OrdinaryDiffEq.Tsit5())
 @test step(P,t)[3] ≈ reduce(hcat,sol.(t))'
 end
