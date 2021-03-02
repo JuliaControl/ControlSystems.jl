@@ -129,7 +129,7 @@ Compute the controllability matrix for the system described by `(A, B)` or
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite."""
-function ctrb(A::AbstractMatrix, B::AbstractMatrix)
+function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     T = promote_type(eltype(A), eltype(B))
     n = size(A, 1)
     nu = size(B, 2)
