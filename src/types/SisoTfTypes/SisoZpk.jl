@@ -6,19 +6,20 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
     z::Vector{TR}
     p::Vector{TR}
     k::T
-    function SisoZpk{T,TR}(z::Vector{TR}, p::Vector{TR}, k::T) where  {T<:Number, TR<:Number}
+    function SisoZpk{T,TR}(z::Vector{TR}, p::Vector{TR}, k::T) where {T<:Number, TR<:Number}
         if k == zero(T)
             p = TR[]
             z = TR[]
         end
         if TR <: Complex && T <: Real
-            @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-            @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
+            z, p = copy(z), copy(p)
+            @assert pairup_conjugates!(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
+            @assert pairup_conjugates!(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
         end
         new{T,TR}(z, p, k)
     end
 end
-function SisoZpk{T,TR}(z::Vector, p::Vector, k::Number) where  {T<:Number, TR<:Number}
+function SisoZpk{T,TR}(z::Vector, p::Vector, k::Number) where {T<:Number, TR<:Number}
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), T(k))
 end
 function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
@@ -27,13 +28,6 @@ function SisoZpk{T}(z::Vector, p::Vector, k::Number) where T
 end
 function SisoZpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T) where {T<:Number, TZ<:Number, TP<:Number} # NOTE: is this constructor really needed?
     TR = promote_type(TZ,TP)
-    # Could check if complex roots come with their conjugates,
-    # i.e., if the SisoZpk corresponds to a real-valued system
-
-    if TR <: Complex && T <: Real
-        @assert check_real(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-        @assert check_real(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
-    end
     SisoZpk{T,TR}(Vector{TR}(z), Vector{TR}(p), k)
 end
 
@@ -109,31 +103,32 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
     SisoZpk{T, TR}(newZ, newP, sys.k)
 end
 
-# FIXME: Perhaps move to some other file with auxilliary functions,
-# the name could also be imporoved. Perhaps this functionality can be found in some other package.
-""" If TR is Complex and T is Real, check that every pole is matched to its conjugate
-    this assumes that the compelx poles are ordered as they are output by the LAPACK
-    routines that return complex-conjugated values, i.e., (x+iy) is followed by (x-iy)"""
-function check_real(r_vec::AbstractVector{<:Complex})
-    k = 1
-    while k <= length(r_vec)
-        if isreal(r_vec[k])
-            # Do nothing
+""" Reorder the vector x of complex numbers so that complex conjugates come after each other, 
+    with the one with positive imaginary part first. Returns true if the conjugates can be 
+    paired and otherwise false."""
+function pairup_conjugates!(x::AbstractVector)
+    i = 0
+    while i < length(x)
+        i += 1
+        imag(x[i]) == 0 && continue
+
+        # Attempt to find a matching conjugate to x[i]
+        j = findnext(==(conj(x[i])), x, i+1)
+        j === nothing && return false
+
+        tmp = x[j]
+        x[j] = x[i+1]
+        # Make sure that the complex number with positive imaginary part comes first
+        if imag(x[i]) > 0
+            x[i+1] = tmp
         else
-            if k == length(r_vec) # Element is complex and there is no more elements to match up with
-                return false
-            elseif conj(r_vec[k]) == r_vec[k+1] # Element is complex and succeeding element is its conjugate
-                k=k+1
-            else
-                return false
-            end
+            x[i+1] = x[i]
+            x[i] = tmp
         end
-        k += 1
+        i += 1 # Since it is a pair and the conjugate was found
     end
     return true
 end
-
-
 
 function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
     T0 = promote_type(T2, TR)

@@ -4,7 +4,7 @@
 Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
 """
 struct DelayLtiSystem{T,S<:Real} <: LTISystem
-    P::PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}
+    P::PartionedStateSpace{StateSpace{Continuous,T}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
     # function DelayLtiSystem(P::StateSpace{Continuous,T, MT}, Tau::Vector{T})
@@ -33,19 +33,19 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
         throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
 
-    psys = PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}(sys, nu, ny)
+    psys = PartionedStateSpace{StateSpace{Continuous,T}}(sys, nu, ny)
     DelayLtiSystem{T,S}(psys, Tau)
 end
 # For converting DelayLtiSystem{T,S} to different T
-DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{Continuous,T,Matrix{T}}}(sys.P), Float64[])
+DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{Continuous,T}}(sys.P), Float64[])
 DelayLtiSystem{T}(sys::StateSpace) where {T} = DelayLtiSystem{T, Float64}(sys, Float64[])
 
 # From StateSpace, infer type
-DelayLtiSystem(sys::StateSpace{Continuous,T,MT}, Tau::Vector{S}) where {T, MT,S} = DelayLtiSystem{T,S}(sys, Tau)
-DelayLtiSystem(sys::StateSpace{Continuous,T,MT}) where {T, MT} = DelayLtiSystem{T,T}(sys, T[])
+DelayLtiSystem(sys::StateSpace{Continuous,T}, Tau::Vector{S}) where {T,S} = DelayLtiSystem{T,S}(sys, Tau)
+DelayLtiSystem(sys::StateSpace{Continuous,T}) where {T} = DelayLtiSystem{T,T}(sys, T[])
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
-DelayLtiSystem(sys::TransferFunction{TE,S}) where {TE,T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T, Matrix{T}}, sys))
+DelayLtiSystem(sys::TransferFunction{TE,S}) where {TE,T,S<:SisoTf{T}} = DelayLtiSystem{T}(convert(StateSpace{Continuous,T}, sys))
 
 
 # TODO: Think through these promotions and conversions
@@ -69,7 +69,7 @@ end
 Base.convert(::Type{<:DelayLtiSystem}, sys::TransferFunction)  = DelayLtiSystem(sys)
 # Catch convertsion between T
 Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
-    sys isa V ? sys : V(StateSpace{Continuous,T,Matrix{T}}(sys.P.P), sys.Tau)
+    sys isa V ? sys : V(StateSpace{Continuous,T}(sys.P.P), sys.Tau)
 
 
 
@@ -108,6 +108,13 @@ function /(anything, sys::DelayLtiSystem)
     all(iszero, sys.Tau) || error("A delayed system can not be inverted. Consider use of the function `feedback`.")
     /(anything, sys.P.P) # If all delays are zero, invert the inner system
 end
+
+
+# Test equality (of realizations)
+function ==(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
+    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(DelayLtiSystem))
+end
+
 
 ninputs(sys::DelayLtiSystem) = size(sys.P.P, 2) - length(sys.Tau)
 noutputs(sys::DelayLtiSystem) = size(sys.P.P, 1) - length(sys.Tau)

@@ -132,9 +132,9 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
         end
 
         if method === :zoh
-            dsys = c2d(sys, dt, :zoh)[1]
+            dsys = c2d(sys, dt, :zoh)
         elseif method === :foh
-            dsys, x0map = c2d(sys, dt, :foh)
+            dsys, x0map = c2d_x0map(sys, dt, :foh)
             x0 = x0map*[x0; transpose(u)[:,1]]
         else
             error("Unsupported discretization method")
@@ -180,7 +180,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 
     if !iscontinuous(sys) || method === :zoh
         if iscontinuous(sys)
-            dsys = c2d(sys, dt, :zoh)[1]
+            dsys = c2d(sys, dt, :zoh)
         else
             if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
@@ -224,7 +224,7 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
 
     n = size(u, 1)
-  
+
     # Transposing u allows column-wise operations, which apparently is faster.
     ut = transpose(u)
 

@@ -220,3 +220,8 @@ end
 function Base.convert(::Type{<:PartionedStateSpace}, sys::T) where T<: StateSpace
     PartionedStateSpace(sys,sys.nu,sys.ny)
 end
+
+# Test equality (of realizations)
+function ==(sys1::PartionedStateSpace, sys2::PartionedStateSpace)
+    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(PartionedStateSpace))
+end

@@ -91,6 +91,9 @@ s = tf("s")
 @test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
 @test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
 
+# Combination of DelayLtiSystem with TransferFunction and StateSpace
+@test [delay(1.0) tf(1, [1,2])] == [delay(1.0) ss(-2.0,1,1,0)]
+@test [delay(1.0) zpk([], [-2], 1)] == [delay(1.0) ss(-2.0,1,1,0)]
 
 # hcat and vcat for StateSpace and Matrix
 A = [-1.1 -1.2; -1.3 -1.4]
@@ -155,12 +158,12 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 @test [D_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0], 0.005)
 @test [1.0 D_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0], 0.005)
 # Type and sample time
-@test [D_111 1.0] isa StateSpace{Discrete{Float64},Float64,Array{Float64,2}}
+@test [D_111 1.0] isa StateSpace{Discrete{Float64},Float64}
 @test [D_111 1.0].Ts == 0.005
 # Continuous version
 @test [C_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0])
 @test [1.0 C_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0])
-@test [C_111 1.0] isa StateSpace{Continuous,Float64,Array{Float64,2}}
+@test [C_111 1.0] isa StateSpace{Continuous,Float64}
 @test [C_111 1.0].Ts == 0.0
 @test_logs (:warn,
             "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
@@ -242,6 +245,17 @@ K1d = ss(-1, 1, 1, 0, 1)
 # Redheffer star product
 G4 = ss(-6, [7 8], [11; 12], 0)
 @test starprod(G1, G4, 1, 1) == ss([-9 33; 35 -6], [2 0; 0 8], [4 0; 0 12], zeros(2,2))
+
+
+
+# Feedback2dof
+
+P0 = tf(1.0, [1, 1, 1])
+C = pid(kp=1, ki=1, kd=1)
+F = tf(1.0, [1,1])
+@test feedback2dof(P0, 0*C, F) == P0*F
+@test feedback2dof(P0, C, 0*F) == feedback(P0*C)
+@test_nowarn feedback2dof(P0, C, F)
 
 
 end

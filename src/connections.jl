@@ -318,6 +318,36 @@ end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 
+"""
+    feedback2dof(P::TransferFunction, C::TransferFunction, F::TransferFunction)
+
+Return the transfer function
+`P(F+C)/(1+PC)`
+which is the closed-loop system with process `P`, controller `C` and feedforward filter `F` from reference to control signal (by-passing `C`).
+
+         +-------+
+         |       |
+   +----->   F   +----+
+   |     |       |    |
+   |     +-------+    |
+   |     +-------+    |    +-------+
+r  |  -  |       |    |    |       |    y
++--+----->   C   +----+---->   P   +---+-->
+      |  |       |         |       |   |
+      |  +-------+         +-------+   |
+      |                                |
+      +--------------------------------+
+"""
+function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
+    !issiso(P) && error("Feedback not implemented for MIMO systems")
+    timeevol = common_timeevol(P, C, F)
+    
+    Pn,Pd = numpoly(P)[], denpoly(P)[]
+    Cn,Cd = numpoly(C)[], denpoly(C)[]
+    Fn,Fd = numpoly(F)[], denpoly(F)[]
+    den = (Cd*Pd + Pn*Cn)*Fd
+    tf(Cd*Pn*Fn + Pn*Cn*Fd, den, timeevol)
+end
 
 """
     lft(G, Δ, type=:l)
