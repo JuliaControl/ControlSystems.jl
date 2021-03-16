@@ -2,27 +2,27 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
 
 
 """
-    sysd= c2d(sys::StateSpace, Ts, method=:zoh)
-    Gd = c2d(G::TransferFunction, Ts, method=:zoh)
+    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
+    Gd = c2d(G::TransferFunction{<:Continuous}, Ts, method=:zoh)
 
 Convert the continuous-time system `sys` into a discrete-time system with sample time
-`Ts`, using the specified `method` (:zoh`, `:foh` or `:fwdeuler`).
+`Ts`, using the specified `method` (:`zoh`, `:foh` or `:fwdeuler`).
 Note that the forward-Euler method generally requires the sample time to be very small
 relative to the time constants of the system.
 
 See also `c2d_x0map`
 """
-c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
+c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
 
 
 """
-    sysd, x0map = c2d_x0map(sys::StateSpace, Ts, method=:zoh)
+    sysd, x0map = c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
 
 Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
 transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
 
 See `c2d` for further details."""
-function c2d_x0map(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh)
+function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
