@@ -125,7 +125,9 @@ dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 Calculate gain matrix `K` such that
 the poles of `(A-BK)` in are in `p`.
 
-Uses Ackermann's formula."""
+Uses Ackermann's formula.
+For observer pole placement, see `luenberger`.
+"""
 function place(A, B, p)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")
@@ -139,6 +141,22 @@ end
 
 function place(sys::StateSpace, p)
     return place(sys.A, sys.B, p)
+end
+
+"""
+    luenberger(A, C, p)
+    luenberger(sys::StateSpace, p)
+
+Calculate gain matrix `L` such that the poles of `(A - LC)` are in `p`.
+Uses sytem's dual form (Controllability-Observability duality) applied to Ackermann's formula.
+That is, `(A - BK)` is indentic to `(A' - C'L') == (A - LC)`.
+"""
+function luenberger(A, C, p)
+    place(A', C', p)'
+end
+
+function luenberger(sys::StateSpace, p)
+    return luenberger(sys.A, sys.C, p)
 end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p
