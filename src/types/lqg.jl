@@ -175,23 +175,9 @@ function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = 
     size(N, 1) == size(Ae, 1) || throw(ArgumentError("The size of N does not match the size of the extended A-matrix, the extended system has $(size(Ae,1)) states."))
     size(R1, 1) == size(N,2) || throw(ArgumentError("The size of R1 is determined by N, not by the state. With the current N, you need a R1 matrix of size $(size(N,2))"))
     
-    T = eltype(A)
+    T = eltype(A)    
 
-    # Augment with disturbance model
-    # Ae = [A B; zeros(m, n + m)]
-    # Be = [B; zeros(m, m)]
-    # Ce = [C zeros(p, m)]
-
-    # Cd = B
-    # Ad = fill(-ϵ, 1, 1)
-    # Ae = [A Cd; zeros(T, size(Ad, 1), n) Ad]
-    # Be = [B; zeros(T, size(Ad, 1), m)]
-    # Ce = [C zeros(T, p, size(Ad, 1))]
-
-
-    
-
-    @show L = lqr(A, B, M'Q1*M + qQ * C'C, Q2)
+    L = lqr(A, B, M'Q1*M + qQ * C'C, Q2)
     Le = [L I]
     K = kalman(Ae, Ce, N*R1*N' + qR * Be * Be', R2)
     # Lr = pinv(M * ((B * L - A) \ B))
@@ -237,7 +223,7 @@ function Base.getproperty(G::LQG, s::Symbol)
     pm = size(M, 1)
 
     # Extract interesting values
-    if G.syse != G.sys # Augment with disturbance model TODO: it's stupid to redo that here, store the augmented 
+    if G.syse != G.sys 
         A, B, C, D = ssdata(G.syse)
         Me = [M zeros(pm, m)]
     else
