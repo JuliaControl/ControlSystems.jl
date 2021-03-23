@@ -3,6 +3,13 @@ using ControlSystems
 
 @testset "test_lqg" begin
 
+function access_all_properties(G)
+    pn = propertynames(G)
+    for p in pn
+        p === :stabilityrobustness && !ControlSystems.issiso(G.P) && continue
+        @test_nowarn getproperty(G, p)
+    end
+end
 
 w = exp10.(range(-5, stop=5, length=1000))
 s = tf("s")
@@ -19,6 +26,7 @@ Q2 = 1eye_(2)
 R1 = 100eye_(4)
 R2 = 1eye_(2)
 G = LQG(sys, Q1, Q2, R1, R2)
+access_all_properties(G)
 gangoffourplot(G) # Test that it at least does not error
 @test approxsetequal(eigvals(G.sysc.A), [ -31.6209+0.0im, -1.40629+0.0im, -15.9993+0.911174im, -15.9993-0.911174im, ], rtol = 1e-3)
 
@@ -30,6 +38,7 @@ R1 = 1eye_(6)
 R2 = 1eye_(2)
 N = eye_(6)
 Gi = LQG(sys, Q1, Q2, R1, R2, qQ=qQ, qR=qR, integrator=true, ϵ=0.001, N=N)
+access_all_properties(Gi)
 gangoffourplot(Gi) # Test that it at least does not error
 @test approxsetequal(eigvals(Gi.sysc.A), [-0.001, -0.001, -47.4832, -44.3442, -3.40255, -1.15355 ], rtol = 1e-2)
 
@@ -48,6 +57,8 @@ gangoffourplot(Gi) # Test that it at least does not error
 
 
 ## Test cases from Glad Ljung chap 9
+
+# Aircrapt control
 
 A = [-0.292 8.13 -201 9.77 0 -12.5 17.1
     -0.152  -2.54  0.561  -0.0004  0  107  7.68
@@ -83,6 +94,7 @@ R2 = I(ny)
 
 sys = ss(A,B,C,0)
 G = LQG(sys, Q1, Q2, R1, R2, M=M)
+access_all_properties(G)
 @test G.L ≈ [-0.0022 0.17 0.12 0.98 0.31 0.76 0.018
             -0.0038 0.028  -0.25 0.16  -0.95 0.072 0.10] rtol=0.01
 
@@ -91,6 +103,8 @@ Q2 = 0.1*I(nu)
 G = LQG(sys, Q1, Q2, R1, R2, M=M)
 @test G.L ≈ [-0.0036 0.39 0.21 3.11 0.63 1.54 0.046
             -0.0073 0.085 -0.78 0.57 -3.10 0.20 0.30] rtol=0.01
+
+@test dcgain(G.cl) ≈ I
 
 
 
@@ -138,6 +152,7 @@ R1 = diagm([10.0, 1])
 # R1 = diagm([0, 0, 10.0, 1, 0])
 R2 = diagm([0.0001, 0.1, 0.001])
 G = LQG(sys, Q1, Q2, R1, R2, qQ = 0.000001, M=M, N=N)
+access_all_properties(G)
 
 # NOTE
 # the kalman filter qutions will not work out until the noise model is incorporated
@@ -149,7 +164,7 @@ G = LQG(sys, Q1, Q2, R1, R2, qQ = 0.000001, M=M, N=N)
             99.9634  -0.0026 -0.8533] rtol=1e-2
 @test G.L ≈ [2.8106 1.4071 6.8099 3.7874 0] rtol=1e-2
 
-
+@test dcgain(G.cl)[] ≈ 1
 
 
 ## example 9.3
@@ -174,6 +189,7 @@ Q2 = 0.1I(2)
 R1 = I(2)
 R2 = 0.001I(2)
 G = LQG(sys, Q1, Q2, R1, R2, integrator=true, M = M, measurement=true)
+access_all_properties(G)
 
 Lr = pinv(M * ((B * G.L[:, 1:3] - A) \ B))
 
@@ -196,39 +212,138 @@ Lr = pinv(M * ((B * G.L[:, 1:3] - A) \ B))
     0 31.62
 ] rtol = 0.01
 
+@test dcgain(G.cl) ≈ I
+
+# Random system, compare with matlab output
+
+
+A = [  0.154388  1.42524    0.914886  -0.313071
+1.36189   0.30188   -0.767355   0.313058
+-0.485766  0.926861  -0.755906  -0.309824
+2.10783   0.146366  -1.65582    0.115643]
+
+B = [
+  0.625203  -1.87059
+ -0.399363   0.516783
+ -0.150984   0.161573
+ -0.432394  -0.162178
+]
+
+C = [
+  0.99517   -0.26967    0.255771  -0.0356366
+ -0.358348   0.114812  -0.417828   0.983806
+  0.45019   -0.166284   1.47825    2.21589
+]
+
+K = [ 1.22237  -0.114471  -1.10722
+1.00941   0.445568  -1.91614]
+
+P = ss(A,B,C,0)
+C = ss(K)
+
+SiA = [
+ -0.3534     1.707    -3.451    -5.871
+   1.674    0.1881    0.1495     1.257
+ -0.3683    0.8871   -0.5026  -0.08282
+   2.433   0.09358    -2.655    -1.636
+]
+
+SiB = [
+  0.6252   -1.871
+ -0.3994   0.5168
+  -0.151   0.1616
+ -0.4324  -0.1622
+]
+
+SiC = [
+   -0.759    0.1587     1.276      2.61
+  0.01776  -0.09757     2.761     3.844
+]
+
+SiD = [
+    1      0
+    0      1]
+
+Si = ss(SiA, SiB, SiC, SiD)
+
+
+@test isapprox(ControlSystems.input_sensitivity(P, C), Si, rtol=1e-3)
+
+
+SoA = [
+    -0.3534     1.707    -3.451    -5.871
+      1.674    0.1881    0.1495     1.257
+    -0.3683    0.8871   -0.5026  -0.08282
+      2.433   0.09358    -2.655    -1.636
+]
+
+SoB = [
+    1.124     0.905    -2.892
+ -0.03348    -0.276     0.548
+  0.02146  -0.08928    0.1424
+   0.6922   0.02276   -0.7895
+]
+
+SoC = [
+   0.9952   -0.2697    0.2558  -0.03564
+  -0.3583    0.1148   -0.4178    0.9838
+   0.4502   -0.1663     1.478     2.216 
+]
+
+SoD = I(3)
+
+So = ss(SoA, SoB, SoC, SoD)
+
+
+@test isapprox(ControlSystems.output_sensitivity(P, C), So, rtol=1e-3)
+
+
+
+ATo  = [
+      -0.3534     1.707    -3.451    -5.871
+        1.674    0.1881    0.1495     1.257
+      -0.3683    0.8871   -0.5026  -0.08282
+        2.433   0.09358    -2.655    -1.636
+]
+ 
+BTo = [
+    1.124     0.905    -2.892
+    -0.03348    -0.276     0.548
+    0.02146  -0.08928    0.1424
+    0.6922   0.02276   -0.7895
+    ]
+
+CTo = [
+    -0.9952   0.2697  -0.2558  0.03564
+    0.3583  -0.1148   0.4178  -0.9838
+    -0.4502   0.1663   -1.478   -2.216
+]
+To = ss(ATo, BTo, CTo, 0)
+
+@test isapprox(ControlSystems.output_comp_sensitivity(P, C), To, rtol=1e-3)
+
+ATi = [
+      -0.3534     1.707    -3.451    -5.871
+        1.674    0.1881    0.1495     1.257
+      -0.3683    0.8871   -0.5026  -0.08282
+        2.433   0.09358    -2.655    -1.636
+]
+ 
+BTi = [
+    0.6252   -1.871
+    -0.3994   0.5168
+    -0.151   0.1616
+    -0.4324  -0.1622
+    ]
+
+CTi = [
+0.759   -0.1587    -1.276     -2.61
+    -0.01776   0.09757    -2.761    -3.844
+]
+ 
+Ti = ss(ATi, BTi, CTi, 0)
+ 
+@test isapprox(ControlSystems.input_comp_sensitivity(P, C), Ti, rtol=1e-3)
+
+
 end
-
-
-
-
-
-
-
-
-
-# ϵ = 1e-3
-# n = size(A, 1)
-# m = size(B, 2)
-# p = size(C, 1)
-# pm = size(M, 1)
-
-# Me = [M zeros(pm, m)] # the extension is don in getproperty
-
-# Ae, Be, Ce, De = ControlSystems.ssdata(add_low_frequency_disturbance(sys; ϵ, measurement=true))
-# size(M, 2) == n || throw(ArgumentError("The size of M does not match the size of the A-matrix, the system has $(n) states."))
-# size(Q1, 1) == size(Me,1) || throw(ArgumentError("The size of Q1 is determined by M, not by the state. With the current M, you need a Q1 matrix of size $(size(M,1))"))
-
-
-# N = zeros(n + m, m)
-# N[end-m+1:end,:] .= I(m)
-
-
-
-# size(N, 1) == size(Ae, 1) || throw(ArgumentError("The size of N does not match the size of the extended A-matrix, the extended system has $(size(Ae,1)) states."))
-# size(R1, 1) == size(N,2) || throw(ArgumentError("The size of R1 is determined by N, not by the state. With the current N, you need a R1 matrix of size $(size(N,2))"))
-
-# T = eltype(A)
-
-# L = lqr(Ae, Be, Me'Q1*Me, Q2)
-# Le = [L I]
-# K = kalman(Ae, Ce, N*R1*N', R2)

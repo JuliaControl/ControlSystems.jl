@@ -2,7 +2,7 @@
 import Base.getindex
 
 """
-    G = LQG(sys::AbstractStateSpace, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false, M = sys.C)
+    G = LQG(sys::AbstractStateSpace, Q1, Q2, R1, R2; qQ=0, qR=0, integrator=false, M = I, N = I)
 
 Return an LQG object that describes the closed control loop around the process `sys=ss(A,B,C,D)`
 where the controller is of LQG-type. The controller is specified by weight matrices `Q1,Q2`
@@ -20,17 +20,23 @@ L = lqr(A, B, Q1+qQ*C'C, Q2)
 K = kalman(A, C, R1+qR*B*B', R2)
 ```
 
-`M` is a matrix that defines the controlled variables `z`, if none is provided, the default is to consider all measured outputs `y` of the system as controlled. The definitions of `z` and `y` are given below
+`M` is a matrix that defines the controlled variables `z`, i.e., the variables for which you provide reference signals. If no `M` is provided, the default is to consider all state variables of the system as controlled. The definitions of `z` and `y` are given below
 ```
 y = C*x
 z = M*x
 ```
+`size(M, 1)` determines the size of the `Q1` matrix you need to supply.
+
+`N` is a matrix that defines how the dynamics noise `v` enters the system, i.e. If no `N` is provided, the default is to consider all state variables being affected by independent noise components. The definition of `v` is given below
+```
+x′ = A*x + B*u + N*v
+```
+`size(N, 2)` determines the size of the `R1` matrix you need to supply.
 
 # Fields and properties
 When the LQG-object is populated by the lqg-function, the following fields have been made available
 - `L` is the feedback matrix, such that `A-BL` is stable. Note that the length of the state vector (and the width of L) is increased by the number of inputs if the option `integrator=true`.
 - `K` is the kalman gain such that `A-KC` is stable
-- `sysc` is a dynamical system describing the controller `u=L*inv(A-BL-KC+KDL)Ky`
 
 Several other properties of the object are accessible as properties. The available properties are
 (some have many alternative names, separated with / )
@@ -45,7 +51,7 @@ Several other properties of the object are accessible as properties. The availab
 - `G.lt / G.looptransfer / G.loopgain  =  PC`
 - `G.rd / G.returndifference  =  I + PC`
 - `G.sr / G.stabilityrobustness  =  I + inv(PC)`
-- `G.Fy / G.controller` Returns the controller as a StateSpace-system L*inv(sI - A + BL + KC)*K`. This controller is acting on the measured signal, not the reference. The controller acting on the reference is `G.Fr`
+- `G.Fy / G.controller` Returns the controller as a StateSpace-system `u = L*inv(sI - A + BL + KC)*K * y`. This controller is acting on the measured signal, not the reference. The controller acting on the reference is `G.Fr`
 - `G.Fr` Returns the controller from reference as a StateSpace-system. `I - L*inv(sI - A + BL + KC)*B`
 
 It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
@@ -217,6 +223,7 @@ function Base.getproperty(G::LQG, s::Symbol)
     m = size(B, 2)
     p = size(C, 1)
     pm = size(M, 1)
+    pn = size(N, 2)
 
     # Extract interesting values
     if G.syse != G.sys 
@@ -239,19 +246,19 @@ function Base.getproperty(G::LQG, s::Symbol)
         Ccl = [Me zero(Me)]
         syscl = ss(Acl, Bcl, Ccl, 0)
         return syscl
-    elseif s ∈ (:Sin, :S) # Sensitivity function
-        return feedback(ss(Matrix{numeric_type(PC)}(I, m, m)), PC)
-    elseif s ∈ (:Tin, :T) # Complementary sensitivity function
-        return feedback(PC)
-        # return ss(Acl, I(size(Acl,1)), Ccl, 0)[1,2]
-    elseif s === :Sout # Sensitivity function, output
-        return feedback(ss(Matrix{numeric_type(sysc)}(I, m, m)), sysc * P)
-    elseif s === :Tout # Complementary sensitivity function, output
-        return feedback(sysc * P)
+    elseif s ∈ (:Sout, :S) # Sensitivity function
+        return output_sensitivity(P, sysc)
+    elseif s ∈ (:Tout, :T) # Complementary sensitivity function
+        return output_comp_sensitivity(P,sysc)
+    elseif s === :Sin # Sensitivity function, input
+        # return feedback(ss(Matrix{numeric_type(sysc)}(I, m, m)), sysc * P)
+        return input_sensitivity(P, sysc)
+    elseif s === :Tin # Complementary sensitivity function, output
+        return input_comp_sensitivity(P,sysc)
     elseif s === :PS # Load disturbance to output
-        return P * G.S
+        return P * G.Sin
     elseif s === :CS # Noise to control signal
-        return sysc * G.S
+        return sysc * G.Sout
     elseif s ∈ (:lt, :looptransfer, :loopgain)
         return PC
     elseif s ∈ (:rd, :returndifference)
@@ -271,8 +278,34 @@ function Base.getproperty(G::LQG, s::Symbol)
     error("The symbol $s does not have a function associated with it.")
 end
 
+Base.propertynames(G::LQG, private::Bool = false) = (fieldnames(typeof(G))..., :Fy, :Fr, :Sin, :Sout, :Tin, :Tout, :PS, :CS, :loopgain, :returndifference, :stabilityrobustness, :cl)
+
 Base.:(==)(G1::LQG, G2::LQG) =
     G1.K == G2.K && G1.L == G2.L && G1.P == G2.P && G1.sysc == G2.sysc
+
+
+
+function input_sensitivity(P,C)
+    T = feedback(C * P)
+    ss(I(noutputs(T))) - T
+end
+
+function input_comp_sensitivity(P,C)
+    T = feedback(C * P)
+end
+
+function output_sensitivity(P,C)
+    PC = P*C
+    S = feedback(ss(Matrix{numeric_type(PC)}(I, ninputs(PC), ninputs(PC))), PC)
+    S.C .*= -1
+    S.B .*= -1
+    S
+end
+
+function output_comp_sensitivity(P,C)
+    S = output_sensitivity(P,C)
+    ss(I(noutputs(S))) - S
+end
 
 
 plot(G::LQG) = gangoffourplot(G)
@@ -283,10 +316,10 @@ end
 
 function gangoffourplot(G::LQG, args...; kwargs...)
     S,D,N,T = gangoffour(G)
-    f1 = sigmaplot(S, args..., show=false, kwargs...); Plots.plot!(title="\$S = 1/(1+PC)\$")
-    f2 = sigmaplot(D, args..., show=false, kwargs...); Plots.plot!(title="\$D = P/(1+PC)\$")
-    f3 = sigmaplot(N, args..., show=false, kwargs...); Plots.plot!(title="\$N = C/(1+PC)\$")
-    f4 = sigmaplot(T, args..., show=false, kwargs...); Plots.plot!(title="\$T = PC/(1+PC\$)")
+    f1 = sigmaplot(S, args...; show=false, title="\$S = 1/(1+PC)\$", kwargs...)
+    f2 = sigmaplot(D, args...; show=false, title="\$D = P/(1+PC)\$", kwargs...)
+    f3 = sigmaplot(N, args...; show=false, title="\$N = C/(1+PC)\$", kwargs...)
+    f4 = sigmaplot(T, args...; show=false, title="\$T = PC/(1+PC\$)", kwargs...)
     Plots.plot(f1,f2,f3,f4)
 end
 
