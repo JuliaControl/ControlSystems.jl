@@ -45,7 +45,7 @@ Several other properties of the object are accessible as properties. The availab
 - `G.lt / G.looptransfer / G.loopgain  =  PC`
 - `G.rd / G.returndifference  =  I + PC`
 - `G.sr / G.stabilityrobustness  =  I + inv(PC)`
-- `G.sysc / G.controller` Returns the controller as a StateSpace-system
+- `G.sysc / G.controller` Returns the controller as a StateSpace-system. This controller is acting on the measured signal, not the reference. The controller acting on the reference is `I - L*inv(sI - A + BL + KC)*B`
 
 It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
 
@@ -145,6 +145,7 @@ function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = I
     Cc = L
     Dc = zero(D')
     sysc = ss(Ac, Bc, Cc, Dc)
+    # syscr = 1 - ss(Ac, Be, Cc, Dc)
 
     return LQG(sys, Q1, Q2, R1, R2, qQ, qR, sysc, L, K, M, N, sys)
 end
@@ -188,6 +189,7 @@ function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = 
     Cc = Le
     Dc = zero(D')
     sysc = ss(Ac, Bc, Cc, Dc)
+    # syscr = 1 - ss(Ac, Be, Cc, Dc)
 
     LQG(sys, Q1, Q2, R1, R2, qQ, qR, sysc, Le, K, M, N, syse)
 end
