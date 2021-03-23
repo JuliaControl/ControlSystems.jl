@@ -39,9 +39,15 @@ function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}, Ai::
     add_disturbance(sys, fill(-ϵ, 1, 1), Cd)
 end
 
-function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}; ϵ=0)
-    Cd = sys.B
-    add_disturbance(sys, fill(-ϵ, 1, 1), Cd)
+function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}; ϵ=0, measurement=false)
+    nx,nu,ny = sys.nx,sys.nu,sys.ny
+    if measurement
+        Cd = I(nu)
+        add_measurement_disturbance(sys, -ϵ*I(nu), Cd)
+    else
+        Cd = sys.B
+        add_disturbance(sys, -ϵ*I(nu), Cd)
+    end
 end
 
 function add_resonant_disturbance(sys::AbstractStateSpace{Continuous}, ω, ζ, Ai::Integer; measurement=false)
