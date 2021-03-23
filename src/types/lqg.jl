@@ -45,7 +45,8 @@ Several other properties of the object are accessible as properties. The availab
 - `G.lt / G.looptransfer / G.loopgain  =  PC`
 - `G.rd / G.returndifference  =  I + PC`
 - `G.sr / G.stabilityrobustness  =  I + inv(PC)`
-- `G.sysc / G.controller` Returns the controller as a StateSpace-system. This controller is acting on the measured signal, not the reference. The controller acting on the reference is `I - L*inv(sI - A + BL + KC)*B`
+- `G.Fy / G.controller` Returns the controller as a StateSpace-system L*inv(sI - A + BL + KC)*K`. This controller is acting on the measured signal, not the reference. The controller acting on the reference is `G.Fr`
+- `G.Fr` Returns the controller from reference as a StateSpace-system. `I - L*inv(sI - A + BL + KC)*B`
 
 It is also possible to access all fileds using the `G.symbol` syntax, the fields are `P,Q1,Q2,R1,R2,qQ,qR,sysc,L,K,integrator`
 
@@ -82,12 +83,12 @@ struct LQG
     R2::AbstractMatrix
     qQ::Real
     qR::Real
-    sysc::LTISystem
     L::AbstractMatrix
     K::AbstractMatrix
     M::AbstractMatrix
     N::AbstractMatrix
     syse::StateSpace
+    Lr
 end
 
 # Provide some constructors
@@ -139,15 +140,8 @@ function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = I
     K = kalman(A, C, N*R1*N' + qR * B * B', R2)
     #                  Q                       R
 
-    # Controller system
-    Ac = A - B*L - K*C + K*D*L
-    Bc = K
-    Cc = L
-    Dc = zero(D')
-    sysc = ss(Ac, Bc, Cc, Dc)
-    # syscr = 1 - ss(Ac, Be, Cc, Dc)
-
-    return LQG(sys, Q1, Q2, R1, R2, qQ, qR, sysc, L, K, M, N, sys)
+    Lr = pinv(M * ((B * L - A) \ B))
+    return LQG(sys, Q1, Q2, R1, R2, qQ, qR, L, K, M, N, sys, Lr)
 end
 
 
@@ -181,23 +175,15 @@ function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = 
     L = lqr(A, B, M'Q1*M + qQ * C'C, Q2)
     Le = [L I]
     K = kalman(Ae, Ce, N*R1*N' + qR * Be * Be', R2)
-    # Lr = pinv(M * ((B * L - A) \ B))
+    Lr = pinv(M * ((B * L - A) \ B))
 
-    # Controller system
-    Ac = Ae - Be*Le - K*Ce + K*De*Le # 8.26b
-    Bc = K
-    Cc = Le
-    Dc = zero(D')
-    sysc = ss(Ac, Bc, Cc, Dc)
-    # syscr = 1 - ss(Ac, Be, Cc, Dc)
-
-    LQG(sys, Q1, Q2, R1, R2, qQ, qR, sysc, Le, K, M, N, syse)
+    LQG(sys, Q1, Q2, R1, R2, qQ, qR, Le, K, M, N, syse, Lr)
 end
 
 @deprecate getindex(G::LQG, s::Symbol) getfield(G, s)
 
 function Base.getproperty(G::LQG, s::Symbol)
-    if s ∈ (:L, :K, :Q1, :Q2, :R1, :R2, :qQ, :qR, :integrator, :P, :M, :N, :syse)
+    if s ∈ (:L, :K, :Q1, :Q2, :R1, :R2, :qQ, :qR, :integrator, :P, :M, :N, :syse, :Lr)
         return getfield(G, s)
     end
     s === :A && return G.P.A
@@ -205,7 +191,6 @@ function Base.getproperty(G::LQG, s::Symbol)
     s === :C && return G.P.C
     s === :D && return G.P.D
     s ∈ (:sys, :P) && return getfield(G, :P)
-    s ∈ (:sysc, :controller) && return getfield(G, :sysc)
 
     A = G.P.A
     B = G.P.B
@@ -217,7 +202,16 @@ function Base.getproperty(G::LQG, s::Symbol)
     L = G.L
     K = G.K
     P = G.P
-    sysc = G.sysc
+    Lr = G.Lr
+
+    sysc = Fy = let
+        Ae,Be,Ce,De = ssdata(G.syse)
+        Ac = Ae - Be*L - K*Ce + K*De*L # 8.26b
+        Bc = K
+        Cc = L
+        Dc = 0
+        ss(Ac, Bc, Cc, Dc)
+    end
 
     n = size(A, 1)
     m = size(B, 2)
@@ -264,6 +258,15 @@ function Base.getproperty(G::LQG, s::Symbol)
         return ss(Matrix{numeric_type(PC)}(I, p, p)) + PC
     elseif s ∈ (:sr, :stabilityrobustness)
         return ss(Matrix{numeric_type(PC)}(I, p, p)) + inv(PC)
+    elseif s ∈ (:Fy, :sysc, :controller)
+        return Fy
+    elseif s === :Fr
+        Ae,Be,Ce,De = ssdata(G.syse)
+        Ac = Ae - Be*L - K*Ce + K*De*L # 8.26b
+        Bc = Be*G.Lr
+        Cc = L
+        Dc = 0
+        return 1 - ss(Ac, Bc, Cc, Dc)
     end
     error("The symbol $s does not have a function associated with it.")
 end

@@ -44,7 +44,7 @@ gangoffourplot(Gi) # Test that it at least does not error
 @test approxsetequal(eigvals(Gi.T.A), [-44.7425, -44.8455, -4.28574, -0.109432, -2.23294, -2.06662, -1.31779, -0.78293, -1.0, -1.0], rtol=1e-3)
 @test approxsetequal(eigvals(Gi.S.A), [-44.7425, -44.8455, -4.28574, -0.109432, -2.23294, -2.06662, -1.31779, -0.78293, -1.0, -1.0], rtol=1e-3)
 
-
+@test eigvals(Gi.sysc.A) == eigvals(Gi.Fr.A)
 
 
 ## Test cases from Glad Ljung chap 9
