@@ -86,7 +86,8 @@ struct LQG
     L::AbstractMatrix
     K::AbstractMatrix
     M::AbstractMatrix
-    integrator::Bool
+    N::AbstractMatrix
+    syse::StateSpace
 end
 
 # Provide some constructors
@@ -126,13 +127,18 @@ end # (2) Dispatches to final
 
 
 # This function does the actual initialization in the standard case withput integrator
-function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
+function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = I(nstates(sys)))
     A, B, C, D = ssdata(sys)
     n = size(A, 1)
     m = size(B, 2)
     p = size(C, 1)
-    L = lqr(A, B, Q1 + qQ * C'C, Q2)
-    K = kalman(A, C, R1 + qR * B * B', R2)
+    size(Q1, 1) == size(M,1) || throw(ArgumentError("The size of Q1 is determined by M, not by the state."))
+    size(R2, 1) == size(C,1) || throw(ArgumentError("The size of R2 is determined by C, not by the state."))
+    size(R1, 1) == size(N,2) || throw(ArgumentError("The size of R1 is determined by N, not by the state."))
+    L = lqr(A, B, M'Q1*M + qQ * C'C, Q2)
+    #               Q                 R
+    K = kalman(A, C, N*R1*N' + qR * B * B', R2)
+    #                  Q                       R
 
     # Controller system
     Ac = A - B*L - K*C + K*D*L
@@ -141,41 +147,70 @@ function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
     Dc = zero(D')
     sysc = ss(Ac, Bc, Cc, Dc)
 
-    return LQG(ss(A, B, C, D), Q1, Q2, R1, R2, qQ, qR, sysc, L, K, M, false)
+    return LQG(sys, Q1, Q2, R1, R2, qQ, qR, sysc, L, K, M, N, sys)
 end
 
 
 # This function does the actual initialization in the integrator case
-function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
+function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = nothing, ϵ=1e-3, measurement=false)
     A, B, C, D = ssdata(sys)
     n = size(A, 1)
     m = size(B, 2)
     p = size(C, 1)
+    pm = size(M, 1)
+
+    Me = [M zeros(pm, m)] # the extension is done in getproperty
+
+    syse = add_low_frequency_disturbance(sys; ϵ, measurement)
+    Ae, Be, Ce, De = ssdata(syse)
+    
+    size(M, 2) == n || throw(ArgumentError("The size of M does not match the size of the A-matrix, the system has $(n) states."))
+    size(Q1, 1) == size(M,1) || throw(ArgumentError("The size of Q1 is determined by M, not by the state. With the current M, you need a Q1 matrix of size $(size(M,1))"))
+
+    if N === nothing
+        N = zeros(n + m, m)
+        N[end-m+1:end,:] .= I(m)
+        @info "Choosing an N matrix automatically" N
+    end
+
+    size(N, 1) == size(Ae, 1) || throw(ArgumentError("The size of N does not match the size of the extended A-matrix, the extended system has $(size(Ae,1)) states."))
+    size(R1, 1) == size(N,2) || throw(ArgumentError("The size of R1 is determined by N, not by the state. With the current N, you need a R1 matrix of size $(size(N,2))"))
+    
+    T = eltype(A)
 
     # Augment with disturbance model
-    Ae = [A B; zeros(m, n + m)]
-    Be = [B; zeros(m, m)]
-    Ce = [C zeros(p, m)]
-    De = D
+    # Ae = [A B; zeros(m, n + m)]
+    # Be = [B; zeros(m, m)]
+    # Ce = [C zeros(p, m)]
 
-    L = lqr(A, B, Q1 + qQ * C'C, Q2)
+    # Cd = B
+    # Ad = fill(-ϵ, 1, 1)
+    # Ae = [A Cd; zeros(T, size(Ad, 1), n) Ad]
+    # Be = [B; zeros(T, size(Ad, 1), m)]
+    # Ce = [C zeros(T, p, size(Ad, 1))]
+
+
+    
+
+    @show L = lqr(A, B, M'Q1*M + qQ * C'C, Q2)
     Le = [L I]
-    K = kalman(Ae, Ce, R1 + qR * Be * Be', R2)
+    K = kalman(Ae, Ce, N*R1*N' + qR * Be * Be', R2)
+    # Lr = pinv(M * ((B * L - A) \ B))
 
     # Controller system
-    Ac = Ae - Be*Le - K*Ce + K*De*Le
+    Ac = Ae - Be*Le - K*Ce + K*De*Le # 8.26b
     Bc = K
     Cc = Le
     Dc = zero(D')
     sysc = ss(Ac, Bc, Cc, Dc)
 
-    LQG(ss(A, B, C, D), Q1, Q2, R1, R2, qQ, qR, sysc, Le, K, M, true)
+    LQG(sys, Q1, Q2, R1, R2, qQ, qR, sysc, Le, K, M, N, syse)
 end
 
 @deprecate getindex(G::LQG, s::Symbol) getfield(G, s)
 
 function Base.getproperty(G::LQG, s::Symbol)
-    if s ∈ (:L, :K, :Q1, :Q2, :R1, :R2, :qQ, :qR, :integrator, :P, :M)
+    if s ∈ (:L, :K, :Q1, :Q2, :R1, :R2, :qQ, :qR, :integrator, :P, :M, :N, :syse)
         return getfield(G, s)
     end
     s === :A && return G.P.A
@@ -190,6 +225,7 @@ function Base.getproperty(G::LQG, s::Symbol)
     C = G.P.C
     D = G.P.D
     M = G.M
+    N = G.N
 
     L = G.L
     K = G.K
@@ -202,25 +238,25 @@ function Base.getproperty(G::LQG, s::Symbol)
     pm = size(M, 1)
 
     # Extract interesting values
-    if G.integrator # Augment with disturbance model
-        A = [A B; zeros(m, n + m)]
-        B = [B; zeros(m, m)]
-        C = [C zeros(p, m)]
-        M = [M zeros(pm, m)]
-        D = D
+    if G.syse != G.sys # Augment with disturbance model TODO: it's stupid to redo that here, store the augmented 
+        A, B, C, D = ssdata(G.syse)
+        Me = [M zeros(pm, m)]
+    else
+        Me = M
     end
-
     PC = P * sysc # Loop gain
-
     if s ∈ (:cl, :closedloop, :ry) # Closed-loop system
         # Compensate for static gain, pp. 264 G.L.
-        dcg = P.C * ((P.B * L[:, 1:n] - P.A) \ P.B)
-        Acl = [A-B*L B*L; zero(A) A-K*C]
-        Bcl = [B / dcg; zero(B)]
-        Ccl = [M zero(M)]
-        # rank(dcg) == size(A,1) && (Bcl = Bcl / dcg) # B*lᵣ # Always normalized with nominal plant static gain
+        Lr = pinv(M * ((P.B * L[:, 1:n] - P.A) \ P.B))
+        if any(!isfinite, Lr) || all(iszero, Lr)
+            @warn "Could not compensate for static gain automatically." Lr
+            Lr = 1
+        end
+        Acl = [A-B*L B*L; zero(A) A-K*C] # 8.28
+        BLr = B * Lr
+        Bcl = [BLr; zero(BLr)]
+        Ccl = [Me zero(Me)]
         syscl = ss(Acl, Bcl, Ccl, 0)
-        # return ss(A-B*L, B/dcg, M, 0)
         return syscl
     elseif s ∈ (:Sin, :S) # Sensitivity function
         return feedback(ss(Matrix{numeric_type(PC)}(I, m, m)), PC)
@@ -255,12 +291,12 @@ function gangoffour(G::LQG)
     G.S, G.PS, G.CS, G.T
 end
 
-function gangoffourplot(G::LQG; kwargs...)
+function gangoffourplot(G::LQG, args...; kwargs...)
     S,D,N,T = gangoffour(G)
-    f1 = sigmaplot(S, show=false, kwargs...); Plots.plot!(title="\$S = 1/(1+PC)\$")
-    f2 = sigmaplot(D, show=false, kwargs...); Plots.plot!(title="\$D = P/(1+PC)\$")
-    f3 = sigmaplot(N, show=false, kwargs...); Plots.plot!(title="\$N = C/(1+PC)\$")
-    f4 = sigmaplot(T, show=false, kwargs...); Plots.plot!(title="\$T = PC/(1+PC\$)")
+    f1 = sigmaplot(S, args..., show=false, kwargs...); Plots.plot!(title="\$S = 1/(1+PC)\$")
+    f2 = sigmaplot(D, args..., show=false, kwargs...); Plots.plot!(title="\$D = P/(1+PC)\$")
+    f3 = sigmaplot(N, args..., show=false, kwargs...); Plots.plot!(title="\$N = C/(1+PC)\$")
+    f4 = sigmaplot(T, args..., show=false, kwargs...); Plots.plot!(title="\$T = PC/(1+PC\$)")
     Plots.plot(f1,f2,f3,f4)
 end
 
