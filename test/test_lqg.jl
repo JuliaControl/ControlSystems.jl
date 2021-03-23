@@ -197,3 +197,38 @@ Lr = pinv(M * ((B * G.L[:, 1:3] - A) \ B))
 ] rtol = 0.01
 
 end
+
+
+
+
+
+
+
+
+
+# ϵ = 1e-3
+# n = size(A, 1)
+# m = size(B, 2)
+# p = size(C, 1)
+# pm = size(M, 1)
+
+# Me = [M zeros(pm, m)] # the extension is don in getproperty
+
+# Ae, Be, Ce, De = ControlSystems.ssdata(add_low_frequency_disturbance(sys; ϵ, measurement=true))
+# size(M, 2) == n || throw(ArgumentError("The size of M does not match the size of the A-matrix, the system has $(n) states."))
+# size(Q1, 1) == size(Me,1) || throw(ArgumentError("The size of Q1 is determined by M, not by the state. With the current M, you need a Q1 matrix of size $(size(M,1))"))
+
+
+# N = zeros(n + m, m)
+# N[end-m+1:end,:] .= I(m)
+
+
+
+# size(N, 1) == size(Ae, 1) || throw(ArgumentError("The size of N does not match the size of the extended A-matrix, the extended system has $(size(Ae,1)) states."))
+# size(R1, 1) == size(N,2) || throw(ArgumentError("The size of R1 is determined by N, not by the state. With the current N, you need a R1 matrix of size $(size(N,2))"))
+
+# T = eltype(A)
+
+# L = lqr(Ae, Be, Me'Q1*Me, Q2)
+# Le = [L I]
+# K = kalman(Ae, Ce, N*R1*N', R2)

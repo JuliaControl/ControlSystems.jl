@@ -125,7 +125,6 @@ function LQG(
     _LQG(sys, Q1, Q2, R1, R2, qQ, qR; kwargs...)
 end # (2) Dispatches to final
 
-
 # This function does the actual initialization in the standard case withput integrator
 function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = I(nstates(sys)), N = I(nstates(sys)))
     A, B, C, D = ssdata(sys)
