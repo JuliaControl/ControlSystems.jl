@@ -615,26 +615,6 @@ function prescale(sys::StateSpace) where ST <: AbstractStateSpace
 end
 
 """
-    canon_sys = canon(sys::StateSpace, type::String)
-Receives a state space and a string ('diagonal', 'controlable' or 'observable')
-describing the canonical form.
-
-"""
-function canon(sys::AbstractStateSpace, opt::Symbol)
-    if opt === :d  # diagonal form
-    elseif opt == :c  # controlable form
-        # determine transformation matrix `T`
-    elseif opt == :o  # observable form
-        # determine transformation matrix `T`
-    elseif opt === :j  # jordan form
-        # determine transformation matrix `T`
-    else
-        print("Unrecongized decomposition type")
-    end
-    # apply transformation to system
-end
-
-"""
     sysi = innovation_form(sys, R1, R2)
     sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
 
