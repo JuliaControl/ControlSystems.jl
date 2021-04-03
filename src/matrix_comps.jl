@@ -585,29 +585,58 @@ end
 
 """
     syst, S = prescale(sys)
-Perform a eigendecomposition on system state-transition matrix `sys.A`.
+
+Balances the metasystem matrix
 ```
-Ã = S⁻¹AS
-B̃ = S⁻¹ B
-C̃ = CS
-D̃ = D
+    M = [A B;
+         C 0]
 ```
-Such that `Ã` is diagonal.
+such that their column and row norms are closer.
+This results in a system with overall better numerical conditioning.
+
 Returns a new scaled state-space object and the associated transformation
 matrix.
 """
-function prescale(sys::StateSpace)
-    d, S = eigen(sys.A)
-    A = Diagonal(d)
-    B = S\sys.B
-    C = sys.C*S
-    normalized_sys = iscontinuous(sys) ? ss(A, B, C, sys.D) : ss(A, B, C, sys.D, sys.Ts)
-    return normalized_sys, S
+function prescale(sys::StateSpace) where ST <: AbstractStateSpace
+    n, m = size(sys.B)
+    p = size(sys.C, 1)
+
+    # create an augmented system to balance the whole system at once
+    metasys = [sys.A sys.B zeros(n, n-m); sys.C zeros(p, n)]
+    S, P, B = balance(metasys)
+    T = S*P  # permutation matrix to be returned later
+
+    # reconstruct A, B and C by taking slices of the balanced metasystem
+    bal_metasys = P\B*P  # undo permutation
+    A = bal_metasys[1:n, 1:n]
+    B = bal_metasys[1:n, n+1:n+m]
+    C = bal_metasys[n+1:end, 1:n]
+    return ST(A, B, C, sys.D, sys.timeevol), T
 end
 
 """
-sysi = innovation_form(sys, R1, R2)
-sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+    canon_sys = canon(sys::StateSpace, type::String)
+Receives a state space and a string ('diagonal', 'controlable' or 'observable')
+describing the canonical form.
+
+"""
+function canon(sys::AbstractStateSpace, opt::Symbol)
+    if opt === :d  # diagonal form
+    elseif opt == :c  # controlable form
+        # determine transformation matrix `T`
+    elseif opt == :o  # observable form
+        # determine transformation matrix `T`
+    elseif opt === :j  # jordan form
+        # determine transformation matrix `T`
+    else
+        print("Unrecongized decomposition type")
+    end
+    # apply transformation to system
+end
+
+"""
+    sysi = innovation_form(sys, R1, R2)
+    sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
 
 Takes a system
 ```
