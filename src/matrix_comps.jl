@@ -594,24 +594,22 @@ Balances the metasystem matrix
 such that their column and row norms are closer.
 This results in a system with overall better numerical conditioning.
 
-Returns a new scaled state-space object and the associated transformation
-matrix.
+Returns a new scaled state-space object.
 """
-function prescale(sys::StateSpace) where ST <: AbstractStateSpace
+function prescale(sys::ST) where ST <: AbstractStateSpace
     n, m = size(sys.B)
     p = size(sys.C, 1)
 
     # create an augmented system to balance the whole system at once
-    metasys = [sys.A sys.B zeros(n, n-m); sys.C zeros(p, n)]
+    metasys = [sys.A sys.B; sys.C zeros(p, m)]
     S, P, B = balance(metasys)
-    T = S*P  # permutation matrix to be returned later
 
     # reconstruct A, B and C by taking slices of the balanced metasystem
     bal_metasys = P\B*P  # undo permutation
     A = bal_metasys[1:n, 1:n]
     B = bal_metasys[1:n, n+1:n+m]
     C = bal_metasys[n+1:end, 1:n]
-    return ST(A, B, C, sys.D, sys.timeevol), T
+    return ST(A, B, C, sys.D, sys.timeevol)
 end
 
 """

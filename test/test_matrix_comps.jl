@@ -70,11 +70,13 @@ syst = similarity_transform(sys, Tr)
 @test sys.B ≈ Tr*syst.B
 @test sys.C*Tr ≈ syst.C
 
-nsys, T = prescale(sys)
-@test isdiag(nsys.A)
-@test T*nsys.A ≈ sys.A*T
-@test T*nsys.B ≈ sys.B
-@test nsys.C ≈ sys.C*T
+nsys = prescale(sys)
+@test pole(nsys) ≈ pole(sys)
+n, m = size(sys.B)
+p = size(sys.C, 1)
+M = [nsys.A nsys.B; nsys.C zeros(p, m)]
+M2 = [sys.A sys.B; sys.C zeros(p, m)]
+@test cond(M) <= cond(M2)
 
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
 sysi = ControlSystems.innovation_form(sys, I, I)
