@@ -568,7 +568,7 @@ end
     syst = similarity_transform(sys, T)
 Perform a similarity transform `T : Tx̃ = x` on `sys` such that
 ```
-Ã = T⁻¹AT
+Ã = T⁻¹AT
 B̃ = T⁻¹ B
 C̃ = CT
 D̃ = D
@@ -615,8 +615,8 @@ function prescale(sys::StateSpace) where ST <: AbstractStateSpace
 end
 
 """
-    sysi = innovation_form(sys, R1, R2)
-    sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+sysi = innovation_form(sys, R1, R2)
+sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
 
 Takes a system
 ```
