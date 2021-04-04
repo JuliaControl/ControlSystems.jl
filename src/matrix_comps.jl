@@ -607,7 +607,7 @@ function prescale(sys::ST) where ST <: AbstractStateSpace
     # reconstruct A, B and C by taking slices of the balanced metasystem
     bal_metasys = P\B*P  # undo permutation
     A = bal_metasys[1:n, 1:n]
-    B = bal_metasys[1:n, n+1:n+m]
+    B = bal_metasys[1:n, n+1:end]
     C = bal_metasys[n+1:end, 1:n]
     return ST(A, B, C, sys.D, sys.timeevol)
 end
