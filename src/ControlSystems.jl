@@ -90,7 +90,11 @@ export  LTISystem,
         numpoly,
         denpoly,
         iscontinuous,
-        isdiscrete
+        isdiscrete,
+        # model augmentation
+        add_disturbance,
+        add_low_frequency_disturbance,
+        add_resonant_disturbance
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
@@ -159,6 +163,7 @@ include("simulators.jl")
 include("pid_design.jl")
 
 include("demo_systems.jl")
+include("model_augmentation.jl")
 
 include("delay_systems.jl")
 
