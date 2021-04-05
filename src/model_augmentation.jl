@@ -21,7 +21,6 @@ function add_disturbance(sys::AbstractStateSpace{Continuous}, Ad::AbstractMatrix
     ss(Ae,Be,Ce,De)
 end
 
-<<<<<<< HEAD
 function add_measurement_disturbance(sys::AbstractStateSpace{Continuous}, Ad::AbstractMatrix, Cd::AbstractMatrix)
     A,B,C,D = ControlSystems.ssdata(sys)
     T = eltype(A)
@@ -33,8 +32,6 @@ function add_measurement_disturbance(sys::AbstractStateSpace{Continuous}, Ad::Ab
     ss(Ae,Be,Ce,De)
 end
 
-=======
->>>>>>> 92ac729... allow small real part in integrator disturbance
 function add_low_frequency_disturbance(sys::AbstractStateSpace{Continuous}, Ai::Integer; ϵ=0)
     nx,nu,ny = sys.nx,sys.nu,sys.ny
     Cd = zeros(nx, 1)
