@@ -62,18 +62,3 @@ function add_resonant_disturbance(sys::AbstractStateSpace{Continuous}, ω, ζ, A
     Ad = [-ζ -ω; ω -ζ]
     measurement ? add_measurement_disturbance(sys, Ad, Cd) : add_disturbance(sys, Ad, Cd)
 end
-
-
-using ControlSystems.DemoSystems
-sys = DemoSystems.resonant()
-
-
-sys2 = add_low_frequency_disturbance(sys, 2)
-sys25 = add_low_frequency_disturbance(sys)
-sys3 = add_resonant_disturbance(sys, 1, 0.5, 1)
-
-
-
-ss([0], [0], [1], 1)*sys
-
-sys + ss([0.0], [0], [1], 1)
