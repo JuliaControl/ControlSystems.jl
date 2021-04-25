@@ -160,7 +160,7 @@ end
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
 function lsim(sys::AbstractStateSpace, u::Function, Tf::Real, args...; kwargs...)
-    t = default_time_vector(sys, Tf)
+    t = _default_time_vector(sys, Tf)
     lsim(sys, u, t, args...; kwargs...)
 end
 
