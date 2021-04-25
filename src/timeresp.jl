@@ -110,7 +110,7 @@ plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVector=zeros(Bool, sys.nx), method::Symbol=:unspecified)
+        x0::AbstractVecOrMat=zeros(Bool, sys.nx), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -160,12 +160,12 @@ end
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
 function lsim(sys::AbstractStateSpace, u::Function, Tf::Real, args...; kwargs...)
-    t = _default_time_vector(sys, Tf)
+    t = default_time_vector(sys, Tf)
     lsim(sys, u, t, args...; kwargs...)
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
+        x0::AbstractVecOrMat=zeros(sys.nx), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
@@ -179,23 +179,20 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     dt = T(t[2] - t[1])
 
     if !iscontinuous(sys) || method === :zoh
+
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)
         else
-            if sys.Ts != dt
-                error("Time vector must match sample time for discrete system")
-            end
+            @assert sys.Ts == dt "Time vector must match sample time for discrete system, $(dt) ≠ $(sys.Ts)"
             dsys = sys
         end
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
-        s = Simulator(sys, u)
-        sol = solve(s, T.(x0), (t[1],t[end]), Tsit5())
-        x = sol(t)'
-        uout = Array{eltype(x)}(undef, length(t), ninputs(sys))
-        for (i,ti) in enumerate(t)
-            uout[i,:] = u(x[i,:],ti)'
-        end
+        f(dx,x,p,t) = dx .= sys.A*x .+ sys.B*u(x,t)
+        sol = solve(ODEProblem(f,x0,(t[1],t[end])), Tsit5())
+        x = sol(t).u
+        uout = transpose(reduce(hcat, u(x[i], t[i]) for i in eachindex(x)))
+        x = transpose(reduce(hcat, x))
     end
     y = transpose(sys.C*transpose(x) + sys.D*transpose(uout))
     return y, t, x, uout
@@ -217,16 +214,13 @@ e.g, `x0` should prefereably not be a sparse vector.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
-@views function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
-        x0::AbstractVector=zeros(eltype(A), size(A, 1)))
+function ltitr(A::AbstractArray, B::AbstractArray, u::AbstractVecOrMat,
+        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
 
     T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
 
     n = size(u, 1)
-
-    # Transposing u allows column-wise operations, which apparently is faster.
-    ut = transpose(u)
 
     # Using similar instead of Matrix{T} to allow for CuArrays to be used.
     # This approach is problematic if x0 is sparse for example, but was considered
@@ -234,18 +228,17 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     x = similar(x0, T, (length(x0), n))
 
     x[:,1] .= x0
-    mul!(x[:, 2:end], B, transpose(u[1:end-1, :])) # Do all multiplications B*u[:,k] to save view allocations
+    # TODO something with this is slow on GPU
+    x[:, 2:end] .= B * transpose(u)[:, 1:end-1] # Do all multiplications B*u[:,k] to save view allocations
 
-    tmp = similar(x0, T) # temporary vector for storing A*x[:,k]
     for k=1:n-1
-        mul!(tmp, A, x[:,k])
-        x[:,k+1] .+= tmp
+        mul!(x[:,k+1], A, x[:,k], one(T), one(T)) 
     end
     return transpose(x)
 end
 
-function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
-    x0::VecOrMat=zeros(T, size(A, 1))) where T
+function ltitr(A::AbstractArray{T}, B::AbstractArray{T}, u::Function, t,
+    x0::AbstractVecOrMat=fill!(similar(A, size(A, 1)), 0)) where T
     iters = length(t)
     x = similar(A, size(A, 1), iters)
     uout = similar(A, size(B, 2), iters)
