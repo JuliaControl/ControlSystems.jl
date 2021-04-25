@@ -216,7 +216,7 @@ e.g, `x0` should prefereably not be a sparse vector.
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
 function ltitr(A::AbstractArray, B::AbstractArray, u::AbstractVecOrMat,
-        x0::AbstractVecOrMat=fill!(similar(A, size(A, 1)), 0))
+        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
 
     T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
@@ -238,7 +238,7 @@ function ltitr(A::AbstractArray, B::AbstractArray, u::AbstractVecOrMat,
 end
 
 function ltitr(A::AbstractArray{T}, B::AbstractArray{T}, u::Function, t,
-    x0::AbstractVecOrMat=fill!(similar(A, size(A, 1)), 0)) where T
+        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1))) where T
     iters = length(t)
     x = similar(A, size(A, 1), iters)
     uout = similar(A, size(B, 2), iters)
