@@ -179,11 +179,10 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     dt = T(t[2] - t[1])
 
     if !iscontinuous(sys) || method === :zoh
-
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)
         else
-            if sys.Ts != dt 
+            if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
             dsys = sys
@@ -230,7 +229,6 @@ function ltitr(A::AbstractArray, B::AbstractArray, u::AbstractVecOrMat,
     x = similar(x0, T, (length(x0), n))
 
     x[:,1] .= x0
-    # TODO something with this is slow on GPU
     x[:, 2:end] .= B * transpose(u)[:, 1:end-1] # Do all multiplications B*u[:,k] to save view allocations
 
     for k=1:n-1
