@@ -183,7 +183,9 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         if iscontinuous(sys)
             dsys = c2d(sys, dt, :zoh)
         else
-            @assert sys.Ts == dt "Time vector must match sample time for discrete system, $(dt) ≠ $(sys.Ts)"
+            if sys.Ts != dt 
+                error("Time vector must match sample time for discrete system")
+            end
             dsys = sys
         end
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
