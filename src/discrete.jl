@@ -24,7 +24,7 @@ transforms the initial conditions to the discrete domain by `x0_discrete = x0map
 See `c2d` for further details."""
 function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh)
     A, B, C, D = ssdata(sys)
-    T = promote_type(eltype.((A,B,C,D,Ts))...)
+    T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method === :zoh
@@ -54,7 +54,8 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace{Discrete{typeof(Ts)}, T}(Ad, Bd, Cd, Dd, Discrete(Ts)), x0map
+    timeevol = Discrete(Ts)
+    return StateSpace{typeof(timeevol), eltype(Ad)}(Ad, Bd, Cd, Dd, timeevol), x0map
 end
 
 """
