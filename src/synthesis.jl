@@ -82,17 +82,17 @@ See also `lqg`
 Usage example:
 ```julia
 using LinearAlgebra # For identity matrix I
-h = 0.1
-A = [1 h; 0 1]
+Ts = 0.1
+A = [1 Ts; 0 1]
 B = [0;1]
 C = [1 0]
-sys = ss(A,B,C,0, h)
+sys = ss(A,B,C,0, Ts)
 Q = I
 R = I
 L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t) = -L*x # Form control law,
-t=0:h:5
+t=0:Ts:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x, lab=["Position"  "Velocity"], xlabel="Time [s]")

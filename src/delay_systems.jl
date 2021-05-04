@@ -44,23 +44,23 @@ i.e. of z^-N where N = τ / Ts.
 
 τ must be a multiple of Ts.
 """
-function delayd_ss(τ::Number, h::Number)
-    n = Int(round(τ / h))
-    if !(τ - n*h ≈ 0)
+function delayd_ss(τ::Number, Ts::Number)
+    n = Int(round(τ / Ts))
+    if !(τ - n*Ts ≈ 0)
         error("The delay τ must be a multiple of the sample time Ts")
     end
-    ss(diagm(1 => ones(n-1)), [zeros(n-1,1); 1], [1 zeros(1,n-1)], 0, h)
+    ss(diagm(1 => ones(n-1)), [zeros(n-1,1); 1], [1 zeros(1,n-1)], 0, Ts)
 end
 
 """
     c2d(G::DelayLtiSystem, Ts, method=:zoh)
 """
-function c2d(G::DelayLtiSystem, h::Real, method=:zoh)
+function c2d(G::DelayLtiSystem, Ts::Real, method=:zoh)
     if !(method === :zoh)
         error("c2d for DelayLtiSystems only supports zero-order hold")
     end
-    X = append([delayd_ss(τ, h) for τ in G.Tau]...)
-    Pd = c2d(G.P.P, h)
+    X = append([delayd_ss(τ, Ts) for τ in G.Tau]...)
+    Pd = c2d(G.P.P, Ts)
     return lft(Pd, X)
 end
 

@@ -172,6 +172,7 @@ include("plotting.jl")
 @deprecate den denvec
 @deprecate norminf hinfnorm
 @deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
+# There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"

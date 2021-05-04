@@ -209,30 +209,30 @@ end
 
 
 """
-    c2d_roots2poly(ro,h)
+    c2d_roots2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
-function c2d_roots2poly(ro,h)
-    return real((Polynomials.poly(exp(ro.*h))).coeffs[end:-1:1])
+function c2d_roots2poly(ro, Ts)
+    return real((Polynomials.poly(exp(ro .* Ts))).coeffs[end:-1:1])
 end
 
 """
-    c2d_poly2poly(ro,h)
+    c2d_poly2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
-function c2d_poly2poly(p,h)
+function c2d_poly2poly(p, Ts)
     ro = Polynomials.roots(Polynomials.Polynomial(p[end:-1:1]))
-    return real(Polynomials.poly(exp(ro.*h)).coeffs[end:-1:1])
+    return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
 end
 
 
-function c2d(G::TransferFunction{<:Continuous}, h, args...; kwargs...)
+function c2d(G::TransferFunction{<:Continuous}, Ts, args...; kwargs...)
     ny, nu = size(G)
-    @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
+    @assert (ny + nu == 2) "c2d(G::TransferFunction, Ts) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys, h, args...; kwargs...)
+    sysd = c2d(sys, Ts, args...; kwargs...)
     return convert(TransferFunction, sysd)
 end
 

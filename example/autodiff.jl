@@ -9,9 +9,9 @@ K(p)        = K(p...)
 P  = tf(ω²,[1, 2ζ*ω, ω²])*tf(1,[1,1])
 
 Ω  = exp10.(LinRange(-1,2,150))  # Frequency vector to eval constraints
-h  = 0.1 # Sample time for time-domain evaluation
-Tf = 60.  # Time horizon
-t  = 0:h:Tf-h
+Ts  = 0.1 # Sample time for time-domain evaluation
+tfinal = 60.  # Time horizon
+t  = 0:Ts:tfinal-Ts
 
 Ms = 1.4 # Maximum allowed magnitude of sensitivity function
 Mt = 1.4 # Maximum allowed magnitude of complimentary sensitivity function
@@ -25,7 +25,7 @@ function timedomain(p)
     s     = Simulator(PS, (t,x) -> [1]) # Sim. unit step load disturbance
     ty    = eltype(p) # So that all inputs to solve have same numerical type (ForwardDiff.Dual)
     x0    = zeros(PS.nx) .|> ty
-    tspan = (ty(0.),ty(Tf))
+    tspan = (ty(0.),ty(tfinal))
     sol   = solve(s, x0, tspan, Tsit5())
     y     = PS.C*sol(t) # y = C*x
     C,y
