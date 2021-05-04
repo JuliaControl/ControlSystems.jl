@@ -53,7 +53,7 @@ Gd = c2d(G, 0.2)
 # c2d on a zpk model should arguably return a zpk model
 Gdzpk = zpk(Gd)
 @test typeof(Gdzpk) <: TransferFunction{<:Discrete, <:ControlSystems.SisoZpk}
-@test Gdzpk ≈ zpk([0.8192724211968178], [0.9264518519788194, 0.5923800950063556], 0.16588331071209) rtol=1e-14
+@test Gdzpk ≈ zpk([0.8192724211968178], [0.9264518519788194, 0.5923800950063556], 0.16588331071209, 0.2) rtol=1e-14
 
 
 # ERRORS
