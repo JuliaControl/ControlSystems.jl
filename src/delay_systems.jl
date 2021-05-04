@@ -66,7 +66,7 @@ end
 
 
 """
-    `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), kwargs...)`
+    `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), abstol=1e-6, reltol=1e-6, kwargs...)`
 
     Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
 
@@ -77,7 +77,7 @@ end
         Can be a constant `Number` or `Vector`, interpreted as `ut .= u` , or
         Function `ut .= u(t)`, or
         In-place function `u(ut, t)`. (Slightly more effienct)
-    `kwargs...`: These are sent to `solve` from DelayDiffEq.
+    `alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
 
     Returns: times `t`, and `y` and `x` at those times.
 """
@@ -99,17 +99,21 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
     _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
 end
 
-# We actually simulate the integral of y and d here.
+# Generic parametrized dde used for simulating DelayLtiSystem
+# We simulate the integral of the states
+# u, du are from the notation of variables in DifferentialEquations.jl
+# The state from the control system is x
+# u!, uout is the control law and its output
 function dde_param(du, u, h, p, t)
-    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpnyx, tsave = p
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpy, tsave = p
 
     nx = size(A,1)
     nd = length(Tau)
     ny = size(C1,1)
     
     dx = view(du, 1:nx)
-    dy = view(du, (nx+1):(nx+ny))
-    dd = view(du, (nx+ny+1):(nx+ny+nd))
+    dY = view(du, (nx+1):(nx+ny))
+    dD = view(du, (nx+ny+1):(nx+ny+nd))
     x = view(u, 1:nx)
 
     # uout = u(t)
@@ -123,39 +127,33 @@ function dde_param(du, u, h, p, t)
 
     #dx(t) .= A*x(t) + B1*u(t) +B2*d(t-tau)
     mul!(dx, A, x)
-    mul!(tmpx, B1, uout)
-    dx .+= tmpx
-    mul!(tmpx, B2, hout)
-    dx .+= tmpx
+    mul!(dx, B1, uout, true, true)
+    mul!(dx, B2, hout, true, true)
 
-    # dy = y(t) = C1*x + D11*u(t) + D12*d(t-Tau)
-    mul!(dy, C1, x)
-    mul!(tmpy1, D11, uout)
-    dy .+= tmpy1
-    mul!(tmpy1, D12, hout)
-    dy .+= tmpy1
+    # dY = y(t) = C1*x + D11*u(t) + D12*d(t-Tau)
+    mul!(dY, C1, x)
+    mul!(dY, D11, uout, true, true)
+    mul!(dY, D12, hout, true, true)
 
-    # dd = d(t) = C2*x + D21*u(t) + D22*d(t-Tau)
-    mul!(dd, C2, x)
-    mul!(tmpd1, D21, uout)
-    dd .+= tmpd1
-    mul!(tmpd1, D22, hout)
-    dd .+= tmpd1
+    # dD = d(t) = C2*x + D21*u(t) + D22*d(t-Tau)
+    mul!(dD, C2, x)
+    mul!(dD, D21, uout, true, true)
+    mul!(dD, D22, hout, true, true)
 
-    # Save y value in tmpy1 to be used by dde_saver
+    # Save y value in tmpy to be used by dde_saver
     if t in tsave
         # The value of y at this time is given by the derivative
-        tmpy2 .= dy
+        tmpy .= dy
     end
     return
 end
 
 # Save x(t) and y(t) to output
 function dde_saver(u,t,integrator)
-    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpnyx, tsave = integrator.p
+    A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpy, tsave = integrator.p
     nx = size(A,1)
-    # y is already saved in tmpy2
-    u[1:nx], copy(tmpy2)
+    # y is already saved in tmpy
+    u[1:nx], copy(tmpy)
 end
 
 function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
@@ -175,15 +173,11 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
 
     hout = fill(zero(T), nd)            # in place storage for delays
     uout = fill(zero(T), ninputs(sys))  # in place storage for u
-    tmpx = similar(x0, nx)              # in place storage for x
-    tmpy1 = similar(x0, ny)             # in place storage for output
-    tmpy2 = similar(x0, ny)             # in place storage for output
-    tmpd1 = similar(x0, nd)             # in place storage for delays
-    tmpnyx = similar(x0, nx+ny+nd)      # in place storage x,y,d
+    tmpy = similar(x0, ny)              # in place storage for output
     y = Matrix{T}(undef, ny, nt)        # Output matrix
     x = Matrix{T}(undef, nx, nt)        # State matrix
 
-    p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpx, tmpy1, tmpy2, tmpd1, tmpnyx, t)
+    p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpy, t)
 
     # This callback computes and stores the delay term
     sv = SavedValues(Float64, Tuple{Vector{Float64},Vector{Float64}})
