@@ -49,6 +49,10 @@ Gd = c2d(G, 0.2)
 @test c2d(tf(C_111), 0.01, :zoh) ≈ tf(c2d(C_111, 0.01, :zoh))
 @test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh))
 
+# Issue #471 discussion, test c2d for zero row C
+C_210 = ss(C_212.A, C_212.B, zeros(0, 2), zeros(0, 1))
+@test c2d(C_210, 0.01).A ≈ c2d(C_212, 0.01).A
+
 # c2d on a zpk model should arguably return a zpk model
 @test_broken typeof(c2d(zpk(G), 1)) <: TransferFunction{<:ControlSystems.SisoZpk}
 
