@@ -92,7 +92,8 @@ export  LTISystem,
         numpoly,
         denpoly,
         iscontinuous,
-        isdiscrete
+        isdiscrete,
+        ssdata
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
