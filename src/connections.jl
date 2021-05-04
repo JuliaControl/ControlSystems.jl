@@ -1,7 +1,7 @@
 # Model interconnections
 
 """
-`series(sys1::LTISystem, sys2::LTISystem)`
+    series(sys1::LTISystem, sys2::LTISystem)
 
 Connect systems in series, equivalent to `sys2*sys1`
 """
@@ -16,7 +16,7 @@ parallel(sys1::LTISystem, sys2::LTISystem) = sys1 + sys2
 
 append() = LTISystem[]
 """
-`append(systems::StateSpace...), append(systems::TransferFunction...)`
+    append(systems::StateSpace...), append(systems::TransferFunction...)
 
 Append systems in block diagonal form
 """
@@ -153,8 +153,10 @@ end
 
 
 """
-`feedback(L)` Returns L/(1+L)
-`feedback(P1,P2)` Returns P1/(1+P1*P2)
+    feedback(L)
+    feedback(P1,P2)
+
+Returns `L/(1+L)` or `P1/(1+P1*P2)`
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
@@ -183,9 +185,8 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
 end
 
 """
-`feedback(sys)`
-
-`feedback(sys1,sys2)`
+    feedback(sys)
+    feedback(sys1,sys2)
 
 Forms the negative feedback interconnection
 ```julia
@@ -304,8 +305,11 @@ end
 
 
 """
-`feedback2dof(P,R,S,T)` Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
-`feedback2dof(B,A,R,S,T)` Return `BT/(AR+ST)`
+    feedback2dof(P,R,S,T)
+    feedback2dof(B,A,R,S,T)
+
+- Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+- Return `BT/(AR+ST)`
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
@@ -314,6 +318,36 @@ end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 
+"""
+    feedback2dof(P::TransferFunction, C::TransferFunction, F::TransferFunction)
+
+Return the transfer function
+`P(F+C)/(1+PC)`
+which is the closed-loop system with process `P`, controller `C` and feedforward filter `F` from reference to control signal (by-passing `C`).
+
+         +-------+
+         |       |
+   +----->   F   +----+
+   |     |       |    |
+   |     +-------+    |
+   |     +-------+    |    +-------+
+r  |  -  |       |    |    |       |    y
++--+----->   C   +----+---->   P   +---+-->
+      |  |       |         |       |   |
+      |  +-------+         +-------+   |
+      |                                |
+      +--------------------------------+
+"""
+function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
+    !issiso(P) && error("Feedback not implemented for MIMO systems")
+    timeevol = common_timeevol(P, C, F)
+    
+    Pn,Pd = numpoly(P)[], denpoly(P)[]
+    Cn,Cd = numpoly(C)[], denpoly(C)[]
+    Fn,Fd = numpoly(F)[], denpoly(F)[]
+    den = (Cd*Pd + Pn*Cn)*Fd
+    tf(Cd*Pn*Fn + Pn*Cn*Fd, den, timeevol)
+end
 
 """
     lft(G, Δ, type=:l)

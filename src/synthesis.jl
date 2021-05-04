@@ -1,6 +1,7 @@
-"""`lqr(A, B, Q, R)`
+"""
+    lqr(A, B, Q, R)
 
-Calculate the optimal gain matrix `K` for the state-feedback law `u = K*x` that
+Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
 
 J = integral(x'Qx + u'Ru, 0, inf).
@@ -38,12 +39,13 @@ function lqr(A, B, Q, R)
     return K
 end
 
-"""`kalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+"""
+    kalman(A, C, R1, R2)
+    kalman(sys, R1, R2)
 
 Calculate the optimal Kalman gain
 
 See also `LQG`
-
 """
 kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
@@ -64,9 +66,11 @@ function kalman(sys::StateSpace, R1,R2)
 end
 
 
-"""`dlqr(A, B, Q, R)`, `dlqr(sys, Q, R)`
+"""
+    dlqr(A, B, Q, R)
+    dlqr(sys, Q, R)
 
-Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = K*x[k]` that
+Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = -K*x[k]` that
 minimizes the cost function:
 
 J = sum(x'Qx + u'Ru, 0, inf).
@@ -100,19 +104,30 @@ function dlqr(A, B, Q, R)
     return K
 end
 
-"""`dkalman(A, C, R1, R2)` kalman(sys, R1, R2)`
+function dlqr(sys::StateSpace, Q, R)
+    !isdiscrete(sys) && throw(ArgumentError("Input argument sys must be discrete-time system"))
+    return dlqr(sys.A, sys.B, Q, R)
+end
+
+"""
+    dkalman(A, C, R1, R2)
+    dkalman(sys, R1, R2)
 
 Calculate the optimal Kalman gain for discrete time systems
 
 """
 dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 
-"""`place(A, B, p)`, `place(sys::StateSpace, p)`
+"""
+    place(A, B, p)
+    place(sys::StateSpace, p)
 
 Calculate gain matrix `K` such that
 the poles of `(A-BK)` in are in `p`.
 
-Uses Ackermann's formula."""
+Uses Ackermann's formula.
+For observer pole placement, see `luenberger`.
+"""
 function place(A, B, p)
     n = length(p)
     n != size(A,1) && error("Must define as many poles as states")
@@ -126,6 +141,22 @@ end
 
 function place(sys::StateSpace, p)
     return place(sys.A, sys.B, p)
+end
+
+"""
+    luenberger(A, C, p)
+    luenberger(sys::StateSpace, p)
+
+Calculate gain matrix `L` such that the poles of `(A - LC)` are in `p`.
+Uses sytem's dual form (Controllability-Observability duality) applied to Ackermann's formula.
+That is, `(A - BK)` is indentic to `(A' - C'L') == (A - LC)`.
+"""
+function luenberger(A, C, p)
+    place(A', C', p)'
+end
+
+function luenberger(sys::StateSpace, p)
+    return luenberger(sys.A, sys.C, p)
 end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p

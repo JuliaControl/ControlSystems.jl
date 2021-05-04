@@ -18,9 +18,9 @@ tf([1.0],[1,2,1])
 # output
 
 TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}
-         1.0
----------------------
-1.0*s^2 + 2.0*s + 1.0
+        1.0
+-------------------
+1.0s^2 + 2.0s + 1.0
 
 Continuous-time transfer function model
 ```
@@ -40,9 +40,9 @@ zpk([-1.0,1], [-5, -10], 2)
 # output
 
 TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,Float64}}
-   (1.0*s + 1.0)(1.0*s - 1.0)
-2.0---------------------------
-   (1.0*s + 5.0)(1.0*s + 10.0)
+   (1.0s + 1.0)(1.0s - 1.0)
+2.0-------------------------
+   (1.0s + 5.0)(1.0s + 10.0)
 
 Continuous-time transfer function model
 ```
@@ -57,9 +57,9 @@ tf(zpk([-1], [1], 2, 0.1))
 # output
 
 TransferFunction{Discrete{Float64},ControlSystems.SisoRational{Int64}}
-2*z + 2
--------
- z - 1
+2z + 2
+------
+z - 1
 
 Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
@@ -91,7 +91,7 @@ ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_
 Notice the different matrix types used
 ```jldoctest HSS
 julia> sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
-StateSpace{Continuous,Int64,Array{Int64,2}}
+StateSpace{Continuous,Int64}
 A =
  -5   0
   0  -5

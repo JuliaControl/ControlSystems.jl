@@ -1,6 +1,6 @@
 # Set plot globals
 ENV["PLOTS_TEST"] = "true"
-ENV["GKSwstype"] = "100"
+ENV["GKSwstype"] = "nul"
 
 using Plots
 gr()

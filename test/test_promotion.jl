@@ -35,6 +35,9 @@ TG2 = typeof(G2)
 @test promote_type(typeof(tf(1)), typeof(tf(1))) == typeof(tf(1))
 @test promote_type(typeof(ss(1)), typeof(ss(1))) == typeof(ss(1))
 
+
+@test promote(ss(1), 1.0) == (ss(1.), ss(1.))
+@test promote(ss(1), 1) == (ss(1.), ss(1.))
 @test promote(ss(1), ss(1.)) == (ss(1.), ss(1.))
 @test promote(ss(1), tf(1.)) == (ss(1.), ss(1.))
 @test promote(ss(1), zpk(1.)) == (ss(1.), ss(1.))
@@ -43,5 +46,7 @@ TG2 = typeof(G2)
 @test promote(zpk(1), tf(1)) == (zpk(1.), zpk(1.))
 @test promote(ss(1), ss([1 .*im])) == (ss([1+0*im]),ss([1 .*im]))
 @test promote(ss(1), tf([1 .*im])) == (ss([1+0*im]),ss([1 .*im]))
+@test promote(tf(1), 1) == (tf(1.), tf(1.))
+
 
 end

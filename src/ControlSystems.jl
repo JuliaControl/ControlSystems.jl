@@ -32,6 +32,7 @@ export  LTISystem,
         ctrb,
         obsv,
         place,
+        luenberger,
         # Model Simplification
         reduce_sys,
         sminreal,
@@ -39,6 +40,7 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
+        prescale,
         innovation_form,
         # Stability Analysis
         isstable,
@@ -62,6 +64,7 @@ export  LTISystem,
         lft,
         # Discrete
         c2d,
+        c2d_x0map,
         d2c,
         # Time Response
         step,
@@ -70,7 +73,7 @@ export  LTISystem,
         solve,
         Simulator,
         # Frequency Response
-        freqresp,
+        freqresp, freqrespv,
         evalfr,
         bode, bodev,
         nyquist, nyquistv,
@@ -99,7 +102,7 @@ import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
-import Base: getproperty
+import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available

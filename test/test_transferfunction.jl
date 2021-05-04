@@ -104,10 +104,10 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 
 
 # Printing
-res = ("TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}\nInput 1 to Output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to Output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to Output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
-@test_broken sprint(show, C_222) == res
-res = ("TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}\nInput 1 to Output 1\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 1 to Output 2\nz^2 + 2.0z + 3.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 1\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nInput 2 to Output 2\n     z + 2.0\n-----------------\nz^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
-@test_broken sprint(show, D_222) == res
+res = ("TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}\nInput 1 to output 1\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 1 to output 2\ns^2 + 2s + 3\n-------------\ns^2 + 8s + 15\n\nInput 2 to output 1\n    s + 2\n-------------\ns^2 + 8s + 15\n\nInput 2 to output 2\n    s + 2\n-------------\ns^2 + 8s + 15\n\nContinuous-time transfer function model")
+@test dropwhitespace(sprint(show, C_222)) == dropwhitespace(res)
+res = ("TransferFunction{Discrete{Float64},ControlSystems.SisoRational{Float64}}\nInput 1 to output 1\n1.0z^2 + 2.0z + 3.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nInput 1 to output 2\n1.0z^2 + 2.0z + 3.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nInput 2 to output 1\n     1.0z + 2.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nInput 2 to output 2\n     1.0z + 2.0\n--------------------\n1.0z^2 - 0.2z - 0.15\n\nSample Time: 0.005 (seconds)\nDiscrete-time transfer function model")
+@test dropwhitespace(sprint(show, D_222)) == dropwhitespace(res)
 
 
 @test tf(zpk([1.0 2; 3 4])) == tf([1 2; 3 4])

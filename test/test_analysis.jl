@@ -159,6 +159,10 @@ z, p, k = zpkdata(G)
 @test damp(sys)[1] ≈ [1.0, 4.0, 4.0]
 @test damp(sys)[2] ≈ [1.0, -1.0, 1.0]
 
+sysd = zpk([], [0.1+0.5im, 0.1-0.5im, 0.9], 1.0, 0.01)
+@test damp(sysd)[1] ≈ [10.536051565782627, 152.96671271576292, 152.96671271576292]
+@test damp(sysd)[2] ≈ [1.0, 0.4403159432698576, 0.4403159432698576]
+
 damp_output = damp(ex_11)
 @test damp_output[1] ≈ [1.0, 1.0, 2.0, 2.0, 3.0]
 # THe order of the poles in ±1 and ±2 may come out in different order
@@ -190,5 +194,25 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 @test_broken length(pole(G)) == 1
 @test length(tzero(G)) == 1
 @test_broken size(minreal(ss(G)).A) == (2,2)
+
+
+## MARGIN ##
+
+w = exp10.(LinRange(-1, 2, 100))
+P = tf(1,[1.0, 1])
+ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w)
+@test length.((ωgₘ, gₘ, ωϕₘ, ϕₘ)) == (1,1,1,1)
+@test gₘ[] == Inf
+@test ϕₘ[] == Inf
+
+
+P = tf(1,[1.0, 1, 0])
+ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w)
+@test length.((ωgₘ, gₘ, ωϕₘ, ϕₘ)) == (1,1,1,1)
+@test gₘ[] == Inf
+@test ϕₘ[] ≥ 50
+@test ωϕₘ[] ≈ 0.7871132039227572
+marginplot(P, w)
+
 
 end

@@ -1,19 +1,30 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
+"""
+    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
+    Gd = c2d(G::TransferFunction{<:Continuous}, Ts, method=:zoh)
 
-Convert the continuous system `sys` into a discrete system with sample time
-`Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
+Convert the continuous-time system `sys` into a discrete-time system with sample time
+`Ts`, using the specified `method` (:`zoh`, `:foh` or `:fwdeuler`).
+Note that the forward-Euler method generally requires the sample time to be very small
+relative to the time constants of the system.
 
-Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
-initial conditions to the discrete domain by
-`x0_discrete = x0map*[x0; u0]`"""
-function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
-    if isdiscrete(sys)
-        error("sys must be a continuous time system")
-    end
+See also `c2d_x0map`
+"""
+c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
+
+
+"""
+    sysd, x0map = c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
+
+Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
+transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
+
+See `c2d` for further details."""
+function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh)
     A, B, C, D = ssdata(sys)
+    T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method === :zoh
@@ -23,10 +34,10 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
+        x0map = [Matrix{T}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
     elseif method === :foh
         M = exp([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
+            zeros(nu, nx + nu) Matrix{T}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -34,30 +45,39 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [Matrix{Float64}(I, nx, nx)  (-M2)]
+        x0map = [Matrix{T}(I, nx, nx)  (-M2)]
+    elseif method === :fwdeuler
+        Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
+        x0map = I(nx)
     elseif method === :tustin || method === :matched
-        error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
+        error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
+    timeevol = Discrete(Ts)
+    return StateSpace{typeof(timeevol), eltype(Ad)}(Ad, Bd, Cd, Dd, timeevol), x0map
 end
 
+"""
+    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh)
 
+Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
+"""
 function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh)
-    A, B, C, D = ssdata(sys)
+    A, B, Cc, Dc = ssdata(sys)
     ny, nu = size(sys)
     nx = nstates(sys)
-    if method == :zoh
+    if method === :zoh
         M = log([A  B;
             zeros(nu, nx) I])./sys.Ts
         Ac = M[1:nx, 1:nx]
         Bc = M[1:nx, nx+1:nx+nu]
-        Cc = C
-        Dc = D
         if eltype(A) <: Real
             Ac,Bc = real.((Ac, Bc))
         end
+    elseif method === :fwdeuler
+        Ac = (A-I)./sys.Ts
+        Bc = B./sys.Ts
     else
         error("Unsupported method: ", method)
     end
@@ -95,13 +115,11 @@ See ?rstd for the discerte case
 rstc(args...)=rst(args..., ;cont=true)
 
 """
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)
+
 rstd  Polynomial synthesis in discrete time.
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)`
 
 Polynomial synthesis according to CCS ch 10 to
 design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
@@ -119,7 +137,7 @@ e.g notch filter [1, 0, w^2]
 
 Outputs: R,S,T  : Polynomials in controller
 
-See function DAB how the solution to the Diophantine-
+See function `dab` how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
 
 See Computer-Controlled Systems: Theory and Design, Third Edition
@@ -129,9 +147,9 @@ rstd(args...)=rst(args..., ;cont=false)
 
 
 """
-DAB   Solves the Diophantine-Aryabhatta-Bezout identity
+    X,Y = dab(A,B,C)
 
-`X,Y = DAB(A,B,C)`
+DAB   Solves the Diophantine-Aryabhatta-Bezout identity
 
 AX + BY = C, where A, B, C, X and Y are polynomials
 and deg Y = deg A - 1.
@@ -191,7 +209,7 @@ end
 
 
 """
-`c2d_roots2poly(ro,h)`
+    c2d_roots2poly(ro,h)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
@@ -200,7 +218,7 @@ function c2d_roots2poly(ro,h)
 end
 
 """
-`c2d_poly2poly(ro,h)`
+    c2d_poly2poly(ro,h)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
@@ -210,17 +228,18 @@ function c2d_poly2poly(p,h)
 end
 
 
-function c2d(G::TransferFunction, h;kwargs...)
-    @assert iscontinuous(G)
+function c2d(G::TransferFunction{<:Continuous}, h, args...; kwargs...)
     ny, nu = size(G)
     @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
     sys = ss(G)
-    sysd = c2d(sys, h, kwargs...)[1]
+    sysd = c2d(sys, h, args...; kwargs...)
     return convert(TransferFunction, sysd)
 end
 
 """
-`zpc(a,r,b,s)` form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+    zpc(a,r,b,s)
+
+form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
 """
 function zpconv(a,r,b,s)
     d = length(a)+length(r)-length(b)-length(s)

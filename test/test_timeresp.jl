@@ -18,7 +18,7 @@ y, t, x, uout = lsim(sys,u,t,x0=x0) # Continuous time
 th = 1e-6
 @test sum(abs.(x[end,:])) < th
 
-y, t, x, uout = lsim(c2d(sys,0.1)[1],u,t,x0=x0) # Discrete time
+y, t, x, uout = lsim(c2d(sys,0.1),u,t,x0=x0) # Discrete time
 @test sum(abs.(x[end,:])) < th
 
 #Do a manual simulation with uout
@@ -28,7 +28,7 @@ ym, tm, xm = lsim(sys, uout, t, x0=x0)
 
 # Now compare to closed loop
 # Discretization is needed before feedback
-sysd = c2d(sys, 0.1)[1]
+sysd = c2d(sys, 0.1)
 # Create the closed loop system
 sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
@@ -90,8 +90,8 @@ yd, td, xd = lsim(sysd, u, t, x0=x0)
 
 # Test lsim with default time vector
 uv = randn(length(t))
-y,t = lsim(c2d(sys,0.1)[1],uv,t,x0=x0)
-yd,td = lsim(c2d(sys,0.1)[1],uv,x0=x0)
+y,t = lsim(c2d(sys,0.1),uv,t,x0=x0)
+yd,td = lsim(c2d(sys,0.1),uv,x0=x0)
 @test yd == y
 @test td == t
 

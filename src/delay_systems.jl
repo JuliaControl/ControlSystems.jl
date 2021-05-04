@@ -60,7 +60,7 @@ function c2d(G::DelayLtiSystem, h::Real, method=:zoh)
         error("c2d for DelayLtiSystems only supports zero-order hold")
     end
     X = append([delayd_ss(τ, h) for τ in G.Tau]...)
-    Pd = c2d(G.P.P, h)[1]
+    Pd = c2d(G.P.P, h)
     return lft(Pd, X)
 end
 

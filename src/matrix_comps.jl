@@ -452,11 +452,13 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
 end
 
 
-"""`S, P, B = balance(A[, perm=true])`
+"""
+    S, P, B = balance(A[, perm=true])
 
-Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
+Compute a similarity transform `T = S*P` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
-transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`)."""
+transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`).
+"""
 function balance(A, perm::Bool=true)
     n = LinearAlgebra.checksquare(A)
     B = copy(A)
@@ -531,20 +533,26 @@ end
 
 
 """
-`sysr, G = baltrunc(sys::StateSpace, atol = √ϵ, rtol=1e-3, unitgain=true)`
+    sysr, G = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
 
-Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed. If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
+Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
+
+If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
 
 See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n = nothing) where ST <: AbstractStateSpace
     sysbal, S = balreal(sys)
     S = diag(S)
-    S = S[S .>= atol]
-    S = S[S .>= S[1]*rtol]
-    n = length(S)
+    if n === nothing
+        S = S[S .>= atol]
+        S = S[S .>= S[1]*rtol]
+        n = length(S)
+    else
+        S = S[1:n]
+    end
     A = sysbal.A[1:n,1:n]
     B = sysbal.B[1:n,:]
     C = sysbal.C[:,1:n]
@@ -573,6 +581,28 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
+end
+
+"""
+    syst, S = prescale(sys)
+Perform a eigendecomposition on system state-transition matrix `sys.A`.
+```
+Ã = S⁻¹AS
+B̃ = S⁻¹ B
+C̃ = CS
+D̃ = D
+```
+Such that `Ã` is diagonal.
+Returns a new scaled state-space object and the associated transformation
+matrix.
+"""
+function prescale(sys::StateSpace)
+    d, S = eigen(sys.A)
+    A = Diagonal(d)
+    B = S\sys.B
+    C = sys.C*S
+    normalized_sys = iscontinuous(sys) ? ss(A, B, C, sys.D) : ss(A, B, C, sys.D, sys.Ts)
+    return normalized_sys, S
 end
 
 """
