@@ -3,10 +3,10 @@
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
 """
-    y, t, x = step(sys[, Tf])
+    y, t, x = step(sys[, tfinal])
     y, t, x = step(sys[, t])
 
-Calculate the step response of system `sys`. If the final time `Tf` or time
+Calculate the step response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
@@ -29,15 +29,15 @@ function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     return y, t, x
 end
 
-Base.step(sys::LTISystem, Tf::Real; kwargs...) = step(sys, _default_time_vector(sys, Tf); kwargs...)
+Base.step(sys::LTISystem, tfinal::Real; kwargs...) = step(sys, _default_time_vector(sys, tfinal); kwargs...)
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
 Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t::AbstractVector; kwargs...)
 
 """
-    y, t, x = impulse(sys[, Tf])
+    y, t, x = impulse(sys[, tfinal])
     y, t, x = impulse(sys[, t])
 
-Calculate the impulse response of system `sys`. If the final time `Tf` or time
+Calculate the impulse response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
@@ -70,7 +70,7 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     return y, t, x
 end
 
-impulse(sys::LTISystem, Tf::Real; kwags...) = impulse(sys, _default_time_vector(sys, Tf); kwags...)
+impulse(sys::LTISystem, tfinal::Real; kwags...) = impulse(sys, _default_time_vector(sys, tfinal); kwags...)
 impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
 impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
 
@@ -87,7 +87,7 @@ Continuous time systems are simulated using an ODE solver if `u` is a function. 
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*h`, for a step at `t=5`, use (x,i)-> (i*h >= 5) etc.
+To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
 
 Usage example:
 ```julia
@@ -159,8 +159,8 @@ end
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
-function lsim(sys::AbstractStateSpace, u::Function, Tf::Real, args...; kwargs...)
-    t = _default_time_vector(sys, Tf)
+function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwargs...)
+    t = _default_time_vector(sys, tfinal)
     lsim(sys, u, t, args...; kwargs...)
 end
 
@@ -265,7 +265,7 @@ end
 function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
     dt = _default_dt(sys)
     if tfinal == -1
-        tfinal = 100*dt
+        tfinal = 200dt
     end
     return 0:dt:tfinal
 end
@@ -273,15 +273,12 @@ end
 function _default_dt(sys::LTISystem)
     if isdiscrete(sys)
         return sys.Ts
-    elseif !isstable(sys)
+    elseif all(iszero, pole(sys)) # Static or pure integrators
         return 0.05
     else
-        ps = pole(sys)
-        r = minimum([abs.(real.(ps));0])
-        if r == 0.0
-            r = 1.0
-        end
-        return 0.07/r
+        ω0_max = maximum(abs.(pole(sys)))
+        dt = round(1/(12*ω0_max), sigdigits=2)
+        return dt
     end
 end
 

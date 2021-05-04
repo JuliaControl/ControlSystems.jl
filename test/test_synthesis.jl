@@ -71,15 +71,15 @@ K = ControlSystems.acker(A,B,p)
 end
 
 @testset "LQR" begin
-    h = 0.1
-    A = [1 h; 0 1]
+    Ts = 0.1
+    A = [1 Ts; 0 1]
     B = [0;1] # Note B is vector, B'B is scalar, but compatible with I
     C = [1 0]
     Q = I
     R = I
     L = dlqr(A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
-    sys = ss(A,B,C,0,h)
+    sys = ss(A,B,C,0,Ts)
     L = lqr(sys, Q, R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
