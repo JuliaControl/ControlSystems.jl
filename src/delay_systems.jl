@@ -143,7 +143,7 @@ function dde_param(du, u, h, p, t)
     # Save y value in tmpy to be used by dde_saver
     if t in tsave
         # The value of y at this time is given by the derivative
-        tmpy .= dy
+        tmpy .= dY
     end
     return
 end
