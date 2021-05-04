@@ -43,6 +43,7 @@ C_222_d = ss([-5 -3; 2 -9], [1 0; 0 2], [1 0; 0 1], [1 0; 0 1])
 # Test c2d for transfer functions
 G = tf([1, 1], [1, 3, 1])
 Gd = c2d(G, 0.2)
+@test typeof(Gd) <: TransferFunction{<:Discrete, <:ControlSystems.SisoRational}
 @test Gd ≈ tf([0, 0.165883310712090, -0.135903621603238], [1.0, -1.518831946985175, 0.548811636094027], 0.2) rtol=1e-14
 
 # Issue #391
@@ -50,8 +51,9 @@ Gd = c2d(G, 0.2)
 @test c2d(tf(C_111), 0.01, :foh) ≈ tf(c2d(C_111, 0.01, :foh))
 
 # c2d on a zpk model should arguably return a zpk model
-@test typeof(c2d(zpk(G), 1)) <: TransferFunction{<:Discrete, <:ControlSystems.SisoZpk}
-
+Gdzpk = zpk(Gd)
+@test typeof(Gdzpk) <: TransferFunction{<:Discrete, <:ControlSystems.SisoZpk}
+@test Gdzpk ≈ zpk([0.8192724211968178], [0.9264518519788194, 0.5923800950063556], 0.16588331071209) rtol=1e-14
 
 
 # ERRORS
