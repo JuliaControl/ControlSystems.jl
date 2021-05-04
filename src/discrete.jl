@@ -2,27 +2,27 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
 
 
 """
-    sysd= c2d(sys::StateSpace, Ts, method=:zoh)
-    Gd = c2d(G::TransferFunction, Ts, method=:zoh)
+    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
+    Gd = c2d(G::TransferFunction{<:Continuous}, Ts, method=:zoh)
 
 Convert the continuous-time system `sys` into a discrete-time system with sample time
-`Ts`, using the specified `method` (:zoh`, `:foh` or `:fwdeuler`).
+`Ts`, using the specified `method` (:`zoh`, `:foh` or `:fwdeuler`).
 Note that the forward-Euler method generally requires the sample time to be very small
 relative to the time constants of the system.
 
 See also `c2d_x0map`
 """
-c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
+c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
 
 
 """
-    sysd, x0map = c2d_x0map(sys::StateSpace, Ts, method=:zoh)
+    sysd, x0map = c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
 
 Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
 transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
 
 See `c2d` for further details."""
-function c2d_x0map(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh)
+function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
@@ -54,7 +54,8 @@ function c2d_x0map(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh)
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
+    timeevol = Discrete(Ts)
+    return StateSpace{typeof(timeevol), eltype(Ad)}(Ad, Bd, Cd, Dd, timeevol), x0map
 end
 
 """
@@ -208,22 +209,22 @@ end
 
 
 """
-    c2d_roots2poly(ro,h)
+    c2d_roots2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
-function c2d_roots2poly(ro,h)
-    return real((Polynomials.poly(exp(ro.*h))).coeffs[end:-1:1])
+function c2d_roots2poly(ro, Ts)
+    return real((Polynomials.poly(exp(ro .* Ts))).coeffs[end:-1:1])
 end
 
 """
-    c2d_poly2poly(ro,h)
+    c2d_poly2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
-function c2d_poly2poly(p,h)
+function c2d_poly2poly(p, Ts)
     ro = Polynomials.roots(Polynomials.Polynomial(p[end:-1:1]))
-    return real(Polynomials.poly(exp(ro.*h)).coeffs[end:-1:1])
+    return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
 end
 
 

@@ -32,6 +32,7 @@ export  LTISystem,
         ctrb,
         obsv,
         place,
+        luenberger,
         # Model Simplification
         reduce_sys,
         sminreal,
@@ -39,6 +40,7 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
+        prescale,
         innovation_form,
         # Stability Analysis
         isstable,
@@ -90,14 +92,15 @@ export  LTISystem,
         numpoly,
         denpoly,
         iscontinuous,
-        isdiscrete
+        isdiscrete,
+        ssdata
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
 using Plots, LaTeXStrings, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
-using OrdinaryDiffEq, DelayDiffEq
+using OrdinaryDiffEq
 export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
@@ -106,6 +109,8 @@ import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
+import DiffEqCallbacks: SavingCallback, SavedValues
+using DelayDiffEq
 using MacroTools
 
 abstract type AbstractSystem end
@@ -168,6 +173,7 @@ include("plotting.jl")
 @deprecate den denvec
 @deprecate norminf hinfnorm
 @deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
+# There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"

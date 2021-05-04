@@ -188,6 +188,9 @@ HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
 
 # Getter functions ###################################################
 
+"""
+    `A, B, C, D = ssdata(sys)`
+"""
 ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 
 # Funtions for number of intputs, outputs and states

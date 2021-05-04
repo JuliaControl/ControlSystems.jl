@@ -178,6 +178,18 @@ y, t2, x = step(G, 2)
 @test t0 == t
 
 
+# Test _default_dt 
+sysstab = tf(1, [1, 0.5])
+sysstatic = zpk([], [], 1.0)
+sysunstab = tf(1, [1, -1])
+sysint = tf(1, [1, 0])
+sysd = tf(1, [1, 1], 0.01)
+
+@test ControlSystems._default_dt(sysstab) == 0.17
+@test ControlSystems._default_dt(sysstatic) == 0.05
+@test ControlSystems._default_dt(sysunstab) == 0.083
+@test ControlSystems._default_dt(sysint) == 0.05
+@test ControlSystems._default_dt(sysd) == 0.01
 
 
 
@@ -187,14 +199,14 @@ y, t2, x = step(G, 2)
 @testset "Simulators" begin
 
 
-h              = 0.1
-Tf             = 20
-t              = 0:h:Tf
+Ts             = 0.1
+tfinal         = 20
+t              = 0:Ts:tfinal
 P              = ss(tf(1,[2,1])^2)
 reference(x,t) = [1.]
 s              = Simulator(P, reference)
 x0             = [0.,0]
-tspan          = (0.0,Tf)
+tspan          = (0.0,tfinal)
 sol            = solve(s, x0, tspan, OrdinaryDiffEq.Tsit5())
 @test step(P,t)[3] ≈ reduce(hcat,sol.(t))'
 end
