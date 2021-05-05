@@ -23,6 +23,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 [compat]
 Colors = "0.9.2, 0.10, 0.11, 0.12"
 DSP = "0.6.1"
+DiffEqCallbacks = "2.16"
 IterTools = "1.0"
 LaTeXStrings = "1.0"
 MacroTools = "0.5"
