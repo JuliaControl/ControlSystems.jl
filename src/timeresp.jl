@@ -117,7 +117,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
     end
-    if !(size(u) in [(nu, length(t)) (length(t),)]) # TODO check this and reshape automatically?
+    if !(size(u) in ((nu, length(t)), (length(t),))) # TODO check this and reshape automatically?
         error("u must be of size (nu, length(t))")
     end
 
