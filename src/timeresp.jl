@@ -117,8 +117,8 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
     end
-    if !(size(u) in [(length(t), nu) (length(t),)])
-        error("u must be of size (length(t), nu)")
+    if !(size(u) in [(nu, length(t)) (length(t),)]) # TODO check this and reshape automatically?
+        error("u must be of size (nu, length(t))")
     end
 
     dt = Float64(t[2] - t[1])
@@ -147,7 +147,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     x = ltitr(dsys.A, dsys.B, u, x0)
-    y = transpose(sys.C*transpose(x) + sys.D*transpose(u))
+    y = sys.C*x + sys.D*u
     return y, t, x
 end
 
@@ -165,7 +165,7 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwarg
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx), method::Symbol=:cont)
+        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
@@ -189,15 +189,12 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         end
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
-        s = Simulator(sys, u)
-        sol = solve(s, T.(x0), (t[1],t[end]), Tsit5())
-        x = sol(t)'
-        uout = Array{eltype(x)}(undef, length(t), ninputs(sys))
-        for (i,ti) in enumerate(t)
-            uout[i,:] = u(x[i,:],ti)'
-        end
+        f(dx,x,p,t) = dx .= sys.A*x .+ sys.B*u(x,t)
+        sol = solve(ODEProblem(f,x0,(t[1],t[end])), Tsit5())
+        x = reduce(hcat, sol(t).u)
+        uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
     end
-    y = transpose(sys.C*transpose(x) + sys.D*transpose(uout))
+    y = sys.C*x + sys.D*uout
     return y, t, x, uout
 end
 
@@ -223,10 +220,7 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
 
-    n = size(u, 1)
-
-    # Transposing u allows column-wise operations, which apparently is faster.
-    ut = transpose(u)
+    n = size(u, 2)
 
     # Using similar instead of Matrix{T} to allow for CuArrays to be used.
     # This approach is problematic if x0 is sparse for example, but was considered
@@ -234,14 +228,12 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     x = similar(x0, T, (length(x0), n))
 
     x[:,1] .= x0
-    mul!(x[:, 2:end], B, transpose(u[1:end-1, :])) # Do all multiplications B*u[:,k] to save view allocations
+    mul!(x[:, 2:end], B, u[:, 1:end-1]) # Do all multiplications B*u[:,k] to save view allocations
 
-    tmp = similar(x0, T) # temporary vector for storing A*x[:,k]
     for k=1:n-1
-        mul!(tmp, A, x[:,k])
-        x[:,k+1] .+= tmp
+        mul!(x[:, k+1], A, x[:,k], true, true)
     end
-    return transpose(x)
+    return x
 end
 
 function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
@@ -255,7 +247,7 @@ function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
         uout[:,i] .= u(x0,t[i])
         x0 = A * x0 + B * uout[:,i]
     end
-    return transpose(x), transpose(uout)
+    return x, uout
 end
 
 # HELPERS:
