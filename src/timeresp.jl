@@ -10,18 +10,20 @@ Calculate the step response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
+`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = (x,t)->[one(eltype(t))]
+    u = (x,t)->[one(eltype(t))] # 547.109 μs (5240 allocations: 748.75 KiB)
+    #tmp = [one(eltype(t))] # Slightly less allocations but maybe no real difference, 539.624 μs (4916 allocations: 721.61 KiB)
+    #u = (x,t)->tmp
     x0 = zeros(nx)
     if nu == 1
         y, tout, x, _ = lsim(sys, u, t, x0=x0, method=method)
     else
-        x = Array{Float64}(undef, lt, nx, nu)
-        y = Array{Float64}(undef, lt, ny, nu)
+        x = Array{Float64}(undef, nx, lt, nu)
+        y = Array{Float64}(undef, ny, lt, nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0, method=method)
         end
@@ -41,7 +43,7 @@ Calculate the impulse response of system `sys`. If the final time `tfinal` or ti
 vector `t` is not provided, one is calculated based on the system pole
 locations.
 
-`y` has size `(length(t), ny, nu)`, `x` has size `(length(t), nx, nu)`"""
+`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
@@ -61,8 +63,8 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
     if nu == 1 # Why two cases # QUESTION: Not type stable?
         y, t, x,_ = lsim(sys, u, t, x0=x0s[:], method=method)
     else
-        x = Array{T}(undef, lt, nx, nu)
-        y = Array{T}(undef, lt, ny, nu)
+        x = Array{T}(undef, nx, lt, nu)
+        y = Array{T}(undef, ny, lt, nu)
         for i=1:nu
             y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0s[:,i], method=method)
         end
@@ -81,7 +83,7 @@ impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
 a zero vector is used.
 
-`y`, `x`, `uout` has time in the first dimension. Initial state `x0` defaults to zero.
+`y`, `x`, `uout` has time in the second dimension. Initial state `x0` defaults to zero.
 
 Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized before simulation. For a lower level inteface, see `?Simulator` and `?solve`
 
@@ -106,7 +108,7 @@ u(x,t) = -L*x # Form control law,
 t=0:0.1:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
-plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
+plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
@@ -117,7 +119,9 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
     end
-    if !(size(u) in ((nu, length(t)), (length(t),))) # TODO check this and reshape automatically?
+    if size(u) == (length(t),)
+        reshape!(u, :, 1) # Do we want to modify arguments? Or should this be copied?
+    else size(u) != (nu, length(t))
         error("u must be of size (nu, length(t))")
     end
 
@@ -135,7 +139,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
             dsys = c2d(sys, dt, :zoh)
         elseif method === :foh
             dsys, x0map = c2d_x0map(sys, dt, :foh)
-            x0 = x0map*[x0; transpose(u)[:,1]]
+            x0 = x0map*[x0; u[:,1]]
         else
             error("Unsupported discretization method")
         end
@@ -190,8 +194,8 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
         f(dx,x,p,t) = dx .= sys.A*x .+ sys.B*u(x,t)
-        sol = solve(ODEProblem(f,x0,(t[1],t[end])), Tsit5())
-        x = reduce(hcat, sol(t).u)
+        sol = solve(ODEProblem(f,x0,(t[1],t[end])), Tsit5(); saveat=t)
+        x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
     end
     y = sys.C*x + sys.D*uout

@@ -158,7 +158,7 @@ lsimplot
                 title   --> "System Response"
                 subplot --> s2i(1,i)
                 label     --> "\$G_{$(si)}\$"
-                t,  y[:, i]
+                t,  y[i, :]
             end
         end
     end
@@ -208,7 +208,7 @@ for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse 
             y,t = func(s, p.args[2:end]...)
             for i=1:ny
                 for j=1:nu
-                    ydata = reshape(y[:, i, j], size(t, 1))
+                    ydata = reshape(y[i, :, j], size(t, 1))
                     style = iscontinuous(s) ? :path : :steppost
                     ttext = (nu > 1 && i==1) ? title*" from: u($j) " : title
                     titles[s2i(i,j)] = ttext
