@@ -99,8 +99,8 @@ yd,td = lsim(c2d(sys,0.1),uv,x0=x0)
 t0 = 0:0.05:2
 systf = [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
 sysss = ss([-1 0 0; 0 -2 -1; 0 1 0], [1 0; 0 1; 0 0], [1 0 0; 0 1 -1], 0)
-yreal = zeros(length(t0), 2, 2)
-xreal = zeros(length(t0), 3, 2)
+yreal = zeros(2, length(t0), 2)
+xreal = zeros(3, length(t0), 2)
 
 #Step tf
 y, t, x = step(systf, t0)
@@ -110,7 +110,7 @@ yreal[2,:,2] = -1 .+ exp.(-t)+2*exp.(-t).*t
 #Step ss
 y, t, x = step(sysss, t)
 @test y ≈ yreal atol=1e-4
-xreal[1,:,1] = yreal[:,1,1]
+xreal[1,:,1] = yreal[1,:,1]
 xreal[2,:,2] = exp.(-t).*t
 xreal[3,:,2] = exp.(-t).*(-t .- 1) .+ 1
 @test x ≈ xreal atol=1e-5
@@ -123,7 +123,7 @@ yreal[2,:,2] = exp.(-t).*(1 .- 2*t)
 #Impulse ss
 y, t, x = impulse(sysss, t)
 @test y ≈ yreal atol=1e-2
-xreal[1,:,1] = yreal[:,1,1]
+xreal[1,:,1] = yreal[1,:,1]
 xreal[2,:,2] = -exp.(-t).*t + exp.(-t)
 xreal[3,:,2] = exp.(-t).*t
 @test x ≈ xreal atol=1e-1
@@ -132,8 +132,8 @@ xreal[3,:,2] = exp.(-t).*t
 t0 = 0:0.05:2
 systf = [tf(1,[1,1]) 0; 0 tf([1,-1],[1,2,1])]
 sysss = ss([-1 0 0; 0 -2 -1; 0 1 0], [1 0; 0 1; 0 0], [1 0 0; 0 1 -1], 0)
-yreal = zeros(length(t0), 2, 2)
-xreal = zeros(length(t0), 3, 2)
+yreal = zeros(2, length(t0), 2)
+xreal = zeros(3, length(t0), 2)
 
 #Step tf
 y, t, x = step(systf, t0, method=:zoh)
@@ -143,7 +143,7 @@ yreal[2,:,2] = -1 .+ exp.(-t) + 2*exp.(-t).*t
 #Step ss
 y, t, x = step(sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
-xreal[1,:,1] = yreal[:,1,1]
+xreal[1,:,1] = yreal[1,:,1]
 xreal[2,:,2] = exp.(-t).*t
 xreal[3,:,2] = exp.(-t).*(-t .- 1) .+ 1
 @test x ≈ xreal atol=1e-14
@@ -156,7 +156,7 @@ yreal[2,:,2] = exp.(-t).*(1 .- 2*t)
 #Impulse ss
 y, t, x = impulse(1.0sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
-xreal[1,:,1] = yreal[:,1,1]
+xreal[1,:,1] = yreal[1,:,1]
 xreal[2,:,2] = -exp.(-t).*t + exp.(-t)
 xreal[3,:,2] = exp.(-t).*t
 @test x ≈ xreal atol=1e-13
