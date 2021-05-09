@@ -112,16 +112,14 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVector=zeros(Bool, sys.nx), method::Symbol=:unspecified)
+        x0::AbstractVecOrMat=zeros(Bool, sys.nx), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
     if length(x0) != nx
         error("size(x0) must match the number of states of sys")
     end
-    if size(u) == (length(t),)
-        reshape!(u, :, 1) # Do we want to modify arguments? Or should this be copied?
-    else size(u) != (nu, length(t))
+    if size(u) != (nu, length(t))
         error("u must be of size (nu, length(t))")
     end
 
@@ -156,7 +154,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
 end
 
 function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
-    t = range(0, length=size(u, 1), step=sys.Ts)
+    t = range(0, length=size(u, 2), step=sys.Ts)
     lsim(sys, u, t; kwargs...)
 end
 
@@ -169,7 +167,7 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwarg
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:cont)
+        x0::AbstractVecOrMat=zeros(sys.nx, 1), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
@@ -219,7 +217,7 @@ e.g, `x0` should prefereably not be a sparse vector.
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
 @views function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
-        x0::AbstractVector=zeros(eltype(A), size(A, 1)))
+        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
 
     T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
                       LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
@@ -241,7 +239,7 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
 end
 
 function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
-    x0::VecOrMat=zeros(T, size(A, 1))) where T
+    x0::AbstractVecOrMat=zeros(T, size(A, 1))) where T
     iters = length(t)
     x = similar(A, size(A, 1), iters)
     uout = similar(A, size(B, 2), iters)
