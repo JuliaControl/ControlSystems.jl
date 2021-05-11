@@ -167,7 +167,7 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwarg
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont)
+        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont, alg = Tsit5(), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
