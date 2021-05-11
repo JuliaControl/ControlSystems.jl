@@ -383,7 +383,7 @@ the sensitivity and complementary sensitivity functions.
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; gaincircles=true)
+@recipe function nyquistplot(p::Nyquistplot; critical_point=true, Ms_circles=Float64[], unit_circle=false)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -406,25 +406,39 @@ nyquistplot
                     hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
                     (redata, imdata)
                 end
-                # Plot rings
-                if gaincircles && si == length(systems)
-                    v = range(0,stop=2π,length=100)
-                    S,C = sin.(v),cos.(v)
+                
+                if critical_point && si == length(systems)
                     @series begin
                         primary := false
-                        linestyle := :dash
-                        linecolor := :black
-                        seriestype := :path
-                        markershape := :none
-                        (C,S)
+                        markershape := :xcross
+                        seriescolor := :red
+                        markersize := 5
+                        ([-1], [0])
                     end
+                end                
+                if !isempty(Ms_circles) && si == length(systems)
+                    θ = LinRange(0, 2π, 100)
+                    S,C = sin.(θ),cos.(θ)
+                    for Ms in Ms_circles
+                        @series begin
+                            primary := false
+                            linecolor := :gray
+                            seriestype := :path
+                            markershape := :none
+                            (-1 .+ 1/Ms * C, 1/Ms * S)
+                        end
+                    end
+                end
+                if unit_circle && si == length(systems)
+                    θ = LinRange(0, 2π, 100)
+                    S,C = sin.(θ),cos.(θ)
                     @series begin
                         primary := false
                         linestyle := :dash
                         linecolor := :black
                         seriestype := :path
                         markershape := :none
-                        (C .-1,S)
+                        (C, S)
                     end
                 end
 
