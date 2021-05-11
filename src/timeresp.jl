@@ -112,7 +112,7 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, sys.nx), method::Symbol=:unspecified)
+        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -167,7 +167,7 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwarg
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(sys.nx, 1), method::Symbol=:cont)
+        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
@@ -191,8 +191,12 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         end
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
-        f(dx,x,p,t) = dx .= sys.A*x .+ sys.B*u(x,t)
-        sol = solve(ODEProblem(f,x0,(t[1],t[end])), Tsit5(); saveat=t)
+        function f(dx,x,p,t) 
+            A, B, u = p
+            dx .= A*x .+ B*u(x,t)
+        end
+        p = (sys.A, sys.B, u)
+        sol = solve(ODEProblem(f,x0,(t[1],t[end]),p), Tsit5(); saveat=t)
         x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
     end
