@@ -788,7 +788,7 @@ function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal
     titles = fill("", 1, plotphase ? 8 : 4)
     # Empty titles on phase
     titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
-    titles[titleIdx] = ["S = 1/(1+PC)", "D = P/(1+PC)", "N = C/(1+PC)", "T = PC/(1+PC)"]
+    titles[titleIdx] = ["S = 1/(1+PC)", "P/(1+PC)", "C/(1+PC)", "T = PC/(1+PC)"]
     Plots.plot!(fig, title = titles)
     return fig
 end

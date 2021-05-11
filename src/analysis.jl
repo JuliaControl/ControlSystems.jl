@@ -462,7 +462,7 @@ function delaymargin(G::LTISystem)
 end
 
 function robust_minreal(G, args...; kwargs...)
-    try 
+    try
         return minreal(G, args...; kwargs...)
     catch
         return G
@@ -470,42 +470,41 @@ function robust_minreal(G, args...; kwargs...)
 end
 
 """
-    S,D,N,T = gangoffour(P,C; minimal=true)
-    gangoffour(P::AbstractVector,C::AbstractVector; minimal=true)
-    
-Given a transfer function describing the Plant `P` and a transfer function describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+    S, PS, CS, T = gangoffour(P, C; minimal=true)
+    gangoffour(P::AbstractVector, C::AbstractVector; minimal=true)
 
-- `minimal` determines whether or not to call `minreal` on the computed systems.
+Given a transfer function describing the plant `P` and a transfer function describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
+
 - `S = 1/(1+PC)` Sensitivity function
-- `D = P/(1+PC)`
-- `N = C/(1+PC)`
+- `PS = P/(1+PC)` Load disturbance to measurement signal
+- `CS = C/(1+PC)` Measurement noise to control signal
 - `T = PC/(1+PC)` Complementary sensitivity function
 
 Only supports SISO systems
 """
-function gangoffour(P::LTISystem,C::LTISystem; minimal=true)
-    if P.nu + P.ny + C.nu + C.ny > 4
+function gangoffour(P::LTISystem, C::LTISystem; minimal=true)
+    if !issiso(P) || !issiso(C)
         error("gangoffour only supports SISO systems")
     end
     minfun = minimal ? robust_minreal : identity
-    S = (1/(1+P*C)) |> minfun
-    D = (P*S)       |> minfun
-    N = (C*S)       |> minfun
-    T = (P*N)       |> minfun
-    return S, D, N, T
+    S = feedback(1, P*C)    |> minfun
+    PS = feedback(P, C)     |> minfun
+    CS = feedback(C, P)     |> minfun
+    T = feedback(P*C, 1)    |> minfun
+    return S, PS, CS, T
 end
 
 """
-    S, D, N, T, RY, RU, RE = gangofseven(P,C,F)
+    S, PS, CS, T, RY, RU, RE = gangofseven(P,C,F)
 
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
 computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
 
 `S = 1/(1+PC)` Sensitivity function
 
-`D = P/(1+PC)`
+`PS = P/(1+PC)`
 
-`N = C/(1+PC)`
+`CS = C/(1+PC)`
 
 `T = PC/(1+PC)` Complementary sensitivity function
 
@@ -516,13 +515,13 @@ computes the four transfer functions in the Gang-of-Four and the transferfunctio
 `RE = F/(1+P*C)`
 
 Only supports SISO systems"""
-function gangofseven(P::TransferFunction,C::TransferFunction,F::TransferFunction)
-    if P.nu + P.ny + C.nu + C.ny + F.nu + F.ny > 6
-        error("gof only supports SISO systems")
+function gangofseven(P::TransferFunction, C::TransferFunction, F::TransferFunction)
+    if !issiso(P) || !issiso(C) || !issiso(F)
+        error("gangofseven only supports SISO systems")
     end
-    S, D, N, T = gangoffour(P,C)
+    S, PS, CS, T = gangoffour(P,C)
     RY = T*F
     RU = N*F
     RE = S*F
-    return S, D, N, T, RY, RU, RE
+    return S, PS, CS, T, RY, RU, RE
 end
