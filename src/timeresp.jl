@@ -196,7 +196,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
             dx .= A*x .+ B*u(x,t)
         end
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f,x0,(t[1],t[end]),p), Tsit5(); saveat=t)
+        sol = solve(ODEProblem(f,x0,(t[1],t[end]),p), alg; saveat=t, kwargs...)
         x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
     end
