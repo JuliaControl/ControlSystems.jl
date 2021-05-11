@@ -112,7 +112,7 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:unspecified)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:unspecified)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -173,7 +173,7 @@ function f_lsim(dx, x, p, t)
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont, alg = Tsit5(), kwargs...)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, alg = Tsit5(), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
