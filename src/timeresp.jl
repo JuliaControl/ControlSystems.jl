@@ -173,7 +173,7 @@ function f_lsim(dx, x, p, t)
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont)
+        x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont, alg = Tsit5(), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,1)
@@ -198,7 +198,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]), p), Tsit5(); saveat=t)
+        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]), p), alg; saveat=t, kwargs...)
         x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
     end
