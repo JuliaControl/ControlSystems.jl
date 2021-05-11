@@ -166,6 +166,12 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwarg
     lsim(sys, u, t, args...; kwargs...)
 end
 
+# Function for DifferentialEquations lsim
+function f_lsim(dx, x, p, t) 
+    A, B, u = p
+    dx .= A * x .+ B * u(x, t)
+end
+
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x0::AbstractVecOrMat=fill!(similar(sys.B, nstates(sys), 1), zero(eltype(sys.B))), method::Symbol=:cont)
     ny, nu = size(sys)
@@ -191,12 +197,8 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         end
         x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
     else
-        function f(dx,x,p,t) 
-            A, B, u = p
-            dx .= A*x .+ B*u(x,t)
-        end
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f,x0,(t[1],t[end]),p), Tsit5(); saveat=t)
+        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]), p), Tsit5(); saveat=t)
         x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
     end
