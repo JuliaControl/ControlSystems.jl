@@ -11,21 +11,19 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
-function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
+function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
     lt = length(t)
     ny, nu = size(sys)
     nx = sys.nx
-    u = (x,t)->[one(eltype(t))] # 547.109 μs (5240 allocations: 748.75 KiB)
-    #tmp = [one(eltype(t))] # Slightly less allocations but maybe no real difference, 539.624 μs (4916 allocations: 721.61 KiB)
-    #u = (x,t)->tmp
+    u = (x,t)->[one(eltype(t))]
     x0 = zeros(nx)
     if nu == 1
-        y, tout, x, _ = lsim(sys, u, t, x0=x0, method=method)
+        y, tout, x, _ = lsim(sys, u, t; x0=x0, method=method, kwargs...)
     else
         x = Array{Float64}(undef, nx, lt, nu)
         y = Array{Float64}(undef, ny, lt, nu)
         for i=1:nu
-            y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0, method=method)
+            y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t; x0=x0, method=method, kwargs...)
         end
     end
     return y, t, x
@@ -44,7 +42,7 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
-function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
+function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
     T = promote_type(eltype(sys.A), Float64)
     lt = length(t)
     ny, nu = size(sys)
@@ -61,20 +59,20 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont)
         x0s = zeros(T, nx, nu)
     end
     if nu == 1 # Why two cases # QUESTION: Not type stable?
-        y, t, x,_ = lsim(sys, u, t, x0=x0s[:], method=method)
+        y, t, x,_ = lsim(sys, u, t; x0=x0s[:], method=method, kwargs...)
     else
         x = Array{T}(undef, nx, lt, nu)
         y = Array{T}(undef, ny, lt, nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t, x0=x0s[:,i], method=method)
+            y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t; x0=x0s[:,i], method=method, kwargs...)
         end
     end
     return y, t, x
 end
 
-impulse(sys::LTISystem, tfinal::Real; kwags...) = impulse(sys, _default_time_vector(sys, tfinal); kwags...)
-impulse(sys::LTISystem; kwags...) = impulse(sys, _default_time_vector(sys); kwags...)
-impulse(sys::TransferFunction, t::AbstractVector; kwags...) = impulse(ss(sys), t; kwags...)
+impulse(sys::LTISystem, tfinal::Real; kwargs...) = impulse(sys, _default_time_vector(sys, tfinal); kwargs...)
+impulse(sys::LTISystem; kwargs...) = impulse(sys, _default_time_vector(sys); kwargs...)
+impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys), t; kwargs...)
 
 """
     y, t, x = lsim(sys, u[, t]; x0, method])
@@ -161,9 +159,9 @@ end
 @deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
 @deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
 
-function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real, args...; kwargs...)
+function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real; kwargs...)
     t = _default_time_vector(sys, tfinal)
-    lsim(sys, u, t, args...; kwargs...)
+    lsim(sys, u, t; kwargs...)
 end
 
 # Function for DifferentialEquations lsim
@@ -207,7 +205,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 end
 
 
-lsim(sys::TransferFunction, u, t, args...; kwargs...) = lsim(ss(sys), u, t, args...; kwargs...)
+lsim(sys::TransferFunction, u, t; kwargs...) = lsim(ss(sys), u, t; kwargs...)
 
 
 """
