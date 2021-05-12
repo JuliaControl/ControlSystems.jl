@@ -167,8 +167,8 @@ function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::Tran
     end
     G1num = G1.matrix[1,1].num
     G1den = G1.matrix[1,1].den
-    G2den = G2.matrix[1,1].num
-    G2num = G2.matrix[1,1].den
+    G2num = G2.matrix[1,1].num
+    G2den = G2.matrix[1,1].den
     
     timeevol = common_timeevol(G1, G2)
     tf(G1num*G2den, G1num*G2num + G1den*G2den, timeevol)
