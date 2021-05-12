@@ -204,7 +204,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
         y[:,k] .= sv.saveval[k][2]
     end
 
-    return y', t, x'
+    return y, t, x
 end
 
 # We have to default to something, look at the sys.P.P and delays
@@ -244,8 +244,8 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     if nu == 1
         y, tout, x = lsim(sys, u, t; x0=x0, kwargs...)
     else
-        x = Array{T}(undef, length(t), nstates(sys), nu)
-        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        x = Array{T}(undef, nstates(sys), length(t), nu)
+        y = Array{T}(undef, noutputs(sys), length(t), nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t; x0=x0, kwargs...)
         end
@@ -264,8 +264,8 @@ function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS
     if nu == 1
         y, tout, x = lsim(sys, u, t; alg=alg, x0=sys.P.B[:,1], kwargs...)
     else
-        x = Array{T}(undef, length(t), nstates(sys), nu)
-        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        x = Array{T}(undef, nstates(sys), length(t), nu)
+        y = Array{T}(undef, noutputs(sys), length(t), nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t; alg=alg, x0=sys.P.B[:,i], kwargs...)
         end

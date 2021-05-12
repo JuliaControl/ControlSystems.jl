@@ -27,7 +27,7 @@ function to_abstract_matrix(A::AbstractArray)
     end
     return A
 end
-to_abstract_matrix(A::Vector) = reshape(A, length(A), 1)
+to_abstract_matrix(A::AbstractVector) = reshape(A, length(A), 1)
 to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
