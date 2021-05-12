@@ -371,14 +371,15 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; gaincircles=true, kwargs...)
-    nyquistplot(LTISystem[sys1, sys2...]; gaincircles=true, kwargs...)
+    fig = nyquistplot(sys; critical_point=true, Ms_circles=Float64[], unit_circle=false, kwargs...)
+    nyquistplot(LTISystem[sys1, sys2...]; critical_point=true, Ms_circles=Float64[], unit_circle=false, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`gaincircles` plots the circles corresponding to |S(iω)| = 1 and |T(iω)| = 1, where S and T are
-the sensitivity and complementary sensitivity functions.
+`critical_point`, if the critical point `-1` should be indicated with a red cross
+`Ms_circles`, vector of Ms values for which Ms circles should be drawn
+`unit_circle`, if the unit circle should be displayed
 
 `kwargs` is sent as argument to plot.
 """
