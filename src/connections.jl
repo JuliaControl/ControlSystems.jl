@@ -165,10 +165,10 @@ function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::Tran
     if !issiso(G1) || !issiso(G2)
         error("MIMO TransferFunction feedback isn't implemented.")
     end
-    G1num = G1.matrix[1,1].num
-    G1den = G1.matrix[1,1].den
-    G2num = G2.matrix[1,1].num
-    G2den = G2.matrix[1,1].den
+    G1num = numpoly(G1)[]
+    G1den = denpoly(G1)[]
+    G2num = numpoly(G2)[]
+    G2den = denpoly(G2)[]
     
     timeevol = common_timeevol(G1, G2)
     tf(G1num*G2den, G1num*G2num + G1den*G2den, timeevol)
