@@ -12,16 +12,16 @@ locations.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
-    lt = length(t)
+    T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
-    nx = sys.nx
+    nx = nstates(sys)
     u = (x,t)->[one(eltype(t))]
     x0 = zeros(nx)
     if nu == 1
         y, tout, x, _ = lsim(sys, u, t; x0=x0, method=method, kwargs...)
     else
-        x = Array{Float64}(undef, nx, lt, nu)
-        y = Array{Float64}(undef, ny, lt, nu)
+        x = Array{T}(undef, nx, length(t), nu)
+        y = Array{T}(undef, ny, length(t), nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t; x0=x0, method=method, kwargs...)
         end
@@ -44,9 +44,8 @@ locations.
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
     T = promote_type(eltype(sys.A), Float64)
-    lt = length(t)
     ny, nu = size(sys)
-    nx = sys.nx
+    nx = nstates(sys)
     if iscontinuous(sys) #&& method === :cont
         u = (x,t) -> [zero(T)]
         # impulse response equivalent to unforced response of
@@ -61,8 +60,8 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwarg
     if nu == 1 # Why two cases # QUESTION: Not type stable?
         y, t, x,_ = lsim(sys, u, t; x0=x0s[:], method=method, kwargs...)
     else
-        x = Array{T}(undef, nx, lt, nu)
-        y = Array{T}(undef, ny, lt, nu)
+        x = Array{T}(undef, nx, length(t), nu)
+        y = Array{T}(undef, ny, length(t), nu)
         for i=1:nu
             y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t; x0=x0s[:,i], method=method, kwargs...)
         end
