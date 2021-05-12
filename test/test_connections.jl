@@ -246,7 +246,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 G4 = ss(-6, [7 8], [11; 12], 0)
 @test starprod(G1, G4, 1, 1) == ss([-9 33; 35 -6], [2 0; 0 8], [4 0; 0 12], zeros(2,2))
 
-
+# TRANSFER FUNCTIONS
 
 # Feedback2dof
 
@@ -257,5 +257,16 @@ F = tf(1.0, [1,1])
 @test feedback2dof(P0, C, 0*F) == feedback(P0*C)
 @test_nowarn feedback2dof(P0, C, F)
 
+
+
+G1 = tf([1, 0],[1, 2, 2])
+G2 = tf([1, 1, 2],[1, 0, 3])
+@test feedback(G1, G2) == tf([1, 0, 3, 0], [1, 3, 6, 8, 6])
+G1 = tf(1.0)
+G2 = tf(1.0, [1, 5])
+@test feedback(G1, G2) == tf([1, 5], [1, 6])
+@test feedback(1, G2) == tf([1, 5], [1, 6])
+@test feedback(G2, G1) == tf(1, [1, 6])
+@test feedback(G2, 1) == tf(1, [1, 6])
 
 end

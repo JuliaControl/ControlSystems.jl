@@ -161,6 +161,19 @@ Returns `L/(1+L)` or `P1/(1+P1*P2)`
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
 
+function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::TransferFunction{<:TimeEvolution,<:SisoRational})
+    if !issiso(G1) || !issiso(G2)
+        error("MIMO TransferFunction feedback isn't implemented.")
+    end
+    G1num = numpoly(G1)[]
+    G1den = denpoly(G1)[]
+    G2num = numpoly(G2)[]
+    G2den = denpoly(G2)[]
+    
+    timeevol = common_timeevol(G1, G2)
+    tf(G1num*G2den, G1num*G2num + G1den*G2den, timeevol)
+end
+
 #Efficient implementations
 function feedback(L::TransferFunction{<:TimeEvolution,T}) where T<:SisoRational
     if size(L) != (1,1)
