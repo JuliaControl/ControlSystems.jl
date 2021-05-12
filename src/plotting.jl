@@ -148,7 +148,7 @@ lsimplot
     s2i(i,j) = LinearIndices((ny,1))[j,i]
     for (si,s) in enumerate(systems)
         s = systems[si]
-        y = length(p.args) >= 4 ? lsim(s, u, t, x0=p.args[4], method=method)[1] : lsim(s, u, t, method=method)[1]
+        y, t = lsim(s, p.args[2:end]...)
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
@@ -275,6 +275,7 @@ bodeplot
     layout --> ((plotphase ? 2 : 1)*ny,nu)
     nw = length(w)
     xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
+    grid   --> true
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -295,7 +296,6 @@ bodeplot
                 end
                 phasedata = vec(phase[:, i, j])
                 @series begin
-                    grid      --> true
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
                     if _PlotScale != "dB"
@@ -312,7 +312,6 @@ bodeplot
                 plotphase || continue
 
                 @series begin
-                    grid      --> true
                     xscale    --> :log10
                     ylims      := ylimsphase
                     yticks    --> getPhaseTicks(phasedata, getlims(:ylims, plotattributes, phasedata))
@@ -371,35 +370,36 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; critical_point=true, Ms_circles=Float64[], unit_circle=false, kwargs...)
-    nyquistplot(LTISystem[sys1, sys2...]; critical_point=true, Ms_circles=Float64[], unit_circle=false, kwargs...)
+    fig = nyquistplot(sys; Ms_circles=Float64[], unit_circle=false, kwargs...)
+    nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], unit_circle=false, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`critical_point`, if the critical point `-1` should be indicated with a red cross
-`Ms_circles`, vector of Ms values for which Ms circles should be drawn
+`Ms_circles`, vector of Ms values for drawing circles of constant sensitivity
 `unit_circle`, if the unit circle should be displayed
 
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; critical_point=true, Ms_circles=Float64[], unit_circle=false)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
     layout --> (ny,nu)
-    s2i(i,j) = LinearIndices((ny,nu))[j,i]
-    # Ensure that `axes` is always a matrix of handles
+    framestyle --> :zerolines
+    s2i(i,j) = LinearIndices((nu,ny))[j,i]
+    θ = range(0, stop=2π, length=100)
+    S, C = sin.(θ), cos.(θ)
     for (si,s) = enumerate(systems)
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata      = re_resp[:, i, j]
-                imdata      = im_resp[:, i, j]
+                redata = re_resp[:, i, j]
+                imdata = im_resp[:, i, j]
                 @series begin
-                    ylims   --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims   --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                    ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                    xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                     title --> "Nyquist plot from: u($j)"
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
@@ -408,41 +408,40 @@ nyquistplot
                     (redata, imdata)
                 end
                 
-                if critical_point && si == length(systems)
-                    @series begin
+                
+                if si == length(systems)
+                    @series begin # Mark the critical point
+                        subplot --> s2i(i,j)
                         primary := false
                         markershape := :xcross
                         seriescolor := :red
                         markersize := 5
-                        ([-1], [0])
+                        seriesstyle := :scatter
+                        [-1], [0]
                     end
-                end                
-                if !isempty(Ms_circles) && si == length(systems)
-                    θ = LinRange(0, 2π, 100)
-                    S,C = sin.(θ),cos.(θ)
                     for Ms in Ms_circles
                         @series begin
+                            subplot --> s2i(i,j)
                             primary := false
                             linecolor := :gray
                             seriestype := :path
                             markershape := :none
-                            (-1 .+ 1/Ms * C, 1/Ms * S)
+                            label := "Ms = $(round(Ms, digits=2))"
+                            (-1 .+ (1/Ms) * C, (1/Ms) * S)
+                        end
+                    end                
+                    if unit_circle 
+                        @series begin
+                            primary := false
+                            linestyle := :dash
+                            linecolor := :black
+                            seriestype := :path
+                            markershape := :none
+                            (C, S)
                         end
                     end
                 end
-                if unit_circle && si == length(systems)
-                    θ = LinRange(0, 2π, 100)
-                    S,C = sin.(θ),cos.(θ)
-                    @series begin
-                        primary := false
-                        linestyle := :dash
-                        linecolor := :black
-                        seriestype := :path
-                        markershape := :none
-                        (C, S)
-                    end
-                end
-
+                
             end
         end
     end
@@ -753,27 +752,31 @@ pzmap
     framestyle --> :zerolines
     title --> "Pole-zero map"
     legend --> false
-    for system in systems
-        z,p,k = zpkdata(system)
-        if !isempty(z[1])
+    for (i, system) in enumerate(systems)
+        p = pole(system)
+        z = tzero(system)
+        if !isempty(z)
             @series begin
+                group --> i
                 markershape --> :c
                 markersize --> 15.
                 markeralpha --> 0.5
-                real(z[1]),imag(z[1])
+                real(z),imag(z)
             end
         end
-        if !isempty(p[1])
+        if !isempty(p)
             @series begin
-                markershape --> :x
+                group --> i
+                markershape --> :xcross
                 markersize --> 15.
-                real(p[1]),imag(p[1])
+                markeralpha --> 0.5
+                real(p),imag(p)
             end
         end
 
         if isdiscrete(system)
-            v = range(0,stop=2π,length=100)
-            S,C = sin.(v),cos.(v)
+            θ = range(0,stop=2π,length=100)
+            S,C = sin.(θ),cos.(θ)
             @series begin
                 linestyle --> :dash
                 linecolor := :black
@@ -792,8 +795,7 @@ pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 Gang-of-Four plot. `kwargs` is sent as argument to Plots.plot.
 """
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)
-    # Array of (S,D,N,T)
+function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
