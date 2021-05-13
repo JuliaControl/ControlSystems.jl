@@ -5,9 +5,6 @@ import SparseArrays: sparse # In test_matrix_comps
 import DSP: conv            # In test_conversion and test_synthesis
 include("framework.jl")
 
-# Local definition to make sure we get warnings if we use eye
-eye_(n) = Matrix{Int64}(I, n, n)
-
 my_tests = [
             "test_timeevol",
             "test_statespace",

@@ -1,3 +1,6 @@
+# Local definition to make sure we get warnings if we use eye
+eye_(n) = Matrix{Int64}(I, n, n)
+
 # Length not defined for StateSpace, so use custom function
 function Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
     fields = [:timeevol, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
