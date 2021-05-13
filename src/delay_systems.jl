@@ -256,8 +256,8 @@ end
 
 function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS3()), kwargs...) where T
     nu = ninputs(sys)
-    iszero(sys.P.D12) || @warn("Impulse with a direct term from delay vector to delay vector can lead to poor results.")
-    iszero(sys.P.B2) || throw(ArgumentError("Impulse with a direct term from input to delay vector is not implemented. Move the delays to the output instead of input if possible."))
+    iszero(sys.P.D22) || @warn("Impulse with a direct term from delay vector to delay vector can lead to poor results.")
+    iszero(sys.P.D21) || throw(ArgumentError("Impulse with a direct term from input to delay vector is not implemented. Move the delays to the output instead of input if possible."))
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in impulse"))
     end
