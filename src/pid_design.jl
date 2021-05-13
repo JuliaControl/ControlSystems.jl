@@ -313,17 +313,17 @@ Default is to return the parameters for the parallel form, but if `series=true`
 they will be returned on series form.
 """
 function placePI(P, ω₀, ζ; series=false)
-    num = numpoly(P)[].coeffs
-    den = denpoly(P)[].coeffs
+    num = numvec(P)[]
+    den = denvec(P)[]
     length(den) == 2 || error("Can only place poles using PI if the system if of first order.")
     if length(num) == 1
         push!(num, 0)
     end
     a, b = num
     c, d = den
-    tmp = (b^2*ω₀^2 - 2*b*a*ω₀*ζ + a^2)
-    kp = -(b*d*ω₀^2 - 2*a*d*ω₀*ζ + a*c) / tmp
-    ki = (ω₀^2*(a*d - b*c)) / tmp
+    tmp = (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
+    kp = -(a*c*ω₀^2 - 2*b*c*ω₀*ζ + b*d) / tmp
+    ki = (ω₀^2*(b*c - a*d)) / tmp
     C = pid(;kp, ki)
 
     if !series
