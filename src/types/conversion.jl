@@ -78,13 +78,12 @@ Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace) = StateSpace(s.A, s.B, s.C, s.D, s.Ts)
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace{Continuous}) = StateSpace(s.A, s.B, s.C, s.D)
 
-function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}) where {TE,T0<:Number}
-
+function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; kwargs...) where {TE,T0<:Number}
     T = Base.promote_op(/,T0,T0)
-    convert(StateSpace{TE,T}, G)
+    convert(StateSpace{TE,T}, G; kwargs...)
 end
 
-function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction) where {TE,T<:Number}
+function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=false) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -114,7 +113,9 @@ function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction) where {TE,T
             A[inds,inds], B[inds,j:j], C[i:i,inds], D[i:i,j:j] = abcd_vec[k]
         end
     end
-    # A, B, C = balance_statespace(A, B, C)[1:3] NOTE: Use balance?
+    if balance
+        A, B, C = balance_statespace(A, B, C)[1:3] 
+    end
     return StateSpace{TE,T}(A, B, C, D, TE(G.timeevol))
 end
 

@@ -50,10 +50,10 @@ function StateSpace(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) wher
     StateSpace(A, B, C, D, Continuous())
 end
 
-""" If D=0 then convert to correct size and type, else, create 1x1 matrix"""
+""" If D=0 then create zero matrix of correct size and type, else, convert D to correct type"""
 function fix_D_matrix(T::Type,B,C,D)
     if D == 0
-        D = fill(zero(T), size(C,1), size(B,2))
+        D = zeros(T, size(C,1), size(B,2))
     else
         D = to_matrix(T, D)
     end
@@ -96,9 +96,9 @@ StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, 
 # Function for creation of static gain
 function StateSpace(D::AbstractArray{T}, timeevol::TimeEvolution) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
-    A = fill(zero(T), 0, 0)
-    B = fill(zero(T), 0, nu)
-    C = fill(zero(T), ny, 0)
+    A = zeros(T, 0, 0)
+    B = zeros(T, 0, nu)
+    C = zeros(T, ny, 0)
     D = reshape(D, (ny,nu))
     return StateSpace(A, B, C, D, timeevol)
 end
@@ -170,9 +170,9 @@ HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.tim
 # Function for creation of static gain
 function HeteroStateSpace(D::AbstractArray{T}, timeevol::TimeEvolution) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
-    A = fill(zero(T), 0, 0)
-    B = fill(zero(T), 0, nu)
-    C = fill(zero(T), ny, 0)
+    A = zeros(T, 0, 0)
+    B = zeros(T, 0, nu)
+    C = zeros(T, ny, 0)
 
     return HeteroStateSpace(A, B, C, D, timeevol)
 end
@@ -224,8 +224,8 @@ function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     end
     timeevol = common_timeevol(s1,s2)
 
-    A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
-         fill(zero(T), nstates(s2), nstates(s1))        s2.A]
+    A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
+         zeros(T, nstates(s2), nstates(s1))        s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
@@ -240,8 +240,8 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     end
     timeevol = common_timeevol(s1,s2)
     T = promote_type(eltype(s1.A),eltype(s2.A))
-    A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
-         fill(zero(T), nstates(s2), nstates(s1))        s2.A]
+    A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
+         zeros(T, nstates(s2), nstates(s1))        s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
@@ -270,7 +270,7 @@ function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
     timeevol = common_timeevol(sys1,sys2)
 
     A = [sys1.A    sys1.B*sys2.C;
-         fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
+         zeros(T, sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
@@ -286,7 +286,7 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     timeevol = common_timeevol(sys1,sys2)
     T = promote_type(eltype(sys1.A),eltype(sys2.A))
     A = [sys1.A    sys1.B*sys2.C;
-         fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
+         zeros(T, sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
