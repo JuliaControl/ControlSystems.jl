@@ -108,6 +108,7 @@ import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
+import DSP
 import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
 using DelayDiffEq
@@ -166,6 +167,8 @@ include("pid_design.jl")
 include("demo_systems.jl")
 
 include("delay_systems.jl")
+
+include("dsp.jl")
 
 include("plotting.jl")
 
