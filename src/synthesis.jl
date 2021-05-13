@@ -142,7 +142,7 @@ function place(A, B, p, opt=:c)
         else
             error("place only implemented for SISO systems")
         end
-    elseif opt == :o
+    elseif opt === :o
         C = B # B is really the "C matrix"
         n != size(C,2) && error("A and C must have same number of columns")
         if size(C,1) == 1
