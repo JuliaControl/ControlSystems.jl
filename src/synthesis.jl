@@ -144,7 +144,7 @@ function place(A, B, p, opt=:c)
         end
     elseif opt == :o
         C = B # B is really the "C matrix"
-        n != size(C,2) && error("A and C must have same number of rows")
+        n != size(C,2) && error("A and C must have same number of columns")
         if size(C,1) == 1
             acker(A', C', p)'
         else
