@@ -12,9 +12,9 @@ of system `sys` over the frequency vector `w`."""
     else
         s_vec = exp.(w_vec*(im*sys.Ts))
     end
-    if isa(sys, StateSpace)
-        sys = _preprocess_for_freqresp(sys)
-    end
+    #if isa(sys, StateSpace)
+    #    sys = _preprocess_for_freqresp(sys)
+    #end
     ny,nu = noutputs(sys), ninputs(sys)
     [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
 end
