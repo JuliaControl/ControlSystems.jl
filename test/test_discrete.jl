@@ -77,7 +77,7 @@ C_210 = ss(C_212.A, C_212.B, zeros(0, 2), zeros(0, 1))
 end
 
 # forward euler
-@test c2d(C_111, 1, :fwdeuler)[1].A == I + C_111.A
+@test c2d(C_111, 1, :fwdeuler).A == I + C_111.A
 method = :tustin
 for method in (:fwdeuler, :tustin)
     @test d2c(c2d(C_111, 0.01, method), method) ≈ C_111 atol = sqrt(eps())
