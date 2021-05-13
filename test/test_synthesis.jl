@@ -95,10 +95,10 @@ end
     L = dlqr(A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
-    B = [0;1]   # Note B is vector, B'B is scalar and INcompatible with matrix
+    B = [0;1]   # Note B is vector, B'B is scalar 
     Q = eye_(2)
     R = eye_(1)
-    @test_throws MethodError L ≈ dlqr(A,B,Q,R)
+    L ≈ dlqr(A,B,Q,R)
     #L ≈ [0.5890881713787511 0.7118839434795103]
 end
 
