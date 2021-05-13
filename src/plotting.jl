@@ -116,29 +116,20 @@ end
 @userplot Lsimplot
 
 """
-    fig = lsimplot(sys::LTISystem, u, t; x0=0, method)
-    lsimplot(LTISystem[sys1, sys2...], u, t; x0, method)
+    fig = lsimplot(sys::LTISystem, u, t; x0=0)
+    lsimplot(LTISystem[sys1, sys2...], u, t; x0)
 
 Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
 not specified, a zero vector is used.
-
-Continuous time systems are discretized before simulation. By default, the
-method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.
 """
 lsimplot
 
-@recipe function lsimplot(p::Lsimplot; method=nothing)
-    if length(p.args) < 3
-        error("Wrong number of arguments")
-    end
-    systems,u,t = p.args[1:3]
+@recipe function lsimplot(p::Lsimplot)
+
+    systems = p.args[1]
 
     if !isa(systems,AbstractArray)
         systems = [systems]
-    end
-    if method == nothing
-        method = _issmooth(u) ? :foh : :zoh
     end
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
