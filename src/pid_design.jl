@@ -87,7 +87,7 @@ end
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
     P          = numpoly(G)[1]
     Q          = denpoly(G)[1]
-    f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
+    f          = (y,_,k) -> sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     ts         = Vector{Float64}()
@@ -112,15 +112,16 @@ If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffE
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
 rlocus
-@recipe function rlocus(p::Rlocusplot; K=Float64[])
+@recipe function rlocus(p::Rlocusplot; K=500)
     P = p.args[1]
-    K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
+    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
     Z = tzero(P)
     poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
     xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
