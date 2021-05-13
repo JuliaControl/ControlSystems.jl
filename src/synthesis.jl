@@ -157,7 +157,7 @@ end
 function place(sys::StateSpace, p, opt=:c)
     if opt == :c
         return place(sys.A, sys.B, p, opt)
-    elseif opt == :o
+    elseif opt === :o
         return place(sys.A, sys.C, p, opt)
     else
         error("third argument must be :c or :o")
