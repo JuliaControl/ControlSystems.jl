@@ -317,13 +317,14 @@ function placePI(P, ω₀, ζ; series=false)
     den = denvec(P)[]
     length(den) == 2 || error("Can only place poles using PI if the system if of first order.")
     if length(num) == 1
-        push!(num, 0)
+        num = [0; num]
     end
+    @show num den
     a, b = num
     c, d = den
     tmp = (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
-    kp = -(a*c*ω₀^2 - 2*b*c*ω₀*ζ + b*d) / tmp
-    ki = (ω₀^2*(b*c - a*d)) / tmp
+    kp = (-a*c*ω₀^2 + 2*b*c*ω₀*ζ - b*d) / tmp
+    ki = ω₀^2*(-a*d + b*c) / tmp
     C = pid(;kp, ki)
 
     if !series
