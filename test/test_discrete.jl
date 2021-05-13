@@ -104,7 +104,7 @@ matlab_prewarp = let
     sys = ss(A,B,C,D,0.01)
 end
 
-sys_prewarp = c2d(C_222_d, 0.01, :tustin, f_prewarp=10)
+sys_prewarp = c2d(C_222_d, 0.01, :tustin, w_prewarp=10)
 @test sys_prewarp ≈ matlab_prewarp atol = 1e-12
 
 
