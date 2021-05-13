@@ -23,4 +23,9 @@ kp,ki,C = loopshapingPI(P,10; phasemargin = 30, doplot = false)
 _,_,_,pm = margin(P*C)
 @test pm[] > 30
 
+P = tf(1,[1, 1])
+kp,ki,C = placePI(P, 2, 0.7)
+@test pole(feedback(P, C)) ≈ [-1.4 + 1.4282856857085702im, -1.4 - 1.4282856857085702im]
+@test (kp, ki) ≈ (1.7999999999999998, 2.2222222222222223)
+
 end

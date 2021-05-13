@@ -1,4 +1,4 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
     C = pid(; kp=0, ki=0; kd=0, time=false, series=false)
@@ -301,4 +301,33 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
         nyquistplot([P, P*C]) |> display
     end
     return kp,ki,C
+end
+
+"""
+    kp, ki, C = placePI(P, ω₀, ζ; series=false)
+
+Selects the parameters of a PI-controller such that the poles are placed
+to match the poles of s^2 + 2ζω₀ + ω₀^2.
+
+Default is to return the parameters for the parallel form, but if `series=true`
+they will be returned on series form.
+"""
+function placePI(P, ω₀, ζ; series=false)
+    num = numpoly(P)[].coeffs
+    den = denpoly(P)[].coeffs
+    length(den) == 2 || error("Can only place poles using PI if the system if of first order.")
+    if length(num) == 1
+        push!(num, 0)
+    end
+    a, b = num
+    c, d = den
+    tmp = (b^2*ω₀^2 - 2*b*a*ω₀*ζ + a^2)
+    kp = -(b*d*ω₀^2 - 2*a*d*ω₀*ζ + a*c) / tmp
+    ki = (ω₀^2*(a*d - b*c)) / tmp
+    C = pid(;kp, ki)
+
+    if !series
+        ki /= kp 
+    end
+    return kp, ki, C
 end
