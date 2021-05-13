@@ -1,5 +1,5 @@
 """
-    lqr(A, B, Q, R)
+    lqr(A, B, Q, R, args...)
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
@@ -12,6 +12,8 @@ For the continuous time model `dx = Ax + Bu`.
 
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
+
+The `args...` are sent to the Riccati solver, allowing specification of cross-covariance etc.
 
 See also `LQG`
 
@@ -33,9 +35,8 @@ y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
-function lqr(A, B, Q, R)
-    S = care(A, B, Q, R)
-    K = R\B'*S
+function lqr(A, B, Q, R, args...; kwargs...)
+    S, _, K = arec(A, B, R, Q, args...; kwargs...)
     return K
 end
 
@@ -47,19 +48,19 @@ Calculate the optimal Kalman gain
 
 See also `LQG`
 """
-kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
+kalman(A, C, R1,R2, args...; kwargs...) = Matrix(lqr(A',C',R1,R2, args...; kwargs...)')
 
-function lqr(sys::StateSpace, Q, R)
+function lqr(sys::StateSpace, Q, R, args...; kwargs...)
     if iscontinuous(sys)
-        return lqr(sys.A, sys.B, Q, R)
+        return lqr(sys.A, sys.B, Q, R, args...; kwargs...)
     else
         return dlqr(sys.A, sys.B, Q, R)
     end
 end
 
-function kalman(sys::StateSpace, R1,R2)
+function kalman(sys::StateSpace, R1,R2, args...; kwargs...)
     if iscontinuous(sys)
-        return Matrix(lqr(sys.A', sys.C', R1,R2)')
+        return Matrix(lqr(sys.A', sys.C', R1,R2, args...; kwargs...)')
     else
         return Matrix(dlqr(sys.A', sys.C', R1,R2)')
     end

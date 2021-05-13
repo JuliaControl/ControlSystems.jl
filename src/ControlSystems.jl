@@ -112,6 +112,7 @@ import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
 using DelayDiffEq
 using MacroTools
+using MatrixEquations
 
 abstract type AbstractSystem end
 
