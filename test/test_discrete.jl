@@ -77,12 +77,15 @@ C_210 = ss(C_212.A, C_212.B, zeros(0, 2), zeros(0, 1))
 end
 
 # forward euler
-@test c2d(C_111, 1, :fwdeuler).A == I + C_111.A
-@test d2c(c2d(C_111, 0.01, :fwdeuler), :fwdeuler) ≈ C_111
-@test d2c(c2d(C_212, 0.01, :fwdeuler), :fwdeuler) ≈ C_212
-@test d2c(c2d(C_221, 0.01, :fwdeuler), :fwdeuler) ≈ C_221
-@test d2c(c2d(C_222_d, 0.01, :fwdeuler), :fwdeuler) ≈ C_222_d
-@test d2c(c2d(G, 0.01, :fwdeuler), :fwdeuler) ≈ G
+@test c2d(C_111, 1, :fwdeuler)[1].A == I + C_111.A
+method = :tustin
+for method in (:fwdeuler, :tustin)
+    @test d2c(c2d(C_111, 0.01, method), method) ≈ C_111 atol = sqrt(eps())
+    @test d2c(c2d(C_212, 0.01, method), method) ≈ C_212 atol = sqrt(eps())
+    @test d2c(c2d(C_221, 0.01, method), method) ≈ C_221 atol = sqrt(eps())
+    @test d2c(c2d(C_222_d, 0.01, method), method) ≈ C_222_d atol = sqrt(eps())
+    @test d2c(c2d(G, 0.01, method), method) ≈ G atol = sqrt(eps())
+end
 
 
 Cd = c2d(C_111, 0.001, :fwdeuler)

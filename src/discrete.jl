@@ -2,7 +2,7 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
 
 
 """
-    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh)
+    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh; a=sys.Ts/2)
     Gd = c2d(G::TransferFunction{<:Continuous}, Ts, method=:zoh)
 
 Convert the continuous-time system `sys` into a discrete-time system with sample time
@@ -12,7 +12,7 @@ relative to the time constants of the system.
 
 See also `c2d_x0map`
 """
-c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
+c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; kwargs...) = c2d_x0map(sys, Ts, method; kwargs...)[1]
 
 
 """
@@ -22,7 +22,7 @@ Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
 transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
 
 See `c2d` for further details."""
-function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh)
+function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; a=Ts/2)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
@@ -49,7 +49,16 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
     elseif method === :fwdeuler
         Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
         x0map = I(nx)
-    elseif method === :tustin || method === :matched
+    elseif method === :tustin
+        a > 0 || throw(DomainError("A positive a must be provided for method Tustin"))
+        AI = (I(nx)-a*A)
+        Ad = AI\(I(nx)+a*A)
+        Bd = 2a*(AI\B)
+        # Cd = C/AI
+        Cd = C/AI 
+        Dd = a*Cd*B + D
+        x0map = I(nx)
+    elseif method === :matched
         error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
@@ -59,12 +68,12 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
 end
 
 """
-    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh)
+    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh; a=sys.Ts/2)
 
 Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
 """
-function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh)
-    A, B, Cc, Dc = ssdata(sys)
+function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; a=sys.Ts/2)
+    A, B, C, D = ssdata(sys)
     ny, nu = size(sys)
     nx = nstates(sys)
     if method === :zoh
@@ -75,9 +84,18 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh)
         if eltype(A) <: Real
             Ac,Bc = real.((Ac, Bc))
         end
+        Cc, Dc = C, D
     elseif method === :fwdeuler
         Ac = (A-I)./sys.Ts
         Bc = B./sys.Ts
+        Cc, Dc = C, D
+    elseif method === :tustin
+        a > 0 || throw(DomainError("A positive a must be provided for method Tustin"))
+        AI = a*(A+I)
+        Ac = (A-I)/AI
+        Bc = AI\B
+        Cc = 2a*C/AI
+        Dc = D - Cc*B/2
     else
         error("Unsupported method: ", method)
     end
