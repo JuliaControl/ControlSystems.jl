@@ -135,7 +135,7 @@ Currently handles only SISO systems.
 function place(A, B, p, opt=:c)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as states")
-    if opt == :c
+    if opt === :c
         n != size(B,1) && error("A and B must have same number of rows")
         if size(B,2) == 1
             acker(A, B, p)
