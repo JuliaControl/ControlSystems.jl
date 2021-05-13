@@ -6,8 +6,10 @@ defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 Uses `MatrixEquations.arec`.
 """
 function care(A, B, Q, R)
-    arec(A, B, R, Q)
+    arec(A, B, R, Q)[1]
 end
+
+care(A::Number, B::Number, Q::Number, R::Number) = care(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
 """`dare(A, B, Q, R)`
 
@@ -17,8 +19,10 @@ defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 Uses `MatrixEquations.ared`.
 """
 function dare(A, B, Q, R)
-    ared(A, B, R, Q)
+    ared(A, B, R, Q)[1]
 end
+
+dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
 """`dlyap(A, Q)`
 
