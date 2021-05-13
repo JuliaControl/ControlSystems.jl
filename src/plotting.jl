@@ -124,7 +124,7 @@ not specified, a zero vector is used.
 """
 lsimplot
 
-@recipe function lsimplot(p::Lsimplot)
+@recipe function lsimplot(p::Lsimplot; x0=0)
 
     systems = p.args[1]
 
@@ -139,7 +139,7 @@ lsimplot
     s2i(i,j) = LinearIndices((ny,1))[j,i]
     for (si,s) in enumerate(systems)
         s = systems[si]
-        y, t = lsim(s, p.args[2:end]...)
+        y, t = lsim(s, p.args[2:end]...; x0 = x0 == 0 ? zeros(s.nx) : x0)
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
