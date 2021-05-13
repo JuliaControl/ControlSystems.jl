@@ -376,8 +376,8 @@ end
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`Ms_circles`, vector of Ms values for drawing circles of constant sensitivity
-`unit_circle`, if the unit circle should be displayed
+- `unit_circle`: if the unit circle should be displayed
+- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
 
 `kwargs` is sent as argument to plot.
 """
@@ -423,6 +423,7 @@ nyquistplot
                         @series begin
                             subplot --> s2i(i,j)
                             primary := false
+                            linestyle := :dash
                             linecolor := :gray
                             seriestype := :path
                             markershape := :none
@@ -432,9 +433,10 @@ nyquistplot
                     end                
                     if unit_circle 
                         @series begin
+                            subplot --> s2i(i,j)
                             primary := false
                             linestyle := :dash
-                            linecolor := :black
+                            linecolor := :gray
                             seriestype := :path
                             markershape := :none
                             (C, S)
