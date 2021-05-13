@@ -50,7 +50,7 @@ function StateSpace(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) wher
     StateSpace(A, B, C, D, Continuous())
 end
 
-""" If D=0 then convert to correct size and type, else, create 1x1 matrix"""
+""" If D=0 then create zero matrix of correct size and type, else, convert D to correct type"""
 function fix_D_matrix(T::Type,B,C,D)
     if D == 0
         D = zeros(T, size(C,1), size(B,2))
