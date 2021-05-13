@@ -112,10 +112,9 @@ If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffE
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
 rlocus
-@recipe function rlocus(p::Rlocusplot; K=Float64[])
+@recipe function rlocus(p::Rlocusplot; K=500)
     P = p.args[1]
-    K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
-    K isa Number && (K = range(1e-6,stop=K,length=10000))
+    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
     Z = tzero(P)
     poles, K = getpoles(P,K)
     redata = real.(poles)
