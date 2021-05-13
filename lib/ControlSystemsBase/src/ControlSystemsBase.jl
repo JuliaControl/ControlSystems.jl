@@ -129,6 +129,7 @@ import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf
 import Printf: @printf, @sprintf
+import DSP
 import DSP: conv
 using ForwardDiff
 import MatrixPencils
@@ -198,6 +199,7 @@ include("nonlinear_components.jl")
 include("types/staticsystems.jl")
 
 include("plotting.jl")
+include("dsp.jl")
 
 @deprecate pole poles
 @deprecate tzero tzeros
