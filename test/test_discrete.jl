@@ -64,21 +64,19 @@ C_210 = ss(C_212.A, C_212.B, zeros(0, 2), zeros(0, 1))
 
 
 # d2c
-@static if VERSION > v"1.4" # log(matrix) is buggy on previous versions, should be fixed in 1.4 and back-ported to 1.0.6
-    @test d2c(c2d(C_111, 0.01)) ≈ C_111
-    @test d2c(c2d(C_212, 0.01)) ≈ C_212
-    @test d2c(c2d(C_221, 0.01)) ≈ C_221
-    @test d2c(c2d(C_222_d, 0.01)) ≈ C_222_d
-    @test d2c(Gd) ≈ G
+@test d2c(c2d(C_111, 0.01)) ≈ C_111
+@test d2c(c2d(C_212, 0.01)) ≈ C_212
+@test d2c(c2d(C_221, 0.01)) ≈ C_221
+@test d2c(c2d(C_222_d, 0.01)) ≈ C_222_d
+@test d2c(Gd) ≈ G
 
-    sys = ss([0 1; 0 0], [0;1], [1 0], 0)
-    sysd = c2d(sys, 1)
-    @test d2c(sysd) ≈ sys
-end
+sys = ss([0 1; 0 0], [0;1], [1 0], 0)
+sysd = c2d(sys, 1)
+@test d2c(sysd) ≈ sys
 
-# forward euler
+
+# forward euler / tustin
 @test c2d(C_111, 1, :fwdeuler).A == I + C_111.A
-method = :tustin
 for method in (:fwdeuler, :tustin)
     @test d2c(c2d(C_111, 0.01, method), method) ≈ C_111 atol = sqrt(eps())
     @test d2c(c2d(C_212, 0.01, method), method) ≈ C_212 atol = sqrt(eps())
@@ -86,6 +84,28 @@ for method in (:fwdeuler, :tustin)
     @test d2c(c2d(C_222_d, 0.01, method), method) ≈ C_222_d atol = sqrt(eps())
     @test d2c(c2d(G, 0.01, method), method) ≈ G atol = sqrt(eps())
 end
+
+matlab_tustin = let 
+    A = [0.95094630230333 -0.02800401390866; 0.018669342605773 0.913607617091783]
+    B = [0.009754731511517 -0.000280040139087; 9.3346713029e-5 0.019136076170918]
+    C = [0.975473151151665 -0.01400200695433; 0.009334671302887 0.956803808545892]
+    D = [1.004877365755758 -0.000140020069543; 4.6673356514e-5 1.009568038085459]
+    ss(A,B,C,D,0.01)
+end
+
+sys_tustin = c2d(C_222_d, 0.01, :tustin)
+@test sys_tustin ≈ matlab_tustin atol = 1e-12
+
+matlab_prewarp = let
+    A = [0.950906169509825 -0.028025790680969; 0.018683860453979 0.913538448601866]
+    B = [0.009762667760265 -0.00028049168885; 9.3497229617e-5 0.019151346602063]
+    C = [0.975453084754912 -0.014012895340485; 0.00934193022699 0.956769224300933]
+    D = [1.004881333880133 -0.000140245844425; 4.6748614808e-5 1.009575673301031]
+    sys = ss(A,B,C,D,0.01)
+end
+
+sys_prewarp = c2d(C_222_d, 0.01, :tustin, f_prewarp=10)
+@test sys_prewarp ≈ matlab_prewarp atol = 1e-12
 
 
 Cd = c2d(C_111, 0.001, :fwdeuler)
