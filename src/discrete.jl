@@ -54,7 +54,7 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
         Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
         x0map = I(nx)
     elseif method === :tustin
-        a = f_prewarp == 0 ? sys.Ts/2 : tan(f_prewarp*Ts/2)/f_prewarp
+        a = f_prewarp == 0 ? Ts/2 : tan(f_prewarp*Ts/2)/f_prewarp
         a > 0 || throw(DomainError("A positive f_prewarp must be provided for method Tustin"))
         AI = (I-a*A)
         Ad = AI\(I+a*A)
