@@ -433,6 +433,7 @@ nyquistplot
                     end                
                     if unit_circle 
                         @series begin
+                            subplot --> s2i(i,j)
                             primary := false
                             linestyle := :dash
                             linecolor := :gray
