@@ -16,11 +16,16 @@ else
     @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Continuous,Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
 end
 
-# Extremely baseic tests
+# Extremely basic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
 @test freqresp(delay(2.5), ω)[:] ≈ exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(3.5*delay(2.5), ω)[:] ≈ 3.5*exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(delay(2.5)*1.5, ω)[:] ≈ exp.(-2.5im*ω)*1.5 rtol=1e-15
+
+# Addition of constant
+@test evalfr(1 + delay(1.0), 0)[] ≈ 2
+@test evalfr(1 - delay(1.0), 0)[] ≈ 0
+@test evalfr([2 -delay(1.0)], 0) ≈ [2 -1]
 
 # Stritcly proper system
 P1 = DelayLtiSystem(ss(-1.0, 1, 1, 0))
