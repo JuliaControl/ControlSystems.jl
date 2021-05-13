@@ -57,6 +57,30 @@ z5,p5,k5 = zpkdata(ffb5)
 end
 
 
+
+@testset "place" begin
+    sys = ss(-4, 2, 3, 0)
+    A, B, C, _ = ssdata(sys)
+
+    place(A, B, [-10]) == [3][:,:]
+
+    A = [0 1; 0 0]
+    B = [0; 1]
+    C = [1 0]
+    sys = ss(A, B, C, 0)
+
+    @test place(A, B, [-1.0, -1]) ≈ [1 2]
+    @test place(sys, [-1.0, -1]) ≈ [1 2]
+
+    @test place(A, B, [-2 + im, -2 - im]) ≈ [5 4]
+
+    A = ones(3,3) - diagm([3, 4, 5])
+    B = [1; 0; 2]
+    C = [1 1 0]
+    @test place(A, B, [-2 + 2im, -2 - 2im, -4]) ≈ [-2.6 5.2 0.8]
+end
+
+
 @testset "acker" begin
 Random.seed!(0)
 A = randn(3,3)
