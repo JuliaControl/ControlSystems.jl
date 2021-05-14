@@ -52,8 +52,8 @@ DelayLtiSystem(sys::TransferFunction{TE,S}) where {TE,T,S<:SisoTf{T}} = DelayLti
 Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 Base.promote_rule(::Type{T1}, ::Type{DelayLtiSystem{T2,S}}) where {T1<:Number,T2<:Number,S} = DelayLtiSystem{promote_type(T1,T2),S}
 
-Base.promote_rule(::Type{<:StateSpace{<:TimeEvolution,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
-Base.promote_rule(::Type{<:TransferFunction}, ::Type{DelayLtiSystem{T,S}}) where {T,S} = DelayLtiSystem{T,S}
+Base.promote_rule(::Type{<:StateSpace{Continuous,T1}}, ::Type{DelayLtiSystem{T2,S}}) where {T1,T2,S} = DelayLtiSystem{promote_type(T1,T2),S}
+Base.promote_rule(::Type{<:TransferFunction{Continuous,S1}}, ::Type{DelayLtiSystem{T2,S2}}) where {T1,S1<:SisoTf{T1},T2,S2} = DelayLtiSystem{promote_type(T1,T2),S2}
 #Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
 
 function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::StateSpace) where {T,S}
