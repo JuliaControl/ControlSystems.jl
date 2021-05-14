@@ -325,7 +325,9 @@ should be returned on.
 function placePI(P, ω₀, ζ; form=:standard)
     num = numvec(P)[]
     den = denvec(P)[]
-    length(den) == 2 || error("Can only place poles using PI if the system if of first order.")
+    if length(den) != 2 || length(num) > 2
+        error("Can only place poles using PI for proper first-order systems")
+    end
     if length(num) == 1
         num = [0; num]
     end
