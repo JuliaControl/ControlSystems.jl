@@ -315,7 +315,7 @@ should be returned on.
 * `:standard` - `Kp*(1 + 1/Ti/s)`
 * `:series` - `Kc*(1 + 1/τi/s)`
 * `:parallel` - `Kp + Ki/s`
-* `:Ti` - `Kp + 1/(s*Ti)`
+* `:Ti` - `Kp + 1/(s*Ti)`   (non-standard form sometimes used in industry)
 
 `piparams` is a named tuple with the controller parameters.
 
