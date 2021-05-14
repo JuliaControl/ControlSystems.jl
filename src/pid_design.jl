@@ -1,4 +1,4 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
     C = pid(; kp=0, ki=0; kd=0, time=false, series=false)
@@ -302,4 +302,53 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
         nyquistplot([P, P*C]) |> display
     end
     return kp,ki,C
+end
+
+"""
+    piparams, C = placePI(P, ω₀, ζ; form=:standard)
+
+Selects the parameters of a PI-controller such that the poles of 
+closed loop between `P` and `C` are placed to match the poles of 
+`s^2 + 2ζω₀ + ω₀^2`.
+
+The `form` keyword allows you to choose which form the PI parameters
+should be returned on. 
+* `:standard` - `Kp*(1 + 1/Ti/s)`
+* `:series` - `Kc*(1 + 1/τi/s)`
+* `:parallel` - `Kp + Ki/s`
+* `:Ti` - `Kp + 1/(s*Ti)`   (non-standard form sometimes used in industry)
+
+`piparams` is a named tuple with the controller parameters.
+
+`C` is the transfer function of the controller.
+
+"""
+function placePI(P, ω₀, ζ; form=:standard)
+    num = numvec(P)[]
+    den = denvec(P)[]
+    if length(den) != 2 || length(num) > 2
+        error("Can only place poles using PI for proper first-order systems")
+    end
+    if length(num) == 1
+        num = [0; num]
+    end
+    a, b = num
+    c, d = den
+    # Calculates PI on standard/series form
+    tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
+    Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
+    Ti = tmp / (ω₀^2*(a*d - b*c))
+    C = pid(;kp=Kp, ki=Ti, time=true, series=true) 
+
+    if form === :standard
+        return (;Kp, Ti), C
+    elseif form === :series
+        return (;Kc=Kp, τi=Ti), C
+    elseif form === :parallel
+        return (;Kp=Kp, ki=Kp/Ti), C
+    elseif form === :Ti
+        return (;Kp=Kp, Ti=Ti/Kp), C
+    else
+        error("Form $(form) not supported")
+    end
 end
