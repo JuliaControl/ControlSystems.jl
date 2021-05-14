@@ -304,7 +304,7 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
 end
 
 """
-    piparam, C = placePI(P, ω₀, ζ; form=:standard)
+    piparams, C = placePI(P, ω₀, ζ; form=:standard)
 
 Selects the parameters of a PI-controller such that the poles of 
 closed loop between `P` and `C` are placed to match the poles of 
@@ -317,7 +317,7 @@ should be returned on.
 * `:parallel` - `Kp + Ki/s`
 * `:Ti` - `Kp + 1/(s*Ti)`
 
-`piparam` is a named tuple with the controller parameters.
+`piparams` is a named tuple with the controller parameters.
 
 `C` is the transfer function of the controller.
 
