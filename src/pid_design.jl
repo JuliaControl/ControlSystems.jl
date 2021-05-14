@@ -324,6 +324,7 @@ should be returned on.
 
 """
 function placePI(P, ω₀, ζ; form=:standard)
+    P = tf(P)
     num = numvec(P)[]
     den = denvec(P)[]
     if length(den) != 2 || length(num) > 2
