@@ -310,7 +310,7 @@ Selects the parameters of a PI-controller such that the poles of
 closed loop between `P` and `C` are placed to match the poles of 
 `s^2 + 2ζω₀ + ω₀^2`.
 
-The form keyword allows you to choose which form the PI parameters
+The `form` keyword allows you to choose which form the PI parameters
 should be returned on. 
 * `:standard` - `Kp*(1 + 1/Ti/s)`
 * `:series` - `Kc*(1 + 1/τi/s)`
