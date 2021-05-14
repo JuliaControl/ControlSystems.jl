@@ -304,31 +304,48 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
 end
 
 """
-    kp, ki, C = placePI(P, ω₀, ζ; series=false)
+    piparam, C = placePI(P, ω₀, ζ; form=:standard)
 
-Selects the parameters of a PI-controller such that the poles are placed
-to match the poles of s^2 + 2ζω₀ + ω₀^2.
+Selects the parameters of a PI-controller such that the poles of 
+closed loop between `P` and `C` are placed to match the poles of 
+`s^2 + 2ζω₀ + ω₀^2`.
 
-Default is to return the parameters for the parallel form, but if `series=true`
-they will be returned on series form.
+The form keyword allows you to choose which form the PI parameters
+should be returned on. 
+* `:standard` - `Kp*(1 + 1/Ti/s)`
+* `:series` - `Kc*(1 + 1/τi/s)`
+* `:parallel` - `Kp + Ki/s`
+* `:Ti` - `Kp + 1/(s*Ti)`
+
+`piparam` is a named tuple with the controller parameters.
+
+`C` is the transfer function of the controller.
+
 """
-function placePI(P, ω₀, ζ; series=false)
+function placePI(P, ω₀, ζ; form=:standard)
     num = numvec(P)[]
     den = denvec(P)[]
     length(den) == 2 || error("Can only place poles using PI if the system if of first order.")
     if length(num) == 1
         num = [0; num]
     end
-    @show num den
     a, b = num
     c, d = den
-    tmp = (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
-    kp = (-a*c*ω₀^2 + 2*b*c*ω₀*ζ - b*d) / tmp
-    ki = ω₀^2*(-a*d + b*c) / tmp
-    C = pid(;kp, ki)
+    # Calculates PI on standard/series form
+    tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
+    Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
+    Ti = tmp / (ω₀^2*(a*d - b*c))
+    C = pid(;kp=Kp, ki=Ti, series=true) 
 
-    if !series
-        ki /= kp 
+    if form === :standard
+        return (;Kp, Ti), C
+    elseif form === :series
+        return (;Kc=Kp, τi=Ti), C
+    elseif form === :parallel
+        return (;Kp=Kp, ki=Kp/Ti), C
+    elseif form === :Ti
+        return (;Kp=Kp, Ti=Ti/Kp), C
+    else
+        error("Form $(form) not supported")
     end
-    return kp, ki, C
 end
