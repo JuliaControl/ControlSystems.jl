@@ -322,6 +322,7 @@ Base.ndims(::AbstractStateSpace) = 2 # NOTE: Also for SISO systems?
 Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(sys.D)
 Base.size(sys::AbstractStateSpace, d::Integer) = d <= 2 ? size(sys)[d] : 1
 Base.eltype(::Type{S}) where {S<:AbstractStateSpace} = S
+Base.axes(sys::AbstractStateSpace, i::Integer) = Base.OneTo(size(sys, i))
 
 function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
     if size(inds, 1) != 2
