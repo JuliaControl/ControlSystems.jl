@@ -335,7 +335,7 @@ function placePI(P, ω₀, ζ; form=:standard)
     tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
     Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
     Ti = tmp / (ω₀^2*(a*d - b*c))
-    C = pid(;kp=Kp, ki=Ti, series=true) 
+    C = pid(;kp=Kp, ki=Ti, time=true, series=true) 
 
     if form === :standard
         return (;Kp, Ti), C
