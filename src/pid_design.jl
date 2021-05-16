@@ -1,4 +1,4 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, pidparams
 
 """
     C = pid(; kp=0, ki=0; kd=0, time=false, series=false)
@@ -345,12 +345,15 @@ options are
 * `:parallel` - `Kp + Ki/s + Kd*s`
 * `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
 where the returned value is a named tuple with the converted parameters in.
+
+The parameters can be accessed as `params.Kp` or `params["Kp"]` from the named tuple,
+or they can be unpacked using `Kp, Ti, Td = values(params)`.
 """
 function pidparams(P::TransferFunction{<:Continuous, <:SisoRational{T}}; form=:standard) where T
     num = numvec(P)[]
     den = denvec(P)[]
     num = [zeros(3 - length(num)); num]
-    den = [zeros(2 - length(num)); den]
+    den = [zeros(2 - length(den)); den]
 
     if den[1] != 0 # Integrator
         num ./= den[1]
@@ -358,9 +361,9 @@ function pidparams(P::TransferFunction{<:Continuous, <:SisoRational{T}}; form=:s
         num ./= den[2]
     end
     
-    K = num[2]
-    Ti = K / num[3]
-    Td = num[1] / K
+    Kp = num[2]
+    Ti = Kp / num[3]
+    Td = num[1] / Kp
     
     if form === :series
         Kc = Kp*(Ti - sqrt(Ti*(-4*Td + Ti)))/(2*Ti)
@@ -368,9 +371,9 @@ function pidparams(P::TransferFunction{<:Continuous, <:SisoRational{T}}; form=:s
         τd = Ti/2 + sqrt(Ti*(-4*Td + Ti))/2
         return (;Kc, τi, τd)
     elseif form === :parallel
-        return (;Kp=Kp, Ki=Kp/Ti, Kd)
+        return (;Kp=Kp, Ki=Kp/Ti, Kd=Kp*Td)
     elseif form === :paralleltime
-        return (;Kp=Kp, Ti=Ti/Kp, Td=Td)
+        return (;Kp=Kp, Ti=Ti/Kp, Td=Kp*Td)
     elseif form === :standard
         return (;Kp, Ti, Td)
     else
