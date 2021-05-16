@@ -24,6 +24,7 @@ end
 
 noutputs(G::TransferFunction) = size(G.matrix, 1)
 ninputs(G::TransferFunction) = size(G.matrix, 2)
+nstates(G::TransferFunction) = length(pole(G)) # Does not work for MIMO 
 
 #####################################################################
 ##                          Misc. Functions                        ##
