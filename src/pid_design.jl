@@ -305,26 +305,15 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
 end
 
 """
-    piparams, C = placePI(P, ω₀, ζ; form=:standard)
+    C = placePI(P, ω₀, ζ)
 
 Selects the parameters of a PI-controller such that the poles of 
 closed loop between `P` and `C` are placed to match the poles of 
 `s^2 + 2ζω₀ + ω₀^2`.
 
-The `form` keyword allows you to choose which form the PI parameters
-should be returned on. 
-* `:standard` - `Kp*(1 + 1/Ti/s)`
-* `:series` - `Kc*(1 + 1/τi/s)`
-* `:parallel` - `Kp + Ki/s`
-* `:Ti` - `Kp + 1/(s*Ti)`   (non-standard form sometimes used in industry)
-
-`piparams` is a named tuple with the controller parameters.
-
-`C` is the transfer function of the controller.
-
+`C` is the returned transfer function of the controller.
 """
-function placePI(P, ω₀, ζ; form=:standard)
-    P = tf(P)
+function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ; form=:standard) where T
     num = numvec(P)[]
     den = denvec(P)[]
     if length(den) != 2 || length(num) > 2
@@ -339,17 +328,54 @@ function placePI(P, ω₀, ζ; form=:standard)
     tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
     Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
     Ti = tmp / (ω₀^2*(a*d - b*c))
-    C = pid(;kp=Kp, ki=Ti, time=true, series=true) 
+    # Use T somehow
+    return pid(;kp=Kp, ki=Ti, time=true, series=true) 
+end
 
-    if form === :standard
-        return (;Kp, Ti), C
-    elseif form === :series
-        return (;Kc=Kp, τi=Ti), C
+placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
+
+"""
+    params = pidparams(C; form=:standard)
+
+Extract PID parameters from a system representation of the controller. 
+Parameters can be extracted as one of several common representations, 
+options are 
+* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
+* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
+* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
+where the returned value is a named tuple with the converted parameters in.
+"""
+function pidparams(P::TransferFunction{<:Continuous, <:SisoRational{T}}; form=:standard) where T
+    num = numvec(P)[]
+    den = denvec(P)[]
+    num = [zeros(3 - length(num)); num]
+    den = [zeros(2 - length(num)); den]
+
+    if den[1] != 0 # Integrator
+        num ./= den[1]
+    else
+        num ./= den[2]
+    end
+    
+    K = num[2]
+    Ti = K / num[3]
+    Td = num[1] / K
+    
+    if form === :series
+        Kc = Kp*(Ti - sqrt(Ti*(-4*Td + Ti)))/(2*Ti)
+        τi = Ti/2 - sqrt(Ti*(-4*Td + Ti))/2
+        τd = Ti/2 + sqrt(Ti*(-4*Td + Ti))/2
+        return (;Kc, τi, τd)
     elseif form === :parallel
-        return (;Kp=Kp, ki=Kp/Ti), C
-    elseif form === :Ti
-        return (;Kp=Kp, Ti=Ti/Kp), C
+        return (;Kp=Kp, Ki=Kp/Ti, Kd)
+    elseif form === :paralleltime
+        return (;Kp=Kp, Ti=Ti/Kp, Td=Td)
+    elseif form === :standard
+        return (;Kp, Ti, Td)
     else
         error("Form $(form) not supported")
     end
 end
+
+pidparams(sys::LTISystem; form=:standard) = pidparams(tf(sys); form)
