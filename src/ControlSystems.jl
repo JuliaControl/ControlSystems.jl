@@ -42,6 +42,7 @@ export  LTISystem,
         similarity_transform,
         prescale,
         innovation_form,
+        noise_model,
         # Stability Analysis
         isstable,
         pole,

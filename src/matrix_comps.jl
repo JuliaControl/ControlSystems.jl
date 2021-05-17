@@ -606,8 +606,8 @@ function prescale(sys::StateSpace)
 end
 
 """
-sysi = innovation_form(sys, R1, R2)
-sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+sysi = noise_model(sys, R1, R2)
+sysi = noise_model(sys; sysw=I, syse=I, R1=I, R2=I)
 
 Takes a system
 ```
@@ -625,12 +625,33 @@ If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R
 
 See Stochastic Control, Chapter 4, Åström
 """
-function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
+function noise_model(sys::ST, R1, R2) where ST <: AbstractStateSpace
     K = kalman(sys, R1, R2)
     ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
-function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
+function noise_model(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
 	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+end
+
+"""
+    innovation_form(sys::AbstractStateSpace, R1, R2)
+    innovation_form(sys::AbstractStateSpace)
+
+Return the predictor system
+x' = (A - KC)x + Bu + Ke
+y  = Cx + Du + e
+with the input equation [B K] * [u; y]
+
+See also `noise_model`.
+"""
+function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
+    K = kalman(sys, R1, R2)
+    innovation_form(sys, K)
+end
+
+function ControlSystems.innovation_form(sys, K::AbstractMatrix)
+    A,B,C,D = ssdata(sys)
+    ss(A-K*C, [B K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
 end
