@@ -640,8 +640,8 @@ end
     predictor(sys::AbstractStateSpace, K)
 
 Return the predictor system
-x' = (A - KC)x + Bu + Ke
-y  = Cx + Du + e
+x̂' = (A - KC)x̂ + Bu + Ky
+ŷ  = Cx + Du
 with the input equation [B K] * [u; y]
 
 If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
