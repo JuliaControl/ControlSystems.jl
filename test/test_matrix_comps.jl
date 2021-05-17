@@ -77,39 +77,39 @@ nsys, T = prescale(sys)
 @test nsys.C ≈ sys.C*T
 
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
-sysn = ControlSystems.noise_model(sys, I, I)
-@test sysn.A ≈ sysn.A
-@test sysn.B ≈ [4.415675759647131
+sysi = ControlSystems.innovation_form(sys, I, I)
+@test sysi.A ≈ sysi.A
+@test sysi.B ≈ [4.415675759647131
  48.334204475215365]
 
- sysn = noise_model(sys)
- @test sysn.B ≈ [4.415675759647131
+ sysi = innovation_form(sys)
+ @test sysi.B ≈ [4.415675759647131
  48.334204475215365]
 
- sysn = noise_model(sys, R2 = 2I)
- @test sysn.B ≈ [4.225661436353894
+ sysi = innovation_form(sys, R2 = 2I)
+ @test sysi.B ≈ [4.225661436353894
  44.52445850991302]
 
- sysn = noise_model(sys, R1 = 2I)
- @test sysn.B ≈ [4.734159731874057
+ sysi = innovation_form(sys, R1 = 2I)
+ @test sysi.B ≈ [4.734159731874057
  54.719744515739514]
 
- sysn = ControlSystems.noise_model(sys, R1=2I, R2=2I)
- @test sysn.B ≈ [4.415675759647131
+ sysi = ControlSystems.innovation_form(sys, R1=2I, R2=2I)
+ @test sysi.B ≈ [4.415675759647131
  48.334204475215365]
 
 # Test with noise filters
 sysw = ss([0.5 0.1; 0 0.5], [0,1], eye_(2), 0, 1)
-sysn = ControlSystems.noise_model(sys, sysw=sysw)
-@test sysn.A ≈ sys.A
-@test sysn.B ≈ [4.01361818808572
+sysi = ControlSystems.innovation_form(sys, sysw=sysw)
+@test sysi.A ≈ sys.A
+@test sysi.B ≈ [4.01361818808572
  40.26132476965486]
 
 
 # Test innovation form
-sysi = ControlSystems.innovation_form(sys, I(2), I(1))
+sysp = ControlSystems.predictor(sys, I(2), I(1))
 K = kalman(sys, I(2), I(1))
-@test sysi.A == sys.A-K*sys.C
-@test sysi.B == [sys.B K]
+@test sysp.A == sys.A-K*sys.C
+@test sysp.B == [sys.B K]
 
 end
