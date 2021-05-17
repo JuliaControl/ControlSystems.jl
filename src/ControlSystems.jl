@@ -43,6 +43,7 @@ export  LTISystem,
         prescale,
         innovation_form,
         predictor,
+        controller,
         # Stability Analysis
         isstable,
         pole,

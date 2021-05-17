@@ -653,7 +653,25 @@ function predictor(sys::ST, R1, R2) where ST <: AbstractStateSpace
     predictor(sys, K)
 end
 
-function ControlSystems.predictor(sys, K::AbstractMatrix)
+function predictor(sys, K::AbstractMatrix)
     A,B,C,D = ssdata(sys)
     ss(A-K*C, [B K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
+end
+
+"""
+    cont = controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+
+Return the controller `cont` that is given by
+`ss(A - B*L - K*C + K*D*L, K, L, 0)`
+
+Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
+
+# Arguments:
+- `sys`: Model of system
+- `L`: State-feedback gain `u = -Lx`
+- `K`: Observer gain
+"""
+function controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+    A,B,C,D = ssdata(sys)
+    ss(A - B*L - K*C + K*D*L, K, L, 0, sys.timeevol)
 end
