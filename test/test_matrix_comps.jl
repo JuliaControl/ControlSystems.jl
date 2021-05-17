@@ -105,4 +105,11 @@ sysi = ControlSystems.innovation_form(sys, sysw=sysw)
 @test sysi.B ≈ [4.01361818808572
  40.26132476965486]
 
+
+# Test innovation form
+sysp = ControlSystems.predictor(sys, I(2), I(1))
+K = kalman(sys, I(2), I(1))
+@test sysp.A == sys.A-K*sys.C
+@test sysp.B == [sys.B K]
+
 end
