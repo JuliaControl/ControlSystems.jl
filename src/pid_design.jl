@@ -20,8 +20,7 @@ Options for `form` are
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(1 + τd*s)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
-with default `params` values `Kp=Kc=Ki=Kd=Td=τd=Tf=0`, `Ti=τi=inf`.
+with default `params` values `Kp=Kc=Ki=Kd=Td=τd=Tf=0`, `Ti=τi=Inf`.
 
 ## Examples
 ```
@@ -43,9 +42,9 @@ function pid(::Type{StateSpace}; form=:standard, params...)
     Tf = get(params, :Tf, 0)
     p = form2standard(form; params...)
     if Tf != 0
-        A = [0 1 0; 0 0 1; 0 -2.0/Tf^2 -2.0/Tf]
+        A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
         B = [0; 0; 1]
-        C = 2.0 * p.Kp / Tf^2 * [1/p.Ti 1 p.Td]
+        C = 2 * p.Kp / Tf^2 * [1/p.Ti 1 p.Td]
         D = 0
     elseif p.Td == 0
         A = 0
@@ -358,7 +357,6 @@ chose by `form`, the options are
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
 
 `C` is the returned transfer function of the controller and `params` 
 is a named tuple containing the parameters.
@@ -392,12 +390,11 @@ Convert parameters from standard form to other forms.
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
 """
 function standard2form(form; params...)
-    Kp = get(params, :Kp, 0)
-    Ti = get(params, :Ti, inf)
-    Td = get(params, :Td, 0)
+    Kp = get(params, :Kp, 0.0)
+    Ti = get(params, :Ti, typeof(Kp)(Inf))
+    Td = get(params, :Td, 0.0)
     if form === :series
         1 < 4*Td/Ti && error("Series form cannot be used for complex zeros.")
         Kc = Kp/2 * (1 + sqrt(1 - 4*Td/Ti))
@@ -406,8 +403,6 @@ function standard2form(form; params...)
         return (;Kc, τi, τd)
     elseif form === :parallel
         return (;Kp=Kp, Ki=Kp/Ti, Kd=Kp*Td)
-    elseif form === :paralleltime
-        return (;Kp=Kp, Ti=Ti/Kp, Td=Kp*Td)
     elseif form === :standard
         return (;Kp, Ti, Td)
     else
@@ -422,28 +417,22 @@ Convert parameters from other forms to standard form.
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
 """
 function form2standard(form; params...)
     if form === :series
-        Kc = get(params, :Kc, 0)
-        τi = get(params, :τi, inf)
-        τd = get(params, :τd, 0)
+        Kc = get(params, :Kc, 0.0)
+        τi = get(params, :τi, typeof(Kc)(Inf))
+        τd = get(params, :τd, 0.0)
         return (;Kp=Kc*(τd+τi)/τi, Ti=τd+τi, Td=τd*τi/(τd+τi))
     elseif form === :parallel
-        Kp = get(params, :Kp, 0)
-        Ki = get(params, :Ki, 0)
-        Kd = get(params, :Kd, 0)
+        Kp = get(params, :Kp, 0.0)
+        Ki = get(params, :Ki, 0.0)
+        Kd = get(params, :Kd, 0.0)
         return (;Kp=Kp, Ti=Kp/Ki, Td=Kd/Kp)
-    elseif form === :paralleltime
-        Kp = get(params, :Kp, 0)
-        Ti = get(params, :Ti, inf)
-        Kd = get(params, :Kd, 0)
-        return (;Kp=Kp, Ti=Kp*Ti, Td=Kd/Kp)
     elseif form === :standard
-        Kp = get(params, :Kc, 0)
-        Ti = get(params, :τi, inf)
-        Td = get(params, :τd, 0)
+        Kp = get(params, :Kc, 0.0)
+        Ti = get(params, :τi, typeof(Kp)(Inf))
+        Td = get(params, :τd, 0.0)
         return (;Kp, Ti, Td)
     else
         error("Form $(form) not supported")
