@@ -1,21 +1,27 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, pidparams
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
-    C = pid([StateSpace;] form=:standard, params...)
+    C = pid([type=StateSpace;] form=:standard, params...)
 
-Calculates and returns a PID controller on transfer function form
-as default, but if the first argument is `StateSpace` it will be 
-created on state space form. If state space is selected either
-the derivative part has to be zero or `N` has to be provided to 
-allow for a state space realization. The state space will be
-returned on controllable canonical form.
+Calculates and returns a PID controller on with type representation.
+Default is `StateSpace`, but the first argument can be supplied as
+`TransferFunction` to create it as a transfer function.
+
+If state space is selected either the derivative part has to be zero 
+or `Tf` has to be provided for creating a filter on the input to 
+allow for a state space realization. 
+The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` should
+be chosen as `Ti/N` for a PI controller and `Td/N` for a PID conteroller,
+and `N` is commonly in the range 2 to 20.
+
+The state space will be returned on controllable canonical form.
 
 Options for `form` are 
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s/(1+Td*s/N))` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(1 + τd*s/(1+τd*s/N))`
-* `:parallel` - `Kp + Ki/s + Kd*s/(1+Kd*s/N)`
-* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s/(1+Kd*s/N)`
-with default `params` values `Kp=Kc=Ki=Kd=Td=τd=0`, `Ti=τi=N=inf`.
+* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
+* `:series` - `Kc*(1 + 1/(τi*s))*(1 + τd*s)`
+* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
+with default `params` values `Kp=Kc=Ki=Kd=Td=τd=Tf=0`, `Ti=τi=inf`.
 
 ## Examples
 ```
@@ -25,52 +31,29 @@ C3 = pid(StateSpace; Kp=2, Ti=3)
 C4 = pid(StateSpace; form=:standard, Kp=2, Ti=3, Td=1, N=4)
 ```
 """
-function pid(; form=:standard, params...)
+pid(; form=:standard, params...) = pid(StateSpace; form, params...)
+
+function pid(::Type{TransferFunction}; form=:standard, params...)
     s = tf("s")
-    N = get(params, :N, inf)
-    if form === :standard
-        Kp = get(params, :Kp, 0)
-        Ti = get(params, :Ti, inf)
-        Td = get(params, :Td, 0)
-        return Kp*(1 + 1/(Ti*s) + Td*s/(1+Td*s/N)) 
-    elseif form === :series
-        Kc = get(params, :Kc, 0)
-        τi = get(params, :τi, inf)
-        τd = get(params, :τd, 0)
-        return Kc*(1 + 1/(τi*s))*(1 + τd*s/(1+τd*s/N))
-    elseif form === :parallel
-        Kp = get(params, :Kp, 0)
-        Ki = get(params, :Ki, 0)
-        Kd = get(params, :Kd, 0)
-        return Kp + Ki/s + Kd*s/(1+Kd*s/N)
-    elseif form === :paralleltime
-        Kp = get(params, :Kp, 0)
-        Ti = get(params, :Ti, inf)
-        Kd = get(params, :Kd, 0)
-        return Kp + 1/(Ti*s) + Kd*s/(1+Kd*s/N)
-    else
-        error("Form $(form) not supported")
-    end
+    p = form2standard(form; params...)
+    return p.Kp*(1 + 1/(p.Ti*s) + p.Td*s)
 end
 
 function pid(::Type{StateSpace}; form=:standard, params...)
-    params = form2standard(form; params...)
-    N = get(params, :N, inf)
-    Kp = get(params, :Kp, 0)
-    Ti = get(params, :Ti, inf)
-    Td = get(params, :Td, 0)
-    if Td != 0 && N != inf
-        A = [0 1; N/Td 0]
-        B = [0; 1]
-        C = Kp .* [N^2/Td-1/Ti -N/(Ti*Td)]
-        D = [Kp*(N+1)]
-    elseif Td == 0
+    Tf = get(params, :Tf, 0)
+    p = form2standard(form; params...)
+    if Tf != 0
+        A = [0 1 0; 0 0 1; 0 -2.0/Tf^2 -2.0/Tf]
+        B = [0; 0; 1]
+        C = 2.0 * p.Kp / Tf^2 * [1/p.Ti 1 p.Td]
+        D = 0
+    elseif p.Td == 0
         A = 0
         B = 1
-        C = Kp/Ti
-        D = Kp
+        C = p.Kp / p.Ti
+        D = p.Kp
     else
-        error("Cannot create a state space form.")
+        error("Cannot create a state space form for Td != 0 and Tf == 0.")
     end
     return ss(A, B, C, D)
 end
@@ -416,6 +399,7 @@ function standard2form(form; params...)
     Ti = get(params, :Ti, inf)
     Td = get(params, :Td, 0)
     if form === :series
+        1 < 4*Td/Ti && error("Series form cannot be used for complex zeros.")
         Kc = Kp/2 * (1 + sqrt(1 - 4*Td/Ti))
         τi = Ti/2 * (1 + sqrt(1 - 4*Td/Ti))
         τd = Ti/2 * (1 - sqrt(1 - 4*Td/Ti))
@@ -441,7 +425,6 @@ Convert parameters from other forms to standard form.
 * `:paralleltime` - `Kp + 1/(Ti*s) + Kd*s`
 """
 function form2standard(form; params...)
-    #N = get(params, :N, inf)
     if form === :series
         Kc = get(params, :Kc, 0)
         τi = get(params, :τi, inf)
