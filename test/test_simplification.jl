@@ -97,9 +97,9 @@ sysr = minreal(sys)
     @test sum(abs, TP - diagm(diag(TP))) < 1e-10
 
     P = randn(2, 3)
-    P = P'P
+    P = P'P # create rank-deficient matrix of rank 2
     T = diagonalizing(P, true)
-    @test T*P*T' ≈ ControlSystems.blockdiag(1.0I(2), 0.0I(1))
+    @test T*P*T' ≈ ControlSystems.blockdiag(1.0I(2), 0.0I(1)) # whould result in one 0 on diag
 
     T = diagonalizing(P, false)
     TP = T*P*T'

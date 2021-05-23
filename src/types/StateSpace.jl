@@ -392,7 +392,7 @@ function Base.show(io::IO, sys::AbstractStateSpace)
 end
 
 """
-Helper function for minreal. Returns `T` such that T*P*inv(T) is diagonal. If `unit`, T will diagonalize `P` to an identity matrix.
+Helper function for minreal. Returns `T` such that T*P*T' is diagonal. If `unit`, T will diagonalize `P` to an identity matrix.
 """
 function diagonalizing(P::AbstractMatrix, unit=false; atol=1e-8)
     if unit
@@ -409,7 +409,7 @@ end
 """
     minreal(sys::ST, atol = sqrt(eps()), rtol = atol>0 ? 0 : sys.nx*eps()) 
 
-Return a minimal realization. The Kalman decomposition is calculated and the subsystem which is both controllable and observable is returned.
+Return a minimal realization. The Kalman decomposition is calculated and the subsystem which is both controllable and observable is returned. The returned system will be a balanced realization with identical and diagonal Gram matrices.
 """
 function minreal(sys::ST,
     atol = sqrt(eps()),
