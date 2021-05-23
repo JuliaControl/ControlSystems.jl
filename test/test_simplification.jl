@@ -99,7 +99,7 @@ sysr = minreal(sys)
     P = randn(2, 3)
     P = P'P # create rank-deficient matrix of rank 2
     T = diagonalizing(P, true)
-    @test T*P*T' ≈ ControlSystems.blockdiag(1.0I(2), 0.0I(1)) # whould result in one 0 on diag
+    @test T*P*T' ≈ ControlSystems.blockdiag(1.0I(2), 0.0I(1)) # should result in one 0 on diag
 
     T = diagonalizing(P, false)
     TP = T*P*T'
