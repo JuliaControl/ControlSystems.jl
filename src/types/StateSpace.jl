@@ -391,19 +391,73 @@ function Base.show(io::IO, sys::AbstractStateSpace)
     end
 end
 
-
-
-
 """
-`minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
+Helper function for minreal. Returns `T` such that T*P*inv(T) is diagonal. If `unit`, T will diagonalize `P` to an identity matrix.
 """
-function minreal(s::AbstractStateSpace, tol=sqrt(eps()))
-    s = baltrunc(s, atol=tol, rtol = 0)[1]
-    try
-        return diagonalize(s)
-    catch
-        error("Minreal only implemented for diagonalizable systems.")
+function diagonalizing(P::AbstractMatrix, unit=false; atol=1e-8)
+    if unit
+        S,U = eigen(Hermitian(P), sortby=x->-real(x))
+        i = findlast(>(atol*S[1]), S)
+        rm = length(S)-i
+        S[i+1:end] .= 0
+        T = (U*pinv(Diagonal(sqrt.(S))))'
+    else
+        svd(Hermitian(P)).U'
     end
+end
+
+"""
+    minreal(sys::ST, atol = sqrt(eps()), rtol = atol>0 ? 0 : sys.nx*eps()) 
+
+Return a minimal realization. The Kalman decomposition is calculated and the subsystem which is both controllable and observable is returned.
+"""
+function minreal(sys::ST,
+    atol = sqrt(eps()),
+    rtol = atol>0 ? 0 : sys.nx*eps(eltype(sys.A)),
+) where ST <: AbstractStateSpace
+    nx = sys.nx
+    inv(x) = pinv(x; atol, rtol) # locally shadow inv
+    P = gram(sys, :c)
+    Q = gram(sys, :o)
+
+    C = ctrb(sys)
+    O = obsv(sys)
+    nnc = size(nullspace(C'; atol, rtol), 2) # number of non-controllable modes
+    nc = sys.nx-nnc
+
+    nno = size(nullspace(O; atol, rtol), 2) # number of non-controllable modes
+    no = sys.nx-nno
+
+    T1 = diagonalizing(P, true)
+
+    Q_block = inv(T1')*Q* inv(T1)
+
+    Q11 = Q_block[1:nc, 1:nc] # TODO: I just guessed to put no here
+    U1 = diagonalizing(Q11, false)
+
+    Σ12b = abs.(diag(U1*Q11*U1')) # should be block(Σ₁², 0) 
+    noc = findlast(x->x>atol && x > rtol*maximum(Σ12b), Σ12b)
+    Σ12 = Σ12b[1:noc] # this is the new gram matrix for both controllable and observable
+    T2i = ControlSystems.blockdiag(U1, 1.0*I(nnc)) 
+    T2 = inv(T2i')
+    T4i = ControlSystems.blockdiag(Diagonal(1 ./ sqrt.(sqrt.(Σ12))), 1.0I(nx-noc))
+
+    T = inv(T4i)*T2*T1
+
+    Pz = T*P*T'
+    Qz = inv(T')*Q*inv(T)
+    if norm(Pz[1:noc, 1:noc]-Qz[1:noc, 1:noc]) > sqrt(eps())
+        @warn("minreal: Result may be inaccurate")
+    end
+    sysb = ss(T*sys.A*inv(T), T*sys.B, sys.C*inv(T), sys.D, sys.timeevol)
+    n = noc
+    A = sysb.A[1:n,1:n]
+    B = sysb.B[1:n,:]
+    C = sysb.C[:,1:n]
+    D = sysb.D
+    sysr = ss(A,B,C,D,sys.timeevol)
+
+    sysr
 end
 
 
