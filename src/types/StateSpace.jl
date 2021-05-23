@@ -425,14 +425,14 @@ function minreal(sys::ST,
     nnc = size(nullspace(C'; atol, rtol), 2) # number of non-controllable modes
     nc = sys.nx-nnc
 
-    nno = size(nullspace(O; atol, rtol), 2) # number of non-controllable modes
+    nno = size(nullspace(O; atol, rtol), 2) # number of non-observable modes
     no = sys.nx-nno
 
     T1 = diagonalizing(P, true)
 
     Q_block = inv(T1')*Q* inv(T1)
 
-    Q11 = Q_block[1:nc, 1:nc] # TODO: I just guessed to put no here
+    Q11 = Q_block[1:nc, 1:nc] 
     U1 = diagonalizing(Q11, false)
 
     Σ12b = abs.(diag(U1*Q11*U1')) # should be block(Σ₁², 0) 
