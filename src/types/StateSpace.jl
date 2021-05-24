@@ -409,7 +409,7 @@ end
 "Returns the number of eigenvalues that are smaller than tolerances"
 function hermitian_nullspace_size(P; atol, rtol)
     evs = abs.(eigvals(Hermitian(P)))
-    count(e->e < atol || e < rtol*maximum(evs))
+    count(e->e < atol || e < rtol*maximum(evs), evs)
 end
 
 """

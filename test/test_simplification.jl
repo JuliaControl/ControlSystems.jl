@@ -104,7 +104,6 @@ sys = ss(A,B,C,D)
 sysr = minreal(sys)
 @test hinfnorm(sys - sysr)[1] < sqrt(eps())
 
-sysr = balreal(sys)
 
 
 @testset "diagonalizing" begin
