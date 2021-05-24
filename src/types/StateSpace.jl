@@ -437,6 +437,9 @@ function minreal(sys::ST;
 
     Σ12b = abs.(diag(U1*Q11*U1')) # should be block(Σ₁², 0) 
     noc = findlast(x->x>atol && x > rtol*maximum(Σ12b), Σ12b)
+    if noc === nothing
+        return ss(zero(numeric_type(sys)))
+    end
     Σ12 = Σ12b[1:noc] # this is the new gram matrix for both controllable and observable
     T2i = ControlSystems.blockdiag(U1, 1.0*I(nnc)) 
     T2 = inv(T2i')
