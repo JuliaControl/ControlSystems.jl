@@ -394,11 +394,10 @@ end
 """
 Helper function for minreal. Returns `T` such that T*P*T' is diagonal for Hermitian `P`. If `unit`, T will diagonalize `P` to an identity matrix.
 """
-function hermitian_diagonalizing(P::AbstractMatrix, unit=false; atol=1e-8)
+function hermitian_diagonalizing(P::AbstractMatrix, unit, n_keep)
     S,U = eigen(Hermitian(P), sortby=x->-real(x))
-    i = findlast(>(atol*S[1]), S)
-    rm = length(S)-i
-    S[i+1:end] .= 0
+    S .= abs.(S)
+    S[n_keep+1:end] .= 0
     if unit
         T = (U*pinv(Diagonal(sqrt.(S))))'
     else
@@ -435,12 +434,12 @@ function minreal(sys::ST;
     nno = hermitian_nullspace_size(Q; atol, rtol) # number of non-observable modes
     no = sys.nx-nno # number of observable modes
 
-    T1 = hermitian_diagonalizing(P, true)
+    T1 = hermitian_diagonalizing(P, true, nc)
 
     Q_block = inv(T1')*Q* inv(T1)
 
     Q11 = Q_block[1:nc, 1:nc] 
-    U1 = hermitian_diagonalizing(Q11, false)
+    U1 = hermitian_diagonalizing(Q11, false, no)
 
     Σ12b = abs.(diag(U1*Q11*U1')) # should be block(Σ₁², 0) 
     noc = findlast(x->x>atol && x > rtol*maximum(Σ12b), Σ12b)
