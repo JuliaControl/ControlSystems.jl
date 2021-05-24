@@ -98,28 +98,31 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     end
 end
 
-"""`obsv(A, C)` or `obsv(sys)`
+"""
+    obsv(A, C, n=size(A,1))
+    obsv(sys, n=sys.nx)
 
-Compute the observability matrix for the system described by `(A, C)` or `sys`.
+Compute the observability matrix with `n` rows for the system described by `(A, C)` or `sys`. Providing the optional `n > sys.nx` returns an extended observability matrix.
 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
-`gram(sys, :o)` is positive definite."""
-function obsv(A::AbstractMatrix, C::AbstractMatrix)
+`gram(sys, :o)` is positive definite.
+"""
+function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
     T = promote_type(eltype(A), eltype(C))
-    n = size(A, 1)
+    nx = size(A, 1)
     ny = size(C, 1)
-    if n != size(C, 2)
+    if nx != size(C, 2)
         throw(ArgumentError("C must have the same number of columns as A"))
     end
-    res = fill(zero(T), n*ny, n)
+    res = fill(zero(T), n*ny, nx)
     res[1:ny, :] = C
     for i=1:n-1
         res[(1 + i*ny):(1 + i)*ny, :] = res[((i - 1)*ny + 1):i*ny, :] * A
     end
     return res
 end
-obsv(sys::StateSpace) = obsv(sys.A, sys.C)
+obsv(sys::AbstractStateSpace, n::Int = sys.nx) = obsv(sys.A, sys.C, n)
 
 """`ctrb(A, B)` or `ctrb(sys)`
 
