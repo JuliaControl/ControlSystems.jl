@@ -40,45 +40,50 @@ almost_diagonal(X) = norm(X-diagm(diag(X))) < sqrt(eps())
 Random.seed!(0)
 sys = ssrand(1,1,2)
 sysr = minreal(sys)
+@test tf(sys) ≈ tf(sysr) # no change
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
-sys = [sys sys] # unobservable
-sysr = minreal(sys)
+syse = [sys sys] # unobservable
+sysr = minreal(syse)
+@test tf(sys) ≈ tf(sysr)
 @test sysr.nx == 2
-@test polecompare(sys, [sysr sysr])
+@test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
 sys = ssrand(1,1,2)
-sys = [sys; sys] # uncontrollable
-sysr = minreal(sys)
+syse = [sys; sys] # uncontrollable
+sysr = minreal(syse)
+@test tf(sys) ≈ tf(sysr)
 @test sysr.nx == 2
-@test polecompare(sys, [sysr sysr])
+@test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
 # MIMO
 
 sys = ssrand(2,3,4)
 sysr = minreal(sys)
+@test tf(sys) ≈ tf(sysr)
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
-sys = [sys sys] # unobservable
-sysr = minreal(sys)
+syse = [sys sys] # unobservable
+sysr = minreal(syse)
+@test tf(sys) ≈ tf(sysr)
 @test sysr.nx == 4
-@test polecompare(sys, [sysr sysr])
+@test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
 sys = ssrand(2,3,4)
-sys = [sys; sys] # uncontrollable
-sysr = minreal(sys)
+syse = [sys; sys] # uncontrollable
+sysr = minreal(syse)
 @test sysr.nx == 4
-@test polecompare(sys, [sysr sysr])
+@test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
 
-sys = [sys 2sys] 
-sysr = minreal(sys)
+syse = [syse 2syse] 
+sysr = minreal(syse)
 @test sysr.nx == 4
 @test almost_diagonal(gram(sysr, :c))
 
