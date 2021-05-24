@@ -392,48 +392,55 @@ function Base.show(io::IO, sys::AbstractStateSpace)
 end
 
 """
-Helper function for minreal. Returns `T` such that T*P*T' is diagonal. If `unit`, T will diagonalize `P` to an identity matrix.
+Helper function for minreal. Returns `T` such that T*P*T' is diagonal for Hermitian `P`. If `unit`, T will diagonalize `P` to an identity matrix.
 """
-function diagonalizing(P::AbstractMatrix, unit=false; atol=1e-8)
+function hermitian_diagonalizing(P::AbstractMatrix, unit=false; atol=1e-8)
+    S,U = eigen(Hermitian(P), sortby=x->-real(x))
+    i = findlast(>(atol*S[1]), S)
+    rm = length(S)-i
+    S[i+1:end] .= 0
     if unit
-        S,U = eigen(Hermitian(P), sortby=x->-real(x))
-        i = findlast(>(atol*S[1]), S)
-        rm = length(S)-i
-        S[i+1:end] .= 0
         T = (U*pinv(Diagonal(sqrt.(S))))'
     else
-        svd(Hermitian(P)).U'
+        T = (U*pinv(Diagonal(sign.(S))))'
     end
+end
+
+"Returns the number of eigenvalues that are smaller than tolerances"
+function hermitian_nullspace_size(P; atol, rtol)
+    evs = abs.(eigvals(Hermitian(P)))
+    count(e->e < atol || e < rtol*maximum(evs))
 end
 
 """
     minreal(sys::ST; atol = sqrt(eps()), rtol = atol>0 ? 0 : sys.nx*eps()) 
 
 Return a minimal realization. The Kalman decomposition is calculated and the subsystem which is both controllable and observable is returned. The returned system will be a balanced realization with identical and diagonal Gram matrices.
+
+Based on Ch. 3.9, Thm. 3.22 in Robust and Optimal Control.
 """
 function minreal(sys::ST;
     atol = sqrt(eps()),
     rtol = atol>0 ? 0 : sys.nx*eps(eltype(sys.A)),
 ) where ST <: AbstractStateSpace
+    # Notation in this implementation is the same (as far as possible) as in the reference above.
     nx = sys.nx
     inv(x) = pinv(x; atol, rtol) # locally shadow inv
     P = gram(sys, :c)
     Q = gram(sys, :o)
 
-    C = ctrb(sys)
-    O = obsv(sys)
-    nnc = size(nullspace(C'; atol, rtol), 2) # number of non-controllable modes
-    nc = sys.nx-nnc
+    nnc = hermitian_nullspace_size(P; atol, rtol) # number of non-controllable modes
+    nc = sys.nx-nnc # number of controllable modes
 
-    nno = size(nullspace(O; atol, rtol), 2) # number of non-observable modes
-    no = sys.nx-nno
+    nno = hermitian_nullspace_size(Q; atol, rtol) # number of non-observable modes
+    no = sys.nx-nno # number of observable modes
 
-    T1 = diagonalizing(P, true)
+    T1 = hermitian_diagonalizing(P, true)
 
     Q_block = inv(T1')*Q* inv(T1)
 
     Q11 = Q_block[1:nc, 1:nc] 
-    U1 = diagonalizing(Q11, false)
+    U1 = hermitian_diagonalizing(Q11, false)
 
     Σ12b = abs.(diag(U1*Q11*U1')) # should be block(Σ₁², 0) 
     noc = findlast(x->x>atol && x > rtol*maximum(Σ12b), Σ12b)
@@ -449,7 +456,7 @@ function minreal(sys::ST;
 
     Pz = T*P*T'
     Qz = inv(T')*Q*inv(T)
-    if norm(Pz[1:noc, 1:noc]-Qz[1:noc, 1:noc]) > sqrt(eps())
+    if sum(abs, Pz[1:noc, 1:noc]-Qz[1:noc, 1:noc])/noc^2 > sqrt(eps())
         @warn("minreal: Result may be inaccurate")
     end
     sysb = ss(T*sys.A*inv(T), T*sys.B, sys.C*inv(T), sys.D, sys.timeevol)
