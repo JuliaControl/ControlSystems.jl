@@ -407,11 +407,11 @@ function diagonalizing(P::AbstractMatrix, unit=false; atol=1e-8)
 end
 
 """
-    minreal(sys::ST, atol = sqrt(eps()), rtol = atol>0 ? 0 : sys.nx*eps()) 
+    minreal(sys::ST; atol = sqrt(eps()), rtol = atol>0 ? 0 : sys.nx*eps()) 
 
 Return a minimal realization. The Kalman decomposition is calculated and the subsystem which is both controllable and observable is returned. The returned system will be a balanced realization with identical and diagonal Gram matrices.
 """
-function minreal(sys::ST,
+function minreal(sys::ST;
     atol = sqrt(eps()),
     rtol = atol>0 ? 0 : sys.nx*eps(eltype(sys.A)),
 ) where ST <: AbstractStateSpace
