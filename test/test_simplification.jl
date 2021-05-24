@@ -21,6 +21,7 @@ sysmin = minreal(sys)
 @test hinfnorm(sys - sysmin)[1] < 1e-15 # And that the answer is correct
 
 @test_broken balreal(sys-sysmin)
+@test minreal(sys-sysmin, atol=eps()) == ss(0)
 
 @test all(sigma(sys-sysmin, [0.0, 1.0, 2.0])[1] .< 1e-15)  # Previously crashed because of zero dimensions in tzero
 
@@ -41,12 +42,14 @@ Random.seed!(0)
 sys = ssrand(1,1,2)
 sysr = minreal(sys)
 @test tf(sys) ≈ tf(sysr) # no change
+@test hinfnorm(sys - sysr)[1] < sqrt(eps())
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
 syse = [sys sys] # unobservable
 sysr = minreal(syse)
 @test tf(sys) ≈ tf(sysr)
+@test hinfnorm(syse - sysr)[1] < sqrt(eps())
 @test sysr.nx == 2
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
@@ -55,6 +58,7 @@ sys = ssrand(1,1,2)
 syse = [sys; sys] # uncontrollable
 sysr = minreal(syse)
 @test tf(sys) ≈ tf(sysr)
+@test hinfnorm(syse - sysr)[1] < sqrt(eps())
 @test sysr.nx == 2
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
@@ -64,12 +68,14 @@ sysr = minreal(syse)
 sys = ssrand(2,3,4)
 sysr = minreal(sys)
 @test tf(sys) ≈ tf(sysr)
+@test hinfnorm(sys - sysr)[1] < sqrt(eps())
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
 
 syse = [sys sys] # unobservable
 sysr = minreal(syse)
 @test tf(sys) ≈ tf(sysr)
+@test hinfnorm(syse - sysr)[1] < sqrt(eps())
 @test sysr.nx == 4
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
@@ -77,6 +83,7 @@ sysr = minreal(syse)
 sys = ssrand(2,3,4)
 syse = [sys; sys] # uncontrollable
 sysr = minreal(syse)
+@test hinfnorm(syse - sysr)[1] < sqrt(eps())
 @test sysr.nx == 4
 @test polecompare(sys, sysr)
 @test almost_diagonal(gram(sysr, :c))
@@ -84,6 +91,7 @@ sysr = minreal(syse)
 
 syse = [syse 2syse] 
 sysr = minreal(syse)
+@test hinfnorm(syse - sysr)[1] < sqrt(eps())
 @test sysr.nx == 4
 @test almost_diagonal(gram(sysr, :c))
 
