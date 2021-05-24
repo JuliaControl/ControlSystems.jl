@@ -394,10 +394,10 @@ end
 """
 Helper function for minreal. Returns `T` such that T*P*T' is diagonal for Hermitian `P`. If `unit`, T will diagonalize `P` to an identity matrix.
 """
-function hermitian_diagonalizing(P::AbstractMatrix, unit, n_keep)
-    S,U = eigen(Hermitian(P), sortby=x->-real(x))
+function hermitian_diagonalizing(Peigen::Eigen, unit, n_keep)
+    S, U = Peigen.values, Peigen.vectors
     S .= abs.(S)
-    S[n_keep+1:end] .= 0
+    S[n_keep+1:end] .= 0 # descending sort applied in hermitian_nullspace_size
     if unit
         T = (U*pinv(Diagonal(sqrt.(S))))'
     else
@@ -405,10 +405,15 @@ function hermitian_diagonalizing(P::AbstractMatrix, unit, n_keep)
     end
 end
 
+function hermitian_diagonalizing(P::AbstractMatrix, args...)
+    hermitian_diagonalizing(eigen(Hermitian(P), sortby=x->-real(x)), args...)
+end
+
 "Returns the number of eigenvalues that are smaller than tolerances"
 function hermitian_nullspace_size(P; atol, rtol)
-    evs = abs.(eigvals(Hermitian(P)))
-    count(e->e < atol || e < rtol*maximum(evs), evs)
+    e = eigen(Hermitian(P), sortby=x->-real(x))
+    evs = abs.(e.values)
+    count(e->e < atol || e < rtol*maximum(evs), evs), e
 end
 
 """
@@ -428,13 +433,13 @@ function minreal(sys::ST;
     P = gram(sys, :c)
     Q = gram(sys, :o)
 
-    nnc = hermitian_nullspace_size(P; atol, rtol) # number of non-controllable modes
+    nnc, Peigen = hermitian_nullspace_size(P; atol, rtol) # number of non-controllable modes
     nc = sys.nx-nnc # number of controllable modes
 
-    nno = hermitian_nullspace_size(Q; atol, rtol) # number of non-observable modes
+    nno, _ = hermitian_nullspace_size(Q; atol, rtol) # number of non-observable modes
     no = sys.nx-nno # number of observable modes
 
-    T1 = hermitian_diagonalizing(P, true, nc)
+    T1 = hermitian_diagonalizing(Peigen, true, nc)
 
     Q_block = inv(T1')*Q* inv(T1)
 
