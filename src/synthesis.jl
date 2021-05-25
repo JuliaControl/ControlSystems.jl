@@ -119,45 +119,52 @@ Calculate the optimal Kalman gain for discrete time systems
 dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
 
 """
-    place(A, B, p)
-    place(sys::StateSpace, p)
+    place(A, B, p, opt=:c)
+    place(sys::StateSpace, p, opt=:c)
 
-Calculate gain matrix `K` such that
-the poles of `(A-BK)` in are in `p`.
+Calculate the gain matrix `K` such that `A - BK` has eigenvalues `p`.
+
+    place(A, C, p, opt=:o)
+    place(sys::StateSpace, p, opt=:o)
+
+Calculate the observer gain matrix `L` such that `A - LC` has eigenvalues `p`.
 
 Uses Ackermann's formula.
-For observer pole placement, see `luenberger`.
+Currently handles only SISO systems.
 """
-function place(A, B, p)
+function place(A, B, p, opt=:c)
     n = length(p)
-    n != size(A,1) && error("Must define as many poles as states")
-    n != size(B,1) && error("A and B must have same number of rows")
-    if size(B,2) == 1
-        acker(A,B,p)
+    n != size(A,1) && error("Must specify as many poles as states")
+    if opt === :c
+        n != size(B,1) && error("A and B must have same number of rows")
+        if size(B,2) == 1
+            acker(A, B, p)
+        else
+            error("place only implemented for SISO systems")
+        end
+    elseif opt === :o
+        C = B # B is really the "C matrix"
+        n != size(C,2) && error("A and C must have same number of columns")
+        if size(C,1) == 1
+            acker(A', C', p)'
+        else
+            error("place only implemented for SISO systems")
+        end
     else
-        error("place only implemented for SISO systems")
+        error("fourth argument must be :c or :o")
+    end
+end
+function place(sys::StateSpace, p, opt=:c)
+    if opt === :c
+        return place(sys.A, sys.B, p, opt)
+    elseif opt === :o
+        return place(sys.A, sys.C, p, opt)
+    else
+        error("third argument must be :c or :o")
     end
 end
 
-function place(sys::StateSpace, p)
-    return place(sys.A, sys.B, p)
-end
 
-"""
-    luenberger(A, C, p)
-    luenberger(sys::StateSpace, p)
-
-Calculate gain matrix `L` such that the poles of `(A - LC)` are in `p`.
-Uses sytem's dual form (Controllability-Observability duality) applied to Ackermann's formula.
-That is, `(A - BK)` is indentic to `(A' - C'L') == (A - LC)`.
-"""
-function luenberger(A, C, p)
-    place(A', C', p)'
-end
-
-function luenberger(sys::StateSpace, p)
-    return luenberger(sys.A, sys.C, p)
-end
 
 #Implements Ackermann's formula for placing poles of (A-BK) in p
 function acker(A,B,P)

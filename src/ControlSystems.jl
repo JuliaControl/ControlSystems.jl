@@ -32,7 +32,6 @@ export  LTISystem,
         ctrb,
         obsv,
         place,
-        luenberger,
         # Model Simplification
         reduce_sys,
         sminreal,
@@ -174,6 +173,8 @@ include("plotting.jl")
 @deprecate den denvec
 @deprecate norminf hinfnorm
 @deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
+@deprecate luenberger(sys, p) place(sys, p, :o)
+@deprecate luenberger(A, C, p) place(A, C, p, :o)
 # There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
