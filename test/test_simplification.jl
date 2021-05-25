@@ -22,7 +22,7 @@ sysmin = minreal(sys)
 @test hinfnorm(sys - sysmin)[1] < 1e-15 # And that the answer is correct
 
 @test_broken balreal(sys-sysmin)
-@test minreal(sys-sysmin, atol=eps()) == ss(0)
+@test minreal(sys-sysmin, atol=sqrt(eps())) == ss(0)
 
 @test all(sigma(sys-sysmin, [0.0, 1.0, 2.0])[1] .< 1e-15)  # Previously crashed because of zero dimensions in tzero
 
@@ -116,8 +116,6 @@ sysr = minreal(syse)
     T = hermitian_diagonalizing(P, false, 2)
     TP = T*P*T'
     @test sum(abs, TP - diagm(diag(TP))) < 1e-10
-
-    display(T*P*T')
 end
 
 end
