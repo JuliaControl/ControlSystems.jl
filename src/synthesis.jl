@@ -154,7 +154,6 @@ function place(A, B, p, opt=:c)
         error("fourth argument must be :c or :o")
     end
 end
-
 function place(sys::AbstractStateSpace, p, opt=:c)
     if opt === :c
         return place(sys.A, sys.B, p, opt)
