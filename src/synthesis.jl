@@ -49,7 +49,7 @@ See also `LQG`
 """
 kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 
-function lqr(sys::StateSpace, Q, R)
+function lqr(sys::AbstractStateSpace, Q, R)
     if iscontinuous(sys)
         return lqr(sys.A, sys.B, Q, R)
     else
@@ -57,7 +57,7 @@ function lqr(sys::StateSpace, Q, R)
     end
 end
 
-function kalman(sys::StateSpace, R1,R2)
+function kalman(sys::AbstractStateSpace, R1,R2)
     if iscontinuous(sys)
         return Matrix(lqr(sys.A', sys.C', R1,R2)')
     else
@@ -104,7 +104,7 @@ function dlqr(A, B, Q, R)
     return K
 end
 
-function dlqr(sys::StateSpace, Q, R)
+function dlqr(sys::AbstractStateSpace, Q, R)
     !isdiscrete(sys) && throw(ArgumentError("Input argument sys must be discrete-time system"))
     return dlqr(sys.A, sys.B, Q, R)
 end
@@ -139,7 +139,7 @@ function place(A, B, p)
     end
 end
 
-function place(sys::StateSpace, p)
+function place(sys::AbstractStateSpace, p)
     return place(sys.A, sys.B, p)
 end
 
@@ -155,7 +155,7 @@ function luenberger(A, C, p)
     place(A', C', p)'
 end
 
-function luenberger(sys::StateSpace, p)
+function luenberger(sys::AbstractStateSpace, p)
     return luenberger(sys.A, sys.C, p)
 end
 
