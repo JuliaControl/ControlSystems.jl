@@ -25,8 +25,7 @@ Lint = P*C
 @test isapprox(numpoly(minreal(feedback(Lint),1e-5))[1].coeffs, numpoly(tf(1,[1,1]))[1].coeffs)# This test is ugly, but numerical stability is poor for minreal
 @test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
 
-
-@test_throws ErrorException feedback(ss(1),ss(1))
+@test feedback(ss(1),ss(1)) == ss(0.5)
 @test_throws ErrorException feedback(ss([1 0; 0 1], ones(2,2), ones(1,2),0))
 
 # Test Feedback Issue: 163

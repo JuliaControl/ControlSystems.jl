@@ -224,7 +224,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test feedback(0.5, G3, pos_feedback=false) ≈ ss(-4/3, 1/3, -1/3, 1/3)
 @test feedback(0.5, G3, pos_feedback=true) ≈ ss(0, 1, 1, 1)
 
-@test_broken feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
+@test feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
 @test feedback(G3, 1, pos_feedback=false) == ss(-1.5, 0.5, 0.5, 0.5)
 
 # Test that errors are thrown for mismatched dimensions

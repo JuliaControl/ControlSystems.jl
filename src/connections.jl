@@ -214,17 +214,6 @@ function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
     feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
 end
 
-function feedback(sys1::AbstractStateSpace,sys2::AbstractStateSpace)
-    timeevol = common_timeevol(sys1,sys2)
-    !(iszero(sys1.D) || iszero(sys2.D)) && error("There cannot be a direct term (D) in both sys1 and sys2")
-    A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C);
-         sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
-    B = [sys1.B; sys2.B*sys1.D]
-    C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A, B, C, sys1.D, timeevol)
-end
-
-
 """
     feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
              U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
