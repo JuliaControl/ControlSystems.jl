@@ -9,7 +9,7 @@ kp,ki,C = loopshapingPI(P,ωp,phasemargin=60, doplot=true)
 @test kp ≈ 0.82274734724854
 @test ki ≈ -0.45472580052281375
 
-C = pid(;kp = 1, ki = 1, kd=1) 
+C = pid(TransferFunction;Kp = 1, Ki = 1, Kd=1, form=:parallel) 
 @test C == tf(1) + tf(1,[1,0]) + tf([1,0],[1])
 pidplots(C, :nyquist,:gof,:pz,:controller, grid=true) # Simply test that the functions runs and not errors
 pidplots(C, :nyquist,:gof,:pz,:controller, grid=false)
@@ -24,8 +24,8 @@ _,_,_,pm = margin(P*C)
 @test pm[] > 30
 
 P = tf(1,[1, 1])
-piparams,C = placePI(P, 2, 0.7)
+C, params = placePI(P, 2, 0.7)
 @test pole(feedback(P, C)) ≈ [-1.4 + √2.04im, -1.4 - √2.04im]
-@test [piparams[:Kp], piparams[:Ti]] ≈ [9/5, 9/20]
+@test [params.Kp, params.Ti] ≈ [9/5, 9/20]
 
 end
