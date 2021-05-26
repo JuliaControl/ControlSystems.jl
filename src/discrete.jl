@@ -228,12 +228,12 @@ function c2d_poly2poly(p, Ts)
 end
 
 
-function c2d(G::TransferFunction{<:Continuous, T}, h, args...; kwargs...) where {T}
+function c2d(G::TransferFunction{<:Continuous, T}, Ts, args...; kwargs...) where {T}
     @assert issiso(G) "c2d(G::TransferFunction, h) not implemented for MIMO systems" 
     sys = ss(G)
-    sysd = c2d(sys, h, args...; kwargs...)
+    sysd = c2d(sys, Ts, args...; kwargs...)
     # Extract the basic type (SisoRational/SisoZpk) without the parametric values
-    # This allows the type promotion to be handled by convert
+    # This allows the parametric type promotion to be handled by convert
     BT = Base.typename(T).wrapper 
     return convert(TransferFunction{typeof(sysd.timeevol), BT}, sysd)
 end
