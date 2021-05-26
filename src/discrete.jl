@@ -227,15 +227,16 @@ function c2d_poly2poly(p, Ts)
     return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
 end
 
-
-function c2d(G::TransferFunction{<:Continuous, T}, Ts, args...; kwargs...) where {T}
+function c2d(G::TransferFunction{<:Continuous, <:SisoRational}, Ts, args...; kwargs...)
     issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
-    sys = ss(G)
-    sysd = c2d(sys, Ts, args...; kwargs...)
-    # Extract the basic type (SisoRational/SisoZpk) without the parametric values
-    # This allows the parametric type promotion to be handled by convert
-    BT = Base.typename(T).wrapper 
-    return convert(TransferFunction{typeof(sysd.timeevol), BT}, sysd)
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoRational}, sysd)
+end
+
+function c2d(G::TransferFunction{<:Continuous, <:SisoZpk}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoZpk}, sysd)
 end
 
 """
