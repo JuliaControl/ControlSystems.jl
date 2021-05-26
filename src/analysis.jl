@@ -75,7 +75,7 @@ Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf 
 # TODO: improve this implementation, should be more efficient ones
 function det(sys::Matrix{S}) where {S<:SisoZpk}
     ny, nu = size(sys)
-    @assert ny == nu "Matrix is not square"
+    ny == nu || throw(ArgumentError("sys matrix is not square"))
     if ny == 1
         return sys[1, 1]
     end

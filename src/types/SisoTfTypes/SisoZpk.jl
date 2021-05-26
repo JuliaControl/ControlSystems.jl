@@ -13,8 +13,8 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
         end
         if TR <: Complex && T <: Real
             z, p = copy(z), copy(p)
-            @assert pairup_conjugates!(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-            @assert pairup_conjugates!(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
+            pairup_conjugates!(z) || throw(ArgumentError("zpk model should be real-valued, but zeros do not come in conjugate pairs."))
+            pairup_conjugates!(p) || throw(ArgumentError("zpk model should be real-valued, but poles do not come in conjugate pairs."))
         end
         new{T,TR}(z, p, k)
     end
