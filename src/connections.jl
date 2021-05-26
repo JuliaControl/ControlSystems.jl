@@ -211,7 +211,7 @@ If no second system is given, negative identity feedback is assumed
 """
 function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), sys.timeevol))
 end
 
 """
