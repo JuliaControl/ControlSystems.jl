@@ -199,7 +199,7 @@ end
 
 """
     feedback(sys)
-    feedback(sys1,sys2)
+    feedback(sys1, sys2)
 
 Forms the negative feedback interconnection
 ```julia
@@ -219,6 +219,17 @@ end
              U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
              Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
+
+A more general version of feedback that allows specification of which signals to connect. The signals are named according to 
+              ┌───────────────┐
+      z1◄─────┤       s1      │◄──────w1
+ ┌─── y1◄─────┤               │◄──────u1 ◄─┐
+ │            └───────────────┘            │
+ │                                         │
+ │            ┌───────────────┐            │
+ └──► u2─────►│       s2      ├───────►y2──┘
+      w2─────►│               ├───────►z2
+              └───────────────┘
 
 `U1`, `Y1`, `U2`, `Y2` contain the indices of the signals that should be connected.
 `W1`, `Z1`, `W2`, `Z2` contain the signal indices of `s1` and `s2` that should be kept.
