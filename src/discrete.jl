@@ -229,7 +229,7 @@ end
 
 
 function c2d(G::TransferFunction{<:Continuous, T}, Ts, args...; kwargs...) where {T}
-    @assert issiso(G) "c2d(G::TransferFunction, h) not implemented for MIMO systems" 
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
     sys = ss(G)
     sysd = c2d(sys, Ts, args...; kwargs...)
     # Extract the basic type (SisoRational/SisoZpk) without the parametric values
