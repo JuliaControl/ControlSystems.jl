@@ -55,7 +55,7 @@ C_210 = ss(C_212.A, C_212.B, zeros(0, 2), zeros(0, 1))
 @test c2d(C_210, 0.01).A ≈ c2d(C_212, 0.01).A
 
 # c2d on a zpk model should arguably return a zpk model
-Gdzpk = zpk(Gd)
+Gdzpk = c2d(zpk(G), 0.2)
 @test typeof(Gdzpk) <: TransferFunction{<:Discrete, <:ControlSystems.SisoZpk}
 @test Gdzpk ≈ zpk([0.8192724211968178], [0.9264518519788194, 0.5923800950063556], 0.16588331071209, 0.2) rtol=1e-14
 
