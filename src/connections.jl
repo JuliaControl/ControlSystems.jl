@@ -209,12 +209,12 @@ Forms the negative feedback interconnection
 ```
 If no second system is given, negative identity feedback is assumed
 """
-function feedback(sys::Union{StateSpace, DelayLtiSystem})
+function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
     feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
 end
 
-function feedback(sys1::StateSpace,sys2::StateSpace)
+function feedback(sys1::AbstractStateSpace,sys2::AbstractStateSpace)
     timeevol = common_timeevol(sys1,sys2)
     !(iszero(sys1.D) || iszero(sys2.D)) && error("There cannot be a direct term (D) in both sys1 and sys2")
     A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C);
