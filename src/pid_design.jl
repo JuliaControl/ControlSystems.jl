@@ -52,7 +52,7 @@ function pid(::Type{StateSpace}; Tf=0, params...)
         C = p.Kp / p.Ti
         D = p.Kp
     else
-        error("Cannot create a state space form for Td != 0 and Tf == 0.")
+        throw(DomainError("Cannot create a state space form for Td != 0 and Tf == 0."))
     end
     return ss(A, B, C, D)
 end
@@ -380,7 +380,7 @@ function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ
     num = numvec(P)[]
     den = denvec(P)[]
     if length(den) != 2 || length(num) > 2
-        error("Can only place poles using PI for proper first-order systems")
+        throw(DomainError("Can only place poles using PI for proper first-order systems"))
     end
     if length(num) == 1
         num = [0; num]
@@ -434,7 +434,7 @@ function convert_pid_params(target; params...)
     end
 
     if target === :series
-        1 < 4*Td/Ti && error("Series form cannot be used for complex zeros.")
+        1 < 4*Td/Ti && throw(DomainError("series form cannot be used with complex zeros."))
         return (
             Kc = Kp/2 * (1 + sqrt(1 - 4*Td/Ti)), 
             τi = Ti/2 * (1 + sqrt(1 - 4*Td/Ti)), 
