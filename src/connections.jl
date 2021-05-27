@@ -215,31 +215,48 @@ function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
 end
 
 """
-    feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
+    feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace)
+    feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
              U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
              Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
+*Basic use* `feedback(sys1, sys2)` forms the feedback interconnection
+    
+           ┌──────────────┐
+◄──────────┤     sys1     │◄──── Σ ◄──────
+    │      │              │      │
+    │      └──────────────┘      -1
+    │                            |
+    │      ┌──────────────┐      │
+    └─────►│     sys2     ├──────┘
+           │              │
+           └──────────────┘
 
-A more general version of feedback that allows specification of which signals to connect. The signals are named according to 
-              ┌───────────────┐
-      z1◄─────┤       s1      │◄──────w1
- ┌─── y1◄─────┤               │◄──────u1 ◄─┐
- │            └───────────────┘            │
- │                                         │
- │            ┌───────────────┐            │
- └──► u2─────►│       s2      ├───────►y2──┘
-      w2─────►│               ├───────►z2
-              └───────────────┘
+*Advanced use*
+`feedback` also supports more flexible use according to the figure below
 
-`U1`, `Y1`, `U2`, `Y2` contain the indices of the signals that should be connected.
-`W1`, `Z1`, `W2`, `Z2` contain the signal indices of `s1` and `s2` that should be kept.
+              ┌──────────────┐
+      z1◄─────┤     sys1     │◄──────w1
+ ┌─── y1◄─────┤              │◄──────u1 ◄─┐
+ │            └──────────────┘            │
+ │                                        α
+ │            ┌──────────────┐            │
+ └──► u2─────►│     sys2     ├───────►y2──┘
+      w2─────►│              ├───────►z2
+              └──────────────┘
 
-Specify  `Wperm` and `Zperm` to reorder [w1; w2] and [z1; z2] in the resulting statespace model.
+`U1`, `W1` specifies the indices of the input signals of `sys1` corresponding to `u1` and `w1`
+`Y1`, `Z1` specifies the indices of the output signals of `sys1` corresponding to `y1` and `z1`
+`U2`, `W2`, `Y2`, `Z2` specifies the corresponding signals of `sys2` 
 
-Negative feedback is the default. Specify `pos_feedback=true` for positive feedback.
+Specify  `Wperm` and `Zperm` to reorder the inputs (corresponding to [w1; w2])
+and outputs (corresponding to [z1; z2]) in the resulting statespace model.
 
-See Zhou etc. for similar (somewhat less symmetric) formulas.
+Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for positive feedback (α = 1).
+
+
 """
+# See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 @views function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
     Wperm=:, Zperm=:, pos_feedback::Bool=false)
