@@ -1,17 +1,17 @@
 export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
-    C = pid([type=StateSpace;] form=:standard, params...)
+    C = pid([type=StateSpace;] form=:standard, Tf=0, params...)
 
-Calculates and returns a PID controller on with type representation.
+Calculates and returns a PID controller with `type` representation.
 Default is `StateSpace`, but the first argument can be supplied as
 `TransferFunction` to create it as a transfer function.
 
-If state space is selected either the derivative part has to be zero 
+If state space is selected, either the derivative part has to be zero 
 or `Tf` has to be provided for creating a filter on the input to 
 allow for a state space realization. 
-The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` should
-be chosen as `Ti/N` for a PI controller and `Td/N` for a PID conteroller,
+The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` is normally
+chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
 and `N` is commonly in the range 2 to 20.
 
 The state space will be returned on controllable canonical form.
@@ -20,7 +20,7 @@ Options for `form` are
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(1 + τd*s)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-with default `params` values `Kp=Kc=Ki=Kd=Td=τd=Tf=0`, `Ti=τi=Inf`.
+with default `params` values `Kp=Kc=1`, `Ti=τi=Inf`, `Ki=Kd=Td=τd=0`.
 
 ## Examples
 ```
@@ -30,17 +30,17 @@ C3 = pid(StateSpace; Kp=2, Ti=3)
 C4 = pid(StateSpace; form=:standard, Kp=2, Ti=3, Td=1, N=4)
 ```
 """
-pid(; form=:standard, params...) = pid(StateSpace; form, params...)
+pid(; kwargs...) = pid(StateSpace; kwargs...)
 
-function pid(::Type{TransferFunction}; form=:standard, params...)
+function pid(::Type{TransferFunction}; Tf=0, params...)
+    p = convert_pid_params(:standard; params...)
     s = tf("s")
-    p = form2standard(form; params...)
-    return p.Kp*(1 + 1/(p.Ti*s) + p.Td*s)
+    return p.Kp*(1 + 1/(p.Ti*s) + p.Td*s) / (1 + s*Tf + (s*Tf)^2/2)
 end
 
-function pid(::Type{StateSpace}; form=:standard, params...)
-    Tf = get(params, :Tf, 0)
-    p = form2standard(form; params...)
+function pid(::Type{StateSpace}; Tf=0, params...)
+    p = convert_pid_params(:standard; params...)
+    @show p
     if Tf != 0
         A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
         B = [0; 0; 1]
@@ -72,7 +72,7 @@ One can also supply a frequency vector ω to be used in Bode and Nyquist plots
 
 See also `loopshapingPI`, `stabregionPID`
 """
-function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0, grid = false, kwargs...)
+function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, form=:parallel, ω=0, grid = false, kwargs...)
     if grid
         kp = [i for i in kps, j in kis, k in kds][:]
         ki = [j for i in kps, j in kis, k in kds][:]
@@ -92,14 +92,21 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     PCs = LTISystem[]
     Ts  = LTISystem[]
     labels = Array{String,2}(undef, 1,length(kps))
-    colors =  Array{Colors.RGB{Float64},2}(undef, 1, length(kps))
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
         label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
 
-        C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
-        S,D,N,T = gangoffour(P,C)
+        if form === :standard
+            C = pid(;Kp=kp,Ti=ki,Td=kd)
+        elseif form === :series
+            C = pid(;Kc=kp,τi=ki,τd=kd)
+        elseif form === :parallel
+            C = pid(;Kp=kp,Ki=ki,Kd=kd)
+        else
+            throw(ArgumentError("Form $(form) not supported"))
+        end
+        S,PS,CS,T = gangoffour(P,C)
         push!(Cs, C)
         push!(PCs, P*C)
         push!(Ts, T)
@@ -309,9 +316,15 @@ end
 
 
 """
-    kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin, doplot = false)
+    C, params = loopshapingPI(P, ωp; ϕl, rl, phasemargin, form=:standard, doplot=false)
 
 Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
+
+The parameters can be returned as one of several common representations 
+chose by `form`, the options are
+* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
+* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
+* `:parallel` - `Kp + Ki/s + Kd*s`
 
 If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
@@ -321,7 +334,7 @@ Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system
 
 See also `pidplots`, `stabregionPID`
 """
-function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
+function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form=:standard, doplot=false)
     Pw = P(im*ωp)[1]
     ϕp = angle(Pw)
     rp = abs.(Pw)
@@ -333,16 +346,16 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
     end
     rl = rl == 0 ? rp : rl
 
-    kp = rl/rp*cos(ϕp-ϕl)
-    ki = rl*ωp/rp*sin(ϕp-ϕl)
+    Kp = rl/rp*cos(ϕp-ϕl)
+    Ki = rl*ωp/rp*sin(ϕp-ϕl)
 
-    C = pid(kp=kp, ki=ki)
+    C = pid(;Kp, Ki)
 
     if doplot
         gangoffourplot(P,[tf(1),C]) |> display
         nyquistplot([P, P*C]) |> display
     end
-    return kp,ki,C
+    return C, convert_pid_params(form; Kp, Ki)
 end
 
 """
@@ -378,63 +391,60 @@ function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ
     tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
     Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
     Ti = tmp / (ω₀^2*(a*d - b*c))
-    return pid(;Kp, Ti), standard2form(form; Kp, Ti)
+    return pid(;Kp, Ti), convert_pid_params(form; Kp, Ti)
 end
 
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
 
 """
-    params = standard2form(form; params...)
+    params = convert_pidparams(target; params...)
 
-Convert parameters from standard form to other forms.
+Convert parameters from a form idendified by the parameter names sent in to `target` form.
+
+`target` can be chosen as one of the following forms
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-"""
-function standard2form(form; params...)
-    Kp = get(params, :Kp, 0.0)
-    Ti = get(params, :Ti, typeof(Kp)(Inf))
-    Td = get(params, :Td, 0.0)
-    if form === :series
-        1 < 4*Td/Ti && error("Series form cannot be used for complex zeros.")
-        Kc = Kp/2 * (1 + sqrt(1 - 4*Td/Ti))
-        τi = Ti/2 * (1 + sqrt(1 - 4*Td/Ti))
-        τd = Ti/2 * (1 - sqrt(1 - 4*Td/Ti))
-        return (;Kc, τi, τd)
-    elseif form === :parallel
-        return (;Kp=Kp, Ki=Kp/Ti, Kd=Kp*Td)
-    elseif form === :standard
-        return (;Kp, Ti, Td)
-    else
-        error("Form $(form) not supported")
-    end
-end
+with default `params` values `Kp=Kc=1`, `Ti=τi=Inf`, `Ki=Kd=Td=τd=0`.
 
+`params` should be supplied with parameter names corresponding to the names used in the above 
+equations.
 """
-    params = form2standard(form; params...)
-
-Convert parameters from other forms to standard form.
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
-"""
-function form2standard(form; params...)
-    if form === :series
-        Kc = get(params, :Kc, 0.0)
+function convert_pid_params(target; params...)
+    if haskey(params, :Kc)
+        Kc = get(params, :Kc, 1.0)
         τi = get(params, :τi, typeof(Kc)(Inf))
         τd = get(params, :τd, 0.0)
-        return (;Kp=Kc*(τd+τi)/τi, Ti=τd+τi, Td=τd*τi/(τd+τi))
-    elseif form === :parallel
-        Kp = get(params, :Kp, 0.0)
+        Kp = Kc * (1 + τd / τi)
+        Ti = τd + τi
+        Td = τd * τi / (τd + τi)
+    elseif haskey(params, :Ki) || haskey(params, :Kd)
+        Kp = get(params, :Kp, 1.0)
         Ki = get(params, :Ki, 0.0)
         Kd = get(params, :Kd, 0.0)
-        return (;Kp=Kp, Ti=Kp/Ki, Td=Kd/Kp)
-    elseif form === :standard
-        Kp = get(params, :Kc, 0.0)
-        Ti = get(params, :τi, typeof(Kp)(Inf))
-        Td = get(params, :τd, 0.0)
+        Kp = Kp
+        Ti = Kp / Ki
+        Td = Kd / Kp
+    elseif haskey(params, :Kp)
+        Kp = get(params, :Kc, 1.0)
+        Ti = get(params, :Ti, typeof(Kp)(Inf))
+        Td = get(params, :Td, 0.0)
+    else
+        throw(ArgumentError("the supplied parameters does not sufficiently describe a supported form, params=$(params)"))
+    end
+
+    if target === :series
+        1 < 4*Td/Ti && error("Series form cannot be used for complex zeros.")
+        return (
+            Kc = Kp/2 * (1 + sqrt(1 - 4*Td/Ti)), 
+            τi = Ti/2 * (1 + sqrt(1 - 4*Td/Ti)), 
+            τd = Ti == Inf ? Td : Ti/2 * (1 - sqrt(1 - 4*Td/Ti))
+        )
+    elseif target === :parallel
+        return (Kp=Kp, Ki=Kp/Ti, Kd=Kp*Td)
+    elseif target === :standard
         return (;Kp, Ti, Td)
     else
-        error("Form $(form) not supported")
+        error("Form $(target) not supported")
     end
 end
