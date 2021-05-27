@@ -1,3 +1,4 @@
+using ControlSystems
 # Local definition to make sure we get warnings if we use eye
 eye_(n) = Matrix{Int64}(I, n, n)
 
