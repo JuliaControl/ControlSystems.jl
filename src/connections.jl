@@ -221,7 +221,7 @@ end
              Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
 *Basic use* `feedback(sys1, sys2)` forms the feedback interconnection
-    
+```julia
            ┌──────────────┐
 ◄──────────┤     sys1     │◄──── Σ ◄──────
     │      │              │      │
@@ -231,10 +231,10 @@ end
     └─────►│     sys2     ├──────┘
            │              │
            └──────────────┘
-
+```
 *Advanced use*
 `feedback` also supports more flexible use according to the figure below
-
+```julia
               ┌──────────────┐
       z1◄─────┤     sys1     │◄──────w1
  ┌─── y1◄─────┤              │◄──────u1 ◄─┐
@@ -244,7 +244,7 @@ end
  └──► u2─────►│     sys2     ├───────►y2──┘
       w2─────►│              ├───────►z2
               └──────────────┘
-
+```
 `U1`, `W1` specifies the indices of the input signals of `sys1` corresponding to `u1` and `w1`
 `Y1`, `Z1` specifies the indices of the output signals of `sys1` corresponding to `y1` and `z1`
 `U2`, `W2`, `Y2`, `Z2` specifies the corresponding signals of `sys2` 
@@ -255,8 +255,8 @@ and outputs (corresponding to [z1; z2]) in the resulting statespace model.
 Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for positive feedback (α = 1).
 
 
-"""
 # See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
+"""
 @views function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
     Wperm=:, Zperm=:, pos_feedback::Bool=false)
