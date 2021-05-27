@@ -411,11 +411,8 @@ end
 
 function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
-    n =  Vector{eltype(w)}(undef, length(w)) #Nbr of crossed
-    ph = Vector{eltype(w)}(undef, length(w)) #Residual
-    for i = eachindex(w) #Found no easier way to do this
-        n[i], ph[i] = fldmod(phase[i]+180,360)#+180
-    end
+    n = fld.(phase.+180,360) #Nbr of crossed
+    ph = mod.(phase,360) .- 180 #Residual
     _findCrossings(w, n, ph)
 end
 
