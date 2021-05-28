@@ -146,7 +146,7 @@ function ctrb(A::AbstractMatrix, B::AbstractMatrix)
     end
     return res
 end
-ctrb(sys::StateSpace) = ctrb(sys.A, sys.B)
+ctrb(sys::AbstractStateSpace) = ctrb(sys.A, sys.B)
 
 """`P = covar(sys, W)`
 
@@ -599,7 +599,7 @@ Such that `Ã` is diagonal.
 Returns a new scaled state-space object and the associated transformation
 matrix.
 """
-function prescale(sys::StateSpace)
+function prescale(sys::AbstractStateSpace)
     d, S = eigen(sys.A)
     A = Diagonal(d)
     B = S\sys.B
