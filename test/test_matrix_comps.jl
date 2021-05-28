@@ -106,10 +106,31 @@ sysi = ControlSystems.innovation_form(sys, sysw=sysw)
  40.26132476965486]
 
 
-# Test innovation form
-sysp = ControlSystems.predictor(sys, I(2), I(1))
+# Test observer_predictor
+sysp = ControlSystems.observer_predictor(sys, I(2), I(1))
 K = kalman(sys, I(2), I(1))
 @test sysp.A == sys.A-K*sys.C
-@test sysp.B == [sys.B K]
+@test sysp.B == [sys.B-K*sys.D K]
 
-end
+
+# Test observer_controller
+sys = ssrand(2,3,4)
+Q1 = I(4)
+Q2 = I(3)
+R1 = I(4)
+R2 = I(2)
+L = lqr(sys, Q1, Q2)
+K = kalman(sys, R1, R2)
+cont = observer_controller(sys, L, K)
+syscl = feedback(sys, cont)
+
+pcl = pole(syscl)
+A,B,C,D = ssdata(sys)
+allpoles = [
+    eigvals(A-B*L)
+    eigvals(A-K*C)
+]
+@test sort(pcl, by=LinearAlgebra.eigsortby) ≈ sort(allpoles, by=LinearAlgebra.eigsortby) 
+@test cont.B == K
+
+end 

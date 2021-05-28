@@ -639,11 +639,11 @@ function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: Abstra
 end
 
 """
-    predictor(sys::AbstractStateSpace, R1, R2)
-    predictor(sys::AbstractStateSpace, K)
+    observer_predictor(sys::AbstractStateSpace, R1, R2)
+    observer_predictor(sys::AbstractStateSpace, K)
 
-Return the predictor system
-x̂' = (A - KC)x̂ + Bu + Ky
+Return the observer_predictor system
+x̂' = (A - KC)x̂ + (B-KD)u + Ky
 ŷ  = Cx + Du
 with the input equation [B K] * [u; y]
 
@@ -651,12 +651,30 @@ If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
 
 See also `innovation_form`.
 """
-function predictor(sys::ST, R1, R2) where ST <: AbstractStateSpace
+function observer_predictor(sys::ST, R1, R2) where ST <: AbstractStateSpace
     K = kalman(sys, R1, R2)
-    predictor(sys, K)
+    observer_predictor(sys, K)
 end
 
-function ControlSystems.predictor(sys, K::AbstractMatrix)
+function observer_predictor(sys, K::AbstractMatrix)
     A,B,C,D = ssdata(sys)
-    ss(A-K*C, [B K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
+    ss(A-K*C, [B-K*D K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
+end
+
+"""
+    cont = observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+
+Return the observer_controller `cont` that is given by
+`ss(A - B*L - K*C + K*D*L, K, L, 0)`
+
+Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
+
+# Arguments:
+- `sys`: Model of system
+- `L`: State-feedback gain `u = -Lx`
+- `K`: Observer gain
+"""
+function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+    A,B,C,D = ssdata(sys)
+    ss(A - B*L - K*C + K*D*L, K, L, 0, sys.timeevol)
 end
