@@ -241,7 +241,7 @@ end
 balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
-convert(::Type{TransferFunction}, sys::AbstractStateSpace{TE}) where TE = convert(TransferFunction{TE,SisoRational}, sys)
+convert(::Type{TransferFunction}, sys::AbstractStateSpace{TE}) where TE = convert(TransferFunction{TE,SisoRational{numeric_type(sys)}}, sys)
 
 function convert(::Type{TransferFunction{TE,SisoRational{T}}}, sys::AbstractStateSpace) where {TE,T<:Number}
     matrix = Matrix{SisoRational{T}}(undef, size(sys))

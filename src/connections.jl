@@ -151,12 +151,17 @@ function blockdiag(mats::AbstractMatrix{T}...) where T
 end
 
 
-
 """
-    feedback(L)
-    feedback(P1,P2)
+    feedback(sys)
+    feedback(sys1, sys2)
 
-Returns `L/(1+L)` or `P1/(1+P1*P2)`
+For a general LTI-system, `feedback` forms the negative feedback interconnection
+```julia
+>-+ sys1 +-->
+  |      |
+ (-)sys2 +
+```
+If no second system is given, negative identity feedback is assumed
 """
 feedback(L::TransferFunction) = L/(1+L)
 feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
@@ -197,48 +202,53 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
     return TransferFunction{TE,T}(fill(sisozpk,1,1), L.timeevol)
 end
 
-"""
-    feedback(sys)
-    feedback(sys1,sys2)
-
-Forms the negative feedback interconnection
-```julia
->-+ sys1 +-->
-  |      |
- (-)sys2 +
-```
-If no second system is given, negative identity feedback is assumed
-"""
-function feedback(sys::Union{StateSpace, DelayLtiSystem})
+function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), sys.timeevol))
 end
-
-function feedback(sys1::StateSpace,sys2::StateSpace)
-    timeevol = common_timeevol(sys1,sys2)
-    !(iszero(sys1.D) || iszero(sys2.D)) && error("There cannot be a direct term (D) in both sys1 and sys2")
-    A = [sys1.A+sys1.B*(-sys2.D)*sys1.C sys1.B*(-sys2.C);
-         sys2.B*sys1.C  sys2.A+sys2.B*sys1.D*(-sys2.C)]
-    B = [sys1.B; sys2.B*sys1.D]
-    C = [sys1.C  sys1.D*(-sys2.C)]
-    ss(A, B, C, sys1.D, timeevol)
-end
-
 
 """
-    feedback(s1::AbstractStateSpace, s2::AbstractStateSpace;
+    feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
              U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
              Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
+*Basic use* `feedback(sys1, sys2)` forms the feedback interconnection
+```julia
+           ┌──────────────┐
+◄──────────┤     sys1     │◄──── Σ ◄──────
+    │      │              │      │
+    │      └──────────────┘      -1
+    │                            |
+    │      ┌──────────────┐      │
+    └─────►│     sys2     ├──────┘
+           │              │
+           └──────────────┘
+```
+*Advanced use*
+`feedback` also supports more flexible use according to the figure below
+```julia
+              ┌──────────────┐
+      z1◄─────┤     sys1     │◄──────w1
+ ┌─── y1◄─────┤              │◄──────u1 ◄─┐
+ │            └──────────────┘            │
+ │                                        α
+ │            ┌──────────────┐            │
+ └──► u2─────►│     sys2     ├───────►y2──┘
+      w2─────►│              ├───────►z2
+              └──────────────┘
+```
+`U1`, `W1` specifies the indices of the input signals of `sys1` corresponding to `u1` and `w1`
+`Y1`, `Z1` specifies the indices of the output signals of `sys1` corresponding to `y1` and `z1`
+`U2`, `W2`, `Y2`, `Z2` specifies the corresponding signals of `sys2` 
 
-`U1`, `Y1`, `U2`, `Y2` contain the indices of the signals that should be connected.
-`W1`, `Z1`, `W2`, `Z2` contain the signal indices of `s1` and `s2` that should be kept.
+Specify  `Wperm` and `Zperm` to reorder the inputs (corresponding to [w1; w2])
+and outputs (corresponding to [z1; z2]) in the resulting statespace model.
 
-Specify  `Wperm` and `Zperm` to reorder [w1; w2] and [z1; z2] in the resulting statespace model.
+Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for positive feedback (α = 1).
 
-Negative feedback is the default. Specify `pos_feedback=true` for positive feedback.
+See also `lft`, `starprod`.
 
-See Zhou etc. for similar (somewhat less symmetric) formulas.
+See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
 @views function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],

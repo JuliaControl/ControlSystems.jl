@@ -160,7 +160,7 @@ function laglink(a, M; h=nothing, Ts=0)
         Base.depwarn("`laglink($a, $M; h=$h)` is deprecated, use `laglink($a, $M; Ts=$h)` instead.", Core.Typeof(laglink).name.mt.name)
         Ts = h
     end
-    @assert Ts ≥ 0 "Negative `Ts` is not supported."
+    Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported."))
     numerator = [1/a, 1]
     denominator = [M/a, 1]
     gain = M
@@ -185,7 +185,7 @@ function leadlink(b, N, K; h=nothing, Ts=0)
         Base.depwarn("`leadlink($b, $N, $K; h=$h)` is deprecated, use `leadlink($b, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlink).name.mt.name)
         Ts = h
     end
-    @assert Ts ≥ 0 "Negative `Ts` is not supported."
+    Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported."))
     numerator = [1/b, 1]
     denominator = [1/(b*N), 1]
     gain = K

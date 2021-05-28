@@ -8,6 +8,7 @@ numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
 numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
 numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
+numeric_type(sys::AbstractStateSpace) = eltype(sys.A)
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
@@ -77,7 +78,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
             end
 
             if k == length(roots) || r != conj(roots[k+1])
-                throw(AssertionError("Found pole without matching conjugate."))
+                throw(ArgumentError("Found pole without matching conjugate."))
             end
 
             push!(poly_factors,Polynomial{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))

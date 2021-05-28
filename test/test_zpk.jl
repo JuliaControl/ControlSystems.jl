@@ -43,7 +43,7 @@ z = zpk("z", 0.005)
 @test zpk([], [1.0+im,1.0,1.0-im], 1.0) == zpk(ComplexF64[], [1.0+im,1.0-im,1.0], 1.0)
 @test zpk([1.0-im,1.0,1.0+im], [], 1.0) == zpk([1.0+im,1.0-im,1.0], ComplexF64[], 1.0)
 @test zpk([], [1.0+im,1.0,1.0+im,1.0-im,1.0-im], 1.0) == zpk(ComplexF64[], [1.0+im,1.0-im,1.0+im,1.0-im,1.0], 1.0)
-@test_throws AssertionError zpk([], [1.01+im,1.0-im], 1.0) 
+@test_throws ArgumentError zpk([], [1.01+im,1.0-im], 1.0) 
 
 
 #TODO improve polynomial accuracy se these are equal
