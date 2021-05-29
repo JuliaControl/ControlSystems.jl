@@ -6,6 +6,7 @@ import DSP: conv            # In test_conversion and test_synthesis
 include("framework.jl")
 
 my_tests = [
+            "test_result_types",
             "test_timeevol",
             "test_statespace",
             "test_transferfunction",            
