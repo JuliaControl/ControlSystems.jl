@@ -1,8 +1,9 @@
-abstract type AbstractResult end
+abstract type AbstractResult end # Common for all result types, e.g., SimResult and FreqRespResult
 
 ## SimResult: the output of lsim etc. ==========================================
+abstract type AbstractSimResult <: AbstractResult end # Result of a time-domain simulation
 
-struct SimResult{Ty, Tt, Tx, Tu, Ts} <: AbstractResult
+struct SimResult{Ty, Tt, Tx, Tu, Ts} <: AbstractSimResult # Result of lsim
     y::Ty
     t::Tt
     x::Tx
