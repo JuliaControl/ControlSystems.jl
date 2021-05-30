@@ -117,24 +117,22 @@ end
 @recipe function simresultplot(r::SimResult; plotu=false)
     ny, nu = r.ny, r.nu
     t = r.t
-    multiseries = size(r.y, 3) # step and impulse produce multiple results
+    n_series = size(r.y, 3) # step and impulse produce multiple results
     layout --> ((plotu ? ny + nu : ny), 1)
-    # s2i(i,j) = LinearIndices((ny,1))[j,i]
     seriestype := iscontinuous(r.sys) ? :path : :steppost
-    for ms in 1:multiseries
+    for ms in 1:n_series
         for i=1:ny
             ytext = (ny > 1) ? "y($i)" : "y"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> ytext
-                title   --> "System Response"
-                label   --> (multiseries > 1 ? "From u($(ms))" : "")
-                subplot --> i#s2i(1,i)
+                label   --> (n_series > 1 ? "From u($(ms))" : "")
+                subplot --> i
                 t,  r.y[i, :, ms]
             end
         end
     end 
-    if plotu # bug in recipe syste, can't use `plotu || return`
+    if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
             utext = (nu > 1) ? "u($i)" : "u"
             @series begin

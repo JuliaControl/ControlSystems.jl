@@ -59,12 +59,12 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
         x0s = zeros(T, nx, nu)
     end
     if nu == 1 # Why two cases # QUESTION: Not type stable?
-        y, t, x,uout = lsim(sys, u, t; x0=x0s[:], kwargs...)
+        y, t, x, uout = lsim(sys, u, t; x0=x0s[:], kwargs...)
     else
         x = Array{T}(undef, nx, length(t), nu)
         y = Array{T}(undef, ny, length(t), nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i],uout = lsim(sys[:,i], u, t; x0=x0s[:,i], kwargs...)
+            y[:,:,i], t, x[:,:,i], uout = lsim(sys[:,i], u, t; x0=x0s[:,i], kwargs...)
         end
     end
     return SimResult(y, t, x, uout, sys)
