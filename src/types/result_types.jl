@@ -25,8 +25,7 @@ end
 Base.iterate(r::SimResult)              = (r.y, Val(:t))
 Base.iterate(r::SimResult, ::Val{:t})   = (r.t, Val(:x))
 Base.iterate(r::SimResult, ::Val{:x})   = (r.x, Val(:u))
-Base.iterate(r::SimResult, ::Val{:u})   = (r.u, Val(:sys))
-Base.iterate(r::SimResult, ::Val{:sys}) = (r.sys, Val(:done))
+Base.iterate(r::SimResult, ::Val{:u})   = (r.u, Val(:done))
 Base.iterate(r::SimResult, ::Val{:done}) = nothing
 
 

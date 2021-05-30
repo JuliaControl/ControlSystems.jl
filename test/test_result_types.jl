@@ -19,17 +19,14 @@
     @test r[5] == sys
 
     # test destructuring
-    y2,t2,x2,u2 = r # incomplete destructuring
+    y2,t2,x2,u2 = r
     @test y2 === y
     @test t2 === t
     @test x2 === x
     @test u2 === u
 
-    _,_,_,_,sys2 = r # complete destructuring
-    @test sys2 === sys
-
     # test inferability of destructuring
-    foo(r::SimResult) = (a,b,c,d,e) = r
+    foo(r::SimResult) = (a,b,c,d) = r
     @inferred foo(r)
 
     # test properties
