@@ -52,7 +52,7 @@ function pid(::Type{StateSpace}; Tf=0, params...)
         C = p.Kp / p.Ti
         D = p.Kp
     else
-        throw(DomainError("Cannot create a state space form for Td != 0 and Tf == 0."))
+        throw(DomainError("cannot create a state space form for Td != 0 and Tf == 0."))
     end
     return ss(A, B, C, D)
 end
@@ -104,7 +104,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, form=:parallel, ω
         elseif form === :parallel
             C = pid(;Kp=kp,Ki=ki,Kd=kd)
         else
-            throw(ArgumentError("Form $(form) not supported"))
+            throw(ArgumentError("form $(form) not supported"))
         end
         S,PS,CS,T = gangoffour(P,C)
         push!(Cs, C)
@@ -380,7 +380,7 @@ function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ
     num = numvec(P)[]
     den = denvec(P)[]
     if length(den) != 2 || length(num) > 2
-        throw(DomainError("Can only place poles using PI for proper first-order systems"))
+        throw(DomainError("can only place poles using PI for proper first-order systems"))
     end
     if length(num) == 1
         num = [0; num]
@@ -444,6 +444,6 @@ function convert_pid_params(target; params...)
     elseif target === :standard
         return (;Kp, Ti, Td)
     else
-        error("Form $(target) not supported")
+        throw(ArgumentError("form $(target) not supported"))
     end
 end
