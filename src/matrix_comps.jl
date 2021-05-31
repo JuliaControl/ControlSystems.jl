@@ -494,9 +494,9 @@ end
 
 
 """
-`sysr, G = balreal(sys::StateSpace)`
+`sysr, G, T = balreal(sys::StateSpace)`
 
-Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`
+Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`. `T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
 
 See also `gram`, `baltrunc`
 
@@ -532,14 +532,16 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(Σ), T
 end
 
 
 """
-    sysr, G = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
+    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
 
 Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
+
+`T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
 
 If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
 
@@ -548,7 +550,7 @@ See also `gram`, `balreal`
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
 function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n = nothing) where ST <: AbstractStateSpace
-    sysbal, S = balreal(sys)
+    sysbal, S, T = balreal(sys)
     S = diag(S)
     if n === nothing
         S = S[S .>= atol]
@@ -565,7 +567,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n =
         D = D/(C*inv(-A)*B)
     end
 
-    return ST(A,B,C,D,sys.timeevol), diagm(0 => S)
+    return ST(A,B,C,D,sys.timeevol), diagm(S), T
 end
 
 """
