@@ -19,6 +19,66 @@ of system `sys` over the frequency vector `w`."""
     [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
 end
 
+# TODO Most of this logic should be moved to the respective options, e.g. bode
+# TODO Less copying of code
+@autovec () function freqresp(sys::LTISystem, lims::Tuple; style=:none)
+    # Create imaginary freq vector s
+    func, xscale, yscales = if iscontinuous(sys)
+        if style === :none
+            f = (w) -> (evalfr(sys, w*im),)
+            (f, (identity, identity), (identity,))
+        elseif style === :bode
+            f = (w) -> begin
+                fr = evalfr(sys, w*im)
+                (fr, abs.(fr), atan.(imag.(fr), real.(fr)))
+            end
+            (f, (log10, exp10), (identity, log10, identity))
+        elseif style === :nyquist
+            f = (w) -> begin
+                fr = evalfr(sys, w*im)
+                (fr, real.(fr), imag.(fr))
+            end
+            (f, (identity, identity), (identity,identity,identity))
+        elseif style === :sigma
+            f = (w) -> begin
+                fr = evalfr(sys, w*im)
+                (fr, svdvals(fr))
+            end
+            (f, (log10, exp10), (identity,log10))
+        else
+            throw(ArgumentError("Invalid style $style in freqresp"))
+        end
+    else
+        if style === :none
+            f = (w) -> (evalfr(sys, exp(w*(im*sys.Ts))),)
+            (f, (identity, identity), (identity,))
+        elseif style === :bode
+            f = (w) -> begin
+                fr = evalfr(sys, exp(w*(im*sys.Ts)))
+                (fr, abs.(fr), atan.(imag.(fr), real.(fr)))
+            end
+            (f, (log10, exp10), (identity, log10, identity))
+        elseif style === :nyquist
+            f = (w) -> begin
+                fr = evalfr(sys, exp(w*(im*sys.Ts)))
+                (fr, real.(fr), imag.(fr))
+            end
+            (f, (identity, identity), (identity,identity,identity))
+        elseif style === :sigma
+            f = (w) -> begin
+                fr = evalfr(sys, exp(w*(im*sys.Ts)))
+                (fr, svdvals(fr))
+            end
+            (f, (log10, exp10), (identity,log10))
+        else
+            throw(ArgumentError("Invalid style $style in freqresp"))
+        end
+    end
+
+    ys, grid = sample(func, lims, xscale, yscales)
+    return cat(ys[1]..., dims=3), grid
+end
+
 # Implements algorithm found in:
 # Laub, A.J., "Efficient Multivariable Frequency Response Computations",
 # IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
@@ -106,6 +166,11 @@ at frequencies `w`
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
 @autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+
+@autovec (1, 2) function bode(sys::LTISystem, lims::Tuple)
+    resp, grid = freqresp(sys, lims, style=:bode)
+    abs.(resp), rad2deg.(unwrap!(angle.(resp),3)), grid
+end
 
 """`re, im, w = nyquist(sys[, w])`
 
