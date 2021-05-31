@@ -1,3 +1,11 @@
+# Set plot globals
+ENV["PLOTS_TEST"] = "true"
+ENV["GKSwstype"] = "nul"
+
+using Plots
+gr()
+default(show=false)
+
 using ControlSystems
 using Test, LinearAlgebra, Random
 import Base.isapprox        # In framework and test_synthesis
