@@ -84,7 +84,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, form=:parallel, ω
         kis = kis == 0 ? zeros(n) : kis
         kds = kds == 0 ? zeros(n) : kds
     end
-    ω   = ω   == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
+    ω = ω == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
 
     getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
@@ -106,7 +106,7 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, form=:parallel, ω
         else
             throw(ArgumentError("form $(form) not supported"))
         end
-        S,PS,CS,T = gangoffour(P,C)
+        T = minfun(feedback(P*C, 1))
         push!(Cs, C)
         push!(PCs, P*C)
         push!(Ts, T)
