@@ -412,19 +412,18 @@ equations.
 """
 function convert_pid_params(target; params...)
     if haskey(params, :Kc)
-        Kc = get(params, :Kc, 1.0)
+        Kc = params.Kc
         τi = get(params, :τi, typeof(Kc)(Inf))
         τd = get(params, :τd, 0.0)
         Kp = Kc * (1 + τd / τi)
         Ti = τd + τi
         Td = τd * τi / (τd + τi)
     elseif haskey(params, :Ki) || haskey(params, :Kd)
-        Kp = get(params, :Kp, 1.0)
+        Kp = get(params, :Kp, 0.0)
         Ki = get(params, :Ki, 0.0)
         Kd = get(params, :Kd, 0.0)
-        Kp = Kp
-        Ti = Kp / Ki
-        Td = Kd / Kp
+        Ti = Ki == 0 ? typeof(Kp)(Inf) : Kp / Ki
+        Td = Kd == 0 ? 0 : Kd / Kp
     elseif haskey(params, :Kp)
         Kp = get(params, :Kc, 1.0)
         Ti = get(params, :Ti, typeof(Kp)(Inf))
