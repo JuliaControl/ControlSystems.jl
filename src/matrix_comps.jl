@@ -168,8 +168,9 @@ function covar(sys::AbstractStateSpace, W)
     func = iscontinuous(sys) ? lyap : dlyap
     Q = try
         func(A, B*W*B')
-    catch
-        error("No solution to the Lyapunov equation was found in covar")
+    catch e
+        @error("No solution to the Lyapunov equation was found in covar.")
+        rethrow(e)
     end
     P = C*Q*C'
     if !isdiscrete(sys)
