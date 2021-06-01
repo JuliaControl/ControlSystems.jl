@@ -1,11 +1,3 @@
-# Set plot globals
-ENV["PLOTS_TEST"] = "true"
-ENV["GKSwstype"] = "nul"
-
-using Plots
-gr()
-default(show=false)
-
 # This function show mirror that in ControlExamplePlots.jl/genplots.jl
 # to make sure that the plots in these tests can be tested for accuracy
 """funcs, names = getexamples()

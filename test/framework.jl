@@ -1,3 +1,11 @@
+# Set plot globals
+ENV["PLOTS_TEST"] = "true"
+ENV["GKSwstype"] = "nul"
+
+using Plots
+gr()
+default(show=false)
+
 using ControlSystems
 # Local definition to make sure we get warnings if we use eye
 eye_(n) = Matrix{Int64}(I, n, n)
