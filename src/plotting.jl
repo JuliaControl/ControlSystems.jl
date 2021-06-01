@@ -280,12 +280,12 @@ bodeplot
         for j=1:nu
             for i=1:ny
                 group_ind += 1
-                magdata = vec(mag[:, i, j])
+                magdata = vec(mag[i, j, :])
                 if all(magdata .== -Inf)
                     # 0 system, don't plot anything
                     continue
                 end
-                phasedata = vec(phase[:, i, j])
+                phasedata = vec(phase[i, j, :])
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
@@ -388,8 +388,8 @@ nyquistplot
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata = re_resp[:, i, j]
-                imdata = im_resp[:, i, j]
+                redata = re_resp[i, j, :]
+                imdata = im_resp[i, j, :]
                 @series begin
                     ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                     xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
@@ -637,7 +637,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 seriescolor --> si
-                w, sv[:, i]
+                w, sv[i, :]
             end
         end
     end

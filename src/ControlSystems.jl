@@ -145,7 +145,7 @@ include("types/zpk.jl")
 include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
 
 include("utilities.jl")
-include("sampler.jl")
+include("auto_grid.jl")
 
 include("types/promotion.jl")
 include("types/conversion.jl")

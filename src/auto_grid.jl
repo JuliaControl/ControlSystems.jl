@@ -1,7 +1,7 @@
 
 
 """
-values, grid = sample(func, lims::Tuple, xscale, yscales; start_gridpoints, maxgridpoints, mineps, reltol_dd, abstol_dd)
+values, grid = auto_grid(func, lims::Tuple, xscale, yscales; start_gridpoints, maxgridpoints, mineps, reltol_dd, abstol_dd)
     
     Arguments:
     Compute a `grid` that tries to capture all features of the function `func` in the range `lim=(xmin,xmax)`.
@@ -32,13 +32,13 @@ values, grid = sample(func, lims::Tuple, xscale, yscales; start_gridpoints, maxg
     lims = (0.1,7.0)
     xscale = (log10, exp10)
     yscales = (identity, log10)
-    y, x = sample(func, lims, xscale, yscales, mineps=1e-3)
+    y, x = auto_grid(func, lims, xscale, yscales, mineps=1e-3)
     
     plot(x, y[1], m=:o; xscale=:log10, layout=(2,1), yscale=:identity, subplot=1, lab="sinc(x)", size=(800,600))
     plot!(x, y[2], m=:o, xscale=:log10, subplot=2, yscale=:log10, lab="cos(x)+1", ylims=(1e-5,10))
 
 """
-function sample(func, lims::Tuple, xscale::Tuple, yscales::Tuple;
+function auto_grid(func, lims::Tuple, xscale::Tuple, yscales::Tuple;
                 start_gridpoints=30, maxgridpoints=2000,
                 mineps=(xscale[1](lims[2])-xscale[1](lims[1]))/10000,
                 reltol_dd=0.05, abstol_dd=1e-2)
@@ -83,6 +83,7 @@ function refine_grid!(values, grid, func, xleft, xright, leftvalue, rightvalue, 
     midpoint_identity = xscale[2](midpoint)
     midvalue = func(midpoint_identity)
 
+    (num_gridpoints >= maxgridpoints) && @warn "Maximum number of gridpoints reached in refine_grid! at $midpoint_identity, no further refinement will be made. Increase maxgridpoints to get better accuracy." maxlog=1
     #mineps in scaled version, abs to avoid assuming monotonly increasing scale
     if (abs(xright - xleft) >= mineps) && (num_gridpoints < maxgridpoints) && !is_almost_linear(xleft, midpoint, xright, leftvalue, midvalue, rightvalue, xscale, yscales; reltol_dd, abstol_dd)
         num_gridpoints = refine_grid!(values, grid, func, xleft,    midpoint, leftvalue, midvalue,   xscale, yscales, maxgridpoints, mineps, num_gridpoints; reltol_dd, abstol_dd)
@@ -101,7 +102,7 @@ end
 # TODO We can scale when saving instead of recomputing scaling
 # Svectors should also be faster in general
 function is_almost_linear(xleft, midpoint, xright, leftvalue, midvalue, rightvalue, xscale, yscales; reltol_dd=0.05, abstol_dd=1e-2)
-    # We assume that x2-x1 \approx  x3-x1, so we need to check that y2-y1 approx y3-y2
+    # We assume that x2-x1 \approx  x3-x2, so we need to check that y2-y1 approx y3-y2
 
     # x1 = xscale.(xleft)
     # x2 = xscale.(midpoint)

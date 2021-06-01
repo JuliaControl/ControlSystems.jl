@@ -1,81 +1,44 @@
+function eval_frequency(sys::LTISystem, w::Real)
+    if iscontinuous(sys)
+        return evalfr(sys,im*w)
+    else
+        return evalfr(sys, exp(w*im*sys.Ts))
+    end
+end
+
 """sys_fr = freqresp(sys, w)
 
 Evaluate the frequency response of a linear system
 
 `w -> C*((iw*im -A)^-1)*B + D`
 
-of system `sys` over the frequency vector `w`."""
-@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
-    # Create imaginary freq vector s
-    if iscontinuous(sys)
-        s_vec = im*w_vec
-    else
-        s_vec = exp.(w_vec*(im*sys.Ts))
-    end
+of system `sys` over the frequency vector `w`.
+
+`sys_fr` has size `(ny, nu, length(w))`
+"""
+@autovec (1) function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
     #if isa(sys, StateSpace)
     #    sys = _preprocess_for_freqresp(sys)
     #end
-    ny,nu = noutputs(sys), ninputs(sys)
-    [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
+    mapfoldl(w -> eval_frequency(sys, w), (x,y) -> cat(x,y,dims=3), w_vec), w_vec
 end
 
 # TODO Most of this logic should be moved to the respective options, e.g. bode
 # TODO Less copying of code
-@autovec () function freqresp(sys::LTISystem, lims::Tuple; style=:none)
-    # Create imaginary freq vector s
-    func, xscale, yscales = if iscontinuous(sys)
-        if style === :none
-            f = (w) -> (evalfr(sys, w*im),)
-            (f, (identity, identity), (identity,))
-        elseif style === :bode
-            f = (w) -> begin
-                fr = evalfr(sys, w*im)
-                (fr, abs.(fr), atan.(imag.(fr), real.(fr)))
-            end
-            (f, (log10, exp10), (identity, log10, identity))
-        elseif style === :nyquist
-            f = (w) -> begin
-                fr = evalfr(sys, w*im)
-                (fr, real.(fr), imag.(fr))
-            end
-            (f, (identity, identity), (identity,identity,identity))
-        elseif style === :sigma
-            f = (w) -> begin
-                fr = evalfr(sys, w*im)
-                (fr, svdvals(fr))
-            end
-            (f, (log10, exp10), (identity,log10))
-        else
-            throw(ArgumentError("Invalid style $style in freqresp"))
-        end
-    else
-        if style === :none
-            f = (w) -> (evalfr(sys, exp(w*(im*sys.Ts))),)
-            (f, (identity, identity), (identity,))
-        elseif style === :bode
-            f = (w) -> begin
-                fr = evalfr(sys, exp(w*(im*sys.Ts)))
-                (fr, abs.(fr), atan.(imag.(fr), real.(fr)))
-            end
-            (f, (log10, exp10), (identity, log10, identity))
-        elseif style === :nyquist
-            f = (w) -> begin
-                fr = evalfr(sys, exp(w*(im*sys.Ts)))
-                (fr, real.(fr), imag.(fr))
-            end
-            (f, (identity, identity), (identity,identity,identity))
-        elseif style === :sigma
-            f = (w) -> begin
-                fr = evalfr(sys, exp(w*(im*sys.Ts)))
-                (fr, svdvals(fr))
-            end
-            (f, (log10, exp10), (identity,log10))
-        else
-            throw(ArgumentError("Invalid style $style in freqresp"))
-        end
-    end
+"""sys_fr, w = freqresp(sys::LTISystem, lims::Tuple)
 
-    ys, grid = sample(func, lims, xscale, yscales)
+Evaluate the frequency response of a linear system
+
+`w -> C*((iw*im -A)^-1)*B + D`
+
+of system `sys` for frequencies `w` between `lims[1]` and `lims[2]`.
+
+`sys_fr` has size `(ny, nu, length(w))`
+"""
+@autovec (1) function freqresp(sys::LTISystem, lims::Tuple)
+    # TODO What is the usecase here? Defaulting to identity for now
+    f = (w) -> (eval_frequency(sys, w),)
+    ys, grid = auto_grid(f, lims, (identity, identity), (identity,))
     return cat(ys[1]..., dims=3), grid
 end
 
@@ -160,16 +123,23 @@ end
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`
 
-`mag` and `phase` has size `(length(w), ny, nu)`""" 
+`mag` and `phase` has size `(ny, nu, length(w))`""" 
 @autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_lims(sys, Val{:bode}()))
 
 @autovec (1, 2) function bode(sys::LTISystem, lims::Tuple)
-    resp, grid = freqresp(sys, lims, style=:bode)
-    abs.(resp), rad2deg.(unwrap!(angle.(resp),3)), grid
+    f = (w) -> begin
+        fr = eval_frequency(sys, w)
+        (abs.(fr), angle.(fr))
+    end
+    ys, grid = auto_grid(f, lims, (log10, exp10), (log10, identity))
+    angles = cat(ys[2]...,dims=3)
+    unwrap!(angles,3)
+    angles .= rad2deg.(angles)
+    cat(ys[1]...,dims=3), angles, grid
 end
 
 """`re, im, w = nyquist(sys[, w])`
@@ -177,38 +147,63 @@ end
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`
 
-`re` and `im` has size `(length(w), ny, nu)`""" 
+`re` and `im` has size `(ny, nu, length(w))`""" 
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-@autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
+@autovec (1, 2) function nyquist(sys::LTISystem, lims::Tuple)
+    # TODO check if better to only consider fr
+    f = (w) -> begin
+        fr = eval_frequency(sys, w)
+        (fr, real.(fr), imag.(fr))
+    end
+    ys, grid = auto_grid(f, lims, (log10, exp10), (identity,identity,identity))
+    return cat(ys[2]...,dims=3), cat(ys[3]...,dims=3), grid
+end
+@autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_lims(sys, Val{:nyquist}()))
 
 """`sv, w = sigma(sys[, w])`
 
 Compute the singular values `sv` of the frequency response of system `sys` at
 frequencies `w`
 
-`sv` has size `(length(w), max(ny, nu))`""" 
+`sv` has size `(max(ny, nu), length(w))`""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
+    sv = dropdims(mapslices(svdvals, resp, dims=(1,2)),dims=2)
     return sv, w
 end
-@autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
+# TODO: Not tested, probably broadcast problem on svdvals in auto_grid
+@autovec (1) function sigma(sys::LTISystem, lims::Tuple)
+    f = (w) -> begin
+        fr = eval_frequency(sys, w)
+        (svdvals(fr),)
+    end
+    ys, grid = auto_grid(f, lims, (log10, exp10), (log10,))
+    return cat(ys[1]...,dims=2), grid
+end
+@autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_lims(sys, Val{:sigma}()))
+
+function _default_freq_lims(systems, plot)
+    bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)
+    w1 = minimum(minimum.(bounds))
+    w2 = maximum(maximum.(bounds))
+    return exp10(w1), exp10(w2)
+end
 
 function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     min_pt_per_dec = 60
     min_pt_total = 200
-    bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)
-    w1 = minimum(minimum.(bounds))
-    w2 = maximum(maximum.(bounds))
-
+    w1, w2 = _default_freq_lims(systems, plot)
     nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
     return exp10.(range(w1, stop=w2, length=nw))
 end
+
 _default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
         [sys], plot)
+_default_freq_lims(sys::LTISystem, plot) = _default_freq_lims(
+    [sys], plot)
 
 
 function _bounds_and_features(sys::LTISystem, plot::Val)
