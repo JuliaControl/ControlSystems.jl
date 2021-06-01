@@ -20,7 +20,7 @@ of system `sys` over the frequency vector `w`.
     #if isa(sys, StateSpace)
     #    sys = _preprocess_for_freqresp(sys)
     #end
-    mapfoldl(w -> eval_frequency(sys, w), (x,y) -> cat(x,y,dims=3), w_vec), w_vec
+    mapfoldl(w -> eval_frequency(sys, w), (x,y) -> cat(x,y,dims=3), w_vec)
 end
 
 # TODO Most of this logic should be moved to the respective options, e.g. bode
@@ -128,14 +128,14 @@ at frequencies `w`
     resp = freqresp(sys, w)
     return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
 end
-@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_lims(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem; kwargs...) = bode(sys, _default_freq_lims(sys, Val{:bode}()); kwargs...)
 
-@autovec (1, 2) function bode(sys::LTISystem, lims::Tuple)
+@autovec (1, 2) function bode(sys::LTISystem, lims::Tuple; kwargs...)
     f = (w) -> begin
         fr = eval_frequency(sys, w)
         (abs.(fr), angle.(fr))
     end
-    ys, grid = auto_grid(f, lims, (log10, exp10), (log10, identity))
+    ys, grid = auto_grid(f, lims, (log10, exp10), (log10, identity); kwargs...)
     angles = cat(ys[2]...,dims=3)
     unwrap!(angles,3)
     angles .= rad2deg.(angles)
@@ -152,16 +152,16 @@ at frequencies `w`
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
 end
-@autovec (1, 2) function nyquist(sys::LTISystem, lims::Tuple)
+@autovec (1, 2) function nyquist(sys::LTISystem, lims::Tuple; kwargs...)
     # TODO check if better to only consider fr
     f = (w) -> begin
         fr = eval_frequency(sys, w)
         (fr, real.(fr), imag.(fr))
     end
-    ys, grid = auto_grid(f, lims, (log10, exp10), (identity,identity,identity))
+    ys, grid = auto_grid(f, lims, (log10, exp10), (identity,identity,identity); kwargs...)
     return cat(ys[2]...,dims=3), cat(ys[3]...,dims=3), grid
 end
-@autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_lims(sys, Val{:nyquist}()))
+@autovec (1, 2) nyquist(sys::LTISystem; kwargs...) = nyquist(sys, _default_freq_lims(sys, Val{:nyquist}()); kwargs...)
 
 """`sv, w = sigma(sys[, w])`
 
@@ -175,15 +175,15 @@ frequencies `w`
     return sv, w
 end
 # TODO: Not tested, probably broadcast problem on svdvals in auto_grid
-@autovec (1) function sigma(sys::LTISystem, lims::Tuple)
+@autovec (1) function sigma(sys::LTISystem, lims::Tuple; kwargs...)
     f = (w) -> begin
         fr = eval_frequency(sys, w)
         (svdvals(fr),)
     end
-    ys, grid = auto_grid(f, lims, (log10, exp10), (log10,))
+    ys, grid = auto_grid(f, lims, (log10, exp10), (log10,); kwargs...)
     return cat(ys[1]...,dims=2), grid
 end
-@autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_lims(sys, Val{:sigma}()))
+@autovec (1) sigma(sys::LTISystem; kwargs...) = sigma(sys, _default_freq_lims(sys, Val{:sigma}()); kwargs...)
 
 function _default_freq_lims(systems, plot)
     bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)

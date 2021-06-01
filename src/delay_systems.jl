@@ -4,18 +4,18 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
 
     P_fr = freqresp(sys.P.P, ω);
 
-    G_fr = zeros(eltype(P_fr), length(ω), ny, nu)
+    G_fr = zeros(eltype(P_fr), ny, nu,  length(ω))
 
     for ω_idx=1:length(ω)
-        P11_fr = P_fr[ω_idx, 1:ny, 1:nu]
-        P12_fr = P_fr[ω_idx, 1:ny, nu+1:end]
-        P21_fr = P_fr[ω_idx, ny+1:end, 1:nu]
-        P22_fr = P_fr[ω_idx, ny+1:end, nu+1:end]
+        P11_fr = P_fr[1:ny, 1:nu, ω_idx]
+        P12_fr = P_fr[1:ny, nu+1:end, ω_idx]
+        P21_fr = P_fr[ny+1:end, 1:nu, ω_idx]
+        P22_fr = P_fr[ny+1:end, nu+1:end, ω_idx]
 
         delay_matrix_inv_fr = Diagonal(exp.(im*ω[ω_idx]*sys.Tau)) # Frequency response of the diagonal matrix with delays
         # Inverse of the delay matrix, so there should not be any minus signs in the exponents
 
-        G_fr[ω_idx,:,:] .= P11_fr + P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
+        G_fr[:,:,ω_idx] .= P11_fr + P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
     end
 
     return G_fr
