@@ -1,7 +1,7 @@
 export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
-    C = pid([type=StateSpace;] form=:standard, Tf=0, params...)
+    C = pid([type=StateSpace;] Tf=0, params...)
 
 Calculates and returns a PID controller with `type` representation.
 Default is `StateSpace`, but the first argument can be supplied as
@@ -16,11 +16,13 @@ and `N` is commonly in the range 2 to 20.
 
 The state space will be returned on controllable canonical form.
 
-Options for `form` are 
+`params` are supplied as keyword arguments with names corresponding
+to either one of the following forms:
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(1 + τd*s)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
-with default `params` values `Kp=Kc=1`, `Ti=τi=Inf`, `Ki=Kd=Td=τd=0`.
+Default values if only a subset of a form is supplied is `Kp=Kc=1`, 
+`Ti=τi=Inf`, `Ki=Kd=Td=τd=0`.
 
 ## Examples
 ```
@@ -40,7 +42,6 @@ end
 
 function pid(::Type{StateSpace}; Tf=0, params...)
     p = convert_pid_params(:standard; params...)
-    @show p
     if Tf != 0
         A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
         B = [0; 0; 1]
@@ -58,55 +59,62 @@ function pid(::Type{StateSpace}; Tf=0, params...)
 end
 
 """
-    pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)
+    pidplots(P, args...; ω=0, grid=false, params..., kwargs...)
 
-Plots interesting figures related to closing the loop around process `P` with a PID controller
-Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.
-
--`time` indicates whether or not the parameters are given as gains (default) or as time constants
--`series` indicates  whether or not the series form or parallel form (default) is desired
+Plots interesting figures related to closing the loop around process `P` with a PID controller supplied in `params`
+on one of the following forms:
+* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
+* `:series` - `Kc*(1 + 1/(τi*s))*(1 + τd*s)`
+* `:parallel` - `Kp + Ki/s + Kd*s`
+The sent in values can be arrays to evaluate multiple different controllers, and if `grid=true` it will be a grid search 
+over all possible combinations of the values.
 
 Available plots are `:gof` for Gang of four, `:nyquist`, `:controller` for a bode plot of the controller TF and `:pz` for pole-zero maps
+and should be supplied as additional arguments to the function.
 
-One can also supply a frequency vector ω to be used in Bode and Nyquist plots
+One can also supply a frequency vector `ω` to be used in Bode and Nyquist plots.
 
 See also `loopshapingPI`, `stabregionPID`
 """
-function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, form=:parallel, ω=0, grid = false, kwargs...)
+function pidplots(P::LTISystem, args...; 
+        Kp=0.0, Kc=0.0, Ki=0.0, Kd=0.0, Ti=typeof(Kp)(Inf), τi=typeof(Kc)(Inf), Td=0.0, τd=0.0, 
+        ω=0, grid = false, kwargs...)
+    params = if Kc != 0
+        (;Kc, τi, τd)
+    elseif Ki != 0 || Kd != 0
+        (;Kp, Ki, Kd)
+    elseif Kp != 0
+        (;Kp, Ti, Td)
+    else
+        throw(ArgumentError("the supplied parameters does not sufficiently describe a supported form."))
+    end
+    kps, kis, kds = values(params)
+
     if grid
-        kp = [i for i in kps, j in kis, k in kds][:]
-        ki = [j for i in kps, j in kis, k in kds][:]
-        kd = [k for i in kps, j in kis, k in kds][:]
+        kp = [i for i in kps, _ in kis, _ in kds][:]
+        ki = [j for _ in kps, j in kis, _ in kds][:]
+        kd = [k for _ in kps, _ in kis, k in kds][:]
         kps, kis, kds = kp, ki, kd
     else
         n = max(length(kps), length(kis), length(kds))
-        kps = kps == 0 ? zeros(n) : kps
-        kis = kis == 0 ? zeros(n) : kis
-        kds = kds == 0 ? zeros(n) : kds
+        kps = kps isa Number ? fill(kps, n) : kps
+        kis = kis isa Number ? fill(kis, n) : kis
+        kds = kds isa Number ? fill(kds, n) : kds
     end
     ω = ω == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
 
-    getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
+    getColorSys(i) = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
     Cs = LTISystem[]
     PCs = LTISystem[]
     Ts  = LTISystem[]
     labels = Array{String,2}(undef, 1,length(kps))
-    for (i,kp) = enumerate(kps)
-        ki = kis[i]
-        kd = kds[i]
-        label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
+    for i = eachindex(kps)
+        param = zip(keys(params), (kps[i], kis[i], kds[i]))
+        label = join(("$(k) = $(v)" for (k, v) in param), ", ")
 
-        if form === :standard
-            C = pid(;Kp=kp,Ti=ki,Td=kd)
-        elseif form === :series
-            C = pid(;Kc=kp,τi=ki,τd=kd)
-        elseif form === :parallel
-            C = pid(;Kp=kp,Ki=ki,Kd=kd)
-        else
-            throw(ArgumentError("form $(form) not supported"))
-        end
-        T = minfun(feedback(P*C, 1))
+        C = pid(; param...)
+        T = robust_minreal(feedback(P*C, 1))
         push!(Cs, C)
         push!(PCs, P*C)
         push!(Ts, T)
