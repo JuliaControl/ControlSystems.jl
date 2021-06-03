@@ -57,7 +57,7 @@ function pid(::Type{StateSpace}; Tf=0, params...)
         C = p.Kp / p.Ti
         D = p.Kp
     else
-        throw(DomainError("cannot create a state space form for Td != 0 and Tf == 0."))
+        throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
     end
     return ss(A, B, C, D)
 end
