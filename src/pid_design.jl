@@ -26,10 +26,11 @@ Default values if only a subset of a form is supplied is `Kp=Kc=1`,
 
 ## Examples
 ```
-C1 = pid(form=:parallel, Kd=4, Ki=2, Kd=1)
-C2 = pid(Kp=2, Ti=3, Td=1, N=4)
-C3 = pid(StateSpace; Kp=2, Ti=3)
-C4 = pid(StateSpace; form=:standard, Kp=2, Ti=3, Td=1, N=4)
+C1 = pid(TransferFunction; Kp=4., Ki=2., Kd=1.) # Kd≠1 works without filter in tf form
+C2 = pid(Kp=4., Ki=2., Kd=1., Tf=1.)            # In statespace a filter is needed
+C3 = pid(Kp=2., Ki=3.)                          # Or no derivative part
+C4 = pid(Kp=2., τi=3., τd=1., Tf=1.)            # Other forms
+C5 = pid(Kp=2., Ti=3.)                          # Other forms
 ```
 """
 pid(; kwargs...) = pid(StateSpace; kwargs...)
