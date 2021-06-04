@@ -422,7 +422,7 @@ end
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
 
 """
-    params = convert_pidparams(target; params...)
+    params = convert_pid_params(target; params...)
 
 Convert parameters from a form idendified by the parameter names sent in to `target` form.
 
