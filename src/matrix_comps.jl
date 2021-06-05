@@ -621,7 +621,7 @@ function cdf2rdf(E::Eigen)
     k = complex_inds[2:2:end]
 
     # put real parts on diagonal
-    Db = zeros(n, n)
+    Db = zeros(real(eltype(D)), n, n)
     Db[diagind(Db)] .= real(D)
 
     # compute eigenvectors for real block diagonal eigenvalues
@@ -666,7 +666,7 @@ function modal_form(sys::AbstractStateSpace)
         # This enforces a convention: the C matrix entry for the first component in each complex mode is positive. This allows SISO systems on modal form to be interpolated in a meaningful way by interpolating their coefficients. 
         # Ref: "New Metrics Between Rational Spectra and their Connection to Optimal Transport" , Bagge Carlson,  Chitre
         ci = complex_indices(sysm.A)
-        signflips = ones(sysm.nx)
+        signflips = ones(Int, sysm.nx)
         for i in ci
             if sysm.C[i] < 0
                 signflips[i] = -1
