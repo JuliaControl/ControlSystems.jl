@@ -589,6 +589,99 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     ST(A,B,C,D,sys.timeevol)
 end
 
+
+"""
+    Ab, T = blockdiagonalize(A::AbstractMatrix)
+
+Return a block-diagonal matrix `Ab` and a similarity transform `T` that brings a real matrix `A` to `Ab`. `Ab` has real entries with the real parts of the eigenvalues on the diagonal, and the imaginary parts of eigenvalues, if any, on the off diagonals. See also [`cdf2rdf`](@ref) and [`modal_form`](@ref).
+"""
+blockdiagonalize(A::AbstractMatrix{<:Real}) = cdf2rdf(eigen(A))
+
+"""
+    Db, Vb = cdf2rdf(E::Eigen)
+
+Convert an `Eigen` factorization `(D,V)` of matrix `X`, with the properties `V*D = X*V` and `D` diagonal (complex diagonal form, cdf), to a real, block-diagonal form `Db,Vb` such that `Vb*Db = X*Vb` with `Db` having real entries with the real parts of the eigenvalues on the diagonal, and the imaginary parts of eigenvalues, if any, on the off diagonals (real diagonal form, rdf). 
+"""
+function cdf2rdf(E::Eigen)
+    # Implementation inspired by scipy https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.cdf2rdf.html
+    # with the licence https://github.com/scipy/scipy/blob/v1.6.3/LICENSE.txt
+    D,V = E
+    n = length(D)
+
+    function complex_indices(D::AbstractVector)
+        complex_eigs = imag.(D) .!= 0
+        findall(complex_eigs)
+    end
+
+    # get indices for each first pair of complex eigenvalues
+    complex_inds = complex_indices(D)
+
+    # eigvals are sorted so conjugate pairs are next to each other
+    j = complex_inds[1:2:end]
+    k = complex_inds[2:2:end]
+
+    # put real parts on diagonal
+    Db = zeros(n, n)
+    Db[diagind(Db)] .= real(D)
+
+    # compute eigenvectors for real block diagonal eigenvalues
+    U = zeros(eltype(D), n, n)
+    U[diagind(U)] .= 1.0
+
+    # transform complex eigvals to real blockdiag form
+    for (k,j) in zip(k,j)
+        Db[j, k] = imag(D[j]) # put imaginary parts in blocks 
+        Db[k, j] = imag(D[k])
+
+        U[j, j] = 0.5im
+        U[j, k] = 0.5
+        U[k, j] = -0.5im
+        U[k, k] = 0.5
+    end
+    Vb = real(V*U)
+
+    return Db, Vb
+end
+
+"""
+    modal_form(sys)
+
+Apply a similarity transform to the system to bring it to modal form. A modal form is a real block-diagonalisation of `A` where real eigenvalues appear as diagonal entries and complex eigenvalues appear as 2×2 blocks on the diagonal with the real `σ` and imaginary `γ` parts appearing like. 
+```
+|  σ  γ |
+| -γ  σ |
+```
+For SISO systems, the coefficients of the system are additionally arranged in order to allow meaningful interpolation between two systems by means of interpolation between their coefficients. See also [`blockdiagonalize`](@ref).
+"""
+function modal_form(sys::AbstractStateSpace)
+    function complex_indices(A::Matrix) # assumes A on block diagonal form
+        findall(diag(A, -1) .!= 0)
+    end
+    A,B,C,D = ssdata(sys)
+    Ab,T = blockdiagonalize(sys.A)
+    # Calling similarity_transform looks like a detour, but this implementation allows modal_form to work with any AbstractStateSpace which implements a custom method for similarity transform
+    sysm = similarity_transform(sys, T)
+    sysm.A .= Ab # sysm.A should already be Ab after similarity_transform, but Ab has less numerical noise
+    if ControlSystems.issiso(sysm)
+        # This enforces a convention: the C matrix entry for the first component in each complex mode is positive. This allows SISO systems on modal form to be interpolated in a meaningful way by interpolating their coefficients. 
+        # Ref: "New Metrics Between Rational Spectra and their Connection to Optimal Transport" , Bagge Carlson,  Chitre
+        ci = complex_indices(sysm.A)
+        signflips = ones(sysm.nx)
+        for i in ci
+            if sysm.C[i] < 0
+                signflips[i] = -1
+                signflips[i .+ 1] = -1
+            end
+        end
+        T = diagm(signflips)
+        sysm = similarity_transform(sysm, T)
+        sysm.A .= Ab # Ab unchanged by diagonal T
+    end
+    sysm
+end
+
+
+
 """
     syst, S = prescale(sys)
 Perform a eigendecomposition on system state-transition matrix `sys.A`.
