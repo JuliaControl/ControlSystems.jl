@@ -141,9 +141,7 @@ allpoles = [
 
     function isblockdiagonal(A)
         complex_inds = findall(diag(A, -1) .!= 0)
-        for i in complex_inds
-            A[i, i+1] == -A[i+1, i] || (return false)
-        end
+        diag(A, -1) ≈ -diag(A, 1) || (return false)
         A = A - diagm(diag(A)) # remove main diagonal
         A = A - diagm(1=>diag(A, 1))
         A = A - diagm(-1=>diag(A, -1))
@@ -176,6 +174,17 @@ allpoles = [
     @test tf(sys) ≈ tf(sysm)
     @test isblockdiagonal(sysm.A)
 
+
+    # test with repeated eigenvalues
+    X = ss(tf(1,[1,1,1])^2).A
+    E = eigen(X)
+    Db, Vb = ControlSystems.cdf2rdf(E)
+    @test isblockdiagonal(Db)
+    @test Vb*Db ≈ X*Vb
+    @test sort(real(E.values)) ≈ sort(diag(Db)) # real values on diagonal
+    ivals = [diag(Db, -1); diag(Db, 1)] # imag values on 1/-1 diagonals
+    @test all(v ∈ ivals for v in imag(E.values)) 
+    
 end
 
 end 
