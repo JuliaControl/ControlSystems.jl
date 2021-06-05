@@ -140,12 +140,14 @@ allpoles = [
     @info "Testing Modal form"
 
     function isblockdiagonal(A)
-        A = A - diagm(diag(A)) # remove main diagonal
         complex_inds = findall(diag(A, -1) .!= 0)
         for i in complex_inds
             A[i, i+1] == -A[i+1, i] || (return false)
         end
-        true
+        A = A - diagm(diag(A)) # remove main diagonal
+        A = A - diagm(1=>diag(A, 1))
+        A = A - diagm(-1=>diag(A, -1))
+        all(iszero, A)
     end
     
     X = randn(5,5) # odd number to enforce at least one real eigval
