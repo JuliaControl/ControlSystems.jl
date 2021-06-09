@@ -611,21 +611,24 @@ end
 
 @userplot Sigmaplot
 """
-    sigmaplot(sys, args...)
-    sigmaplot(LTISystem[sys1, sys2...], args...)
+    sigmaplot(sys, args...; hz=false)
+    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false)
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+
 `kwargs` is sent as argument to Plots.plot.
 """
 sigmaplot
-@recipe function sigmaplot(p::Sigmaplot)
+@recipe function sigmaplot(p::Sigmaplot; hz=false)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     nw = length(w)
     title --> "Sigma Plot"
-    xguide --> "Frequency (rad/s)",
+    xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
@@ -637,7 +640,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 seriescolor --> si
-                w, sv[:, i]
+                ws, sv[:, i]
             end
         end
     end
@@ -739,9 +742,6 @@ Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs
 pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
-    if systems[1].nu + systems[1].ny > 2
-        @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
-    end
     seriestype := :scatter
     framestyle --> :zerolines
     title --> "Pole-zero map"
