@@ -167,13 +167,13 @@ function dampreport(io::IO, sys::LTISystem)
     if all(isreal, ps)
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, w/(2π), t)
+            Printf.@printf(io, "|  %-13.4g|  %-13.4g|  %-13.4g|  %-13.4g|  %-13.4g|\n", real(p), z, w, w/(2π), t)
         end
     else
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, w/(2π), t)
-            Printf.@printf(io, "|  %-+11.3eim|               |               |               |               |\n", imag(p))
+            Printf.@printf(io, "|  %-13.4g|  %-13.4g|  %-13.4g|  %-13.4g|  %-13.4g|\n", real(p), z, w, w/(2π), t)
+            Printf.@printf(io, "|  %-+11.3gim|               |               |               |               |\n", imag(p))
         end
     end
 end
