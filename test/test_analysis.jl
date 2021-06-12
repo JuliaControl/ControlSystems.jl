@@ -96,6 +96,7 @@ ex_11 = ss(A, B, C, D)
 @test tzero(ex_11) ≈ [4.0, -3.0]
 
 # Test for multiple zeros, siso tf
+s = tf("s")
 sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 @test tzero(sys) ≈ [3.0, -1.0, im, -im, 0.0]
 
@@ -172,11 +173,13 @@ damp_output = damp(ex_11)
 
 
 ## DAMPREPORT ##
-@test sprint(dampreport, sys) == (
-     "|     Pole      |   Damping     |   Frequency   |   Frequency   | Time Constant |\n|               |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n+---------------+---------------+---------------+---------------+---------------+\n|  -1.000e+00   |  1.000e+00    |  1.000e+00    |  1.592e-01    |  1.000e+00    |\n|  4.000e+00    |  -1.000e+00   |  4.000e+00    |  6.366e-01    |  -2.500e-01   |\n|  -4.000e+00   |  1.000e+00    |  4.000e+00    |  6.366e-01    |  2.500e-01    |\n")
+s = tf("s")
+sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
+@test sprint(dampreport, sys) == "|        Pole        |   Damping     |   Frequency   |   Frequency   | Time Constant |\n|                    |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n+--------------------+---------------+---------------+---------------+---------------+\n| -1                 |  1            |  1            |  0.159        |  1            |\n| +4                 |  -1           |  4            |  0.637        |  -0.25        |\n| -4                 |  1            |  4            |  0.637        |  0.25         |\n"
 
-@test sprint(dampreport, 1/(s+1+2im)/(s+2+3im)) == (
-     "|     Pole      |   Damping     |   Frequency   |   Frequency   | Time Constant |\n|               |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n+---------------+---------------+---------------+---------------+---------------+\n|  -1.000e+00   |  4.472e-01    |  2.236e+00    |  3.559e-01    |  1.000e+00    |\n|  -2.000e+00 im|               |               |               |               |\n|  -2.000e+00   |  5.547e-01    |  3.606e+00    |  5.738e-01    |  5.000e-01    |\n|  -3.000e+00 im|               |               |               |               |\n")
+@test sprint(dampreport, ex_4) == "|        Pole        |   Damping     |   Frequency   |   Frequency   | Time Constant |\n|                    |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n+--------------------+---------------+---------------+---------------+---------------+\n| +0                 |  -1           |  0            |  0            |  -Inf         |\n| -0.0597 ± 0.0171im |  0.961        |  0.0621       |  0.00989      |  16.7         |\n| -0.0858            |  1            |  0.0858       |  0.0137       |  11.7         |\n| -0.18              |  1            |  0.18         |  0.0287       |  5.55         |\n"
+
+@test sprint(dampreport, 1/(s+1+2im)/(s+2+3im)) == "|        Pole        |   Damping     |   Frequency   |   Frequency   | Time Constant |\n|                    |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n+--------------------+---------------+---------------+---------------+---------------+\n| -1            -2im |  0.447        |  2.24         |  0.356        |  1            |\n| -2            -3im |  0.555        |  3.61         |  0.574        |  0.5          |\n"
 
 # Example 5.5 from http://www.control.lth.se/media/Education/EngineeringProgram/FRTN10/2017/e05_both.pdf
 G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]

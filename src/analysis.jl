@@ -160,20 +160,29 @@ function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
     t_const = 1 ./ (Wn.*zeta)
     header =
-    ("|     Pole      |   Damping     |   Frequency   |   Frequency   | Time Constant |\n"*
-     "|               |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n"*
-     "+---------------+---------------+---------------+---------------+---------------+")
+    ("|        Pole        |   Damping     |   Frequency   |   Frequency   | Time Constant |\n"*
+     "|                    |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n"*
+     "+--------------------+---------------+---------------+---------------+---------------+")
     println(io, header)
     if all(isreal, ps)
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, w/(2π), t)
+            Printf.@printf(io, "| %-+18.3g |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), z, w, w/(2π), t)
         end
-    else
+    elseif numeric_type(sys) <: Real # real-coeff system with complex conj. poles
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, w/(2π), t)
-            Printf.@printf(io, "|  %-+11.3eim|               |               |               |               |\n", imag(p))
+            imag(p) < 0 && (continue) # use only the positive complex pole to print with the ± operator
+            if imag(p) == 0 # no ± operator for real pole
+                Printf.@printf(io, "| %-+18.3g |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), z, w, w/(2π), t)
+            else
+                Printf.@printf(io, "| %-+7.3g ± %6.3gim |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), imag(p), z, w, w/(2π), t)
+            end
+        end
+    else # complex-coeff system
+        for i=eachindex(ps)
+            p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
+            Printf.@printf(io, "| %-+7.3g  %+7.3gim |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), imag(p), z, w, w/(2π), t)
         end
     end
 end
