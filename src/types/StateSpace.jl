@@ -217,6 +217,8 @@ function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpac
 end
 
 ## ADDITION ##
+Base.zero(sys::AbstractStateSpace) = ss(zero(sys.D), sys.timeevol)
+
 function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     #Ensure systems have same dimensions
     if size(s1) != size(s2)

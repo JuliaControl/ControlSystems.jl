@@ -83,6 +83,15 @@ s = tf("s")
     vecarray(2, 1, [1,13,55,75], [1,13,55,75]));
 @test parallel(Ctf_111, Ctf_211) == tf([2,17,44,45], [1,13,55,75])
 
+# Test that the additive identity element for LTI system is known  
+@test zero(C_111) isa typeof(C_111)
+@test zero(Ctf_111) isa typeof(Ctf_111)
+@test zero(ss(randn(2,3))) == ss(zeros(2,3))
+@test zero(tf(randn(2,3))) == tf(zeros(2,3))
+
+
+
+    
 # Combination tf and ss
 @test [C_111 Ctf_221] == [C_111 ss(Ctf_221)]
 @test [C_111; Ctf_212] == [C_111; ss(Ctf_212)]
