@@ -182,7 +182,7 @@ function dampreport(io::IO, sys::LTISystem)
     else # complex-coeff system
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "| %-+7.3g + %6.3gim |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), imag(p), z, w, w/(2π), t)
+            Printf.@printf(io, "| %-+7.3g  %+7.3gim |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), imag(p), z, w, w/(2π), t)
         end
     end
 end
