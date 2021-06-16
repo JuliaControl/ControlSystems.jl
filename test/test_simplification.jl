@@ -8,6 +8,9 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test sminreal(G[2, 1]) == ss([-5], [2], [-2], [1])
 @test sminreal(G[2, 2]) == ss([-6], [2], [1], [0])
 
+using ControlSystems.DemoSystems: resonant
+R = resonant()*resonant()
+@test sminreal(R) == R # https://github.com/JuliaControl/ControlSystems.jl/issues/409
 
 ## MINREAL ##
 
