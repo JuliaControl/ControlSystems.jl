@@ -12,6 +12,20 @@ using ControlSystems.DemoSystems: resonant
 R = resonant()*resonant()
 @test sminreal(R) == R # https://github.com/JuliaControl/ControlSystems.jl/issues/409
 
+# https://github.com/JuliaControl/ControlSystems.jl/issues/475
+A = [
+ 0.0  0.0   0.0;
+ 1.0  0.0  -0.00578297;
+ 0.0  1.0   0.0;
+]
+B = [1.0; 0.0; 0.0]
+C = [0.0 0.0 1.0]
+D = [0]
+
+ss_sys = ss(A,B,C,D)
+@test sminreal(ss_sys) == ss_sys
+
+
 ## MINREAL ##
 
 s = tf("s")
