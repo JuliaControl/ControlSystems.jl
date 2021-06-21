@@ -123,4 +123,21 @@ function woodberry()
 end
 
 
+
+"""
+    `ssfir(c [,Ts=1]) -> sysd`
+
+Returns a (discrete-time) state-space realization `sysd` of a
+finite-impulse response (FIR) system with impulse response `c`.
+"""
+function ssfir(c::AbstractVector{T}, Ts=1) where T
+    n = length(c)-1
+    if n == 0
+        return ss(c[1], Ts)
+    end
+    A = diagm(-1=>ones(T, n-1))
+    B = [1; zeros(T,n-1)]
+    ss(A, B, transpose(c[2:end]), c[1], Ts)
+end
+
 end
