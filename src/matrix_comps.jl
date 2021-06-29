@@ -209,16 +209,16 @@ It represents the desired relative accuracy for the computed L∞ norm
 
 `sys` is first converted to a `StateSpace` model if needed.
 """
-function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6, kwargs...)
     if p == 2
         return sqrt(tr(covar(sys, I)))
     elseif p == Inf
-        return hinfnorm(sys; tol=tol)[1]
+        return hinfnorm(sys; tol, kwargs...)[1]
     else
         error("`p` must be either `2` or `Inf`")
     end
 end
-LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p, tol=tol)
+LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6, kwargs...) = norm(ss(sys), p; tol, kwargs...)
 
 
 """
@@ -245,9 +245,9 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(sys, :hinf, tol)
-hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(sys, :hinf, tol)
-hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6, kwargs...) = _infnorm_two_steps_ct(sys, :hinf; tol, kwargs...)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6, kwargs...) = _infnorm_two_steps_dt(sys, :hinf; tol, kwargs...)
+hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol, kwargs...)
 
 """
 `   (Ninf, ω_peak) = linfnorm(sys; tol=1e-6)`
@@ -272,16 +272,16 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`hinfnorm`](@ref).
 """
-function linfnorm(sys::AbstractStateSpace; tol=1e-6)
+function linfnorm(sys::AbstractStateSpace; tol=1e-6, kwargs...)
     if iscontinuous(sys)
-        return _infnorm_two_steps_ct(sys, :linf, tol)
+        return _infnorm_two_steps_ct(sys, :linf; tol, kwargs...)
     else
-        return _infnorm_two_steps_dt(sys, :linf, tol)
+        return _infnorm_two_steps_dt(sys, :linf; tol, kwargs...)
     end
 end
-linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol=tol)
+linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol, kwargs...)
 
-function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approximag=1e-10)
+function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol; tol=1e-6, maxIters=250, approximag=1e-10)
     # norm type :hinf or :linf the reason that to not use `hinfnorm(sys) = isstable(sys) : linfnorm ? (Inf, Nan)`
     # is to avoid re computing the poles and return the peak frequencies for, e.g., 1/(s^2 + 1)
     # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
@@ -367,7 +367,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
 end
 
-function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
+function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol; tol=1e-6, maxIters=250, approxcirc=1e-8)
     # Discrete-time version of linfnorm_two_steps_ct above
     # Compuations are done in normalized frequency θ
 
