@@ -2,6 +2,11 @@
 
 ```@meta
 CurrentModule = ControlSystems
+doctestfilters = [
+    r"{([a-zA-Z0-9]+,\s?)+[a-zA-Z0-9]+}",
+    r"(Array{[a-zA-Z0-9]+,\s?1}|Vector{[a-zA-Z0-9]+})",
+    r"(Array{[a-zA-Z0-9]+,\s?2}|Matrix{[a-zA-Z0-9]+})",
+]
 ```
 
 ## Guide
