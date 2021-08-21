@@ -173,7 +173,7 @@ function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMat
         @warn "Unable to balance state-space, returning original system"
         return A,B,C,I
     end
- end
+end
 
 # # First try to promote and hopefully get some types we can work with
 # function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
