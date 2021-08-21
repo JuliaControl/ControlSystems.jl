@@ -141,7 +141,7 @@ poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if isdiscrete(sys)
-        ps = log.(ps)/sys.Ts
+        ps = log.(complex.(ps))/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
