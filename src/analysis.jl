@@ -95,11 +95,11 @@ Compute the dcgain of system `sys`.
 
 equal to G(0) for continuous-time systems and G(1) for discrete-time systems.
 
-`ϵ` can be provided to evaluate the dcgain at a small
-non-zero frequency.
+`ϵ` can be provided to evaluate the dcgain with a small perturbation into
+the stability region of the complex plane.
 """
 function dcgain(sys::LTISystem, ϵ=0)
-    return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, 1-ϵ)
+    return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*G.Ts))
 end
 
 """
