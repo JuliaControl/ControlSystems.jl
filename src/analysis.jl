@@ -530,7 +530,7 @@ function gangofseven(P::TransferFunction, C::TransferFunction, F::TransferFuncti
     end
     S, PS, CS, T = gangoffour(P,C)
     RY = T*F
-    RU = N*F
+    RU = CS*F
     RE = S*F
     return S, PS, CS, T, RY, RU, RE
 end
