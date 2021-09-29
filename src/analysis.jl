@@ -99,7 +99,7 @@ equal to G(0) for continuous-time systems and G(1) for discrete-time systems.
 the stability region of the complex plane.
 """
 function dcgain(sys::LTISystem, ϵ=0)
-    return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*G.Ts))
+    return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*sys.Ts))
 end
 
 """
