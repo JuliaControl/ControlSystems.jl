@@ -387,9 +387,9 @@ function Base.show(io::IO, sys::AbstractStateSpace)
     end
     # Print model type
     if iscontinuous(sys)
-        println(io, "Continuous-time state-space model")
+        print(io, "Continuous-time state-space model")
     else
-        println(io, "Discrete-time state-space model")
+        print(io, "Discrete-time state-space model")
     end
 end
 
