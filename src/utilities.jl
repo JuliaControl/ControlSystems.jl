@@ -32,25 +32,11 @@ to_abstract_matrix(A::AbstractVector) = reshape(A, length(A), 1)
 to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
-@static if VERSION > v"1.2.0-DEV.0"
-    eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
-    roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
-else
-    eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
-    roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
-end
+eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 
 issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
 issemiposdef(A::UniformScaling) = real(A.λ) >= 0
-
-@static if VERSION < v"1.1.0-DEV"
-    #Added in 1.1.0-DEV
-    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
-end
-@static if VERSION < v"1.1"
-    isnothing(::Any) = false
-    isnothing(::Nothing) = true
-end
 
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
