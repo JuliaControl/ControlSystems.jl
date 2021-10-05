@@ -160,7 +160,7 @@ function Base.show(io::IO, sys::DelayLtiSystem)
     print(io, "\nP: ")
     show(io, sys.P.P)
 
-    println(io, "\n\nDelays: $(sys.Tau)")
+    print(io, "\n\nDelays: $(sys.Tau)")
 end
 
 
