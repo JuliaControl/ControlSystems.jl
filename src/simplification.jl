@@ -39,10 +39,10 @@ Compute a bit-vector, expressing whether a state of the pair (A, B) is
 structurally controllable based on the location of zeros in the matrices. 
 """
 function struct_ctrb_states(A::AbstractVecOrMat, B::AbstractVecOrMat)
-    bitA = A .!= 0
+    bitA = .!iszero.(A)
     x = vec(any(B .!= 0, dims=2)) # index vector indicating states that have been affected by input
     for i = 1:size(A, 1) # apply A nx times, similar to controllability matrix
-        x = x .| (bitA * x) .!= 0
+        x = .!iszero(x .| (bitA * x))
     end
     x
 end
