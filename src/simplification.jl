@@ -42,7 +42,7 @@ function struct_ctrb_states(A::AbstractVecOrMat, B::AbstractVecOrMat)
     bitA = .!iszero.(A)
     x = vec(any(B .!= 0, dims=2)) # index vector indicating states that have been affected by input
     for i = 1:size(A, 1) # apply A nx times, similar to controllability matrix
-        x = .!iszero(x .| (bitA * x))
+        x = x .| .!iszero.(bitA * x)
     end
     x
 end
