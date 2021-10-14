@@ -30,7 +30,13 @@ println("Making docs")
 makedocs(modules=[ControlSystems],
     format=Documenter.HTML(),
     sitename="ControlSystems.jl",
-    #strict=true,
+    strict=[
+        :doctest, 
+        :linkcheck, 
+        :parse_error, 
+        # Other available options are
+        # :autodocs_block, :cross_references, :docs_block, :eval_block, :example_block, :footnote, :meta_block, :missing_docs, :setup_block
+    ],
     pages=[
         "Home" => "index.md",
         "Guide" => Any[
