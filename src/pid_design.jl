@@ -1,7 +1,7 @@
 export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
-    C = pid(kp, ki, kd=0; form=:standard, Tf=0., Ts=0., state_space=false)
+    C = pid(kp, ki, [kd]; form=:standard, state_space=false, [Tf], [Ts])
 
 Calculates and returns a PID controller. 
 
@@ -11,7 +11,7 @@ The `form` can be chosen as one of the following
 * `:parallel` - `kp + ki/s + kd*s`
 
 If `state_space` is set to `true`, either `kd` has to be zero 
-or a non-zero `Tf` has to be provided for creating a filter on 
+or a positive `Tf` has to be provided for creating a filter on 
 the input to allow for a state space realization. 
 The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` can typically 
 be chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
@@ -27,8 +27,8 @@ C2 = pid(3.3, 1, 2; Tf=0.3, state_space=true)   # In statespace a filter is need
 C3 = pid(2., 3, 0; Ts=0.4, state_space=true)    # Discrete
 ```
 """
-function pid(kp, ki, kd=zero(typeof(kp)); form=:standard, Ts=0., Tf=0., state_space=false)
-    if state_space # This will be type unstable I believe, how bad is it? 
+function pid(kp, ki, kd=zero(typeof(kp)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
+    if state_space # Type unstability? Can it be fixed easily, does it matter?
         pid_ss(kp, ki, kd; form, Ts, Tf)
     else
         pid_tf(kp, ki, kd; form, Ts, Tf)
@@ -37,18 +37,26 @@ end
 
 function pid_tf(kp, ki, kd; form, Ts, Tf)
     kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, form)
-    TE = Ts == 0 ? Continuous() : Discrete(Ts)
-    if ki != Inf
-        return tf([kp * kd, kp, kp / ki], [Tf^2/2, Tf, 1, 0], TE)
+    TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    if isnothing(Tf)
+        if ki != Inf
+            return tf([kp * kd, kp, kp / ki], [1, 0], TE)
+        else
+            return tf([kp * kd, kp], [1], TE)
+        end
     else
-        return tf([kp * kd, kp], [Tf^2/2, Tf, 1], TE)
+        if ki != Inf
+            return tf([kp * kd, kp, kp / ki], [Tf^2/2, Tf, 1, 0], TE)
+        else
+            return tf([kp * kd, kp], [Tf^2/2, Tf, 1], TE)
+        end
     end
 end
 
 function pid_ss(kp, ki, kd; form, Ts, Tf)
     kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, form)
-    TE = Ts == 0 ? Continuous() : Discrete(Ts)
-    if Tf != 0
+    TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    if !isnothing(Tf)
         A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
         B = [0; 0; 1]
         C = 2 * kp / Tf^2 * [1/ki 1 kd]
@@ -203,26 +211,21 @@ rlocus
 end
 
 """
-    laglink(a, M; Ts=0)
+    laglink(a, M; [Ts])
 
 Returns a phase retarding link, the rule of thumb `a = 0.1ωc` guarantees less than 6 degrees phase margin loss. The bode curve will go from `M`, bend down at `a/M` and level out at 1 for frequencies > `a`
 """
-function laglink(a, M; h=nothing, Ts=0)
-    if !isnothing(h)
-        Base.depwarn("`laglink($a, $M; h=$h)` is deprecated, use `laglink($a, $M; Ts=$h)` instead.", Core.Typeof(laglink).name.mt.name)
-        Ts = h
-    end
-    @assert Ts ≥ 0 "Negative `Ts` is not supported."
+function laglink(a, M; Ts=nothing)
     numerator = [1/a, 1]
     denominator = [M/a, 1]
     gain = M
     G = tf(gain*numerator,denominator)
-    return  Ts <= 0 ? G : c2d(G,Ts)
+    return  isnothing(Ts) ? G : c2d(G,Ts)
 end
 
 
 """
-    leadlink(b, N, K; Ts=0)
+    leadlink(b, N, K; [Ts])
 
 Returns a phase advancing link, the top of the phase curve is located at `ω = b√(N)` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `b` and level out at `KN` for frequencies > `bN`
 
@@ -232,22 +235,17 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlinkat` `laglink`
 """
-function leadlink(b, N, K; h=nothing, Ts=0)
-    if !isnothing(h)
-        Base.depwarn("`leadlink($b, $N, $K; h=$h)` is deprecated, use `leadlink($b, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlink).name.mt.name)
-        Ts = h
-    end
-    @assert Ts ≥ 0 "Negative `Ts` is not supported."
+function leadlink(b, N, K; Ts=nothing)
     numerator = [1/b, 1]
     denominator = [1/(b*N), 1]
     gain = K
     G = tf(gain*numerator,denominator)
-    return  Ts <= 0 ? G : c2d(G,Ts)
+    return  isnothing(Ts) ? G : c2d(G,Ts)
 
 end
 
 """
-    leadlinkat(ω, N, K; Ts=0)
+    leadlinkat(ω, N, K; [Ts])
 
 Returns a phase advancing link, the top of the phase curve is located at `ω` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `ω/√(N)` and level out at `KN` for frequencies > `ω√(N)`
 
@@ -257,11 +255,7 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlink` `laglink`
 """
-function leadlinkat(ω, N, K; h=nothing, Ts=0)
-    if !isnothing(h)
-        Base.depwarn("`leadlinkat($ω, $N, $K; h=$h)` is deprecated, use `leadlinkat($ω, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlinkat).name.mt.name)
-        Ts = h
-    end
+function leadlinkat(ω, N, K; Ts=nothing)
     b = ω / sqrt(N)
     return leadlink(b,N,K,Ts=Ts)
 end
