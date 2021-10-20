@@ -74,7 +74,7 @@ impulse(sys::LTISystem; kwargs...) = impulse(sys, _default_time_vector(sys); kwa
 impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys), t; kwargs...)
 
 """
-    y, t, x = lsim(sys, u[, t]; x0, method])
+    y, t, x = lsim(sys, u[, t]; x0, method)
     y, t, x, uout = lsim(sys, u::Function, t; x0, method)
 
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
