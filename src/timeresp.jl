@@ -87,7 +87,7 @@ y, t, x, u = result
 ```
 `y, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized before simulation. For a lower level inteface, see `?Simulator` and `?solve`
+Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
@@ -114,7 +114,7 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:unspecified)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -131,10 +131,6 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     if iscontinuous(sys)
-        if method === :unspecified
-            method = _issmooth(u) ? :foh : :zoh
-        end
-
         if method === :zoh
             dsys = c2d(sys, dt, :zoh)
         elseif method === :foh
@@ -283,17 +279,4 @@ function _default_dt(sys::LTISystem)
         dt = round(1/(12*ω0_max), sigdigits=2)
         return dt
     end
-end
-
-
-
-#TODO a reasonable check
-_issmooth(u::Function) = false
-
-# Determine if a signal is "smooth"
-function _issmooth(u, thresh::AbstractFloat=0.75)
-    u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
-    dist = maximum(u) - minimum(u)
-    du = abs.(diff(u, dims=1))
-    return !isempty(du) && all(maximum(du) <= thresh*dist)
 end
