@@ -136,7 +136,7 @@ Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of t
 
 R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
 
-Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
+Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes arec of the polynomial multiplication and makes sure the coefficient vectores are of equal length
 
 @test ControlSystems.isstable(Gcl)
 

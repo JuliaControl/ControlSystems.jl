@@ -68,7 +68,7 @@ ss, tf, zpk
 ##### Analysis
 pole, tzero, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
 ##### Synthesis
-care, dare, lyapd, lqr, lqrc, lqrd, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
+arec, ared, lyapd, lqr, lqrc, lqrd, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
 ###### PID design
 pid, stabregionPID, loopshapingPI, pidplots
 ##### Time and Frequency response

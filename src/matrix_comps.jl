@@ -1,4 +1,4 @@
-"""`care(A, B, Q, R)`
+"""`arec(A, B, Q, R)`
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
@@ -7,12 +7,12 @@ Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
-function care(A, B, Q, R)
+function arec(A, B, Q, R)
     G = try
         B*inv(R)*B'
     catch y
         if y isa SingularException
-            error("R must be non-singular in care.")
+            error("R must be non-singular in arec.")
         else
             throw(y)
         end
@@ -31,7 +31,7 @@ function care(A, B, Q, R)
     return U21/U11
 end
 
-"""`dare(A, B, Q, R)`
+"""`ared(A, B, Q, R)`
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
@@ -40,7 +40,7 @@ Algorithm taken from:
 Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
-function dare(A, B, Q, R)
+function ared(A, B, Q, R)
     if !issemiposdef(Q)
         error("Q must be positive-semidefinite.");
     end

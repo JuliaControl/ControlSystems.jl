@@ -34,7 +34,7 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lqrc(A, B, Q, R)
-    S = care(A, B, Q, R)
+    S = arec(A, B, Q, R)
     K = R\B'*S
     return K
 end
@@ -99,7 +99,7 @@ plot(t,x', lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 """
 function lqrd(A, B, Q, R)
-    S = dare(A, B, Q, R)
+    S = ared(A, B, Q, R)
     K = (B'*S*B + R)\(B'S*A)
     return K
 end
