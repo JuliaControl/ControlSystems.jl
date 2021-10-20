@@ -171,6 +171,10 @@ include("delay_systems.jl")
 
 include("plotting.jl")
 
+@deprecate care arec
+@deprecate dare ared
+@deprecate dlqr lqrd
+@deprecate lqr(A,B,R1,R2) lqrc(A,B,R1,R2)
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm
