@@ -116,6 +116,8 @@ using MacroTools
 
 abstract type AbstractSystem end
 
+
+include("types/result_types.jl")
 include("types/TimeEvolution.jl")
 ## Added interface:
 #   timeevol(Lti) -> TimeEvolution (not exported)

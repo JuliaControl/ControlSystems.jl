@@ -113,110 +113,37 @@ function getLogTicks(x, minmax)
 end
 
 
-@userplot Lsimplot
-
-"""
-    fig = lsimplot(sys::LTISystem, u, t; x0=0)
-    lsimplot(LTISystem[sys1, sys2...], u, t; x0)
-
-Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
-not specified, a zero vector is used.
-"""
-lsimplot
-
-@recipe function lsimplot(p::Lsimplot; x0=0)
-
-    systems = p.args[1]
-
-    if !isa(systems,AbstractArray)
-        systems = [systems]
-    end
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
-    ny, nu = size(systems[1])
-    layout --> (ny,1)
-    s2i(i,j) = LinearIndices((ny,1))[j,i]
-    for (si,s) in enumerate(systems)
-        s = systems[si]
-        y, t = lsim(s, p.args[2:end]...; x0 = x0 == 0 ? zeros(nstates(s)) : x0)
-        seriestype := iscontinuous(s) ? :path : :steppost
+# This will be called on plot(lsim(sys, args...))
+@recipe function simresultplot(r::SimResult; plotu=false)
+    ny, nu = r.ny, r.nu
+    t = r.t
+    n_series = size(r.y, 3) # step and impulse produce multiple results
+    layout --> ((plotu ? ny + nu : ny), 1)
+    seriestype := iscontinuous(r.sys) ? :path : :steppost
+    for ms in 1:n_series
         for i=1:ny
-            ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
+            ytext = (ny > 1) ? "y($i)" : "y"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> ytext
-                title   --> "System Response"
-                subplot --> s2i(1,i)
-                label     --> "\$G_{$(si)}\$"
-                t,  y[i, :]
+                label   --> (n_series > 1 ? "From u($(ms))" : "")
+                subplot --> i
+                t,  r.y[i, :, ms]
+            end
+        end
+    end 
+    if plotu # bug in recipe system, can't use `plotu || return`
+        for i=1:nu
+            utext = (nu > 1) ? "u($i)" : "u"
+            @series begin
+                xguide  --> "Time (s)"
+                yguide  --> utext
+                subplot --> ny+i
+                label --> ""
+                t,  r.u[i, :]
             end
         end
     end
-end
-
-@userplot Stepplot
-@userplot Impulseplot
-"""
-    stepplot(sys[, tfinal]; kwargs...) or stepplot(sys[, t]; kwargs...)
-
-Plot step response of  `sys` until final time `tfinal` or at time points in the vector `t`.
-If not defined, suitable values are chosen based on `sys`.
-See also [`step`](@ref)
-
-`kwargs` is sent as argument to Plots.plot.
-"""
-stepplot
-
-"""
-    impulseplot(sys[, tfinal]; kwargs...) or impulseplot(sys[, t]; kwargs...)
-
-Plot impulse response of `sys` until final time `tfinal` or at time points in the vector `t`.
-If not defined, suitable values are chosen based on `sys`.
-See also [`impulse`](@ref)
-
-`kwargs` is sent as argument to Plots.plot.
-"""
-impulseplot
-
-for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse Response", Impulseplot))
-    funcname = Symbol(func,"plot")
-
-    @recipe function f(p::typ)
-        systems = p.args[1]
-        if !isa(systems, AbstractArray)
-            systems = [systems]
-        end
-        if !_same_io_dims(systems...)
-            error("All systems must have the same input/output dimensions")
-        end
-        ny, nu = size(systems[1])
-        layout --> (ny,nu)
-        titles = fill("", 1, ny*nu)
-        title --> titles
-        s2i(i,j) = LinearIndices((ny,nu))[i,j]
-        for (si,s) in enumerate(systems)
-            y,t = func(s, p.args[2:end]...)
-            for i=1:ny
-                for j=1:nu
-                    ydata = reshape(y[i, :, j], size(t, 1))
-                    style = iscontinuous(s) ? :path : :steppost
-                    ttext = (nu > 1 && i==1) ? title*" from: u($j) " : title
-                    titles[s2i(i,j)] = ttext
-                    ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
-                    @series begin
-                        seriestype --> style
-                        xguide --> "Time (s)"
-                        yguide --> ytext
-                        subplot --> s2i(i,j)
-                        label --> "\$G_{$(si)}\$"
-                        t, ydata
-                    end
-                end
-            end
-        end
-    end
-
 end
 
 """
