@@ -65,12 +65,12 @@ function dare(A, B, Q, R)
     return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
 end
 
-"""`dlyap(A, Q)`
+"""`lyapd(A, Q)`
 
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 """
-function dlyap(A::AbstractMatrix, Q)
+function lyapd(A::AbstractMatrix, Q)
     lhs = kron(A, conj(A))
     lhs = I - lhs
     x = lhs\reshape(Q, prod(size(Q)), 1)
@@ -86,7 +86,7 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+    func = iscontinuous(sys) ? lyap : lyapd
     if opt === :c
         # TODO probably remove type check in julia 0.7.0
         return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
@@ -165,7 +165,7 @@ function covar(sys::AbstractStateSpace, W)
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? lyap : dlyap
+    func = iscontinuous(sys) ? lyap : lyapd
     Q = try
         func(A, B*W*B')
     catch e

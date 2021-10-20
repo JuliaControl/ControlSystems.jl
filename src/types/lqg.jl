@@ -16,7 +16,7 @@ described by `sys`.
 
 `qQ` and `qR` can be set to incorporate loop transfer recovery, i.e.,
 ```julia
-L = lqr(A, B, Q1+qQ*C'C, Q2)
+L = lqrc(A, B, Q1+qQ*C'C, Q2)
 K = kalman(A, C, R1+qR*B*B', R2)
 ```
 
@@ -131,7 +131,7 @@ function _LQG(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
     n = size(A, 1)
     m = size(B, 2)
     p = size(C, 1)
-    L = lqr(A, B, Q1 + qQ * C'C, Q2)
+    L = lqrc(A, B, Q1 + qQ * C'C, Q2)
     K = kalman(A, C, R1 + qR * B * B', R2)
 
     # Controller system
@@ -158,7 +158,7 @@ function _LQGi(sys::LTISystem, Q1, Q2, R1, R2, qQ, qR; M = sys.C)
     Ce = [C zeros(p, m)]
     De = D
 
-    L = lqr(A, B, Q1 + qQ * C'C, Q2)
+    L = lqrc(A, B, Q1 + qQ * C'C, Q2)
     Le = [L I]
     K = kalman(Ae, Ce, R1 + qR * Be * Be', R2)
 

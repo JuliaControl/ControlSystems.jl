@@ -37,7 +37,7 @@ Q = [1.     0;
      0      1]
 
 R = 20.
-K = lqr(p60.A, p60.B, Q, R)
+K = lqrc(p60.A, p60.B, Q, R)
 # needs to be modified if Nbar is not a scalar
 Nbar = 1. ./ (p60.D - (p60.C - p60.D*K) * inv(p60.A - p60.B*K) * p60.B)
 

@@ -22,7 +22,7 @@ function getexamples()
 
     stepgen() = stepplot(sys, ts[end], l=(:dash, 4))
     impulsegen() = impulseplot(sys, ts[end], l=:blue)
-    L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
+    L = lqrc(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
     lsimgen() = lsimplot(sysss, (x,i)->-L*x, ts; x0=[1;2])
 
     margingen() = marginplot([tf1, tf2], ws)
