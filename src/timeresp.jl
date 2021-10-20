@@ -17,7 +17,7 @@ function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwa
     nx = nstates(sys)
     u_element = [one(eltype(t))] # to avoid allocating this multiple times
     u = (x,t)->u_element
-    x0 = zeros(nx)
+    x0 = zeros(T, nx)
     if nu == 1
         y, tout, x, uout = lsim(sys, u, t; x0, method, kwargs...)
     else

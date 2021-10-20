@@ -347,7 +347,7 @@ feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 Return the transfer function
 `P(F+C)/(1+PC)`
 which is the closed-loop system with process `P`, controller `C` and feedforward filter `F` from reference to control signal (by-passing `C`).
-
+```
          +-------+
          |       |
    +----->   F   +----+
@@ -360,6 +360,7 @@ r  |  -  |       |    |    |       |    y
       |  +-------+         +-------+   |
       |                                |
       +--------------------------------+
+```
 """
 function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
     !issiso(P) && error("Feedback not implemented for MIMO systems")
