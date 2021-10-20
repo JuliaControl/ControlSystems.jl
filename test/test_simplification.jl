@@ -39,7 +39,7 @@ sysmin = minreal(sys)
 
 @test_broken balreal(sys-sysmin)
 
-@test all(sigma(sys-sysmin, [0.0, 1.0, 2.0])[1] .< 1e-15)  # Previously crashed because of zero dimensions in tzero
+@test all(sigma(sys-sysmin, [0.0, 1.0, 2.0])[1] .< 1e-15)  # Previously crashed because of zero dimensions in tzeros
 
 t = 0:0.1:10
 y1,x1 = step(sys,t)[[1,3]]

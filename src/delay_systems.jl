@@ -224,7 +224,7 @@ function _default_dt(sys::DelayLtiSystem)
     if !isstable(sys.P.P)
         return 0.05   # Something small
     else
-        ps = pole(sys.P.P)
+        ps = poles(sys.P.P)
         r = minimum([abs.(real.(ps));0]) # Find the fastest pole of sys.P.P
         r = min(r, minimum([sys.Tau;0])) # Find the fastest delay
         if r == 0.0

@@ -85,11 +85,11 @@ common_timeevol(systems::LTISystem...) = common_timeevol(timeevol(sys) for sys i
 Returns `true` if `sys` is stable, else returns `false`."""
 function isstable(sys::LTISystem)
     if iscontinuous(sys)
-        if any(real.(pole(sys)).>=0)
+        if any(real.(poles(sys)).>=0)
             return false
         end
     else
-        if any(abs.(pole(sys)).>=1)
+        if any(abs.(poles(sys)).>=1)
             return false
         end
     end

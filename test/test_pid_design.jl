@@ -25,7 +25,7 @@ _,_,_,pm = margin(P*C)
 
 P = tf(1,[1, 1])
 piparams,C = placePI(P, 2, 0.7)
-@test pole(feedback(P, C)) ≈ [-1.4 + √2.04im, -1.4 - √2.04im]
+@test poles(feedback(P, C)) ≈ [-1.4 + √2.04im, -1.4 - √2.04im]
 @test [piparams[:Kp], piparams[:Ti]] ≈ [9/5, 9/20]
 
 end

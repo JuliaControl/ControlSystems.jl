@@ -140,11 +140,11 @@ Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from refer
 
 @test ControlSystems.isstable(Gcl)
 
-p = pole(Gcl)
+p = poles(Gcl)
 # Test that all desired poles are in the closed-loop system
-@test norm(minimum(abs.((pole(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+@test norm(minimum(abs.((poles(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 # Test that the observer poles are in the closed-loop system
-@test norm(minimum(abs.((pole(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+@test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 
 
 end

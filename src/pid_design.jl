@@ -115,7 +115,7 @@ rlocus
 @recipe function rlocus(p::Rlocusplot; K=500)
     P = p.args[1]
     K = K isa Number ? range(1e-6,stop=K,length=10000) : K
-    Z = tzero(P)
+    Z = tzeros(P)
     poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
