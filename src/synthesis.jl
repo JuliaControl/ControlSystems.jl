@@ -13,8 +13,6 @@ For the continuous time model `dx = Ax + Bu`.
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
 
-See also `LQG`
-
 Usage example:
 ```julia
 using LinearAlgebra # For identity matrix I
@@ -44,8 +42,6 @@ end
     kalman(sys, R1, R2)
 
 Calculate the optimal Kalman gain
-
-See also `LQG`
 """
 kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
 

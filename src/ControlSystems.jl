@@ -11,7 +11,6 @@ export  LTISystem,
         ss,
         tf,
         zpk,
-        LQG,
         isproper,
         # Linear Algebra
         balance,
@@ -143,8 +142,6 @@ include("types/DelayLtiSystem.jl")
 # Convenience constructors
 include("types/tf.jl")
 include("types/zpk.jl")
-
-include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
 
 include("utilities.jl")
 
