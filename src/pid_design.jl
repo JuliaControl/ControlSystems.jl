@@ -1,7 +1,7 @@
 export pid, pid_tf, pid_ss, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
-    C = pid(kp, ki, [kd]; form=:standard, state_space=false, [Tf], [Ts])
+    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts])
 
 Calculates and returns a PID controller. 
 
@@ -30,16 +30,16 @@ C3 = pid(2., 3, 0; Ts=0.4, state_space=true)    # Discrete
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
-function pid(kp, ki, kd=zero(typeof(kp)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
+function pid(param_p, param_i, param_d=zero(typeof(kp)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
     if state_space # Type unstability? Can it be fixed easily, does it matter?
-        pid_ss(kp, ki, kd; form, Ts, Tf)
+        pid_ss(param_p, param_i, param_d; form, Ts, Tf)
     else
-        pid_tf(kp, ki, kd; form, Ts, Tf)
+        pid_tf(param_p, param_i, param_d; form, Ts, Tf)
     end
 end
 
-function pid_tf(kp, ki, kd; form=:standard, Ts=nothing, Tf=nothing)
-    Kp, Ti, Td = convert_pidparams_to_standard(kp, ki, kd, form)
+function pid_tf(param_p, param_i, param_d; form=:standard, Ts=nothing, Tf=nothing)
+    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
     if isnothing(Tf)
         if Ti != Inf
@@ -56,8 +56,8 @@ function pid_tf(kp, ki, kd; form=:standard, Ts=nothing, Tf=nothing)
     end
 end
 
-function pid_ss(kp, ki, kd; form=:standard, Ts=nothing, Tf=nothing)
-    Kp, Ti, Td = convert_pidparams_to_standard(kp, ki, kd, form)
+function pid_ss(param_p, param_i, param_d; form=:standard, Ts=nothing, Tf=nothing)
+    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
     if !isnothing(Tf)
         A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
@@ -76,7 +76,7 @@ function pid_ss(kp, ki, kd; form=:standard, Ts=nothing, Tf=nothing)
 end
 
 """
-    pidplots(P, args...; kps, kis, kds=0, form=:standard, ω=0, grid=false, kwargs...)
+    pidplots(P, args...; params_p, params_i, params_d=0, form=:standard, ω=0, grid=false, kwargs...)
 
 Plots interesting figures related to closing the loop around process `P` with a PID controller supplied in `params`
 on one of the following forms:
@@ -93,22 +93,21 @@ One can also supply a frequency vector `ω` to be used in Bode and Nyquist plots
 
 See also `loopshapingPI`, `stabregionPID`
 """
-function pidplots(P::LTISystem, args...; kps, kis, kds=0, form=:standard, ω=0, grid=false, kwargs...)
+function pidplots(P::LTISystem, args...; 
+    params_p, params_i, params_d=0, 
+    form=:standard, ω=exp10.(range(-3, stop=3, length=500)), grid=false, 
+    kwargs...
+)
     if grid
-        kp = [i for i in kps for _ in kis for _ in kds]
-        ki = [j for _ in kps for j in kis for _ in kds]
-        kd = [k for _ in kps for _ in kis for k in kds]
-        kps, kis, kds = kp, ki, kd
+        kps = [i for i in params_p for _ in params_i for _ in params_d]
+        kis = [j for _ in params_p for j in params_i for _ in params_d]
+        kds = [k for _ in params_p for _ in params_i for k in params_d]
     else
         n = max(length(kps), length(kis), length(kds))
-        kps = kps isa Real ? fill(kps, n) : kps
-        kis = kis isa Real ? fill(kis, n) : kis
-        kds = kds isa Real ? fill(kds, n) : kds
+        kps = params_p isa Real ? fill(params_p, n) : kps
+        kis = params_i isa Real ? fill(params_i, n) : kis
+        kds = params_d isa Real ? fill(params_d, n) : kds
     end
-
-    ω   = ω   == 0 ? exp10.(range(-3, stop=3, length=500)) : ω
-
-    getColorSys(i)   = convert(Colors.RGB,Colors.HSV(360*((i-1)/(length(kps)))^1.5,0.9,0.8))
 
     Cs = LTISystem[]
     PCs = LTISystem[]
@@ -319,9 +318,9 @@ Selects the parameters of a PI-controller such that the Nyquist curve of `P` at 
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
-* `:standard` - `kp*(1 + 1/(ki*s) + kd*s)` 
-* `:series` - `kp*(1 + 1/(ki*s))*(kd*s + 1)`
-* `:parallel` - `kp + ki/s + kd*s`
+* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
+* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
+* `:parallel` - `Kp + Ki/s + Kd*s`
 
 If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
@@ -366,9 +365,9 @@ closed loop between `P` and `C` are placed to match the poles of
 
 The parameters can be returned as one of several common representations 
 chose by `form`, the options are
-* `:standard` - `kp*(1 + 1/(ki*s) + kd*s)` 
-* `:series` - `kp*(1 + 1/(ki*s))*(kd*s + 1)`
-* `:parallel` - `kp + ki/s + kd*s`
+* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
+* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
+* `:parallel` - `Kp + Ki/s + Kd*s`
 
 `C` is the returned transfer function of the controller and `params` 
 is a named tuple containing the parameters.
@@ -396,7 +395,7 @@ end
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
 
 """
-    kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, form)
+    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
 
 Convert parameters from form `form` to `:standard` form. 
 
@@ -405,24 +404,24 @@ The `form` can be chosen as one of the following
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
 """
-function convert_pidparams_to_standard(kp, ki, kd, form)
+function convert_pidparams_to_standard(param_p, param_i, param_d, form)
     if form === :standard
-        return kp, ki, kd
+        return param_p, param_i, param_d
     elseif form === :series
         return (
-            kp * (ki + kd) / ki,
-            ki + kd,
-            ki * kd / (ki + kd)
+            param_p * (param_i + param_d) / param_i,
+            param_i + param_d,
+            param_i * param_d / (param_i + param_d)
         )
     elseif form === :parallel
-        return (kp, kp/ki, kd/kp)
+        return (param_p, param_p / param_i, param_d / param_p)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
 end
 
 """
-    kp, ki, kd = convert_pidparams_from_standard(kp, ki, kd, form)
+    param_p, param_i, param_d = convert_pidparams_from_standard(Kp, Ti, Td, form)
 
 Convert parameters to form `form` from `:standard` form. 
 
