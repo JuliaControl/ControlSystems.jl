@@ -11,8 +11,8 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 
 C = pid(1.0, 1, 1) 
 @test C == tf(1) + tf(1,[1,0]) + tf([1,0],[1])
-pidplots(C, :nyquist, :gof, :pz, :controller; kps=[1.0, 2], kis=[2, 3], grid=true) # Simply test that the functions runs and not errors
-pidplots(C, :nyquist, :gof, :pz, :controller; kps=1.0, kis=[2, 3], grid=false)
+pidplots(C, :nyquist, :gof, :pz, :controller; params_p=[1.0, 2], params_i=[2, 3], grid=true) # Simply test that the functions runs and not errors
+pidplots(C, :nyquist, :gof, :pz, :controller; params_p=1.0, params_i=[2, 3], grid=false)
 leadlinkcurve()
 
 stabregionPID(tf(1,[1,0]))
