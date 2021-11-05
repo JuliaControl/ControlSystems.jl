@@ -30,7 +30,7 @@ C3 = pid(2., 3, 0; Ts=0.4, state_space=true)    # Discrete
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
-function pid(param_p, param_i, param_d=zero(typeof(kp)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
+function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
     if state_space # Type unstability? Can it be fixed easily, does it matter?
         pid_ss(param_p, param_i, param_d; form, Ts, Tf)
     else
@@ -38,7 +38,7 @@ function pid(param_p, param_i, param_d=zero(typeof(kp)); form=:standard, Ts=noth
     end
 end
 
-function pid_tf(param_p, param_i, param_d; form=:standard, Ts=nothing, Tf=nothing)
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
     if isnothing(Tf)
@@ -56,7 +56,7 @@ function pid_tf(param_p, param_i, param_d; form=:standard, Ts=nothing, Tf=nothin
     end
 end
 
-function pid_ss(param_p, param_i, param_d; form=:standard, Ts=nothing, Tf=nothing)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
     if !isnothing(Tf)
@@ -103,10 +103,10 @@ function pidplots(P::LTISystem, args...;
         kis = [j for _ in params_p for j in params_i for _ in params_d]
         kds = [k for _ in params_p for _ in params_i for k in params_d]
     else
-        n = max(length(kps), length(kis), length(kds))
-        kps = params_p isa Real ? fill(params_p, n) : kps
-        kis = params_i isa Real ? fill(params_i, n) : kis
-        kds = params_d isa Real ? fill(params_d, n) : kds
+        n = max(length(params_p), length(params_i), length(params_d))
+        kps = params_p isa Real ? fill(params_p, n) : params_p
+        kis = params_i isa Real ? fill(params_i, n) : params_i
+        kds = params_d isa Real ? fill(params_d, n) : params_d
     end
 
     Cs = LTISystem[]
