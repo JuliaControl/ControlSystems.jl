@@ -139,7 +139,7 @@ lsimplot
     s2i(i,j) = LinearIndices((ny,1))[j,i]
     for (si,s) in enumerate(systems)
         s = systems[si]
-        y, t = lsim(s, p.args[2:end]...; x0 = x0 == 0 ? zeros(s.nx) : x0)
+        y, t = lsim(s, p.args[2:end]...; x0 = x0 == 0 ? zeros(nstates(s)) : x0)
         seriestype := iscontinuous(s) ? :path : :steppost
         for i=1:ny
             ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
@@ -361,7 +361,7 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; Ms_circles=Float64[], unit_circle=false, kwargs...)
+    fig = nyquistplot(sys; Ms_circles=Float64[], unit_circle=false, hz = false, kwargs...)
     nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], unit_circle=false, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
@@ -370,10 +370,12 @@ optionally provided.
 - `unit_circle`: if the unit circle should be displayed
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
 
+If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false, hz=false)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -395,10 +397,9 @@ nyquistplot
                     yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
-                    hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
+                    hover --> [hz ? Printf.@sprintf("f = %.3f", w/2π) : Printf.@sprintf("ω = %.3f", w) for w in w]
                     (redata, imdata)
-                end
-                
+                end                
                 
                 if si == length(systems)
                     @series begin # Mark the critical point
@@ -610,21 +611,24 @@ end
 
 @userplot Sigmaplot
 """
-    sigmaplot(sys, args...)
-    sigmaplot(LTISystem[sys1, sys2...], args...)
+    sigmaplot(sys, args...; hz=false)
+    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false)
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+
 `kwargs` is sent as argument to Plots.plot.
 """
 sigmaplot
-@recipe function sigmaplot(p::Sigmaplot)
+@recipe function sigmaplot(p::Sigmaplot; hz=false)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     nw = length(w)
     title --> "Sigma Plot"
-    xguide --> "Frequency (rad/s)",
+    xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
@@ -636,7 +640,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 seriescolor --> si
-                w, sv[:, i]
+                ws, sv[:, i]
             end
         end
     end
@@ -738,9 +742,6 @@ Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs
 pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
-    if systems[1].nu + systems[1].ny > 2
-        @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
-    end
     seriestype := :scatter
     framestyle --> :zerolines
     title --> "Pole-zero map"

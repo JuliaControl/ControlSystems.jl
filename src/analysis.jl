@@ -75,7 +75,7 @@ Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf 
 # TODO: improve this implementation, should be more efficient ones
 function det(sys::Matrix{S}) where {S<:SisoZpk}
     ny, nu = size(sys)
-    @assert ny == nu "Matrix is not square"
+    ny == nu || throw(ArgumentError("sys matrix is not square"))
     if ny == 1
         return sys[1, 1]
     end
@@ -89,13 +89,17 @@ function det(sys::Matrix{S}) where {S<:SisoZpk}
 end
 
 """
-    dcgain(sys)
+    dcgain(sys, ϵ=0)
 
 Compute the dcgain of system `sys`.
 
-equal to G(0) for continuous-time systems and G(1) for discrete-time systems."""
-function dcgain(sys::LTISystem)
-    return iscontinuous(sys) ? evalfr(sys, 0) : evalfr(sys, 1)
+equal to G(0) for continuous-time systems and G(1) for discrete-time systems.
+
+`ϵ` can be provided to evaluate the dcgain with a small perturbation into
+the stability region of the complex plane.
+"""
+function dcgain(sys::LTISystem, ϵ=0)
+    return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*sys.Ts))
 end
 
 """
@@ -141,7 +145,7 @@ poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = pole(sys)
     if isdiscrete(sys)
-        ps = log.(ps)/sys.Ts
+        ps = log.(complex.(ps))/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
@@ -160,20 +164,29 @@ function dampreport(io::IO, sys::LTISystem)
     Wn, zeta, ps = damp(sys)
     t_const = 1 ./ (Wn.*zeta)
     header =
-    ("|     Pole      |   Damping     |   Frequency   |   Frequency   | Time Constant |\n"*
-     "|               |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n"*
-     "+---------------+---------------+---------------+---------------+---------------+")
+    ("|        Pole        |   Damping     |   Frequency   |   Frequency   | Time Constant |\n"*
+     "|                    |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n"*
+     "+--------------------+---------------+---------------+---------------+---------------+")
     println(io, header)
     if all(isreal, ps)
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, w/(2π), t)
+            Printf.@printf(io, "| %-+18.3g |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), z, w, w/(2π), t)
         end
-    else
+    elseif numeric_type(sys) <: Real # real-coeff system with complex conj. poles
         for i=eachindex(ps)
             p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
-            Printf.@printf(io, "|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|  %-13.3e|\n", real(p), z, w, w/(2π), t)
-            Printf.@printf(io, "|  %-+11.3eim|               |               |               |               |\n", imag(p))
+            imag(p) < 0 && (continue) # use only the positive complex pole to print with the ± operator
+            if imag(p) == 0 # no ± operator for real pole
+                Printf.@printf(io, "| %-+18.3g |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), z, w, w/(2π), t)
+            else
+                Printf.@printf(io, "| %-+7.3g ± %6.3gim |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), imag(p), z, w, w/(2π), t)
+            end
+        end
+    else # complex-coeff system
+        for i=eachindex(ps)
+            p, z, w, t = ps[i], zeta[i], Wn[i], t_const[i]
+            Printf.@printf(io, "| %-+7.3g  %+7.3gim |  %-13.3g|  %-13.3g|  %-13.3g|  %-13.3g|\n", real(p), imag(p), z, w, w/(2π), t)
         end
     end
 end
@@ -521,7 +534,7 @@ function gangofseven(P::TransferFunction, C::TransferFunction, F::TransferFuncti
     end
     S, PS, CS, T = gangoffour(P,C)
     RY = T*F
-    RU = N*F
+    RU = CS*F
     RE = S*F
     return S, PS, CS, T, RY, RU, RE
 end

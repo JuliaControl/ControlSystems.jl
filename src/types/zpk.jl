@@ -44,21 +44,15 @@ function zpk(z::AbstractVector{TZ}, p::AbstractVector{TP}, k::T, Ts::TE) where {
 end
 
 function zpk(z::AbstractVector, p::AbstractVector, k::T, Ts::TE) where {TE<:TimeEvolution, T<:Number} # To be able to send in empty vectors [] of type Any
-    if eltype(z) == Any && eltype(p) == Any
-        @assert z == []
-        @assert p == []
-        return zpk(T[], T[], k, Ts)
-    elseif eltype(z) == Any
-        @assert z == []
-        TR = eltype(p)
-        return zpk(TR[], p, k, Ts)
-    elseif eltype(p) == Any
-        @assert p == []
-        TR = eltype(z)
-        return zpk(z, TR[], k, Ts)
-    else
-        error("Non numeric vectors must be empty.")
+    if eltype(z) == Any 
+        z == [] || throw(ArgumentError("non numeric vectors must be empty."))
+        z = T[]
     end
+    if eltype(p) == Any 
+        p == [] || throw(ArgumentError("non numeric vectors must be empty."))
+        p = T[]
+    end
+    zpk(z, p, k, Ts)
 end
 
 function zpk(gain::Matrix{T}, Ts::TE; kwargs...) where {TE<:TimeEvolution, T <: Number}

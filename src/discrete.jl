@@ -252,13 +252,16 @@ function c2d_poly2poly(p, Ts)
     return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
 end
 
+function c2d(G::TransferFunction{<:Continuous, <:SisoRational}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoRational}, sysd)
+end
 
-function c2d(G::TransferFunction{<:Continuous}, Ts, args...; kwargs...)
-    ny, nu = size(G)
-    @assert (ny + nu == 2) "c2d(G::TransferFunction, Ts) not implemented for MIMO systems"
-    sys = ss(G)
-    sysd = c2d(sys, Ts, args...; kwargs...)
-    return convert(TransferFunction, sysd)
+function c2d(G::TransferFunction{<:Continuous, <:SisoZpk}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoZpk}, sysd)
 end
 
 """

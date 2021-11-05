@@ -23,7 +23,7 @@ C_2 = zpk([-1+im], [], 1.0+1im)
 @test minreal(zpk([-1+im, -1+im], [-1+im],1+1im)) == zpk([-1+im], [], 1+1im)
 
 
-@test_throws AssertionError zpk([-1+im], [-1+im,-1+im],1) #  Given the type of k this should be a real-coefficient system, but poles and zeros don't come in conjugate pairs
+@test_throws ArgumentError zpk([-1+im], [-1+im,-1+im],1) #  Given the type of k this should be a real-coefficient system, but poles and zeros don't come in conjugate pairs
 
 @test zpk([-2+im], [-1+im],1+0im)*zpk([], [-1+im],1+0im) == zpk([-2+im], [-1+im, -1+im], 1+0im)
 @test zpk([], [-2], 2) + zpk([], [-1], 1) == zpk([-4/3], [-2,-1], 3)

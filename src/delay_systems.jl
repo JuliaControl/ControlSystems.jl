@@ -180,7 +180,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpy, t)
 
     # This callback computes and stores the delay term
-    sv = SavedValues(Float64, Tuple{Vector{Float64},Vector{Float64}})
+    sv = SavedValues(eltype(t), Tuple{Vector{T},Vector{T}})
     cb = SavingCallback(dde_saver, sv, saveat = t)
 
     # History function, only used for d
