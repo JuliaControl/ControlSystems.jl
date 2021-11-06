@@ -1,20 +1,20 @@
 """
-    pole(sys)
+    poles(sys)
 
 Compute the poles of system `sys`."""
-pole(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
-pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
+poles(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
+poles(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
 # converting to zpk before works better in the cases I have tested.
-pole(sys::TransferFunction) = pole(zpk(sys))
+poles(sys::TransferFunction) = poles(zpk(sys))
 
-function pole(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
+function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
     # i.e. something like least common multiple of the pole-polynomials
-    individualpoles = [map(pole, sys.matrix)...;]
+    individualpoles = [map(poles, sys.matrix)...;]
     lcmpoles = TR[]
     for poles = minorpoles(sys.matrix)
         # Poles have to be equal to existing poles for the individual transfer functions and this
@@ -45,9 +45,9 @@ function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     minors = Array{TR,1}[]
     ny, nu = size(sys)
     if ny == nu == 1
-        push!(minors, pole(sys[1, 1]))
+        push!(minors, poles(sys[1, 1]))
     elseif ny == nu
-        push!(minors, pole(det(sys)))
+        push!(minors, poles(det(sys)))
         for i = 1:ny
             for j = 1:nu
                 newmat = sys[1:end .!=i, 1:end .!= j]
@@ -143,7 +143,7 @@ end
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
-    ps = pole(sys)
+    ps = poles(sys)
     if isdiscrete(sys)
         ps = log.(complex.(ps))/sys.Ts
     end
@@ -194,15 +194,15 @@ dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 
 """
-    tzero(sys)
+    tzeros(sys)
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
 realization, these are also the transmission zeros."""
-function tzero(sys::TransferFunction)
+function tzeros(sys::TransferFunction)
     if issiso(sys)
-        return tzero(sys.matrix[1,1])
+        return tzeros(sys.matrix[1,1])
     else
-        return tzero(ss(sys))
+        return tzeros(ss(sys))
     end
 end
 
@@ -211,14 +211,14 @@ end
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
 # Note that this returns either Vector{ComplexF32} or Vector{Float64}
-tzero(sys::AbstractStateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
+tzeros(sys::AbstractStateSpace) = tzeros(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
-function tzero(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
+function tzeros(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
     A2, B2, C2, D2, _ = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
-    tzero(A2, B2, C2, D2)
+    tzeros(A2, B2, C2, D2)
 end
-function tzero(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
+function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 

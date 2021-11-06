@@ -674,8 +674,8 @@ pzmap
     title --> "Pole-zero map"
     legend --> false
     for (i, system) in enumerate(systems)
-        p = pole(system)
-        z = tzero(system)
+        p = poles(system)
+        z = tzeros(system)
         if !isempty(z)
             @series begin
                 group --> i

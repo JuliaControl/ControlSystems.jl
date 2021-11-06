@@ -156,7 +156,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         zp = zp[imag(zp) .>= 0.0]
     else
          # For sigma plots, use the MIMO poles and zeros
-         zp = [tzero(sys); pole(sys)]
+         zp = [tzeros(sys); poles(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
     fzp = log10.(abs.(zp))

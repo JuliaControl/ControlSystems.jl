@@ -44,9 +44,9 @@ Base.one(f::SisoZpk) = one(typeof(f))
 Base.zero(f::SisoZpk) = zero(typeof(f))
 
 
-# tzero is not meaningful for transfer function element? But both zero and zeros are taken...
-tzero(f::SisoZpk) = f.z # Do minreal first?,
-pole(f::SisoZpk) = f.p # Do minreal first?
+# tzeros is not meaningful for transfer function element? But both zero and zeros are taken...
+tzeros(f::SisoZpk) = f.z # Do minreal first?,
+poles(f::SisoZpk) = f.p # Do minreal first?
 
 numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z))
 denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))

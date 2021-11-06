@@ -8,7 +8,7 @@ sysr, G = balreal(sys)
 
 @test gram(sysr, :c) ≈ G
 @test gram(sysr, :o) ≈ G
-@test sort(pole(sysr)) ≈ sort(pole(sys))
+@test sort(poles(sysr)) ≈ sort(poles(sys))
 
 sysb,T = ControlSystems.balance_statespace(sys)
 Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
@@ -124,7 +124,7 @@ K = kalman(sys, R1, R2)
 cont = observer_controller(sys, L, K)
 syscl = feedback(sys, cont)
 
-pcl = pole(syscl)
+pcl = poles(syscl)
 A,B,C,D = ssdata(sys)
 allpoles = [
     eigvals(A-B*L)

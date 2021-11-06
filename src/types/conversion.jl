@@ -285,7 +285,7 @@ Convert get zpk representation of sys from input j to output i
 function siso_ss_to_zpk(sys, i, j)
     A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, j:j], sys.C[i:i, :])
     D = sys.D[i:i, j:j]
-    z = tzero(A, B, C, D)
+    z = tzeros(A, B, C, D)
     nx = size(A, 1)
     nz = length(z)
     k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]

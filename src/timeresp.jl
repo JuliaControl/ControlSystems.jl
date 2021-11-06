@@ -272,10 +272,10 @@ end
 function _default_dt(sys::LTISystem)
     if isdiscrete(sys)
         return sys.Ts
-    elseif all(iszero, pole(sys)) # Static or pure integrators
+    elseif all(iszero, poles(sys)) # Static or pure integrators
         return 0.05
     else
-        ω0_max = maximum(abs.(pole(sys)))
+        ω0_max = maximum(abs.(poles(sys)))
         dt = round(1/(12*ω0_max), sigdigits=2)
         return dt
     end

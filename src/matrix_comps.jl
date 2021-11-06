@@ -298,7 +298,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         return (T(opnorm(sys.D)), T(0))
     end
 
-    pole_vec = pole(sys)
+    pole_vec = poles(sys)
 
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(on_imag_axis, pole_vec)
@@ -380,7 +380,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         return (T(opnorm(sys.D)), Tw(0))
     end
 
-    pole_vec = pole(sys)
+    pole_vec = poles(sys)
 
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)

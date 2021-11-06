@@ -44,8 +44,8 @@ export  LTISystem,
         observer_controller,
         # Stability Analysis
         isstable,
-        pole,
-        tzero,
+        poles,
+        tzeros,
         dcgain,
         zpkdata,
         damp,
@@ -169,6 +169,8 @@ include("delay_systems.jl")
 
 include("plotting.jl")
 
+@deprecate pole poles
+@deprecate tzero tzeros
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm
