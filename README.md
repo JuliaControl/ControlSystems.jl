@@ -39,6 +39,7 @@ More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/
 - New functions `observer_controller, observer_predictor, placePI`.
 - *Breaking*: The type `LQG` has been removed, see [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/src/lqg.jl) for its replacement.
 - *Breaking*: `balreal` and `baltrunc` return an additional value, the applied similarity transform.
+- A large set of bug fixes
 - For a full list of changes, [see here](https://github.com/JuliaControl/ControlSystems.jl/pull/565/commits).
 
 
