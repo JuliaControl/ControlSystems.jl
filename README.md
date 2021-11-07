@@ -30,31 +30,18 @@ using Pkg; Pkg.add("ControlSystems")
 
 More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/releases).
 
-### 2020-10
-- `lsimplot, stepplot, impulseplot` now have the same signatures as the corresponding non-plotting function.
-- New function `d2c` for conversion from discrete to continuous.
+### 2021-11
+- Time-domain simuations now return a result structure (non breaking)
+- *Breaking*: `lsimplot, stepplot, impulseplot` have been replaced by `plot(lsim())` etc.
+- *Breaking*: `pole, tzero` has been renamed to their plural form, `poles, tzeros`.
+- *Breaking*: `c2d` now no longer returns the `x0map` for statespace systems, see function `c2d_x0map` for the old behavior.
+- *Breaking*: The array layout of time and frequency responses has been transposed, i.e., in `y,t,x,u = lsim(sys, ...)`, the output arrays `y,x,u` are now of shape `size(y) == (sys.ny, T)`.
+- New functions `observer_controller, observer_predictor, placePI`.
+- *Breaking*: The type `LQG` has been removed, see [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/src/lqg.jl) for its replacement.
+- *Breaking*: `balreal` and `baltrunc` return an additional value, the applied similarity transform.
+- A large set of bug fixes
+- For a full list of changes, [see here](https://github.com/JuliaControl/ControlSystems.jl/pull/565/commits).
 
-### 2020-09-24
-Release v0.7 introduces a new `TimeEvolution` type to handle `Discrete/Continuous` systems. See the [release notes](https://github.com/JuliaControl/ControlSystems.jl/releases/tag/v0.7.0).
-
-### 2019-11-03
-- Poles and zeros are "not sorted" as in Julia versions < 1.2, even on newer versions of Julia. This should imply that complex conjugates are kept together.
-
-### 2019-05-28
-#### Delay systems
-- We now support systems with time delays. Example:
-```julia
-sys = tf(1, [1,1])*delay(1)
-stepplot(sys, 5) # Compilation time might be long for first simulation
-nyquistplot(sys)
-```
-#### New examples
-- [Delayed systems (frequency domain)](https://github.com/JuliaControl/ControlSystems.jl/blob/master/example/delayed_lti_system.jl)
-- [Delayed systems (time domain)](https://github.com/JuliaControl/ControlSystems.jl/blob/master/example/delayed_lti_timeresp.jl)
-- [Systems with uncertainty](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/controlsystems.jl)
-- [Robust PID optimization](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/robust_controller_opt.jl)
-### 2019-05-22
-New state-space type `HeteroStateSpace` that accepts matrices of heterogeneous types: [example using `StaticArrays`](https://juliacontrol.github.io/ControlSystems.jl/latest/man/creating_systems/#Creating-State-Space-Systems-1).
 
 ## Documentation
 
