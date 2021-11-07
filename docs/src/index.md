@@ -9,6 +9,7 @@ DocTestFilters = [
     r"DelayLtiSystem.+?\n"
     r"┌ Warning: Keyword argument hover.+?\n.+?\n" # remove next line as well
 ]
+nyquistplot(ssrand(1,1,1))
 ```
 
 ## Guide
