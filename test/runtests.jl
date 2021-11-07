@@ -5,10 +5,8 @@ import SparseArrays: sparse # In test_matrix_comps
 import DSP: conv            # In test_conversion and test_synthesis
 include("framework.jl")
 
-# Local definition to make sure we get warnings if we use eye
-eye_(n) = Matrix{Int64}(I, n, n)
-
 my_tests = [
+            "test_result_types",
             "test_timeevol",
             "test_statespace",
             "test_transferfunction",            
@@ -24,7 +22,6 @@ my_tests = [
             "test_timeresp",
             "test_analysis",
             "test_matrix_comps",
-            "test_lqg",
             "test_synthesis",
             "test_pid_design",
             "test_partitioned_statespace",

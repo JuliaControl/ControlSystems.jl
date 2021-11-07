@@ -65,7 +65,7 @@ Base.promote_rule(::Type{TransferFunction{TE, SisoRational{T1}}}, ::Type{MT}) wh
     TransferFunction{TE, SisoRational{promote_type(T1, T2)}}
 
 Base.promote_rule(::Type{StateSpace{TE, T1}}, ::Type{MT}) where {TE, T1, MT<:AbstractMatrix} =
-    StateSpace{TE, promote_type(T,eltype(MT))}
+    StateSpace{TE, promote_type(T1,eltype(MT))}
 
 Base.promote_rule(::Type{DelayLtiSystem{T1,S}}, ::Type{MT}) where {T1, S, MT<:AbstractMatrix} =
     DelayLtiSystem{promote_type(T1, eltype(MT)),S}

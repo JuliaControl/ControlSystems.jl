@@ -1,11 +1,3 @@
-# Set plot globals
-ENV["PLOTS_TEST"] = "true"
-ENV["GKSwstype"] = "nul"
-
-using Plots
-gr()
-default(show=false)
-
 # This function show mirror that in ControlExamplePlots.jl/genplots.jl
 # to make sure that the plots in these tests can be tested for accuracy
 """funcs, names = getexamples()
@@ -28,10 +20,10 @@ function getexamples()
     #Only siso for now
     nicholsgen() = nicholsplot(tf1,ws)
 
-    stepgen() = stepplot(sys, ts[end], l=(:dash, 4))
-    impulsegen() = impulseplot(sys, ts[end], l=:blue)
+    stepgen() = plot(step(sys, ts[end]), l=(:dash, 4))
+    impulsegen() = plot(impulse(sys, ts[end]), l=:blue)
     L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
-    lsimgen() = lsimplot(sysss, (x,i)->-L*x, ts, [1;2])
+    lsimgen() = plot(lsim(sysss, (x,i)->-L*x, ts; x0=[1;2]), plotu=true)
 
     margingen() = marginplot([tf1, tf2], ws)
     gangoffourgen() = begin

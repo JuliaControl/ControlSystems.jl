@@ -121,7 +121,7 @@ D =
 Continuous-time state-space model
 
 julia> HeteroStateSpace(sys, to_sized)
-HeteroStateSpace{Continuous, SizedMatrix{2, 2, Int64, 2}, SizedMatrix{2, 1, Int64, 2}, SizedMatrix{1, 2, Int64, 2}, SizedMatrix{1, 1, Int64, 2}}
+HeteroStateSpace{Continuous, SizedMatrix{2, 2, Int64, 2, Matrix{Int64}}, SizedMatrix{2, 1, Int64, 2, Matrix{Int64}}, SizedMatrix{1, 2, Int64, 2, Matrix{Int64}}, SizedMatrix{1, 1, Int64, 2, Matrix{Int64}}}
 A =
  -5   0
   0  -5
