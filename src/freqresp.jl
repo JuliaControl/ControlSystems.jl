@@ -168,7 +168,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w2 = ceil(fzp[end] + 1.2)
         # Expand the range for nyquist plots
         if plot isa Val{:nyquist}
-            w1 -= 1.0
+            w1 -= 0.0
             w2 += 1.0
         end
     else

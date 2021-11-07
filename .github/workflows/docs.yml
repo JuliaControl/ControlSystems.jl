@@ -44,15 +44,7 @@ jobs:
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
-      - name: Test docs # Test are also run in the makedocs, but there they don't error properly unless we set strict in which case warnings also error
-        run: |
-          julia --project=docs -e '
-            ENV["PLOTS_TEST"] = "true"
-            ENV["GKSwstype"] = "nul"
-            using Documenter: doctest
-            using ControlSystems
-            doctest(ControlSystems)'
-      - name: Generate documentation
+      - name: Make documentation and run doctest
         run: julia --project=docs --color=yes docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
