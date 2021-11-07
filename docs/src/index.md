@@ -7,7 +7,7 @@ DocTestFilters = [
     r"HeteroStateSpace.+?\n"
     r"TransferFunction.+?\n"
     r"DelayLtiSystem.+?\n"
-    r"┌ Warning: Keyword argument hover.+?\n.+?\n" # remove next line as well
+    r"┌ Warning: Keyword argument hover.+\n.+\n" # remove next line as well
 ]
 ```
 
