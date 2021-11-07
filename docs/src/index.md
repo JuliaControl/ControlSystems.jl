@@ -7,8 +7,8 @@ DocTestFilters = [
     r"HeteroStateSpace.+?\n"
     r"TransferFunction.+?\n"
     r"DelayLtiSystem.+?\n"
-    r"┌ Warning: Keyword argument hover.+\n.+" # remove next line as well
-    r"\[ Info: Precompiling.+\n"
+    r"┌ Warning: Keyword argument hover.+\n*.+\n*" # remove next line as well
+    r"\[ Info: Precompiling.+\n*"
 ]
 ```
 
