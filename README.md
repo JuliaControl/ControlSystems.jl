@@ -36,8 +36,9 @@ More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/
 - *Breaking*: `pole, tzero` has been renamed to their plural form, `poles, tzeros`.
 - *Breaking*: `c2d` now no longer returns the `x0map` for statespace systems, see function `c2d_x0map` for the old behavior.
 - *Breaking*: The array layout of time and frequency responses has been transposed, i.e., in `y,t,x,u = lsim(sys, ...)`, the output arrays `y,x,u` are now of shape `size(y) == (sys.ny, T)`.
-- New functions `observer_controller, observer_predictor`.
+- New functions `observer_controller, observer_predictor, placePI`.
 - *Breaking*: The type `LQG` has been removed, see [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/src/lqg.jl) for its replacement.
+- *Breaking*: `balreal` and `baltrunc` return an additional value, the applied similarity transform.
 - For a full list of changes, [see here](https://github.com/JuliaControl/ControlSystems.jl/pull/565/commits).
 
 
