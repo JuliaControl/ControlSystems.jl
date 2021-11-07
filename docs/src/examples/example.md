@@ -1,6 +1,6 @@
 ```@meta
 DocTestSetup = quote
-    using ControlSystems
+    using ControlSystems, Plots
     plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
     mkpath(plotsDir)
     save_docs_plot(name) = Plots.savefig(joinpath(plotsDir,name))

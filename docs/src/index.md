@@ -2,6 +2,12 @@
 
 ```@meta
 CurrentModule = ControlSystems
+DocTestFilters = [
+    r"StateSpace.+?\n"
+    r"HeteroStateSpace.+?\n"
+    r"TransferFunction.+?\n"
+    r"DelayLtiSystem.+?\n"
+]
 ```
 
 ## Guide
