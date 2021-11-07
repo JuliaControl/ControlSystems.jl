@@ -1,6 +1,6 @@
 ```@meta
 DocTestSetup = quote
-    using ControlSystems
+    using ControlSystems, Plots
     plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
     mkpath(plotsDir)
     save_docs_plot(name) = Plots.savefig(joinpath(plotsDir,name))
@@ -12,20 +12,20 @@ end
 # LQR design
 ```jldoctest; output = false
 using LinearAlgebra # For identity matrix I
-h       = 0.1
-A       = [1 h; 0 1]
+Ts      = 0.1
+A       = [1 Ts; 0 1]
 B       = [0 1]' # To handle bug TODO
 C       = [1 0]
-sys     = ss(A,B,C,0, h)
+sys     = ss(A,B,C,0, Ts)
 Q       = I
 R       = I
 L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
-t       =0:h:5
+t       =0:Ts:5
 x0      = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
-Plots.plot(t,x, lab=["Position" "Velocity"], xlabel="Time [s]")
+Plots.plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 
 save_docs_plot("lqrplot.svg"); # hide
 
@@ -106,7 +106,7 @@ P  = tf(B,A)
 
 # output
 
-TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}
+TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
         1.0
 -------------------
 1.0s^2 + 0.4s + 1.0
@@ -132,8 +132,8 @@ R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomia
 
 Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
 
-stepplot(P)
-stepplot!(Gcl) # Visualize the open and closed loop responses.
+plot(step(P))
+plot!(step(Gcl)) # Visualize the open and closed loop responses.
 save_docs_plot("ppstepplot.svg") # hide
 gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
 save_docs_plot("ppgofplot.svg"); # hide

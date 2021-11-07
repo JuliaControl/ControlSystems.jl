@@ -83,6 +83,15 @@ s = tf("s")
     vecarray(2, 1, [1,13,55,75], [1,13,55,75]));
 @test parallel(Ctf_111, Ctf_211) == tf([2,17,44,45], [1,13,55,75])
 
+# Test that the additive identity element for LTI system is known  
+@test zero(C_111) isa typeof(C_111)
+@test zero(Ctf_111) isa typeof(Ctf_111)
+@test zero(ss(randn(2,3))) == ss(zeros(2,3))
+@test zero(tf(randn(2,3))) == tf(zeros(2,3))
+
+
+
+    
 # Combination tf and ss
 @test [C_111 Ctf_221] == [C_111 ss(Ctf_221)]
 @test [C_111; Ctf_212] == [C_111; ss(Ctf_212)]
@@ -224,7 +233,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test feedback(0.5, G3, pos_feedback=false) ≈ ss(-4/3, 1/3, -1/3, 1/3)
 @test feedback(0.5, G3, pos_feedback=true) ≈ ss(0, 1, 1, 1)
 
-@test_broken feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
+@test feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
 @test feedback(G3, 1, pos_feedback=false) == ss(-1.5, 0.5, 0.5, 0.5)
 
 # Test that errors are thrown for mismatched dimensions
@@ -246,7 +255,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 G4 = ss(-6, [7 8], [11; 12], 0)
 @test starprod(G1, G4, 1, 1) == ss([-9 33; 35 -6], [2 0; 0 8], [4 0; 0 12], zeros(2,2))
 
-
+# TRANSFER FUNCTIONS
 
 # Feedback2dof
 
@@ -257,5 +266,16 @@ F = tf(1.0, [1,1])
 @test feedback2dof(P0, C, 0*F) == feedback(P0*C)
 @test_nowarn feedback2dof(P0, C, F)
 
+
+
+G1 = tf([1, 0],[1, 2, 2])
+G2 = tf([1, 1, 2],[1, 0, 3])
+@test feedback(G1, G2) == tf([1, 0, 3, 0], [1, 3, 6, 8, 6])
+G1 = tf(1.0)
+G2 = tf(1.0, [1, 5])
+@test feedback(G1, G2) == tf([1, 5], [1, 6])
+@test feedback(1, G2) == tf([1, 5], [1, 6])
+@test feedback(G2, G1) == tf(1, [1, 6])
+@test feedback(G2, 1) == tf(1, [1, 6])
 
 end

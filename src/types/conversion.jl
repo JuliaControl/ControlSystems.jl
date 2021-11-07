@@ -78,13 +78,12 @@ Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace) = StateSpace(s.A, s.B, s.C, s.D, s.Ts)
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace{Continuous}) = StateSpace(s.A, s.B, s.C, s.D)
 
-function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}) where {TE,T0<:Number}
-
+function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; kwargs...) where {TE,T0<:Number}
     T = Base.promote_op(/,T0,T0)
-    convert(StateSpace{TE,T}, G)
+    convert(StateSpace{TE,T}, G; kwargs...)
 end
 
-function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=true) where {TE,T<:Number}
+function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=false) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -174,7 +173,7 @@ function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMat
         @warn "Unable to balance state-space, returning original system"
         return A,B,C,I
     end
- end
+end
 
 # # First try to promote and hopefully get some types we can work with
 # function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
@@ -242,7 +241,7 @@ end
 balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(sys.A,sys.B,sys.C,perm)
 
 
-convert(::Type{TransferFunction}, sys::AbstractStateSpace{TE}) where TE = convert(TransferFunction{TE,SisoRational}, sys)
+convert(::Type{TransferFunction}, sys::AbstractStateSpace{TE}) where TE = convert(TransferFunction{TE,SisoRational{numeric_type(sys)}}, sys)
 
 function convert(::Type{TransferFunction{TE,SisoRational{T}}}, sys::AbstractStateSpace) where {TE,T<:Number}
     matrix = Matrix{SisoRational{T}}(undef, size(sys))
@@ -286,7 +285,7 @@ Convert get zpk representation of sys from input j to output i
 function siso_ss_to_zpk(sys, i, j)
     A, B, C = struct_ctrb_obsv(sys.A, sys.B[:, j:j], sys.C[i:i, :])
     D = sys.D[i:i, j:j]
-    z = tzero(A, B, C, D)
+    z = tzeros(A, B, C, D)
     nx = size(A, 1)
     nz = length(z)
     k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]

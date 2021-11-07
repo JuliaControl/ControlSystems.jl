@@ -76,8 +76,8 @@ denvec(f::SisoRational) = reverse(coeffs(f.den))
 denpoly(f::SisoRational) = f.den
 numpoly(f::SisoRational) = f.num
 
-tzero(f::SisoRational) = roots(f.num)
-pole(f::SisoRational) = roots(f.den)
+tzeros(f::SisoRational) = roots(f.num)
+poles(f::SisoRational) = roots(f.den)
 
 function evalfr(f::SisoRational{T}, s::Number) where T
     S = promote_op(/, promote_type(T, typeof(s)), promote_type(T, typeof(s)))

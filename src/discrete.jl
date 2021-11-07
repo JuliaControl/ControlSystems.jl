@@ -2,27 +2,31 @@ export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_
 
 
 """
-    sysd= c2d(sys::StateSpace, Ts, method=:zoh)
-    Gd = c2d(G::TransferFunction, Ts, method=:zoh)
+    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh; w_prewarp=0)
+    Gd = c2d(G::TransferFunction{<:Continuous}, Ts, method=:zoh)
 
 Convert the continuous-time system `sys` into a discrete-time system with sample time
-`Ts`, using the specified `method` (:zoh`, `:foh` or `:fwdeuler`).
+`Ts`, using the specified `method` (:`zoh`, `:foh`, `:fwdeuler` or `:tustin`).
 Note that the forward-Euler method generally requires the sample time to be very small
 relative to the time constants of the system.
 
+`method = :tustin` performs a bilinear transform with prewarp frequency `w_prewarp`.
+
+- `w_prewarp`: Frequency (rad/s) for pre-warping when usingthe Tustin method, has no effect for other methods.
+
 See also `c2d_x0map`
 """
-c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh) = c2d_x0map(sys, Ts, method)[1]
+c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; kwargs...) = c2d_x0map(sys, Ts, method; kwargs...)[1]
 
 
 """
-    sysd, x0map = c2d_x0map(sys::StateSpace, Ts, method=:zoh)
+    sysd, x0map = c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh; w_prewarp=0)
 
 Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
 transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
 
 See `c2d` for further details."""
-function c2d_x0map(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh)
+function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; w_prewarp=0)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
@@ -50,27 +54,31 @@ function c2d_x0map(sys::StateSpace{Continuous}, Ts::Real, method::Symbol=:zoh)
         Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
         x0map = I(nx)
     elseif method === :tustin
-        a > 0 || throw(DomainError("A positive a must be provided for method Tustin"))
-        AI = (I(nx)-a*A)
-        Ad = AI\(I(nx)+a*A)
+        a = w_prewarp == 0 ? Ts/2 : tan(w_prewarp*Ts/2)/w_prewarp
+        a > 0 || throw(DomainError("A positive w_prewarp must be provided for method Tustin"))
+        AI = (I-a*A)
+        Ad = AI\(I+a*A)
         Bd = 2a*(AI\B)
-        Cd = C/AI
+        Cd = C/AI 
         Dd = a*Cd*B + D
-        x0map = I(nx)
+        x0map = Matrix{T}(I, nx, nx)
     elseif method === :matched
         error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
+    timeevol = Discrete(Ts)
+    return StateSpace{typeof(timeevol), eltype(Ad)}(Ad, Bd, Cd, Dd, timeevol), x0map
 end
 
 """
-    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh)
+    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh; w_prewarp=0)
 
 Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
+
+- `w_prewarp`: Frequency for pre-warping when usingthe Tustin method, has no effect for other methods.
 """
-function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; a=sys.Ts/2)
+function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp=0)
     A, B, C, D = ssdata(sys)
     ny, nu = size(sys)
     nx = nstates(sys)
@@ -82,12 +90,14 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; a=sys.Ts/
         if eltype(A) <: Real
             Ac,Bc = real.((Ac, Bc))
         end
+        Cc, Dc = C, D
     elseif method === :fwdeuler
         Ac = (A-I)./sys.Ts
         Bc = B./sys.Ts
         Cc, Dc = C, D
     elseif method === :tustin
-        a > 0 || throw(DomainError("A positive a must be provided for method Tustin"))
+        a = w_prewarp == 0 ? sys.Ts/2 : tan(w_prewarp*sys.Ts/2)/w_prewarp
+        a > 0 || throw(DomainError("A positive w_prewarp must be provided for method Tustin"))
         AI = a*(A+I)
         Ac = (A-I)/AI
         Bc = AI\B
@@ -224,31 +234,34 @@ end
 
 
 """
-    c2d_roots2poly(ro,h)
+    c2d_roots2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
-function c2d_roots2poly(ro,h)
-    return real((Polynomials.poly(exp(ro.*h))).coeffs[end:-1:1])
+function c2d_roots2poly(ro, Ts)
+    return real((Polynomials.poly(exp(ro .* Ts))).coeffs[end:-1:1])
 end
 
 """
-    c2d_poly2poly(ro,h)
+    c2d_poly2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
-function c2d_poly2poly(p,h)
+function c2d_poly2poly(p, Ts)
     ro = Polynomials.roots(Polynomials.Polynomial(p[end:-1:1]))
-    return real(Polynomials.poly(exp(ro.*h)).coeffs[end:-1:1])
+    return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
 end
 
+function c2d(G::TransferFunction{<:Continuous, <:SisoRational}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoRational}, sysd)
+end
 
-function c2d(G::TransferFunction{<:Continuous}, h, args...; kwargs...)
-    ny, nu = size(G)
-    @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
-    sys = ss(G)
-    sysd = c2d(sys, h, args...; kwargs...)
-    return convert(TransferFunction, sysd)
+function c2d(G::TransferFunction{<:Continuous, <:SisoZpk}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoZpk}, sysd)
 end
 
 """

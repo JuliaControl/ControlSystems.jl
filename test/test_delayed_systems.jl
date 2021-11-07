@@ -1,4 +1,4 @@
-using DelayDiffEq
+import DelayDiffEq: MethodOfSteps, Tsit5
 
 @testset "test_delay_system" begin
 
@@ -10,17 +10,18 @@ using DelayDiffEq
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
-if VERSION >= v"1.6.0-DEV.0"
-    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
-else
-    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Continuous,Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
-end
+@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]"
 
-# Extremely baseic tests
+# Extremely basic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
 @test freqresp(delay(2.5), ω)[:] ≈ exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(3.5*delay(2.5), ω)[:] ≈ 3.5*exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(delay(2.5)*1.5, ω)[:] ≈ exp.(-2.5im*ω)*1.5 rtol=1e-15
+
+# Addition of constant
+@test evalfr(1 + delay(1.0), 0)[] ≈ 2
+@test evalfr(1 - delay(1.0), 0)[] ≈ 0
+@test evalfr([2 -delay(1.0)], 0) ≈ [2 -1]
 
 # Stritcly proper system
 P1 = DelayLtiSystem(ss(-1.0, 1, 1, 0))
@@ -166,21 +167,21 @@ println("Simulating first delay system:")
 @time step(delay(1)*tf(1,[1,1]))
 
 @time y1, t1, x1 = step([s11;s12], 10)
-@time @test y1[:,2] ≈ step(s12, t1)[1] rtol = 1e-14
+@time @test y1[2:2,:] ≈ step(s12, t1)[1] rtol = 1e-14
 
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)
 # TODO Figure out which is inexact here
-@test y2[:,1,1:1] + y2[:,1,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-5
+@test y2[1:1,:,1:1] + y2[1:1,:,2:2] ≈ step(s11, t)[1] + step(s12, t)[1] rtol=1e-14
 
 y3, t3, x3 = step([s11; s12], t)
-@test y3[:,1,1] ≈ step(s11, t)[1] rtol = 1e-4
-@test y3[:,2,1] ≈ step(s12, t)[1] rtol = 1e-14
+@test y3[1:1,:,1] ≈ step(s11, t)[1] rtol = 1e-14
+@test y3[2:2,:,1] ≈ step(s12, t)[1] rtol = 1e-14
 
 y1, t1, x1 = step(DelayLtiSystem([1.0/s 2/s; 3/s 4/s]), t)
 y2, t2, x2 = step([1.0/s 2/s; 3/s 4/s], t)
-@test y1 ≈ y2 rtol=1e-15
-@test size(x1,1) == length(t)
+@test y1 ≈ y2 rtol=1e-14
+@test size(x1,2) == length(t)
 @test size(x1,3) == 2
 
 
@@ -202,7 +203,7 @@ function y_expected(t, K)
       end
 end
 
-@test ystep ≈ y_expected.(t, K) atol = 1e-10
+@test ystep' ≈ y_expected.(t, K) atol = 1e-12
 
 function dy_expected(t, K)
       if t < 1
@@ -219,14 +220,43 @@ end
 y_impulse, t, _ = impulse(sys_known, 3)
 
 # TODO Better accuracy for impulse
-@test y_impulse ≈ dy_expected.(t, K) rtol=1e-4
-@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-3
+@test y_impulse' ≈ dy_expected.(t, K) rtol=1e-13
+@test maximum(abs, y_impulse' - dy_expected.(t, K)) < 1e-12
+
 y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
+# Two orders of magnitude better with BS3 in this case, which is default for impulse
+@test y_impulse' ≈ dy_expected.(t, K) rtol=1e-5
+@test maximum(abs, y_impulse' - dy_expected.(t, K)) < 1e-5
 
-@test y_impulse ≈ dy_expected.(t, K) rtol=1e-2 # Two orders of magnitude better with BS3 in this case, which is default for impulse
-@test maximum(abs, y_impulse - dy_expected.(t, K)) < 1e-2
+## Test delay with D22 term
+t = 0:0.01:4
 
+sys = delay(1)
 
+y, t, x = step(sys, t)
+@test y[:] ≈ [zeros(100); ones(301)] atol = 1e-12
+@test size(x) == (0,401)
+
+sys = delay(1)*delay(1)*1/s
+
+y, t, x = step(sys, t)
+
+y_sol = [zeros(200);0:0.01:2]'
+
+@test maximum(abs,y-y_sol) < 1e-13
+@test maximum(abs,x-collect(0:0.01:4)') < 1e-15
+
+# TODO For some reason really bad accuracy here
+# Looks like a lag in time
+sys = 1/s*delay(1)*delay(1)
+
+y, t, x = step(sys, t)
+@test maximum(abs,y-y_sol) < 1e-5
+@test maximum(abs,x-y_sol) < 1e-5
+
+t = 0:0.001:0.1
+y, t, x = step(sys, t)
+@test length(y) == length(t)
 
 ##  Test of basic pade functionality
 
