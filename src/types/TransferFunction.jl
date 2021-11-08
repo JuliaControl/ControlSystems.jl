@@ -22,7 +22,6 @@ end
 #     return TransferFunction(matrix, Continuous())
 # end
 
-
 noutputs(G::TransferFunction) = size(G.matrix, 1)
 ninputs(G::TransferFunction) = size(G.matrix, 2)
 
@@ -34,6 +33,8 @@ ninputs(G::TransferFunction) = size(G.matrix, 2)
 Base.ndims(::TransferFunction) = 2
 Base.size(G::TransferFunction) = size(G.matrix)
 Base.eltype(::Type{S}) where {S<:TransferFunction} = S
+Base.zero(G::TransferFunction{TE,S}) where {TE,S} = tf(zeros(numeric_type(S), size(G)), G.timeevol) # can not create a zero of a discrete system from the type alone, the sampletime is not stored.
+
 
 function Base.getindex(G::TransferFunction{TE,S}, inds...) where {TE,S<:SisoTf}
     if size(inds, 1) != 2
@@ -155,7 +156,6 @@ end
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
 Base.:(/)(sys1::LTISystem, sys2::TransferFunction) = *(promote(sys1, ss(1/sys2))...) # This spcial case is needed to properly handle improper inverse transfer function (1/s)
 
-Base.:^(sys::TransferFunction, p::Integer) = Base.power_by_squaring(sys, p)
 
 #####################################################################
 ##                        Display Functions                        ##

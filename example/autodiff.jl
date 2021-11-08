@@ -1,5 +1,5 @@
-using ControlSystems, OrdinaryDiffEq, NLopt, BlackBoxOptim
-p0          = Float64[0.2,0.8,1] # Initial guess
+using ControlSystems, OrdinaryDiffEq, NLopt, BlackBoxOptim, ForwardDiff
+p0          = [0.2,0.8,1] # Initial guess
 K(kp,ki,kd) = pid(kp=kp, ki=ki, kd=kd)
 K(p)        = K(p...)
 
@@ -8,10 +8,10 @@ K(p)        = K(p...)
 ω  = 1.; ω² = ω^2
 P  = tf(ω²,[1, 2ζ*ω, ω²])*tf(1,[1,1])
 
-Ω  = logspace(-1,2,150)  # Frequency vector to eval constraints
-h  = 0.1 # Sample time for time-domain evaluation
-Tf = 60.  # Time horizon
-t  = 0:h:Tf-h
+Ω  = exp10.(LinRange(-1,2,150))  # Frequency vector to eval constraints
+Ts  = 0.1 # Sample time for time-domain evaluation
+tfinal = 60.  # Time horizon
+t  = 0:Ts:tfinal-Ts
 
 Ms = 1.4 # Maximum allowed magnitude of sensitivity function
 Mt = 1.4 # Maximum allowed magnitude of complimentary sensitivity function
@@ -25,7 +25,7 @@ function timedomain(p)
     s     = Simulator(PS, (t,x) -> [1]) # Sim. unit step load disturbance
     ty    = eltype(p) # So that all inputs to solve have same numerical type (ForwardDiff.Dual)
     x0    = zeros(PS.nx) .|> ty
-    tspan = (ty(0.),ty(Tf))
+    tspan = (ty(0.),ty(tfinal))
     sol   = solve(s, x0, tspan, Tsit5())
     y     = PS.C*sol(t) # y = C*x
     C,y

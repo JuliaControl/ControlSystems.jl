@@ -61,7 +61,7 @@ sys2 = convert(TransferFunction, sys)
 w = 10.0 .^ (-2:2:50)
 @test freqresp(sys, w) ≈ freqresp(sys2, w)
 csort = v -> sort(v, lt = (x,y) -> abs(x) < abs(y))
-@test csort(pole(zpk(sys2))) ≈ [1+im, -2.0-3im]
+@test csort(poles(zpk(sys2))) ≈ [1+im, -2.0-3im]
 
 # Test complex 2
 sys4 = ss([-1.0+im 0;1 1],[1;0],[1 im],im)
@@ -108,7 +108,7 @@ G3 = tf([1,1],[1,0,-1])
 
 
 ## Test some BigFloat
-SSBigFloat = StateSpace{Continuous,BigFloat,Array{BigFloat,2}}
+SSBigFloat = StateSpace{Continuous,BigFloat}
 ZpkBigFloat = TransferFunction{Continuous,ControlSystems.SisoZpk{BigFloat,Complex{BigFloat}}}
 RationalBigFloat = TransferFunction{Continuous,ControlSystems.SisoRational{BigFloat}}
 
@@ -132,8 +132,8 @@ fb = BigFloat(1.0)*f
 b = 1.5
 D22 = [1.0 2.0; 3.0 4.0]
 
-@test convert(StateSpace{Continuous,Float64,Matrix{Float64}}, D22) == ss(D22)
-@test convert(StateSpace{Continuous,Float64,Matrix{Float64}}, b) == ss(b)
+@test convert(StateSpace{Continuous,Float64}, D22) == ss(D22)
+@test convert(StateSpace{Continuous,Float64}, b) == ss(b)
 
 @test convert(TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}, D22) == tf(D22)
 @test convert(TransferFunction{Continuous,ControlSystems.SisoRational{Float64}}, b) == tf(b)

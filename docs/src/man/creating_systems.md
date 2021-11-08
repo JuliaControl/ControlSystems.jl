@@ -12,16 +12,15 @@ tf(num, den, Ts=0)
 ```
 where `num` and `den` are the polynomial coefficients of the numerator and denominator of the polynomial and `Ts` is the sample time.
 ### Example:
-```julia
+```jldoctest
 tf([1.0],[1,2,1])
 
 # output
 
-TransferFunction{ControlSystems.SisoRational{Float64}}
-         1.0
----------------------
-1.0*s^2 + 2.0*s + 1.0
-
+TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
+        1.0
+-------------------
+1.0s^2 + 2.0s + 1.0
 
 Continuous-time transfer function model
 ```
@@ -35,15 +34,15 @@ zpk(zeros, poles, gain, Ts=0)
 ```
 where `zeros` and `poles` are `Vectors` of the zeros and poles for the system and `gain` is a gain coefficient.
 ### Example
-```julia
+```jldoctest
 zpk([-1.0,1], [-5, -10], 2)
 
 # output
 
-TransferFunction{ControlSystems.SisoZpk{Float64,Float64}}
-   (1.0*s + 1.0)(1.0*s - 1.0)
-2.0---------------------------
-   (1.0*s + 5.0)(1.0*s + 10.0)
+TransferFunction{Continuous, ControlSystems.SisoZpk{Float64, Float64}}
+   (1.0s + 1.0)(1.0s - 1.0)
+2.0-------------------------
+   (1.0s + 5.0)(1.0s + 10.0)
 
 Continuous-time transfer function model
 ```
@@ -52,15 +51,15 @@ The transfer functions created using this method will be of type `TransferFuncti
 
 ## Converting between types
 It is sometime useful to convert one representation to another, this is possible using the same functions, for example
-```julia
+```jldoctest
 tf(zpk([-1], [1], 2, 0.1))
 
 # output
 
-TransferFunction{ControlSystems.SisoRational{Int64}}
-2*z + 2
--------
-1z - 1
+TransferFunction{Discrete{Float64}, ControlSystems.SisoRational{Int64}}
+2z + 2
+------
+z - 1
 
 Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
@@ -72,8 +71,8 @@ A state-space system is created using
 ```julia
 ss(A,B,C,D,Ts=0)
 ```
-and they behave similarly to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
-```jldoctest  HSS
+and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
+```jldoctest HSS; output=false
 using StaticArrays
 import ControlSystems.HeteroStateSpace
 @inline to_static(a::Number) = a
@@ -85,11 +84,14 @@ function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
 end
 @inline HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol,f)
 ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
+
+# output
+
 ```
 Notice the different matrix types used
 ```jldoctest HSS
 julia> sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
-StateSpace{Int64,Array{Int64,2}}
+StateSpace{Continuous, Int64}
 A =
  -5   0
   0  -5
@@ -104,7 +106,7 @@ D =
 Continuous-time state-space model
 
 julia> HeteroStateSpace(sys, to_static)
-HeteroStateSpace{SArray{Tuple{2,2},Int64,2,4},SArray{Tuple{2,1},Int64,2,2},SArray{Tuple{1,2},Int64,2,2},SArray{Tuple{1,1},Int64,2,1}}
+HeteroStateSpace{Continuous, SMatrix{2, 2, Int64, 4}, SMatrix{2, 1, Int64, 2}, SMatrix{1, 2, Int64, 2}, SMatrix{1, 1, Int64, 1}}
 A =
  -5   0
   0  -5
@@ -119,7 +121,7 @@ D =
 Continuous-time state-space model
 
 julia> HeteroStateSpace(sys, to_sized)
-HeteroStateSpace{SizedArray{Tuple{2,2},Int64,2,2},SizedArray{Tuple{2,1},Int64,2,2},SizedArray{Tuple{1,2},Int64,2,2},SizedArray{Tuple{1,1},Int64,2,2}}
+HeteroStateSpace{Continuous, SizedMatrix{2, 2, Int64, 2, Matrix{Int64}}, SizedMatrix{2, 1, Int64, 2, Matrix{Int64}}, SizedMatrix{1, 2, Int64, 2, Matrix{Int64}}, SizedMatrix{1, 1, Int64, 2, Matrix{Int64}}}
 A =
  -5   0
   0  -5

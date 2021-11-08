@@ -23,25 +23,24 @@ Used to simulate continuous-time systems. See function `?solve` for additional i
 # Usage:
 ```
 using OrdinaryDiffEq
-h              = 0.1
-Tf             = 20
-t              = 0:h:Tf
+dt             = 0.1
+tfinal         = 20
+t              = 0:dt:tfinal
 P              = ss(tf(1,[2,1])^2)
 K              = 5
 reference(x,t) = [1.]
 s              = Simulator(P, reference)
 x0             = [0.,0]
-tspan          = (0.0,Tf)
+tspan          = (0.0,tfinal)
 sol            = solve(s, x0, tspan, Tsit5())
 plot(t, s.y(sol, t)[:], lab="Open loop step response")
 ```
 """
 function Simulator(P::AbstractStateSpace, u::F = (x,t) -> 0) where F
-    @assert iscontinuous(P) "Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."
-    @assert all(P.D .== 0) "Can not simulate systems with direct term D != 0"
+    iscontinuous(P) || throw(ArgumentError("Simulator only supports continuous-time system. See function `lsim` for simulation of discrete-time systems."))
     f = (dx,x,p,t) -> dx .= P.A*x .+ P.B*u(x,t)
-    y(x,t) = P.C*x #.+ P.D*u(x,t)
-    y(sol::ODESolution,t) = P.C*sol(t)
+    y(x,t) = P.C*x .+ P.D*u(x,t)
+    y(sol::ODESolution,t) = P.C*sol(t) .+ P.D*u(sol(t),t)
     Simulator(P, f, y)
 end
 

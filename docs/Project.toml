@@ -1,0 +1,11 @@
+[deps]
+ControlSystems = "a6e380b2-a6ca-5380-bf3e-84a91bcd477e"
+DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[compat]
+StaticArrays = "0.12"

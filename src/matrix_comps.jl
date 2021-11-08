@@ -87,10 +87,10 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
         error("gram only valid for stable A")
     end
     func = iscontinuous(sys) ? lyap : dlyap
-    if opt == :c
+    if opt === :c
         # TODO probably remove type check in julia 0.7.0
         return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
-    elseif opt == :o
+    elseif opt === :o
         return func(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
     else
         error("opt must be either :c for controllability grammian, or :o for
@@ -98,28 +98,31 @@ function gram(sys::AbstractStateSpace, opt::Symbol)
     end
 end
 
-"""`obsv(A, C)` or `obsv(sys)`
+"""
+    obsv(A, C, n=size(A,1))
+    obsv(sys, n=sys.nx)
 
-Compute the observability matrix for the system described by `(A, C)` or `sys`.
+Compute the observability matrix with `n` rows for the system described by `(A, C)` or `sys`. Providing the optional `n > sys.nx` returns an extended observability matrix.
 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
-`gram(sys, :o)` is positive definite."""
-function obsv(A::AbstractMatrix, C::AbstractMatrix)
+`gram(sys, :o)` is positive definite.
+"""
+function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
     T = promote_type(eltype(A), eltype(C))
-    n = size(A, 1)
+    nx = size(A, 1)
     ny = size(C, 1)
-    if n != size(C, 2)
+    if nx != size(C, 2)
         throw(ArgumentError("C must have the same number of columns as A"))
     end
-    res = fill(zero(T), n*ny, n)
+    res = fill(zero(T), n*ny, nx)
     res[1:ny, :] = C
     for i=1:n-1
         res[(1 + i*ny):(1 + i)*ny, :] = res[((i - 1)*ny + 1):i*ny, :] * A
     end
     return res
 end
-obsv(sys::StateSpace) = obsv(sys.A, sys.C)
+obsv(sys::AbstractStateSpace, n::Int = sys.nx) = obsv(sys.A, sys.C, n)
 
 """`ctrb(A, B)` or `ctrb(sys)`
 
@@ -143,7 +146,7 @@ function ctrb(A::AbstractMatrix, B::AbstractMatrix)
     end
     return res
 end
-ctrb(sys::StateSpace) = ctrb(sys.A, sys.B)
+ctrb(sys::AbstractStateSpace) = ctrb(sys.A, sys.B)
 
 """`P = covar(sys, W)`
 
@@ -165,8 +168,9 @@ function covar(sys::AbstractStateSpace, W)
     func = iscontinuous(sys) ? lyap : dlyap
     Q = try
         func(A, B*W*B')
-    catch
-        error("No solution to the Lyapunov equation was found in covar")
+    catch e
+        @error("No solution to the Lyapunov equation was found in covar.")
+        rethrow(e)
     end
     P = C*Q*C'
     if !isdiscrete(sys)
@@ -294,7 +298,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         return (T(opnorm(sys.D)), T(0))
     end
 
-    pole_vec = pole(sys)
+    pole_vec = poles(sys)
 
     # Check if there is a pole on the imaginary axis
     pidx = findfirst(on_imag_axis, pole_vec)
@@ -303,7 +307,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
     end
 
-    if normtype == :hinf && any(z -> real(z) > 0, pole_vec)
+    if normtype === :hinf && any(z -> real(z) > 0, pole_vec)
         return T(Inf), T(NaN) # The system is unstable
     end
 
@@ -376,7 +380,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         return (T(opnorm(sys.D)), Tw(0))
     end
 
-    pole_vec = pole(sys)
+    pole_vec = poles(sys)
 
     # Check if there is a pole on the unit circle
     pidx = findfirst(on_unit_circle, pole_vec)
@@ -452,11 +456,13 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
 end
 
 
-"""`S, P, B = balance(A[, perm=true])`
+"""
+    S, P, B = balance(A[, perm=true])
 
-Compute a similarity transform `T` resulting in `B = T\\A*T` such that the row
+Compute a similarity transform `T = S*P` resulting in `B = T\\A*T` such that the row
 and column norms of `B` are approximately equivalent. If `perm=false`, the
-transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`)."""
+transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`).
+"""
 function balance(A, perm::Bool=true)
     n = LinearAlgebra.checksquare(A)
     B = copy(A)
@@ -488,9 +494,9 @@ end
 
 
 """
-`sysr, G = balreal(sys::StateSpace)`
+`sysr, G, T = balreal(sys::StateSpace)`
 
-Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`
+Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
 
 See also `gram`, `baltrunc`
 
@@ -526,25 +532,33 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(0 => Σ)
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(Σ), T
 end
 
 
 """
-`sysr, G = baltrunc(sys::StateSpace, atol = √ϵ, rtol=1e-3, unitgain=true)`
+    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
 
-Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed. If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
+Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
+
+`T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
+
+If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
 
 See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) where ST <: AbstractStateSpace
-    sysbal, S = balreal(sys)
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n = nothing) where ST <: AbstractStateSpace
+    sysbal, S, T = balreal(sys)
     S = diag(S)
-    S = S[S .>= atol]
-    S = S[S .>= S[1]*rtol]
-    n = length(S)
+    if n === nothing
+        S = S[S .>= atol]
+        S = S[S .>= S[1]*rtol]
+        n = length(S)
+    else
+        S = S[1:n]
+    end
     A = sysbal.A[1:n,1:n]
     B = sysbal.B[1:n,:]
     C = sysbal.C[:,1:n]
@@ -553,7 +567,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true) whe
         D = D/(C*inv(-A)*B)
     end
 
-    return ST(A,B,C,D,sys.timeevol), diagm(0 => S)
+    return ST(A,B,C,D,sys.timeevol), diagm(S), T
 end
 
 """
@@ -576,8 +590,30 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
 end
 
 """
-sysi = innovation_form(sys, R1, R2)
-sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
+    syst, S = prescale(sys)
+Perform a eigendecomposition on system state-transition matrix `sys.A`.
+```
+Ã = S⁻¹AS
+B̃ = S⁻¹ B
+C̃ = CS
+D̃ = D
+```
+Such that `Ã` is diagonal.
+Returns a new scaled state-space object and the associated transformation
+matrix.
+"""
+function prescale(sys::AbstractStateSpace)
+    d, S = eigen(sys.A)
+    A = Diagonal(d)
+    B = S\sys.B
+    C = sys.C*S
+    normalized_sys = iscontinuous(sys) ? ss(A, B, C, sys.D) : ss(A, B, C, sys.D, sys.Ts)
+    return normalized_sys, S
+end
+
+"""
+    sysi = innovation_form(sys, R1, R2)
+    sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
 
 Takes a system
 ```
@@ -603,4 +639,45 @@ end
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
 	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+end
+
+"""
+    observer_predictor(sys::AbstractStateSpace, R1, R2)
+    observer_predictor(sys::AbstractStateSpace, K)
+
+Return the observer_predictor system
+x̂' = (A - KC)x̂ + (B-KD)u + Ky
+ŷ  = Cx + Du
+with the input equation [B K] * [u; y]
+
+If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
+
+See also `innovation_form`.
+"""
+function observer_predictor(sys::ST, R1, R2) where ST <: AbstractStateSpace
+    K = kalman(sys, R1, R2)
+    observer_predictor(sys, K)
+end
+
+function observer_predictor(sys, K::AbstractMatrix)
+    A,B,C,D = ssdata(sys)
+    ss(A-K*C, [B-K*D K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
+end
+
+"""
+    cont = observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+
+Return the observer_controller `cont` that is given by
+`ss(A - B*L - K*C + K*D*L, K, L, 0)`
+
+Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
+
+# Arguments:
+- `sys`: Model of system
+- `L`: State-feedback gain `u = -Lx`
+- `K`: Observer gain
+"""
+function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+    A,B,C,D = ssdata(sys)
+    ss(A - B*L - K*C + K*D*L, K, L, 0, sys.timeevol)
 end

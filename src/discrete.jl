@@ -1,32 +1,47 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
 
 
-"""`[sysd, x0map] = c2d(sys, Ts, method=:zoh)`
+"""
+    sysd = c2d(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh; w_prewarp=0)
+    Gd = c2d(G::TransferFunction{<:Continuous}, Ts, method=:zoh)
 
-Convert the continuous system `sys` into a discrete system with sample time
-`Ts`, using the provided method. Currently only `:zoh` and `:foh` are provided.
+Convert the continuous-time system `sys` into a discrete-time system with sample time
+`Ts`, using the specified `method` (:`zoh`, `:foh`, `:fwdeuler` or `:tustin`).
+Note that the forward-Euler method generally requires the sample time to be very small
+relative to the time constants of the system.
 
-Returns the discrete system `sysd`, and a matrix `x0map` that transforms the
-initial conditions to the discrete domain by
-`x0_discrete = x0map*[x0; u0]`"""
-function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
-    if isdiscrete(sys)
-        error("sys must be a continuous time system")
-    end
+`method = :tustin` performs a bilinear transform with prewarp frequency `w_prewarp`.
+
+- `w_prewarp`: Frequency (rad/s) for pre-warping when usingthe Tustin method, has no effect for other methods.
+
+See also `c2d_x0map`
+"""
+c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; kwargs...) = c2d_x0map(sys, Ts, method; kwargs...)[1]
+
+
+"""
+    sysd, x0map = c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts, method=:zoh; w_prewarp=0)
+
+Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
+transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
+
+See `c2d` for further details."""
+function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; w_prewarp=0)
     A, B, C, D = ssdata(sys)
+    T = promote_type(eltype.((A,B,C,D))...)
     ny, nu = size(sys)
     nx = nstates(sys)
-    if method == :zoh
+    if method === :zoh
         M = exp([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [Matrix{Float64}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
-    elseif method == :foh
+        x0map = [Matrix{T}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
+    elseif method === :foh
         M = exp([A*Ts B*Ts zeros(nx, nu);
-            zeros(nu, nx + nu) Matrix{Float64}(I, nu, nu);
+            zeros(nu, nx + nu) Matrix{T}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
         M2 = M[1:nx, nx+nu+1:nx+2*nu]
@@ -34,14 +49,67 @@ function c2d(sys::StateSpace, Ts::Real, method::Symbol=:zoh)
         Bd = Ad*M2 + M1 - M2
         Cd = C
         Dd = D + C*M2
-        x0map = [Matrix{Float64}(I, nx, nx)  (-M2)]
-    elseif method == :tustin || method == :matched
-        error("NotImplemented: Only `:zoh` and `:foh` implemented so far")
+        x0map = [Matrix{T}(I, nx, nx)  (-M2)]
+    elseif method === :fwdeuler
+        Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
+        x0map = I(nx)
+    elseif method === :tustin
+        a = w_prewarp == 0 ? Ts/2 : tan(w_prewarp*Ts/2)/w_prewarp
+        a > 0 || throw(DomainError("A positive w_prewarp must be provided for method Tustin"))
+        AI = (I-a*A)
+        Ad = AI\(I+a*A)
+        Bd = 2a*(AI\B)
+        Cd = C/AI 
+        Dd = a*Cd*B + D
+        x0map = Matrix{T}(I, nx, nx)
+    elseif method === :matched
+        error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
     end
-    return StateSpace(Ad, Bd, Cd, Dd, Ts), x0map
+    timeevol = Discrete(Ts)
+    return StateSpace{typeof(timeevol), eltype(Ad)}(Ad, Bd, Cd, Dd, timeevol), x0map
 end
+
+"""
+    d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh; w_prewarp=0)
+
+Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
+
+- `w_prewarp`: Frequency for pre-warping when usingthe Tustin method, has no effect for other methods.
+"""
+function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp=0)
+    A, B, C, D = ssdata(sys)
+    ny, nu = size(sys)
+    nx = nstates(sys)
+    if method === :zoh
+        M = log([A  B;
+            zeros(nu, nx) I])./sys.Ts
+        Ac = M[1:nx, 1:nx]
+        Bc = M[1:nx, nx+1:nx+nu]
+        if eltype(A) <: Real
+            Ac,Bc = real.((Ac, Bc))
+        end
+        Cc, Dc = C, D
+    elseif method === :fwdeuler
+        Ac = (A-I)./sys.Ts
+        Bc = B./sys.Ts
+        Cc, Dc = C, D
+    elseif method === :tustin
+        a = w_prewarp == 0 ? sys.Ts/2 : tan(w_prewarp*sys.Ts/2)/w_prewarp
+        a > 0 || throw(DomainError("A positive w_prewarp must be provided for method Tustin"))
+        AI = a*(A+I)
+        Ac = (A-I)/AI
+        Bc = AI\B
+        Cc = 2a*C/AI
+        Dc = D - Cc*B/2
+    else
+        error("Unsupported method: ", method)
+    end
+    return StateSpace(Ac, Bc, Cc, Dc)
+end
+
+d2c(sys::TransferFunction{<:Discrete}, args...) = tf(d2c(ss(sys), args...))
 
 
 function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
@@ -72,13 +140,11 @@ See ?rstd for the discerte case
 rstc(args...)=rst(args..., ;cont=true)
 
 """
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)
+    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)
+
 rstd  Polynomial synthesis in discrete time.
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)`
-
-`R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)`
 
 Polynomial synthesis according to CCS ch 10 to
 design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
@@ -96,7 +162,7 @@ e.g notch filter [1, 0, w^2]
 
 Outputs: R,S,T  : Polynomials in controller
 
-See function DAB how the solution to the Diophantine-
+See function `dab` how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
 
 See Computer-Controlled Systems: Theory and Design, Third Edition
@@ -106,9 +172,9 @@ rstd(args...)=rst(args..., ;cont=false)
 
 
 """
-DAB   Solves the Diophantine-Aryabhatta-Bezout identity
+    X,Y = dab(A,B,C)
 
-`X,Y = DAB(A,B,C)`
+DAB   Solves the Diophantine-Aryabhatta-Bezout identity
 
 AX + BY = C, where A, B, C, X and Y are polynomials
 and deg Y = deg A - 1.
@@ -168,111 +234,40 @@ end
 
 
 """
-`c2d_roots2poly(ro,h)`
+    c2d_roots2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
-function c2d_roots2poly(ro,h)
-    return real((Polynomials.poly(exp(ro.*h))).coeffs[end:-1:1])
+function c2d_roots2poly(ro, Ts)
+    return real((Polynomials.poly(exp(ro .* Ts))).coeffs[end:-1:1])
 end
 
 """
-`c2d_poly2poly(ro,h)`
+    c2d_poly2poly(ro, Ts)
 
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
-function c2d_poly2poly(p,h)
+function c2d_poly2poly(p, Ts)
     ro = Polynomials.roots(Polynomials.Polynomial(p[end:-1:1]))
-    return real(Polynomials.poly(exp(ro.*h)).coeffs[end:-1:1])
+    return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
 end
 
-
-function c2d(G::TransferFunction, h;kwargs...)
-    @assert iscontinuous(G)
-    ny, nu = size(G)
-    @assert (ny + nu == 2) "c2d(G::TransferFunction, h) not implemented for MIMO systems"
-    sys = ss(G)
-    sysd = c2d(sys, h, kwargs...)[1]
-    return convert(TransferFunction, sysd)
+function c2d(G::TransferFunction{<:Continuous, <:SisoRational}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoRational}, sysd)
 end
 
-
-"""`[y, t, x] = lsima(sys, t, r, controller, state[, x0, method])`
-
-Calculate the time response of adaptive controller. If `x0` is ommitted,
-a zero vector is used.
-
-`controller` is a function `u[i],state = controller(state, y[1:i], u[1:i-1], r[1:i])`
-Continuous time systems are discretized before simulation. By default, the
-method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`."""
-function lsima(sys::StateSpace, t::AbstractVector, r::AbstractVector, control_signal::Function,state,
-    x0::VecOrMat=zeros(sys.nx, 1), method::Symbol=:zoh)
-    ny, nu = size(sys)
-
-    nx = sys.nx
-
-    if length(x0) != nx
-        error("size(x0) must match the number of states of sys")
-    end
-
-    dt = Float64(t[2] - t[1])
-    if !iscontinuous(sys) || method == :zoh
-        if iscontinuous(sys)
-            dsys = c2d(sys, dt, :zoh)[1]
-        else
-            if sys.Ts != dt
-                error("Time vector must match sample time for discrete system")
-            end
-            dsys = sys
-        end
-    else
-        dsys, x0map = c2d(sys, dt, :foh)
-    end
-    n = size(t, 1)
-    x = similar(r, size(sys.A, 1), n)
-    u = similar(r, n)
-    y = similar(r, n)
-    for i=1:n
-        x[:,i] = x0
-        y[i] = (sys.C*x0 + sys.D*u[i])[1]
-
-        u[i],state = control_signal(state, y[1:i], u[1:i-1], r[1:i])
-        x0 = sys.A * x0 + sys.B * u[i]
-
-    end
-
-
-    return y, t, x, u
+function c2d(G::TransferFunction{<:Continuous, <:SisoZpk}, Ts, args...; kwargs...)
+    issiso(G) || error("c2d(G::TransferFunction, h) not implemented for MIMO systems")
+    sysd = c2d(ss(G), Ts, args...; kwargs...)
+    return convert(TransferFunction{typeof(sysd.timeevol), SisoZpk}, sysd)
 end
-lsima(sys::TransferFunction, u, t,r, args...) = lsima(ss(sys), u, t,r, args...)
-
-function indirect_str(state, y, u,uc, nb,na, lambda,bm1,am,ao,ar=[1],as=[1])
-    theta, P = state
-    u = [zeros(length(ao)+length(am)+1);u]
-    y = [zeros(length(ao)+length(am)+1);y]
-    phi = [y[end-1:-1:end-na]; u[end:-1:end-nb]]
-    # compute new estimate and update covariance matrix
-
-    K = P*phi/(lambda + phi'P*phi)
-    new_theta = theta + K*(y[end] - phi'theta)
-    new_P = (I - K*phi')*P/lambda
-    new_P = (new_P + new_P')/2
-
-    state = (new_theta, new_P)
-
-    a = [1;theta[1:na]]
-    b = theta[na+1:end]
-    r,s,t = rstd([1],b,a,bm1,am,ao,ar,as)
-    uo = r⋅u[end:-1:end-length(r)+1] + s⋅y[end-1:-1:end-length(s)] + t⋅uc[end:-1:end-length(t)+1]
-
-    return uo,state
-
-end
-
 
 """
-`zpc(a,r,b,s)` form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+    zpc(a,r,b,s)
+
+form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
 """
 function zpconv(a,r,b,s)
     d = length(a)+length(r)-length(b)-length(s)

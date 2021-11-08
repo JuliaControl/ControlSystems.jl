@@ -1,11 +1,11 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
-Calculates and returns a PID controller on transfer function form.
-`time` indicates whether or not the parameters are given as gains (default) or as time constants
-`series` indicates  whether or not the series form or parallel form (default) is desired
+    C = pid(; kp=0, ki=0; kd=0, time=false, series=false)
 
-`C = pid(; kp=0, ki=0; kd=0, time=false, series=false)`
+Calculates and returns a PID controller on transfer function form.
+- `time` indicates whether or not the parameters are given as gains (default) or as time constants
+- `series` indicates  whether or not the series form or parallel form (default) is desired
 """
 function pid(; kp=0., ki=0., kd=0., time=false, series=false)
     s = tf("s")
@@ -17,18 +17,17 @@ function pid(; kp=0., ki=0., kd=0., time=false, series=false)
 end
 
 """
+    pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)
+
 Plots interesting figures related to closing the loop around process `P` with a PID controller
 Send in a bunch of PID-parameters in any of the vectors kp, ki, kd. The vectors must be the same length.
 
-`time` indicates whether or not the parameters are given as gains (default) or as time constants
-
-`series` indicates  whether or not the series form or parallel form (default) is desired
+-`time` indicates whether or not the parameters are given as gains (default) or as time constants
+-`series` indicates  whether or not the series form or parallel form (default) is desired
 
 Available plots are `:gof` for Gang of four, `:nyquist`, `:controller` for a bode plot of the controller TF and `:pz` for pole-zero maps
 
 One can also supply a frequency vector ω to be used in Bode and Nyquist plots
-
-`pidplots(P, args...; kps=0, kis=0, kds=0, time=false, series=false, ω=0)`
 
 See also `loopshapingPI`, `stabregionPID`
 """
@@ -56,9 +55,9 @@ function pidplots(P::LTISystem, args...; kps=0, kis=0, kds=0, time=false, series
     for (i,kp) = enumerate(kps)
         ki = kis[i]
         kd = kds[i]
-        label = "\$k_p\$ = $(round(kp, digits=3)),      \$k_i\$ = $(round(ki, digits=3)),      \$k_d\$ = $(round(kd, digits=3))"
+        label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
 
-        C = pid(kp=kp,ki=ki,kd=kd,timeevol=timeevol,series=series)
+        C = pid(kp=kp,ki=ki,kd=kd,time=time,series=series)
         S,D,N,T = gangoffour(P,C)
         push!(Cs, C)
         push!(PCs, P*C)
@@ -88,7 +87,7 @@ end
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
     P          = numpoly(G)[1]
     Q          = denpoly(G)[1]
-    f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
+    f          = (y,_,k) -> sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     ts         = Vector{Float64}()
@@ -105,6 +104,7 @@ end
 
 """
     rlocusplot(P::LTISystem, K)
+
 Computes and plots the root locus of the SISO LTISystem P with
 a negative feedback loop and feedback gains `K`, if `K` is not provided,
 range(1e-6,stop=500,length=10000) is used.
@@ -112,15 +112,16 @@ If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffE
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
 rlocus
-@recipe function rlocus(p::Rlocusplot; K=Float64[])
+@recipe function rlocus(p::Rlocusplot; K=500)
     P = p.args[1]
-    K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
-    Z = tzero(P)
+    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
+    Z = tzeros(P)
     poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
     xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
@@ -150,21 +151,26 @@ rlocus
 end
 
 """
-`laglink(a, M; h=0)`
+    laglink(a, M; Ts=0)
 
 Returns a phase retarding link, the rule of thumb `a = 0.1ωc` guarantees less than 6 degrees phase margin loss. The bode curve will go from `M`, bend down at `a/M` and level out at 1 for frequencies > `a`
 """
-function laglink(a, M; h=0)
+function laglink(a, M; h=nothing, Ts=0)
+    if !isnothing(h)
+        Base.depwarn("`laglink($a, $M; h=$h)` is deprecated, use `laglink($a, $M; Ts=$h)` instead.", Core.Typeof(laglink).name.mt.name)
+        Ts = h
+    end
+    Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported."))
     numerator = [1/a, 1]
     denominator = [M/a, 1]
     gain = M
     G = tf(gain*numerator,denominator)
-    return  h <= 0 ? G : c2d(G,h)
+    return  Ts <= 0 ? G : c2d(G,Ts)
 end
 
 
 """
-`leadlink(b, N, K; h=0)`
+    leadlink(b, N, K; Ts=0)
 
 Returns a phase advancing link, the top of the phase curve is located at `ω = b√(N)` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `b` and level out at `KN` for frequencies > `bN`
 
@@ -174,17 +180,22 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlinkat` `laglink`
 """
-function leadlink(b, N, K; h=0)
+function leadlink(b, N, K; h=nothing, Ts=0)
+    if !isnothing(h)
+        Base.depwarn("`leadlink($b, $N, $K; h=$h)` is deprecated, use `leadlink($b, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlink).name.mt.name)
+        Ts = h
+    end
+    Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported."))
     numerator = [1/b, 1]
     denominator = [1/(b*N), 1]
     gain = K
     G = tf(gain*numerator,denominator)
-    return  h <= 0 ? G : c2d(G,h)
+    return  Ts <= 0 ? G : c2d(G,Ts)
 
 end
 
 """
-`leadlinkat(ω, N, K; h=0)`
+    leadlinkat(ω, N, K; Ts=0)
 
 Returns a phase advancing link, the top of the phase curve is located at `ω` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `ω/√(N)` and level out at `KN` for frequencies > `ω√(N)`
 
@@ -194,14 +205,19 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlink` `laglink`
 """
-function leadlinkat(ω, N, K; h=0)
+function leadlinkat(ω, N, K; h=nothing, Ts=0)
+    if !isnothing(h)
+        Base.depwarn("`leadlinkat($ω, $N, $K; h=$h)` is deprecated, use `leadlinkat($ω, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlinkat).name.mt.name)
+        Ts = h
+    end
     b = ω / sqrt(N)
-    return leadlink(b,N,K,h=h)
+    return leadlink(b,N,K,Ts=Ts)
 end
 
 """
-Plot the phase advance as a function of `N` for a lead link (phase advance link)
+leadlinkcurve(start=1)
 
+Plot the phase advance as a function of `N` for a lead link (phase advance link)
 If an input argument `s` is given, the curve is plotted from `s` to 10, else from 1 to 10.
 
 See also `Leadlink, leadlinkat`
@@ -215,7 +231,7 @@ end
 
 
 """
-`fig, kp, ki = stabregionPID(P, [ω]; kd=0, doplot = true)`
+    fig, kp, ki = stabregionPID(P, [ω]; kd=0, doplot = true)
 
 Segments of the curve generated by this program
 is the boundary of the stability region for a
@@ -227,7 +243,6 @@ P(s)*C(s) = -1 ⟹
 |PC| = |P| |C| = 1
 arg(P) + arg(C) = -π
 
-
 If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
 
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
@@ -238,7 +253,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplo
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
@@ -248,19 +263,20 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P,     \$k_d\$ = $(round(kd, digits=4))"), kp, ki
+    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
-
 """
-`kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin)`
+    kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin, doplot = false)
 
 Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
 If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
 If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
+
+Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
 
 See also `pidplots`, `stabregionPID`
 """
@@ -282,8 +298,58 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
     C = pid(kp=kp, ki=ki)
 
     if doplot
-        gangoffourplot(P,[tf(1),C])
-        nyquistplot([P, P*C])
+        gangoffourplot(P,[tf(1),C]) |> display
+        nyquistplot([P, P*C]) |> display
     end
     return kp,ki,C
+end
+
+"""
+    piparams, C = placePI(P, ω₀, ζ; form=:standard)
+
+Selects the parameters of a PI-controller such that the poles of 
+closed loop between `P` and `C` are placed to match the poles of 
+`s^2 + 2ζω₀ + ω₀^2`.
+
+The `form` keyword allows you to choose which form the PI parameters
+should be returned on. 
+* `:standard` - `Kp*(1 + 1/Ti/s)`
+* `:series` - `Kc*(1 + 1/τi/s)`
+* `:parallel` - `Kp + Ki/s`
+* `:Ti` - `Kp + 1/(s*Ti)`   (non-standard form sometimes used in industry)
+
+`piparams` is a named tuple with the controller parameters.
+
+`C` is the transfer function of the controller.
+
+"""
+function placePI(P, ω₀, ζ; form=:standard)
+    P = tf(P)
+    num = numvec(P)[]
+    den = denvec(P)[]
+    if length(den) != 2 || length(num) > 2
+        error("Can only place poles using PI for proper first-order systems")
+    end
+    if length(num) == 1
+        num = [0; num]
+    end
+    a, b = num
+    c, d = den
+    # Calculates PI on standard/series form
+    tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
+    Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
+    Ti = tmp / (ω₀^2*(a*d - b*c))
+    C = pid(;kp=Kp, ki=Ti, time=true, series=true) 
+
+    if form === :standard
+        return (;Kp, Ti), C
+    elseif form === :series
+        return (;Kc=Kp, τi=Ti), C
+    elseif form === :parallel
+        return (;Kp=Kp, ki=Kp/Ti), C
+    elseif form === :Ti
+        return (;Kp=Kp, Ti=Ti/Kp), C
+    else
+        error("Form $(form) not supported")
+    end
 end

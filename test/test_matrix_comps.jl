@@ -8,7 +8,7 @@ sysr, G = balreal(sys)
 
 @test gram(sysr, :c) ≈ G
 @test gram(sysr, :o) ≈ G
-@test sort(pole(sysr)) ≈ sort(pole(sys))
+@test sort(poles(sysr)) ≈ sort(poles(sys))
 
 sysb,T = ControlSystems.balance_statespace(sys)
 Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
@@ -70,6 +70,12 @@ syst = similarity_transform(sys, Tr)
 @test sys.B ≈ Tr*syst.B
 @test sys.C*Tr ≈ syst.C
 
+nsys, T = prescale(sys)
+@test isdiag(nsys.A)
+@test T*nsys.A ≈ sys.A*T
+@test T*nsys.B ≈ sys.B
+@test nsys.C ≈ sys.C*T
+
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
 sysi = ControlSystems.innovation_form(sys, I, I)
 @test sysi.A ≈ sysi.A
@@ -99,4 +105,32 @@ sysi = ControlSystems.innovation_form(sys, sysw=sysw)
 @test sysi.B ≈ [4.01361818808572
  40.26132476965486]
 
-end
+
+# Test observer_predictor
+sysp = ControlSystems.observer_predictor(sys, I(2), I(1))
+K = kalman(sys, I(2), I(1))
+@test sysp.A == sys.A-K*sys.C
+@test sysp.B == [sys.B-K*sys.D K]
+
+
+# Test observer_controller
+sys = ssrand(2,3,4)
+Q1 = I(4)
+Q2 = I(3)
+R1 = I(4)
+R2 = I(2)
+L = lqr(sys, Q1, Q2)
+K = kalman(sys, R1, R2)
+cont = observer_controller(sys, L, K)
+syscl = feedback(sys, cont)
+
+pcl = poles(syscl)
+A,B,C,D = ssdata(sys)
+allpoles = [
+    eigvals(A-B*L)
+    eigvals(A-K*C)
+]
+@test sort(pcl, by=LinearAlgebra.eigsortby) ≈ sort(allpoles, by=LinearAlgebra.eigsortby) 
+@test cont.B == K
+
+end 

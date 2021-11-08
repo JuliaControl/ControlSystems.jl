@@ -4,23 +4,9 @@ Pages = ["synthesis.md"]
 
 # Synthesis
 
-```@docs
-balance
-care
-dab
-dare
-dkalman
-dlqr
-dlyap
-kalman
-laglink
-leadlink
-leadlinkat
-loopshapingPI
-lqr
-pid
-place
-reduce_sys
-rstc
-rstd
+```@autodocs
+Modules = [ControlSystems]
+Pages   = ["synthesis.jl", "discrete.jl", "types/lqg.jl", "pid_design.jl", "simplification.jl", "connections.jl", "utilities.jl"]
+Order   = [:function, :type]
+Private = false
 ```

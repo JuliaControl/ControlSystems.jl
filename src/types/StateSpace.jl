@@ -2,7 +2,7 @@
 ##                      Data Type Declarations                     ##
 #####################################################################
 
-function state_space_validation(A,B,C,D,timeevol::TimeEvolution)
+function state_space_validation(A,B,C,D)
     nx = size(A, 1)
     nu = size(B, 2)
     ny = size(C, 1)
@@ -24,36 +24,36 @@ end
 
 abstract type AbstractStateSpace{TE<:TimeEvolution} <: LTISystem end
 
-struct StateSpace{TE, T, MT<:AbstractMatrix{T}} <: AbstractStateSpace{TE}
-    A::MT
-    B::MT
-    C::MT
-    D::MT
+struct StateSpace{TE, T} <: AbstractStateSpace{TE}
+    A::Matrix{T}
+    B::Matrix{T}
+    C::Matrix{T}
+    D::Matrix{T}
     timeevol::TE
-    nx::Int
-    nu::Int
-    ny::Int
-    function StateSpace{TE, T, MT}(A::MT, B::MT, C::MT, D::MT, timeevol::TE) where {TE<:TimeEvolution, T, MT <: AbstractMatrix{T}}
-        nx,nu,ny = state_space_validation(A,B,C,D,timeevol)
-        new{TE, T, MT}(A, B, C, D, timeevol, nx, nu, ny)
+    function StateSpace{TE, T}(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, timeevol::TE) where {TE<:TimeEvolution, T}
+        state_space_validation(A,B,C,D)
+        new{TE, T}(A, B, C, D, timeevol)
+    end
+    function StateSpace(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, timeevol::TE) where {TE<:TimeEvolution, T}
+        state_space_validation(A,B,C,D)
+        new{TE, T}(A, B, C, D, timeevol)
     end
 end
-function StateSpace(A::MT, B::MT, C::MT, D::MT, timeevol::TE) where {TE<:TimeEvolution, T, MT <: AbstractMatrix{T}}
-    StateSpace{TE, T, MT}(A, B, C, D, timeevol)
-end
 # Constructor for Discrete system
-function StateSpace(A::MT, B::MT, C::MT, D::MT, Ts::Number) where {T, MT <: AbstractMatrix{T}}
+function StateSpace(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, Ts::Number) where {T}
+    state_space_validation(A,B,C,D)
     StateSpace(A, B, C, D, Discrete(Ts))
 end
 # Constructor for Continuous system
-function StateSpace(A::MT, B::MT, C::MT, D::MT) where {T, MT <: AbstractMatrix{T}}
+function StateSpace(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}) where {T}
+    state_space_validation(A,B,C,D)
     StateSpace(A, B, C, D, Continuous())
 end
 
-""" If D=0 then convert to correct size and type, else, create 1x1 matrix"""
+""" If D=0 then create zero matrix of correct size and type, else, convert D to correct type"""
 function fix_D_matrix(T::Type,B,C,D)
     if D == 0
-        D = fill(zero(T), size(C,1), size(B,2))
+        D = zeros(T, size(C,1), size(B,2))
     else
         D = to_matrix(T, D)
     end
@@ -72,19 +72,19 @@ end
 const AbstractNumOrArray = Union{Number, AbstractVecOrMat}
 
 # Explicit construction with different types
-function StateSpace{TE,T,MT}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution) where {TE, T, MT <: AbstractMatrix{T}}
+function StateSpace{TE,T}(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution) where {TE, T}
     D = fix_D_matrix(T, B, C, D)
-    return StateSpace{TE, T,Matrix{T}}(MT(to_matrix(T, A)), MT(to_matrix(T, B)), MT(to_matrix(T, C)), MT(D), TE(timeevol))
+    return StateSpace{TE, T}(to_matrix(T, A), to_matrix(T, B), to_matrix(T, C), to_matrix(T, D), TE(timeevol))
 end
 
 # Explicit conversion
-function StateSpace{TE,T,MT}(sys::StateSpace) where {TE, T, MT <: AbstractMatrix{T}}
-    StateSpace{TE,T,MT}(sys.A,sys.B,sys.C,sys.D,sys.timeevol)
+function StateSpace{TE,T}(sys::StateSpace) where {TE, T}
+    StateSpace{TE,T}(sys.A,sys.B,sys.C,sys.D,sys.timeevol)
 end
 
 function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
     A, B, C, D, T = to_similar_matrices(A,B,C,D)
-    return StateSpace{typeof(timeevol),T,Matrix{T}}(A, B, C, D, timeevol)
+    return StateSpace{typeof(timeevol),T}(A, B, C, D, timeevol)
 end
 # General Discrete constructor
 StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
@@ -96,9 +96,9 @@ StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, 
 # Function for creation of static gain
 function StateSpace(D::AbstractArray{T}, timeevol::TimeEvolution) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
-    A = fill(zero(T), 0, 0)
-    B = fill(zero(T), 0, nu)
-    C = fill(zero(T), ny, 0)
+    A = zeros(T, 0, 0)
+    B = zeros(T, 0, nu)
+    C = zeros(T, ny, 0)
     D = reshape(D, (ny,nu))
     return StateSpace(A, B, C, D, timeevol)
 end
@@ -115,66 +115,64 @@ StateSpace(sys::LTISystem) = convert(StateSpace, sys)
 """
     `sys = ss(A, B, C, D [,Ts])`
 
-Create a state-space model `sys::StateSpace{TE, T, MT<:AbstractMatrix{T}}`
-where `MT` is the type of matrixes `A,B,C,D`, `T` the element type and TE is Continuous or Discrete.
+Create a state-space model `sys::StateSpace{TE, T}`
+with matrix element type `T` and TE is `Continuous` or `<:Discrete`.
 
 This is a continuous-time model if `Ts` is omitted.
-Otherwise, this is a discrete-time model with sampling period Ts.
+Otherwise, this is a discrete-time model with sampling period `Ts`.
 
-`sys = ss(D [, Ts])` specifies a static gain matrix D.
+`sys = ss(D [, Ts])` specifies a static gain matrix `D`.
 """
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
 
-struct HeteroStateSpace{TE, AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
+struct HeteroStateSpace{TE <: TimeEvolution, AT<:AbstractMatrix,BT<:AbstractVecOrMat,CT<:AbstractMatrix,DT<:AbstractMatrix} <: AbstractStateSpace{TE}
     A::AT
     B::BT
     C::CT
     D::DT
     timeevol::TE
-    nx::Int
-    nu::Int
-    ny::Int
-end
-function HeteroStateSpace(A::AT, B::BT,
-    C::CT, D::DT, timeevol::TE) where {TE<:TimeEvolution,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
-    nx,nu,ny = state_space_validation(A,B,C,D,timeevol)
-    HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol, nx, nu, ny)
+    function HeteroStateSpace(A::AT, B::BT,
+        C::CT, D::DT, timeevol::TE) where {TE<:TimeEvolution,AT<:AbstractMatrix,BT<:AbstractMatrix,CT<:AbstractMatrix,DT<:AbstractMatrix}
+        state_space_validation(A,B,C,D)
+        new{TE,AT,BT,CT,DT}(A, B, C, D, timeevol)
+    end
+    # Explicit constructor
+    function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,CT,DT}
+        state_space_validation(A,B,C,D)
+        new{TE,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TE(timeevol))
+    end
+    # Base constructor
+    function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
+        A = to_abstract_matrix(A)
+        B = to_abstract_matrix(B)
+        C = to_abstract_matrix(C)
+        if D == 0
+            D = fill(zero(eltype(C)), size(C,1), size(B,2))
+        else
+            D = to_abstract_matrix(D)
+        end
+        state_space_validation(A,B,C,D)
+        return new{typeof(timeevol),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, timeevol)
+    end
 end
 
-# Explicit constructor
-function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,CT,DT}
-    nx,nu,ny = state_space_validation(A,B,C,D,timeevol)
-    HeteroStateSpace{TE,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TE(timeevol), nx, nu, ny)
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number)
+    HeteroStateSpace(A, B, C, D, Discrete(Ts))
 end
-
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray)
+    HeteroStateSpace(A, B, C, D, Continuous())
+end
 HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol)
 
-# Base constructor
-function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
-    A = to_abstract_matrix(A)
-    B = to_abstract_matrix(B)
-    C = to_abstract_matrix(C)
-    if D == 0
-        D = fill(zero(eltype(C)), size(C,1), size(B,2))
-    else
-        D = to_abstract_matrix(D)
-    end
-    return HeteroStateSpace{typeof(timeevol),typeof(A),typeof(B),typeof(C),typeof(D)}(A, B, C, D, timeevol)
-end
-
-HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
-    HeteroStateSpace(A, B, C, D, Discrete(Ts))
-HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray) =
-    HeteroStateSpace(A, B, C, D, Continuous())
 
 
 # Function for creation of static gain
 function HeteroStateSpace(D::AbstractArray{T}, timeevol::TimeEvolution) where {T<:Number}
     ny, nu = size(D, 1), size(D, 2)
-    A = fill(zero(T), 0, 0)
-    B = fill(zero(T), 0, nu)
-    C = fill(zero(T), ny, 0)
+    A = zeros(T, 0, 0)
+    B = zeros(T, 0, nu)
+    C = zeros(T, ny, 0)
 
     return HeteroStateSpace(A, B, C, D, timeevol)
 end
@@ -190,6 +188,9 @@ HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
 
 # Getter functions ###################################################
 
+"""
+    `A, B, C, D = ssdata(sys)`
+"""
 ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 
 # Funtions for number of intputs, outputs and states
@@ -210,26 +211,28 @@ function ==(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractSt
 end
 
 ## Approximate ##
-function isapprox(sys1::ST1, sys2::ST2) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
+function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
     fieldnames(ST1) == fieldnames(ST2) || (return false)
-    return all(getfield(sys1, f) ≈ getfield(sys2, f) for f in fieldnames(ST1))
+    return all(isapprox(getfield(sys1, f), getfield(sys2, f); kwargs...) for f in fieldnames(ST1))
 end
 
 ## ADDITION ##
-function +(s1::StateSpace{TE,T,MT}, s2::StateSpace{TE,T,MT}) where {TE,T, MT}
+Base.zero(sys::AbstractStateSpace) = ss(zero(sys.D), sys.timeevol)
+
+function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     #Ensure systems have same dimensions
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
     timeevol = common_timeevol(s1,s2)
 
-    A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
-         fill(zero(T), nstates(s2), nstates(s1))        s2.A]
+    A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
+         zeros(T, nstates(s2), nstates(s1))        s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
 
-    return StateSpace{TE,T,MT}(A, B, C, D, timeevol)
+    return StateSpace{TE,T}(A, B, C, D, timeevol)
 end
 
 function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
@@ -239,8 +242,8 @@ function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
     end
     timeevol = common_timeevol(s1,s2)
     T = promote_type(eltype(s1.A),eltype(s2.A))
-    A = [s1.A                   fill(zero(T), nstates(s1), nstates(s2));
-         fill(zero(T), nstates(s2), nstates(s1))        s2.A]
+    A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
+         zeros(T, nstates(s2), nstates(s1))        s2.A]
     B = [s1.B ; s2.B]
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
@@ -260,7 +263,7 @@ end
 -(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
 
 ## MULTIPLICATION ##
-function *(sys1::StateSpace{TE,T,MT}, sys2::StateSpace{TE,T,MT}) where {TE,T, MT}
+function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
     if sys1.nu != sys2.ny
@@ -269,11 +272,11 @@ function *(sys1::StateSpace{TE,T,MT}, sys2::StateSpace{TE,T,MT}) where {TE,T, MT
     timeevol = common_timeevol(sys1,sys2)
 
     A = [sys1.A    sys1.B*sys2.C;
-         fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
+         zeros(T, sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
-    return StateSpace{TE,T,MT}(A, B, C, D, timeevol)
+    return StateSpace{TE,T}(A, B, C, D, timeevol)
 end
 
 function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
@@ -285,7 +288,7 @@ function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     timeevol = common_timeevol(sys1,sys2)
     T = promote_type(eltype(sys1.A),eltype(sys2.A))
     A = [sys1.A    sys1.B*sys2.C;
-         fill(zero(T), sys2.nx, sys1.nx)  sys2.A]
+         zeros(T, sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
@@ -313,8 +316,6 @@ end
 Base.inv(sys::AbstractStateSpace) = 1/sys
 /(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
 
-Base.:^(sys::AbstractStateSpace, p::Integer) = Base.power_by_squaring(sys, p)
-
 
 #####################################################################
 ##                       Indexing Functions                        ##
@@ -323,6 +324,7 @@ Base.ndims(::AbstractStateSpace) = 2 # NOTE: Also for SISO systems?
 Base.size(sys::AbstractStateSpace) = (noutputs(sys), ninputs(sys)) # NOTE: or just size(sys.D)
 Base.size(sys::AbstractStateSpace, d::Integer) = d <= 2 ? size(sys)[d] : 1
 Base.eltype(::Type{S}) where {S<:AbstractStateSpace} = S
+Base.axes(sys::AbstractStateSpace, i::Integer) = Base.OneTo(size(sys, i))
 
 function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
     if size(inds, 1) != 2
@@ -330,6 +332,26 @@ function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
     return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.timeevol)
+end
+
+function Base.getproperty(sys::AbstractStateSpace, s::Symbol)
+    if s === :Ts
+        # if !isdiscrete(sys) # NOTE this line seems to be breaking inference of isdiscrete (is there a test for this?)
+        if isdiscrete(sys)
+            return timeevol(sys).Ts
+        else
+            @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
+            return 0.0
+        end
+    elseif s === :nx
+        return nstates(sys)
+    elseif s === :nu
+        return ninputs(sys)
+    elseif s === :ny
+        return noutputs(sys)
+    else
+        return getfield(sys, s)
+    end
 end
 
 #####################################################################

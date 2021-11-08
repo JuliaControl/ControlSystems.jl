@@ -2,12 +2,14 @@
 
 ```@meta
 CurrentModule = ControlSystems
-```
-
-## Examples
-```@contents
-Pages = ["examples/example.md"]
-Depth = 2
+DocTestFilters = [
+    r"StateSpace.+?\n"
+    r"HeteroStateSpace.+?\n"
+    r"TransferFunction.+?\n"
+    r"DelayLtiSystem.+?\n"
+    r"┌ Warning: Keyword argument hover.+?\n.+?\n" # remove next line as well
+]
+nyquistplot(ssrand(1,1,1))
 ```
 
 ## Guide
@@ -15,6 +17,12 @@ Depth = 2
 ```@contents
 Pages = ["man/introduction.md", "man/creating_systems.md"]
 Depth = 1
+```
+
+## Examples
+```@contents
+Pages = ["examples/example.md"]
+Depth = 2
 ```
 
 ## Functions
