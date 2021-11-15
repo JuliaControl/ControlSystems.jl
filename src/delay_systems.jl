@@ -96,7 +96,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
         (out, t) -> (out .= u(t))
     end
 
-    _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
+    _lsim(sys, u!, t, x0, alg; abstol, reltol, kwargs...)
 end
 
 # Generic parametrized dde used for simulating DelayLtiSystem
@@ -159,9 +159,6 @@ end
 function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArray{<:Real}, x0::Vector{T}, alg; kwargs...) where {T,S}
 
     P = sys.P
-
-    t0 = first(t)
-    dt = t[2] - t[1]
 
     # Get all matrices to save on allocations
     A, B1, B2, C1, C2, D11, D12, D21, D22 = P.A, P.B1, P.B2, P.C1, P.C2, P.D11, P.D12, P.D21, P.D22
