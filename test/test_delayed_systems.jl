@@ -165,9 +165,16 @@ w = 10 .^ (-2:0.1:2)
 println("Simulating first delay system:")
 @time step(delay(1)*tf(1,[1.,1]))
 @time step(delay(1)*tf(1,[1,1]))
+@test step(delay(1)*tf(1,[1,1])) isa ControlSystems.SimResult
 
-@time y1, t1, x1 = step([s11;s12], 10)
+res = step([s11;s12], 10)
+@test size(res.u,1) == 1
+@time y1, t1, x1 = res
 @time @test y1[2:2,:] ≈ step(s12, t1)[1] rtol = 1e-14
+
+res = step([s11 s12], 10)
+@test size(res.u,1) == 2
+@test size(res.u,3) == 2
 
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)
