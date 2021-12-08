@@ -61,7 +61,7 @@ sys2 = convert(TransferFunction, sys)
 w = 10.0 .^ (-2:2:50)
 @test freqresp(sys, w) ≈ freqresp(sys2, w)
 csort = v -> sort(v, lt = (x,y) -> abs(x) < abs(y))
-@test csort(pole(zpk(sys2))) ≈ [1+im, -2.0-3im]
+@test csort(poles(zpk(sys2))) ≈ [1+im, -2.0-3im]
 
 # Test complex 2
 sys4 = ss([-1.0+im 0;1 1],[1;0],[1 im],im)

@@ -97,7 +97,7 @@ function +(sys::DelayLtiSystem{T}, n::T) where {T<:Number}
     new_D = copy(ssold.D)
     new_D[1:ny, 1:nu] .+= n
 
-    pnew = PartionedStateSpace(StateSpace(ssold.A, ssold.B, ssold.C, new_D, 0.0), ny, nu)
+    pnew = PartionedStateSpace(StateSpace(ssold.A, ssold.B, ssold.C, new_D, Continuous()), ny, nu)
     DelayLtiSystem(pnew, sys.Tau)
 end
 
@@ -160,7 +160,7 @@ function Base.show(io::IO, sys::DelayLtiSystem)
     print(io, "\nP: ")
     show(io, sys.P.P)
 
-    println(io, "\n\nDelays: $(sys.Tau)")
+    print(io, "\n\nDelays: $(sys.Tau)")
 end
 
 

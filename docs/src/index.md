@@ -2,6 +2,14 @@
 
 ```@meta
 CurrentModule = ControlSystems
+DocTestFilters = [
+    r"StateSpace.+?\n"
+    r"HeteroStateSpace.+?\n"
+    r"TransferFunction.+?\n"
+    r"DelayLtiSystem.+?\n"
+    r"┌ Warning: Keyword argument hover.+\n*.+\n*" # remove next line as well
+    r"\[ Info: Precompiling.+\n*"
+]
 ```
 
 ## Guide

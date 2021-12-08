@@ -11,7 +11,6 @@ export  LTISystem,
         ss,
         tf,
         zpk,
-        LQG,
         isproper,
         # Linear Algebra
         balance,
@@ -32,7 +31,6 @@ export  LTISystem,
         ctrb,
         obsv,
         place,
-        luenberger,
         # Model Simplification
         reduce_sys,
         sminreal,
@@ -42,10 +40,12 @@ export  LTISystem,
         similarity_transform,
         prescale,
         innovation_form,
+        observer_predictor,
+        observer_controller,
         # Stability Analysis
         isstable,
-        pole,
-        tzero,
+        poles,
+        tzeros,
         dcgain,
         zpkdata,
         damp,
@@ -115,6 +115,8 @@ using MacroTools
 
 abstract type AbstractSystem end
 
+
+include("types/result_types.jl")
 include("types/TimeEvolution.jl")
 ## Added interface:
 #   timeevol(Lti) -> TimeEvolution (not exported)
@@ -140,8 +142,6 @@ include("types/DelayLtiSystem.jl")
 # Convenience constructors
 include("types/tf.jl")
 include("types/zpk.jl")
-
-include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
 
 include("utilities.jl")
 
@@ -169,10 +169,14 @@ include("delay_systems.jl")
 
 include("plotting.jl")
 
+@deprecate pole poles
+@deprecate tzero tzeros
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm
 @deprecate diagonalize(s::AbstractStateSpace, digits) diagonalize(s::AbstractStateSpace)
+@deprecate luenberger(sys, p) place(sys, p, :o)
+@deprecate luenberger(A, C, p) place(A, C, p, :o)
 # There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)

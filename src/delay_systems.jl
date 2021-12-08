@@ -180,7 +180,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     p = (A, B1, B2, C1, C2, D11, D12, D21, D22, y, Tau, u!, uout, hout, tmpy, t)
 
     # This callback computes and stores the delay term
-    sv = SavedValues(Float64, Tuple{Vector{Float64},Vector{Float64}})
+    sv = SavedValues(eltype(t), Tuple{Vector{T},Vector{T}})
     cb = SavingCallback(dde_saver, sv, saveat = t)
 
     # History function, only used for d
@@ -204,7 +204,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
         y[:,k] .= sv.saveval[k][2]
     end
 
-    return y', t, x'
+    return y, t, x
 end
 
 # We have to default to something, look at the sys.P.P and delays
@@ -224,7 +224,7 @@ function _default_dt(sys::DelayLtiSystem)
     if !isstable(sys.P.P)
         return 0.05   # Something small
     else
-        ps = pole(sys.P.P)
+        ps = poles(sys.P.P)
         r = minimum([abs.(real.(ps));0]) # Find the fastest pole of sys.P.P
         r = min(r, minimum([sys.Tau;0])) # Find the fastest delay
         if r == 0.0
@@ -244,8 +244,8 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     if nu == 1
         y, tout, x = lsim(sys, u, t; x0=x0, kwargs...)
     else
-        x = Array{T}(undef, length(t), nstates(sys), nu)
-        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        x = Array{T}(undef, nstates(sys), length(t), nu)
+        y = Array{T}(undef, noutputs(sys), length(t), nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t; x0=x0, kwargs...)
         end
@@ -256,7 +256,8 @@ end
 
 function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS3()), kwargs...) where T
     nu = ninputs(sys)
-    iszero(sys.P.D12) || @warn("Impulse with a direct term from input to delay vector leads to poor accuracy.")
+    iszero(sys.P.D22) || @warn "Impulse with a direct term from delay vector to delay vector can lead to poor results." maxlog=10
+    iszero(sys.P.D21) || throw(ArgumentError("Impulse with a direct term from input to delay vector is not implemented. Move the delays to the output instead of input if possible."))
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in impulse"))
     end
@@ -264,8 +265,8 @@ function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS
     if nu == 1
         y, tout, x = lsim(sys, u, t; alg=alg, x0=sys.P.B[:,1], kwargs...)
     else
-        x = Array{T}(undef, length(t), nstates(sys), nu)
-        y = Array{T}(undef, length(t), noutputs(sys), nu)
+        x = Array{T}(undef, nstates(sys), length(t), nu)
+        y = Array{T}(undef, noutputs(sys), length(t), nu)
         for i=1:nu
             y[:,:,i], tout, x[:,:,i] = lsim(sys[:,i], u, t; alg=alg, x0=sys.P.B[:,i], kwargs...)
         end

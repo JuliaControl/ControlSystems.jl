@@ -9,3 +9,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 StaticArrays = "0.12"
+Documenter = "0.27.10"
