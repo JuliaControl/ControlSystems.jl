@@ -309,7 +309,7 @@ end
 
 Selects the parameters of a PI-controller such that the poles of 
 closed loop between `P` and `C` are placed to match the poles of 
-`s^2 + 2ζω₀ + ω₀^2`.
+`s^2 + 2ζω₀s + ω₀^2`.
 
 The `form` keyword allows you to choose which form the PI parameters
 should be returned on. 
