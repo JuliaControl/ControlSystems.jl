@@ -66,10 +66,10 @@ Gdzpk = c2d(zpk(G), 0.2)
 
 
 # d2c
-@test d2c(c2d(C_111, 0.01)) ≈ C_111
-@test d2c(c2d(C_212, 0.01)) ≈ C_212
-@test d2c(c2d(C_221, 0.01)) ≈ C_221
-@test d2c(c2d(C_222_d, 0.01)) ≈ C_222_d
+@test d2c(c2d(C_111, 0.1)) ≈ C_111
+@test d2c(c2d(C_212, 0.1)) ≈ C_212
+@test d2c(c2d(C_221, 0.1)) ≈ C_221
+@test d2c(c2d(C_222_d, 0.1)) ≈ C_222_d
 @test d2c(Gd) ≈ G
 
 sys = ss([0 1; 0 0], [0;1], [1 0], 0)

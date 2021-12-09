@@ -81,3 +81,9 @@ zpk(z, p, k) = zpk(z, p, k, Continuous())
 # Catch all 1(2) argument versions
 zpk(gain, Ts::Number; kwargs...) where {T <: Number} = zpk(gain, Discrete(Ts))
 zpk(gain; kwargs...) where {T <: Number} = zpk(gain, Continuous())
+
+# This method is required since the Base method uses promote_op(matprod, eltype(A), eltype(B)) which fails to infer correctly
+function Base.:(*)(A::AbstractMatrix{<:Union{<:SisoZpk, <:SisoRational}}, B::AbstractMatrix{<:Union{<:SisoZpk, <:SisoRational}})
+    TS = promote_op(*, eltype(A), eltype(B))
+    mul!(similar(B, TS, (size(A,1), size(B,2))), A, B)
+end

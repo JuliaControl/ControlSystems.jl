@@ -76,7 +76,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 end
 # This function should hande both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
-    return [Polynomial{T}([-r, 1]) for r in roots]
+    return Polynomial{T}[Polynomial{T}([-r, 1]) for r in roots]
 end
 
 
