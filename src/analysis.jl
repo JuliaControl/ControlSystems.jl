@@ -471,6 +471,99 @@ function delaymargin(G::LTISystem)
     dₘ
 end
 
+"""
+    Diskmargin
+
+Diskmargin:
+
+# Fields:
+`α`: The disk margin
+`w`: The worst-case frequency
+`f0`: The destabilizing perturbation `f0` is a complex number with simultaneous gain and phase variation. This critical perturbation causes an instability with closed-loop pole on the imaginary axis at the critical frequency ω0 
+`δ0`: The uncertain element generating f0.
+`γmin`: The lower real-axis intercept of the disk (classical lower gain margin).
+`γmax`: The upper real-axis intercept of the disk (classical upper gain margin).
+`ϕm`: is the classical pahse margin.
+`σ`: The skew parameter that was used to calculate the margin
+"""
+struct Diskmargin
+    α::Float64
+    ω0::Float64
+    f0::ComplexF64
+    δ0::ComplexF64
+    γmin::Float64
+    γmax::Float64
+    σ::Float64
+    ϕm::Float64
+end
+
+struct Disk
+    γmin::Float64
+    γmax::Float64
+    c::Float64
+    r::Float64
+    ϕm::Float64
+end
+
+center_radius(γmin, γmax) = 1/2 * (γmax + γmin), 1/2 * (γmax - γmin)
+
+function Disk(γmin, γmax)
+    c, r = center_radius(γmin, γmax)
+    Disk(γmin, γmax, r, c)
+end
+
+function Disk(; α, σ)
+    γmin = (2 - α*(1-σ)) / (2 + α*(1+σ))
+    γmax = (2 + α*(1-σ)) / (2 - α*(1+σ))
+    c, r = center_radius(γmin, γmax)
+    ϕm = (1 + γmin*γmax) / (γmin + γmax)
+    ϕm = ϕm >= 1 ? Inf : rad2deg(acos(ϕm))
+    Disk(γmin, γmax, r, c, ϕm)
+end
+
+Disk(dm::Diskmargin) = (dm.γmin, dm.γmax, )
+
+function diskmargin(L, σ::Real=0; kwargs...)
+    if issiso(L)
+        S̄ = 1/(1 + L) + (σ-1)/2
+        n,ω0 = hinfnorm(S̄; kwargs...)
+        αmax = 1/n
+        freq = isdiscrete(L) ? cis(ω0*L.Ts) : complex(ω0)
+        δ0 = inv(S̄(freq)[])
+        dp = Disk(; α = αmax, σ)
+        if δ0 == 2/(σ+1)  # S = 1, L = 0
+            Diskmargin(αmax, ω0, Inf, δ0, 0, Inf, σ, dp.ϕm)
+        else
+            f0 = (2 - δ0*(1-σ)) / (2 + δ0*(1+σ))
+            Diskmargin(αmax, ω0, f0, δ0, dp.γmin, dp.γmax, σ, dp.ϕm)
+        end
+        
+    else
+        error("MIMO not supported yet.")
+    end
+end
+
+γϕcurve(dm::Diskmargin; kwargs...) = γϕcurve(dm.α, dm.σ; kwargs...)
+
+function γϕcurve(α, σ; N = 200)
+    θ = LinRange(0, π, N)
+    f = @. (2 - α*cis(θ)*(1-σ)) / (2 + α*cis(θ)*(1+σ))
+    @. (abs(f), abs(rad2deg(angle(f))))
+end
+
+@recipe function plot(dm::Diskmargin)
+    γ, ϕ = γϕcurve(dm)
+    @series begin
+        title --> "Stable region for combined gain and phase variation"
+        xguide --> "Gain variation"
+        yguide --> "Phase variation"
+        label --> "σ = $(dm.σ)"
+        fill --> true
+        fillalpha --> 0.5
+        γ, ϕ
+    end
+end
+
 function robust_minreal(G, args...; kwargs...)
     try
         return minreal(G, args...; kwargs...)

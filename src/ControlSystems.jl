@@ -53,6 +53,7 @@ export  LTISystem,
         markovparam,
         margin,
         delaymargin,
+        diskmargin,
         gangoffour,
         # Connections
         append,

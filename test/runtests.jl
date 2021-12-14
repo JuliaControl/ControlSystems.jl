@@ -21,6 +21,7 @@ my_tests = [
             "test_freqresp",
             "test_timeresp",
             "test_analysis",
+            "test_diskmargin",
             "test_matrix_comps",
             "test_synthesis",
             "test_pid_design",
