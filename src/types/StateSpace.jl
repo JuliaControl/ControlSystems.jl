@@ -397,15 +397,16 @@ end
 
 
 """
-`minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
+    minreal(sys::T; fast=false, wargs...)
+
+Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
+
+For information about the options, see `?ControlSystems.MatrixPencils.lsminreal`
 """
-function minreal(s::AbstractStateSpace, tol=sqrt(eps()))
-    s = baltrunc(s, atol=tol, rtol = 0)[1]
-    try
-        return diagonalize(s)
-    catch
-        error("Minreal only implemented for diagonalizable systems.")
-    end
+function minreal(sys::T; fast=false, kwargs...) where T <: AbstractStateSpace
+    A,B,C,D = ssdata(sys)
+    Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; fast, kwargs...)
+    T(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
 end
 
 
