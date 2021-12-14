@@ -397,15 +397,19 @@ end
 
 
 """
-    minreal(sys::T; fast=false, wargs...)
+    minreal(sys::T; fast=false, kwargs...)
 
 Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
 
 For information about the options, see `?ControlSystems.MatrixPencils.lsminreal`
 """
-function minreal(sys::T; fast=false, kwargs...) where T <: AbstractStateSpace
+function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <: AbstractStateSpace
     A,B,C,D = ssdata(sys)
-    Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; fast, kwargs...)
+    if tol !== nothing
+        atol == 0 || atol == tol || error("Both positional argument `tol` and keyword argument `atol` were set but were not equal. `tol` is provided for backwards compat and can not be set to another value than `atol`.")
+        atol = tol
+    end
+    Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
     T(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
 end
 
