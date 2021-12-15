@@ -735,3 +735,72 @@ end
 function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwargs...)
     gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
 end
+
+
+γϕcurve(dm::Diskmargin; kwargs...) = γϕcurve(dm.α, dm.σ; kwargs...)
+
+function γϕcurve(α, σ; N = 200)
+    θ = LinRange(0, π, N)
+    f = @. (2 - α*cis(θ)*(1-σ)) / (2 + α*cis(θ)*(1+σ))
+    @. (abs(f), abs(rad2deg(angle(f))))
+end
+
+@recipe function plot(d::Disk)
+    c,r = d.c, d.r
+    θ = LinRange(0, 2pi, 200)
+    re, im = @. cos(θ), sin(θ)
+    @series begin 
+        fill --> true
+        fillalpha --> 0.5
+        @. r*re+c, r*im
+    end
+end
+
+@recipe function plot(dm::Diskmargin; nyquist=false)
+    if nyquist
+        mi,ma = -inv(dm.γmin), -inv(dm.γmax)
+        @series begin
+            label --> "σ = $(dm.σ)"
+            Disk(mi, ma)
+        end
+    else
+        γ, ϕ = γϕcurve(dm)
+        @series begin
+            title --> "Stable region for combined gain and phase variation"
+            xguide --> "Gain variation"
+            yguide --> "Phase variation"
+            label --> "σ = $(dm.σ)"
+            fill --> true
+            fillalpha --> 0.5
+            γ, ϕ
+        end
+    end
+end
+
+@recipe function plot(w::AbstractVector, dm::AbstractVector{Diskmargin})
+    length(w) == length(dm) || throw(ArgumentError("Frequency vector and diskmargin vector must have the same lengths."))
+    layout --> (2, 1)
+    link --> :x
+    @series begin
+        subplot --> 1
+        title --> "Gain margin"
+        label --> ["Lower" "Upper"]
+        # xguide --> "Frequency"
+        xscale --> :log10
+        yscale --> :log10
+        gma = getfield.(dm, :γmax)
+        gmi = getfield.(dm, :γmin)
+        replace!(gmi, 0 => -Inf)
+        # ylims --> (0, min(10, maximum(gma)))
+        w, [gmi gma]
+    end
+    @series begin
+        subplot --> 2
+        title --> "Phase margin"
+        xguide --> "Frequency"
+        xscale --> :log10
+        label --> ""
+        ϕm = getfield.(dm, :ϕm)
+        w, ϕm
+    end
+end

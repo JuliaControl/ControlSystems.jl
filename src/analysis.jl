@@ -333,6 +333,7 @@ If `!allMargins`, return only the smallest margin
 
 If `full` return also `fullPhase`
 
+See also [`diskmargin`](@ref)
 """
 function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
@@ -365,7 +366,7 @@ end
 """
 `ωgₘ, gₘ, ωϕₘ, ϕₘ = sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)`
 
-returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
+returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. See also [`diskmargin`](@ref).
 """
 function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
@@ -454,7 +455,10 @@ end
 """
     dₘ = delaymargin(G::LTISystem)
 
-Only supports SISO systems"""
+Only supports SISO systems
+
+See also [`diskmargin`](@ref)
+"""
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     if G.nu + G.ny > 2
@@ -474,16 +478,16 @@ end
 """
     Diskmargin
 
-Diskmargin:
+The notation follows "An Introduction to Disk Margins", Peter Seiler, Andrew Packard, and Pascal Gahinet
 
 # Fields:
 `α`: The disk margin
-`w`: The worst-case frequency
+`ω0`: The worst-case frequency
 `f0`: The destabilizing perturbation `f0` is a complex number with simultaneous gain and phase variation. This critical perturbation causes an instability with closed-loop pole on the imaginary axis at the critical frequency ω0 
 `δ0`: The uncertain element generating f0.
 `γmin`: The lower real-axis intercept of the disk (classical lower gain margin).
 `γmax`: The upper real-axis intercept of the disk (classical upper gain margin).
-`ϕm`: is the classical pahse margin.
+`ϕm`: is the classical phase margin.
 `σ`: The skew parameter that was used to calculate the margin
 """
 struct Diskmargin
@@ -495,6 +499,17 @@ struct Diskmargin
     γmax::Float64
     σ::Float64
     ϕm::Float64
+    L
+end
+
+function Base.show(io::IO, dm::Diskmargin)
+    println(io, "Disk margin with:")
+    println(io, "Margin: ", dm.α)
+    println(io, "Frequency: ", dm.ω0)
+    println(io, "Gain margins: [$(dm.γmin), $(dm.γmax)]")
+    println(io, "Phase margin: ", dm.ϕm)
+    println(io, "Skew: ", dm.σ)
+    println(io, "Worst-case perturbation: ", dm.f0)
 end
 
 struct Disk
@@ -509,60 +524,95 @@ center_radius(γmin, γmax) = 1/2 * (γmax + γmin), 1/2 * (γmax - γmin)
 
 function Disk(γmin, γmax)
     c, r = center_radius(γmin, γmax)
-    Disk(γmin, γmax, r, c)
+    Disk(γmin, γmax, c, r)
+end
+
+function Disk(γmin, γmax, c, r)
+    if !isfinite(γmax)
+        ϕm = 90
+    else
+        ϕm = (1 + γmin*γmax) / (γmin + γmax)
+        ϕm = ϕm >= 1 ? Inf : rad2deg(acos(ϕm))
+    end
+    Disk(γmin, γmax, c, r, ϕm)
 end
 
 function Disk(; α, σ)
-    γmin = (2 - α*(1-σ)) / (2 + α*(1+σ))
-    γmax = (2 + α*(1-σ)) / (2 - α*(1+σ))
-    c, r = center_radius(γmin, γmax)
-    ϕm = (1 + γmin*γmax) / (γmin + γmax)
-    ϕm = ϕm >= 1 ? Inf : rad2deg(acos(ϕm))
-    Disk(γmin, γmax, r, c, ϕm)
-end
-
-Disk(dm::Diskmargin) = (dm.γmin, dm.γmax, )
-
-function diskmargin(L, σ::Real=0; kwargs...)
-    if issiso(L)
-        S̄ = 1/(1 + L) + (σ-1)/2
-        n,ω0 = hinfnorm(S̄; kwargs...)
-        αmax = 1/n
-        freq = isdiscrete(L) ? cis(ω0*L.Ts) : complex(ω0)
-        δ0 = inv(S̄(freq)[])
-        dp = Disk(; α = αmax, σ)
-        if δ0 == 2/(σ+1)  # S = 1, L = 0
-            Diskmargin(αmax, ω0, Inf, δ0, 0, Inf, σ, dp.ϕm)
-        else
-            f0 = (2 - δ0*(1-σ)) / (2 + δ0*(1+σ))
-            Diskmargin(αmax, ω0, f0, δ0, dp.γmin, dp.γmax, σ, dp.ϕm)
-        end
-        
+    if α >= 2/abs(1 + σ) # the case α ≥ 2 / |1+σ| can be used to model situations where the gain can vary substantially or the phase is essentially unknown.
+        # In this case, we have an "inverted circle", but we return a more conservative region corresponding to an infinite circle extending to the right
+        γmin = max(0, (2 + α*(1-σ)) / (2 - α*(1+σ))) # expression for γmax in the normal case. 
+        γmax = Inf
     else
-        error("MIMO not supported yet.")
+        γmin = max(0, (2 - α*(1-σ)) / (2 + α*(1+σ)))
+        γmax = (2 + α*(1-σ)) / (2 - α*(1+σ))
+    end
+    Disk(γmin, γmax)
+end
+
+Disk(dm::Diskmargin) = Disk(dm.γmin, dm.γmax)
+
+"""
+    diskmargin(L, σ = 0)
+    diskmargin(L, σ::Real, ω)
+
+Calculate the disk margin of LTI system `L`.
+
+The implementation and notation follows
+"An Introduction to Disk Margins", Peter Seiler, Andrew Packard, and Pascal Gahinet
+
+The margins are aviable as fields of the returned objects, see [`Diskmargin`](@ref).
+
+# Arguments:
+- `L`: A loop-transfer function.
+- `σ`: If little is known about the distribution of gain variations then σ = 0
+is a reasonable choice as it allows for a gain increase or decrease by the same relative amount.
+The choice σ < 0 is justified if the gain can decrease by a larger factor than it can increase.
+Similarly, the choice σ > 0 is justified when the gain can increase by a larger factor than it can
+decrease.
+- `kwargs`: Are sent to the [`hinfnorm`](@ref) calculation
+- `ω`: If a vector of frequencies is supplied, the frequency-dependent disk margin will be computed, see example below.
+
+# Example: 
+```
+L = tf(25, [1,10,10,10])
+dm = diskmargin(L, 0)
+plot(dm) # Plot the disk margin to illustrate maximum allowed simultaneous gain and phase variations.
+
+nyquistplot(L)
+plot!(dm, nyquist=true) # plot a nyquist exclusion disk. The Nyquist curve will be tangent to this disk at `dm.ω0`
+nyquistplot!(dm.f0*L) # If we perturb the system with the worst-case perturbation `f0`, the curve will pass through the critical point -1.
+
+## Frequency-dependent margin
+w = exp10.(LinRange(-2, 2, 500))
+dms = diskmargin(L, 0, w)
+plot(w, dms)
+```
+"""
+function diskmargin(L, σ::Real=0; kwargs...)
+    issiso(L) || error("MIMO not yet supported in diskmargin.")
+    S̄ = 1/(1 + L) + (σ-1)/2
+    n,ω0 = hinfnorm(S̄; kwargs...)
+    diskmargin(L, σ, ω0)
+end
+
+diskmargin(L, σ::Real, ω::AbstractArray) = map(w->diskmargin(L, σ, w), ω)
+
+function diskmargin(L, σ::Real, ω0::Real)
+    issiso(L) || error("MIMO not yet supported in diskmargin.") # Calculation of structured singular values required, determine if det(I-MΔ) can be 0
+    S̄ = 1/(1 + L) + (σ-1)/2
+    freq = isdiscrete(L) ? cis(ω0*L.Ts) : complex(0, ω0)
+    Sω = S̄(freq)[]
+    αmax = 1/abs(Sω)
+    δ0 = inv(Sω)
+    dp = Disk(; α = αmax, σ)
+    if δ0 == 2/(σ+1)  # S = 1, L = 0
+        Diskmargin(αmax, ω0, Inf, δ0, 0, Inf, σ, dp.ϕm, L)
+    else
+        f0 = (2 + δ0*(1-σ)) / (2 - δ0*(1+σ))
+        Diskmargin(αmax, ω0, f0, δ0, dp.γmin, dp.γmax, σ, dp.ϕm, L)
     end
 end
 
-γϕcurve(dm::Diskmargin; kwargs...) = γϕcurve(dm.α, dm.σ; kwargs...)
-
-function γϕcurve(α, σ; N = 200)
-    θ = LinRange(0, π, N)
-    f = @. (2 - α*cis(θ)*(1-σ)) / (2 + α*cis(θ)*(1+σ))
-    @. (abs(f), abs(rad2deg(angle(f))))
-end
-
-@recipe function plot(dm::Diskmargin)
-    γ, ϕ = γϕcurve(dm)
-    @series begin
-        title --> "Stable region for combined gain and phase variation"
-        xguide --> "Gain variation"
-        yguide --> "Phase variation"
-        label --> "σ = $(dm.σ)"
-        fill --> true
-        fillalpha --> 0.5
-        γ, ϕ
-    end
-end
 
 function robust_minreal(G, args...; kwargs...)
     try

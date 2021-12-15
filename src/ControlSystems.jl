@@ -54,6 +54,8 @@ export  LTISystem,
         margin,
         delaymargin,
         diskmargin,
+        Disk,
+        Diskmargin,
         gangoffour,
         # Connections
         append,
