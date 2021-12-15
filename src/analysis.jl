@@ -489,6 +489,8 @@ The notation follows "An Introduction to Disk Margins", Peter Seiler, Andrew Pac
 `γmax`: The upper real-axis intercept of the disk (classical upper gain margin).
 `ϕm`: is the classical phase margin.
 `σ`: The skew parameter that was used to calculate the margin
+
+The "disk" margin becomes a half plane for `α = 2` and an inverted circle for `α > 2`. In this case, the upper gain margin is infinite. See the paper for more details, in particular figure 6.
 """
 struct Diskmargin
     α::Float64
@@ -506,12 +508,33 @@ function Base.show(io::IO, dm::Diskmargin)
     println(io, "Disk margin with:")
     println(io, "Margin: ", dm.α)
     println(io, "Frequency: ", dm.ω0)
-    println(io, "Gain margins: [$(dm.γmin), $(dm.γmax)]")
+    if dm.γmax < dm.γmin # In this case, we have an "inverted circle"
+        println(io, "Gain margins: [$(dm.γmin), Inf]")
+    else
+        println(io, "Gain margins: [$(dm.γmin), $(dm.γmax)]")
+    end
     println(io, "Phase margin: ", dm.ϕm)
     println(io, "Skew: ", dm.σ)
     println(io, "Worst-case perturbation: ", dm.f0)
 end
 
+"""
+    Disk
+
+Represents a perturbation disc in the complex plane. `Disk(0.5, 2)` represents all perturbations in the circle centered at 1.25 with radius 0.75, or in other words, a gain margin of 2 and a pahse margin of 36.9 degrees.
+
+A disk can be converted to a Nyquist exclusion disk by `nyquist(disk)` and plotted using `plot(disk)`.
+
+# Arguments:
+- `γmin`: Lower intercept
+- `γmax`: Upper intercept
+- `c`: Center
+- `r`: Radius
+- `ϕm`: Angle of tangent line through origin.
+
+If γmax < γmin the disk is inverted.
+See [`diskmargin`](@ref) for disk margin computations. 
+"""
 struct Disk
     γmin::Float64
     γmax::Float64
@@ -538,18 +561,13 @@ function Disk(γmin, γmax, c, r)
 end
 
 function Disk(; α, σ)
-    if α >= 2/abs(1 + σ) # the case α ≥ 2 / |1+σ| can be used to model situations where the gain can vary substantially or the phase is essentially unknown.
-        # In this case, we have an "inverted circle", but we return a more conservative region corresponding to an infinite circle extending to the right
-        γmin = max(0, (2 + α*(1-σ)) / (2 - α*(1+σ))) # expression for γmax in the normal case. 
-        γmax = Inf
-    else
-        γmin = max(0, (2 - α*(1-σ)) / (2 + α*(1+σ)))
-        γmax = (2 + α*(1-σ)) / (2 - α*(1+σ))
-    end
+    γmin = (2 - α*(1-σ)) / (2 + α*(1+σ))
+    γmax = (2 + α*(1-σ)) / (2 - α*(1+σ))
     Disk(γmin, γmax)
 end
 
 Disk(dm::Diskmargin) = Disk(dm.γmin, dm.γmax)
+nyquist(d::Disk) = Disk(-inv(d.γmin), -inv(d.γmax)) # translate the disk to a nyquist exclusion disk
 
 """
     diskmargin(L, σ = 0)

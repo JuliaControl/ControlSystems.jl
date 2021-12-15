@@ -7,10 +7,11 @@ dm = diskmargin(L, 0)
 @test dm.γmin ≈ 0.63    atol=0.02
 @test dm.γmax ≈ 1.59    atol=0.02
 @test dm.α ≈ 0.46   atol=0.02
+show(dm)
 plot(dm)
 nyquistplot(L)
 plot!(dm, nyquist=true)
-plot!(Disk(dm))
+plot!(Disk(dm), nyquist=true)
 
 
 
@@ -25,10 +26,10 @@ s = tf("s")
 L = 6.25*(s + 3)*(s + 5) / (s*(s + 1)^2 *(s^2 + 0.18s + 100))
 
 ## αmax > 2
-dm = diskmargin(L, 0, 100)
-@test dm.γmax == Inf
-@test dm.γmin == 0
-@test dm.ϕm == 90
+dm = diskmargin(L, 0, 200)
+@test dm.γmax < dm.γmin
+@test dm.γmin ≈ 0 atol = 1e-6
+@test dm.ϕm ≈ 90 atol = 1e-4
 
 
 w = exp10.(LinRange(-1, 2, 500))

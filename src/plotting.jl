@@ -745,10 +745,13 @@ function γϕcurve(α, σ; N = 200)
     @. (abs(f), abs(rad2deg(angle(f))))
 end
 
-@recipe function plot(d::Disk)
-    c,r = d.c, d.r
+@recipe function plot(d::Disk; nyquist = false)
     θ = LinRange(0, 2pi, 200)
     re, im = @. cos(θ), sin(θ)
+    if nyquist
+        d = ControlSystems.nyquist(d)
+    end
+    c,r = d.c, d.r
     @series begin 
         fill --> true
         fillalpha --> 0.5
@@ -758,10 +761,9 @@ end
 
 @recipe function plot(dm::Diskmargin; nyquist=false)
     if nyquist
-        mi,ma = -inv(dm.γmin), -inv(dm.γmax)
         @series begin
             label --> "σ = $(dm.σ)"
-            Disk(mi, ma)
+            ControlSystems.nyquist(Disk(dm))
         end
     else
         γ, ϕ = γϕcurve(dm)
