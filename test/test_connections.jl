@@ -236,6 +236,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
 @test feedback(G3, 1, pos_feedback=false) == ss(-1.5, 0.5, 0.5, 0.5)
 
+
 # Test that errors are thrown for mismatched dimensions
 @test_throws ErrorException feedback(G1, K1, U1=1:2, Y2=1)
 @test_throws ErrorException feedback(G1, K1, Y2=1:2)
@@ -245,6 +246,11 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test lft(G1, G2) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
 @test lft(G1, G2, :l) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
 @test lft(G1, G2, :u) == ss([-9 16; 28 -6], [3; 0], [5 0], 0)
+
+G = ss([1], [1 2 3], [1; 2; 3], zeros(3,3))
+Δ = ss([1], [1], [1; 2], [1; 2])
+@test lft(G, Δ, :u) ≈ ss([6 5; 1 1], [3; 0], [2 0; 3 0], [0; 0])
+@test lft(G, Δ, :l) ≈ ss([25 8; 3 1], [1; 0], [1 0; 2 0], [0; 0])
 
 @test_throws ErrorException lft(G2, G1)
 @test_throws ErrorException lft(G2, G1, :l)
