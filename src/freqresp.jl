@@ -1,3 +1,13 @@
+function freqresp(sys::LTISystem, w::Real)
+    # Create imaginary freq vector s
+    if iscontinuous(sys)
+        s = im*w
+    else
+        s = cis(w*sys.Ts)
+    end
+    evalfr(sys, s)
+end
+
 """sys_fr = freqresp(sys, w)
 
 Evaluate the frequency response of a linear system
@@ -10,7 +20,7 @@ of system `sys` over the frequency vector `w`."""
     if iscontinuous(sys)
         s_vec = im*w_vec
     else
-        s_vec = exp.(w_vec*(im*sys.Ts))
+        s_vec = cis.(w_vec*(sys.Ts))
     end
     #if isa(sys, StateSpace)
     #    sys = _preprocess_for_freqresp(sys)
