@@ -392,14 +392,13 @@ function lft(G, Δ, type=:l)
     end
 
     if type === :l
-        feedback(G, Δ, U1=G.nu-Δ.ny+1:G.nu, Y1=G.ny-Δ.nu+1:G.ny, W1=1:G.ny-Δ.nu, Z1=1:G.nu-Δ.ny, pos_feedback=true)
+        feedback(G, Δ, U1=G.nu-Δ.ny+1:G.nu, Y1=G.ny-Δ.nu+1:G.ny, W1=1:G.nu-Δ.ny, Z1=1:G.ny-Δ.nu, pos_feedback=true)
     elseif type === :u
-        feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.nu+1:G.ny, Z1=Δ.nu+1:G.ny, pos_feedback=true)
+        feedback(G, Δ, U1=1:Δ.ny, Y1=1:Δ.nu, W1=Δ.ny+1:G.nu, Z1=Δ.nu+1:G.ny, pos_feedback=true)
     else
         error("Invalid type of lft ($type), specify type=:l (:u) for lower (upper) lft")
     end
 end
-
 
 
 """

@@ -54,6 +54,7 @@ export  LTISystem,
         margin,
         delaymargin,
         gangoffour,
+        relative_gain_array,
         # Connections
         append,
         series,

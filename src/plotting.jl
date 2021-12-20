@@ -190,7 +190,7 @@ bodeplot
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
-    layout --> ((plotphase ? 2 : 1)*ny,nu)
+    layout --> ((plotphase ? 2 : 1)*ny, nu)
     nw = length(w)
     xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
@@ -221,7 +221,7 @@ bodeplot
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
-                    subplot   --> s2i((plotphase ? (2i-1) : i),j)
+                    subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
@@ -734,4 +734,40 @@ end
 
 function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwargs...)
     gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
+end
+
+@userplot rgaplot
+"""
+    rgaplot(sys, args...; hz=false)
+    rgaplot(LTISystem[sys1, sys2...], args...; hz=false)
+
+Plot the relative-gain array entries of the `LTISystem`(s). A
+frequency vector `w` can be optionally provided.
+
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+
+`kwargs` is sent as argument to Plots.plot.
+"""
+rgaplot
+@recipe function rgaplot(p::rgaplot; hz=false)
+    systems, w = _processfreqplot(Val{:sigma}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
+    ny, nu = size(systems[1])
+    nw = length(w)
+    title --> "RGA Plot"
+    xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
+    yguide --> "Singular Values $_PlotScaleStr"
+    for (si, s) in enumerate(systems)
+        sv = abs.(relative_gain_array(s, w))
+        for j in 1:size(sv, 2)
+            for i in 1:size(sv, 3)
+                @series begin
+                    xscale --> :log10
+                    seriescolor --> si
+                    label --> "System $si, from $i to $j"
+                    ws, sv[:, j, i]
+                end
+            end
+        end
+    end
 end
