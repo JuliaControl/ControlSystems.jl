@@ -758,7 +758,7 @@ rgaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
-        sv = rga(s, w)
+        sv = abs.(relative_gain_array(s, w))
         for j in 1:size(sv, 2)
             for i in 1:size(sv, 3)
                 @series begin

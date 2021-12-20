@@ -346,17 +346,56 @@ The RGA can be used to find input-output pairings for MIMO control using individ
     between the transfer function elements. Therefore, diagonal input uncertainty
     (which is always present) is usually of more concern for plants with large RGAelemen
 
-`relative_gain_array` currently only supports square systems. Extensions to non-square systems are possible https://arxiv.org/pdf/1805.10312.pdf
+The relative gain array is computed using the The unit-consistent (UC) generalized inverse
+Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
+Jeffrey Uhlmann
+https://arxiv.org/pdf/1805.10312.pdf
 """
 function relative_gain_array(G, w::AbstractVector)
-    mapslices(freqresp(G, w), dims=(2,3)) do R
-        R .* inv(transpose(R))
-    end
+    mapslices(relative_gain_array, freqresp(G, w), dims=(2,3))
 end
 
-function relative_gain_array(G, w::Number)
-    R = freqresp(G, w)
-    R .* inv(transpose(R))
+relative_gain_array(G, w::Number) = relative_gain_array(freqresp(G, w))
+
+"""
+    relative_gain_array(A::AbstractMatrix; tol = 1.0e-15)
+
+Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
+Jeffrey Uhlmann
+https://arxiv.org/pdf/1805.10312.pdf
+"""
+function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
+    m, n = size(A)
+    L = zeros(m, n)
+    M = ones(m, n)
+    S = sign.(A)
+    AA = abs.(A)
+    idx = findall(vec(AA) .> 0.0)
+    L[idx] = log.(AA[idx])
+    idx = setdiff(1 : length(AA), idx)
+    L[idx] .= 0
+    M[idx] .= 0
+    r = sum(M, dims=2)[:]
+    c = sum(M, dims=1)[:]
+    u = zeros(m, 1)
+    v = zeros(1, n)
+    dx = 2*tol
+    while dx > tol
+        idx = c .> 0
+        p = sum(L[:, idx], dims=1) ./ c[idx]'
+        L[:, idx] .-= p .* M[:, idx]
+        v[idx] .-= p'
+        dx = sum(abs, p)/length(p)
+        idx = r .> 0
+        p = sum(L[idx, :], dims=2) ./ r[idx]
+        L[idx, :] .-= p .* M[idx, :]
+        u[idx] .-= p
+        dx += sum(abs, p)/length(p)
+    end
+    dl = exp.(u)
+    dr = exp.(v)
+    S = S .* exp.(L)
+    A .* transpose(pinv(S) .* (dl * dr)')
 end
 
 """

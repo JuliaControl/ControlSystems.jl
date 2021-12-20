@@ -208,7 +208,7 @@ P = tf(1,[1.0, 1, 0])
 @test ωϕₘ[] ≈ 0.7871132039227572
 marginplot(P, w)
 
-end
+
 # RGA
 a = 10
 P = [
@@ -230,3 +230,37 @@ R = relative_gain_array(P, 10)
 @test R[1,1] ≈ R[2,2]
 @test R[2,1] ≈ R[1,2]
 @test R[1,1] ≈ -R[1,2]
+
+
+# tests from https://arxiv.org/pdf/1805.10312.pdf
+G = [
+     4 2 2
+     2 1 1
+     2 1 1
+]
+
+R = relative_gain_array(G)
+@test R ≈ fill(1/9, 3, 3)
+
+A = [
+     7 4 8
+     7 2 5
+     3 8 8
+]
+B = [
+     21 16 16
+     21 8 10
+     9 32 16
+]
+
+R = [
+     -2.47 -2.41 5.88
+     3.29 0.94 -3.24
+     0.18 2.47 -1.65
+]
+
+@test relative_gain_array(A) ≈ R atol=0.01
+M = [A B]
+@test relative_gain_array(M) ≈ 1/2 .* [R R] atol=0.01
+
+end
