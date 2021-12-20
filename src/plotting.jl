@@ -190,7 +190,7 @@ bodeplot
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
-    layout --> ((plotphase ? 2 : 1)*ny,nu)
+    layout --> ((plotphase ? 2 : 1)*ny, nu)
     nw = length(w)
     xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
@@ -221,7 +221,7 @@ bodeplot
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
-                    subplot   --> s2i((plotphase ? (2i-1) : i),j)
+                    subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
