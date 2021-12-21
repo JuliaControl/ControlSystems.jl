@@ -140,7 +140,13 @@ struct HeteroStateSpace{TE <: TimeEvolution, AT<:AbstractMatrix,BT<:AbstractVecO
     # Explicit constructor
     function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,CT,DT}
         state_space_validation(A,B,C,D)
-        new{TE,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TE(timeevol))
+        new{TE,AT,BT,CT,DT}(
+            A isa AT ? A : AT(A),
+            B isa BT ? B : BT(B),
+            C isa CT ? C : CT(C),
+            D isa DT ? D : DT(D),
+            TE(timeevol)
+        )
     end
     # Base constructor
     function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
@@ -218,6 +224,7 @@ end
 
 ## ADDITION ##
 Base.zero(sys::AbstractStateSpace) = ss(zero(sys.D), sys.timeevol)
+Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous()) # Cannot make a zero of discrete system since sample time is not stored in type.
 
 function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     #Ensure systems have same dimensions
@@ -266,7 +273,13 @@ end
 function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if sys1.nu != sys2.ny
+    if xor(issiso(sys1), issiso(sys2))
+        if issiso(sys1)
+            sys1 = append(fill(sys1, sys2.ny)...)
+        else
+            sys2 = append(fill(sys2, sys1.nu)...)
+        end
+    elseif sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
     timeevol = common_timeevol(sys1,sys2)
@@ -282,7 +295,13 @@ end
 function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if sys1.nu != sys2.ny
+    if xor(issiso(sys1), issiso(sys2))
+        if issiso(sys1)
+            sys1 = append(fill(sys1, sys2.ny)...)
+        else
+            sys2 = append(fill(sys2, sys1.nu)...)
+        end
+    elseif sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
     timeevol = common_timeevol(sys1,sys2)
