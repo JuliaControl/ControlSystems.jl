@@ -317,11 +317,11 @@ nyquistplot
             for i=1:ny
                 redata = re_resp[:, i, j]
                 imdata = im_resp[:, i, j]
+                ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                title --> "Nyquist plot from: u($j)"
+                yguide --> "To: y($i)"
                 @series begin
-                    ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
-                    title --> "Nyquist plot from: u($j)"
-                    yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
                     hover --> [hz ? Printf.@sprintf("f = %.3f", w/2π) : Printf.@sprintf("ω = %.3f", w) for w in w]
