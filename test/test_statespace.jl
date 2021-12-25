@@ -61,7 +61,6 @@
         @test D_111 - D_211 == SS([-0.5 0 0; 0 0.2 -0.8; 0 -0.8 0.07],[2; 1; 2],
         [3 -1 -0],[0], 0.005)
 
-
         # Multiplication
         @test C_111 * C_221 == SS([-5 2 0; 0 -5 -3; 0 2 -9],
         [0 0; 1 0; 0 2],[3 0 0],[0 0])
@@ -70,6 +69,9 @@
         @test 4*C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[4 0; 0 4],[0 0; 0 0])
         @test D_111 * D_221 == SS([-0.5 2 0; 0 0.2 -0.8; 0 -0.8 0.07],
         [0 0; 1 0; 0 2],[3 0 0],[0 0],0.005)
+        @test C_111 * I(2) == I(2) * C_111 == SS(diagm([a_1; a_1]), 2*I(2), 3*I(2), 0*I(2))
+        @test minreal(C_111*C_222_d - C_222_d*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
+        @test C_111*C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
 
         # Division
         @test 1/C_222_d == SS([-6 -3; 2 -11],[1 0; 0 2],[-1 0; -0 -1],[1 -0; 0 1])
@@ -121,7 +123,6 @@
     # Errors
         @test_throws ErrorException C_111 + C_222             # Dimension mismatch
         @test_throws ErrorException C_111 - C_222             # Dimension mismatch
-        @test_throws ErrorException C_111 * C_222             # Dimension mismatch
         @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
         @test_throws ErrorException D_111 - C_111             # Sampling time mismatch
         @test_throws ErrorException D_111 * C_111             # Sampling time mismatch

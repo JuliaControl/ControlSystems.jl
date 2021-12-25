@@ -366,6 +366,9 @@ https://arxiv.org/pdf/1805.10312.pdf
 """
 function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
     m, n = size(A)
+    if m == n && LinearAlgebra.det(A) != 0
+        return A .* inv(transpose(A))
+    end
     L = zeros(m, n)
     M = ones(m, n)
     S = sign.(A)

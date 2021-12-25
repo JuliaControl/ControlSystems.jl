@@ -211,25 +211,21 @@ marginplot(P, w)
 
 # RGA
 a = 10
-P = [
-        tf([1,-a^2], [1, 0, a^2]) tf([a, a], [1, 0, a^2])
-        -tf([a, a], [1, 0, a^2]) tf([1,-a^2], [1, 0, a^2])
-    ]
-P = minreal(ss(P))
+P = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)
 
 w = exp10.(LinRange(-1, 2, 1000))
 rgaplot(P, w)
 rgaplot([P, 2P], w)
 
 R = relative_gain_array(P, w)
-@test maximum(abs, R) > 1e14
+@test maximum(abs, R) > 50 # Inf/NaN at w=10
 @test minimum(abs, R) ≈ 1e-2 atol=1e-4
 
-R = relative_gain_array(P, 10)
+R = relative_gain_array(P, 9.99)
 @test size(R) == size(P)
-@test R[1,1] ≈ R[2,2]
-@test R[2,1] ≈ R[1,2]
-@test R[1,1] ≈ -R[1,2]
+@test R[1,1] ≈ R[2,2] rtol=0.01
+@test R[2,1] ≈ R[1,2] rtol=0.01
+@test R[1,1] ≈ -R[1,2] rtol=0.01
 
 
 # tests from https://arxiv.org/pdf/1805.10312.pdf
