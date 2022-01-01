@@ -5,7 +5,7 @@ struct SisoRational{T} <: SisoTf{T}
     function SisoRational{T}(num::Polynomial{T}, den::Polynomial{T}) where T <: Number
         if all(den == zero(den))
             error("Cannot create SisoRational with zero denominator")
-        elseif all(num == zero(num))
+        elseif all(isequal(num, zero(num)))
             # The numerator is zero, make the denominator 1
             den = one(den)
         end
@@ -82,7 +82,7 @@ poles(f::SisoRational) = roots(f.den)
 function evalfr(f::SisoRational{T}, s::Number) where T
     S = promote_op(/, promote_type(T, typeof(s)), promote_type(T, typeof(s)))
     den = f.den(s)
-    if den == zero(S)
+    if isequal(den, zero(S))
         convert(S,Inf)
     else
         f.num(s)/den
