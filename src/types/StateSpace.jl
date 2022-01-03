@@ -260,6 +260,10 @@ end
 
 +(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
++(sys::StateSpace, n::Number) = ss(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
+function +(sys::HeteroStateSpace, n::Number)
+    HeteroStateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
+end
 
 ## SUBTRACTION ##
 -(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = +(sys1, -sys2)
