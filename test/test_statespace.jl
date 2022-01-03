@@ -120,7 +120,13 @@
             @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
         end
 
-    # Errors
+        # Different types
+        K1 = ss(I(2)) # Bool
+        K2 = ss(1.0I(2)) # Float64
+        P = ssrand(3,3,2)
+        @test lft(P, -K1) == lft(P, -K2)
+
+        # Errors
         @test_throws ErrorException C_111 + C_222             # Dimension mismatch
         @test_throws ErrorException C_111 - C_222             # Dimension mismatch
         @test_throws ErrorException D_111 + C_111             # Sampling time mismatch

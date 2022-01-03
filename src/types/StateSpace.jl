@@ -268,6 +268,7 @@ end
 
 ## NEGATION ##
 -(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
+-(sys::StateSpace) = ss(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
 
 ## MULTIPLICATION ##
 function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
