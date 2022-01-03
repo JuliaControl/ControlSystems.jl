@@ -55,6 +55,13 @@
         @test C_222 + 1 == SS([-5 -3; 2 -9],[1 0; 0 2],[1 0; 0 1],[1 1; 1 1])
         @test D_111 + D_111 == SS([-0.5 0; 0 -0.5],[2; 2],[3 3],[0], 0.005)
 
+        @test C_111 + false == C_111
+        @test false + C_111 == C_111
+        @test 1.0*C_111 + false == C_111
+
+        @test C_222 + 1.5 == 1.0C_222 + 1.5 # C_222 has eltype Int
+        @test 1.5 + C_222 == 1.0C_222 + 1.5
+
         # Subtraction
         @test C_111 - C_211 == SS([-5 0 0; 0 -5 -3; 0 2 -9],[2; 1; 2],[3 -1 -0],[0])
         @test 1 - C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[-1 -0; -0 -1],[1 1; 1 1])
@@ -120,7 +127,13 @@
             @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
         end
 
-    # Errors
+        # Different types
+        K1 = ss(I(2)) # Bool
+        K2 = ss(1.0I(2)) # Float64
+        P = ssrand(3,3,2)
+        @test lft(P, -K1) == lft(P, -K2)
+
+        # Errors
         @test_throws ErrorException C_111 + C_222             # Dimension mismatch
         @test_throws ErrorException C_111 - C_222             # Dimension mismatch
         @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
