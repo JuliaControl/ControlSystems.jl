@@ -143,6 +143,22 @@ end
 *(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.timeevol)
 *(n::Number, G::TransferFunction) = *(G, n)
 
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::TransferFunction)
+    issiso(G1) || issiso(G2) || error("Only SISO transfer function can be broadcasted")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = common_timeevol(G1,G2)
+    matrix = G1.matrix .* G2.matrix
+    return TransferFunction(matrix, timeevol)
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::AbstractArray)
+    issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = G1.timeevol
+    matrix = G1.matrix .* G2
+    return TransferFunction(matrix, timeevol)
+end
+
 ## DIVISION ##
 function /(n::Number, G::TransferFunction)
     if issiso(G)
