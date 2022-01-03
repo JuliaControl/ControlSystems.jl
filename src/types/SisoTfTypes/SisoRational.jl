@@ -3,9 +3,9 @@ struct SisoRational{T} <: SisoTf{T}
     num::Polynomial{T}
     den::Polynomial{T}
     function SisoRational{T}(num::Polynomial{T}, den::Polynomial{T}) where T <: Number
-        if all(den == zero(den))
+        if isequal(den, zero(den))
             error("Cannot create SisoRational with zero denominator")
-        elseif all(isequal(num, zero(num)))
+        elseif isequal(num, zero(num))
             # The numerator is zero, make the denominator 1
             den = one(den)
         end
