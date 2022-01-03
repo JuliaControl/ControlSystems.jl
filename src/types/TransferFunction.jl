@@ -134,7 +134,11 @@ function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
     timeevol = common_timeevol(G1,G2)
     if G1.nu != G2.ny
-        error("G1*G2: G1 must have same number of inputs as G2 has outputs")
+        if issiso(G1) || issiso(G2)
+            error("G1*G2: G1 must have same number of inputs as G2 has outputs, did you intend to broadcast the multiplication?")
+        else
+            error("G1*G2: G1 must have same number of inputs as G2 has outputs")
+        end
     end
     matrix = G1.matrix * G2.matrix
     return TransferFunction(matrix, timeevol)
