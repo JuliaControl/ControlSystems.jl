@@ -502,7 +502,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), Diagonal(Σ), T
+    sysr = ST(T*sys.A*pinv(T), T*sys.B, sys.C*pinv(T), sys.D, sys.timeevol), Diagonal(Σ), T
 end
 
 
