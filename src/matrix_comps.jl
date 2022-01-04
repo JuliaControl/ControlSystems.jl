@@ -33,24 +33,43 @@ function dlyap(A::AbstractMatrix, Q)
     lyapd(A, Q)
 end
 
-"""`gram(sys, opt)`
 
-Compute the grammian of system `sys`. If `opt` is `:c`, computes the
-controllability grammian. If `opt` is `:o`, computes the observability
-grammian."""
-function gram(sys::AbstractStateSpace, opt::Symbol)
+"""
+    U = grampd(sys, opt)
+
+Return a Cholesky factor `U` of the grammian of system `sys`. If `opt` is `:c`, computes the
+controllability grammian `G = U*U'`. If `opt` is `:o`, computes the observability
+grammian `G = U'U`.
+
+Obtain a `Cholesky` object by `Cholesky(U)` for observability grammian
+"""
+function grampd(sys::AbstractStateSpace, opt::Symbol)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    lyapf = iscontinuous(sys) ? lyapc : lyapd
+    func = iscontinuous(sys) ? MatrixEquations.plyapc : MatrixEquations.plyapd
     if opt === :c
-        return lyapf(sys.A, sys.B*sys.B')
+        func(sys.A, sys.B)
     elseif opt === :o
-        return lyapf(Matrix(sys.A'), sys.C'*sys.C)
+        func(sys.A', sys.C')
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
     end
+end
+
+"""
+    gram(sys, opt)
+
+Compute the grammian of system `sys`. If `opt` is `:c`, computes the
+controllability grammian. If `opt` is `:o`, computes the observability
+grammian.
+
+See also [`grampd`](@ref)
+"""
+function gram(sys::AbstractStateSpace, opt::Symbol)
+    U = grampd(sys, opt)
+    opt === :c ? U*U' : U'U
 end
 
 """
@@ -459,13 +478,9 @@ Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
 function balreal(sys::ST) where ST <: AbstractStateSpace
     P = gram(sys, :c)
-    Q = gram(sys, :o)
+    Q1 = grampd(sys, :o)
+    Q = Q1'Q1
 
-    Q1 = try
-        cholesky(Hermitian(Q)).U
-    catch
-        throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
-    end
     U,Σ,V = svd(Q1*P*Q1')
     Σ .= sqrt.(Σ)
     Σ1 = diagm(0 => sqrt.(Σ))
@@ -487,7 +502,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
         display(Σ)
     end
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(Σ), T
+    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), Diagonal(Σ), T
 end
 
 
