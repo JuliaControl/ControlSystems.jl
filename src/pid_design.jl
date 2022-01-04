@@ -1,4 +1,4 @@
-export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI
+export pid, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
 
 """
     C = pid(; kp=0, ki=0; kd=0, time=false, series=false)
@@ -87,7 +87,7 @@ end
 function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
     P          = numpoly(G)[1]
     Q          = denpoly(G)[1]
-    f          = (y,_,k) -> ComplexF64.(Polynomials.roots(k[1]*P+Q))
+    f          = (y,_,k) -> sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     ts         = Vector{Float64}()
@@ -112,15 +112,16 @@ If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffE
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
 rlocus
-@recipe function rlocus(p::Rlocusplot; K=Float64[])
+@recipe function rlocus(p::Rlocusplot; K=500)
     P = p.args[1]
-    K = isempty(K) ? range(1e-6,stop=500,length=10000) : K
-    Z = tzero(P)
+    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
+    Z = tzeros(P)
     poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
     ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
     xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
@@ -159,7 +160,7 @@ function laglink(a, M; h=nothing, Ts=0)
         Base.depwarn("`laglink($a, $M; h=$h)` is deprecated, use `laglink($a, $M; Ts=$h)` instead.", Core.Typeof(laglink).name.mt.name)
         Ts = h
     end
-    @assert Ts ≥ 0 "Negative `Ts` is not supported."
+    Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported."))
     numerator = [1/a, 1]
     denominator = [M/a, 1]
     gain = M
@@ -184,7 +185,7 @@ function leadlink(b, N, K; h=nothing, Ts=0)
         Base.depwarn("`leadlink($b, $N, $K; h=$h)` is deprecated, use `leadlink($b, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlink).name.mt.name)
         Ts = h
     end
-    @assert Ts ≥ 0 "Negative `Ts` is not supported."
+    Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported."))
     numerator = [1/b, 1]
     denominator = [1/(b*N), 1]
     gain = K
@@ -301,4 +302,54 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
         nyquistplot([P, P*C]) |> display
     end
     return kp,ki,C
+end
+
+"""
+    piparams, C = placePI(P, ω₀, ζ; form=:standard)
+
+Selects the parameters of a PI-controller such that the poles of 
+closed loop between `P` and `C` are placed to match the poles of 
+`s^2 + 2ζω₀s + ω₀^2`.
+
+The `form` keyword allows you to choose which form the PI parameters
+should be returned on. 
+* `:standard` - `Kp*(1 + 1/Ti/s)`
+* `:series` - `Kc*(1 + 1/τi/s)`
+* `:parallel` - `Kp + Ki/s`
+* `:Ti` - `Kp + 1/(s*Ti)`   (non-standard form sometimes used in industry)
+
+`piparams` is a named tuple with the controller parameters.
+
+`C` is the transfer function of the controller.
+
+"""
+function placePI(P, ω₀, ζ; form=:standard)
+    P = tf(P)
+    num = numvec(P)[]
+    den = denvec(P)[]
+    if length(den) != 2 || length(num) > 2
+        error("Can only place poles using PI for proper first-order systems")
+    end
+    if length(num) == 1
+        num = [0; num]
+    end
+    a, b = num
+    c, d = den
+    # Calculates PI on standard/series form
+    tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
+    Kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
+    Ti = tmp / (ω₀^2*(a*d - b*c))
+    C = pid(;kp=Kp, ki=Ti, time=true, series=true) 
+
+    if form === :standard
+        return (;Kp, Ti), C
+    elseif form === :series
+        return (;Kc=Kp, τi=Ti), C
+    elseif form === :parallel
+        return (;Kp=Kp, ki=Kp/Ti), C
+    elseif form === :Ti
+        return (;Kp=Kp, Ti=Ti/Kp), C
+    else
+        error("Form $(form) not supported")
+    end
 end

@@ -55,12 +55,18 @@
         @test C_222 + 1 == SS([-5 -3; 2 -9],[1 0; 0 2],[1 0; 0 1],[1 1; 1 1])
         @test D_111 + D_111 == SS([-0.5 0; 0 -0.5],[2; 2],[3 3],[0], 0.005)
 
+        @test C_111 + false == C_111
+        @test false + C_111 == C_111
+        @test 1.0*C_111 + false == C_111
+
+        @test C_222 + 1.5 == 1.0C_222 + 1.5 # C_222 has eltype Int
+        @test 1.5 + C_222 == 1.0C_222 + 1.5
+
         # Subtraction
         @test C_111 - C_211 == SS([-5 0 0; 0 -5 -3; 0 2 -9],[2; 1; 2],[3 -1 -0],[0])
         @test 1 - C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[-1 -0; -0 -1],[1 1; 1 1])
         @test D_111 - D_211 == SS([-0.5 0 0; 0 0.2 -0.8; 0 -0.8 0.07],[2; 1; 2],
         [3 -1 -0],[0], 0.005)
-
 
         # Multiplication
         @test C_111 * C_221 == SS([-5 2 0; 0 -5 -3; 0 2 -9],
@@ -70,6 +76,9 @@
         @test 4*C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[4 0; 0 4],[0 0; 0 0])
         @test D_111 * D_221 == SS([-0.5 2 0; 0 0.2 -0.8; 0 -0.8 0.07],
         [0 0; 1 0; 0 2],[3 0 0],[0 0],0.005)
+        @test C_111 * I(2) == I(2) * C_111 == SS(diagm([a_1; a_1]), 2*I(2), 3*I(2), 0*I(2))
+        @test minreal(C_111*C_222_d - C_222_d*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
+        @test C_111*C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
 
         # Division
         @test 1/C_222_d == SS([-6 -3; 2 -11],[1 0; 0 2],[-1 0; -0 -1],[1 -0; 0 1])
@@ -85,6 +94,7 @@
         @test C_222[1:1,1] == SS([-5 -3; 2 -9],[1; 0],[1 0],[0])
         @test C_222[1,1:2] == C_221
         @test size(C_222[1,[]]) == (1,0)
+        @test C_222[end, end] == C_222[2,2]
 
 
         A = [-1.0 -2.0; 0.0 -1.0]
@@ -111,27 +121,21 @@
 
         # Printing
         if SS <: StateSpace
-            if VERSION >= v"1.6.0-DEV.0"
-                @test sprint(show, C_222) == "StateSpace{Continuous, Int64}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\n\nContinuous-time state-space model"
-                @test sprint(show, C_022) == "StateSpace{Continuous, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nContinuous-time state-space model"
-                @test sprint(show, D_022) == "StateSpace{Discrete{Float64}, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-                @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-            else
-                @test sprint(show, C_222) == "StateSpace{Continuous,Int64}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\n\nContinuous-time state-space model"
-                @test sprint(show, C_022) == "StateSpace{Continuous,Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nContinuous-time state-space model"
-                @test sprint(show, D_022) == "StateSpace{Discrete{Float64},Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-                if VERSION > v"1.4.0-DEV.0" # Spurious blank space in matrix_print_row was removed in #33298
-                    @test sprint(show, D_222) == "StateSpace{Discrete{Float64},Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-                else
-                    @test sprint(show, D_222) == "StateSpace{Discrete{Float64},Float64}\nA = \n  0.2  -0.8 \n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-                end
-            end
+            @test sprint(show, C_222) == "StateSpace{Continuous, Int64}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\n\nContinuous-time state-space model"
+            @test sprint(show, C_022) == "StateSpace{Continuous, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nContinuous-time state-space model"
+            @test sprint(show, D_022) == "StateSpace{Discrete{Float64}, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
+            @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
         end
 
-    # Errors
+        # Different types
+        K1 = ss(I(2)) # Bool
+        K2 = ss(1.0I(2)) # Float64
+        P = ssrand(3,3,2)
+        @test lft(P, -K1) == lft(P, -K2)
+
+        # Errors
         @test_throws ErrorException C_111 + C_222             # Dimension mismatch
         @test_throws ErrorException C_111 - C_222             # Dimension mismatch
-        @test_throws ErrorException C_111 * C_222             # Dimension mismatch
         @test_throws ErrorException D_111 + C_111             # Sampling time mismatch
         @test_throws ErrorException D_111 - C_111             # Sampling time mismatch
         @test_throws ErrorException D_111 * C_111             # Sampling time mismatch

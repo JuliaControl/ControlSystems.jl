@@ -15,7 +15,7 @@ T = [1]
 @test isapprox(numpoly(minreal(feedback(L),1e-5))[1].coeffs, numpoly(tf(1,[1,1]))[1].coeffs)# This test is ugly, but numerical stability is poor for minreal
 @test feedback2dof(B,A,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
 @test feedback2dof(P,R,S,T) == tf(B.*T, conv(A,R) + [0;0;conv(B,S)])
-@test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
+@test isapprox(poles(minreal(tf(feedback(Lsys)),1e-5)) , poles(minreal(feedback(L),1e-5)), atol=1e-5)
 
 Pint = tf(1,[1,1])
 Cint = tf([1,1],[1,0])
@@ -23,10 +23,9 @@ Lint = P*C
 
 @test isapprox(minreal(feedback(Pint,Cint),1e-5), tf([1,0],[1,2,1]), rtol = 1e-5) # TODO consider keeping minreal of Int system Int
 @test isapprox(numpoly(minreal(feedback(Lint),1e-5))[1].coeffs, numpoly(tf(1,[1,1]))[1].coeffs)# This test is ugly, but numerical stability is poor for minreal
-@test isapprox(pole(minreal(tf(feedback(Lsys)),1e-5)) , pole(minreal(feedback(L),1e-5)), atol=1e-5)
+@test isapprox(poles(minreal(tf(feedback(Lsys)),1e-5)) , poles(minreal(feedback(L),1e-5)), atol=1e-5)
 
-
-@test_throws ErrorException feedback(ss(1),ss(1))
+@test feedback(ss(1),ss(1)) == ss(0.5)
 @test_throws ErrorException feedback(ss([1 0; 0 1], ones(2,2), ones(1,2),0))
 
 # Test Feedback Issue: 163
@@ -54,6 +53,38 @@ z5,p5,k5 = zpkdata(ffb5)
 @test sort(real.(z1[1])) ≈ sort(real.(z2[1])) ≈ sort(real.(z3[1])) ≈ sort(real.(z4[1])) ≈ sort(real.(z5[1]))
 @test sort(real.(p1[1])) ≈ sort(real.(p2[1])) ≈ sort(real.(p3[1])) ≈ sort(real.(p4[1])) ≈ sort(real.(p5[1]))
 @test k1 ≈ k2 ≈ k3 ≈ k4 ≈ k5
+end
+
+
+
+@testset "place" begin
+    sys = ss(-4, 2, 3, 0)
+    A, B, C, _ = ssdata(sys)
+
+    @test place(A, B, [-10]) == [3][:,:]
+    @test place(A, B, [-10], :c) == [3][:,:]
+    @test place(A, C, [-10], :o) == [2][:,:]
+
+    A = [0 1; 0 0]
+    B = [0; 1]
+    C = [1 0]
+    sys = ss(A, B, C, 0)
+
+    @test place(A, B, [-1.0, -1]) ≈ [1 2]
+    @test place(sys, [-1.0, -1]) ≈ [1 2]
+    @test place(A, B, [-1.0, -1], :c) ≈ [1 2]
+    @test place(sys, [-1.0, -1], :c) ≈ [1 2]
+    @test place(A, C, [-2.0, -2], :o) ≈ [4; 4]
+    @test place(sys, [-2.0, -2], :o) ≈ [4; 4]
+
+    @test place(A, B, [-2 + im, -2 - im]) ≈ [5 4]
+    @test place(A, C, [-4 + 2im, -4 - 2im], :o) ≈ [8; 20]
+
+    A = ones(3,3) - diagm([3, 4, 5])
+    B = [1; 0; 2]
+    C = [1 1 0]
+    @test place(A, B, [-2 + 2im, -2 - 2im, -4]) ≈ [-2.6 5.2 0.8]
+    @test place(A, C, [-2 + 3im, -2 - 3im, -4], :o) ≈ [11; -12; 1]
 end
 
 

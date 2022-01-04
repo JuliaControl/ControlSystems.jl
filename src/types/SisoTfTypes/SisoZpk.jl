@@ -7,14 +7,14 @@ struct SisoZpk{T,TR<:Number} <: SisoTf{T}
     p::Vector{TR}
     k::T
     function SisoZpk{T,TR}(z::Vector{TR}, p::Vector{TR}, k::T) where {T<:Number, TR<:Number}
-        if k == zero(T)
+        if isequal(k, zero(T))
             p = TR[]
             z = TR[]
         end
         if TR <: Complex && T <: Real
             z, p = copy(z), copy(p)
-            @assert pairup_conjugates!(z) "zpk model should be real-valued, but zeros do not come in conjugate pairs."
-            @assert pairup_conjugates!(p) "zpk model should be real-valued, but poles do not come in conjugate pairs."
+            pairup_conjugates!(z) || throw(ArgumentError("zpk model should be real-valued, but zeros do not come in conjugate pairs."))
+            pairup_conjugates!(p) || throw(ArgumentError("zpk model should be real-valued, but poles do not come in conjugate pairs."))
         end
         new{T,TR}(z, p, k)
     end
@@ -44,9 +44,9 @@ Base.one(f::SisoZpk) = one(typeof(f))
 Base.zero(f::SisoZpk) = zero(typeof(f))
 
 
-# tzero is not meaningful for transfer function element? But both zero and zeros are taken...
-tzero(f::SisoZpk) = f.z # Do minreal first?,
-pole(f::SisoZpk) = f.p # Do minreal first?
+# tzeros is not meaningful for transfer function element? But both zero and zeros are taken...
+tzeros(f::SisoZpk) = f.z # Do minreal first?,
+poles(f::SisoZpk) = f.p # Do minreal first?
 
 numpoly(f::SisoZpk{<:Real}) = f.k*prod(roots2real_poly_factors(f.z))
 denpoly(f::SisoZpk{<:Real}) = prod(roots2real_poly_factors(f.p))
@@ -113,7 +113,7 @@ function pairup_conjugates!(x::AbstractVector)
         imag(x[i]) == 0 && continue
 
         # Attempt to find a matching conjugate to x[i]
-        j = findnext(==(conj(x[i])), x, i+1)
+        j = findnext(isequal(conj(x[i])), x, i+1)
         j === nothing && return false
 
         tmp = x[j]

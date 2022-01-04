@@ -113,119 +113,37 @@ function getLogTicks(x, minmax)
 end
 
 
-@userplot Lsimplot
-
-"""
-    fig = lsimplot(sys::LTISystem, u, t; x0=0, method)
-    lsimplot(LTISystem[sys1, sys2...], u, t; x0, method)
-
-Calculate the time response of the `LTISystem`(s) to input `u`. If `x0` is
-not specified, a zero vector is used.
-
-Continuous time systems are discretized before simulation. By default, the
-method is chosen based on the smoothness of the input signal. Optionally, the
-`method` parameter can be specified as either `:zoh` or `:foh`.
-"""
-lsimplot
-
-@recipe function lsimplot(p::Lsimplot; method=nothing)
-    if length(p.args) < 3
-        error("Wrong number of arguments")
-    end
-    systems,u,t = p.args[1:3]
-
-    if !isa(systems,AbstractArray)
-        systems = [systems]
-    end
-    if method == nothing
-        method = _issmooth(u) ? :foh : :zoh
-    end
-    if !_same_io_dims(systems...)
-        error("All systems must have the same input/output dimensions")
-    end
-    ny, nu = size(systems[1])
-    layout --> (ny,1)
-    s2i(i,j) = LinearIndices((ny,1))[j,i]
-    for (si,s) in enumerate(systems)
-        s = systems[si]
-        y, t = lsim(s, p.args[2:end]...)
-        seriestype := iscontinuous(s) ? :path : :steppost
+# This will be called on plot(lsim(sys, args...))
+@recipe function simresultplot(r::SimResult; plotu=false)
+    ny, nu = r.ny, r.nu
+    t = r.t
+    n_series = size(r.y, 3) # step and impulse produce multiple results
+    layout --> ((plotu ? ny + nu : ny), 1)
+    seriestype := iscontinuous(r.sys) ? :path : :steppost
+    for ms in 1:n_series
         for i=1:ny
-            ytext = (ny > 1) ? "Amplitude to: y($i)" : "Amplitude"
+            ytext = (ny > 1) ? "y($i)" : "y"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> ytext
-                title   --> "System Response"
-                subplot --> s2i(1,i)
-                label     --> "\$G_{$(si)}\$"
-                t,  y[i, :]
+                label   --> (n_series > 1 ? "From u($(ms))" : "")
+                subplot --> i
+                t,  r.y[i, :, ms]
+            end
+        end
+    end 
+    if plotu # bug in recipe system, can't use `plotu || return`
+        for i=1:nu
+            utext = (nu > 1) ? "u($i)" : "u"
+            @series begin
+                xguide  --> "Time (s)"
+                yguide  --> utext
+                subplot --> ny+i
+                label --> ""
+                t,  r.u[i, :]
             end
         end
     end
-end
-
-@userplot Stepplot
-@userplot Impulseplot
-"""
-    stepplot(sys[, tfinal]; kwargs...) or stepplot(sys[, t]; kwargs...)
-
-Plot step response of  `sys` until final time `tfinal` or at time points in the vector `t`.
-If not defined, suitable values are chosen based on `sys`.
-See also [`step`](@ref)
-
-`kwargs` is sent as argument to Plots.plot.
-"""
-stepplot
-
-"""
-    impulseplot(sys[, tfinal]; kwargs...) or impulseplot(sys[, t]; kwargs...)
-
-Plot impulse response of `sys` until final time `tfinal` or at time points in the vector `t`.
-If not defined, suitable values are chosen based on `sys`.
-See also [`impulse`](@ref)
-
-`kwargs` is sent as argument to Plots.plot.
-"""
-impulseplot
-
-for (func, title, typ) = ((step, "Step Response", Stepplot), (impulse, "Impulse Response", Impulseplot))
-    funcname = Symbol(func,"plot")
-
-    @recipe function f(p::typ)
-        systems = p.args[1]
-        if !isa(systems, AbstractArray)
-            systems = [systems]
-        end
-        if !_same_io_dims(systems...)
-            error("All systems must have the same input/output dimensions")
-        end
-        ny, nu = size(systems[1])
-        layout --> (ny,nu)
-        titles = fill("", 1, ny*nu)
-        title --> titles
-        s2i(i,j) = LinearIndices((ny,nu))[i,j]
-        for (si,s) in enumerate(systems)
-            y,t = func(s, p.args[2:end]...)
-            for i=1:ny
-                for j=1:nu
-                    ydata = reshape(y[i, :, j], size(t, 1))
-                    style = iscontinuous(s) ? :path : :steppost
-                    ttext = (nu > 1 && i==1) ? title*" from: u($j) " : title
-                    titles[s2i(i,j)] = ttext
-                    ytext = (ny > 1 && j==1) ? "Amplitude to: y($i)" : "Amplitude"
-                    @series begin
-                        seriestype --> style
-                        xguide --> "Time (s)"
-                        yguide --> ytext
-                        subplot --> s2i(i,j)
-                        label --> "\$G_{$(si)}\$"
-                        t, ydata
-                    end
-                end
-            end
-        end
-    end
-
 end
 
 """
@@ -272,7 +190,7 @@ bodeplot
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
-    layout --> ((plotphase ? 2 : 1)*ny,nu)
+    layout --> ((plotphase ? 2 : 1)*ny, nu)
     nw = length(w)
     xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
@@ -303,7 +221,7 @@ bodeplot
                     end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
-                    subplot   --> s2i((plotphase ? (2i-1) : i),j)
+                    subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     title     --> "Bode plot from: u($j)"
                     label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
@@ -370,19 +288,21 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; Ms_circles=Float64[], unit_circle=false, kwargs...)
+    fig = nyquistplot(sys; Ms_circles=Float64[], unit_circle=false, hz = false, kwargs...)
     nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], unit_circle=false, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-`Ms_circles`, vector of Ms values for drawing circles of constant sensitivity
-`unit_circle`, if the unit circle should be displayed
+- `unit_circle`: if the unit circle should be displayed
+- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
+
+If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false, hz=false)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -397,17 +317,16 @@ nyquistplot
             for i=1:ny
                 redata = re_resp[:, i, j]
                 imdata = im_resp[:, i, j]
+                ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
+                xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                title --> "Nyquist plot from: u($j)"
+                yguide --> "To: y($i)"
                 @series begin
-                    ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                    xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
-                    title --> "Nyquist plot from: u($j)"
-                    yguide --> "To: y($i)"
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
-                    hover --> [Printf.@sprintf("ω = %.3f", w) for w in w]
+                    hover --> [hz ? Printf.@sprintf("f = %.3f", w/2π) : Printf.@sprintf("ω = %.3f", w) for w in w]
                     (redata, imdata)
-                end
-                
+                end                
                 
                 if si == length(systems)
                     @series begin # Mark the critical point
@@ -423,6 +342,7 @@ nyquistplot
                         @series begin
                             subplot --> s2i(i,j)
                             primary := false
+                            linestyle := :dash
                             linecolor := :gray
                             seriestype := :path
                             markershape := :none
@@ -432,9 +352,10 @@ nyquistplot
                     end                
                     if unit_circle 
                         @series begin
+                            subplot --> s2i(i,j)
                             primary := false
                             linestyle := :dash
-                            linecolor := :black
+                            linecolor := :gray
                             seriestype := :path
                             markershape := :none
                             (C, S)
@@ -617,21 +538,24 @@ end
 
 @userplot Sigmaplot
 """
-    sigmaplot(sys, args...)
-    sigmaplot(LTISystem[sys1, sys2...], args...)
+    sigmaplot(sys, args...; hz=false)
+    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false)
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+
 `kwargs` is sent as argument to Plots.plot.
 """
 sigmaplot
-@recipe function sigmaplot(p::Sigmaplot)
+@recipe function sigmaplot(p::Sigmaplot; hz=false)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     nw = length(w)
     title --> "Sigma Plot"
-    xguide --> "Frequency (rad/s)",
+    xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
         sv = sigma(s, w)[1]
@@ -643,7 +567,7 @@ sigmaplot
                 xscale --> :log10
                 yscale --> _PlotScaleFunc
                 seriescolor --> si
-                w, sv[:, i]
+                ws, sv[:, i]
             end
         end
     end
@@ -745,16 +669,13 @@ Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs
 pzmap
 @recipe function pzmap(p::Pzmap)
     systems = p.args[1]
-    if systems[1].nu + systems[1].ny > 2
-        @warn("pzmap currently only supports SISO systems. Only transfer function from u₁ to y₁ will be shown")
-    end
     seriestype := :scatter
     framestyle --> :zerolines
     title --> "Pole-zero map"
     legend --> false
     for (i, system) in enumerate(systems)
-        p = pole(system)
-        z = tzero(system)
+        p = poles(system)
+        z = tzeros(system)
         if !isempty(z)
             @series begin
                 group --> i
@@ -813,4 +734,40 @@ end
 
 function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwargs...)
     gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
+end
+
+@userplot rgaplot
+"""
+    rgaplot(sys, args...; hz=false)
+    rgaplot(LTISystem[sys1, sys2...], args...; hz=false)
+
+Plot the relative-gain array entries of the `LTISystem`(s). A
+frequency vector `w` can be optionally provided.
+
+If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+
+`kwargs` is sent as argument to Plots.plot.
+"""
+rgaplot
+@recipe function rgaplot(p::rgaplot; hz=false)
+    systems, w = _processfreqplot(Val{:sigma}(), p.args...)
+    ws = (hz ? 1/(2π) : 1) .* w
+    ny, nu = size(systems[1])
+    nw = length(w)
+    title --> "RGA Plot"
+    xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
+    yguide --> "Singular Values $_PlotScaleStr"
+    for (si, s) in enumerate(systems)
+        sv = abs.(relative_gain_array(s, w))
+        for j in 1:size(sv, 2)
+            for i in 1:size(sv, 3)
+                @series begin
+                    xscale --> :log10
+                    seriescolor --> si
+                    label --> "System $si, from $i to $j"
+                    ws, sv[:, j, i]
+                end
+            end
+        end
+    end
 end

@@ -8,6 +8,7 @@ numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
 numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
 numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
 numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
+numeric_type(sys::AbstractStateSpace) = eltype(sys.A)
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
 
@@ -31,25 +32,11 @@ to_abstract_matrix(A::AbstractVector) = reshape(A, length(A), 1)
 to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
-@static if VERSION > v"1.2.0-DEV.0"
-    eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
-    roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
-else
-    eigvalsnosort(args...; kwargs...) = eigvals(args...; kwargs...)
-    roots(args...; kwargs...) = Polynomials.roots(args...; kwargs...)
-end
+eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 
 issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
 issemiposdef(A::UniformScaling) = real(A.λ) >= 0
-
-@static if VERSION < v"1.1.0-DEV"
-    #Added in 1.1.0-DEV
-    LinearAlgebra.isposdef(A::UniformScaling) = isposdef(A.λ)
-end
-@static if VERSION < v"1.1"
-    isnothing(::Any) = false
-    isnothing(::Nothing) = true
-end
 
 """ f = printpolyfun(var)
 `fun` Prints polynomial in descending order, with variable `var`
@@ -77,7 +64,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
             end
 
             if k == length(roots) || r != conj(roots[k+1])
-                throw(AssertionError("Found pole without matching conjugate."))
+                throw(ArgumentError("Found pole without matching conjugate."))
             end
 
             push!(poly_factors,Polynomial{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))
@@ -89,7 +76,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 end
 # This function should hande both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
-    return [Polynomial{T}([-r, 1]) for r in roots]
+    return Polynomial{T}[Polynomial{T}([-r, 1]) for r in roots]
 end
 
 

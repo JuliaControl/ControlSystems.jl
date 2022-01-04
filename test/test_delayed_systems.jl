@@ -10,17 +10,18 @@ import DelayDiffEq: MethodOfSteps, Tsit5
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
-if VERSION >= v"1.6.0-DEV.0"
-    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
-else
-    @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64,Float64}\n\nP: StateSpace{Continuous,Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]\n"
-end
+@test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]"
 
-# Extremely baseic tests
+# Extremely basic tests
 @test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
 @test freqresp(delay(2.5), ω)[:] ≈ exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(3.5*delay(2.5), ω)[:] ≈ 3.5*exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(delay(2.5)*1.5, ω)[:] ≈ exp.(-2.5im*ω)*1.5 rtol=1e-15
+
+# Addition of constant
+@test evalfr(1 + delay(1.0), 0)[] ≈ 2
+@test evalfr(1 - delay(1.0), 0)[] ≈ 0
+@test evalfr([2 -delay(1.0)], 0) ≈ [2 -1]
 
 # Stritcly proper system
 P1 = DelayLtiSystem(ss(-1.0, 1, 1, 0))
@@ -164,9 +165,16 @@ w = 10 .^ (-2:0.1:2)
 println("Simulating first delay system:")
 @time step(delay(1)*tf(1,[1.,1]))
 @time step(delay(1)*tf(1,[1,1]))
+@test step(delay(1)*tf(1,[1,1])) isa ControlSystems.SimResult
 
-@time y1, t1, x1 = step([s11;s12], 10)
+res = step([s11;s12], 10)
+@test size(res.u,1) == 1
+@time y1, t1, x1 = res
 @time @test y1[2:2,:] ≈ step(s12, t1)[1] rtol = 1e-14
+
+res = step([s11 s12], 10)
+@test size(res.u,1) == 2
+@test size(res.u,3) == 2
 
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)

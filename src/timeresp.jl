@@ -15,18 +15,19 @@ function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwa
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
     nx = nstates(sys)
-    u = (x,t)->[one(eltype(t))]
-    x0 = zeros(nx)
+    u_element = [one(eltype(t))] # to avoid allocating this multiple times
+    u = (x,t)->u_element
+    x0 = zeros(T, nx)
     if nu == 1
-        y, tout, x, _ = lsim(sys, u, t; x0=x0, method=method, kwargs...)
+        y, tout, x, uout = lsim(sys, u, t; x0, method, kwargs...)
     else
         x = Array{T}(undef, nx, length(t), nu)
         y = Array{T}(undef, ny, length(t), nu)
         for i=1:nu
-            y[:,:,i], tout, x[:,:,i],_ = lsim(sys[:,i], u, t; x0=x0, method=method, kwargs...)
+            y[:,:,i], tout, x[:,:,i], uout = lsim(sys[:,i], u, t; x0, method, kwargs...)
         end
     end
-    return y, t, x
+    return SimResult(y, t, x, uout, sys)
 end
 
 Base.step(sys::LTISystem, tfinal::Real; kwargs...) = step(sys, _default_time_vector(sys, tfinal); kwargs...)
@@ -42,7 +43,7 @@ vector `t` is not provided, one is calculated based on the system pole
 locations.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
-function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
+function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
     nx = nstates(sys)
@@ -58,15 +59,15 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwarg
         x0s = zeros(T, nx, nu)
     end
     if nu == 1 # Why two cases # QUESTION: Not type stable?
-        y, t, x,_ = lsim(sys, u, t; x0=x0s[:], method=method, kwargs...)
+        y, t, x, uout = lsim(sys, u, t; x0=x0s[:], kwargs...)
     else
         x = Array{T}(undef, nx, length(t), nu)
         y = Array{T}(undef, ny, length(t), nu)
         for i=1:nu
-            y[:,:,i], t, x[:,:,i],_ = lsim(sys[:,i], u, t; x0=x0s[:,i], method=method, kwargs...)
+            y[:,:,i], t, x[:,:,i], uout = lsim(sys[:,i], u, t; x0=x0s[:,i], kwargs...)
         end
     end
-    return y, t, x
+    return SimResult(y, t, x, uout, sys)
 end
 
 impulse(sys::LTISystem, tfinal::Real; kwargs...) = impulse(sys, _default_time_vector(sys, tfinal); kwargs...)
@@ -74,15 +75,19 @@ impulse(sys::LTISystem; kwargs...) = impulse(sys, _default_time_vector(sys); kwa
 impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys), t; kwargs...)
 
 """
-    y, t, x = lsim(sys, u[, t]; x0, method])
-    y, t, x, uout = lsim(sys, u::Function, t; x0, method)
+    result = lsim(sys, u[, t]; x0, method])
+    result = lsim(sys, u::Function, t; x0, method)
 
 Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
 a zero vector is used.
 
-`y`, `x`, `uout` has time in the second dimension. Initial state `x0` defaults to zero.
+The result structure contains the fields `y, t, x, u` and can be destructured automatically by iteration, e.g.,
+```julia
+y, t, x, u = result
+```
+`y, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized before simulation. For a lower level inteface, see `?Simulator` and `?solve`
+Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
@@ -109,7 +114,7 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:unspecified)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = sys.nx
 
@@ -126,17 +131,13 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     if iscontinuous(sys)
-        if method === :unspecified
-            method = _issmooth(u) ? :foh : :zoh
-        end
-
         if method === :zoh
             dsys = c2d(sys, dt, :zoh)
         elseif method === :foh
             dsys, x0map = c2d_x0map(sys, dt, :foh)
             x0 = x0map*[x0; u[:,1]]
         else
-            error("Unsupported discretization method")
+            error("Unsupported discretization method: $method")
         end
     else
         if sys.Ts != dt
@@ -147,7 +148,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
 
     x = ltitr(dsys.A, dsys.B, u, x0)
     y = sys.C*x + sys.D*u
-    return y, t, x
+    return SimResult(y, t, x, u, dsys) # saves the system that actually produced the simulation
 end
 
 function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
@@ -155,8 +156,8 @@ function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs..
     lsim(sys, u, t; kwargs...)
 end
 
-@deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0=x0)
-@deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0=x0, method=method)
+@deprecate lsim(sys, u, t, x0) lsim(sys, u, t; x0)
+@deprecate lsim(sys, u, t, x0, method) lsim(sys, u, t; x0, method)
 
 function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real; kwargs...)
     t = _default_time_vector(sys, tfinal)
@@ -185,22 +186,23 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 
     if !iscontinuous(sys) || method === :zoh
         if iscontinuous(sys)
-            dsys = c2d(sys, dt, :zoh)
+            simsys = c2d(sys, dt, :zoh)
         else
             if sys.Ts != dt
                 error("Time vector must match sample time for discrete system")
             end
-            dsys = sys
+            simsys = sys
         end
-        x,uout = ltitr(dsys.A, dsys.B, u, t, T.(x0))
+        x,uout = ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
         p = (sys.A, sys.B, u)
         sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]), p), alg; saveat=t, kwargs...)
         x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
+        simsys = sys
     end
     y = sys.C*x + sys.D*uout
-    return y, t, x, uout
+    return SimResult(y, t, x, uout, simsys) # saves the system that actually produced the simulation
 end
 
 
@@ -270,24 +272,11 @@ end
 function _default_dt(sys::LTISystem)
     if isdiscrete(sys)
         return sys.Ts
-    elseif all(iszero, pole(sys)) # Static or pure integrators
+    elseif all(iszero, poles(sys)) # Static or pure integrators
         return 0.05
     else
-        ω0_max = maximum(abs.(pole(sys)))
+        ω0_max = maximum(abs.(poles(sys)))
         dt = round(1/(12*ω0_max), sigdigits=2)
         return dt
     end
-end
-
-
-
-#TODO a reasonable check
-_issmooth(u::Function) = false
-
-# Determine if a signal is "smooth"
-function _issmooth(u, thresh::AbstractFloat=0.75)
-    u = [zeros(1, size(u, 2)); u]       # Start from 0 signal always
-    dist = maximum(u) - minimum(u)
-    du = abs.(diff(u, dims=1))
-    return !isempty(du) && all(maximum(du) <= thresh*dist)
 end

@@ -1,3 +1,13 @@
+function freqresp(sys::LTISystem, w::Real)
+    # Create imaginary freq vector s
+    if iscontinuous(sys)
+        s = im*w
+    else
+        s = cis(w*sys.Ts)
+    end
+    evalfr(sys, s)
+end
+
 """sys_fr = freqresp(sys, w)
 
 Evaluate the frequency response of a linear system
@@ -10,11 +20,11 @@ of system `sys` over the frequency vector `w`."""
     if iscontinuous(sys)
         s_vec = im*w_vec
     else
-        s_vec = exp.(w_vec*(im*sys.Ts))
+        s_vec = cis.(w_vec*(sys.Ts))
     end
-    if isa(sys, StateSpace)
-        sys = _preprocess_for_freqresp(sys)
-    end
+    #if isa(sys, StateSpace)
+    #    sys = _preprocess_for_freqresp(sys)
+    #end
     ny,nu = noutputs(sys), ninputs(sys)
     [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
 end
@@ -57,7 +67,7 @@ function evalfr(sys::AbstractStateSpace, s::Number)
         R = s*I - sys.A
         sys.D + sys.C*((R\sys.B))
     catch e
-        @warn "Got exception $e, returning Inf" max_log=1
+        @warn "Got exception $e, returning Inf" maxlog=1
         fill(convert(T, Inf), size(sys))
     end
 end
@@ -79,7 +89,7 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
+    isdiscrete(sys) || throw(ArgumentError("It only makes no sense to call this function with discrete systems"))
     if map_to_unit_circle
         isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
     else
@@ -88,7 +98,7 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
 end
 
 function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
-    @assert isdiscrete(sys) "It only makes no sense to call this function with discrete systems"
+    isdiscrete(sys) || throw(ArgumentError("It only makes no sense to call this function with discrete systems"))
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
@@ -156,7 +166,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         zp = zp[imag(zp) .>= 0.0]
     else
          # For sigma plots, use the MIMO poles and zeros
-         zp = [tzero(sys); pole(sys)]
+         zp = [tzeros(sys); poles(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
     fzp = log10.(abs.(zp))
@@ -168,7 +178,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w2 = ceil(fzp[end] + 1.2)
         # Expand the range for nyquist plots
         if plot isa Val{:nyquist}
-            w1 -= 1.0
+            w1 -= 0.0
             w2 += 1.0
         end
     else

@@ -83,6 +83,15 @@ s = tf("s")
     vecarray(2, 1, [1,13,55,75], [1,13,55,75]));
 @test parallel(Ctf_111, Ctf_211) == tf([2,17,44,45], [1,13,55,75])
 
+# Test that the additive identity element for LTI system is known  
+@test zero(C_111) isa typeof(C_111)
+@test zero(Ctf_111) isa typeof(Ctf_111)
+@test zero(ss(randn(2,3))) == ss(zeros(2,3))
+@test zero(tf(randn(2,3))) == tf(zeros(2,3))
+
+
+
+    
 # Combination tf and ss
 @test [C_111 Ctf_221] == [C_111 ss(Ctf_221)]
 @test [C_111; Ctf_212] == [C_111; ss(Ctf_212)]
@@ -224,8 +233,9 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test feedback(0.5, G3, pos_feedback=false) ≈ ss(-4/3, 1/3, -1/3, 1/3)
 @test feedback(0.5, G3, pos_feedback=true) ≈ ss(0, 1, 1, 1)
 
-@test_broken feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
+@test feedback(G3, 1) == ss(-1.5, 0.5, 0.5, 0.5) # Old feedback method
 @test feedback(G3, 1, pos_feedback=false) == ss(-1.5, 0.5, 0.5, 0.5)
+
 
 # Test that errors are thrown for mismatched dimensions
 @test_throws ErrorException feedback(G1, K1, U1=1:2, Y2=1)
@@ -236,6 +246,11 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test lft(G1, G2) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
 @test lft(G1, G2, :l) == ss([-9 24; 35 -6], [2; 0], [4 0], 0)
 @test lft(G1, G2, :u) == ss([-9 16; 28 -6], [3; 0], [5 0], 0)
+
+G = ss([1], [1 2 3], [1; 2; 3], zeros(3,3))
+Δ = ss([1], [1], [1; 2], [1; 2])
+@test lft(G, Δ, :u) ≈ ss([6 5; 1 1], [3; 0], [2 0; 3 0], [0; 0])
+@test lft(G, Δ, :l) ≈ ss([25 8; 3 1], [1; 0], [1 0; 2 0], [0; 0])
 
 @test_throws ErrorException lft(G2, G1)
 @test_throws ErrorException lft(G2, G1, :l)
