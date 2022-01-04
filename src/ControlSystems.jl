@@ -114,6 +114,7 @@ import DiffEqCallbacks: SavingCallback, SavedValues
 import MatrixPencils
 using DelayDiffEq
 using MacroTools
+using MatrixEquations
 
 abstract type AbstractSystem end
 
