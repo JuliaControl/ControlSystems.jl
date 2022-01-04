@@ -507,19 +507,23 @@ end
 
 
 """
-    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
+    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, n = nothing, residual = false)
 
 Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
 
 `T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
 
-If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
+If `residual = true`, matched static gain is achieved through "residualization", i.e., setting
+```math
+0 = A_{21}x_{1} + A_{22}x_{2} + B_{2}u
+```
+where indices 1/2 correspond to the remaining/truncated states respectively.
 
 See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n = nothing) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
     S = diag(S)
     if n === nothing
@@ -529,12 +533,28 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n =
     else
         S = S[1:n]
     end
-    A = sysbal.A[1:n,1:n]
-    B = sysbal.B[1:n,:]
-    C = sysbal.C[:,1:n]
-    D = sysbal.D
-    if unitgain
-        D = D/(C*inv(-A)*B)
+    i1 = 1:n
+    if residual
+        A,B,C,D = ssdata(sysbal)
+        i2 = n+1:size(A, 1)
+        A11 = A[i1, i1]
+        A12 = A[i1, i2]
+        A21 = A[i2, i1]
+        A22 = A[i2, i2]
+        B1 = B[i1, :]
+        B2 = B[i2, :]
+        C1 = C[:, i1]
+        C2 = C[:, i2]
+        A2221 = A22\A21
+        A = A11 - A12*(A2221)
+        B = B1 - (A12/A22)*B2
+        C = C1 - C2*A2221
+        D = D - (C2/A22)*B2
+    else 
+        A = sysbal.A[i1,i1]
+        B = sysbal.B[i1,:]
+        C = sysbal.C[:,i1]
+        D = sysbal.D
     end
 
     return ST(A,B,C,D,sys.timeevol), diagm(S), T
