@@ -540,16 +540,17 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
         A11 = A[i1, i1]
         A12 = A[i1, i2]
         A21 = A[i2, i1]
-        A22 = A[i2, i2]
+        A22 = -A[i2, i2]
+        isdiscrete(sys) && (A22 += I)
         B1 = B[i1, :]
         B2 = B[i2, :]
         C1 = C[:, i1]
         C2 = C[:, i2]
         A2221 = A22\A21
-        A = A11 - A12*(A2221)
-        B = B1 - (A12/A22)*B2
-        C = C1 - C2*A2221
-        D = D - (C2/A22)*B2
+        A = A11 + A12*(A2221)
+        B = B1 + (A12/A22)*B2
+        C = C1 + C2*A2221
+        D = D + (C2/A22)*B2
     else 
         A = sysbal.A[i1,i1]
         B = sysbal.B[i1,:]
