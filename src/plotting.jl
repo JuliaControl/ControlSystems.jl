@@ -146,6 +146,14 @@ end
     end
 end
 
+@recipe function simresultplot(r::AbstractVector{<:SimResult})
+    for r in r
+        @series begin
+            r
+        end
+    end
+end
+
 """
     _processfreqplot(plottype, system::LTISystem, [w])
     _processfreqplot(plottype, system::AbstractVector{<:LTISystem}, [w])
