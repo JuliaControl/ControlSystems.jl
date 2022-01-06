@@ -764,7 +764,7 @@ rgaplot
     nw = length(w)
     title --> "RGA Plot"
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
-    yguide --> "Singular Values $_PlotScaleStr"
+    yguide --> "Element magnitudes"
     for (si, s) in enumerate(systems)
         sv = abs.(relative_gain_array(s, w))
         for j in 1:size(sv, 2)
