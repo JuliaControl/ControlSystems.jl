@@ -11,47 +11,53 @@ end
 
 care(A::Number, B::Number, Q::Number, R::Number) = care(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
-"""`dare(A, B, Q, R)`
+"""
+    dare(A, B, Q, R; kwargs...)
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
-Uses `MatrixEquations.ared`.
+Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
 """
-function dare(A, B, Q, R)
-    ared(A, B, R, Q)[1]
+function dare(A, B, Q, R; kwargs...)
+    ared(A, B, R, Q; kwargs...)[1]
 end
 
 dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
-"""`dlyap(A, Q)`
+"""
+    dlyap(A, Q; kwargs...)
 
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
+
+Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
 """
-function dlyap(A::AbstractMatrix, Q)
-    lyapd(A, Q)
+function dlyap(A::AbstractMatrix, Q; kwargs...)
+    lyapd(A, Q; kwargs...)
 end
 
 
 """
-    U = grampd(sys, opt)
+    U = grampd(sys, opt; kwargs...)
 
 Return a Cholesky factor `U` of the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian `G = U*U'`. If `opt` is `:o`, computes the observability
 grammian `G = U'U`.
 
 Obtain a `Cholesky` object by `Cholesky(U)` for observability grammian
+
+Uses `MatrixEquations.plyapc/plyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.plyapc/plyapd`
 """
-function grampd(sys::AbstractStateSpace, opt::Symbol)
+function grampd(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
     func = iscontinuous(sys) ? MatrixEquations.plyapc : MatrixEquations.plyapd
     if opt === :c
-        func(sys.A, sys.B)
+        func(sys.A, sys.B; kwargs...)
     elseif opt === :o
-        func(sys.A', sys.C')
+        func(sys.A', sys.C'; kwargs...)
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -59,16 +65,17 @@ function grampd(sys::AbstractStateSpace, opt::Symbol)
 end
 
 """
-    gram(sys, opt)
+    gram(sys, opt; kwargs...)
 
 Compute the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian. If `opt` is `:o`, computes the observability
 grammian.
 
 See also [`grampd`](@ref)
+For keyword arguments, see [`grampd`](@ref).
 """
-function gram(sys::AbstractStateSpace, opt::Symbol)
-    U = grampd(sys, opt)
+function gram(sys::AbstractStateSpace, opt::Symbol; kwargs...)
+    U = grampd(sys, opt; kwargs...)
     opt === :c ? U*U' : U'U
 end
 
@@ -136,18 +143,21 @@ function covar(sys::AbstractStateSpace, W)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
+    isa(W, UniformScaling) && (W = I(size(B, 2)))
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? lyap : dlyap
-    Q = try
-        func(A, B*W*B')
+    func = iscontinuous(sys) ? plyapc : plyapd
+    Wc = cholesky(W).L
+    Q1 = sys.nx == 0 ? B*Wc : try
+        func(A, B*Wc)
     catch e
         @error("No solution to the Lyapunov equation was found in covar.")
         rethrow(e)
     end
-    P = C*Q*C'
-    if !isdiscrete(sys)
+    P1 = C*Q1
+    P = P1*P1'
+    if iscontinuous(sys)
         #Variance and covariance infinite for direct terms
         direct_noise = D*W*D'
         for i in 1:size(C,1)
@@ -185,7 +195,7 @@ It represents the desired relative accuracy for the computed L∞ norm
 """
 function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
     if p == 2
-        return sqrt(tr(covar(sys, I)))
+        return sqrt(max(0,tr(covar(sys, I))))
     elseif p == Inf
         return hinfnorm(sys; tol=tol)[1]
     else
@@ -474,35 +484,36 @@ Calculates a balanced realization of the system sys, such that the observability
 
 See also `gram`, `baltrunc`
 
-Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+Reference: Varga A., Balancing-free square-root algorithm for computing singular perturbation approximations.
 """
 function balreal(sys::ST) where ST <: AbstractStateSpace
-    P = gram(sys, :c)
-    Q1 = grampd(sys, :o)
-    Q = Q1'Q1
+    # This code is adapted from DescriptorSystems.jl
+    # originally written by Andreas Varga
+    # https://github.com/andreasvarga/DescriptorSystems.jl/blob/dd144828c3615bea2d5b4977d7fc7f9677dfc9f8/src/order_reduction.jl#L622
+    # with license https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/LICENSE.md
+    A,B,C,D = ssdata(sys)
 
-    U,Σ,V = svd(Q1*P*Q1')
-    Σ .= sqrt.(Σ)
-    Σ1 = diagm(0 => sqrt.(Σ))
-    T = Σ1\(U'Q1)
+    SF = schur(A)
+    bs = SF.Z'*B
+    cs = C*SF.Z
 
-    Pz = T*P*T'
-    Qz = inv(T')*Q*inv(T)
-    if norm(Pz-Qz) > sqrt(eps())
-        @warn("balreal: Result may be inaccurate")
-        println("Controllability gramian before transform")
-        display(P)
-        println("Controllability gramian after transform")
-        display(Pz)
-        println("Observability gramian before transform")
-        display(Q)
-        println("Observability gramian after transform")
-        display(Qz)
-        println("Singular values of PQ")
-        display(Σ)
-    end
+    S = MatrixEquations.plyaps(SF.T, bs; disc = isdiscrete(sys))
+    R = MatrixEquations.plyaps(SF.T', cs'; disc = isdiscrete(sys))
+    SV = svd!(R*S)
 
-    sysr = ST(T*sys.A*pinv(T), T*sys.B, sys.C*pinv(T), sys.D, sys.timeevol), Diagonal(Σ), T
+    U,Σ,V = SV
+
+    # Determine the order of a minimal realization to √ϵ tolerance
+    rmin = count(Σ .> sqrt(eps())*Σ[1])
+    i1 = 1:rmin
+    Σ = Σ[i1]
+
+
+    hsi2 = Diagonal(1 ./sqrt.(Σ))
+    L = lmul!(R',view(U,:,i1))*hsi2
+    Tr = lmul!(S,V[:,i1])*hsi2
+    # return the minimal balanced system
+    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Diagonal(Σ), L
 end
 
 
