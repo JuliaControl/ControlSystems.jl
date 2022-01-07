@@ -17,8 +17,7 @@ care(A::Number, B::Number, Q::Number, R::Number) = care(fill(A,1,1),fill(B,1,1),
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
-Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `MatrixEquations.ared`, reproduced below
-$(@doc(MatrixEquations.ared))
+Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
 """
 function dare(A, B, Q, R; kwargs...)
     ared(A, B, R, Q; kwargs...)[1]
@@ -32,8 +31,7 @@ dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 
-Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `MatrixEquations.lyapd`, reproduced below
-$(@doc(MatrixEquations.lyapd))
+Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
 """
 function dlyap(A::AbstractMatrix, Q; kwargs...)
     lyapd(A, Q; kwargs...)
@@ -49,9 +47,7 @@ grammian `G = U'U`.
 
 Obtain a `Cholesky` object by `Cholesky(U)` for observability grammian
 
-Uses `MatrixEquations.plyapc/plyapd`. For keyword arguments, see the docstring of `MatrixEquations.plyapc/plyapd`, reproduced below
-$(@doc(MatrixEquations.plyapc))
-$(@doc(MatrixEquations.plyapd))
+Uses `MatrixEquations.plyapc/plyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.plyapc/plyapd`
 """
 function grampd(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     if !isstable(sys)
