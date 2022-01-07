@@ -136,18 +136,21 @@ function covar(sys::AbstractStateSpace, W)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
+    isa(W, UniformScaling) && (W = I(size(B, 2)))
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? lyap : dlyap
-    Q = try
-        func(A, B*W*B')
+    func = iscontinuous(sys) ? plyapc : plyapd
+    Wc = cholesky(W).L
+    Q1 = sys.nx == 0 ? B*Wc : try
+        func(A, B*Wc)
     catch e
         @error("No solution to the Lyapunov equation was found in covar.")
         rethrow(e)
     end
-    P = C*Q*C'
-    if !isdiscrete(sys)
+    P1 = C*Q1
+    P = P1*P1'
+    if iscontinuous(sys)
         #Variance and covariance infinite for direct terms
         direct_noise = D*W*D'
         for i in 1:size(C,1)
@@ -185,7 +188,7 @@ It represents the desired relative accuracy for the computed L∞ norm
 """
 function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
     if p == 2
-        return sqrt(tr(covar(sys, I)))
+        return sqrt(max(0,tr(covar(sys, I))))
     elseif p == Inf
         return hinfnorm(sys; tol=tol)[1]
     else
