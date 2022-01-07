@@ -66,12 +66,12 @@ y2,x2 = step(sysmin,t)[[1,3]]
 
     sysr,Σ = baltrunc(sys, n=3, residual=true)
     @test sysr.nx == 3
-    @test dcgain(sysr)[] ≈ dcgain(sys)[] rtol=1e-10
+    @test dcgain(sysr)[] ≈ dcgain(sys)[] rtol=1e-8
 
     sys = c2d(sys, 0.01)
     sysr,Σ = baltrunc(sys, n=3, residual=true)
     @test sysr.nx == 3
-    @test dcgain(sysr)[] ≈ dcgain(sys)[] rtol=1e-10
+    @test dcgain(sysr)[] ≈ dcgain(sys)[] rtol=1e-8
 
 
     ## Large random system
@@ -83,3 +83,38 @@ y2,x2 = step(sysmin,t)[[1,3]]
     @test maximum(errors) < 5e-7
 
 end
+
+## Extra test of baltrunc and gramian on benchmark problem =====================
+# using MAT
+# file = Base.download("http://slicot.org/objects/software/shared/bench-data/iss.zip", joinpath(mktempdir(), "iss.zip"))
+# run(`gunzip -S .zip $file`)
+# data = MAT.matread(splitext(file)[1])
+# G = ss(data["A"], data["B"], data["C"], 0)
+# Gr,Σ = baltrunc(G, n=50)
+# @test norm(data["hsv"][1:50] - diag(Σ)) < 2eps()
+# @test maximum(abs, data["S"] - grampd(G, :c)') < 1e-10
+# @test maximum(abs, data["R"] - grampd(G, :o)) < 1e-10
+
+# ## test on large random systems ================================================
+# errors = map(1:30) do nu
+#     @show nu
+#     G = ssrand(nu,nu,300)
+#     Gr,_ = baltrunc(G, n=5)
+#     hinfnorm2(G-Gr)[1] # our hinfnorm is too unreliable
+# end
+
+# # the following two tests are set rather loose, if we fail those, it's bad.
+# @test median(errors) < 15
+# @test maximum(errors) < 35
+
+
+# errors = map(1:30) do nu
+#     @show nu
+#     G = ssrand(nu,nu,300)
+#     Gr,_ = baltrunc(G, n=5, residual=true)
+#     hinfnorm2(G-Gr)[1] # our hinfnorm is too unreliable
+# end
+
+# # the following two tests are set rather loose, if we fail those, it's bad.
+# @test median(errors) < 15
+# @test maximum(errors) < 45

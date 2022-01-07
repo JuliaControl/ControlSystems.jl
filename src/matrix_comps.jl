@@ -536,45 +536,86 @@ where indices 1/2 correspond to the remaining/truncated states respectively.
 
 See also `gram`, `balreal`
 
-Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+Reference: Varga A., Balancing-free square-root algorithm for computing singular perturbation approximations.
 """
 function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
-    sysbal, S, T = balreal(sys)
-    S = diag(S)
-    if n === nothing
-        S = S[S .>= atol]
-        S = S[S .>= S[1]*rtol]
-        n = length(S)
-    else
-        S = S[1:n]
-    end
-    i1 = 1:n
-    if residual
-        A,B,C,D = ssdata(sysbal)
-        i2 = n+1:size(A, 1)
-        A11 = A[i1, i1]
-        A12 = A[i1, i2]
-        A21 = A[i2, i1]
-        A22 = -A[i2, i2]
-        isdiscrete(sys) && (A22 += I)
-        B1 = B[i1, :]
-        B2 = B[i2, :]
-        C1 = C[:, i1]
-        C2 = C[:, i2]
-        A2221 = A22\A21
-        A = A11 + A12*(A2221)
-        B = B1 + (A12/A22)*B2
-        C = C1 + C2*A2221
-        D = D + (C2/A22)*B2
-    else 
-        A = sysbal.A[i1,i1]
-        B = sysbal.B[i1,:]
-        C = sysbal.C[:,i1]
-        D = sysbal.D
-    end
+    # This code is adapted from DescriptorSystems.jl
+    # originally written by Andreas Varga
+    # https://github.com/andreasvarga/DescriptorSystems.jl/blob/dd144828c3615bea2d5b4977d7fc7f9677dfc9f8/src/order_reduction.jl#L622
+    # with license https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/LICENSE.md
 
-    return ST(A,B,C,D,sys.timeevol), diagm(S), T
+    A,B,C,D = ssdata(sys)
+
+    SF = schur(A)
+    bs = SF.Z'*B
+    cs = C*SF.Z
+
+    S = MatrixEquations.plyaps(SF.T, bs; disc = isdiscrete(sys))
+    R = MatrixEquations.plyaps(SF.T', cs'; disc = isdiscrete(sys))
+    SV = svd!(R*S)
+
+    U,Σ,V = SV
+
+    # Determine the order of a minimal realization to √ϵ tolerance
+    rmin = count(Σ .> sqrt(eps())*Σ[1])
+    if n === nothing # If no order provided, select automativally to maintain all hankel singular values less than tol
+        n = count(Σ .> max(atol,rtol*Σ[1]))
+    end
+    n = min(n, rmin) # order can't be higher than that of a minimal realization
+    Σ = Σ[1:n]
+
+    i1 = 1:n
+    i2 = n+1:rmin
+    U1 = U[:,i1]
+    V1 = V[:,i1]
+    U2 = U[:,i2]
+    V2 = V[:,i2]
+    Y = Matrix(qr!(R'U1).Q)
+    X = Matrix(qr!(S*V1).Q)
+
+    @views if residual
+        ONE = one(eltype(A))
+        L = [Y Matrix(qr!(R'U2).Q)]
+        Tr = [X Matrix(qr!(S*V2).Q)]
+        amin = L'SF.T*Tr
+        bmin = L'bs
+        cmin = cs*Tr
+        Ar = amin[i1,i1]
+        Er = L[:,i1]'Tr[:,i1]
+        Br = bmin[i1,:]
+        Cr = cmin[:,i1]
+        Dr = copy(D)
+        isdiscrete(sys) && (amin[i2,i2] -= L[:,i2]'Tr[:,i2])
+        LUF = lu!(amin[i2,i2])
+        ldiv!(LUF,amin[i2,i1])
+        ldiv!(LUF,bmin[i2,:])
+        # apply state residualization formulas
+        mul!(Dr,cmin[:,i2],bmin[i2,:],-ONE, ONE)
+        mul!(Br,amin[i1,i2],bmin[i2,:],-ONE, ONE)
+        mul!(Cr,cmin[:,i2],amin[i2,i1],-ONE, ONE)
+        mul!(Ar,amin[i1,i2],amin[i2,i1],-ONE, ONE)
+        # determine a standard reduced system
+        SV = svd!(Er)
+        di2 = Diagonal(1 ./sqrt.(SV.S))
+        A = di2*SV.U'Ar*SV.Vt'di2
+        B = di2*(SV.U'Br)
+        C = (Cr*SV.Vt')*di2
+        D = Dr
+    else
+        L = Y
+        Tr = X
+        # build the minimal system
+        SV = svd!(L'Tr)
+        di2 = Diagonal(1 ./sqrt.(SV.S))
+        A = di2*SV.U'L'SF.T*Tr*SV.Vt'di2
+        B = di2*SV.U'*(L'bs)
+        C = (cs*Tr)*SV.Vt'di2
+        D = D
+    end
+    T = L[i1, i1]
+    ST(A,B,C,D, sys.timeevol), Diagonal(Σ), T
 end
+
 
 """
     syst = similarity_transform(sys, T)
