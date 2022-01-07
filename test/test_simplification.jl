@@ -73,4 +73,13 @@ y2,x2 = step(sysmin,t)[[1,3]]
     @test sysr.nx == 3
     @test dcgain(sysr)[] ≈ dcgain(sys)[] rtol=1e-10
 
+
+    ## Large random system
+    errors = map(1:3) do _
+        G = ssrand(1,1,300)
+        Gr,_ = balreal(G)
+        norm(G-Gr)
+    end
+    @test maximum(errors) < 5e-7
+
 end

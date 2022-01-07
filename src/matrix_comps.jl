@@ -477,35 +477,36 @@ Calculates a balanced realization of the system sys, such that the observability
 
 See also `gram`, `baltrunc`
 
-Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+Reference: Varga A., Balancing-free square-root algorithm for computing singular perturbation approximations.
 """
 function balreal(sys::ST) where ST <: AbstractStateSpace
-    P = gram(sys, :c)
-    Q1 = grampd(sys, :o)
-    Q = Q1'Q1
+    # This code is adapted from DescriptorSystems.jl
+    # originally written by Andreas Varga
+    # https://github.com/andreasvarga/DescriptorSystems.jl/blob/dd144828c3615bea2d5b4977d7fc7f9677dfc9f8/src/order_reduction.jl#L622
+    # with license https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/LICENSE.md
+    A,B,C,D = ssdata(sys)
 
-    U,Σ,V = svd(Q1*P*Q1')
-    Σ .= sqrt.(Σ)
-    Σ1 = diagm(0 => sqrt.(Σ))
-    T = Σ1\(U'Q1)
+    SF = schur(A)
+    bs = SF.Z'*B
+    cs = C*SF.Z
 
-    Pz = T*P*T'
-    Qz = inv(T')*Q*inv(T)
-    if norm(Pz-Qz) > sqrt(eps())
-        @warn("balreal: Result may be inaccurate")
-        println("Controllability gramian before transform")
-        display(P)
-        println("Controllability gramian after transform")
-        display(Pz)
-        println("Observability gramian before transform")
-        display(Q)
-        println("Observability gramian after transform")
-        display(Qz)
-        println("Singular values of PQ")
-        display(Σ)
-    end
+    S = MatrixEquations.plyaps(SF.T, bs; disc = isdiscrete(sys))
+    R = MatrixEquations.plyaps(SF.T', cs'; disc = isdiscrete(sys))
+    SV = svd!(R*S)
 
-    sysr = ST(T*sys.A*pinv(T), T*sys.B, sys.C*pinv(T), sys.D, sys.timeevol), Diagonal(Σ), T
+    U,Σ,V = SV
+
+    # Determine the order of a minimal realization to √ϵ tolerance
+    rmin = count(Σ .> sqrt(eps())*Σ[1])
+    i1 = 1:rmin
+    Σ = Σ[i1]
+
+
+    hsi2 = Diagonal(1 ./sqrt.(Σ))
+    L = lmul!(R',view(U,:,i1))*hsi2
+    Tr = lmul!(S,V[:,i1])*hsi2
+    # return the minimal balanced system
+    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Diagonal(Σ), L
 end
 
 
