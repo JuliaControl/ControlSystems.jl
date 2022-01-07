@@ -286,28 +286,23 @@ See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
         D = [s1_D11 + α*s1_D12*s2_D22*s1_D21        α*s1_D12*s2_D21;
                       s2_D12*s1_D21           s2_D11 + α*s2_D12*s1_D22*s2_D21]
     else
-        # inv seems to be better than lu
-        R1 = try
-            inv(α*I - s2_D22*s1_D22) # slightly faster than α*inv(I - α*s2_D22*s1_D22)
-        catch
+        R1 = lu(α*I - s2_D22*s1_D22, check=false) # slightly faster than α*inv(I - α*s2_D22*s1_D22)
+        issuccess(R1) || # Avoid try-catch for differtiability
             error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
-        end
 
-        R2 = try
-            inv(I - α*s1_D22*s2_D22)
-        catch
+        R2 = lu(I - α*s1_D22*s2_D22, check=false)
+        issuccess(R2) || # Avoid try-catch for differtiability
             error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
-        end
 
-        A = [sys1.A + s1_B2*R1*s2_D22*s1_C2        s1_B2*R1*s2_C2;
-                 s2_B2*R2*s1_C2            sys2.A + α*s2_B2*R2*s1_D22*s2_C2]
+        A = [sys1.A + s1_B2*(R1\s2_D22)*s1_C2        s1_B2*(R1\s2_C2);
+                 s2_B2*(R2\s1_C2)            sys2.A + α*s2_B2*(R2\s1_D22)*s2_C2]
 
-        B = [s1_B1 + s1_B2*R1*s2_D22*s1_D21        s1_B2*R1*s2_D21;
-                     s2_B2*R2*s1_D21            s2_B1 + α*s2_B2*R2*s1_D22*s2_D21]
-        C = [s1_C1 + s1_D12*R1*s2_D22*s1_C2        s1_D12*R1*s2_C2;
-                     s2_D12*R2*s1_C2           s2_C1 + α*s2_D12*R2*s1_D22*s2_C2]
-        D = [s1_D11 + s1_D12*R1*s2_D22*s1_D21        s1_D12*R1*s2_D21;
-                     s2_D12*R2*s1_D21           s2_D11 + α*s2_D12*R2*s1_D22*s2_D21]
+        B = [s1_B1 + s1_B2*(R1\s2_D22)*s1_D21        s1_B2*(R1\s2_D21);
+                     s2_B2*(R2\s1_D21)            s2_B1 + α*s2_B2*(R2\s1_D22)*s2_D21]
+        C = [s1_C1 + s1_D12*(R1\s2_D22)*s1_C2        s1_D12*(R1\s2_C2);
+                     s2_D12*(R2\s1_C2)           s2_C1 + α*s2_D12*(R2\s1_D22)*s2_C2]
+        D = [s1_D11 + s1_D12*(R1\s2_D22)*s1_D21        s1_D12*(R1\s2_D21);
+                     s2_D12*(R2\s1_D21)           s2_D11 + α*s2_D12*(R2\s1_D22)*s2_D21]
     end
 
     return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], timeevol)
@@ -390,10 +385,12 @@ end
 
 """
     starprod(sys1, sys2, dimu, dimy)
+    starprod(sys1, sys2)
 
 Compute the Redheffer star product.
 
 `length(U1) = length(Y2) = dimu` and `length(Y1) = length(U2) = dimy`
+If `dimu, dimy` are not provided, the maximum interconnection is formed, where all inputs and outputs of `sys2` are connected.
 
 For details, see Chapter 9.3 in
 **Zhou, K. and JC Doyle**. Essentials of robust control, Prentice hall (NJ), 1998
