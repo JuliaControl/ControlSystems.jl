@@ -11,47 +11,57 @@ end
 
 care(A::Number, B::Number, Q::Number, R::Number) = care(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
-"""`dare(A, B, Q, R)`
+"""
+    dare(A, B, Q, R; kwargs...)
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
-Uses `MatrixEquations.ared`.
+Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `MatrixEquations.ared`, reproduced below
+$(@doc(MatrixEquations.ared))
 """
-function dare(A, B, Q, R)
-    ared(A, B, R, Q)[1]
+function dare(A, B, Q, R; kwargs...)
+    ared(A, B, R, Q; kwargs...)[1]
 end
 
 dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
-"""`dlyap(A, Q)`
+"""
+    dlyap(A, Q; kwargs...)
 
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
+
+Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `MatrixEquations.lyapd`, reproduced below
+$(@doc(MatrixEquations.lyapd))
 """
-function dlyap(A::AbstractMatrix, Q)
-    lyapd(A, Q)
+function dlyap(A::AbstractMatrix, Q; kwargs...)
+    lyapd(A, Q; kwargs...)
 end
 
 
 """
-    U = grampd(sys, opt)
+    U = grampd(sys, opt; kwargs...)
 
 Return a Cholesky factor `U` of the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian `G = U*U'`. If `opt` is `:o`, computes the observability
 grammian `G = U'U`.
 
 Obtain a `Cholesky` object by `Cholesky(U)` for observability grammian
+
+Uses `MatrixEquations.plyapc/plyapd`. For keyword arguments, see the docstring of `MatrixEquations.plyapc/plyapd`, reproduced below
+$(@doc(MatrixEquations.plyapc))
+$(@doc(MatrixEquations.plyapd))
 """
-function grampd(sys::AbstractStateSpace, opt::Symbol)
+function grampd(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
     func = iscontinuous(sys) ? MatrixEquations.plyapc : MatrixEquations.plyapd
     if opt === :c
-        func(sys.A, sys.B)
+        func(sys.A, sys.B; kwargs...)
     elseif opt === :o
-        func(sys.A', sys.C')
+        func(sys.A', sys.C'; kwargs...)
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -59,16 +69,17 @@ function grampd(sys::AbstractStateSpace, opt::Symbol)
 end
 
 """
-    gram(sys, opt)
+    gram(sys, opt; kwargs...)
 
 Compute the grammian of system `sys`. If `opt` is `:c`, computes the
 controllability grammian. If `opt` is `:o`, computes the observability
 grammian.
 
 See also [`grampd`](@ref)
+For keyword arguments, see [`grampd`](@ref).
 """
-function gram(sys::AbstractStateSpace, opt::Symbol)
-    U = grampd(sys, opt)
+function gram(sys::AbstractStateSpace, opt::Symbol; kwargs...)
+    U = grampd(sys, opt; kwargs...)
     opt === :c ? U*U' : U'U
 end
 
