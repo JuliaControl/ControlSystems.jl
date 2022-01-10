@@ -1,4 +1,4 @@
-struct TransferFunction{TE, S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{TE, S<:SisoTf{T} where T} <: LTISystem{TE}
     matrix::Matrix{S}
     timeevol::TE
     nu::Int
