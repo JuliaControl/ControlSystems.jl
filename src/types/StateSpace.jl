@@ -22,7 +22,7 @@ function state_space_validation(A,B,C,D)
     nx,nu,ny
 end
 
-abstract type AbstractStateSpace{TE<:TimeEvolution} <: LTISystem end
+abstract type AbstractStateSpace{TE<:TimeEvolution} <: LTISystem{TE} end
 
 struct StateSpace{TE, T} <: AbstractStateSpace{TE}
     A::Matrix{T}
