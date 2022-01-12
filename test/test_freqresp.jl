@@ -20,6 +20,7 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 w = exp10.(range(-1, stop=1, length=50))
 
 sys1 = ss(1)
+sys1s = HeteroStateSpace(sparse([1]))
 G1 = tf(1)
 H1 = zpk(1)
 resp1 = ones(ComplexF64, length(w), 1, 1)
@@ -29,12 +30,14 @@ resp1 = ones(ComplexF64, length(w), 1, 1)
 @test evalfr(H1, im*w[1]) == fill(resp1[1], 1, 1)
 
 @test freqresp(sys1, w) == resp1
+@test freqresp(sys1s, w) == resp1
 @test freqresp(G1, w) == resp1
 @test freqresp(H1, w) == resp1
 
 ## First order system
 
 sys2 = ss(-1, 1, 1, 1)
+sys2s = HeteroStateSpace(sparse([-1;;]),sparse([1;;]),sparse([1;;]),sparse([1;;])) # test that freqresp works for matrix types that don't support hessenberg
 G2 = tf([1, 2], [1,1])
 H2 = zpk([-2], [-1.0], 1.0)
 resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
@@ -44,6 +47,7 @@ resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
 @test evalfr(H2, im*w[1]) == fill(resp2[1], 1, 1)
 
 @test freqresp(sys2, w) ≈ resp2 rtol=1e-15
+@test freqresp(sys2s, w) ≈ resp2 rtol=1e-15
 @test freqresp(G2, w) == resp2
 @test freqresp(H2, w) == resp2
 
