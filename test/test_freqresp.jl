@@ -116,3 +116,34 @@ mag, mag, ws2 = bode(sys2)
 @test minimum(ws2) <= 0.2min(p,z)
 @test length(ws2) > 100
 end
+
+
+## Benchmark code for freqresp
+# sizes = [1:40; 50:5:100; 120:20:300; 800]
+# times1 = map(sizes) do nx
+#     w = exp10.(LinRange(-2, 2, 200))
+#     @show nx
+#     G = ssrand(2,2,nx)
+#     nx == 1 && (freqresp(G, w)) # precompile
+#     GC.gc()
+#     t = @timed freqresp(G, w)
+#     (t.time, t.bytes)
+# end
+# sleep(5)
+# times2 = map(sizes) do nx
+#     w = exp10.(LinRange(-2, 2, 200))
+#     @show nx
+#     G = ssrand(2,2,nx)
+#     # NOTE: rename the freqresp method to be benchmarked before running. Below it's called freqresp_large
+#     nx == 1 && (freqresp_large(G, w)) # precompile
+#     GC.gc()
+#     t = @timed freqresp_large(G, w)
+#     (t.time, t.bytes)
+# end
+
+# f1 = plot(sizes, first.(times1), scale=:log10, lab="Time freqresp", m=:o)
+# plot!(sizes, first.(times2), scale=:log10, lab="Time freqresp_large", xlabel="Model order", m=:o)
+
+# f2 = plot(sizes, last.(times1), scale=:log10, lab="Allocations freqresp", m=:o)
+# plot!(sizes, last.(times2), scale=:log10, lab="Allocations freqresp_large", xlabel="Model order", m=:o)
+# plot(f1, f2)
