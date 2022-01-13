@@ -744,7 +744,7 @@ function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwa
     gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
 end
 
-@userplot rgaplot
+@userplot Rgaplot
 """
     rgaplot(sys, args...; hz=false)
     rgaplot(LTISystem[sys1, sys2...], args...; hz=false)
@@ -757,7 +757,7 @@ If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency ve
 `kwargs` is sent as argument to Plots.plot.
 """
 rgaplot
-@recipe function rgaplot(p::rgaplot; hz=false)
+@recipe function rgaplot(p::Rgaplot; hz=false)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
