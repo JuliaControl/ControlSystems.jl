@@ -513,7 +513,8 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
     L = lmul!(R',view(U,:,i1))*hsi2
     Tr = lmul!(S,V[:,i1])*hsi2
     # return the minimal balanced system
-    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Diagonal(Σ), L
+    T = L'SF.Z'
+    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Diagonal(Σ), T
 end
 
 
