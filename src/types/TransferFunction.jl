@@ -208,3 +208,12 @@ function Base.show(io::IO, G::TransferFunction)
         print(io, "\nStatic gain transfer function model")
     end
 end
+
+
+# Getter functions ##########
+
+"""
+    `num, den = tfdata(sys)`
+Get the numerator and denominator of the transfer function.
+"""
+tfdata(sys::TransferFunction) = reverse(numpoly(sys)[1].coeffs), reverse(denpoly(sys)[1].coeffs)
