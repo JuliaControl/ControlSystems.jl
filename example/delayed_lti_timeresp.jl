@@ -48,7 +48,7 @@ y, t, x = step(C, method=:zoh)
 y2, t2, x2 = step(Tnotch)
 plot(step(Tnotch))
 
-plot(step(Tnotch, 40, 0.1))
+plot(step(Tnotch, 40))
 
 plot(step(T, 100))
 
@@ -58,7 +58,6 @@ w = 10 .^ (-2:0.01:3)
 bodeplot(T, w, plotphase=false)
 
 # Test conversion, promotion
-delay(1,Int64) + 3.5
 
 G = 1 + 0.5 * delay(3)
 w = 10 .^(-2:0.001:2)
@@ -77,4 +76,3 @@ T = feedback(1,G)
 plot(step(T))
 bodeplot(T)
 
-s = tf("s")
