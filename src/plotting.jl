@@ -68,7 +68,7 @@ function getPhaseTicks(x, minmax)
         ## this helps identifying at the edges.
         major = [(min-0.5);min:max;(max+0.5)].*90
     end
-    majorText = [latexstring("\$ $(round(Int64,i))\$") for i = major]
+    majorText = ["$(round(Int64,i))" for i = major]
 
     return major, majorText
 
@@ -81,19 +81,12 @@ function getLogTicks(x, minmax)
     min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
     max               = floor(log10(maxx))
     major             = exp10.(min:max)
-    if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
-        majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
-    else
-        majorText = ["10^{$(round(Int64,i))}" for i = min:max]
-    end
+
+    majorText = ["10^{$(round(Int64,i))}" for i = min:max]
+
     if max - min < major_minor_limit
         minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
-        if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
-            minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
-        else
-            minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
-        end
-
+        minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
         ind       = findall(minx .<= minor .<= maxx)
         minor     = minor[ind]
         minorText = minorText[ind]
@@ -464,7 +457,7 @@ nicholsplot
                     offset  = (l+1)
                     TextX   = Niϕ(k,210) .+offset
                     TextY   = Ni_Ga(k,210)
-                    annotations := (TextX,TextY,RecipesBase.text("$(string(k)) dB",fontsize))
+                    annotations := (TextX,TextY,("$(string(k)) dB"))
                 end
                 ϕVals .+ 360(l+1),GVals
             end
@@ -509,7 +502,7 @@ nicholsplot
             end
         end
         TextX
-        annotations := (TextX,TextY,RecipesBase.text("$(string(k))°",fontsize))
+        annotations := (TextX,TextY,("$(string(k))°"))
 
         title --> "Nichols chart"
         grid --> false
@@ -577,6 +570,7 @@ sigmaplot
     end
 end
 
+@userplot Marginplot
 """
     fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)
     marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)
@@ -586,16 +580,17 @@ A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
-function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
-    systems, w = _processfreqplot(Val{:bode}(), systems, args...)
+@recipe function marginplot(p::Marginplot)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
-    fig = bodeplot(systems, w; kwargs...)
+    # fig = bodeplot(systems, w; kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
     titles[:,:,2,1] .= "Pm: "
     titles[:,:,1,2] .= "Wgm: "
     titles[:,:,2,2] .= "Wpm: "
+    layout --> (2ny, nu)
     for (si, s) in enumerate(systems)
         for j=1:nu
             for i=1:ny
@@ -621,32 +616,51 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                     mag = 1 ./ gm
                     oneLine = 1
                 end
-                for k=1:length(wgm)
-                    #Plot gain margins
-                    RecipesBase.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]], lab="", subplot=s2i(2i-1,j))
-                end
-                #Plot gain line at 1
-                RecipesBase.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
                 titles[j,i,1,1] *= "["*join([Printf.@sprintf("%2.2f",v) for v in gm],", ")*"] "
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
-                for k=1:length(wpm)
-                    #Plot the phase margins
-                    RecipesBase.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]], lab="", subplot=s2i(2i,j))
-                    #Plot the line at 360*k
-                    RecipesBase.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2), l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
-                end
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+                primary --> false
+                #Plot gain margins
+                @series begin
+                    subplot --> s2i(2i-1,j)
+                    primary --> false
+                    color --> :gray
+                    linestyle --> :dash
+                    [w[1],w[end]], [oneLine,oneLine]
+                end
+                @series begin
+                    subplot --> s2i(2i-1,j)
+                    title --> titles[j,i,1,1]*" "*titles[j,i,1,2]
+                    [wgm wgm]', [1; mag]
+                end
+
+
+                @series begin
+                    subplot --> s2i(2i,j)
+                    primary --> false
+                    color --> :gray
+                    linestyle --> :dash
+                    [w[1],w[end]], [oneLine,oneLine]
+                end
+                @series begin
+                    primary --> false
+                    subplot --> s2i(2i,j)
+                    title --> titles[j,i,2,1]*" "*titles[j,i,2,2]
+                    [wpm wpm]', [fullPhase fullPhase-pm]'
+                end
+                @series begin
+                    subplot --> s2i(2i,j)
+                    primary --> false
+                    color --> :gray
+                    linestyle --> :dash
+                    [w[1] w[end]]', ((fullPhase .- pm) .* ones(1, 2))'
+                end
+
             end
         end
     end
-    for j = 1:nu
-        for i = 1:ny
-            RecipesBase.plot!(fig, title=titles[j,i,1,1]*" "*titles[j,i,1,2], subplot=s2i(2i-1,j))
-            RecipesBase.plot!(fig, title=titles[j,i,2,1]*" "*titles[j,i,2,2], subplot=s2i(2i,j))
-        end
-    end
-    return fig
+
 end
 
 # HELPERS:
