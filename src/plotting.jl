@@ -68,11 +68,7 @@ function getPhaseTicks(x, minmax)
         ## this helps identifying at the edges.
         major = [(min-0.5);min:max;(max+0.5)].*90
     end
-    if Plots.backend() != Plots.GRBackend()
-        majorText = [latexstring("\$ $(round(Int64,i))\$") for i = major]
-    else
-        majorText = ["$(round(Int64,i))" for i = major]
-    end
+    majorText = ["$(round(Int64,i))" for i = major]
 
     return major, majorText
 
@@ -85,19 +81,12 @@ function getLogTicks(x, minmax)
     min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
     max               = floor(log10(maxx))
     major             = exp10.(min:max)
-    if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
-        majorText = [latexstring("\$10^{$(round(Int64,i))}\$") for i = min:max]
-    else
-        majorText = ["10^{$(round(Int64,i))}" for i = min:max]
-    end
+
+    majorText = ["10^{$(round(Int64,i))}" for i = min:max]
+
     if max - min < major_minor_limit
         minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
-        if Plots.backend() ∉ [Plots.GRBackend(), Plots.PlotlyBackend()]
-            minorText = [latexstring("\$$j\\cdot10^{$(round(Int64,i))}\$") for i = (min-1):(max+1) for j = 2:9]
-        else
-            minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
-        end
-
+        minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
         ind       = findall(minx .<= minor .<= maxx)
         minor     = minor[ind]
         minorText = minorText[ind]
@@ -189,7 +178,7 @@ optionally provided. To change the Magnitude scale see `setPlotScale(str)`
                                             
 If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 
-`kwargs` is sent as argument to Plots.plot.
+`kwargs` is sent as argument to RecipesBase.plot.
 """
 bodeplot
 
@@ -258,37 +247,26 @@ end
     w = x
     magdata = y
     seriestype := :path
-    primary := false
-    @series begin
-        grid   --> true
-        yscale --> :log10
-        xscale --> :log10
-        yguide --> "Magnitude"
-        xticks --> getLogTicks(w,  getlims(:xlims, plotattributes, w))
-        yticks --> getLogTicks(magdata,  getlims(:ylims, plotattributes, magdata))
-        x := w; y := magdata
-        ()
-    end
-    x := []
-    y := []
+    primary --> false
+    grid   --> true
+    yscale --> :log10
+    xscale --> :log10
+    yguide --> "Magnitude"
+    x := w
+    y := magdata
     ()
 end
 @recipe function f(::Type{Val{:bodephase}}, x, y, z)
     w = x
     phasedata = y
     seriestype := :path
-    primary := false
-    @series begin
-        grid   --> true
-        xscale --> :log10
-        yguide --> "Phase (deg)"
-        xguide --> "Frequency (rad/s)"
-        xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
-        x := w; y := phasedata
-        ()
-    end
-    x := []
-    y := []
+    primary --> false
+    grid   --> true
+    xscale --> :log10
+    yguide --> "Phase (deg)"
+    xguide --> "Frequency (rad/s)"
+    x := w
+    y := phasedata
     ()
 end
 
@@ -402,7 +380,7 @@ fontsize = 10
 `val` ∈ [0,1] determines the brightness of the gain lines
 
 Additional keyword arguments are sent to the function plotting the systems and can be
-used to specify colors, line styles etc. using regular Plots.jl syntax
+used to specify colors, line styles etc. using regular RecipesBase.jl syntax
 
 This function is based on code subject to the two-clause BSD licence
 Copyright 2011 Will Robertson
@@ -468,7 +446,7 @@ nicholsplot
                     offset  = (l+1)
                     TextX   = Niϕ(k,210) .+offset
                     TextY   = Ni_Ga(k,210)
-                    annotations := (TextX,TextY,Plots.text("$(string(k)) dB",fontsize))
+                    annotations := (TextX,TextY,("$(string(k)) dB"))
                 end
                 ϕVals .+ 360(l+1),GVals
             end
@@ -513,7 +491,7 @@ nicholsplot
             end
         end
         TextX
-        annotations := (TextX,TextY,Plots.text("$(string(k))°",fontsize))
+        annotations := (TextX,TextY,("$(string(k))°"))
 
         title --> "Nichols chart"
         grid --> false
@@ -581,6 +559,7 @@ sigmaplot
     end
 end
 
+@userplot Marginplot
 """
     fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)
     marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)
@@ -588,19 +567,20 @@ end
 Plot all the amplitude and phase margins of the system(s) `sys`.
 A frequency vector `w` can be optionally provided.
 
-`kwargs` is sent as argument to Plots.plot.
+`kwargs` is sent as argument to RecipesBase.plot.
 """
-function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) where T<:LTISystem
-    systems, w = _processfreqplot(Val{:bode}(), systems, args...)
+@recipe function marginplot(p::Marginplot)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
-    fig = bodeplot(systems, w; kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
     titles[:,:,2,1] .= "Pm: "
     titles[:,:,1,2] .= "Wgm: "
     titles[:,:,2,2] .= "Wpm: "
+    layout --> (2ny, nu)
     for (si, s) in enumerate(systems)
+        bmag, bphase = bode(s, w)
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
@@ -625,32 +605,65 @@ function marginplot(systems::Union{AbstractVector{T},T}, args...; kwargs...) whe
                     mag = 1 ./ gm
                     oneLine = 1
                 end
-                for k=1:length(wgm)
-                    #Plot gain margins
-                    Plots.plot!(fig, [wgm[k];wgm[k]], [1;mag[k]]; lab="", subplot=s2i(2i-1,j), group=si)
-                end
-                #Plot gain line at 1
-                Plots.plot!(fig, [w[1],w[end]], [oneLine,oneLine], l=:dash, c=:gray, lab="", subplot=s2i(2i-1,j))
                 titles[j,i,1,1] *= "["*join([Printf.@sprintf("%2.2f",v) for v in gm],", ")*"] "
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
-                for k=1:length(wpm)
-                    #Plot the phase margins
-                    Plots.plot!(fig, [wpm[k];wpm[k]],[fullPhase[k];fullPhase[k]-pm[k]]; lab="", subplot=s2i(2i,j))
-                    #Plot the line at 360*k
-                    Plots.plot!(fig, [w[1],w[end]],(fullPhase[k]-pm[k])*ones(2); l=:dash, c=:gray, lab="", subplot=s2i(2i,j))
-                end
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+
+                @series begin
+                    primary := true
+                    subplot --> s2i(2i-1,j)
+                    seriestype := :bodemag
+                    w, bmag[:, i, j]
+                end
+
+                primary --> false
+                #Plot gain margins
+                @series begin
+                    subplot --> s2i(2i-1,j)
+                    primary --> false
+                    color --> :gray
+                    linestyle --> :dash
+                    [w[1],w[end]], [oneLine,oneLine]
+                end
+                @series begin
+                    subplot --> s2i(2i-1,j)
+                    title --> titles[j,i,1,1]*" "*titles[j,i,1,2]
+                    [wgm wgm]', [ones(length(mag)) mag]'
+                end
+
+                # Phase margins
+                @series begin
+                    primary := true
+                    subplot --> s2i(2i,j)
+                    seriestype := :bodephase
+                    w, bphase[:, i, j]
+                end
+                @series begin
+                    subplot --> s2i(2i,j)
+                    primary --> false
+                    color --> :gray
+                    linestyle --> :dash
+                    [w[1],w[end]], [oneLine,oneLine]
+                end
+                @series begin
+                    primary --> false
+                    subplot --> s2i(2i,j)
+                    [wpm wpm]', [fullPhase fullPhase-pm]'
+                end
+                @series begin
+                    title --> titles[j,i,2,1]*" "*titles[j,i,2,2]
+                    subplot --> s2i(2i,j)
+                    primary --> false
+                    color --> :gray
+                    linestyle --> :dash
+                    [w[1] w[end]]', ((fullPhase .- pm) .* ones(1, 2))'
+                end
+
             end
         end
     end
-    for j = 1:nu
-        for i = 1:ny
-            Plots.title!(fig, titles[j,i,1,1]*" "*titles[j,i,1,2], subplot=s2i(2i-1,j))
-            Plots.title!(fig, titles[j,i,2,1]*" "*titles[j,i,2,2], subplot=s2i(2i,j))
-        end
-    end
-    return fig
+
 end
 
 # HELPERS:
@@ -722,7 +735,7 @@ pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
     fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, kwargs...)
     gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; minimal=true, plotphase=false, kwargs...)
 
-Gang-of-Four plot. `kwargs` is sent as argument to Plots.plot.
+Gang-of-Four plot. `kwargs` is sent as argument to RecipesBase.plot.
 """
 function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
@@ -730,12 +743,12 @@ function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal
     end
     sys = gangoffour.(P,C; minimal=minimal)
     fig = bodeplot([[sys[i][1] sys[i][2]; sys[i][3] sys[i][4]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
-    hline!([1 1 1 1], l=(:black, :dash), primary=false)
+    RecipesBase.plot!(fig, [x-> _PlotScale == "dB" ? 0 : 1 for _ in 1:4], l=(:black, :dash), primary=false)
     titles = fill("", 1, plotphase ? 8 : 4)
     # Empty titles on phase
     titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
     titles[titleIdx] = ["S = 1/(1+PC)", "P/(1+PC)", "C/(1+PC)", "T = PC/(1+PC)"]
-    Plots.plot!(fig, title = titles)
+    RecipesBase.plot!(fig, title = titles)
     return fig
 end
 

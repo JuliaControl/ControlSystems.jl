@@ -19,6 +19,7 @@ See also `LQG`
 Usage example:
 ```julia
 using LinearAlgebra # For identity matrix I
+using Plots
 A = [0 1; 0 0]
 B = [0;1]
 C = [1 0]
@@ -86,6 +87,7 @@ The `args...; kwargs...` are sent to the Riccati solver, allowing specification 
 Usage example:
 ```julia
 using LinearAlgebra # For identity matrix I
+using Plots
 Ts = 0.1
 A = [1 Ts; 0 1]
 B = [0;1]

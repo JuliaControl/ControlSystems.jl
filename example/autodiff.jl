@@ -1,4 +1,4 @@
-using ControlSystems, OrdinaryDiffEq, NLopt, BlackBoxOptim, ForwardDiff
+using ControlSystems, OrdinaryDiffEq, NLopt, BlackBoxOptim, ForwardDiff, Plots
 p0          = [0.2,0.8,1] # Initial guess
 K(kp,ki,kd) = pid(kp=kp, ki=ki, kd=kd)
 K(p)        = K(p...)
