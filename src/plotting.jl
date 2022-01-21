@@ -612,16 +612,18 @@ A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
-@recipe function marginplot(p::Marginplot)
+@recipe function marginplot(p::Marginplot; plotphase=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
-    s2i(i,j) = LinearIndices((ny,2nu))[j,i]
+    s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
+    layout --> ((plotphase ? 2 : 1)*ny, nu)
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
     titles[:,:,2,1] .= "Pm: "
     titles[:,:,1,2] .= "Wgm: "
     titles[:,:,2,2] .= "Wpm: "
     layout --> (2ny, nu)
+    label --> ""
     for (si, s) in enumerate(systems)
         bmag, bphase = bode(s, w)
         for j=1:nu
@@ -655,7 +657,7 @@ A frequency vector `w` can be optionally provided.
 
                 @series begin
                     primary := true
-                    subplot --> s2i(2i-1,j)
+                    subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     seriestype := :bodemag
                     w, bmag[i, j, :]
                 end
@@ -663,17 +665,18 @@ A frequency vector `w` can be optionally provided.
                 primary --> false
                 #Plot gain margins
                 @series begin
-                    subplot --> s2i(2i-1,j)
+                    subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1],w[end]], [oneLine,oneLine]
                 end
                 @series begin
-                    subplot --> s2i(2i-1,j)
+                    subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     title --> titles[j,i,1,1]*" "*titles[j,i,1,2]
                     [wgm wgm]', [ones(length(mag)) mag]'
                 end
+                plotphase || continue
 
                 # Phase margins
                 @series begin
