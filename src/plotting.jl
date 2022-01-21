@@ -247,37 +247,26 @@ end
     w = x
     magdata = y
     seriestype := :path
-    primary := false
-    @series begin
-        grid   --> true
-        yscale --> :log10
-        xscale --> :log10
-        yguide --> "Magnitude"
-        xticks --> getLogTicks(w,  getlims(:xlims, plotattributes, w))
-        yticks --> getLogTicks(magdata,  getlims(:ylims, plotattributes, magdata))
-        x := w; y := magdata
-        ()
-    end
-    x := []
-    y := []
+    primary --> false
+    grid   --> true
+    yscale --> :log10
+    xscale --> :log10
+    yguide --> "Magnitude"
+    x := w
+    y := magdata
     ()
 end
 @recipe function f(::Type{Val{:bodephase}}, x, y, z)
     w = x
     phasedata = y
     seriestype := :path
-    primary := false
-    @series begin
-        grid   --> true
-        xscale --> :log10
-        yguide --> "Phase (deg)"
-        xguide --> "Frequency (rad/s)"
-        xticks --> getLogTicks(w, getlims(:xlims, plotattributes, w))
-        x := w; y := phasedata
-        ()
-    end
-    x := []
-    y := []
+    primary --> false
+    grid   --> true
+    xscale --> :log10
+    yguide --> "Phase (deg)"
+    xguide --> "Frequency (rad/s)"
+    x := w
+    y := phasedata
     ()
 end
 
@@ -583,7 +572,6 @@ A frequency vector `w` can be optionally provided.
 @recipe function marginplot(p::Marginplot)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
-    # fig = bodeplot(systems, w; kwargs...)
     s2i(i,j) = LinearIndices((ny,2nu))[j,i]
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
@@ -592,6 +580,7 @@ A frequency vector `w` can be optionally provided.
     titles[:,:,2,2] .= "Wpm: "
     layout --> (2ny, nu)
     for (si, s) in enumerate(systems)
+        bmag, bphase = bode(s, w)
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
@@ -620,6 +609,14 @@ A frequency vector `w` can be optionally provided.
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+
+                @series begin
+                    primary := true
+                    subplot --> s2i(2i-1,j)
+                    seriestype := :bodemag
+                    w, bmag[:, i, j]
+                end
+
                 primary --> false
                 #Plot gain margins
                 @series begin
@@ -632,10 +629,16 @@ A frequency vector `w` can be optionally provided.
                 @series begin
                     subplot --> s2i(2i-1,j)
                     title --> titles[j,i,1,1]*" "*titles[j,i,1,2]
-                    [wgm wgm]', [1; mag]
+                    [wgm wgm]', [ones(length(mag)) mag]'
                 end
 
-
+                # Phase margins
+                @series begin
+                    primary := true
+                    subplot --> s2i(2i,j)
+                    seriestype := :bodephase
+                    w, bphase[:, i, j]
+                end
                 @series begin
                     subplot --> s2i(2i,j)
                     primary --> false
@@ -646,10 +649,10 @@ A frequency vector `w` can be optionally provided.
                 @series begin
                     primary --> false
                     subplot --> s2i(2i,j)
-                    title --> titles[j,i,2,1]*" "*titles[j,i,2,2]
                     [wpm wpm]', [fullPhase fullPhase-pm]'
                 end
                 @series begin
+                    title --> titles[j,i,2,1]*" "*titles[j,i,2,2]
                     subplot --> s2i(2i,j)
                     primary --> false
                     color --> :gray

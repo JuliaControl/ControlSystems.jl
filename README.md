@@ -103,6 +103,7 @@ CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 # Any keyword arguments supported in Plots.jl can be supplied
+using Plots
 plot(step.(CLs, 5), label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ```
 

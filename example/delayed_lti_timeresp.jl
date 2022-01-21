@@ -19,9 +19,9 @@ function u0(out,t)
     return
 end
 
-@time y, t, x = lsim(sys, u0, t)
+@time res = lsim(sys, u0, t)
 
-plot(t, y')
+plot(res)
 
 s = tf("s")
 P = delay(2.6)*ss((s+3.0)/(s^2+0.3*s+1))
@@ -30,8 +30,8 @@ P*C
 T = feedback(P*C,1.0)
 
 t = 0:0.1:70
-y, t, x = lsim(T, t -> (t<0 ? 0 : 1 ), t)
-plot(t, y, c = :blue)
+res = lsim(T, t -> (t<0 ? 0 : 1 ), t)
+plot(res, c = :blue)
 
 w = 10 .^ (-2:0.01:2)
 marginplot(P*C, w)
@@ -41,16 +41,16 @@ notch = ss(tf([1, 0.2, 1],[1, .8, 1]));
 C = ss(0.05 * (1 + 1/s));
 Tnotch = feedback(P*C*notch, 1.0)
 
-stepplot(Tnotch)
+plot(step(Tnotch))
 
 y, t, x = step(C, method=:zoh)
 
 y2, t2, x2 = step(Tnotch)
-stepplot(Tnotch)
+plot(step(Tnotch))
 
-stepplot(Tnotch, 40, 0.1)
+plot(step(Tnotch, 40, 0.1))
 
-stepplot(T, 100)
+plot(step(T, 100))
 
 G = delay(5)/(s+1)
 T = feedback(G, 0.5)
@@ -67,14 +67,14 @@ bodeplot(G, w, plotphase=false)
 G = delay(1) * ((0.8*s^2+s+2)/(s^2+s))
 T = feedback(G,1)
 # Not possible with direct term
-stepplot(T)
+plot(step(T))
 
 bodeplot(T)
 
 G = 1/(s+1) + delay(4)
 T = feedback(1,G)
 # Not possible to lsim with direct term
-stepplot(T)
+plot(step(T))
 bodeplot(T)
 
 s = tf("s")

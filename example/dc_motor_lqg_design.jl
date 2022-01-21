@@ -29,7 +29,7 @@ function motor(Ke, Kt, L, R, J, b=1e-3)
 end
 
 p60 = motor(Ke, Kt, L, Rel, J)
-f1 = stepplot(p60, 1)
+f1 = plot(step(p60, 1))
 f2 = bodeplot(p60)
 
 # LQR control
