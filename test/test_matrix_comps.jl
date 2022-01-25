@@ -11,6 +11,7 @@ sysr, G = balreal(sys)
 @test sort(poles(sysr)) ≈ sort(poles(sys))
 
 sysb,T = ControlSystems.balance_statespace(sys)
+@test similarity_transform(sysb, T) ≈ sys
 Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
 @test Ab*T ≈ T*A

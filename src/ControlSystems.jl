@@ -14,6 +14,7 @@ export  LTISystem,
         isproper,
         # Linear Algebra
         balance,
+        balance_statespace,
         care,
         dare,
         dlyap,
