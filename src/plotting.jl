@@ -654,26 +654,25 @@ A frequency vector `w` can be optionally provided.
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
-
+                
                 @series begin
                     primary := true
                     subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                     seriestype := :bodemag
                     w, bmag[i, j, :]
                 end
-
-                primary --> false
+                
                 #Plot gain margins
+                primary --> false
                 @series begin
                     subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
-                    primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1],w[end]], [oneLine,oneLine]
                 end
                 @series begin
                     subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
-                    title --> titles[j,i,1,1]*" "*titles[j,i,1,2]
+                    title --> (titles[j,i,1,1]*" "*titles[j,i,1,2])
                     [wgm wgm]', [ones(length(mag)) mag]'
                 end
                 plotphase || continue
@@ -687,20 +686,17 @@ A frequency vector `w` can be optionally provided.
                 end
                 @series begin
                     subplot --> s2i(2i,j)
-                    primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1],w[end]], [oneLine,oneLine]
                 end
                 @series begin
-                    primary --> false
                     subplot --> s2i(2i,j)
                     [wpm wpm]', [fullPhase fullPhase-pm]'
                 end
                 @series begin
-                    title --> titles[j,i,2,1]*" "*titles[j,i,2,2]
+                    title --> (titles[j,i,2,1]*" "*titles[j,i,2,2])
                     subplot --> s2i(2i,j)
-                    primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1] w[end]]', ((fullPhase .- pm) .* ones(1, 2))'
