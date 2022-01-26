@@ -83,8 +83,8 @@ end
 @deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
 
-
 function getpoles(G, K)
+    G isa TransferFunction || (G = tf(G))
     P = numpoly(G)[1]
     Q = denpoly(G)[1]
     T = float(eltype(K))
