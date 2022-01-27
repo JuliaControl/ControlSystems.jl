@@ -1,12 +1,4 @@
-# Exported functions and types
-## Index
+# Index
 
 ```@index
-```
-
-## Docstrings
-
-```@autodocs
-Modules = [ControlSystems]
-Private = false
 ```
