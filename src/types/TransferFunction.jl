@@ -1,4 +1,4 @@
-struct TransferFunction{TE, S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{TE, S<:SisoTf{T} where T} <: LTISystem{TE}
     matrix::Matrix{S}
     timeevol::TE
     nu::Int
@@ -134,7 +134,11 @@ function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
     timeevol = common_timeevol(G1,G2)
     if G1.nu != G2.ny
-        error("G1*G2: G1 must have same number of inputs as G2 has outputs")
+        if issiso(G1) || issiso(G2)
+            error("G1*G2: G1 must have same number of inputs as G2 has outputs, did you intend to broadcast the multiplication?")
+        else
+            error("G1*G2: G1 must have same number of inputs as G2 has outputs")
+        end
     end
     matrix = G1.matrix * G2.matrix
     return TransferFunction(matrix, timeevol)
@@ -142,6 +146,22 @@ end
 
 *(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.timeevol)
 *(n::Number, G::TransferFunction) = *(G, n)
+
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::TransferFunction)
+    issiso(G1) || issiso(G2) || error("Only SISO transfer function can be broadcasted")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = common_timeevol(G1,G2)
+    matrix = G1.matrix .* G2.matrix
+    return TransferFunction(matrix, timeevol)
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::AbstractArray)
+    issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = G1.timeevol
+    matrix = G1.matrix .* G2
+    return TransferFunction(matrix, timeevol)
+end
 
 ## DIVISION ##
 function /(n::Number, G::TransferFunction)

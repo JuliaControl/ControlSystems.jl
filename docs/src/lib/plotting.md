@@ -12,36 +12,48 @@ Private = false
 ```
 
 ## Examples
-`bode`
+
+### Bode plot
+
 ![bode](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/bode.png?raw=true)
 
-`sigma`
+### Sigma plot
+
 ![sigma](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/sigma.png?raw=true)
 
-`margin`
+### Margin
+
 ![margin](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/margin.png?raw=true)
 
-`gangoffour`
+### Gangoffour plot
+
 ![gangoffour](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/gangoffour.png?raw=true)
 
-`nyquist`
+### Nyquist plot
+
 ![nyquist](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/nyquist.png?raw=true)
 
-`nichols`
+### Nichols plot
+
 ![nichols](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/nichols.png?raw=true)
 
-`pzmap`
+### Pole-zero plot
+
 ![pzmap](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/pzmap.png?raw=true)
 
-`rlocus`
+### Rlocus plot
+
 ![rlocus](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/rlocus.png?raw=true)
 
-`lsim`
+### Lsim response plot
+
 ![lsim](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/lsim.png?raw=true)
 
-`impulse`
+### Impulse response plot
+
 ![impulse](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/impulse.png?raw=true)
 
-`step`
+### Step response plot
+
 ![step](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/step.png?raw=true)
 

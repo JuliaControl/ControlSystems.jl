@@ -11,10 +11,10 @@ export  LTISystem,
         ss,
         tf,
         zpk,
-        LQG,
         isproper,
         # Linear Algebra
         balance,
+        balance_statespace,
         care,
         dare,
         dlyap,
@@ -29,6 +29,7 @@ export  LTISystem,
         hinfnorm,
         linfnorm,
         gram,
+        grampd,
         ctrb,
         obsv,
         place,
@@ -45,8 +46,8 @@ export  LTISystem,
         observer_controller,
         # Stability Analysis
         isstable,
-        pole,
-        tzero,
+        poles,
+        tzeros,
         dcgain,
         zpkdata,
         damp,
@@ -55,6 +56,7 @@ export  LTISystem,
         margin,
         delaymargin,
         gangoffour,
+        relative_gain_array,
         # Connections
         append,
         series,
@@ -98,11 +100,10 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using Plots, LaTeXStrings, LinearAlgebra
+using RecipesBase, LaTeXStrings, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
 using OrdinaryDiffEq
-export Plots
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
@@ -111,11 +112,15 @@ export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
+import MatrixPencils
 using DelayDiffEq
 using MacroTools
+using MatrixEquations
 
 abstract type AbstractSystem end
 
+
+include("types/result_types.jl")
 include("types/TimeEvolution.jl")
 ## Added interface:
 #   timeevol(Lti) -> TimeEvolution (not exported)
@@ -141,8 +146,6 @@ include("types/DelayLtiSystem.jl")
 # Convenience constructors
 include("types/tf.jl")
 include("types/zpk.jl")
-
-include("types/lqg.jl") # QUESTION: is it really motivated to have an LQG type?
 
 include("utilities.jl")
 
@@ -170,6 +173,8 @@ include("delay_systems.jl")
 
 include("plotting.jl")
 
+@deprecate pole poles
+@deprecate tzero tzeros
 @deprecate num numvec
 @deprecate den denvec
 @deprecate norminf hinfnorm

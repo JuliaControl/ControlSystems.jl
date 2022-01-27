@@ -1,41 +1,96 @@
-"""sys_fr = freqresp(sys, w)
+function freqresp(sys::LTISystem, w::Real)
+    # Create imaginary freq vector s
+    if iscontinuous(sys)
+        s = im*w
+    else
+        s = cis(w*sys.Ts)
+    end
+    evalfr(sys, s)
+end
+
+"""
+    sys_fr = freqresp(sys, w)
 
 Evaluate the frequency response of a linear system
 
 `w -> C*((iw*im -A)^-1)*B + D`
 
-of system `sys` over the frequency vector `w`."""
+of system `sys` over the frequency vector `w`.
+"""
 @autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
-    # Create imaginary freq vector s
-    if iscontinuous(sys)
-        s_vec = im*w_vec
-    else
-        s_vec = exp.(w_vec*(im*sys.Ts))
-    end
-    #if isa(sys, StateSpace)
-    #    sys = _preprocess_for_freqresp(sys)
-    #end
+    te = sys.timeevol
     ny,nu = noutputs(sys), ninputs(sys)
-    [evalfr(sys[i,j], s)[] for s in s_vec, i in 1:ny, j in 1:nu]
+    [evalfr(sys[i,j], _freq(w, te))[] for w in w_vec, i in 1:ny, j in 1:nu]
 end
 
-# Implements algorithm found in:
-# Laub, A.J., "Efficient Multivariable Frequency Response Computations",
-# IEEE Transactions on Automatic Control, AC-26 (1981), pp. 407-408.
-function _preprocess_for_freqresp(sys::StateSpace)
-    if isempty(sys.A) # hessfact does not work for empty matrices
-        return sys
-    end
-    Tsys = numeric_type(sys)
-    TT = promote_type(typeof(zero(Tsys)/norm(one(Tsys))), Float32)
+_freq(w, ::Continuous) = complex(0, w)
+_freq(w, te::Discrete) = cis(w*te.Ts)
 
-    A, B, C, D = sys.A, sys.B, sys.C, sys.D
-    F = hessenberg(A)
-    T = F.Q
-    P = C*T
-    Q = T\B # TODO Type stability? # T is unitary, so mutliplication with T' should do the trick
-    # FIXME; No performance improvement from Hessienberg structure, also weired renaming of matrices
-    StateSpace(F.H, Q, P, D, sys.timeevol)
+@autovec () function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+    ny, nu = size(sys)
+    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    if sys.nx == 0 # Only D-matrix
+        return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
+    end
+    local F
+    try
+        F = hessenberg(sys.A)
+    catch e
+        # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
+        e isa MethodError && return freqresp_nohess(sys, w_vec)
+        rethrow()
+    end
+    Q = Matrix(F.Q)
+    A = F.H
+    C = sys.C*Q
+    B = Q\sys.B 
+    D = sys.D
+
+    te = sys.timeevol
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    Bc = similar(B, T) # for storage
+    for i in eachindex(w_vec)
+        Ri = @views R[:,:,i]
+        copyto!(Ri,D) # start with the D-matrix
+        isinf(w_vec[i]) && continue
+        copyto!(Bc,B) # initialize storage to B
+        w = -_freq(w_vec[i], te)
+        ldiv!(A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
+        mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
+    end
+    PermutedDimsArray(R, (3,1,2)) # PermutedDimsArray doesn't allocate to perform the permutation
+end
+
+"""
+    freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{<:Real})
+
+Compute the frequency response of `sys` without forming a Hessenberg factorization.
+This function is called automatically if the Hessenberg factorization fails.
+"""
+freqresp_nohess
+@autovec () function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+    ny, nu = size(sys)
+    nx = sys.nx
+    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    if nx == 0 # Only D-matrix
+        return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
+    end
+    A,B,C,D = ssdata(sys)
+    te = sys.timeevol
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    Ac = (A+one(T)*I) # for storage
+    Adiag = diagind(A)
+    for i in eachindex(w_vec)
+        Ri = @views R[:,:,i]
+        copyto!(Ri,D) # start with the D-matrix
+        isinf(w_vec[i]) && continue
+        w = _freq(w_vec[i], te)
+        @views copyto!(Ac[Adiag],A[Adiag]) # reset storage to A
+        @views Ac[Adiag] .-= w # Ac = A - w*I
+        Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
+        mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
+    end
+    PermutedDimsArray(R, (3,1,2)) # PermutedDimsArray doesn't allocate to perform the permutation
 end
 
 
@@ -156,7 +211,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         zp = zp[imag(zp) .>= 0.0]
     else
          # For sigma plots, use the MIMO poles and zeros
-         zp = [tzero(sys); pole(sys)]
+         zp = [tzeros(sys); poles(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
     fzp = log10.(abs.(zp))
@@ -168,7 +223,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w2 = ceil(fzp[end] + 1.2)
         # Expand the range for nyquist plots
         if plot isa Val{:nyquist}
-            w1 -= 1.0
+            w1 -= 0.0
             w2 += 1.0
         end
     else

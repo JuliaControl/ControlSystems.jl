@@ -177,7 +177,7 @@ rlocus
 @recipe function rlocus(p::Rlocusplot; K=500)
     P = p.args[1]
     K = K isa Number ? range(1e-6,stop=K,length=10000) : K
-    Z = tzero(P)
+    Z = tzeros(P)
     poles, K = getpoles(P,K)
     redata = real.(poles)
     imdata = imag.(poles)
@@ -283,7 +283,7 @@ See also `Leadlink, leadlinkat`
 function leadlinkcurve(start=1)
     N = range(start, stop=10, length=50)
     dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
-    Plots.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
+    RecipesBase.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
 end
 
 
@@ -307,7 +307,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    plt = Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
+    plt = RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     params = convert_pidparams_from_standard(convert_pidparams_to_standard(kp, ki, kd, :parallel)..., form)[1:2]
     plt, params...
 end
@@ -319,7 +319,7 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    plt = Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
+    plt = RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     params = convert_pidparams_from_standard(convert_pidparams_to_standard(kp, ki, kd, :parallel)..., form)[1:2]
     plt, params...
 end
@@ -375,7 +375,7 @@ end
 
 Selects the parameters of a PI-controller such that the poles of 
 closed loop between `P` and `C` are placed to match the poles of 
-`s^2 + 2ζω₀ + ω₀^2`.
+`s^2 + 2ζω₀s + ω₀^2`.
 
 The parameters can be returned as one of several common representations 
 chose by `form`, the options are

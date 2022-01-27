@@ -20,6 +20,7 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 w = exp10.(range(-1, stop=1, length=50))
 
 sys1 = ss(1)
+sys1s = HeteroStateSpace(sparse([1]))
 G1 = tf(1)
 H1 = zpk(1)
 resp1 = ones(ComplexF64, length(w), 1, 1)
@@ -29,12 +30,14 @@ resp1 = ones(ComplexF64, length(w), 1, 1)
 @test evalfr(H1, im*w[1]) == fill(resp1[1], 1, 1)
 
 @test freqresp(sys1, w) == resp1
+@test freqresp(sys1s, w) == resp1
 @test freqresp(G1, w) == resp1
 @test freqresp(H1, w) == resp1
 
 ## First order system
 
 sys2 = ss(-1, 1, 1, 1)
+sys2s = HeteroStateSpace(sparse([-1;;]),sparse([1;;]),sparse([1;;]),sparse([1;;])) # test that freqresp works for matrix types that don't support hessenberg
 G2 = tf([1, 2], [1,1])
 H2 = zpk([-2], [-1.0], 1.0)
 resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
@@ -44,6 +47,7 @@ resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
 @test evalfr(H2, im*w[1]) == fill(resp2[1], 1, 1)
 
 @test freqresp(sys2, w) ≈ resp2 rtol=1e-15
+@test freqresp(sys2s, w) ≈ resp2 rtol=1e-15
 @test freqresp(G2, w) == resp2
 @test freqresp(H2, w) == resp2
 
@@ -116,3 +120,34 @@ mag, mag, ws2 = bode(sys2)
 @test minimum(ws2) <= 0.2min(p,z)
 @test length(ws2) > 100
 end
+
+
+## Benchmark code for freqresp
+# sizes = [1:40; 50:5:100; 120:20:300; 800]
+# times1 = map(sizes) do nx
+#     w = exp10.(LinRange(-2, 2, 200))
+#     @show nx
+#     G = ssrand(2,2,nx)
+#     nx == 1 && (freqresp(G, w)) # precompile
+#     GC.gc()
+#     t = @timed freqresp(G, w)
+#     (t.time, t.bytes)
+# end
+# sleep(5)
+# times2 = map(sizes) do nx
+#     w = exp10.(LinRange(-2, 2, 200))
+#     @show nx
+#     G = ssrand(2,2,nx)
+#     # NOTE: rename the freqresp method to be benchmarked before running. Below it's called freqresp_large
+#     nx == 1 && (freqresp_large(G, w)) # precompile
+#     GC.gc()
+#     t = @timed freqresp_large(G, w)
+#     (t.time, t.bytes)
+# end
+
+# f1 = plot(sizes, first.(times1), scale=:log10, lab="Time freqresp", m=:o)
+# plot!(sizes, first.(times2), scale=:log10, lab="Time freqresp_large", xlabel="Model order", m=:o)
+
+# f2 = plot(sizes, last.(times1), scale=:log10, lab="Allocations freqresp", m=:o)
+# plot!(sizes, last.(times2), scale=:log10, lab="Allocations freqresp_large", xlabel="Model order", m=:o)
+# plot(f1, f2)

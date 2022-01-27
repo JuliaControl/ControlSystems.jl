@@ -66,10 +66,10 @@ Gdzpk = c2d(zpk(G), 0.2)
 
 
 # d2c
-@test d2c(c2d(C_111, 0.01)) ≈ C_111
-@test d2c(c2d(C_212, 0.01)) ≈ C_212
-@test d2c(c2d(C_221, 0.01)) ≈ C_221
-@test d2c(c2d(C_222_d, 0.01)) ≈ C_222_d
+@test d2c(c2d(C_111, 0.1)) ≈ C_111
+@test d2c(c2d(C_212, 0.1)) ≈ C_212
+@test d2c(c2d(C_221, 0.1)) ≈ C_221
+@test d2c(c2d(C_222_d, 0.1)) ≈ C_222_d
 @test d2c(Gd) ≈ G
 
 sys = ss([0 1; 0 0], [0;1], [1 0], 0)
@@ -140,11 +140,11 @@ Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from refer
 
 @test ControlSystems.isstable(Gcl)
 
-p = pole(Gcl)
+p = poles(Gcl)
 # Test that all desired poles are in the closed-loop system
-@test norm(minimum(abs.((pole(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+@test norm(minimum(abs.((poles(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 # Test that the observer poles are in the closed-loop system
-@test norm(minimum(abs.((pole(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+@test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 
 
 end

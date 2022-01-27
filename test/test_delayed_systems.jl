@@ -109,7 +109,7 @@ d = exp(-2*s)
 # Test for internal function delayd_ss
 @test freqresp(ControlSystems.delayd_ss(1.0, 0.2), Ω)[:] ≈ exp.(-im*Ω) atol=1e-14
 @test freqresp(ControlSystems.delayd_ss(3.2, 0.4), Ω)[:] ≈ exp.(-3.2*im*Ω) atol=1e-14
-@test_throws ErrorException freqresp(ControlSystems.delayd_ss(3.2, 0.5), Ω)
+@test_throws ErrorException ControlSystems.delayd_ss(3.2, 0.5)
 
 # Simple tests for c2d of DelayLtiSystems
 @test freqresp(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
@@ -165,9 +165,16 @@ w = 10 .^ (-2:0.1:2)
 println("Simulating first delay system:")
 @time step(delay(1)*tf(1,[1.,1]))
 @time step(delay(1)*tf(1,[1,1]))
+@test step(delay(1)*tf(1,[1,1])) isa ControlSystems.SimResult
 
-@time y1, t1, x1 = step([s11;s12], 10)
+res = step([s11;s12], 10)
+@test size(res.u,1) == 1
+@time y1, t1, x1 = res
 @time @test y1[2:2,:] ≈ step(s12, t1)[1] rtol = 1e-14
+
+res = step([s11 s12], 10)
+@test size(res.u,1) == 2
+@test size(res.u,3) == 2
 
 t = 0.0:0.1:10
 y2, t2, x2 = step(s1, t)

@@ -1,20 +1,20 @@
 """
-    pole(sys)
+    poles(sys)
 
 Compute the poles of system `sys`."""
-pole(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
-pole(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
+poles(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
+poles(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
 # converting to zpk before works better in the cases I have tested.
-pole(sys::TransferFunction) = pole(zpk(sys))
+poles(sys::TransferFunction) = poles(zpk(sys))
 
-function pole(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
+function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
 
     # Calculate least common denominator of the minors,
     # i.e. something like least common multiple of the pole-polynomials
-    individualpoles = [map(pole, sys.matrix)...;]
+    individualpoles = [map(poles, sys.matrix)...;]
     lcmpoles = TR[]
     for poles = minorpoles(sys.matrix)
         # Poles have to be equal to existing poles for the individual transfer functions and this
@@ -45,9 +45,9 @@ function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     minors = Array{TR,1}[]
     ny, nu = size(sys)
     if ny == nu == 1
-        push!(minors, pole(sys[1, 1]))
+        push!(minors, poles(sys[1, 1]))
     elseif ny == nu
-        push!(minors, pole(det(sys)))
+        push!(minors, poles(det(sys)))
         for i = 1:ny
             for j = 1:nu
                 newmat = sys[1:end .!=i, 1:end .!= j]
@@ -143,7 +143,7 @@ end
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
-    ps = pole(sys)
+    ps = poles(sys)
     if isdiscrete(sys)
         ps = log.(complex.(ps))/sys.Ts
     end
@@ -194,15 +194,15 @@ dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 
 """
-    tzero(sys)
+    tzeros(sys)
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
 realization, these are also the transmission zeros."""
-function tzero(sys::TransferFunction)
+function tzeros(sys::TransferFunction)
     if issiso(sys)
-        return tzero(sys.matrix[1,1])
+        return tzeros(sys.matrix[1,1])
     else
-        return tzero(ss(sys))
+        return tzeros(ss(sys))
     end
 end
 
@@ -211,14 +211,14 @@ end
 # Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
 #
 # Note that this returns either Vector{ComplexF32} or Vector{Float64}
-tzero(sys::AbstractStateSpace) = tzero(sys.A, sys.B, sys.C, sys.D)
+tzeros(sys::AbstractStateSpace) = tzeros(sys.A, sys.B, sys.C, sys.D)
 # Make sure everything is BlasFloat
-function tzero(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
+function tzeros(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
     A2, B2, C2, D2, _ = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
-    tzero(A2, B2, C2, D2)
+    tzeros(A2, B2, C2, D2)
 end
-function tzero(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
+function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
     # Balance the system
     A, B, C = balance_statespace(A, B, C)
 
@@ -325,6 +325,83 @@ function fastrank(A::AbstractMatrix, meps::Real)
 end
 
 """
+    relative_gain_array(G, w::AbstractVector)
+    relative_gain_array(G, w::Number)
+
+Calculate the relative gain array of `G` at frequencies `w`. 
+G(iω) .* pinv(tranpose(G(iω)))
+
+The RGA can be used to find input-output pairings for MIMO control using individially tuned loops. Pair the inputs and outputs such that the RGA(ωc) at the crossover frequency becomes as close to diagonal as possible. Avoid pairings such that RGA(0) contains negative diagonal elements. 
+
+- The sum of the absolute values of the entries in the RGA is a good measure of the "true condition number" of G, the best condition number that can be achieved by input/output scaling of `G`, -Glad, Ljung.
+- The RGA is invariant to input/output scaling of `G`.
+- If the RGA contains large entries, the system may be sensitive to model errors, -Skogestad, "Multivariable Feedback Control: Analysis and Design":
+    - Uncertainty in the input channels (diagonal input uncertainty). Plants with
+    large RGA-elements around the crossover frequency are fundamentally
+    difficult to control because of sensitivity to input uncertainty (e.g. caused
+    by uncertain or neglected actuator dynamics). In particular, decouplers or
+    other inverse-based controllers should not be used for plants with large RGAeleme
+    - Element uncertainty. Large RGA-elements imply sensitivity to element-by-element uncertainty.
+    However, this kind of uncertainty may not occur in practice due to physical couplings
+    between the transfer function elements. Therefore, diagonal input uncertainty
+    (which is always present) is usually of more concern for plants with large RGAelemen
+
+The relative gain array is computed using the The unit-consistent (UC) generalized inverse
+Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
+Jeffrey Uhlmann
+https://arxiv.org/pdf/1805.10312.pdf
+"""
+function relative_gain_array(G, w::AbstractVector)
+    mapslices(relative_gain_array, freqresp(G, w), dims=(2,3))
+end
+
+relative_gain_array(G, w::Number) = relative_gain_array(freqresp(G, w))
+
+"""
+    relative_gain_array(A::AbstractMatrix; tol = 1.0e-15)
+
+Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
+Jeffrey Uhlmann
+https://arxiv.org/pdf/1805.10312.pdf
+"""
+function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
+    m, n = size(A)
+    if m == n && LinearAlgebra.det(A) != 0
+        return A .* inv(transpose(A))
+    end
+    L = zeros(m, n)
+    M = ones(m, n)
+    S = sign.(A)
+    AA = abs.(A)
+    idx = findall(vec(AA) .> 0.0)
+    L[idx] = log.(AA[idx])
+    idx = setdiff(1 : length(AA), idx)
+    L[idx] .= 0
+    M[idx] .= 0
+    r = sum(M, dims=2)[:]
+    c = sum(M, dims=1)[:]
+    u = zeros(m, 1)
+    v = zeros(1, n)
+    dx = 2*tol
+    while dx > tol
+        idx = c .> 0
+        p = sum(L[:, idx], dims=1) ./ c[idx]'
+        L[:, idx] .-= p .* M[:, idx]
+        v[idx] .-= p'
+        dx = sum(abs, p)/length(p)
+        idx = r .> 0
+        p = sum(L[idx, :], dims=2) ./ r[idx]
+        L[idx, :] .-= p .* M[idx, :]
+        u[idx] .-= p
+        dx += sum(abs, p)/length(p)
+    end
+    dl = exp.(u)
+    dr = exp.(v)
+    S = S .* exp.(L)
+    A .* transpose(pinv(S) .* (dl * dr)')
+end
+
+"""
 `ωgₘ, gₘ, ωϕₘ, ϕₘ = margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)`
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
@@ -424,11 +501,8 @@ end
 
 function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
-    n =  Vector{eltype(w)}(undef, length(w)) #Nbr of crossed
-    ph = Vector{eltype(w)}(undef, length(w)) #Residual
-    for i = eachindex(w) #Found no easier way to do this
-        n[i], ph[i] = fldmod(phase[i]+180,360)#+180
-    end
+    n = fld.(phase.+180,360) #Nbr of crossed
+    ph = mod.(phase,360) .- 180 #Residual
     _findCrossings(w, n, ph)
 end
 

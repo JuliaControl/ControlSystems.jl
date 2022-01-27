@@ -22,7 +22,7 @@ end
 Used to simulate continuous-time systems. See function `?solve` for additional info.
 # Usage:
 ```
-using OrdinaryDiffEq
+using OrdinaryDiffEq, Plots
 dt             = 0.1
 tfinal         = 20
 t              = 0:dt:tfinal

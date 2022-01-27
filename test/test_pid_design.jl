@@ -24,9 +24,9 @@ _,_,_,pm = margin(P*C)
 @test pm[] > 30
 
 P = tf(1,[1, 1])
-C, kp, ki = placePI(P, 2, 0.7)
-@test pole(feedback(P, C)) ≈ [-1.4 + √2.04im, -1.4 - √2.04im]
-@test [kp, ki] ≈ [9/5, 9/20]
+C, Kp, Ti = placePI(P, 2, 0.7; form=:standard)
+@test poles(feedback(P, C)) ≈ [-1.4 + √2.04im, -1.4 - √2.04im]
+@test [Kp, Ti] ≈ [9/5, 9/20]
 
 params = (2, 3, 0.5)
 parallel_params = ControlSystems.convert_pidparams_from_standard(params..., :parallel)

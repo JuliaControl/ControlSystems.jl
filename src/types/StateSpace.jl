@@ -22,7 +22,7 @@ function state_space_validation(A,B,C,D)
     nx,nu,ny
 end
 
-abstract type AbstractStateSpace{TE<:TimeEvolution} <: LTISystem end
+abstract type AbstractStateSpace{TE<:TimeEvolution} <: LTISystem{TE} end
 
 struct StateSpace{TE, T} <: AbstractStateSpace{TE}
     A::Matrix{T}
@@ -140,7 +140,13 @@ struct HeteroStateSpace{TE <: TimeEvolution, AT<:AbstractMatrix,BT<:AbstractVecO
     # Explicit constructor
     function HeteroStateSpace{TE,AT,BT,CT,DT}(A, B, C, D, timeevol) where {TE,AT,BT,CT,DT}
         state_space_validation(A,B,C,D)
-        new{TE,AT,BT,CT,DT}(AT(A), BT(B), CT(C), DT(D), TE(timeevol))
+        new{TE,AT,BT,CT,DT}(
+            A isa AT ? A : AT(A),
+            B isa BT ? B : BT(B),
+            C isa CT ? C : CT(C),
+            D isa DT ? D : DT(D),
+            TE(timeevol)
+        )
     end
     # Base constructor
     function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
@@ -218,6 +224,7 @@ end
 
 ## ADDITION ##
 Base.zero(sys::AbstractStateSpace) = ss(zero(sys.D), sys.timeevol)
+Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous()) # Cannot make a zero of discrete system since sample time is not stored in type.
 
 function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     #Ensure systems have same dimensions
@@ -253,6 +260,10 @@ end
 
 +(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
++(sys::StateSpace, n::Number) = ss(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
+function +(sys::HeteroStateSpace, n::Number)
+    HeteroStateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
+end
 
 ## SUBTRACTION ##
 -(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = +(sys1, -sys2)
@@ -261,12 +272,19 @@ end
 
 ## NEGATION ##
 -(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
+-(sys::StateSpace) = ss(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
 
 ## MULTIPLICATION ##
 function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if sys1.nu != sys2.ny
+    if xor(issiso(sys1), issiso(sys2))
+        if issiso(sys1)
+            sys1 = append(fill(sys1, sys2.ny)...)
+        else
+            sys2 = append(fill(sys2, sys1.nu)...)
+        end
+    elseif sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
     timeevol = common_timeevol(sys1,sys2)
@@ -282,7 +300,13 @@ end
 function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if sys1.nu != sys2.ny
+    if xor(issiso(sys1), issiso(sys2))
+        if issiso(sys1)
+            sys1 = append(fill(sys1, sys2.ny)...)
+        else
+            sys2 = append(fill(sys2, sys1.nu)...)
+        end
+    elseif sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
     timeevol = common_timeevol(sys1,sys2)
@@ -397,15 +421,20 @@ end
 
 
 """
-`minsys = minreal(s::StateSpace, tol=sqrt(eps()))` is implemented via `baltrunc` and returns a system on diagonal form.
+    minreal(sys::T; fast=false, kwargs...)
+
+Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
+
+For information about the options, see `?ControlSystems.MatrixPencils.lsminreal`
 """
-function minreal(s::AbstractStateSpace, tol=sqrt(eps()))
-    s = baltrunc(s, atol=tol, rtol = 0)[1]
-    try
-        return diagonalize(s)
-    catch
-        error("Minreal only implemented for diagonalizable systems.")
+function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <: AbstractStateSpace
+    A,B,C,D = ssdata(sys)
+    if tol !== nothing
+        atol == 0 || atol == tol || error("Both positional argument `tol` and keyword argument `atol` were set but were not equal. `tol` is provided for backwards compat and can not be set to another value than `atol`.")
+        atol = tol
     end
+    Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
+    T(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
 end
 
 
