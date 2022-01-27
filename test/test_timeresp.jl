@@ -10,15 +10,15 @@ Q = I # eye(2)
 R = I # eye(1)
 L = lqr(sys,Q,R)
 
-u(x,i) = -L*x # Form control law
+u1(x,i) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1.,0]
-y, t, x, uout = lsim(sys,u,t,x0=x0) # Continuous time
+y, t, x, uout = lsim(sys,u1,t,x0=x0) # Continuous time
 
 th = 1e-6
 @test sum(abs.(x[:,end])) < th
 
-y, t, x, uout = lsim(c2d(sys,0.1),u,t,x0=x0) # Discrete time
+y, t, x, uout = lsim(c2d(sys,0.1),u1,t,x0=x0) # Discrete time
 @test sum(abs.(x[:,end])) < th
 
 #Do a manual simulation with uout
@@ -83,8 +83,8 @@ G2 = ss(1.0im, 1, 1, 0, 1)
 
 # Test that the discrete lsim accepts u function that returns scalar
 L = lqr(sysd,Q,R)
-u(x,i) = -L*x
-yd, td, xd = lsim(sysd, u, t, x0=x0)
+u2(x,i) = -L*x
+yd, td, xd = lsim(sysd, u2, t, x0=x0)
 @test norm(y - yd)/norm(y) < 0.05 # Since the cost matrices are not discretized, these will differ a bit
 @test norm(x - xd)/norm(x) < 0.05
 

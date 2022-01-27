@@ -11,8 +11,8 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test evalfr(H, -1) == [0.0 -0.3; 0.0 0.4]
 @test evalfr(H, 0) ≈ [0.0 0.0; 0.2 1/3]
 
-@test evalfr(G, -6) == [Inf Inf; Inf Inf]
-@test evalfr(G, -5) == [Inf Inf; Inf Inf]
+@test (@test_logs (:warn, "Got exception SingularException(4), returning Inf") evalfr(G, -6)) == [Inf Inf; Inf Inf]
+@test (@test_logs (:warn, "Got exception SingularException(1), returning Inf") evalfr(G, -5)) == [Inf Inf; Inf Inf]
 @test evalfr(G, -1) ≈ [0.0 -0.3; 0.0 0.4]
 @test evalfr(G, 0) ≈ [0.0 0.0; 0.2 1/3]
 
