@@ -65,7 +65,7 @@ end
 zpk(k::Real, Ts::TimeEvolution) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
 
-zpk(sys::StateSpace) = zpk(zpkdata(sys)...)
+zpk(sys::StateSpace) = zpk(zpkdata(sys)..., timeevol(sys))
 
 function zpk(G::TransferFunction{TE,S}) where {TE<:TimeEvolution,T0, S<:SisoTf{T0}}
     T = typeof(one(T0)/one(T0))
