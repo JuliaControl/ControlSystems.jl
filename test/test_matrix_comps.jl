@@ -19,6 +19,16 @@ Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 @test Cb*T ≈ C
 
 @test sysb.A ≈ Ab
+@test similarity_transform(sysb, T) ≈ sys
+
+
+U = svd(randn(2,2)).U
+syst = similarity_transform(sys, U, unitary = true)
+Ab,Bb,Cb,Db = ssdata(syst)
+@test Ab ≈ U'A*U
+@test Bb ≈ U'B
+@test Cb ≈ C*U
+
 
 @test ControlSystems.balance_transform(A,B,C) ≈ ControlSystems.balance_transform(sys)
 

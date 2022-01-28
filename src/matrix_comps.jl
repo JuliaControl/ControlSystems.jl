@@ -586,11 +586,11 @@ D̃ = D
 If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
 """
 function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
-    Tf = factorize(T)
     if unitary
-        A = Tf'sys.A*T
-        B = Tf'sys.B
+        A = T'sys.A*T
+        B = T'sys.B
     else
+        Tf = factorize(T)
         A = Tf\sys.A*T
         B = Tf\sys.B
     end
