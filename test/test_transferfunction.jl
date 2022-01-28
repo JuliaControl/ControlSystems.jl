@@ -37,6 +37,11 @@ z = tf("z", 0.005)
 @test tf([1.0], [2.0,3.0]) == tf(π*[1.0], π*[2.0,3.0])
 @test tf([1.0+2.0im], [2.0+im,3.0]) == tf((π+im)*[1+2.0im], (π+im)*[2.0+im,3.0])
 
+# Test inequality
+@test tf([1], [1]) != tf([2], [1])
+@test tf([1.0], [1.0,0.0]) != tf([1.0], [2.0,0.0])
+@test tf([1.0+2.0im], [2.0+im,3.0]) != tf([1+2.0im], [1.0+im,3.0])
+
 # Test approximate equlity
 # rtol should just be on the order of ϵ, no particular reason that exactly ϵ
 # would work, but apparently it does
