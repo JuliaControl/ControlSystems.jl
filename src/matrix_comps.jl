@@ -574,7 +574,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
 end
 
 """
-    syst = similarity_transform(sys, T)
+    syst = similarity_transform(sys, T; unitary=false)
 Perform a similarity transform `T : Tx̃ = x` on `sys` such that
 ```
 Ã = T⁻¹AT
@@ -582,11 +582,18 @@ B̃ = T⁻¹ B
 C̃ = CT
 D̃ = D
 ```
+
+If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
 """
-function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
+function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
     Tf = factorize(T)
-    A = Tf\sys.A*T
-    B = Tf\sys.B
+    if unitary
+        A = Tf'sys.A*T
+        B = Tf'sys.B
+    else
+        A = Tf\sys.A*T
+        B = Tf\sys.B
+    end
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
