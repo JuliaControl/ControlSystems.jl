@@ -592,27 +592,6 @@ function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
     ST(A,B,C,D,sys.timeevol)
 end
 
-"""
-    syst, S = prescale(sys)
-Perform a eigendecomposition on system state-transition matrix `sys.A`.
-```
-Ã = S⁻¹AS
-B̃ = S⁻¹ B
-C̃ = CS
-D̃ = D
-```
-Such that `Ã` is diagonal.
-Returns a new scaled state-space object and the associated transformation
-matrix.
-"""
-function prescale(sys::AbstractStateSpace)
-    d, S = eigen(sys.A)
-    A = Diagonal(d)
-    B = S\sys.B
-    C = sys.C*S
-    normalized_sys = iscontinuous(sys) ? ss(A, B, C, sys.D) : ss(A, B, C, sys.D, sys.Ts)
-    return normalized_sys, S
-end
 
 """
     sysi = innovation_form(sys, R1, R2)
