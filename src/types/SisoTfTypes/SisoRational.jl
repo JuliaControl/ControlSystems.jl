@@ -89,11 +89,19 @@ function evalfr(f::SisoRational{T}, s::Number) where T
     end
 end
 
-==(f1::SisoRational, f2::SisoRational) = (f1.num * f2.den[1] == f2.num * f1.den[1] && f1.den * f2.den[1] == f2.den * f1.den[1]) # NOTE: Not in analogy with how it's done for SisoZpk
+function ==(f1::SisoRational, f2::SisoRational)
+    # Get representation of num/den so index access is correct
+    f1num, f1den = numvec(f1), denvec(f1)
+    f2num, f2den = numvec(f2), denvec(f2)
+    (f1num * f2den[1] == f2num * f1den[1] && f1den * f2den[1] == f2den * f1den[1]) # NOTE: Not in analogy with how it's done for SisoZpk
+end
 
 # We might want to consider alowing scaled num and den as equal
 function isapprox(f1::SisoRational, f2::SisoRational; rtol::Real=sqrt(eps()), atol::Real=0)
-    isapprox(f1.num * f2.den[1], f2.num * f1.den[1], rtol=rtol, atol=atol) && isapprox(f1.den * f2.den[1], f2.den * f1.den[1], rtol=rtol, atol=atol)
+    # Get representation of num/den so index access is correct
+    f1num, f1den = numvec(f1), denvec(f1)
+    f2num, f2den = numvec(f2), denvec(f2)
+    isapprox(f1num * f2den[1], f2num * f1den[1], rtol=rtol, atol=atol) && isapprox(f1den * f2den[1], f2den * f1den[1], rtol=rtol, atol=atol)
 end
 
 +(f1::SisoRational, f2::SisoRational) = SisoRational(f1.num*f2.den + f2.num*f1.den, f1.den*f2.den)
