@@ -101,9 +101,16 @@ function isapprox(f1::SisoRational, f2::SisoRational; rtol::Real=sqrt(eps()), at
     # Get representation of num/den so index access is correct
     f1num, f1den = numvec(f1), denvec(f1)
     f2num, f2den = numvec(f2), denvec(f2)
-    _prefill_zero(x, n) = [zeros(n - length(x)); x]
-    f1num, f2num = _prefill_zero.((f1num, f2num), maximum(length.((f1num, f2num))))
-    f1den, f2den = _prefill_zero.((f1den, f2den), maximum(length.((f1den, f2den))))
+    if length(f1num) < length(f2num)
+        f1num = [zeros(length(f2num) - length(f1num)); f1num]
+    elseif length(f2num) < length(f1num)
+        f2num = [zeros(length(f1num) - length(f2num)); f2num]
+    end
+    if length(f1den) < length(f2den)
+        f1den = [zeros(length(f2den) - length(f1den)); f1den]
+    elseif length(f2den) < length(f1den)
+        f2den = [zeros(length(f1den) - length(f2den)); f2den]
+    end
     isapprox(f1num * f2den[1], f2num * f1den[1], rtol=rtol, atol=atol) && isapprox(f1den * f2den[1], f2den * f1den[1], rtol=rtol, atol=atol)
 end
 
