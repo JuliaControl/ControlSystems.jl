@@ -217,7 +217,7 @@ end
 
 Returns a phase retarding link, the rule of thumb `a = 0.1ωc` guarantees less than 6 degrees phase margin loss. The bode curve will go from `M`, bend down at `a/M` and level out at 1 for frequencies > `a`
 """
-function laglink(a, M; h=nothing, Ts=0)
+function laglink(a, M; h=nothing, Ts=nothing)
     if !isnothing(h)
         Base.depwarn("`laglink($a, $M; h=$h)` is deprecated, use `laglink($a, $M; Ts=$h)` instead.", Core.Typeof(laglink).name.mt.name)
         Ts = h
@@ -242,7 +242,7 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlinkat` `laglink`
 """
-function leadlink(b, N, K; h=nothing, Ts=0)
+function leadlink(b, N, K; h=nothing, Ts=nothing)
     if !isnothing(h)
         Base.depwarn("`leadlink($b, $N, $K; h=$h)` is deprecated, use `leadlink($b, $N, $K; Ts=$h)` instead.", Core.Typeof(leadlink).name.mt.name)
         Ts = h
