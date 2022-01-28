@@ -131,24 +131,8 @@ function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     return sys1new*sys2new
 end
 
-blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
 
-function blockdiag(mats::AbstractMatrix{T}...) where T
-    rows = Int[size(m, 1) for m in mats]
-    cols = Int[size(m, 2) for m in mats]
-    res = zeros(T, sum(rows), sum(cols))
-    m = 1
-    n = 1
-    for ind=1:length(mats)
-        mat = mats[ind]
-        i = rows[ind]
-        j = cols[ind]
-        res[m:m + i - 1, n:n + j - 1] = mat
-        m += i
-        n += j
-    end
-    return res
-end
+blockdiag(anything...) = cat(anything..., dims=(1,2))
 
 
 """
