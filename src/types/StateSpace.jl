@@ -338,7 +338,7 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
-/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = ss(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
 
 
 #####################################################################

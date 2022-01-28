@@ -87,6 +87,9 @@
         @test 1/D_222_d == SS([-0.8 -0.8; -0.8 -1.93],[1 0; 0 2],[-1 0; -0 -1],
         [1 -0; 0 1],0.005)
 
+        fsys = ss(1,1,1,0)/3 # Int becomes FLoat after division
+        @test fsys.B[]*fsys.C[] == 1/3
+
         # Indexing
         @test size(C_222) == (2, 2)
         @test size(C_212) == (2, 1)
