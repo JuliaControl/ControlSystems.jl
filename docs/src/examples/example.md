@@ -56,7 +56,7 @@ function `loopshapingPI` and tell it that we want 60 degrees phase margin at thi
 ```jldoctest PIDDESIGN; output = false
 using Plots
 ωp = 0.8
-kp,ki,C = loopshapingPI(P,ωp,phasemargin=60)
+C,kp,ki = loopshapingPI(P,ωp,phasemargin=60,form=:paralell)
 
 p1 = gangoffourplot(P, [tf(1), C]);
 p2 = nyquistplot([P, P*C], ylims=(-1,1), xlims=(-1.5,1.5));
@@ -75,7 +75,7 @@ We could also cosider a situation where we want to create a closed-loop system w
 ```jldoctest PIDDESIGN; output = false
 using Plots
 ωp = 2
-kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)
+kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60,form=:standard,doplot=true)
 
 p1 = gangoffourplot(P, [tf(1), C60]);
 p2 = nyquistplot([P, P*C60], ylims=(-2,2), xlims=(-3,3));
@@ -188,14 +188,14 @@ ki = ws.^2
 pidplots(
     P,
     :nyquist;
-    kps = kp,
-    kis = ki,
+    params_p = kp,
+    params_i = ki,
     ω = ω,
     ylims = (-2, 2),
     xlims = (-3, 3),
 )
 save_docs_plot("pidplotsnyquist1.svg") # hide
-pidplots(P, :gof; kps = kp, kis = ki, ω = ω, legend = false)
+pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false)
 # You can also request both Nyquist and Gang-of-four plots (more plots are available, see ?pidplots ):
 # pidplots(P,:nyquist,:gof;kps=kp,kis=ki,ω=ω);
 save_docs_plot("pidplotsgof1.svg"); # hide
@@ -212,9 +212,9 @@ Now try a different strategy, where we have specified a gain crossover frequency
 kp = range(-1, stop=1, length=8) #
 ki = sqrt.(1 .- kp.^2)/10
 
-pidplots(P,:nyquist,;kps=kp,kis=ki,ylims=(-1,1),xlims=(-1.5,1.5))
+pidplots(P,:nyquist,;params_p=kp,params_i=ki,ylims=(-1,1),xlims=(-1.5,1.5))
 save_docs_plot("pidplotsnyquist2.svg") # hide
-pidplots(P,:gof,;kps=kp,kis=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20))
+pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20))
 save_docs_plot("pidplotsgof2.svg"); # hide
 
 # output
