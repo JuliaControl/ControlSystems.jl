@@ -83,7 +83,8 @@ function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; 
     convert(StateSpace{TE,T}, G; kwargs...)
 end
 
-function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=false) where {TE,T<:Number}
+# Note: balancing is only applied by default for floating point types, integer systems are not balanced since that would change the type. 
+function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T <: Integer)) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -114,7 +115,7 @@ function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=fal
         end
     end
     if balance
-        A, B, C = balance_statespace(A, B, C)[1:3] 
+        A, B, C = balance_statespace(A, B, C)
     end
     return StateSpace{TE,T}(A, B, C, D, TE(G.timeevol))
 end

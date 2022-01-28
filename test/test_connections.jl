@@ -93,12 +93,12 @@ s = tf("s")
 
     
 # Combination tf and ss
-@test [C_111 Ctf_221] == [C_111 ss(Ctf_221)]
-@test [C_111; Ctf_212] == [C_111; ss(Ctf_212)]
-@test append(C_111, Ctf_211) == append(C_111, ss(Ctf_211))
-@test [D_111 Dtf_221] == [D_111 ss(Dtf_221)]
-@test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
-@test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
+@test [C_111 Ctf_221] == [C_111 convert(StateSpace, Ctf_221, balance=false)]
+@test [C_111; Ctf_212] == [C_111; convert(StateSpace, Ctf_212, balance=false)]
+@test append(C_111, Ctf_211) == append(C_111, convert(StateSpace, Ctf_211, balance=false))
+@test [D_111 Dtf_221] == [D_111 convert(StateSpace, Dtf_221, balance=false)]
+@test [D_111; Dtf_212] == [D_111; convert(StateSpace, Dtf_212, balance=false)]
+@test append(D_111, Dtf_211) == append(D_111, convert(StateSpace, Dtf_211, balance=false))
 
 # Combination of DelayLtiSystem with TransferFunction and StateSpace
 @test [delay(1.0) tf(1, [1,2])] == [delay(1.0) ss(-2.0,1,1,0)]
