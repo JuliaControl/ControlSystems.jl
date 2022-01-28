@@ -309,7 +309,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
                          opnorm(evalfr(sys, im*m_vec_init[2]));
                          opnorm(sys.D)])
     ω_peak = m_vec_init[idx]
-
+    lb == 0 && (return zero(T), zero(T))
     # Iterations
     for iter=1:maxIters
         gamma = (1+2*T(tol))*lb
