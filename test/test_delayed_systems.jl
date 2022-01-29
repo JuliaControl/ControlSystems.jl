@@ -156,7 +156,7 @@ w = 10 .^ (-2:0.1:2)
 @test freqresp(s11, w) ≈ freqresp(f2[1,1], w) rtol=1e-15
 
 
-@test propertynames(delay(1.0)) == (:P, :Tau)
+@test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny)
 
 
 #FIXME: A lot more tests, including MIMO systems in particular

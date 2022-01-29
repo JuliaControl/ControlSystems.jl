@@ -56,6 +56,10 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     end
 end
 
+function Base.propertynames(s::PartionedStateSpace, private::Bool=false)
+    (fieldnames(typeof(s))..., :B1, :B2, :C1, :C2, :D11, :D12, :D21, :D22, :nu, :ny, :nx, (isdiscrete(s) ? (:Ts,) : ())...)
+end
+
 timeevol(sys::PartionedStateSpace) = timeevol(sys.P)
 
 function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
