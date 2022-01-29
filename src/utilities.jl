@@ -1,5 +1,7 @@
 # Are only really needed for cases when we accept general LTISystem
 # we should either use them consistently, with a good definition, or remove them
+basetype(sys::LTISystem) = basetype(typeof(sys))
+basetype(::Type{T}) where T <: LTISystem = T.name.wrapper
 numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
