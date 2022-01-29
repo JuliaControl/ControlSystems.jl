@@ -206,7 +206,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 end
 
 
-lsim(sys::TransferFunction, u, t; kwargs...) = lsim(ss(sys), u, t; kwargs...)
+lsim(sys::TransferFunction, args...; kwargs...) = lsim(ss(sys), args...; kwargs...)
 
 
 """
