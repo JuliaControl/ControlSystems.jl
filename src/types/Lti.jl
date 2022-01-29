@@ -72,7 +72,7 @@ function Base.getproperty(sys::LTISystem, s::Symbol)
 end
 
 Base.propertynames(sys::LTISystem, private::Bool=false) =
-    (fieldnames(typeof(sys))..., (isdiscrete(sys) ? (:Ts,) : ())...)
+    (fieldnames(typeof(sys))..., :nu, :ny, (isdiscrete(sys) ? (:Ts,) : ())...)
 
 
 

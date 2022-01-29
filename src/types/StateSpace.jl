@@ -378,6 +378,10 @@ function Base.getproperty(sys::AbstractStateSpace, s::Symbol)
     end
 end
 
+function Base.propertynames(s::AbstractStateSpace, private::Bool=false)
+    (fieldnames(typeof(s))..., :nu, :ny, :nx, (isdiscrete(s) ? (:Ts,) : ())...)
+end
+
 #####################################################################
 ##                        Display Functions                        ##
 #####################################################################

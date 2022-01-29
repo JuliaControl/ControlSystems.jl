@@ -96,9 +96,9 @@ end
 
 ## EQUALITY ##
 function ==(G1::TransferFunction, G2::TransferFunction)
-    fields = [:timeevol, :ny, :nu, :matrix]
+    fields = (:timeevol, :ny, :nu, :matrix)
     for field in fields
-        if getfield(G1, field) != getfield(G2, field)
+        if getproperty(G1, field) != getproperty(G2, field)
             return false
         end
     end
@@ -108,9 +108,9 @@ end
 ## Approximate ##
 function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
     G1, G2 = promote(G1, G2)
-    fieldsApprox = [:timeevol, :matrix]
+    fieldsApprox = (:timeevol, :matrix)
     for field in fieldsApprox
-        if !(isapprox(getfield(G1, field), getfield(G2, field); kwargs...))
+        if !(isapprox(getproperty(G1, field), getproperty(G2, field); kwargs...))
             return false
         end
     end
