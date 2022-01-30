@@ -223,15 +223,16 @@ function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpac
 end
 
 ## ADDITION ##
-Base.zero(sys::AbstractStateSpace) = ss(zero(sys.D), sys.timeevol)
+Base.zero(sys::AbstractStateSpace) = basetype(sys)(zero(sys.D), sys.timeevol)
 Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous()) # Cannot make a zero of discrete system since sample time is not stored in type.
 
-function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
+function +(s1::ST, s2::ST) where {ST <: AbstractStateSpace}
     #Ensure systems have same dimensions
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
     timeevol = common_timeevol(s1,s2)
+    T = promote_type(numeric_type(s1), numeric_type(s2))
 
     A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
          zeros(T, nstates(s2), nstates(s1))        s2.A]
@@ -239,31 +240,12 @@ function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
 
-    return StateSpace{TE,T}(A, B, C, D, timeevol)
+    return ST(A, B, C, D, timeevol)
 end
 
-function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
-    #Ensure systems have same dimensions
-    if size(s1) != size(s2)
-        error("Systems have different shapes.")
-    end
-    timeevol = common_timeevol(s1,s2)
-    T = promote_type(eltype(s1.A),eltype(s2.A))
-    A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
-         zeros(T, nstates(s2), nstates(s1))        s2.A]
-    B = [s1.B ; s2.B]
-    C = [s1.C s2.C;]
-    D = [s1.D + s2.D;]
 
-    return HeteroStateSpace(A, B, C, D, timeevol)
-end
-
-+(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
++(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
-+(sys::StateSpace, n::Number) = ss(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
-function +(sys::HeteroStateSpace, n::Number)
-    HeteroStateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
-end
 
 ## SUBTRACTION ##
 -(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = +(sys1, -sys2)
@@ -271,11 +253,10 @@ end
 -(n::Number, sys::AbstractStateSpace) = +(-sys, n)
 
 ## NEGATION ##
--(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
--(sys::StateSpace) = ss(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
+-(sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
 
 ## MULTIPLICATION ##
-function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
+function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
     if xor(issiso(sys1), issiso(sys2))
@@ -288,39 +269,17 @@ function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     end
     timeevol = common_timeevol(sys1,sys2)
+    T = promote_type(numeric_type(sys1), numeric_type(sys2))
 
     A = [sys1.A    sys1.B*sys2.C;
          zeros(T, sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
-    return StateSpace{TE,T}(A, B, C, D, timeevol)
+    return basetype(ST)(A, B, C, D, timeevol)
 end
 
-function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
-    #Check dimension alignment
-    #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if xor(issiso(sys1), issiso(sys2))
-        if issiso(sys1)
-            sys1 = append(fill(sys1, sys2.ny)...)
-        else
-            sys2 = append(fill(sys2, sys1.nu)...)
-        end
-    elseif sys1.nu != sys2.ny
-        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
-    end
-    timeevol = common_timeevol(sys1,sys2)
-    T = promote_type(eltype(sys1.A),eltype(sys2.A))
-    A = [sys1.A    sys1.B*sys2.C;
-         zeros(T, sys2.nx, sys1.nx)  sys2.A]
-    B = [sys1.B*sys2.D ; sys2.B]
-    C = [sys1.C   sys1.D*sys2.C;]
-    D = [sys1.D*sys2.D;]
-
-    return HeteroStateSpace(A, B, C, D, timeevol)
-end
-
-*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
 *(n::Number, sys::AbstractStateSpace) = *(sys, n)
 
 ## DIVISION ##
@@ -334,11 +293,11 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     catch
         error("D isn't invertible")
     end
-    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.timeevol)
+    return basetype(ST)(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.timeevol)
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
-/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
 
 
 #####################################################################
@@ -355,7 +314,7 @@ function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
-    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.timeevol)
+    return basetype(ST)(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.timeevol)
 end
 
 function Base.getproperty(sys::AbstractStateSpace, s::Symbol)

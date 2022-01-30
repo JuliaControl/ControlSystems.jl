@@ -9,7 +9,7 @@
 # names: append "_n" if some inputs/outputs/states are named
 @testset "test_statespace" begin
     # SCALARS
-    for SS in (StateSpace, HeteroStateSpace)
+    for SS in (StateSpace, HeteroStateSpace), SS2 in (StateSpace, HeteroStateSpace)
         a_2 = [-5 -3; 2 -9]
         CS_111 = SS(-5, 2, 3, [0])
         CS_111_d = SS([3], 2, 1, 1)
@@ -20,9 +20,9 @@
         # CONTINUOUS
         a_1 = [-5]
         C_111 = SS(a_1, [2], [3], [0])
-        C_211 = SS(a_2, [1; 2], [1 0], [0])
-        C_212 = SS(a_2, [1; 2], eye_(2), [0; 0])
-        C_221 = SS(a_2, [1 0; 0 2], [1 0], [0 0])
+        C_211 = SS2(a_2, [1; 2], [1 0], [0])
+        C_212 = SS2(a_2, [1; 2], eye_(2), [0; 0])
+        C_221 = SS2(a_2, [1 0; 0 2], [1 0], [0 0])
         C_222 = SS(a_2, [1 0; 0 2], eye_(2), zeros(Int,2,2))
         C_222_d = SS(a_2, [1 0; 0 2], eye_(2), eye_(2))
         C_022 = SS(4.0*eye_(2))
@@ -31,8 +31,8 @@
         da_1 = [-0.5]
         da_2 = [0.2 -0.8; -0.8 0.07]
         D_111 = SS(da_1, [2], [3], [0], 0.005)
-        D_211 = SS(da_2, [1; 2], [1 0], [0], 0.005)
-        D_221 = SS(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
+        D_211 = SS2(da_2, [1; 2], [1 0], [0], 0.005)
+        D_221 = SS2(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
         D_222 = SS(da_2, [1 0; 0 2], eye_(2), zeros(2,2), 0.005)
         D_222_d = SS(da_2, [1 0; 0 2], eye_(2), eye_(2), 0.005)
         D_022 = SS(4.0*eye_(2), 0.005)
@@ -86,6 +86,9 @@
         0 0 2 -11],[1 0; 0 2; 1 0; 0 2],[1 0 0 0],[0 0])
         @test 1/D_222_d == SS([-0.8 -0.8; -0.8 -1.93],[1 0; 0 2],[-1 0; -0 -1],
         [1 -0; 0 1],0.005)
+
+        fsys = ss(1,1,1,0)/3 # Int becomes FLoat after division
+        @test fsys.B[]*fsys.C[] == 1/3
 
         # Indexing
         @test size(C_222) == (2, 2)

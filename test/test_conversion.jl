@@ -159,4 +159,10 @@ Hd = zpk([], [1, 0.5], 1.0, h)
 # Error, not proper
 @test_throws ErrorException ss(tf([1,0],[1]))
 
+s1 = HeteroStateSpace(zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1))
+s2 = HeteroStateSpace(zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1))
+s3,s4 = promote(s1,s2)
+@test s3 == s4 == s2
+@test typeof(s3) == typeof(s4) == typeof(s2)
+
 end

@@ -73,6 +73,9 @@ end
 Base.convert(::Type{HeteroStateSpace{TE1,AT,BT,CT,DT}}, s::StateSpace{TE2,T}) where {TE1,TE2,T,AT,BT,CT,DT} =
     HeteroStateSpace{TE1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TE1(s.timeevol))
 
+Base.convert(::Type{HeteroStateSpace{TE,AT,BT,CT,DT}}, s::HeteroStateSpace) where {TE,AT,BT,CT,DT} =
+    HeteroStateSpace{TE,AT,BT,CT,DT}(AT(s.A),BT(s.B),CT(s.C),DT(s.D),TE(s.timeevol))
+
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace) = StateSpace(s.A, s.B, s.C, s.D, s.Ts)
