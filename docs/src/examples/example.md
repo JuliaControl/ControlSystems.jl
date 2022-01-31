@@ -21,7 +21,7 @@ C       = [1 0]
 sys     = ss(A,B,C,0, Ts)
 Q       = I
 R       = I
-L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
 t       =0:Ts:5

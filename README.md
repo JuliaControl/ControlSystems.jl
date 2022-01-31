@@ -50,19 +50,19 @@ A documentation website is available at [http://juliacontrol.github.io/ControlSy
 
 Some of the available commands are:
 ##### Constructing systems
-ss, tf, zpk
+`ss, tf, zpk`
 ##### Analysis
-poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
+`poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin`
 ##### Synthesis
-care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
+`are, lyap, lqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc`
 ###### PID design
-pid, stabregionPID, loopshapingPI, pidplots
+`pid, stabregionPID, loopshapingPI, pidplots`
 ##### Time and Frequency response
-step, impulse, lsim, freqresp, evalfr, bode, nyquist
+`step, impulse, lsim, freqresp, evalfr, bode, nyquist`
 ##### Plotting
-lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
+`lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve`
 ##### Other
-minreal, sminreal, c2d
+`minreal, sminreal, c2d`
 ## Usage
 
 This toolbox works similar to that of other major computer-aided control

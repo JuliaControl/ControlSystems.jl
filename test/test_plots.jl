@@ -22,7 +22,7 @@ function getexamples()
 
     stepgen() = plot(step(sys, ts[end]), l=(:dash, 4))
     impulsegen() = plot(impulse(sys, ts[end]), l=:blue)
-    L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
+    L = lqr(sysss, [1 0; 0 1], [1 0; 0 1])
     lsimgen() = plot(lsim(sysss, (x,i)->-L*x, ts; x0=[1;2]), plotu=true)
     plot(lsim.([sysss, sysss], (x,i)->-L*x, Ref(ts); x0=[1;2]), plotu=true)
 

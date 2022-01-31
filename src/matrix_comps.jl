@@ -1,9 +1,11 @@
-"""`care(A, B, Q, R)`
+"""
+    care(A, B, Q, R)
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 
 Uses `MatrixEquations.arec`.
+This function exists for legacy reasons, users are encouraged to use the interface `are(Continuous, A, B, Q, R)` instead.
 """
 function care(A, B, Q, R)
     arec(A, B, R, Q)[1]
@@ -18,12 +20,17 @@ Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
+This function exists for legacy reasons, users are encouraged to use the interface `are(Discrete, A, B, Q, R)` instead.
 """
 function dare(A, B, Q, R; kwargs...)
     ared(A, B, R, Q; kwargs...)[1]
 end
 
 dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
+
+
+are(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = care(args...; kwargs...)
+are(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = dare(args...; kwargs...)
 
 """
     dlyap(A, Q; kwargs...)
@@ -32,11 +39,17 @@ Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 
 Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
+This function exists for legacy reasons, users are encouraged to use the interface `lyap(Discrete, A, B, Q, R)` instead.
 """
 function dlyap(A::AbstractMatrix, Q; kwargs...)
     lyapd(A, Q; kwargs...)
 end
 
+LinearAlgebra.lyap(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = lyap(args...; kwargs...)
+LinearAlgebra.lyap(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = dlyap(args...; kwargs...)
+
+plyap(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
+plyap(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
 
 """
     U = grampd(sys, opt; kwargs...)
@@ -53,11 +66,10 @@ function grampd(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? MatrixEquations.plyapc : MatrixEquations.plyapd
     if opt === :c
-        func(sys.A, sys.B; kwargs...)
+        plyap(sys.timeevol, sys.A, sys.B; kwargs...)
     elseif opt === :o
-        func(sys.A', sys.C'; kwargs...)
+        plyap(sys.timeevol, sys.A', sys.C'; kwargs...)
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -147,10 +159,9 @@ function covar(sys::AbstractStateSpace, W)
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? plyapc : plyapd
     Wc = cholesky(W).L
     Q1 = sys.nx == 0 ? B*Wc : try
-        func(A, B*Wc)
+        plyap(sys.timeevol, A, B*Wc)
     catch e
         @error("No solution to the Lyapunov equation was found in covar.")
         rethrow(e)
@@ -178,7 +189,7 @@ covar(sys::TransferFunction, W) = covar(ss(sys), W)
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
 """
-`..  norm(sys, p=2; tol=1e-6)`
+    norm(sys, p=2; tol=1e-6)
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
@@ -206,7 +217,7 @@ LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p
 
 
 """
-`   (Ninf, ω_peak) = hinfnorm(sys; tol=1e-6)`
+    Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain Ninf is achieved.
@@ -234,7 +245,7 @@ hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
-`   (Ninf, ω_peak) = linfnorm(sys; tol=1e-6)`
+    Ninf, ω_peak = linfnorm(sys; tol=1e-6)
 
 Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain `Ninf` is achieved.
