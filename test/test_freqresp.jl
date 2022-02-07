@@ -34,6 +34,13 @@ resp1 = ones(ComplexF64, length(w), 1, 1)
 @test freqresp(G1, w) == resp1
 @test freqresp(H1, w) == resp1
 
+for G in [2, 2I, 2I(2), randn(2,2)]
+    @test dcgain(G) == G
+    !(G isa UniformScaling) && @test freqresp(G, [1,2]) == cat(G,G, dims=3) # I does not have size
+    @test freqresp(G, 1) == G
+    @test evalfr(G, 1im) == G
+end
+
 ## First order system
 
 sys2 = ss(-1, 1, 1, 1)

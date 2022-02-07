@@ -8,6 +8,8 @@ function freqresp(sys::LTISystem, w::Real)
     evalfr(sys, s)
 end
 
+freqresp(G::Union{UniformScaling, AbstractMatrix, Number}, w::Real) = G
+
 """
     sys_fr = freqresp(sys, w)
 
@@ -21,6 +23,14 @@ of system `sys` over the frequency vector `w`.
     te = sys.timeevol
     ny,nu = noutputs(sys), ninputs(sys)
     [evalfr(sys[i,j], _freq(w, te))[] for w in w_vec, i in 1:ny, j in 1:nu]
+end
+
+@autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
+    repeat(G, 1, 1, length(w_vec))
+end
+
+@autovec () function freqresp(G::Number, w_vec::AbstractVector{<:Real})
+    fill(G, 1, 1, length(w_vec))
 end
 
 _freq(w, ::Continuous) = complex(0, w)
@@ -120,6 +130,8 @@ end
 function evalfr(G::TransferFunction{<:TimeEvolution,<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
+
+evalfr(G::Union{UniformScaling, AbstractMatrix, Number}, s) = G
 
 """
 `F(s)`, `F(omega, true)`, `F(z, false)`
