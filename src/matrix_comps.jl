@@ -637,7 +637,7 @@ end
 Return the observer_predictor system
 x̂' = (A - KC)x̂ + (B-KD)u + Ky
 ŷ  = Cx + Du
-with the input equation [B K] * [u; y]
+with the input equation [B-KD K] * [u; y]
 
 If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
 
