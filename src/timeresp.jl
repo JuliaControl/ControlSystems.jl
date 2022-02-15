@@ -196,7 +196,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x,uout = ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]), p), alg; saveat=t, kwargs...)
+        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; saveat=t, kwargs...)
         x = reduce(hcat, sol.u)
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
         simsys = sys
