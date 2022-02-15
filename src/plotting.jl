@@ -548,16 +548,24 @@ sigmaplot
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
         end
-        for i in 1:size(sv, 2)
-            @series begin
-                xscale --> :log10
-                yscale --> _PlotScaleFunc
-                seriescolor --> si
-                ws, sv[:, i]
-            end
+        @series begin
+            xscale --> :log10
+            yscale --> _PlotScaleFunc
+            seriescolor --> si
+            _to1series(ws, sv)
         end
     end
 end
+
+"This is a helper function to make multiple series into one series separated by `Inf`. This makes plotting vastly more efficient. It's also useful to make many lines appear as a single series with a single legend entry."
+function _to1series(x,y)
+    r,c = size(y)
+    y2 = vec([y; fill(Inf, 1, c)])
+    x2 = repeat([x; Inf], c)
+    x2,y2
+end
+
+_to1series(y) = _to1series(1:size(y,1),y)
 
 @userplot Marginplot
 """
