@@ -103,12 +103,15 @@ end
 
 
 # This will be called on plot(lsim(sys, args...))
-@recipe function simresultplot(r::SimResult; plotu=false)
-    ny, nu = r.ny, r.nu
+@recipe function simresultplot(r::SimResult; plotu=false, plotx=false)
+    ny, nu, nx = r.ny, r.nu, r.nx
     t = r.t
     n_series = size(r.y, 3) # step and impulse produce multiple results
-    layout --> ((plotu ? ny + nu : ny), 1)
-    seriestype := iscontinuous(r.sys) ? :path : :steppost
+    nplots = ny
+    plotu && (nplots += nu)
+    plotx && (nplots += nx)
+    layout --> (nplots, 1)
+    seriestype --> (iscontinuous(r.sys) ? :path : :steppost)
     for ms in 1:n_series
         for i=1:ny
             ytext = (ny > 1) ? "y($i)" : "y"
@@ -121,16 +124,31 @@ end
             end
         end
     end 
+    plotind = ny+1
     if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
             utext = (nu > 1) ? "u($i)" : "u"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> utext
-                subplot --> ny+i
+                subplot --> plotind
                 label --> ""
                 t,  r.u[i, :]
             end
+            plotind += 1
+        end
+    end
+    if plotx
+        for i=1:nx
+            xtext = (nx > 1) ? "x($i)" : "x"
+            @series begin
+                xguide  --> "Time (s)"
+                yguide  --> xtext
+                subplot --> plotind
+                label --> ""
+                t,  r.x[i, :]
+            end
+            plotind += 1
         end
     end
 end
