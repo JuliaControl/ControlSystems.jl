@@ -85,6 +85,10 @@ The result structure contains the fields `y, t, x, u` and can be destructured au
 ```julia
 y, t, x, u = result
 ```
+`result::SimResult` can also be plotted directly:
+```julia
+plot(result, plotu=true, plotx=false)
+```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
 Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower level inteface, see `?Simulator` and `?solve`
