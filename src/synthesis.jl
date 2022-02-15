@@ -54,28 +54,18 @@ y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 """
-lqr(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = clqr(args...; kwargs...)
-lqr(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = dlqr(args...; kwargs...)
-
-"""
-    clqr(A, B, Q, R, args...; kwargs...)
-
-This function exists for legacy reasons, users are encouraged to use the interface `lqr(Continuous, A, B, Q, R)` instead.
-"""
-function clqr(A, B, Q, R, args...; kwargs...)
+function lqr(::ContinuousType, A, B, Q, R, args...; kwargs...)
     S, _, K = arec(A, B, R, Q, args...; kwargs...)
     return K
 end
 
-"""
-    dlqr(A, B, Q, R, args...; kwargs...)
-
-This function exists for legacy reasons, users are encouraged to use the interface `lqr(Discrete, A, B, Q, R)` instead.
-"""
-function dlqr(A, B, Q, R, args...; kwargs...)
+function lqr(::DiscreteType, A, B, Q, R, args...; kwargs...)
     S, _, K = ared(A, B, R, Q, args...; kwargs...)
     return K
 end
+
+@deprecate lqr(A::AbstractMatrix, args...; kwargs...)  lqr(Continuous, A, args...; kwargs...)
+@deprecate dlqr(args...; kwargs...)  lqr(Discrete, args...; kwargs...)
 
 
 

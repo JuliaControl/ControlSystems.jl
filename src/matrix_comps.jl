@@ -1,5 +1,5 @@
 """
-    care(A, B, Q, R)
+    are(::Continuous, A, B, Q, R)
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
@@ -7,14 +7,12 @@ defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 Uses `MatrixEquations.arec`.
 This function exists for legacy reasons, users are encouraged to use the interface `are(Continuous, A, B, Q, R)` instead.
 """
-function care(A, B, Q, R)
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R)
     arec(A, B, R, Q)[1]
 end
 
-care(A::Number, B::Number, Q::Number, R::Number) = care(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
-
 """
-    dare(A, B, Q, R; kwargs...)
+    are(::Discrete, A, B, Q, R; kwargs...)
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
@@ -22,15 +20,14 @@ defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
 This function exists for legacy reasons, users are encouraged to use the interface `are(Discrete, A, B, Q, R)` instead.
 """
-function dare(A, B, Q, R; kwargs...)
+function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
     ared(A, B, R, Q; kwargs...)[1]
 end
 
-dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
+are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
 
-
-are(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = care(args...; kwargs...)
-are(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = dare(args...; kwargs...)
+@deprecate care(args...; kwargs...) are(Continuous, args...; kwargs...)
+@deprecate dare(args...; kwargs...) are(Discrete, args...; kwargs...)
 
 """
     dlyap(A, Q; kwargs...)
@@ -41,15 +38,18 @@ Compute the solution `X` to the discrete Lyapunov equation
 Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
 This function exists for legacy reasons, users are encouraged to use the interface `lyap(Discrete, A, B, Q, R)` instead.
 """
-function dlyap(A::AbstractMatrix, Q; kwargs...)
+function lyap(::DiscreteType, A::AbstractMatrix, Q; kwargs...)
     lyapd(A, Q; kwargs...)
 end
 
-LinearAlgebra.lyap(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = lyap(args...; kwargs...)
-LinearAlgebra.lyap(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = dlyap(args...; kwargs...)
+LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyap(args...; kwargs...)
+LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = dlyap(args...; kwargs...)
 
-plyap(::Union{Continuous, Type{Continuous}}, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
-plyap(::Union{Discrete, Type{Discrete}}, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
+plyap(::ContinuousType, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
+plyap(::DiscreteType, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
+
+@deprecate dlyap(args...; kwargs...) lyap(Discrete, args...; kwargs...)
+
 
 """
     U = grampd(sys, opt; kwargs...)
