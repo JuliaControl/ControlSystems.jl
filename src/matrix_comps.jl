@@ -33,14 +33,14 @@ are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 
-Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
+Uses `MatrixEquations.lyapc / MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapc / ControlSystems.MatrixEquations.lyapd`
 """
-function lyap(::DiscreteType, A::AbstractMatrix, Q; kwargs...)
+function LinearAlgebra.lyap(::DiscreteType, A::AbstractMatrix, Q; kwargs...)
     lyapd(A, Q; kwargs...)
 end
 
-LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyap(args...; kwargs...)
-LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = dlyap(args...; kwargs...)
+LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyapc(args...; kwargs...)
+LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = lyapd(args...; kwargs...)
 
 plyap(::ContinuousType, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
 plyap(::DiscreteType, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
