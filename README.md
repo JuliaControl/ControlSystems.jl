@@ -20,14 +20,9 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
-### 2021-01
-- *Breaking*: Support for julia versions older than 1.3 is dropped
-- *Breaking*: `c2d(::StateSpace)` now returns only the system, not the `x0map`. See `c2d_x0map` for the old functionality.
-- System order can be specified in `baltrunc`.
-- New discretization methods in `c2d`. We now support `:zoh,:foh,:fwdeuler,:tustin`
-- Symbolic computation utilities in [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl)
-
-More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/releases).
+### 2022-02
+- *Breaking*: `Plots.jl` is no longer loaded by `ControlSystems.jl`. This improves loading times for the package, but means that users will have to run `using Plots` manually before plotting functions are available.
+- *Deprecations*: Functions `dare/dlyap/dkalman/dlqr` are now deprecated in favor of an interface that uses dispatch on the types `Continuous / Discrete`. Example: `dare(A,B,Q,R)` is now `are(Discrete,A,B,Q,R)` or `are(sysd,Q,R)`.
 
 ### 2021-11
 - Time-domain simuations now return a result structure (non breaking)
