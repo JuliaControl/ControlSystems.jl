@@ -5,7 +5,6 @@ Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 
 Uses `MatrixEquations.arec`.
-This function exists for legacy reasons, users are encouraged to use the interface `are(Continuous, A, B, Q, R)` instead.
 """
 function are(::ContinuousType, A::AbstractMatrix, B, Q, R)
     arec(A, B, R, Q)[1]
@@ -18,7 +17,6 @@ Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
-This function exists for legacy reasons, users are encouraged to use the interface `are(Discrete, A, B, Q, R)` instead.
 """
 function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
     ared(A, B, R, Q; kwargs...)[1]
@@ -30,13 +28,12 @@ are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A
 @deprecate dare(args...; kwargs...) are(Discrete, args...; kwargs...)
 
 """
-    dlyap(A, Q; kwargs...)
+    lyap(A, Q; kwargs...)
 
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 
 Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
-This function exists for legacy reasons, users are encouraged to use the interface `lyap(Discrete, A, B, Q, R)` instead.
 """
 function lyap(::DiscreteType, A::AbstractMatrix, Q; kwargs...)
     lyapd(A, Q; kwargs...)
