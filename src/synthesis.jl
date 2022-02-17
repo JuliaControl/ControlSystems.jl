@@ -88,6 +88,8 @@ function kalman(sys::AbstractStateSpace, R1, R2, args...; kwargs...)
     return Matrix(lqr(sys.timeevol, sys.A', sys.C', R1,R2, args...; kwargs...)')
 end
 
+@deprecate kalman(A::AbstractMatrix, args...; kwargs...)  kalman(Continuous, A, args...; kwargs...)
+@deprecate dkalman(args...; kwargs...)  kalman(Discrete, args...; kwargs...)
 
 """
     place(A, B, p, opt=:c)
