@@ -42,15 +42,15 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
     if sys.nx == 0 # Only D-matrix
         return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
     end
-    local F
+    local F, Q
     try
         F = hessenberg(sys.A)
+        Q = Matrix(F.Q)
     catch e
         # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
         e isa MethodError && return freqresp_nohess(sys, w_vec)
         rethrow()
     end
-    Q = Matrix(F.Q)
     A = F.H
     C = sys.C*Q
     B = Q\sys.B 
