@@ -1,8 +1,8 @@
 ## User should just use TransferFunction
 struct SisoRational{T} <: SisoTf{T}
-    num::Polynomial{T}
-    den::Polynomial{T}
-    function SisoRational{T}(num::Polynomial{T}, den::Polynomial{T}) where T <: Number
+    num::Polynomial{T, :x}
+    den::Polynomial{T, :x}
+    function SisoRational{T}(num::Polynomial{T, S}, den::Polynomial{T, S}) where {T <: Number, S}
         if isequal(den, zero(den))
             error("Cannot create SisoRational with zero denominator")
         elseif isequal(num, zero(num))
@@ -14,12 +14,12 @@ struct SisoRational{T} <: SisoTf{T}
 end
 function SisoRational(num::Polynomial{T1}, den::Polynomial{T2}) where T1 <: Number where T2 <: Number
     T = promote_type(T1,T2)
-    SisoRational{T}(Polynomial{T}(num.coeffs), Polynomial{T}(den.coeffs))
+    SisoRational{T}(Polynomial{T, :x}(num.coeffs), Polynomial{T, :x}(den.coeffs))
 end
-SisoRational{T}(num::Polynomial, den::Polynomial) where T = SisoRational{T}(convert(Polynomial{T}, num), convert(Polynomial{T}, den))
+SisoRational{T}(num::Polynomial, den::Polynomial) where T = SisoRational{T}(convert(Polynomial{T, :x}, num), convert(Polynomial{T, :x}, den))
 
 function SisoRational{T}(num::AbstractVector, den::AbstractVector) where T <: Number # NOTE: Typearguemnts on the parameters?
-    SisoRational{T}(Polynomial{T}(reverse(num)), Polynomial{T}(reverse(den)))
+    SisoRational{T}(Polynomial{T, :x}(reverse(num)), Polynomial{T, :x}(reverse(den)))
 end
 function SisoRational(num::AbstractVector{T1}, den::AbstractVector{T2}) where T1 <: Number where T2 <: Number
     T = promote_type(T1,T2)
@@ -126,7 +126,7 @@ end
 #.-(f::SisoRational, n::Number) = -(t, n)
 #.-(n::Number, f::SisoRational) = -(n, t)
 
--(f::SisoRational) = SisoRational(-f.num, f.den)
+-(f::SisoRational) = SisoRational((-f.num)::typeof(f.num), f.den) # typeassert due to https://github.com/JuliaMath/Polynomials.jl/issues/395 and can be removed once that is closed
 
 # We overload this method to circumvent the Base methods use of promote_op(matprod,...)
 function (*)(A::AbstractMatrix{<:SisoRational}, B::AbstractMatrix{<:SisoRational})

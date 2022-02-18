@@ -261,9 +261,9 @@ function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
     if xor(issiso(sys1), issiso(sys2))
         if issiso(sys1)
-            sys1 = append(fill(sys1, sys2.ny)...)
+            sys1 = append(fill(sys1, sys2.ny)...)::ST
         else
-            sys2 = append(fill(sys2, sys1.nu)...)
+            sys2 = append(fill(sys2, sys1.nu)...)::ST
         end
     elseif sys1.nu != sys2.ny
         error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")

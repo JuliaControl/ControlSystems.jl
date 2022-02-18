@@ -180,11 +180,12 @@ end
 ## DIVISION ##
 function /(n::Number, G::TransferFunction)
     if issiso(G)
-        matrix = reshape([n/G.matrix[1,1]], 1, 1)
+        entry = n/G.matrix[1,1]
+        matrix = fill(entry, 1, 1)
+        return TransferFunction(matrix, G.timeevol)
     else
         error("MIMO TransferFunction inversion isn't implemented yet")
     end
-    return TransferFunction(matrix, G.timeevol)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
