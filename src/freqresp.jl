@@ -19,10 +19,12 @@ Evaluate the frequency response of a linear system
 
 of system `sys` over the frequency vector `w`.
 """
-@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
-    te = sys.timeevol
+@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{W}) where W <: Real
+    te = timeevol(sys)
     ny,nu = noutputs(sys), ninputs(sys)
-    [evalfr(sys[i,j], _freq(w, te))[] for w in w_vec, i in 1:ny, j in 1:nu]
+    T = promote_type(Complex{real(numeric_type(sys))}, Complex{W})
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    freqresp!(R, sys, w_vec)
 end
 
 """
@@ -33,7 +35,7 @@ In-place version of [`freqresp`](@ref) that takes a pre-allocated array `R` of s
 function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real}) where T
     te = sys.timeevol
     ny,nu = noutputs(sys), ninputs(sys)
-    @boundscheck size(R) == (ny,nu,length(w))
+    @boundscheck size(R) == (ny,nu,length(w_vec))
     @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
         R[yi,ui,wi] = evalfr(sys[yi,ui], _freq(w_vec[wi], te))[]
     end
@@ -59,7 +61,7 @@ function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: 
 end
 @autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
-    @boundscheck size(R) == (ny,nu,length(w))
+    @boundscheck size(R) == (ny,nu,length(w_vec))
     PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if sys.nx == 0 # Only D-matrix
         @inbounds for i in eachindex(w_vec)
@@ -111,7 +113,7 @@ This function is called automatically if the Hessenberg factorization fails.
 freqresp_nohess
 @autovec () function freqresp_nohess!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
-    @boundscheck size(R) == (ny,nu,length(w))
+    @boundscheck size(R) == (ny,nu,length(w_vec))
     nx = sys.nx
     PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if nx == 0 # Only D-matrix

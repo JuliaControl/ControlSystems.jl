@@ -1,10 +1,8 @@
-function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
+function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}) where {T, W <: Real}
     ny = noutputs(sys)
     nu = ninputs(sys)
-
+    @boundscheck size(R) == (ny,nu,length(ω))
     P_fr = freqresp(sys.P.P, ω).parent
-
-    G_fr = zeros(eltype(P_fr), ny, nu, length(ω))
 
     cache = cis.(ω[1].*sys.Tau)
 
@@ -17,10 +15,9 @@ function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
         delay_matrix_inv_fr = Diagonal(cache) # Frequency response of the diagonal matrix with delays
         # Inverse of the delay matrix, so there should not be any minus signs in the exponents
 
-        G_fr[:,:,ω_idx] .= P11_fr .+ P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
+        R[:,:,ω_idx] .= P11_fr .+ P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
     end
-
-    return PermutedDimsArray(G_fr, (3,1,2))
+    return PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
 end
 
 function evalfr(sys::DelayLtiSystem, s)
