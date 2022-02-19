@@ -1,12 +1,10 @@
-struct TransferFunction{TE, S<:SisoTf{T} where T} <: LTISystem
+struct TransferFunction{TE, S<:SisoTf{T} where T} <: LTISystem{TE}
     matrix::Matrix{S}
     timeevol::TE
-    nu::Int
-    ny::Int
     function TransferFunction{TE,S}(matrix::Matrix{S}, timeevol::TE) where {S,TE}
         # Validate size of input and output names
         ny, nu = size(matrix)
-        return new{TE,S}(matrix, timeevol, nu, ny)
+        return new{TE,S}(matrix, timeevol)
     end
 end
 function TransferFunction(matrix::Matrix{S}, timeevol::TE) where {TE<:TimeEvolution, T<:Number, S<:SisoTf{T}}
@@ -35,6 +33,22 @@ Base.size(G::TransferFunction) = size(G.matrix)
 Base.eltype(::Type{S}) where {S<:TransferFunction} = S
 Base.zero(G::TransferFunction{TE,S}) where {TE,S} = tf(zeros(numeric_type(S), size(G)), G.timeevol) # can not create a zero of a discrete system from the type alone, the sampletime is not stored.
 
+function Base.getproperty(G::TransferFunction, s::Symbol)
+    s ∈ fieldnames(typeof(G)) && return getfield(G, s)
+    if s === :ny
+        return size(G, 1)
+    elseif s === :nu
+        return size(G, 2)
+    elseif s === :Ts
+        if isdiscrete(G)
+            return timeevol(G).Ts
+        else
+            @warn "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
+            return 0.0
+        end
+        throw(ArgumentError("$(typeof(G)) has no property named $s"))
+    end
+end
 
 function Base.getindex(G::TransferFunction{TE,S}, inds...) where {TE,S<:SisoTf}
     if size(inds, 1) != 2
@@ -82,9 +96,9 @@ end
 
 ## EQUALITY ##
 function ==(G1::TransferFunction, G2::TransferFunction)
-    fields = [:timeevol, :ny, :nu, :matrix]
+    fields = (:timeevol, :ny, :nu, :matrix)
     for field in fields
-        if getfield(G1, field) != getfield(G2, field)
+        if getproperty(G1, field) != getproperty(G2, field)
             return false
         end
     end
@@ -94,9 +108,9 @@ end
 ## Approximate ##
 function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
     G1, G2 = promote(G1, G2)
-    fieldsApprox = [:timeevol, :matrix]
+    fieldsApprox = (:timeevol, :matrix)
     for field in fieldsApprox
-        if !(isapprox(getfield(G1, field), getfield(G2, field); kwargs...))
+        if !(isapprox(getproperty(G1, field), getproperty(G2, field); kwargs...))
             return false
         end
     end
@@ -134,7 +148,11 @@ function *(G1::TransferFunction, G2::TransferFunction)
     # Note: G1*G2 = y <- G1 <- G2 <- u
     timeevol = common_timeevol(G1,G2)
     if G1.nu != G2.ny
-        error("G1*G2: G1 must have same number of inputs as G2 has outputs")
+        if issiso(G1) || issiso(G2)
+            error("G1*G2: G1 must have same number of inputs as G2 has outputs, did you intend to broadcast the multiplication?")
+        else
+            error("G1*G2: G1 must have same number of inputs as G2 has outputs")
+        end
     end
     matrix = G1.matrix * G2.matrix
     return TransferFunction(matrix, timeevol)
@@ -143,14 +161,31 @@ end
 *(G::TransferFunction, n::Number) = TransferFunction(n*G.matrix, G.timeevol)
 *(n::Number, G::TransferFunction) = *(G, n)
 
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::TransferFunction)
+    issiso(G1) || issiso(G2) || error("Only SISO transfer function can be broadcasted")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = common_timeevol(G1,G2)
+    matrix = G1.matrix .* G2.matrix
+    return TransferFunction(matrix, timeevol)
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::AbstractArray)
+    issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = G1.timeevol
+    matrix = G1.matrix .* G2
+    return TransferFunction(matrix, timeevol)
+end
+
 ## DIVISION ##
 function /(n::Number, G::TransferFunction)
     if issiso(G)
-        matrix = reshape([n/G.matrix[1,1]], 1, 1)
+        entry = n/G.matrix[1,1]
+        matrix = fill(entry, 1, 1)
+        return TransferFunction(matrix, G.timeevol)
     else
         error("MIMO TransferFunction inversion isn't implemented yet")
     end
-    return TransferFunction(matrix, G.timeevol)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)

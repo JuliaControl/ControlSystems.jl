@@ -141,8 +141,28 @@ D22 = [1.0 2.0; 3.0 4.0]
 @test convert(TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,ComplexF64}}, D22) == zpk(D22)
 @test convert(TransferFunction{Continuous,ControlSystems.SisoZpk{Float64,ComplexF64}}, b) == zpk(b)
 
+## Test some discrete conversions
+h = 0.1
+sysd = ss([0.5 1; 0 1], [0; 1], [1 0], 0, h)
+Gd = tf([1], [1, -1.5, 0.5], h)
+Hd = zpk([], [1, 0.5], 1.0, h)
+
+@test tf(sysd) ≈ Gd rtol=1e-15
+@test tf(Gd) == Gd
+@test tf(Hd) == Gd
+
+@test zpk(sysd) ≈ Hd rtol=1e-15
+@test zpk(Gd) == Hd
+@test zpk(Hd) == Hd
+
 
 # Error, not proper
 @test_throws ErrorException ss(tf([1,0],[1]))
+
+s1 = HeteroStateSpace(zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1))
+s2 = HeteroStateSpace(zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1))
+s3,s4 = promote(s1,s2)
+@test s3 == s4 == s2
+@test typeof(s3) == typeof(s4) == typeof(s2)
 
 end

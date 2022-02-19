@@ -131,24 +131,8 @@ function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     return sys1new*sys2new
 end
 
-blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
 
-function blockdiag(mats::AbstractMatrix{T}...) where T
-    rows = Int[size(m, 1) for m in mats]
-    cols = Int[size(m, 2) for m in mats]
-    res = zeros(T, sum(rows), sum(cols))
-    m = 1
-    n = 1
-    for ind=1:length(mats)
-        mat = mats[ind]
-        i = rows[ind]
-        j = cols[ind]
-        res[m:m + i - 1, n:n + j - 1] = mat
-        m += i
-        n += j
-    end
-    return res
-end
+blockdiag(anything...) = cat(anything..., dims=(1,2))
 
 
 """
@@ -186,7 +170,7 @@ function feedback(L::TransferFunction{<:TimeEvolution,T}) where T<:SisoRational
     end
     P = numpoly(L)
     Q = denpoly(L)
-    tf(P, P+Q, L.timeevol)
+    tf(P, P+Q, timeevol(L))
 end
 
 function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZpk}
@@ -199,12 +183,12 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
     kden = denpol[end] # Get coeff of s^n
     # Create siso system
     sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
-    return TransferFunction{TE,T}(fill(sisozpk,1,1), L.timeevol)
+    return TransferFunction{TE,T}(fill(sisozpk,1,1), timeevol(L))
 end
 
 function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), sys.timeevol))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)))
 end
 
 """
@@ -336,7 +320,7 @@ end
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
-    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S), P.timeevol)
+    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S), timeevol(P))
 end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

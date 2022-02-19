@@ -11,14 +11,14 @@ u = [u1 u2]^T
 y = [y1 y2]^T
 
 """
-struct PartionedStateSpace{S<:AbstractStateSpace} <: LTISystem
+struct PartionedStateSpace{TE<:TimeEvolution, S<:AbstractStateSpace{TE}} <: LTISystem{TE}
     P::S
     nu1::Int
     ny1::Int
 end
 # For converting between different S
-PartionedStateSpace{S}(partsys::PartionedStateSpace) where {S<:StateSpace} =
-    PartionedStateSpace{S}(S(partsys.P), partsys.nu1, partsys.ny1)
+PartionedStateSpace{TE, S}(partsys::PartionedStateSpace{TE}) where {TE, S<:StateSpace} =
+    PartionedStateSpace{TE, S}(S(partsys.P), partsys.nu1, partsys.ny1)
 
 function getproperty(sys::PartionedStateSpace, d::Symbol)
     P = getfield(sys, :P)
@@ -54,6 +54,10 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     else
         return getfield(P, d)
     end
+end
+
+function Base.propertynames(s::PartionedStateSpace, private::Bool=false)
+    (fieldnames(typeof(s))..., :B1, :B2, :C1, :C2, :D11, :D12, :D21, :D22, :nu, :ny, :nx, (isdiscrete(s) ? (:Ts,) : ())...)
 end
 
 timeevol(sys::PartionedStateSpace) = timeevol(sys.P)

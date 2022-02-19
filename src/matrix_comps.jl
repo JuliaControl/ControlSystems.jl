@@ -1,101 +1,91 @@
-"""`care(A, B, Q, R)`
+"""
+    are(::Continuous, A, B, Q, R)
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 
-Algorithm taken from:
-Laub, "A Schur Method for Solving Algebraic Riccati Equations."
-http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
+Uses `MatrixEquations.arec`.
 """
-function care(A, B, Q, R)
-    G = try
-        B*inv(R)*B'
-    catch y
-        if y isa SingularException
-            error("R must be non-singular in care.")
-        else
-            throw(y)
-        end
-    end
-
-    Z = [A  -G;
-        -Q  -A']
-
-    S = schur(Z)
-    S = ordschur(S, real(S.values).<0)
-    U = S.Z
-
-    (m, n) = size(U)
-    U11 = U[1:div(m, 2), 1:div(n,2)]
-    U21 = U[div(m,2)+1:m, 1:div(n,2)]
-    return U21/U11
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R)
+    arec(A, B, R, Q)[1]
 end
 
-"""`dare(A, B, Q, R)`
+"""
+    are(::Discrete, A, B, Q, R; kwargs...)
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
-Algorithm taken from:
-Laub, "A Schur Method for Solving Algebraic Riccati Equations."
-http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
+Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
 """
-function dare(A, B, Q, R)
-    if !issemiposdef(Q)
-        error("Q must be positive-semidefinite.");
-    end
-    if (!isposdef(R))
-        error("R must be positive definite.");
-    end
-
-    n = size(A, 1);
-
-    E = [
-        Matrix{Float64}(I, n, n) B*(R\B');
-        zeros(size(A)) A'
-    ];
-    F = [
-        A zeros(size(A));
-        -Q Matrix{Float64}(I, n, n)
-    ];
-
-    QZ = schur(F, E);
-    QZ = ordschur(QZ, abs.(QZ.alpha./QZ.beta) .< 1);
-
-    return QZ.Z[(n+1):end, 1:n]/QZ.Z[1:n, 1:n];
+function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
+    ared(A, B, R, Q; kwargs...)[1]
 end
 
-"""`dlyap(A, Q)`
+are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
+
+@deprecate care(args...; kwargs...) are(Continuous, args...; kwargs...)
+@deprecate dare(args...; kwargs...) are(Discrete, args...; kwargs...)
+
+"""
+    lyap(A, Q; kwargs...)
 
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
+
+Uses `MatrixEquations.lyapc / MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapc / ControlSystems.MatrixEquations.lyapd`
 """
-function dlyap(A::AbstractMatrix, Q)
-    lhs = kron(A, conj(A))
-    lhs = I - lhs
-    x = lhs\reshape(Q, prod(size(Q)), 1)
-    return reshape(x, size(Q))
+function LinearAlgebra.lyap(::DiscreteType, A::AbstractMatrix, Q; kwargs...)
+    lyapd(A, Q; kwargs...)
 end
 
-"""`gram(sys, opt)`
+LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyapc(args...; kwargs...)
+LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = lyapd(args...; kwargs...)
 
-Compute the grammian of system `sys`. If `opt` is `:c`, computes the
-controllability grammian. If `opt` is `:o`, computes the observability
-grammian."""
-function gram(sys::AbstractStateSpace, opt::Symbol)
+plyap(::ContinuousType, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
+plyap(::DiscreteType, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
+
+@deprecate dlyap(args...; kwargs...) lyap(Discrete, args...; kwargs...)
+
+
+"""
+    U = grampd(sys, opt; kwargs...)
+
+Return a Cholesky factor `U` of the grammian of system `sys`. If `opt` is `:c`, computes the
+controllability grammian `G = U*U'`. If `opt` is `:o`, computes the observability
+grammian `G = U'U`.
+
+Obtain a `Cholesky` object by `Cholesky(U)` for observability grammian
+
+Uses `MatrixEquations.plyapc/plyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.plyapc/plyapd`
+"""
+function grampd(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? lyap : dlyap
     if opt === :c
-        # TODO probably remove type check in julia 0.7.0
-        return func(sys.A, sys.B*sys.B')#::Array{numeric_type(sys),2} # lyap is type-unstable
+        plyap(sys.timeevol, sys.A, sys.B; kwargs...)
     elseif opt === :o
-        return func(Matrix(sys.A'), sys.C'*sys.C)#::Array{numeric_type(sys),2} # lyap is type-unstable
+        plyap(sys.timeevol, sys.A', sys.C'; kwargs...)
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
     end
+end
+
+"""
+    gram(sys, opt; kwargs...)
+
+Compute the grammian of system `sys`. If `opt` is `:c`, computes the
+controllability grammian. If `opt` is `:o`, computes the observability
+grammian.
+
+See also [`grampd`](@ref)
+For keyword arguments, see [`grampd`](@ref).
+"""
+function gram(sys::AbstractStateSpace, opt::Symbol; kwargs...)
+    U = grampd(sys, opt; kwargs...)
+    opt === :c ? U*U' : U'U
 end
 
 """
@@ -162,18 +152,20 @@ function covar(sys::AbstractStateSpace, W)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
+    isa(W, UniformScaling) && (W = I(size(B, 2)))
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? lyap : dlyap
-    Q = try
-        func(A, B*W*B')
+    Wc = cholesky(W).L
+    Q1 = sys.nx == 0 ? B*Wc : try
+        plyap(sys.timeevol, A, B*Wc)
     catch e
         @error("No solution to the Lyapunov equation was found in covar.")
         rethrow(e)
     end
-    P = C*Q*C'
-    if !isdiscrete(sys)
+    P1 = C*Q1
+    P = P1*P1'
+    if iscontinuous(sys)
         #Variance and covariance infinite for direct terms
         direct_noise = D*W*D'
         for i in 1:size(C,1)
@@ -194,7 +186,7 @@ covar(sys::TransferFunction, W) = covar(ss(sys), W)
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
 """
-`..  norm(sys, p=2; tol=1e-6)`
+    norm(sys, p=2; tol=1e-6)
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
@@ -211,7 +203,7 @@ It represents the desired relative accuracy for the computed L∞ norm
 """
 function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
     if p == 2
-        return sqrt(tr(covar(sys, I)))
+        return sqrt(max(0,tr(covar(sys, I))))
     elseif p == Inf
         return hinfnorm(sys; tol=tol)[1]
     else
@@ -222,7 +214,7 @@ LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p
 
 
 """
-`   (Ninf, ω_peak) = hinfnorm(sys; tol=1e-6)`
+    Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain Ninf is achieved.
@@ -250,7 +242,7 @@ hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
-`   (Ninf, ω_peak) = linfnorm(sys; tol=1e-6)`
+    Ninf, ω_peak = linfnorm(sys; tol=1e-6)
 
 Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain `Ninf` is achieved.
@@ -325,7 +317,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
                          opnorm(evalfr(sys, im*m_vec_init[2]));
                          opnorm(sys.D)])
     ω_peak = m_vec_init[idx]
-
+    lb == 0 && (return zero(T), zero(T))
     # Iterations
     for iter=1:maxIters
         gamma = (1+2*T(tol))*lb
@@ -500,56 +492,58 @@ Calculates a balanced realization of the system sys, such that the observability
 
 See also `gram`, `baltrunc`
 
-Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+Reference: Varga A., Balancing-free square-root algorithm for computing singular perturbation approximations.
 """
 function balreal(sys::ST) where ST <: AbstractStateSpace
-    P = gram(sys, :c)
-    Q = gram(sys, :o)
+    # This code is adapted from DescriptorSystems.jl
+    # originally written by Andreas Varga
+    # https://github.com/andreasvarga/DescriptorSystems.jl/blob/dd144828c3615bea2d5b4977d7fc7f9677dfc9f8/src/order_reduction.jl#L622
+    # with license https://github.com/andreasvarga/DescriptorSystems.jl/blob/main/LICENSE.md
+    A,B,C,D = ssdata(sys)
 
-    Q1 = try
-        cholesky(Hermitian(Q)).U
-    catch
-        throw(ArgumentError("Balanced realization failed: Observability grammian not positive definite, system needs to be observable"))
-    end
-    U,Σ,V = svd(Q1*P*Q1')
-    Σ .= sqrt.(Σ)
-    Σ1 = diagm(0 => sqrt.(Σ))
-    T = Σ1\(U'Q1)
+    SF = schur(A)
+    bs = SF.Z'*B
+    cs = C*SF.Z
 
-    Pz = T*P*T'
-    Qz = inv(T')*Q*inv(T)
-    if norm(Pz-Qz) > sqrt(eps())
-        @warn("balreal: Result may be inaccurate")
-        println("Controllability gramian before transform")
-        display(P)
-        println("Controllability gramian after transform")
-        display(Pz)
-        println("Observability gramian before transform")
-        display(Q)
-        println("Observability gramian after transform")
-        display(Qz)
-        println("Singular values of PQ")
-        display(Σ)
-    end
+    S = MatrixEquations.plyaps(SF.T, bs; disc = isdiscrete(sys))
+    R = MatrixEquations.plyaps(SF.T', cs'; disc = isdiscrete(sys))
+    SV = svd!(R*S)
 
-    sysr = ST(T*sys.A/T, T*sys.B, sys.C/T, sys.D, sys.timeevol), diagm(Σ), T
+    U,Σ,V = SV
+
+    # Determine the order of a minimal realization to √ϵ tolerance
+    rmin = count(Σ .> sqrt(eps())*Σ[1])
+    i1 = 1:rmin
+    Σ = Σ[i1]
+
+
+    hsi2 = Diagonal(1 ./sqrt.(Σ))
+    L = lmul!(R',view(U,:,i1))*hsi2
+    Tr = lmul!(S,V[:,i1])*hsi2
+    # return the minimal balanced system
+    T = L'SF.Z'
+    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Diagonal(Σ), T
 end
 
 
 """
-    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, unitgain=true, n = nothing)
+    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, n = nothing, residual = false)
 
 Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
 
 `T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
 
-If `unitgain=true`, the matrix `D` is chosen such that unit static gain is achieved.
+If `residual = true`, matched static gain is achieved through "residualization", i.e., setting
+```math
+0 = A_{21}x_{1} + A_{22}x_{2} + B_{2}u
+```
+where indices 1/2 correspond to the remaining/truncated states respectively.
 
 See also `gram`, `balreal`
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n = nothing) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
     S = diag(S)
     if n === nothing
@@ -559,19 +553,36 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, unitgain = true, n =
     else
         S = S[1:n]
     end
-    A = sysbal.A[1:n,1:n]
-    B = sysbal.B[1:n,:]
-    C = sysbal.C[:,1:n]
-    D = sysbal.D
-    if unitgain
-        D = D/(C*inv(-A)*B)
+    i1 = 1:n
+    if residual
+        A,B,C,D = ssdata(sysbal)
+        i2 = n+1:size(A, 1)
+        A11 = A[i1, i1]
+        A12 = A[i1, i2]
+        A21 = A[i2, i1]
+        A22 = -A[i2, i2]
+        isdiscrete(sys) && (A22 += I)
+        B1 = B[i1, :]
+        B2 = B[i2, :]
+        C1 = C[:, i1]
+        C2 = C[:, i2]
+        A2221 = A22\A21
+        A = A11 + A12*(A2221)
+        B = B1 + (A12/A22)*B2
+        C = C1 + C2*A2221
+        D = D + (C2/A22)*B2
+    else 
+        A = sysbal.A[i1,i1]
+        B = sysbal.B[i1,:]
+        C = sysbal.C[:,i1]
+        D = sysbal.D
     end
 
     return ST(A,B,C,D,sys.timeevol), diagm(S), T
 end
 
 """
-    syst = similarity_transform(sys, T)
+    syst = similarity_transform(sys, T; unitary=false)
 Perform a similarity transform `T : Tx̃ = x` on `sys` such that
 ```
 Ã = T⁻¹AT
@@ -579,37 +590,23 @@ B̃ = T⁻¹ B
 C̃ = CT
 D̃ = D
 ```
+
+If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
 """
-function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
-    Tf = factorize(T)
-    A = Tf\sys.A*T
-    B = Tf\sys.B
+function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
+    if unitary
+        A = T'sys.A*T
+        B = T'sys.B
+    else
+        Tf = factorize(T)
+        A = Tf\sys.A*T
+        B = Tf\sys.B
+    end
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
 end
 
-"""
-    syst, S = prescale(sys)
-Perform a eigendecomposition on system state-transition matrix `sys.A`.
-```
-Ã = S⁻¹AS
-B̃ = S⁻¹ B
-C̃ = CS
-D̃ = D
-```
-Such that `Ã` is diagonal.
-Returns a new scaled state-space object and the associated transformation
-matrix.
-"""
-function prescale(sys::AbstractStateSpace)
-    d, S = eigen(sys.A)
-    A = Diagonal(d)
-    B = S\sys.B
-    C = sys.C*S
-    normalized_sys = iscontinuous(sys) ? ss(A, B, C, sys.D) : ss(A, B, C, sys.D, sys.Ts)
-    return normalized_sys, S
-end
 
 """
     sysi = innovation_form(sys, R1, R2)
@@ -648,7 +645,7 @@ end
 Return the observer_predictor system
 x̂' = (A - KC)x̂ + (B-KD)u + Ky
 ŷ  = Cx + Du
-with the input equation [B K] * [u; y]
+with the input equation [B-KD K] * [u; y]
 
 If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
 

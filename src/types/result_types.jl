@@ -3,6 +3,28 @@ abstract type AbstractResult end # Common for all result types, e.g., SimResult 
 ## SimResult: the output of lsim etc. ==========================================
 abstract type AbstractSimResult <: AbstractResult end # Result of a time-domain simulation
 
+
+"""
+    SimResult{Ty, Tt, Tx, Tu, Ts} <: AbstractSimResult
+
+Result structure containing the results of time-domain simulations using `lsim, step, impulse`.
+The structure can be plotted using
+```julia
+result = lsim(...)
+plot(result, plotu=true, plotx=false)
+```
+and destructured like
+```julia
+y, t, x, u = result
+```
+
+# Fields:
+- `y::Ty`
+- `t::Tt`
+- `x::Tx`
+- `u::Tu`
+- `sys::Ts`
+"""
 struct SimResult{Ty, Tt, Tx, Tu, Ts} <: AbstractSimResult # Result of lsim
     y::Ty
     t::Tt

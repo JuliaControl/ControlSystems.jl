@@ -9,7 +9,7 @@
 # names: append "_n" if some inputs/outputs/states are named
 @testset "test_statespace" begin
     # SCALARS
-    for SS in (StateSpace, HeteroStateSpace)
+    for SS in (StateSpace, HeteroStateSpace), SS2 in (StateSpace, HeteroStateSpace)
         a_2 = [-5 -3; 2 -9]
         CS_111 = SS(-5, 2, 3, [0])
         CS_111_d = SS([3], 2, 1, 1)
@@ -20,9 +20,9 @@
         # CONTINUOUS
         a_1 = [-5]
         C_111 = SS(a_1, [2], [3], [0])
-        C_211 = SS(a_2, [1; 2], [1 0], [0])
-        C_212 = SS(a_2, [1; 2], eye_(2), [0; 0])
-        C_221 = SS(a_2, [1 0; 0 2], [1 0], [0 0])
+        C_211 = SS2(a_2, [1; 2], [1 0], [0])
+        C_212 = SS2(a_2, [1; 2], eye_(2), [0; 0])
+        C_221 = SS2(a_2, [1 0; 0 2], [1 0], [0 0])
         C_222 = SS(a_2, [1 0; 0 2], eye_(2), zeros(Int,2,2))
         C_222_d = SS(a_2, [1 0; 0 2], eye_(2), eye_(2))
         C_022 = SS(4.0*eye_(2))
@@ -31,8 +31,8 @@
         da_1 = [-0.5]
         da_2 = [0.2 -0.8; -0.8 0.07]
         D_111 = SS(da_1, [2], [3], [0], 0.005)
-        D_211 = SS(da_2, [1; 2], [1 0], [0], 0.005)
-        D_221 = SS(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
+        D_211 = SS2(da_2, [1; 2], [1 0], [0], 0.005)
+        D_221 = SS2(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
         D_222 = SS(da_2, [1 0; 0 2], eye_(2), zeros(2,2), 0.005)
         D_222_d = SS(da_2, [1 0; 0 2], eye_(2), eye_(2), 0.005)
         D_022 = SS(4.0*eye_(2), 0.005)
@@ -55,6 +55,17 @@
         @test C_222 + 1 == SS([-5 -3; 2 -9],[1 0; 0 2],[1 0; 0 1],[1 1; 1 1])
         @test D_111 + D_111 == SS([-0.5 0; 0 -0.5],[2; 2],[3 3],[0], 0.005)
 
+        @inferred C_111 + C_111
+
+        @test C_111 + false == C_111
+        @test false + C_111 == C_111
+        @test 1.0*C_111 + false == C_111
+
+        @inferred C_111 + false
+
+        @test C_222 + 1.5 == 1.0C_222 + 1.5 # C_222 has eltype Int
+        @test 1.5 + C_222 == 1.0C_222 + 1.5
+
         # Subtraction
         @test C_111 - C_211 == SS([-5 0 0; 0 -5 -3; 0 2 -9],[2; 1; 2],[3 -1 -0],[0])
         @test 1 - C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[-1 -0; -0 -1],[1 1; 1 1])
@@ -73,12 +84,21 @@
         @test minreal(C_111*C_222_d - C_222_d*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
         @test C_111*C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
 
+        @inferred C_111 * C_221
+        @inferred C_111 * I(2)
+
         # Division
         @test 1/C_222_d == SS([-6 -3; 2 -11],[1 0; 0 2],[-1 0; -0 -1],[1 -0; 0 1])
         @test C_221/C_222_d == SS([-5 -3 -1 0; 2 -9 -0 -2; 0 0 -6 -3;
         0 0 2 -11],[1 0; 0 2; 1 0; 0 2],[1 0 0 0],[0 0])
         @test 1/D_222_d == SS([-0.8 -0.8; -0.8 -1.93],[1 0; 0 2],[-1 0; -0 -1],
         [1 -0; 0 1],0.005)
+
+        fsys = ss(1,1,1,0)/3 # Int becomes FLoat after division
+        @test fsys.B[]*fsys.C[] == 1/3
+
+        @inferred 1/C_222_d
+        @inferred C_221/C_222_d
 
         # Indexing
         @test size(C_222) == (2, 2)
@@ -109,8 +129,8 @@
         @test D_111.Ts == 0.005
 
         # propertynames
-        @test propertynames(C_111) == (:A, :B, :C, :D, :timeevol)
-        @test propertynames(D_111) == (:A, :B, :C, :D, :timeevol, :Ts)
+        @test propertynames(C_111) == (:A, :B, :C, :D, :timeevol, :nu, :ny, :nx)
+        @test propertynames(D_111) == (:A, :B, :C, :D, :timeevol, :nu, :ny, :nx, :Ts)
 
         # Printing
         if SS <: StateSpace
@@ -120,7 +140,13 @@
             @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
         end
 
-    # Errors
+        # Different types
+        K1 = ss(I(2)) # Bool
+        K2 = ss(1.0I(2)) # Float64
+        P = ssrand(3,3,2)
+        @test lft(P, -K1) == lft(P, -K2)
+
+        # Errors
         @test_throws ErrorException C_111 + C_222             # Dimension mismatch
         @test_throws ErrorException C_111 - C_222             # Dimension mismatch
         @test_throws ErrorException D_111 + C_111             # Sampling time mismatch

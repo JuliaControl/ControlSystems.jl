@@ -101,6 +101,7 @@ the stability region of the complex plane.
 function dcgain(sys::LTISystem, ϵ=0)
     return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*sys.Ts))
 end
+dcgain(G::Union{UniformScaling, Number, AbstractMatrix}) = G
 
 """
     markovparam(sys, n)

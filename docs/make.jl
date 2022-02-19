@@ -53,6 +53,7 @@ makedocs(modules=[ControlSystems],
             "Time and Frequency response" => "lib/timefreqresponse.md",
             "Plotting" => "lib/plotting.md",
         ],
+        "API" => "api.md",
     ]
 )
 

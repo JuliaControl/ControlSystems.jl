@@ -4,6 +4,9 @@
 # {type}_{dims}
 # type: C: Continuous, D: Discrete
 # dims: "npnuny" (np = # poles)
+s = tf("s")
+@inferred 1.0/s
+@inferred 1/s
 
 # CONTINUOUS
 C_111 = tf([1, 2], [1, 5])
@@ -32,10 +35,18 @@ z = tf("z", 0.005)
 @test C_022 == tf([4 0;0 4])
 @test D_022 == tf([4 0;0 4], 0.005)
 
+@inferred tf([4 0;0 4])
+@inferred tf([4 0;0 4], 0.005)
+
 # Test equality
 @test tf([1,2], [2,3,4]) == tf(2*[1,2], 2*[2,3,4])
 @test tf([1.0], [2.0,3.0]) == tf(π*[1.0], π*[2.0,3.0])
 @test tf([1.0+2.0im], [2.0+im,3.0]) == tf((π+im)*[1+2.0im], (π+im)*[2.0+im,3.0])
+
+# Test inequality
+@test tf([1], [1]) != tf([2], [1])
+@test tf([1.0], [1.0,0.0]) != tf([1.0], [2.0,0.0])
+@test tf([1.0+2.0im], [2.0+im,3.0]) != tf([1+2.0im], [1.0+im,3.0])
 
 # Test approximate equlity
 # rtol should just be on the order of ϵ, no particular reason that exactly ϵ
@@ -57,12 +68,14 @@ z = tf("z", 0.005)
 @test C_222 + 1 == tf(vecarray(2, 2, [2,10,18], [1,9,17], [2,10,18], [1,9,17]),
   vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
 @test D_111 + D_111 == tf([2,3,-2], [1,-1,0.25], 0.005)
+@inferred C_111 + C_111
 
 # Subtraction
 @test C_111 - C_211 == tf([0,3,18,15], [1,13,55,75])
 @test 1 - C_222 == tf(vecarray(2, 2, [0,6,12], [1,7,13], [0,6,12], [1,7,13]), vecarray(2, 2, [1,8,15], [1,8,15], [1,8,15], [1,8,15]))
 # We are not doing enough to identify zero numerator here
 @test_broken D_111 - D_211 - tf([0,0.3,-2.55,1.2], [1,-0.7,-0.05,0.075], 0.005) == tf([0.0], [1], 0.005)
+@inferred C_111 - C_211
 
 # Multiplication
 @test C_111 * C_221 == tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
@@ -75,12 +88,19 @@ z = tf("z", 0.005)
 @test_broken D_111 * D_221 - tf(vecarray(1, 2, [1,4,7,6], [0,1,4,4]),
   vecarray(1, 2, [1,-0.7,-0.05,0.075], [1.0,-0.7,-0.05,0.075]), 0.005) ==
 tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
+@inferred C_111 * C_221
+
+@test tf(1) .* C_222 == C_222
+@test tf(1) .* I(2) == tf(I(2))
 
 # Division
 @test 1/C_111 == tf([1,5], [1,2])
 @test C_212/C_111 == tf(vecarray(2, 1, [1,7,13,15], [0,1,7,10]),
   vecarray(2, 1, [1,10,31,30], [1,10,31,30]))
 @test 1/D_111 == tf([1.0,-0.5], [1.0,2.0], 0.005)
+@inferred 1/C_111
+@inferred C_212/C_111
+@inferred 1/D_111
 
 # Indexing
 @test size(C_222) == (2, 2)

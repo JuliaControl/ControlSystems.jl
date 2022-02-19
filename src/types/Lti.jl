@@ -1,4 +1,4 @@
-abstract type LTISystem <: AbstractSystem end
+abstract type LTISystem{TE<:TimeEvolution} <: AbstractSystem end
 +(sys1::LTISystem, sys2::LTISystem) = +(promote(sys1, sys2)...)
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
 *(sys1::LTISystem, sys2::LTISystem) = *(promote(sys1, sys2)...)
@@ -72,7 +72,7 @@ function Base.getproperty(sys::LTISystem, s::Symbol)
 end
 
 Base.propertynames(sys::LTISystem, private::Bool=false) =
-    (fieldnames(typeof(sys))..., (isdiscrete(sys) ? (:Ts,) : ())...)
+    (fieldnames(typeof(sys))..., :nu, :ny, (isdiscrete(sys) ? (:Ts,) : ())...)
 
 
 
@@ -80,21 +80,12 @@ Base.propertynames(sys::LTISystem, private::Bool=false) =
 common_timeevol(systems::LTISystem...) = common_timeevol(timeevol(sys) for sys in systems)
 
 
-"""`isstable(sys)`
+"""
+    isstable(sys)
 
 Returns `true` if `sys` is stable, else returns `false`."""
-function isstable(sys::LTISystem)
-    if iscontinuous(sys)
-        if any(real.(poles(sys)).>=0)
-            return false
-        end
-    else
-        if any(abs.(poles(sys)).>=1)
-            return false
-        end
-    end
-    return true
-end
+isstable(sys::LTISystem{Continuous}) = all(real.(poles(sys)) .< 0)
+isstable(sys::LTISystem{<:Discrete}) = all(abs.(poles(sys)) .< 1)
 
 # Fallback since LTISystem not AbstractArray
 Base.size(sys::LTISystem, i::Integer) = size(sys)[i]

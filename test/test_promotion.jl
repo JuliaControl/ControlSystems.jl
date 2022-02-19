@@ -48,5 +48,10 @@ TG2 = typeof(G2)
 @test promote(ss(1), tf([1 .*im])) == (ss([1+0*im]),ss([1 .*im]))
 @test promote(tf(1), 1) == (tf(1.), tf(1.))
 
+T1 = HeteroStateSpace{Continuous, Matrix{Int64}, Matrix{Int64}, Matrix{Int32}, Matrix{Int64}}
+T2 = HeteroStateSpace{Continuous, Matrix{Float64}, Matrix{Float64}, Matrix{Float32}, Matrix{Float64}}
+@test promote_type(T1, T2) == T2
+
+
 
 end

@@ -93,12 +93,12 @@ s = tf("s")
 
     
 # Combination tf and ss
-@test [C_111 Ctf_221] == [C_111 ss(Ctf_221)]
-@test [C_111; Ctf_212] == [C_111; ss(Ctf_212)]
-@test append(C_111, Ctf_211) == append(C_111, ss(Ctf_211))
-@test [D_111 Dtf_221] == [D_111 ss(Dtf_221)]
-@test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
-@test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
+@test [C_111 Ctf_221] == [C_111 convert(StateSpace, Ctf_221, balance=false)]
+@test [C_111; Ctf_212] == [C_111; convert(StateSpace, Ctf_212, balance=false)]
+@test append(C_111, Ctf_211) == append(C_111, convert(StateSpace, Ctf_211, balance=false))
+@test [D_111 Dtf_221] == [D_111 convert(StateSpace, Dtf_221, balance=false)]
+@test [D_111; Dtf_212] == [D_111; convert(StateSpace, Dtf_212, balance=false)]
+@test append(D_111, Dtf_211) == append(D_111, convert(StateSpace, Dtf_211, balance=false))
 
 # Combination of DelayLtiSystem with TransferFunction and StateSpace
 @test [delay(1.0) tf(1, [1,2])] == [delay(1.0) ss(-2.0,1,1,0)]
@@ -173,10 +173,9 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 @test [C_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0])
 @test [1.0 C_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0])
 @test [C_111 1.0] isa StateSpace{Continuous,Float64}
-@test [C_111 1.0].Ts == 0.0
-@test_logs (:warn,
+@test (@test_logs (:warn,
             "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
-            ) [C_111 1.0].Ts
+            ) [C_111 1.0].Ts) == 0.0
 # Concatenation of discrete system with matrix
 @test [D_222 fill(1.5, 2, 2)] == [D_222 ss(fill(1.5, 2, 2),0.005)]
 @test [C_222 fill(1.5, 2, 2)] == [C_222 ss(fill(1.5, 2, 2))]

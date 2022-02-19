@@ -13,6 +13,7 @@ end
 # LQR design
 ```jldoctest; output = false
 using LinearAlgebra # For identity matrix I
+using Plots
 Ts      = 0.1
 A       = [1 Ts; 0 1]
 B       = [0 1]' # To handle bug TODO
@@ -20,13 +21,13 @@ C       = [1 0]
 sys     = ss(A,B,C,0, Ts)
 Q       = I
 R       = I
-L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
 t       =0:Ts:5
 x0      = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
-Plots.plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
+plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 
 save_docs_plot("lqrplot.svg"); # hide
 
@@ -53,13 +54,14 @@ we notice that the sensitivity function is a bit too high around frequencies ω 
 function `loopshapingPI` and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
 
 ```jldoctest PIDDESIGN; output = false
+using Plots
 ωp = 0.8
 kp,ki,C = loopshapingPI(P,ωp,phasemargin=60)
 
 p1 = gangoffourplot(P, [tf(1), C]);
 p2 = nyquistplot([P, P*C], ylims=(-1,1), xlims=(-1.5,1.5));
 
-Plots.plot(p1,p2, layout=(2,1), size=(800,800))
+plot(p1,p2, layout=(2,1), size=(800,800))
 # save_docs_plot("pidgofplot2.svg") # hide
 # save_docs_plot("pidnyquistplot.svg"); # hide
 save_docs_plot("pidgofnyquistplot.svg") # hide
@@ -71,13 +73,14 @@ save_docs_plot("pidgofnyquistplot.svg") # hide
 
 We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like
 ```jldoctest PIDDESIGN; output = false
+using Plots
 ωp = 2
 kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)
 
 p1 = gangoffourplot(P, [tf(1), C60]);
 p2 = nyquistplot([P, P*C60], ylims=(-2,2), xlims=(-3,3));
 
-Plots.plot(p1,p2, layout=(2,1), size=(800,800))
+plot(p1,p2, layout=(2,1), size=(800,800))
 
 # gangoffourplot(P, [tf(1), C60]) # hide
 # save_docs_plot("pidgofplot3.svg") # hide

@@ -1,28 +1,31 @@
 """
-    lqr(A, B, Q, R)
+    lqr(sys, Q, R)
+    lqr(Continuous, A, B, Q, R, args...; kwargs...)
+    lqr(Discrete, A, B, Q, R, args...; kwargs...)
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
 
-J = integral(x'Qx + u'Ru, 0, inf).
-
-For the continuous time model `dx = Ax + Bu`.
-
-`lqr(sys, Q, R)`
+J = integral(x'Qx + u'Ru, 0, inf) for the continuous-time model `dx = Ax + Bu`.
+J = sum(x'Qx + u'Ru, 0, inf) for the discrete-time model `x[k+1] = Ax[k] + Bu[k]`.
 
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
 
-Usage example:
+The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec / ared` for more help.
+
+# Examples
+Continuous time
 ```julia
 using LinearAlgebra # For identity matrix I
+using Plots
 A = [0 1; 0 0]
-B = [0;1]
+B = [0; 1]
 C = [1 0]
 sys = ss(A,B,C,0)
 Q = I
 R = I
-L = lqr(sys,Q,R)
+L = lqr(sys,Q,R) # lqr(Continuous,A,B,Q,R) can also be used
 
 u(x,t) = -L*x # Form control law,
 t=0:0.1:5
@@ -30,62 +33,19 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 ```
-"""
-function lqr(A, B, Q, R)
-    S = care(A, B, Q, R)
-    K = R\B'*S
-    return K
-end
 
-"""
-    kalman(A, C, R1, R2)
-    kalman(sys, R1, R2)
-
-Calculate the optimal Kalman gain
-"""
-kalman(A, C, R1,R2) = Matrix(lqr(A',C',R1,R2)')
-
-function lqr(sys::AbstractStateSpace, Q, R)
-    if iscontinuous(sys)
-        return lqr(sys.A, sys.B, Q, R)
-    else
-        return dlqr(sys.A, sys.B, Q, R)
-    end
-end
-
-function kalman(sys::AbstractStateSpace, R1,R2)
-    if iscontinuous(sys)
-        return Matrix(lqr(sys.A', sys.C', R1,R2)')
-    else
-        return Matrix(dlqr(sys.A', sys.C', R1,R2)')
-    end
-end
-
-
-"""
-    dlqr(A, B, Q, R)
-    dlqr(sys, Q, R)
-
-Calculate the optimal gain matrix `K` for the state-feedback law `u[k] = -K*x[k]` that
-minimizes the cost function:
-
-J = sum(x'Qx + u'Ru, 0, inf).
-
-For the discrte time model `x[k+1] = Ax[k] + Bu[k]`.
-
-See also `lqg`
-
-Usage example:
+Discrete time
 ```julia
 using LinearAlgebra # For identity matrix I
+using Plots
 Ts = 0.1
 A = [1 Ts; 0 1]
 B = [0;1]
 C = [1 0]
-sys = ss(A,B,C,0, Ts)
+sys = ss(A, B, C, 0, Ts)
 Q = I
 R = I
-L = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+L = lqr(Discrete, A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t) = -L*x # Form control law,
 t=0:Ts:5
@@ -94,25 +54,42 @@ y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 """
-function dlqr(A, B, Q, R)
-    S = dare(A, B, Q, R)
-    K = (B'*S*B + R)\(B'S*A)
+function lqr(::ContinuousType, A, B, Q, R, args...; kwargs...)
+    S, _, K = arec(A, B, R, Q, args...; kwargs...)
     return K
 end
 
-function dlqr(sys::AbstractStateSpace, Q, R)
-    !isdiscrete(sys) && throw(ArgumentError("Input argument sys must be discrete-time system"))
-    return dlqr(sys.A, sys.B, Q, R)
+function lqr(::DiscreteType, A, B, Q, R, args...; kwargs...)
+    S, _, K = ared(A, B, R, Q, args...; kwargs...)
+    return K
 end
 
-"""
-    dkalman(A, C, R1, R2)
-    dkalman(sys, R1, R2)
+@deprecate lqr(A::AbstractMatrix, args...; kwargs...)  lqr(Continuous, A, args...; kwargs...)
+@deprecate dlqr(args...; kwargs...)  lqr(Discrete, args...; kwargs...)
 
-Calculate the optimal Kalman gain for discrete time systems
+
 
 """
-dkalman(A, C, R1,R2) = Matrix(dlqr(A',C',R1,R2)')
+    kalman(Continuous, A, C, R1, R2)
+    kalman(Discrete, A, C, R1, R2)
+    kalman(sys, R1, R2)
+
+Calculate the optimal Kalman gain
+
+The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec/ared` for more help.
+"""
+kalman(te, A, C, R1,R2, args...; kwargs...) = Matrix(lqr(te, A',C',R1,R2, args...; kwargs...)')
+
+function lqr(sys::AbstractStateSpace, Q, R, args...; kwargs...)
+    return lqr(sys.timeevol, sys.A, sys.B, Q, R, args...; kwargs...)
+end
+
+function kalman(sys::AbstractStateSpace, R1, R2, args...; kwargs...)
+    return Matrix(lqr(sys.timeevol, sys.A', sys.C', R1,R2, args...; kwargs...)')
+end
+
+@deprecate kalman(A::AbstractMatrix, args...; kwargs...)  kalman(Continuous, A, args...; kwargs...)
+@deprecate dkalman(args...; kwargs...)  kalman(Discrete, args...; kwargs...)
 
 """
     place(A, B, p, opt=:c)

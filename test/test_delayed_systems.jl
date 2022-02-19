@@ -109,7 +109,7 @@ d = exp(-2*s)
 # Test for internal function delayd_ss
 @test freqresp(ControlSystems.delayd_ss(1.0, 0.2), Ω)[:] ≈ exp.(-im*Ω) atol=1e-14
 @test freqresp(ControlSystems.delayd_ss(3.2, 0.4), Ω)[:] ≈ exp.(-3.2*im*Ω) atol=1e-14
-@test_throws ErrorException freqresp(ControlSystems.delayd_ss(3.2, 0.5), Ω)
+@test_throws ErrorException ControlSystems.delayd_ss(3.2, 0.5)
 
 # Simple tests for c2d of DelayLtiSystems
 @test freqresp(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
@@ -156,7 +156,7 @@ w = 10 .^ (-2:0.1:2)
 @test freqresp(s11, w) ≈ freqresp(f2[1,1], w) rtol=1e-15
 
 
-@test propertynames(delay(1.0)) == (:P, :Tau)
+@test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny)
 
 
 #FIXME: A lot more tests, including MIMO systems in particular

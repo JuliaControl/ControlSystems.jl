@@ -21,6 +21,9 @@ Base.promote_rule(::Type{StateSpace{TE1,T1}}, ::Type{StateSpace{TE2,T2}}) where 
 Base.promote_rule(::Type{StateSpace{TE1,T}}, ::Type{HeteroStateSpace{TE2,AT,BT,CT,DT}}) where {TE1,TE2,T,AT,BT,CT,DT} =
     HeteroStateSpace{promote_type(TE1, TE2),promote_type(Matrix{T},AT),promote_type(Matrix{T},BT),promote_type(Matrix{T},CT),promote_type(Matrix{T},DT)}
 
+Base.promote_rule(::Type{HeteroStateSpace{TE1,AT,BT,CT,DT}}, ::Type{HeteroStateSpace{TE2,AS,BS,CS,DS}}) where {TE1,TE2,AT,BT,CT,DT,AS,BS,CS,DS} =
+    HeteroStateSpace{promote_type(TE1,TE2),promote_type(AT,AS),promote_type(BT,BS),promote_type(CT,CS),promote_type(DT,DS)}
+
 Base.promote_rule(::Type{TransferFunction{TE1,S1}}, ::Type{StateSpace{TE2,T2}}) where {TE1,TE2,T1,S1<:SisoTf{T1},T2} =
     StateSpace{promote_type(TE1, TE2), promote_type(T1,T2)}
 

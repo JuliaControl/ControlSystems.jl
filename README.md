@@ -20,14 +20,9 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
-### 2021-01
-- *Breaking*: Support for julia versions older than 1.3 is dropped
-- *Breaking*: `c2d(::StateSpace)` now returns only the system, not the `x0map`. See `c2d_x0map` for the old functionality.
-- System order can be specified in `baltrunc`.
-- New discretization methods in `c2d`. We now support `:zoh,:foh,:fwdeuler,:tustin`
-- Symbolic computation utilities in [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl)
-
-More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/releases).
+### 2022-02
+- *Breaking*: `Plots.jl` is no longer loaded by `ControlSystems.jl`. This improves loading times for the package, but means that users will have to run `using Plots` manually before plotting functions are available.
+- *Deprecations*: Functions `dare/dlyap/dkalman/dlqr` are now deprecated in favor of an interface that uses dispatch on the types `Continuous / Discrete`. Example: `dare(A,B,Q,R)` is now `are(Discrete,A,B,Q,R)` or `are(sysd,Q,R)`.
 
 ### 2021-11
 - Time-domain simuations now return a result structure (non breaking)
@@ -50,19 +45,19 @@ A documentation website is available at [http://juliacontrol.github.io/ControlSy
 
 Some of the available commands are:
 ##### Constructing systems
-ss, tf, zpk
+`ss, tf, zpk`
 ##### Analysis
-poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
+`poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin`
 ##### Synthesis
-care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
+`are, lyap, lqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc`
 ###### PID design
-pid, stabregionPID, loopshapingPI, pidplots
+`pid, stabregionPID, loopshapingPI, pidplots`
 ##### Time and Frequency response
-step, impulse, lsim, freqresp, evalfr, bode, nyquist
+`step, impulse, lsim, freqresp, evalfr, bode, nyquist`
 ##### Plotting
-lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
+`lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve`
 ##### Other
-minreal, sminreal, c2d
+`minreal, sminreal, c2d`
 ## Usage
 
 This toolbox works similar to that of other major computer-aided control
@@ -103,7 +98,8 @@ CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
 
 # Plot the step response of the controllers
 # Any keyword arguments supported in Plots.jl can be supplied
-stepplot(CLs, label=["Kp = 1" "Kp = 5" "Kp = 15"])
+using Plots
+plot(step.(CLs, 5), label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ```
 
 ![StepResponse](/example/step_response.png)

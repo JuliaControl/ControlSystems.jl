@@ -22,8 +22,9 @@ function getexamples()
 
     stepgen() = plot(step(sys, ts[end]), l=(:dash, 4))
     impulsegen() = plot(impulse(sys, ts[end]), l=:blue)
-    L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
+    L = lqr(sysss, [1 0; 0 1], [1 0; 0 1])
     lsimgen() = plot(lsim(sysss, (x,i)->-L*x, ts; x0=[1;2]), plotu=true)
+    plot(lsim.([sysss, sysss], (x,i)->-L*x, Ref(ts); x0=[1;2]), plotu=true, plotx=true)
 
     margingen() = marginplot([tf1, tf2], ws)
     gangoffourgen() = begin
@@ -36,7 +37,7 @@ function getexamples()
     refs = ["bode.png", "nyquist.png", "sigma.png", "nichols.png", "step.png",
             "impulse.png", "lsim.png", "margin.png", "gangoffour.png", "pzmap.png", "rlocus.png"]
     funcs = [bodegen, nyquistgen, sigmagen, nicholsgen, stepgen,
-             impulsegen, lsimgen, margingen, gangoffourgen, pzmapgen, rlocusgen]
+             impulsegen, lsimgen, margingen, gangoffourgen, pzmapgen, rlocusgen]    
 
     funcs, refs
 end

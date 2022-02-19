@@ -83,18 +83,28 @@ end
 @deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
 
-
-function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
-    P          = numpoly(G)[1]
-    Q          = denpoly(G)[1]
-    f          = (y,_,k) -> sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
-    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
+function getpoles(G, K)
+    G isa TransferFunction || (G = tf(G))
+    P = numpoly(G)[1]
+    Q = denpoly(G)[1]
+    T = float(eltype(K))
+    ϵ = eps(T)
+    f = function (y,_,k)
+        if k == 0 && length(P) > length(Q) 
+            # More zeros than poles, make sure the vector of roots is of correct length when k = 0
+            # When this happens, there are fewer poles for k = 0, these poles can be seen as beeing located somewhere at Inf
+            # We get around the problem by not allowing k = 0 for non-proper systems.
+            k = ϵ
+        end
+        sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
+    end
+    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0),(0,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     ts         = Vector{Float64}()
     poleout    = Vector{Vector{ComplexF64}}()
     for i in integrator
-       push!(poleout,integrator.k[1])
-       push!(ts,integrator.t[1])
+        push!(poleout,integrator.k[1])
+        push!(ts,integrator.t[1])
     end
     poleout = hcat(poleout...)'
     poleout, ts
@@ -111,16 +121,17 @@ range(1e-6,stop=500,length=10000) is used.
 If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffEq`), `rlocusplot` will use an adaptive step-size algorithm to
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
-rlocus
-@recipe function rlocus(p::Rlocusplot; K=500)
+rlocusplot
+@recipe function rlocusplot(p::Rlocusplot; K=500)
     P = p.args[1]
     K = K isa Number ? range(1e-6,stop=K,length=10000) : K
     Z = tzeros(P)
-    poles, K = getpoles(P,K)
-    redata = real.(poles)
-    imdata = imag.(poles)
-    ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
-    xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    roots, K = getpoles(P,K)
+    redata = real.(roots)
+    imdata = imag.(roots)
+    
+    ylims --> (max(-50,minimum(imdata) - 1), min(50,maximum(imdata) + 1))
+    xlims --> (max(-50,minimum(redata) - 1), clamp(maximum(redata) + 1, 1, 50))
     framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
@@ -128,9 +139,7 @@ rlocus
     form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
     @series begin
         legend --> false
-        ylims  --> ylim
-        xlims  --> xlim
-        hover := "K=" .* form.(K,poles)
+        hover := "K=" .* form.(K,roots)
         label := ""
         redata, imdata
     end
@@ -225,7 +234,7 @@ See also `Leadlink, leadlinkat`
 function leadlinkcurve(start=1)
     N = range(start, stop=10, length=50)
     dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
-    Plots.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
+    RecipesBase.plot(N,dph, xlabel="N", ylabel="Phase advance [deg]")
 end
 
 
@@ -253,7 +262,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, doplo
     phi = angle.(Pv)
     kp  = -cos.(phi)./r
     ki  = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
+    RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 
@@ -263,7 +272,7 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = kd.*ω.^2 .- ω.*sin.(phi)./r
-    Plots.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
+    RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))"), kp, ki
 end
 
 

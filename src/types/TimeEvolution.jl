@@ -61,3 +61,7 @@ common_timeevol(x::Continuous, ys::Continuous...) = Continuous()
 isapprox(x::TimeEvolution, y::TimeEvolution, args...; kwargs...) = false
 isapprox(x::Discrete, y::Discrete, args...; kwargs...) = isapprox(x.Ts, y.Ts, args...; kwargs...)
 isapprox(::Continuous, ::Continuous, args...; kwargs...) = true
+
+const TimeEvolType = Union{<:TimeEvolution, Type{<:TimeEvolution}}
+const DiscreteType = Union{Discrete, Type{Discrete}}
+const ContinuousType = Union{Continuous, Type{Continuous}}

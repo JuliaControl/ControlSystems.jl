@@ -11,6 +11,7 @@ sysr, G = balreal(sys)
 @test sort(poles(sysr)) ≈ sort(poles(sys))
 
 sysb,T = ControlSystems.balance_statespace(sys)
+@test similarity_transform(sysb, T) ≈ sys
 Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 
 @test Ab*T ≈ T*A
@@ -18,6 +19,16 @@ Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 @test Cb*T ≈ C
 
 @test sysb.A ≈ Ab
+@test similarity_transform(sysb, T) ≈ sys
+
+
+U = svd(randn(2,2)).U
+syst = similarity_transform(sys, U, unitary = true)
+Ab,Bb,Cb,Db = ssdata(syst)
+@test Ab ≈ U'A*U
+@test Bb ≈ U'B
+@test Cb ≈ C*U
+
 
 @test ControlSystems.balance_transform(A,B,C) ≈ ControlSystems.balance_transform(sys)
 
@@ -70,11 +81,6 @@ syst = similarity_transform(sys, Tr)
 @test sys.B ≈ Tr*syst.B
 @test sys.C*Tr ≈ syst.C
 
-nsys, T = prescale(sys)
-@test isdiag(nsys.A)
-@test T*nsys.A ≈ sys.A*T
-@test T*nsys.B ≈ sys.B
-@test nsys.C ≈ sys.C*T
 
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
 sysi = ControlSystems.innovation_form(sys, I, I)

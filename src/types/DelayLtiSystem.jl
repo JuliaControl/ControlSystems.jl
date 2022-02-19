@@ -3,8 +3,8 @@
 
 Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
 """
-struct DelayLtiSystem{T,S<:Real} <: LTISystem
-    P::PartionedStateSpace{StateSpace{Continuous,T}}
+struct DelayLtiSystem{T,S<:Real} <: LTISystem{Continuous}
+    P::PartionedStateSpace{Continuous, StateSpace{Continuous,T}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
 
     # function DelayLtiSystem(P::StateSpace{Continuous,T, MT}, Tau::Vector{T})
@@ -33,11 +33,11 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
         throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
 
-    psys = PartionedStateSpace{StateSpace{Continuous,T}}(sys, nu, ny)
+    psys = PartionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys, nu, ny)
     DelayLtiSystem{T,S}(psys, Tau)
 end
 # For converting DelayLtiSystem{T,S} to different T
-DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{StateSpace{Continuous,T}}(sys.P), Float64[])
+DelayLtiSystem{T}(sys::DelayLtiSystem) where {T} = DelayLtiSystem{T}(PartionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys.P), Float64[])
 DelayLtiSystem{T}(sys::StateSpace) where {T} = DelayLtiSystem{T, Float64}(sys, Float64[])
 
 # From StateSpace, infer type

@@ -73,6 +73,9 @@ end
 Base.convert(::Type{HeteroStateSpace{TE1,AT,BT,CT,DT}}, s::StateSpace{TE2,T}) where {TE1,TE2,T,AT,BT,CT,DT} =
     HeteroStateSpace{TE1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TE1(s.timeevol))
 
+Base.convert(::Type{HeteroStateSpace{TE,AT,BT,CT,DT}}, s::HeteroStateSpace) where {TE,AT,BT,CT,DT} =
+    HeteroStateSpace{TE,AT,BT,CT,DT}(AT(s.A),BT(s.B),CT(s.C),DT(s.D),TE(s.timeevol))
+
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace) = StateSpace(s.A, s.B, s.C, s.D, s.Ts)
@@ -83,7 +86,8 @@ function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; 
     convert(StateSpace{TE,T}, G; kwargs...)
 end
 
-function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=false) where {TE,T<:Number}
+# Note: balancing is only applied by default for floating point types, integer systems are not balanced since that would change the type. 
+function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T <: Integer)) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -114,7 +118,7 @@ function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=fal
         end
     end
     if balance
-        A, B, C = balance_statespace(A, B, C)[1:3] 
+        A, B, C = balance_statespace(A, B, C)
     end
     return StateSpace{TE,T}(A, B, C, D, TE(G.timeevol))
 end
@@ -156,15 +160,16 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
 end
 
 """
-`A, B, C, T = balance_statespace{S}(A::Matrix{S}, B::Matrix{S}, C::Matrix{S}, perm::Bool=false)`
-
-`sys, T = balance_statespace(sys::StateSpace, perm::Bool=false)`
+    A, B, C, T = balance_statespace{S}(A::Matrix{S}, B::Matrix{S}, C::Matrix{S}, perm::Bool=false)
+    sys, T = balance_statespace(sys::StateSpace, perm::Bool=false)
 
 Computes a balancing transformation `T` that attempts to scale the system so
 that the row and column norms of [T*A/T T*B; C/T 0] are approximately equal.
 If `perm=true`, the states in `A` are allowed to be reordered.
 
-This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see `balreal`
+The inverse of `sysb, T = balance_statespace(sys)` is given by `similarity_transform(sysb, T)`
+
+This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see [`balreal`](@ref)
 """
 function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
     try
