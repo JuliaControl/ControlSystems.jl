@@ -222,3 +222,8 @@ save_docs_plot("pidplotsgof2.svg"); # hide
 ```
 ![](../../plots/pidplotsnyquist2.svg)
 ![](../../plots/pidplotsgof2.svg)
+
+# Further examples
+See the [examples folder](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example) as well as the notebooks in [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl).
+
+See also [the paper introducing the toolbox](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) with [supplementary material](https://github.com/JuliaControl/CDC2021).
