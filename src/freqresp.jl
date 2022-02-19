@@ -25,6 +25,21 @@ of system `sys` over the frequency vector `w`.
     [evalfr(sys[i,j], _freq(w, te))[] for w in w_vec, i in 1:ny, j in 1:nu]
 end
 
+"""
+    freqresp!(R::Array{T, 3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
+
+In-place version of [`freqresp`](@ref) that takes a pre-allocated array `R` of size (ny, nu, nw)`
+"""
+function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real}) where T
+    te = sys.timeevol
+    ny,nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny,nu,length(w))
+    @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
+        R[yi,ui,wi] = evalfr(sys[yi,ui], _freq(w_vec[wi], te))[]
+    end
+    PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
+end
+
 @autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
     repeat(G, 1, 1, length(w_vec))
 end
@@ -36,12 +51,21 @@ end
 _freq(w, ::Continuous) = complex(0, w)
 _freq(w, te::Discrete) = cis(w*te.Ts)
 
-@autovec () function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
     ny, nu = size(sys)
     T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    freqresp!(R, sys, w_vec)
+end
+@autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
+    ny, nu = size(sys)
+    @boundscheck size(R) == (ny,nu,length(w))
     PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if sys.nx == 0 # Only D-matrix
-        return PDT(repeat(T.(sys.D), 1, 1, length(w_vec)))
+        @inbounds for i in eachindex(w_vec)
+            R[:,:,i] .= sys.D
+        end
+        return PDT(R)
     end
     local F, Q
     try
@@ -49,7 +73,7 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
         Q = Matrix(F.Q)
     catch e
         # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
-        e isa MethodError && return freqresp_nohess(sys, w_vec)
+        e isa MethodError && return freqresp_nohess!(R, sys, w_vec)
         rethrow()
     end
     A = F.H
@@ -58,9 +82,8 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
     D = sys.D
 
     te = sys.timeevol
-    R = Array{T, 3}(undef, ny, nu, length(w_vec))
     Bc = similar(B, T) # for storage
-    for i in eachindex(w_vec)
+    @inbounds for i in eachindex(w_vec)
         Ri = @views R[:,:,i]
         copyto!(Ri,D) # start with the D-matrix
         isinf(w_vec[i]) && continue
@@ -72,6 +95,13 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
     PDT(R) # PermutedDimsArray doesn't allocate to perform the permutation
 end
 
+function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+    ny, nu = size(sys)
+    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    freqresp_nohess!(R, sys, w_vec)
+end
+
 """
     freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{<:Real})
 
@@ -79,20 +109,22 @@ Compute the frequency response of `sys` without forming a Hessenberg factorizati
 This function is called automatically if the Hessenberg factorization fails.
 """
 freqresp_nohess
-@autovec () function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+@autovec () function freqresp_nohess!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
+    @boundscheck size(R) == (ny,nu,length(w))
     nx = sys.nx
-    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
     PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if nx == 0 # Only D-matrix
-        return PDT(repeat(T.(sys.D), 1, 1, length(w_vec)))
+        @inbounds for i in eachindex(w_vec)
+            R[:,:,i] .= sys.D
+        end
+        return PDT(R)
     end
     A,B,C,D = ssdata(sys)
     te = sys.timeevol
-    R = Array{T, 3}(undef, ny, nu, length(w_vec))
     Ac = (A+one(T)*I) # for storage
     Adiag = diagind(A)
-    for i in eachindex(w_vec)
+    @inbounds for i in eachindex(w_vec)
         Ri = @views R[:,:,i]
         copyto!(Ri,D) # start with the D-matrix
         isinf(w_vec[i]) && continue

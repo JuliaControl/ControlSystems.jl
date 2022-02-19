@@ -72,7 +72,7 @@ export  LTISystem,
         solve,
         Simulator,
         # Frequency Response
-        freqresp, freqrespv,
+        freqresp, freqrespv, freqresp!,
         evalfr,
         bode, bodev,
         nyquist, nyquistv,
