@@ -10,6 +10,7 @@ G = ss([-5 0 0 0; 0 -1 -2.5 0; 0 4 0 0; 0 0 0 -6], [2 0; 0 1; 0 0; 0 2],
 @test evalfr(H, -5) == [0.0 -0.5; Inf 2.0]
 @test evalfr(H, -1) == [0.0 -0.3; 0.0 0.4]
 @test evalfr(H, 0) ≈ [0.0 0.0; 0.2 1/3]
+@inferred evalfr(H, 0)
 
 @test (@test_logs (:warn, "Got exception SingularException(4), returning Inf") evalfr(G, -6)) == [Inf Inf; Inf Inf]
 @test (@test_logs (:warn, "Got exception SingularException(1), returning Inf") evalfr(G, -5)) == [Inf Inf; Inf Inf]
@@ -33,6 +34,9 @@ resp1 = ones(ComplexF64, length(w), 1, 1)
 @test freqresp(sys1s, w) == resp1
 @test freqresp(G1, w) == resp1
 @test freqresp(H1, w) == resp1
+@inferred freqresp(sys1, w)
+@inferred freqresp(G1, w)
+@inferred freqresp(H1, w)
 
 for G in [2, 2I, 2I(2), randn(2,2)]
     @test dcgain(G) == G
@@ -57,6 +61,11 @@ resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
 @test freqresp(sys2s, w) ≈ resp2 rtol=1e-15
 @test freqresp(G2, w) == resp2
 @test freqresp(H2, w) == resp2
+
+@inferred freqresp(sys2, w)
+@inferred freqresp(sys2s, w)
+@inferred freqresp(G2, w)
+@inferred freqresp(H2, w)
 
 
 ## Complex-coefficient system

@@ -39,8 +39,9 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
 @autovec () function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
     ny, nu = size(sys)
     T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if sys.nx == 0 # Only D-matrix
-        return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
+        return PDT(repeat(T.(sys.D), 1, 1, length(w_vec)))
     end
     local F, Q
     try
@@ -68,7 +69,7 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
         ldiv!(A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PermutedDimsArray(R, (3,1,2)) # PermutedDimsArray doesn't allocate to perform the permutation
+    PDT(R) # PermutedDimsArray doesn't allocate to perform the permutation
 end
 
 """
@@ -82,8 +83,9 @@ freqresp_nohess
     ny, nu = size(sys)
     nx = sys.nx
     T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if nx == 0 # Only D-matrix
-        return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
+        return PDT(repeat(T.(sys.D), 1, 1, length(w_vec)))
     end
     A,B,C,D = ssdata(sys)
     te = sys.timeevol
@@ -100,7 +102,7 @@ freqresp_nohess
         Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PermutedDimsArray(R, (3,1,2)) # PermutedDimsArray doesn't allocate to perform the permutation
+    PDT(R) # PermutedDimsArray doesn't allocate to perform the permutation
 end
 
 
