@@ -127,10 +127,16 @@ function unwrap!(M::Array, dim=1)
 end
 
 #Collect will create a copy and collect the elements
+"""
+    unwrap(m::AbstractArray, args...)
+
+Unwrap a vector of phase angles (radians) in (-π, π) such that it does not wrap around the edges -π and π, i.e., the result may leave the range (-π, π).
+"""
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
 
-"""outs = index2range(ind1, ind2)
+"""
+    outs = index2range(ind1, ind2)
 
 Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
@@ -139,7 +145,8 @@ index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
 
-"""@autovec (indices...) f() = (a, b, c)
+"""
+    @autovec (indices...) f() = (a, b, c)
 
 A macro that helps in creating versions of functions where excessive dimensions are
 removed automatically for specific outputs. `indices` contains each index for which

@@ -224,7 +224,7 @@ function leadlinkat(ω, N, K; h=nothing, Ts=0)
 end
 
 """
-leadlinkcurve(start=1)
+    leadlinkcurve(start=1)
 
 Plot the phase advance as a function of `N` for a lead link (phase advance link)
 If an input argument `s` is given, the curve is plotted from `s` to 10, else from 1 to 10.

@@ -147,7 +147,9 @@ function _evalfr_return_type(sys::AbstractStateSpace, s::Number)
 end
 
 """
-`evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
+    evalfr(sys, x)
+    
+Evaluate the transfer function of the LTI system sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
@@ -198,10 +200,11 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
     [v[i,j]  for v in vals, i in 1:nu, j in 1:ny]
 end
 
-"""`mag, phase, w = bode(sys[, w])`
+"""
+    mag, phase, w = bode(sys[, w])
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
-at frequencies `w`
+at frequencies `w`. See also [`bodeplot`](@ref)
 
 `mag` and `phase` has size `(length(w), ny, nu)`""" 
 @autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
@@ -210,10 +213,11 @@ at frequencies `w`
 end
 @autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
-"""`re, im, w = nyquist(sys[, w])`
+"""
+    re, im, w = nyquist(sys[, w])
 
 Compute the real and imaginary parts of the frequency response of system `sys`
-at frequencies `w`
+at frequencies `w`. See also [`nyquistplot`](@ref)
 
 `re` and `im` has size `(length(w), ny, nu)`""" 
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
@@ -222,10 +226,11 @@ at frequencies `w`
 end
 @autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
-"""`sv, w = sigma(sys[, w])`
+"""
+    sv, w = sigma(sys[, w])
 
 Compute the singular values `sv` of the frequency response of system `sys` at
-frequencies `w`
+frequencies `w`. See also [`sigmaplot`](@ref)
 
 `sv` has size `(length(w), max(ny, nu))`""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
@@ -258,8 +263,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         zp = vcat(zpType[], zs..., ps...) # Emty vector to avoid type unstable vcat()
         zp = zp[imag(zp) .>= 0.0]
     else
-         # For sigma plots, use the MIMO poles and zeros
-         zp = [tzeros(sys); poles(sys)]
+        # For sigma plots, use the MIMO poles and zeros
+        zp = [tzeros(sys); poles(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
     fzp = log10.(abs.(zp))

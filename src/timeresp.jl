@@ -8,7 +8,7 @@
 
 Calculate the step response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
-locations.
+locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
@@ -40,7 +40,7 @@ Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t
 
 Calculate the impulse response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
-locations.
+locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)

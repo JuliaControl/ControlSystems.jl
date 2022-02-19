@@ -192,13 +192,22 @@ function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
 end
 
 """
+    delay(tau)
     delay(T::Type{<:Number}, tau)
 
 Create a pure time delay of length `τ` of type `T`.
 
 The type `T` defaults to `promote_type(Float64, typeof(tau))`
-"""
 
+# Example:
+Create a LTI system with an input delay of `L`
+```julia
+L = 1
+tf(1, [1, 1])*delay(L)
+s = tf("s")
+tf(1, [1, 1])*exp(-s*L) # Equivalent to the version above
+```
+"""
 function delay(T::Type{<:Number}, τ)
     return DelayLtiSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), [T(τ)])
 end
