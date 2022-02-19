@@ -11,31 +11,31 @@
     # SCALARS
     for SS in (StateSpace, HeteroStateSpace), SS2 in (StateSpace, HeteroStateSpace)
         a_2 = [-5 -3; 2 -9]
-        CS_111 = SS(-5, 2, 3, [0])
-        CS_111_d = SS([3], 2, 1, 1)
-        CS_211 = SS(a_2, [1; 2], [1 0], 0)
-        CS_221 = SS(a_2, [1 0; 0 2], [1 0], 0)
-        CS_222 = SS(a_2, [1 0; 0 2], eye_(2), 0)
+        CS_111 = @inferred SS(-5, 2, 3, [0])
+        CS_111_d = @inferred SS([3], 2, 1, 1)
+        CS_211 = @inferred SS(a_2, [1; 2], [1 0], 0)
+        CS_221 = @inferred SS(a_2, [1 0; 0 2], [1 0], 0)
+        CS_222 = @inferred SS(a_2, [1 0; 0 2], eye_(2), 0)
 
         # CONTINUOUS
         a_1 = [-5]
-        C_111 = SS(a_1, [2], [3], [0])
-        C_211 = SS2(a_2, [1; 2], [1 0], [0])
-        C_212 = SS2(a_2, [1; 2], eye_(2), [0; 0])
-        C_221 = SS2(a_2, [1 0; 0 2], [1 0], [0 0])
-        C_222 = SS(a_2, [1 0; 0 2], eye_(2), zeros(Int,2,2))
-        C_222_d = SS(a_2, [1 0; 0 2], eye_(2), eye_(2))
-        C_022 = SS(4.0*eye_(2))
+        C_111 = @inferred SS(a_1, [2], [3], [0])
+        C_211 = @inferred SS2(a_2, [1; 2], [1 0], [0])
+        C_212 = @inferred SS2(a_2, [1; 2], eye_(2), [0; 0])
+        C_221 = @inferred SS2(a_2, [1 0; 0 2], [1 0], [0 0])
+        C_222 = @inferred SS(a_2, [1 0; 0 2], eye_(2), zeros(Int,2,2))
+        C_222_d = @inferred SS(a_2, [1 0; 0 2], eye_(2), eye_(2))
+        C_022 = @inferred SS(4.0*eye_(2))
 
         # DISCRETE
         da_1 = [-0.5]
         da_2 = [0.2 -0.8; -0.8 0.07]
-        D_111 = SS(da_1, [2], [3], [0], 0.005)
-        D_211 = SS2(da_2, [1; 2], [1 0], [0], 0.005)
-        D_221 = SS2(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
-        D_222 = SS(da_2, [1 0; 0 2], eye_(2), zeros(2,2), 0.005)
-        D_222_d = SS(da_2, [1 0; 0 2], eye_(2), eye_(2), 0.005)
-        D_022 = SS(4.0*eye_(2), 0.005)
+        D_111 = @inferred SS(da_1, [2], [3], [0], 0.005)
+        D_211 = @inferred SS2(da_2, [1; 2], [1 0], [0], 0.005)
+        D_221 = @inferred SS2(da_2, [1 0; 0 2], [1 0], [0 0], 0.005)
+        D_222 = @inferred SS(da_2, [1 0; 0 2], eye_(2), zeros(2,2), 0.005)
+        D_222_d = @inferred SS(da_2, [1 0; 0 2], eye_(2), eye_(2), 0.005)
+        D_022 = @inferred SS(4.0*eye_(2), 0.005)
 
         # Definition of input, output and state names
         C_222_d_n = SS(a_2, [1 0; 0 2], eye_(2), eye_(2))

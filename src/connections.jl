@@ -41,13 +41,13 @@ append(systems::LTISystem...) = append(promote(systems...)...)
 
 function Base.vcat(systems::DelayLtiSystem...)
     P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
-    Tau = vcat([sys.Tau for sys in systems]...)
+    Tau = reduce(vcat, sys.Tau for sys in systems)
     return DelayLtiSystem(P, Tau)
 end
 
 function Base.hcat(systems::DelayLtiSystem...)
     P = hcat_1([sys.P for sys in systems]...)  # See PartitionedStateSpace
-    Tau = vcat([sys.Tau for sys in systems]...)
+    Tau = reduce(vcat, sys.Tau for sys in systems)
     return DelayLtiSystem(P, Tau)
 end
 
@@ -59,9 +59,9 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
         error("All systems must have same input dimension")
     end
     A = blockdiag([s.A for s in systems]...)
-    B = vcat([s.B for s in systems]...)
+    B = reduce(vcat, s.B for s in systems)
     C = blockdiag([s.C for s in systems]...)
-    D = vcat([s.D for s in systems]...)
+    D = reduce(vcat, s.D for s in systems)
     timeevol = common_timeevol(systems...)
     return ST(A, B, C, D, timeevol)
 end
@@ -73,7 +73,7 @@ function Base.vcat(systems::TransferFunction...)
         error("All systems must have same input dimension")
     end
     timeevol = common_timeevol(systems...)
-    mat = vcat([s.matrix for s in systems]...)
+    mat = reduce(vcat, s.matrix for s in systems)
 
     return TransferFunction(mat, timeevol)
 end
@@ -89,8 +89,8 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
     timeevol = common_timeevol(systems...)
     A = blockdiag([s.A for s in systems]...)
     B = blockdiag([s.B for s in systems]...)
-    C = hcat([s.C for s in systems]...)
-    D = hcat([s.D for s in systems]...)
+    C = reduce(hcat, s.C for s in systems)
+    D = reduce(hcat, s.D for s in systems)
 
     return ST(A, B, C, D, timeevol)
 end
@@ -102,12 +102,12 @@ function Base.hcat(systems::TransferFunction...)
         error("All systems must have same output dimension")
     end
     timeevol = common_timeevol(systems...)
-    mat = hcat([s.matrix for s in systems]...)
+    mat = reduce(hcat, s.matrix for s in systems)
 
     return TransferFunction(mat, timeevol)
 end
 
-Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
+Base.hcat(systems::LTISystem...) = reduce(hcat, promote(systems...))
 
 function Base._cat_t(::Val{1}, T::Type{<:LTISystem}, X...)
         vcat(convert.(T, X)...)
