@@ -35,12 +35,12 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
     return lcmpoles
 end
 
+# TODO: Improve implementation, should be more efficient ways.
+# Calculates the same minors several times in some cases.
 """
     minorpoles(sys)
 
 Compute the poles of all minors of the system."""
-# TODO: Improve implementation, should be more efficient ways.
-# Calculates the same minors several times in some cases.
 function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     minors = Array{TR,1}[]
     ny, nu = size(sys)
@@ -68,11 +68,11 @@ function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     return minors
 end
 
+# TODO: improve this implementation, should be more efficient ones
 """
     det(sys)
 
 Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
-# TODO: improve this implementation, should be more efficient ones
 function det(sys::Matrix{S}) where {S<:SisoZpk}
     ny, nu = size(sys)
     ny == nu || throw(ArgumentError("sys matrix is not square"))
@@ -146,13 +146,13 @@ poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = poles(sys)
     if isdiscrete(sys)
-        ps = log.(complex.(ps))/sys.Ts
+        ps = @. log(complex(ps))/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
     Wn = Wn[order]
     ps = ps[order]
-    ζ = -cos.(angle.(ps))
+    ζ = @. -cos(angle(ps))
     return Wn, ζ, ps
 end
 
@@ -279,8 +279,7 @@ function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
         end
 
         # Compress columns of Ctilde
-        V = qr(Ctilde').Q
-        V = reverse(V,dims=2)
+        V = reverse(qr(Ctilde').Q, dims=2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
@@ -294,7 +293,7 @@ function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)] # I(m) is not used for type stability reasons (as of julia v1.7)
         if sigma > 0
             M = [A B; Cbar Dbar]
             Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
@@ -403,14 +402,13 @@ function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
 end
 
 """
-`ωgₘ, gₘ, ωϕₘ, ϕₘ = margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)`
+    ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 
 If `!allMargins`, return only the smallest margin
 
 If `full` return also `fullPhase`
-
 """
 function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
@@ -441,7 +439,7 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
 end
 
 """
-`ωgₘ, gₘ, ωϕₘ, ϕₘ = sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)`
+    ωgₘ, gₘ, ωϕₘ, ϕₘ = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 """
@@ -588,19 +586,13 @@ end
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
 computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
 
-`S = 1/(1+PC)` Sensitivity function
-
-`PS = P/(1+PC)`
-
-`CS = C/(1+PC)`
-
-`T = PC/(1+PC)` Complementary sensitivity function
-
-`RY = PCF/(1+PC)`
-
-`RU = CF/(1+P*C)`
-
-`RE = F/(1+P*C)`
+- `S = 1/(1+PC)` Sensitivity function
+- `PS = P/(1+PC)`
+- `CS = C/(1+PC)`
+- `T = PC/(1+PC)` Complementary sensitivity function
+- `RY = PCF/(1+PC)`
+- `RU = CF/(1+P*C)`
+- `RE = F/(1+P*C)`
 
 Only supports SISO systems"""
 function gangofseven(P::TransferFunction, C::TransferFunction, F::TransferFunction)
