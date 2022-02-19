@@ -2,7 +2,7 @@
 Pages = ["constructors.md"]
 ```
 
-# Constructing transfer functions
+# Constructing systems
 
 ```@docs
 append
@@ -16,4 +16,5 @@ sminreal
 ss
 tf
 zpk
+delay
 ```
