@@ -2,6 +2,10 @@ import DelayDiffEq: MethodOfSteps, Tsit5
 
 @testset "test_delay_system" begin
 
+P = ssrand(2,1,4)*delay(1)
+@test P.timeevol === Continuous()
+@test P.ny == 2
+@test P.nu == 1
 # For simplicity, equality of DelayLtiSystems are tested over a finite set of frequencies
 ω = 0.0:8
 
@@ -156,7 +160,7 @@ w = 10 .^ (-2:0.1:2)
 @test freqresp(s11, w) ≈ freqresp(f2[1,1], w) rtol=1e-15
 
 
-@test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny)
+@test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny, :timeevol)
 
 
 #FIXME: A lot more tests, including MIMO systems in particular

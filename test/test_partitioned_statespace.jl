@@ -42,4 +42,4 @@ sys2 = ControlSystems.PartionedStateSpace(ss(fill(1.0, 2, 2), fill(2.0, 2, 5), f
 # TODO: Add some tests for interconnections, implicitly tested through delay system implementations though
 @test (sys1 + sys1).P[1, 1] == (sys1.P[1,1] + sys1.P[1,1])
 
-@test propertynames(sys1) == (:P, :nu1, :ny1, :B1, :B2, :C1, :C2, :D11, :D12, :D21, :D22, :nu, :ny, :nx)
+@test propertynames(sys1) == (:P, :nu1, :ny1, :B1, :B2, :C1, :C2, :D11, :D12, :D21, :D22, :nu, :ny, :nx, :timeevol)

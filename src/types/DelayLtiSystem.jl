@@ -122,6 +122,21 @@ nstates(sys::DelayLtiSystem) = nstates(sys.P.P)
 
 Base.size(sys::DelayLtiSystem) = (noutputs(sys), ninputs(sys))
 
+
+function Base.getproperty(sys::DelayLtiSystem, s::Symbol)
+    s ∈ fieldnames(typeof(sys)) && return getfield(sys, s)
+    if s === :timeevol
+        return timeevol(sys)
+    elseif s === :ny
+        return size(sys, 1)
+    elseif s === :nu
+        return size(sys, 2)
+    else
+        throw(ArgumentError("$(typeof(sys)) has no property named $s"))
+    end
+end
+
+
 # Fallbacks, TODO We should sort this out for all types, maybe after SISO/MIMO
 # {Array, Number}, Colon
 Base.getindex(sys::DelayLtiSystem, i, ::Colon) =
