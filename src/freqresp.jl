@@ -42,6 +42,16 @@ function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
     PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
 end
 
+function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<:Real}) where T
+    te = sys.timeevol
+    ny,nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny,nu,length(w_vec))
+    @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
+        R[yi,ui,wi] = evalfr(sys.matrix[yi,ui], _freq(w_vec[wi], te))
+    end
+    PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
+end
+
 @autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
     repeat(G, 1, 1, length(w_vec))
 end
@@ -53,12 +63,6 @@ end
 _freq(w, ::Continuous) = complex(0, w)
 _freq(w, te::Discrete) = cis(w*te.Ts)
 
-function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
-    ny, nu = size(sys)
-    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
-    R = Array{T, 3}(undef, ny, nu, length(w_vec))
-    freqresp!(R, sys, w_vec)
-end
 @autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
