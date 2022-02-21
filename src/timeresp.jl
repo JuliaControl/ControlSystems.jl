@@ -151,7 +151,10 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     x = ltitr(dsys.A, dsys.B, u, x0)
-    y = sys.C*x + sys.D*u
+    y = sys.C*x
+    if !iszero(sys.D)
+        mul!(y, sys.D, u, 1, 1)
+    end
     return SimResult(y, t, x, u, dsys) # saves the system that actually produced the simulation
 end
 
@@ -205,7 +208,10 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
         simsys = sys
     end
-    y = sys.C*x + sys.D*uout
+    y = sys.C*x
+    if !iszero(sys.D)
+        mul!(y, sys.D, uout, 1, 1)
+    end
     return SimResult(y, t, x, uout, simsys) # saves the system that actually produced the simulation
 end
 
