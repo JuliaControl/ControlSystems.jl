@@ -67,7 +67,7 @@ end
         @inbounds for i in eachindex(w_vec)
             R[:,:,i] .= sys.D
         end
-        return PDT(R)
+        return PDT(R)::PDT
     end
     local F, Q
     try
@@ -79,22 +79,77 @@ end
         rethrow()
     end
     A = F.H
-    C = sys.C*Q
+    C = complex.(sys.C*Q) # We make C complex in order to not incur allocations in mul! below
     B = Q\sys.B 
     D = sys.D
 
     te = sys.timeevol
     Bc = similar(B, T) # for storage
+    w = -_freq(w_vec[1], te)
+    u = Vector{typeof(zero(eltype(A.data))+w)}(undef, sys.nx)
+    cs = Vector{Tuple{real(eltype(u)),eltype(u)}}(undef, length(u)) # store Givens rotations
     @inbounds for i in eachindex(w_vec)
-        Ri = @views R[:,:,i]
+        Ri = @view(R[:, :, i])
         copyto!(Ri,D) # start with the D-matrix
         isinf(w_vec[i]) && continue
         copyto!(Bc,B) # initialize storage to B
         w = -_freq(w_vec[i], te)
-        ldiv!(A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
+        ldiv2!(u, cs, A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PDT(R) # PermutedDimsArray doesn't allocate to perform the permutation
+    PDT(R)::PDT # PermutedDimsArray doesn't allocate to perform the permutation
+end
+
+#=
+Custom implementation of hessenberg ldiv to allow reuse of u and cs
+With this method, the following benchmark goes from 
+(100017 allocations: 11.48 MiB) # before
+to 
+(17 allocations: 35.45 KiB)     # after
+
+w = exp10.(LinRange(-2, 2, 50000))
+G = ssrand(2,2,3)
+R = freqresp(G, w).parent;
+@btime ControlSystems.freqresp!($R, $G, $w);
+=# 
+function ldiv2!(u, cs, F::UpperHessenberg, B::AbstractVecOrMat; shift::Number=false)
+    LinearAlgebra.checksquare(F)
+    m = size(F,1)
+    m != size(B,1) && throw(DimensionMismatch("wrong right-hand-side # rows != $m"))
+    LinearAlgebra.require_one_based_indexing(B)
+    n = size(B,2)
+    H = F.data
+    μ = shift
+    copyto!(u, 1, H, m*(m-1)+1, m) # u .= H[:,m]
+    u[m] += μ
+    X = B # not a copy, just rename to match paper
+    @inbounds for k = m:-1:2
+        c, s, ρ = LinearAlgebra.givensAlgorithm(u[k], H[k,k-1])
+        cs[k] = (c, s)
+        for i = 1:n
+            X[k,i] /= ρ
+            t₁ = s * X[k,i]; t₂ = c * X[k,i]
+            @simd for j = 1:k-2
+                X[j,i] -= u[j]*t₂ + H[j,k-1]*t₁
+            end
+            X[k-1,i] -= u[k-1]*t₂ + (H[k-1,k-1] + μ) * t₁
+        end
+        @simd for j = 1:k-2
+            u[j] = H[j,k-1]*c - u[j]*s'
+        end
+        u[k-1] = (H[k-1,k-1] + μ) * c - u[k-1]*s'
+    end
+    for i = 1:n
+        τ₁ = X[1,i] / u[1]
+        @inbounds for j = 2:m
+            τ₂ = X[j,i]
+            c, s = cs[j]
+            X[j-1,i] = c*τ₁ + s*τ₂
+            τ₁ = c*τ₂ - s'τ₁
+        end
+        X[m,i] = τ₁
+    end
+    return X
 end
 
 function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
@@ -120,9 +175,10 @@ freqresp_nohess
         @inbounds for i in eachindex(w_vec)
             R[:,:,i] .= sys.D
         end
-        return PDT(R)
+        return PDT(R)::PDT
     end
-    A,B,C,D = ssdata(sys)
+    A,B,C0,D = ssdata(sys)
+    C = complex.(C0) # We make C complex in order to not incur allocations in mul! below
     te = sys.timeevol
     Ac = (A+one(T)*I) # for storage
     Adiag = diagind(A)
@@ -136,7 +192,7 @@ freqresp_nohess
         Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PDT(R) # PermutedDimsArray doesn't allocate to perform the permutation
+    PDT(R)::PDT # PermutedDimsArray doesn't allocate to perform the permutation
 end
 
 
