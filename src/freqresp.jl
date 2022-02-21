@@ -75,7 +75,8 @@ end
         Q = Matrix(F.Q)
     catch e
         # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
-        e isa MethodError && return freqresp_nohess!(R, sys, w_vec)
+        e isa Union{MethodError, ErrorException} && return freqresp_nohess!(R, sys, w_vec)
+        # ErrorException appears if we try to access Q on a type which does not have Q as a field or property, notably HessenbergFactorization from GenericLinearAlgebra
         rethrow()
     end
     A = F.H
