@@ -66,6 +66,7 @@ resp2 = reshape((im*w .+ 2)./(im*w  .+ 1), length(w), 1, 1)
 @inferred freqresp(sys2s, w)
 @inferred freqresp(G2, w)
 @inferred freqresp(H2, w)
+@test (@allocated freqresp(sys2, w)) < 1.2*56672 # allow 20% increase due to compiler variations
 
 
 ## Complex-coefficient system
