@@ -45,10 +45,11 @@ function struct_ctrb_states(A::AbstractVecOrMat, B::AbstractVecOrMat)
     bitA = UInt16.(.!iszero.(A)) # Convert to Int because mutiplying with a bit matrix is slow
     x = vec(any(B .!= 0, dims=2)) # index vector indicating states that have been affected by input
     xi = bitA * x
-    @. xi = xi | !iszero(xi)
+    xi2 = similar(xi)
+    @. xi = (xi != false) | !iszero(x)
     for i = 2:size(A, 1) # apply A nx times, similar to controllability matrix
-        mul!(xi, bitA, xi)
-        @. xi = xi | !iszero(xi)
+        mul!(xi2, bitA, xi)
+        @. xi = (xi2 != false) | !iszero(xi)
     end
     xi .!= false # Convert back to BitVector
 end
