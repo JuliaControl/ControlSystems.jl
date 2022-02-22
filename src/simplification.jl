@@ -16,7 +16,7 @@ sminreal(sys)
 """
 function sminreal(sys::StateSpace)
     A, B, C, inds = struct_ctrb_obsv(sys)
-    return StateSpace(A, B, C, sys.D, sys.timeevol)
+    return basetype(sys)(A, B, C, sys.D, sys.timeevol)
 end
 
 # Determine the structurally controllable and observable realization for the system
@@ -39,10 +39,15 @@ Compute a bit-vector, expressing whether a state of the pair (A, B) is
 structurally controllable based on the location of zeros in the matrices. 
 """
 function struct_ctrb_states(A::AbstractVecOrMat, B::AbstractVecOrMat)
-    bitA = .!iszero.(A)
+    size(A,1) > typemax(UInt16) && error("Maximum size of A exceeded. If you encounter this error, please open an issue. This limit is not fundamental and excists for performance reasons only.")
+    # UInt16 can only store up to 65535, so if A is completely dense and of size larger than 65535, the computations below might overflow. This is exceedingly unlikely though.
+    bitA = UInt16.(.!iszero.(A)) # Convert to Int because mutiplying with a bit matrix is slow
     x = vec(any(B .!= 0, dims=2)) # index vector indicating states that have been affected by input
-    for i = 1:size(A, 1) # apply A nx times, similar to controllability matrix
-        x = x .| .!iszero.(bitA * x)
+    xi = bitA * x
+    @. x = x | !iszero(xi)
+    for i = 2:size(A, 1) # apply A nx times, similar to controllability matrix
+        mul!(xi, bitA, x)
+        x .= x .| .!iszero.(xi)
     end
     x
 end
