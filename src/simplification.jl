@@ -13,6 +13,7 @@ trunc_zero!(A) = A[abs.(A) .< 10eps(maximum(abs, A))] .= 0
 trunc_zero!(sys.A); trunc_zero!(sys.B); trunc_zero!(sys.C)
 sminreal(sys)
 ```
+See also [`minreal`](@ref)
 """
 function sminreal(sys::StateSpace)
     A, B, C, inds = struct_ctrb_obsv(sys)

@@ -389,6 +389,8 @@ end
 Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
 
 For information about the options, see `?ControlSystems.MatrixPencils.lsminreal`
+
+See also [`sminreal`](@ref), which is both numerically exact and substantially faster than `minreal`, but with a much more limited potential in removing non-minimal dynamics.
 """
 function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <: AbstractStateSpace
     A,B,C,D = ssdata(sys)
