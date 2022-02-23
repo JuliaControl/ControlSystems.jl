@@ -187,4 +187,8 @@ end
 # The path has to be evaluated upon initial import
 const __CONTROLSYSTEMS_SOURCE_DIR__ = dirname(Base.source_path())
 
+# if !(occursin(joinpath(".julia", "dev"), __CONTROLSYSTEMS_SOURCE_DIR__))
+    # Only precompile if the package is not checked out for development. Precompilation takes about 6 seconds, and saves about 2 seconds on the compilation script. For a user loading the same version of the package multiple times, precompilation makes the experience slightly more snappy. For a developer, paying the precompilation price each time the package has been modified is unlikely to be beneficial.
+    include("precompile.jl")
+# end
 end
