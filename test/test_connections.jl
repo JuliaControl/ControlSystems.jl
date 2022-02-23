@@ -33,6 +33,12 @@ D_022 = ss(4*eye_(2), 0.005)
 @test series(C_111, C_212) == C_212*C_111
 @test parallel(C_111, C_211) == C_111 + C_211
 
+# test that zero(::Type) promotes to correct sample time
+@test zero(D_111) == ss(0, 0.005)
+D_1110 = [D_111 zero(typeof(D_111))]
+@test D_1110.Ts == D_111.Ts
+@test D_1110 == [D_111 zero(D_111)]
+
 # Errors
 @test_throws ErrorException [C_111 D_111]                 # Sampling time mismatch
 @test_throws ErrorException [C_111; D_111]                # Sampling time mismatch
@@ -91,6 +97,11 @@ s = tf("s")
 @test zero(ss(randn(2,3))) == ss(zeros(2,3))
 @test zero(tf(randn(2,3))) == tf(zeros(2,3))
 
+# test that zero(::Type) promotes to correct sample time
+@test zero(Dtf_111) == tf(0, 0.005)
+Dtf_1110 = [Dtf_111 zero(typeof(Dtf_111))]
+@test Dtf_1110.Ts == Dtf_111.Ts
+@test Dtf_1110 == [Dtf_111 zero(Dtf_111)]
 
 
     

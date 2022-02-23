@@ -224,7 +224,8 @@ end
 
 ## ADDITION ##
 Base.zero(sys::AbstractStateSpace) = basetype(sys)(zero(sys.D), sys.timeevol)
-Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous()) # Cannot make a zero of discrete system since sample time is not stored in type.
+Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
+Base.zero(::Type{StateSpace{D, F}}) where {D<:Discrete, F} = ss([zero(F)], undef_sampletime(D))
 
 function +(s1::ST, s2::ST) where {ST <: AbstractStateSpace}
     #Ensure systems have same dimensions
