@@ -31,8 +31,8 @@ ninputs(G::TransferFunction) = size(G.matrix, 2)
 Base.ndims(::TransferFunction) = 2
 Base.size(G::TransferFunction) = size(G.matrix)
 Base.eltype(::Type{S}) where {S<:TransferFunction} = S
-Base.zero(G::TransferFunction{TE,S}) where {TE,S} = tf(zeros(numeric_type(S), size(G)), G.timeevol) # can not create a zero of a discrete system from the type alone, the sampletime is not stored.
-
+Base.zero(G::TransferFunction{TE,S}) where {TE,S} = tf(zeros(numeric_type(S), size(G)), G.timeevol) 
+Base.zero(::Type{TransferFunction{TE,S}}) where {TE,S} = TransferFunction([zero(S);;], undef_sampletime(TE)) 
 function Base.getproperty(G::TransferFunction, s::Symbol)
     s ∈ fieldnames(typeof(G)) && return getfield(G, s)
     if s === :ny
