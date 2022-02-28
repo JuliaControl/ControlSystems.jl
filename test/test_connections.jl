@@ -220,7 +220,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test feedback(K1, ss(1.0)) == ss(-2, 1, 1, 0)
 @test feedback(K1, 1.0) == ss(-2, 1, 1, 0)
 @test feedback(K1d, ss(1.0, 1)) == ss(-2, 1, 1, 0, 1)
-@test_broken feedback(G2d, 1.0) == ss(-2, 1, 1, 0, 1)
+@test feedback(G2d, 1.0) == ss(-62, 7, 8, 0, 1)
 
 # Check that errors for sample-time mismatc are thrown
 @test_throws ErrorException feedback(G2, K1d)

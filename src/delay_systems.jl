@@ -58,7 +58,7 @@ function c2d(G::DelayLtiSystem, Ts::Real, method=:zoh)
     if !(method === :zoh)
         error("c2d for DelayLtiSystems only supports zero-order hold")
     end
-    X = append([delayd_ss(τ, Ts) for τ in G.Tau]...)
+    X = append(delayd_ss(τ, Ts) for τ in G.Tau)
     Pd = c2d(G.P.P, Ts)
     return lft(Pd, X)
 end
@@ -333,6 +333,6 @@ Approximate all time-delays in `G` by Padé approximations of degree `N`.
 function pade(G::DelayLtiSystem, N)
     ny, nu = size(G)
     nTau = length(G.Tau)
-    X = append([ss(pade(τ,N)) for τ in G.Tau]...) # Perhaps append should be renamed blockdiag
+    X = append(ss(pade(τ,N)) for τ in G.Tau) # Perhaps append should be renamed blockdiag
     return lft(G.P.P, X)
 end
