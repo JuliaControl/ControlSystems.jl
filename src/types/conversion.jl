@@ -137,24 +137,24 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
     N = length(den) - 1 # The order of the rational function f
 
     # Get numerator coefficient of the same order as the denominator
-    bN = length(num) == N+1 ? num[1] : 0
+    bN = length(num) == N+1 ? num[1] : zero(num[1])
 
-    if N == 0 #|| num == zero(Polynomial{T})
-        A = zeros(T, (0, 0))
-        B = zeros(T, (0, 1))
-        C = zeros(T, (1, 0))
+    @views if N == 0 #|| num == zero(Polynomial{T})
+        A = zeros(T, 0, 0)
+        B = zeros(T, 0, 1)
+        C = zeros(T, 1, 0)
     else
         A = diagm(1 => ones(T, N-1))
-        A[end, :] .= -reverse(den)[1:end-1]
+        A[end, :] .= .-reverse(den)[1:end-1]
 
-        B = zeros(T, (N, 1))
+        B = zeros(T, N, 1)
         B[end] = one(T)
 
-        C = zeros(T, (1, N))
+        C = zeros(T, 1, N)
         C[1:min(N, length(num))] = reverse(num)[1:min(N, length(num))]
-        C[:] -= bN * reverse(den)[1:end-1] # Can index into polynomials at greater inddices than their length
+        C[:] .-= bN .* reverse(den)[1:end-1] # Can index into polynomials at greater inddices than their length
     end
-    D = fill(bN, (1, 1))
+    D = fill(bN, 1, 1)
 
     return A, B, C, D
 end

@@ -1,5 +1,10 @@
 @testset "test_conversion" begin
 
+G = tf(1.0,[1,1])
+H = zpk([0.0], [1.0], 1.0)
+@inferred ControlSystems.siso_tf_to_ss(Float64, G.matrix[1,1])
+@inferred ControlSystems.siso_tf_to_ss(Float64, H.matrix[1,1])
+
 # Easy second order system
 sys1 = ss([-1 0;1 1],[1;0],[1 1],0)
 G1 = tf([1,0],[1,0,-1])
