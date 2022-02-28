@@ -54,12 +54,12 @@ printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printp
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
-    poly_factors = Vector{Polynomial{T}}()
+    poly_factors = Vector{Polynomial{T,:x}}()
     for k=1:length(roots)
         r = roots[k]
 
         if isreal(r)
-            push!(poly_factors,Polynomial{T}([-real(r),1]))
+            push!(poly_factors,Polynomial{T,:x}([-real(r),1]))
         else
             if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
                 continue
@@ -69,7 +69,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
                 throw(ArgumentError("Found pole without matching conjugate."))
             end
 
-            push!(poly_factors,Polynomial{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))
+            push!(poly_factors,Polynomial{T,:x}([real(r)^2+imag(r)^2, -2*real(r), 1]))
             # k += 1 # Skip one iteration in the loop
         end
     end
@@ -78,7 +78,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 end
 # This function should hande both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
-    return Polynomial{T}[Polynomial{T}([-r, 1]) for r in roots]
+    return Polynomial{T,:x}[Polynomial{T,:x}([-r, 1]) for r in roots]
 end
 
 

@@ -1,5 +1,11 @@
 @testset "test_conversion" begin
 
+A = randn(3,3)
+@inferred ControlSystems.charpoly(A)
+
+A = randn(ComplexF64,3,3)
+@inferred ControlSystems.charpoly(A)
+
 G = tf(1.0,[1,1])
 H = zpk([0.0], [1.0], 1.0)
 @inferred ControlSystems.siso_tf_to_ss(Float64, G.matrix[1,1])
