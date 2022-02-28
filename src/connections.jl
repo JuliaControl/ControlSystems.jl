@@ -23,20 +23,22 @@ Append systems in block diagonal form
 function append(systems::(ST where ST<:AbstractStateSpace)...)
     ST = promote_type(typeof.(systems)...)
     timeevol = common_timeevol(systems...)
-    A = blockdiag([s.A for s in systems]...)
-    B = blockdiag([s.B for s in systems]...)
-    C = blockdiag([s.C for s in systems]...)
-    D = blockdiag([s.D for s in systems]...)
+    A = blockdiag(s.A for s in systems)
+    B = blockdiag(s.B for s in systems)
+    C = blockdiag(s.C for s in systems)
+    D = blockdiag(s.D for s in systems)
     return ST(A, B, C, D, timeevol)
 end
 
 function append(systems::TransferFunction...)
     timeevol = common_timeevol(systems...)
-    mat = blockdiag([s.matrix for s in systems]...)
+    mat = blockdiag(s.matrix for s in systems)
     return TransferFunction(mat, timeevol)
 end
 
-append(systems::LTISystem...) = append(promote(systems...)...)
+append(systems::LTISystem...) = append(promote(systems...))
+
+append(systems::Union{<:Tuple, <:Base.Generator}) = append(systems...)
 
 
 function Base.vcat(systems::DelayLtiSystem...)
@@ -58,9 +60,9 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     if !all(s.nu == nu for s in systems)
         error("All systems must have same input dimension")
     end
-    A = blockdiag([s.A for s in systems]...)
+    A = blockdiag(s.A for s in systems)
     B = reduce(vcat, s.B for s in systems)
-    C = blockdiag([s.C for s in systems]...)
+    C = blockdiag(s.C for s in systems)
     D = reduce(vcat, s.D for s in systems)
     timeevol = common_timeevol(systems...)
     return ST(A, B, C, D, timeevol)
@@ -87,8 +89,8 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
         error("All systems must have same output dimension")
     end
     timeevol = common_timeevol(systems...)
-    A = blockdiag([s.A for s in systems]...)
-    B = blockdiag([s.B for s in systems]...)
+    A = blockdiag(s.A for s in systems)
+    B = blockdiag(s.B for s in systems)
     C = reduce(hcat, s.C for s in systems)
     D = reduce(hcat, s.D for s in systems)
 
@@ -133,6 +135,7 @@ end
 
 
 blockdiag(anything...) = cat(anything..., dims=(1,2))
+blockdiag(anything::Union{<:Tuple, <:Base.Generator}) = cat(anything..., dims=(1,2))
 
 
 """
