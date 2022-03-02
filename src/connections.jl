@@ -133,9 +133,13 @@ function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     return sys1new*sys2new
 end
 
-
-blockdiag(anything...) = cat(anything..., dims=(1,2))
-blockdiag(anything::Union{<:Tuple, <:Base.Generator}) = cat(anything..., dims=(1,2))
+@static if VERSION >= v"1.8.0-beta1"
+    blockdiag(anything...) = cat(anything..., dims=Val((1,2)))
+    blockdiag(anything::Union{<:Tuple, <:Base.Generator}) = cat(anything..., dims=Val((1,2)))
+else
+    blockdiag(anything...) = cat(anything..., dims=(1,2))
+    blockdiag(anything::Union{<:Tuple, <:Base.Generator}) = cat(anything..., dims=(1,2))
+end
 
 
 """
