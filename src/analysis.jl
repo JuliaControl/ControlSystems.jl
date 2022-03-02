@@ -256,6 +256,7 @@ end
 
 
 """
+    reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
@@ -409,6 +410,7 @@ returns frequencies for gain margins, gain margins, frequencies for phase margin
 If `!allMargins`, return only the smallest margin
 
 If `full` return also `fullPhase`
+See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
 function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
@@ -530,7 +532,9 @@ end
 """
     dₘ = delaymargin(G::LTISystem)
 
-Only supports SISO systems"""
+Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
+Only supports SISO systems.
+"""
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     if G.nu + G.ny > 2
@@ -566,6 +570,7 @@ Given a transfer function describing the plant `P` and a transfer function descr
 - `CS = C/(1+PC)` Measurement noise to control signal
 - `T = PC/(1+PC)` Complementary sensitivity function
 
+If `minimal=true`, [`minreal`](@ref) will be applied to all transfer functions.
 Only supports SISO systems
 """
 function gangoffour(P::LTISystem, C::LTISystem; minimal=true)
