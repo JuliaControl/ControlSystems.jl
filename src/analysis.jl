@@ -230,7 +230,7 @@ function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}
     A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
 
     # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
-    A_rc, B_rc, C_rc, D_rc = reduce_sys(transpose(A_r), transpose(C_r), transpose(B_r), transpose(D_r), meps)
+    A_rc, B_rc, C_rc, D_rc = reduce_sys(copy(transpose(A_r)), copy(transpose(C_r)), copy(transpose(B_r)), copy(transpose(D_r)), meps)
     isempty(A) && return complex(T)[]
 
     # Step 3:
