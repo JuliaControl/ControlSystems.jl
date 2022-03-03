@@ -230,16 +230,16 @@ function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}
     A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
 
     # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
-    A_rc, B_rc, C_rc, D_rc = reduce_sys(transpose(A_r), transpose(C_r), transpose(B_r), transpose(D_r), meps)
-    if isempty(A)   return complex(T)[]    end
+    A_rc, B_rc, C_rc, D_rc = reduce_sys(copy(transpose(A_r)), copy(transpose(C_r)), copy(transpose(B_r)), copy(transpose(D_r)), meps)
+    isempty(A) && return complex(T)[]
 
     # Step 3:
     # Compress cols of [C D] to [0 Df]
     mat = [C_rc D_rc]
     # To ensure type-stability, we have to annote the type here, as qrfact
     # returns many different types.
-    W = qr(mat').Q
-    W = reverse(W, dims=2)
+    Wr = qr(mat').Q
+    W = reverse(Wr, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
         nf = size(A_rc, 1)
@@ -296,10 +296,10 @@ function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
         Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)] # I(m) is not used for type stability reasons (as of julia v1.7)
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
+            Vs = [copy(V') zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
         else
             M = [A B]
-            Vs = V'
+            Vs = copy(V')
         end
         sigma, rho, nu
         M = Vs * M * Vm
