@@ -45,6 +45,7 @@ makedocs(modules=[ControlSystems],
         ],
         "Examples" => Any[
             "Design" => "examples/example.md",
+            "Smith predictor" => "examples/smith_predictor.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",
