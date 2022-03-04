@@ -236,8 +236,6 @@ function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}
     # Step 3:
     # Compress cols of [C D] to [0 Df]
     mat = [C_rc D_rc]
-    # To ensure type-stability, we have to annote the type here, as qrfact
-    # returns many different types.
     Wr = qr(mat').Q
     W = reverse(Wr, dims=2)
     mat = mat*W
@@ -537,9 +535,7 @@ Only supports SISO systems.
 """
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
-    if G.nu + G.ny > 2
-        error("delaymargin only supports SISO systems")
-    end
+    issiso(G) || error("delaymargin only supports SISO systems")
     m     = margin(G,allMargins=true)
     ϕₘ, i = findmin(m[4])
     ϕₘ   *= π/180
