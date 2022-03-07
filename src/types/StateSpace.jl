@@ -113,7 +113,8 @@ StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
 StateSpace(sys::LTISystem) = convert(StateSpace, sys)
 
 """
-    `sys = ss(A, B, C, D [,Ts])`
+    sys = ss(A, B, C, D)      # Continuous
+    sys = ss(A, B, C, D, Ts)  # Discrete
 
 Create a state-space model `sys::StateSpace{TE, T}`
 with matrix element type `T` and TE is `Continuous` or `<:Discrete`.
@@ -121,6 +122,7 @@ with matrix element type `T` and TE is `Continuous` or `<:Discrete`.
 This is a continuous-time model if `Ts` is omitted.
 Otherwise, this is a discrete-time model with sampling period `Ts`.
 
+`D` may be specified as `0` in which case a zero matrix of appropriate size is constructed automatically. 
 `sys = ss(D [, Ts])` specifies a static gain matrix `D`.
 """
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
