@@ -38,3 +38,7 @@ The JuliaControl and surrounding ecosystem contains a few additional packages th
 - [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl)
 - [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl)
 - [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl)
+
+See also [the paper](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) describing the toolbox
+
+> Bagge Carlson, F., Fält, M., Heimerson, A., & Troeng, O. (2021). ControlSystems.jl: A Control Toolbox in Julia. In 2021 60th IEEE Conference on Decision and Control (CDC) IEEE Press. https://doi.org/10.1109/CDC45484.2021.9683403
