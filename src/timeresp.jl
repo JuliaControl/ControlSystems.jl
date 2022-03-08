@@ -49,13 +49,12 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
     nx = nstates(sys)
     if iscontinuous(sys) #&& method === :cont
         u = (x,t) -> [zero(T)]
-        # impulse response equivalent to unforced response of
-        # ss(A, 0, C, 0) with x0 = B.
-        imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
+        # impulse response equivalent to unforced response with x0 = B.
+        imp_sys = ss(sys.A, zeros(T, nx, nu), sys.C, 0)
         x0s = sys.B
     else
-        u = (x,i) -> (i == t[1] ? [one(T)]/sys.Ts : [zero(T)])
-        imp_sys = sys
+        u_element = [zero(T)]
+        u = (x,i) -> (i == t[1] ? [one(T)]/sys.Ts : u_element)
         x0s = zeros(T, nx, nu)
     end
     if nu == 1 # Why two cases # QUESTION: Not type stable?

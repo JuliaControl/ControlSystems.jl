@@ -592,6 +592,7 @@ D̃ = D
 ```
 
 If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
+See also [`balance_statespace`](@ref).
 """
 function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
     if unitary
@@ -609,13 +610,13 @@ end
 
 
 """
-    sysi = innovation_form(sys, R1, R2)
+    sysi = innovation_form(sys, R1, R2[, R12])
     sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
 
 Takes a system
 ```
 x' = Ax + Bu + w ~ R1
-y  = Cx + e ~ R2
+y  = Cx + Du + e ~ R2
 ```
 and returns the system
 ```
@@ -628,9 +629,9 @@ If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R
 
 See Stochastic Control, Chapter 4, Åström
 """
-function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
-    K = kalman(sys, R1, R2)
-    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+function innovation_form(sys::ST, R1, R2, args...) where ST <: AbstractStateSpace
+    K = kalman(sys, R1, R2, args...)
+    innovation_form(sys, K)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
@@ -638,27 +639,70 @@ function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: Abstra
 	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
 end
 
-"""
-    observer_predictor(sys::AbstractStateSpace, R1, R2)
-    observer_predictor(sys::AbstractStateSpace, K)
 
-Return the observer_predictor system
+"""
+    sysi = innovation_form(sys, K)    
+
+Takes a system
+```
+x' = Ax + Bu + Kv
+y  = Cx + Du + v
+```
+and returns the system
+```
+x' = Ax + Kv
+y  = Cx + v
+```
+where `v` is the innovation sequence.
+
+See Stochastic Control, Chapter 4, Åström
+"""
+function innovation_form(sys::ST, K) where ST <: AbstractStateSpace
+    ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+end
+
+"""
+    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1)
+    observer_predictor(sys::AbstractStateSpace, R1, R2[, R21])
+
+If `sys` is continuous, return the observer predictor system
 x̂' = (A - KC)x̂ + (B-KD)u + Ky
 ŷ  = Cx + Du
 with the input equation [B-KD K] * [u; y]
 
-If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
+If `sys` is discrete, the prediction horizon `h` may be specified, in which case measurements up to and including time `t-h` and inputs up to and including time `t` are used to predict `y(t)`.
 
-See also `innovation_form`.
+If covariance matrices `R1, R2` are given, the kalman gain `K` is calculated using [`kalman`](@ref).
+
+See also [`innovation_form`](@ref) and [`observer_controller`](@ref).
 """
-function observer_predictor(sys::ST, R1, R2) where ST <: AbstractStateSpace
-    K = kalman(sys, R1, R2)
-    observer_predictor(sys, K)
+function observer_predictor(sys::AbstractStateSpace, R1, R2::Union{AbstractArray, UniformScaling}, args...; kwargs...)
+    K = kalman(sys, R1, R2, args...)
+    observer_predictor(sys, K; kwargs...)
 end
 
-function observer_predictor(sys, K::AbstractMatrix)
+function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1)
+    h >= 1 || throw(ArgumentError("h must be positive."))
+    ny = noutputs(sys)
+    size(K, 1) == sys.nx && size(K,2) == ny || throw(ArgumentError("K has the wrong size, expected $((sys.nx, ny))"))
     A,B,C,D = ssdata(sys)
-    ss(A-K*C, [B-K*D K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
+    if h == 1
+        ss(A-K*C, [B-K*D K], C, [D zeros(ny, ny)], sys.timeevol)
+    else
+        isdiscrete(sys) || throw(ArgumentError("A prediction horizon is only supported for discrete systems. "))
+        # The impulse response of the innovation form calculates the influence of a measurement at time t on the prediction at time t+h
+        # Below, we form a system del (delay) that convolves the input (y) with the impulse response
+        # We then add the output again to account for the fact that we propagated error and not measurement
+        inn = innovation_form(sys, K)
+        ts = (0:h-1) .* sys.Ts
+        imp = impulse(inn, ts).y * sys.Ts # Impulse response differs from Markov params by 1/Ts
+        del_components = map(Iterators.product(1:inn.ny, 1:inn.nu)) do (i,j)
+            tf(imp[i,:,j], [1; zeros(h-1)]) # This forms a system that convolves the input with the impulse response
+        end
+        del = tf(first.(numvec.(del_components)), first.(denvec.(del_components)), sys.timeevol) |> ss
+        pe = ss(A-K*C, [B-K*D K], C, [D -I(ny)], sys.timeevol) # prediction error system ŷ-y
+        return ss([zero(D) I(ny)], sys.timeevol) + del*pe # add y back to compensate for -y in pe
+    end
 end
 
 """
@@ -673,6 +717,8 @@ Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues g
 - `sys`: Model of system
 - `L`: State-feedback gain `u = -Lx`
 - `K`: Observer gain
+
+See also [`observer_predictor`](@ref) and [`innovation_form`](@ref).
 """
 function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
     A,B,C,D = ssdata(sys)
