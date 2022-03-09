@@ -296,4 +296,32 @@ G2 = tf(1.0, [1, 5])
 @test feedback(G2, G1) == tf(1, [1, 6])
 @test feedback(G2, 1) == tf(1, [1, 6])
 
+
+
+## Add inputs and outputs
+G = ssrand(1,1,1)
+G2 = add_input(G, 1)
+@test G2[1,1] == G
+@test G2[1,2].B == [1;;]
+@test G2[1,2].D == [0;;]
+
+G2 = add_output(G, 1)
+@test G2[1,1] == G
+@test G2[2,1].C == [1;;]
+@test G2[2,1].D == [0;;]
+
+G = ssrand(2,2,2)
+B2 = randn(2,2)
+D2 = randn(2,2)
+G2 = add_input(G, B2, D2)
+@test G2[1:2,1:2] == G
+@test G2.B[:,3:4] == B2
+@test G2.D[:,3:4] == D2
+
+C2 = randn(2,2)
+G2 = add_output(G, C2, D2)
+@test G2[1:2,1:2] == G
+@test G2.C[3:4,:] == C2
+@test G2.D[3:4,:] == D2
+
 end
