@@ -636,7 +636,7 @@ end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
-	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+	ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
 end
 
 
@@ -663,12 +663,16 @@ end
 
 """
     observer_predictor(sys::AbstractStateSpace, K; h::Int = 1)
-    observer_predictor(sys::AbstractStateSpace, R1, R2[, R21])
+    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12])
 
 If `sys` is continuous, return the observer predictor system
-x̂' = (A - KC)x̂ + (B-KD)u + Ky
-ŷ  = Cx + Du
-with the input equation [B-KD K] * [u; y]
+```math
+\\begin{aligned}
+x̂' &= (A - KC)x̂ + (B-KD)u + Ky \\\\
+ŷ  &= Cx + Du
+\\end{aligned}
+```
+with the input equation `[B-KD K] * [u; y]`
 
 If `sys` is discrete, the prediction horizon `h` may be specified, in which case measurements up to and including time `t-h` and inputs up to and including time `t` are used to predict `y(t)`.
 
