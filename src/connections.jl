@@ -127,6 +127,62 @@ end
 Base.typed_hcat(::Type{S}, X::Number...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:Number,2}}...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 
+"""
+    add_input(sys::AbstractStateSpace, B2::AbstractArray, D2 = 0)
+
+Add inputs to `sys` by forming
+```math
+x' = Ax + [B B2]u
+y  = Cx + [D D2]u
+```
+If `B2` is an integer it will be interpreted as an index and an input matrix containing a single 1 at the specified index will be used.
+
+Example:
+The following example forms an innovation model that takes innovations as inputs
+```julia
+G   = ssrand(2,2,3, Ts=1)
+K   = kalman(G, I(G.nx), I(G.ny))
+sys = add_input(G, K)
+```
+"""
+function add_input(sys::AbstractStateSpace, B2::AbstractArray, D2=0)
+    T = promote_type(numeric_type(sys), eltype(B2), eltype(D2))
+    A,B,C,D = ssdata(sys)
+    D3 = D2 == 0 ? zeros(T, sys.ny, size(B2, 2)) : D2
+    basetype(sys)(A, [B B2], C, [D D3], sys.timeevol)
+end
+
+function add_input(sys::AbstractStateSpace, b2::Integer)
+    T = promote_type(numeric_type(sys), eltype(b2))
+    B2 = zeros(T, sys.nx, 1)
+    B2[b2] = 1
+    add_input(sys, B2)
+end
+
+"""
+    add_output(sys::AbstractStateSpace, C2::AbstractArray, D2 = 0)
+
+Add outputs to `sys` by forming
+```math
+x' = Ax + Bu
+y  = [C; C2]x + [D; D2]u
+```
+If `C2` is an integer it will be interpreted as an index and an output matrix containing a single 1 at the specified index will be used.
+"""
+function add_output(sys::AbstractStateSpace, C2::AbstractArray, D2=0)
+    T = promote_type(numeric_type(sys), eltype(C2), eltype(D2))
+    A,B,C,D = ssdata(sys)
+    D3 = D2 == 0 ? zeros(T, size(C2, 1), sys.nx) : D2
+    basetype(sys)(A, B, [C; C2], [D; D3], sys.timeevol)
+end
+
+function add_output(sys::AbstractStateSpace, c2::Integer)
+    T = promote_type(numeric_type(sys), eltype(c2))
+    C2 = zeros(T, 1, sys.nx)
+    C2[c2] = 1
+    add_output(sys, C2)
+end
+
 # Catch special cases where inv(sys) might not be possible after promotion, like improper tf
 function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     sys1new, sys2new = promote(sys1, 1/sys2)
