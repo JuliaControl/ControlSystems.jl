@@ -171,9 +171,11 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real; kwargs...)
 end
 
 # Function for DifferentialEquations lsim
-function f_lsim(dx, x, p, t) 
+@inline function f_lsim(dx, x, p, t) 
     A, B, u = p
-    dx .= A * x .+ B * u(x, t)
+    # dx .= A * x .+ B * u(x, t)
+    mul!(dx, A, x)
+    mul!(dx, B, u(x, t), 1, 1)
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
