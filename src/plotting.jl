@@ -25,81 +25,81 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-"""
-Get atributes from xlims or ylims
-default to extrema(wmag) if xlims/ylims not defined or empty
-"""
-function getlims(xylims, plotattributes, wmag)
-    lims = get(plotattributes, xylims, extrema(wmag))
-    if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
-        lims = extrema(wmag)
-    end
-    if !isempty(get_serieslist(plotattributes))
-        subplot = get(plotattributes, :subplot, 0)
-        (subplot == 0 || (subplot isa Array)) && (return lims)
-        se = seriesextrema(xylims, plotattributes, subplot)
-        lims = extremareducer(lims, se)
-    end
-    lims
-end
+# """
+# Get atributes from xlims or ylims
+# default to extrema(wmag) if xlims/ylims not defined or empty
+# """
+# function getlims(xylims, plotattributes, wmag)
+#     lims = get(plotattributes, xylims, extrema(wmag))
+#     if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
+#         lims = extrema(wmag)
+#     end
+#     if !isempty(get_serieslist(plotattributes))
+#         subplot = get(plotattributes, :subplot, 0)
+#         (subplot == 0 || (subplot isa Array)) && (return lims)
+#         se = seriesextrema(xylims, plotattributes, subplot)
+#         lims = extremareducer(lims, se)
+#     end
+#     lims
+# end
 
-get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
-get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
+# get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
+# get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
 
-function seriesextrema(xylims, plotattributes, subplot)
-    serieslist = get_serieslist(plotattributes, subplot)
-    isempty(serieslist) && (return (Inf, -Inf))
-    sym = xylims === :xlims ? :x : :y
-    mapreduce(extremareducer, serieslist) do series
-        extrema(series[sym])
-    end
-end
-extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
+# function seriesextrema(xylims, plotattributes, subplot)
+#     serieslist = get_serieslist(plotattributes, subplot)
+#     isempty(serieslist) && (return (Inf, -Inf))
+#     sym = xylims === :xlims ? :x : :y
+#     mapreduce(extremareducer, serieslist) do series
+#         extrema(series[sym])
+#     end
+# end
+# extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
-function getPhaseTicks(x, minmax)
-    minx, maxx =  minmax
-    min               = ceil(minx/90)
-    max               = floor(maxx/90)
-    if max-min < 5
-        ## If we span less than a full rotation 45° steps are ok
-        major = ((min-0.5):0.5:(max+0.5)).*90
-    else
-        ## Create additional 45° before/behind first/last plot
-        ## this helps identifying at the edges.
-        major = [(min-0.5);min:max;(max+0.5)].*90
-    end
-    majorText = ["$(round(Int64,i))" for i = major]
+# function getPhaseTicks(x, minmax)
+#     minx, maxx =  minmax
+#     min               = ceil(minx/90)
+#     max               = floor(maxx/90)
+#     if max-min < 5
+#         ## If we span less than a full rotation 45° steps are ok
+#         major = ((min-0.5):0.5:(max+0.5)).*90
+#     else
+#         ## Create additional 45° before/behind first/last plot
+#         ## this helps identifying at the edges.
+#         major = [(min-0.5);min:max;(max+0.5)].*90
+#     end
+#     majorText = ["$(round(Int64,i))" for i = major]
 
-    return major, majorText
+#     return major, majorText
 
-end
+# end
 
-function getLogTicks(x, minmax)
-    minx, maxx =  minmax
-    major_minor_limit = 6
-    minor_text_limit  = 8
-    min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
-    max               = floor(log10(maxx))
-    major             = exp10.(min:max)
+# function getLogTicks(x, minmax)
+#     minx, maxx =  minmax
+#     major_minor_limit = 6
+#     minor_text_limit  = 8
+#     min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
+#     max               = floor(log10(maxx))
+#     major             = exp10.(min:max)
 
-    majorText = ["10^{$(round(Int64,i))}" for i = min:max]
+#     majorText = ["10^{$(round(Int64,i))}" for i = min:max]
 
-    if max - min < major_minor_limit
-        minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
-        minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
-        ind       = findall(minx .<= minor .<= maxx)
-        minor     = minor[ind]
-        minorText = minorText[ind]
-        if length(minor) > minor_text_limit
-            minorText = [" " for t in minorText]#fill!(minorText, L" ")
-        end
-        perm = sortperm([major; minor])
-        return [major; minor][perm], [majorText; minorText][perm]
+#     if max - min < major_minor_limit
+#         minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
+#         minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
+#         ind       = findall(minx .<= minor .<= maxx)
+#         minor     = minor[ind]
+#         minorText = minorText[ind]
+#         if length(minor) > minor_text_limit
+#             minorText = [" " for t in minorText]#fill!(minorText, L" ")
+#         end
+#         perm = sortperm([major; minor])
+#         return [major; minor][perm], [majorText; minorText][perm]
 
-    else
-        return major, majorText
-    end
-end
+#     else
+#         return major, majorText
+#     end
+# end
 
 
 # This will be called on plot(lsim(sys, args...))
@@ -207,7 +207,7 @@ bodeplot
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
     nw = length(w)
-    xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
+    # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
 
     for (si,s) = enumerate(systems)
@@ -231,14 +231,14 @@ bodeplot
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
-                    if _PlotScale != "dB"
-                        yticks    --> getLogTicks(magdata, getlims(:ylims, plotattributes, magdata))
-                    end
+                    # if _PlotScale != "dB"
+                    #     yticks    --> getLogTicks(magdata, getlims(:ylims, plotattributes, magdata))
+                    # end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
                     subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
-                    title     --> "Bode plot from: u($j)"
-                    label     --> "\$G_{$(si)}\$"
+                    # title     --> "Bode plot from: u($j)"
+                    # label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
                     ws, magdata
                 end
@@ -246,12 +246,12 @@ bodeplot
 
                 @series begin
                     xscale    --> :log10
-                    ylims      := ylimsphase
-                    yticks    --> getPhaseTicks(phasedata, getlims(:ylims, plotattributes, phasedata))
+                    # ylims      := ylimsphase
+                    # yticks    --> yphaseticks
                     yguide    --> "Phase (deg)"
                     subplot   --> s2i(2i,j)
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
-                    label     --> "\$G_{$(si)}\$"
+                    # label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
                     ws, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
