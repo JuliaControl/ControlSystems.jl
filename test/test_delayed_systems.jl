@@ -1,4 +1,5 @@
 import DelayDiffEq: MethodOfSteps, Tsit5
+using ControlSystems
 
 @testset "test_delay_system" begin
 

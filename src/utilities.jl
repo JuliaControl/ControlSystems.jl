@@ -9,7 +9,7 @@ numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
 numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
 numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
-numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
+numeric_type(::Type{<:LFTSystem{<:Any, T}}) where {T} = T
 numeric_type(sys::AbstractStateSpace) = eltype(sys.A)
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 

@@ -80,6 +80,7 @@ export  LTISystem,
         # delay systems
         delay,
         pade,
+        nonlinearity,
         # demo systems
         ssrand,
         DemoSystems, # A module containing some example systems
@@ -140,6 +141,7 @@ include("types/StateSpace.jl")
 # TODO Sample time
 include("types/PartionedStateSpace.jl")
 include("types/DelayLtiSystem.jl")
+include("types/HammersteinWiener.jl")
 
 # Convenience constructors
 include("types/tf.jl")
@@ -168,6 +170,7 @@ include("pid_design.jl")
 include("demo_systems.jl")
 
 include("delay_systems.jl")
+include("hammerstein_weiner.jl")
 
 include("plotting.jl")
 

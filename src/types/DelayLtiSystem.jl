@@ -1,25 +1,19 @@
+abstract type LFTSystem{TE, T} <: LTISystem{TE} end
+
 """
     struct DelayLtiSystem{T, S <: Real} <: LTISystem
 
 Represents an LTISystem with internal time-delay. See `?delay` for a convenience constructor.
 """
-struct DelayLtiSystem{T,S<:Real} <: LTISystem{Continuous}
+struct DelayLtiSystem{T,S<:Real} <: LFTSystem{Continuous, T}
     P::PartionedStateSpace{Continuous, StateSpace{Continuous,T}}
     Tau::Vector{S} # The length of the vector tau implicitly defines the partitionging of P
-
-    # function DelayLtiSystem(P::StateSpace{Continuous,T, MT}, Tau::Vector{T})
-    #     if ControlSystems.noutputs(P) < length(Tau) ||
-    #         ControlSystems.noutputs(P) < length(Tau)
-    #         error("Length of time-vector is too long given the size of the partitioned system P.")
-    #     end
-    #     new{T}(P, Tau)
-    # end
 end
+
+feedback_channel(sys::DelayLtiSystem) = sys.Tau
 
 timeevol(sys::DelayLtiSystem) = timeevol(sys.P)
 
-# QUESTION: would psys be a good standard variable name for a PartionedStateSpace
-#           and perhaps dsys for a delayed system, (ambigous with discrete system though)
 """
     DelayLtiSystem{T, S}(sys::StateSpace, Tau::AbstractVector{S}=Float64[]) where {T <: Number, S <: Real}
 
@@ -73,12 +67,12 @@ Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
 
 
 
-function *(sys::DelayLtiSystem, n::Number)
+function *(sys::LFTSystem, n::Number)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
-    return DelayLtiSystem(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.timeevol), sys.Tau)
+    return basetype(sys)(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.timeevol), feedback_channel(sys))
 end
-*(n::Number, sys::DelayLtiSystem) = *(sys, n)
+*(n::Number, sys::LFTSystem) = *(sys, n)
 
 function +(sys::DelayLtiSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
     T = promote_type(T1,T2)
@@ -89,8 +83,17 @@ function +(sys::DelayLtiSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
     end
 end
 
+function +(sys::LFTSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
+    T = promote_type(T1,T2)
+    if T == T1 # T2 can be stored in sys
+        +(sys, T1(n))
+    else # We need to upgrade sys
+        +(basetype(typeof(sys)){T,S}(sys), T(n))
+    end
+end
+
 # Efficient addition
-function +(sys::DelayLtiSystem{T}, n::T) where {T<:Number}
+function +(sys::DelayLtiSystem{<:Any,T}, n::T) where {T<:Number}
     ny, nu = size(sys)
     ssold = sys.P.P
     # Add to direct term from input to output
@@ -98,12 +101,23 @@ function +(sys::DelayLtiSystem{T}, n::T) where {T<:Number}
     new_D[1:ny, 1:nu] .+= n
 
     pnew = PartionedStateSpace(StateSpace(ssold.A, ssold.B, ssold.C, new_D, Continuous()), ny, nu)
-    DelayLtiSystem(pnew, sys.Tau)
+    DelayLtiSystem(pnew, feedback_channel(sys))
+end
+
+function +(sys::LFTSystem{<:Any,T}, n::T) where {T<:Number}
+    ny, nu = size(sys)
+    ssold = sys.P.P
+    # Add to direct term from input to output
+    new_D = copy(ssold.D)
+    new_D[1:ny, 1:nu] .+= n
+
+    pnew = PartionedStateSpace(StateSpace(ssold.A, ssold.B, ssold.C, new_D, Continuous()), ny, nu)
+    basetype(sys)(pnew, feedback_channel(sys))
 end
 
 # Efficient subtraction with number
--(sys::DelayLtiSystem, n::T) where {T <:Number} = +(sys, -n)
--(n::T, sys::DelayLtiSystem) where {T <:Number} = +(-sys, n)
+-(sys::LFTSystem, n::T) where {T <:Number} = +(sys, -n)
+-(n::T, sys::LFTSystem) where {T <:Number} = +(-sys, n)
 function /(anything, sys::DelayLtiSystem)
     all(iszero, sys.Tau) || error("A delayed system can not be inverted. Consider use of the function `feedback`.")
     /(anything, sys.P.P) # If all delays are zero, invert the inner system
@@ -111,31 +125,33 @@ end
 
 
 # Test equality (of realizations)
-function ==(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
-    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(DelayLtiSystem))
+function ==(sys1::LFTSystem, sys2::LFTSystem)
+    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(typeof(sys1)))
 end
 
 
-ninputs(sys::DelayLtiSystem) = size(sys.P.P, 2) - length(sys.Tau)
-noutputs(sys::DelayLtiSystem) = size(sys.P.P, 1) - length(sys.Tau)
-nstates(sys::DelayLtiSystem) = nstates(sys.P.P)
+ninputs(sys::LFTSystem) = size(sys.P.P, 2) - length(sys.Tau)
+noutputs(sys::LFTSystem) = size(sys.P.P, 1) - length(sys.Tau)
+nstates(sys::LFTSystem) = nstates(sys.P.P)
 
-Base.size(sys::DelayLtiSystem) = (noutputs(sys), ninputs(sys))
+# Base.zero(sys::DelayLtiSystem{T}) = basetype(sys)(zero(sys.D), sys.timeevol)
+
+Base.size(sys::LFTSystem) = (noutputs(sys), ninputs(sys))
 
 # Fallbacks, TODO We should sort this out for all types, maybe after SISO/MIMO
 # {Array, Number}, Colon
-Base.getindex(sys::DelayLtiSystem, i, ::Colon) =
+Base.getindex(sys::LFTSystem, i, ::Colon) =
     getindex(sys, index2range(i), 1:size(sys,2))
 # Colon, {Array, Number}
-Base.getindex(sys::DelayLtiSystem, ::Colon, j) =
+Base.getindex(sys::LFTSystem, ::Colon, j) =
     getindex(sys, 1:size(sys,1), index2range(j))
-Base.getindex(sys::DelayLtiSystem, ::Colon, ::Colon) =
+Base.getindex(sys::LFTSystem, ::Colon, ::Colon) =
     getindex(sys, 1:size(sys,1), 1:size(sys,2))
 # Should just catch Number, Number, or Colon, Colon
-Base.getindex(sys::DelayLtiSystem, i, j) =
+Base.getindex(sys::LFTSystem, i, j) =
     getindex(sys, index2range(i), index2range(j))
 
-function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
+function Base.getindex(sys::LFTSystem, i::AbstractArray, j::AbstractArray)
     ny, nu = size(sys)
     # Cant use "boundscheck" since not AbstractArray
     imin, imax = extrema(i)
@@ -146,12 +162,12 @@ function Base.getindex(sys::DelayLtiSystem, i::AbstractArray, j::AbstractArray)
     nrow, ncol = size(sys.P.P)
     rowidx = [collect(i); collect((ny+1):nrow)] # Output plus delay terms
     colidx = [collect(j); collect((nu+1):ncol)] # Input plus delay terms
-    DelayLtiSystem(StateSpace(
+    typeof(sys)(StateSpace(
         sys.P.A[:,      :],
         sys.P.B[:,      colidx],
         sys.P.C[rowidx, :],
         sys.P.D[rowidx, colidx],
-        sys.P.timeevol), sys.Tau)
+        sys.P.timeevol), feedback_channel(sys))
 end
 
 function Base.show(io::IO, sys::DelayLtiSystem)
@@ -165,30 +181,31 @@ end
 
 
 
-function +(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
+function +(sys1::LFTSystem, sys2::LFTSystem)
     psys_new = sys1.P + sys2.P
-    Tau_new = [sys1.Tau; sys2.Tau]
+    Tau_new = [feedback_channel(sys1); feedback_channel(sys2)]
 
-    DelayLtiSystem(psys_new.P, Tau_new)
+    promote_type(typeof(sys1), typeof(sys2))(psys_new.P, Tau_new)
 end
 
--(sys1::DelayLtiSystem, sys2::DelayLtiSystem) = +(sys1, -sys2)
--(sys::DelayLtiSystem{T}) where {T} = *(sys, T(-1))
+-(sys1::LFTSystem, sys2::LFTSystem) = +(sys1, -sys2)
+-(sys::LFTSystem{<:Any, T}) where {T} = *(sys, T(-1))
 
 
-function *(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
+function *(sys1::LFTSystem{TE, T1}, sys2::LFTSystem{TE, T2}) where {TE, T1, T2}
     psys_new = sys1.P * sys2.P
-    Tau_new = [sys1.Tau; sys2.Tau]
+    Tau_new = [feedback_channel(sys1); feedback_channel(sys2)]
+    # T = promote_type(T1, T2)
 
-    DelayLtiSystem(psys_new.P, Tau_new)
+    basetype(sys1)(psys_new.P, Tau_new)
 end
 
 
-function feedback(sys1::DelayLtiSystem, sys2::DelayLtiSystem)
+function feedback(sys1::LFTSystem, sys2::LFTSystem)
     psys_new = feedback(sys1.P, sys2.P)
-    Tau_new = [sys1.Tau; sys2.Tau]
+    Tau_new = [feedback_channel(sys1); feedback_channel(sys2)]
 
-    DelayLtiSystem(psys_new.P, Tau_new)
+    promote_type(typeof(sys1), typeof(sys2))(psys_new.P, Tau_new)
 end
 
 """

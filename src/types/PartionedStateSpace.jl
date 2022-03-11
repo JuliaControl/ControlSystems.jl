@@ -52,7 +52,7 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     elseif d === :D22
         return P.D[ny1+1:end, nu1+1:end]
     else
-        return getfield(P, d)
+        return getproperty(P, d)
     end
 end
 
