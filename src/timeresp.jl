@@ -15,8 +15,9 @@ function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwa
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
     nx = nstates(sys)
-    u_element = [one(eltype(t))] # to avoid allocating this multiple times
-    u = (x,t)->u_element
+    u = let u_element = [one(eltype(t))] # to avoid allocating this multiple times
+        (x,t)->u_element
+    end
     x0 = zeros(T, nx)
     if nu == 1
         y, tout, x, uout = lsim(sys, u, t; x0, method, kwargs...)
@@ -205,8 +206,11 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     else
         p = (sys.A, sys.B, u)
         sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; saveat=t, kwargs...)
-        x = reduce(hcat, sol.u)
-        uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
+        x = reduce(hcat, sol.u)::Matrix{T}
+        uout = Matrix{T}(undef, nu, length(t))
+        for i = eachindex(t)
+            uout[:, i] = u(@view(x[:, i]), t[i])
+        end
         simsys = sys
     end
     y = sys.C*x
