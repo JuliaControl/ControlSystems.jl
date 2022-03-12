@@ -91,37 +91,45 @@ res2 = step(sys2, t)
 
 @test res.y ≈ res2.y rtol=1e-3
 
-@error "jag kom inte längre hän hit. Är problem med att stoppa två olinjäriteter i rad, jag stoppade in assrt D22=0 för att undvika algebraisk loop i solvern, men det innebär att man måste fånga fallet ovan och göra kompositionen av olinjäriteterna"
+# plot([res, res2])
 
-y_sol = [zeros(200);0:0.01:2]'
-
-@test maximum(abs,y-y_sol) < 1e-13
-@test maximum(abs,x-collect(0:0.01:4)') < 1e-15
-
-# TODO For some reason really bad accuracy here
-# Looks like a lag in time
-sys = 1/s*nonlinearity(abs2)*nonlinearity(abs2)
-
-y, t, x = step(sys, t)
-@test maximum(abs,y-y_sol) < 1e-5
-@test maximum(abs,x-y_sol) < 1e-5
-
-t = 0:0.001:0.1
-y, t, x = step(sys, t)
-@test length(y) == length(t)
-
-
-##
+## Test predefined nonlinearities
+# saturation
+using ControlSystems: saturation
+th = 0.7
 G = tf(1.0, [1,1])
-nl = nonlinearity(x->clamp(x, -0.7, 0.7))
+nl = saturation(th)
 Gnl = G*nl
 C = tf(1)
 Cnl = nl*C
 L = G*C
 Lnl = G*Cnl
 
+@test all(step(feedback(Cnl,G)).y .<= th)
+
 plot(step([feedback(L); feedback(C,G)], 5), lab=["Linear y" "Linear u"])
 plot!(step([feedback(Lnl); feedback(Cnl,G)], 5), lab=["Nonlinear y" "Nonlinear u"])
 
-
+# offset
+using ControlSystems: offset
+o = 1.5
+G = tf(1.0, [1,1])
+nl = offset(o)
+@test all(step(nl, 1).y .== 2.5)
 # end
+
+w = exp10.(LinRange(-2, 2, 2))
+@test all(freqresp(nl, w) .== 1)
+@test evalfr(nl, rand())[] == 1
+
+## test linearize
+using ControlSystems: linearize
+@test linearize(nl, 1) == ss(1)
+@test linearize(nl, 2) == ss(1)
+
+@test linearize(nonlinearity(abs2), 2) == ss(4)
+@test linearize(nonlinearity(abs2), 1) == ss(2)
+@test linearize(saturation(1), 0) == ss(1)
+@test linearize(saturation(1), 3) == ss(0)
+
+@test linearize(saturation(1)tf(1,[1,1]), 0) == ss(tf(1,[1,1]))

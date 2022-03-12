@@ -185,3 +185,33 @@ function impulse(sys::HammersteinWienerSystem{T}, t::AbstractVector; kwargs...) 
         SimResult(y, t, x, uout, sys)
     end
 end
+
+
+struct Saturation{T}
+    l::T
+    u::T
+end
+Saturation(u) = Saturation(-u, u)
+
+(s::Saturation)(x) = clamp(x, s.l, s.u)
+
+"""
+    saturation(val)
+    saturation(lower, upper)
+
+Create a saturating nonlinearity.
+"""
+saturation(args...) = nonlinearity(Saturation(args...))
+
+struct Offset{T}
+    o::T
+end
+
+(s::Offset)(x) = x .+ s.o
+
+"""
+    offset(val)
+
+Create a constant-offset nonlinearity `x -> x + val`.
+"""
+offset(args...) = nonlinearity(Offset(args...))
