@@ -70,6 +70,14 @@ function Base.show(io::IO, sys::HammersteinWienerSystem)
     print(io, "\n\nNonlinearities: $(sys.Tau)")
 end
 
+
+function Base.getproperty(sys::HammersteinWienerSystem, s::Symbol)
+    s ∈ fieldnames(typeof(sys)) && return getfield(sys, s)
+    s ∈ propertynames(getfield(sys, :P)) && return getproperty(getfield(sys, :P), s)
+    throw(ArgumentError("$(typeof(sys)) has no property named $s"))
+end
+
+
 """
     nonlinearity(T, f)
 

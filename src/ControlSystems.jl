@@ -111,6 +111,7 @@ export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
+using ForwardDiff
 import MatrixPencils
 using DelayDiffEq
 using MacroTools

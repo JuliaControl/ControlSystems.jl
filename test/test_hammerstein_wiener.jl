@@ -81,10 +81,15 @@ y, t, x = step(sys, t)
 @test y[:] ≈ ones(length(t)) atol = 1e-12
 @test size(x) == (0,401)
 
+
+## Test that nonlinearities can be composed 
 sys = nonlinearity(abs2)*nonlinearity(abs2)*1/s
+res = step(sys, t)
 
-y, t, x = step(sys, t)
+sys2 = nonlinearity(abs2 ∘ abs2)*1/s
+res2 = step(sys2, t)
 
+@test res.y ≈ res2.y rtol=1e-3
 
 @error "jag kom inte längre hän hit. Är problem med att stoppa två olinjäriteter i rad, jag stoppade in assrt D22=0 för att undvika algebraisk loop i solvern, men det innebär att man måste fånga fallet ovan och göra kompositionen av olinjäriteterna"
 

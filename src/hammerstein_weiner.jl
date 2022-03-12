@@ -1,9 +1,16 @@
 function freqresp!(R::Array{T,3}, sys::HammersteinWienerSystem, ω::AbstractVector{W}) where {T, W <: Real}
-    throw(ArgumentError("Frequency response is ill-defined for HammersteinWienerSystem"))
+    all(f isa Offset for f in sys.Tau) && return freqresp!(R, lft(sys.P.P, ss(I(length(sys.Tau)), timeevol(sys))), ω)
+    throw(ArgumentError("Frequency response is not defined for HammersteinWienerSystem with nonlinearities. Call linearize to obtain a linearized system"))
 end
 
 function evalfr(sys::HammersteinWienerSystem, s)
-    throw(ArgumentError("Frequency response is ill-defined for HammersteinWienerSystem"))
+    all(f isa Offset for f in sys.Tau) && return evalfr(lft(sys.P.P, ss(I(length(sys.Tau)), timeevol(sys))), s)
+    throw(ArgumentError("Frequency response is not defined for HammersteinWienerSystem with nonlinearities. Call linearize to obtain a linearized system"))
+end
+
+function linearize(sys::HammersteinWienerSystem, Δy)
+    f = [ForwardDiff.derivative(f, dy) for (f,dy) in zip(sys.Tau, Δy)]
+    lft(sys.P.P, ss(diagm(f), timeevol(sys)))
 end
 
 
@@ -43,7 +50,7 @@ end
 
 
 function hw_f(du, u, p, t)
-    (A, B1, B2, C1, C2, D11, D12, D21, D22, Tau, u!, uout, uc) = p
+    (A, B1, B2, C1, C2, D11, D12, D21, D22, Tau, u!, uout, Δy) = p
 
     nx = size(A,1)
     nd = length(Tau)
@@ -51,27 +58,26 @@ function hw_f(du, u, p, t)
 
     yinds = (nx+1):(nx+ny)
     dx = view(du, 1:nx)
-    # dY = view(du, (1:ny) .+ nx)
 
     x = view(u, 1:nx)
-
-    # uout = u(t)
     u!(uout, t)
 
-    # uc = f = C2*x + D21*u(t) + D22*f(uc)
-    mul!(uc, C2, x)
-    mul!(uc, D21, uout, true, true)
-    @assert iszero(D22)
-    # mul!(uc, D22, uc, true, true) # This must be zero to prevent algebraic loop
-
-    for i in eachindex(uc)
-        uc[i] = Tau[i](uc[i])
+    # Δy = f = C2*x + D21*u(t) + D22*f(uc)
+    mul!(Δy, C2, x)
+    mul!(Δy, D21, uout, true, true)
+    # If D22 has entries on the diagonal, there would be an algebraic loop, 
+    # D22 will however always be upper triangular due to s1*s2 for PartitionedStateSpace, we can thus start from the bottom and apply nonlinearities
+    Δu = Δy # change name, we reuse Δy storage even if the signal after the nonlinearity is Δu
+    for i in reverse(eachindex(Δy))
+        Δu[i] = Tau[i](Δy[i]) #
+        for j = i-1:-1:1 
+            Δu[j] += D22[j, i]*Δu[i]
+        end
     end
 
     mul!(dx, A, x)
     mul!(dx, B1, uout, true, true)
-    mul!(dx, B2, uc, true, true)
-
+    mul!(dx, B2, Δu, true, true)
 end
 
 
@@ -91,11 +97,11 @@ function _lsim(sys::HammersteinWienerSystem{T}, Base.@nospecialize(u!), t::Abstr
     nu = size(B1,2)
     nt = length(t)
 
-    fout = fill(zero(T), nd)            # in place storage for nonlinear activations
+    dy   = fill(zero(T), nd)            # in place storage for nonlinear activations
     uout = fill(zero(T), ninputs(sys))  # in place storage for u
 
     if nx > 0
-        p = (A, B1, B2, C1, C2, D11, D12, D21, D22, Tau, u!, uout, fout)
+        p = (A, B1, B2, C1, C2, D11, D12, D21, D22, Tau, u!, uout, dy)
         u0 = x0
         prob = ODEProblem{true}(hw_f, u0, (T(t[1]), T(t[end])), p)
         sol = OrdinaryDiffEq.solve(prob, alg; saveat=t, kwargs...)
@@ -107,16 +113,23 @@ function _lsim(sys::HammersteinWienerSystem{T}, Base.@nospecialize(u!), t::Abstr
     for i = eachindex(t)
         @views u!(uout2[:, i], t[i])
     end
-    uc = C2*x
+    Δy = C2*x
     yout = C1*x
     iszero(D11) || mul!(yout, D11, uout2, true, true)
-
+    
     if !iszero(D12)
-        iszero(D21) || mul!(uc, D21, uout2, true, true)
-        for i in axes(uc, 1), j in axes(uc, 2)
-            uc[i,j] = Tau[i](uc[i,j])
-        end
-        mul!(yout, D12, uc, true, true)
+        iszero(D21) || mul!(Δy, D21, uout2, true, true)
+        if !iszero(D22)
+            iszero(LowerTriangular(D22)) ||
+                error("D22 must be strict upper triangular to prevent algebraic loops. It's recommended to build nonlinear systems using the constructor `nonlinearity` to enforce this structure.")
+            for i in reverse(axes(Δy, 1)), k in axes(Δy, 2)
+                Δy[i,k] = Tau[i](Δy[i,k])
+                for j = i-1:-1:1 
+                    Δy[j,k] += D22[j, i]*Δy[i,k]
+                end
+            end
+        end     
+        mul!(yout, D12, Δy, true, true)
     end
 
     return SimResult(yout, t, x, uout2, sys)
