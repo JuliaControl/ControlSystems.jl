@@ -119,10 +119,14 @@ function _lsim(sys::HammersteinWienerSystem{T}, Base.@nospecialize(u!), t::Abstr
     
     if !iszero(D12)
         iszero(D21) || mul!(Δy, D21, uout2, true, true)
-        if !iszero(D22)
+        if iszero(D22)
+            for k in axes(Δy, 2), i in reverse(axes(Δy, 1))
+                Δy[i,k] = Tau[i](Δy[i,k])
+            end
+        else
             iszero(LowerTriangular(D22)) ||
                 error("D22 must be strict upper triangular to prevent algebraic loops. It's recommended to build nonlinear systems using the constructor `nonlinearity` to enforce this structure.")
-            for i in reverse(axes(Δy, 1)), k in axes(Δy, 2)
+            for k in axes(Δy, 2), i in reverse(axes(Δy, 1))
                 Δy[i,k] = Tau[i](Δy[i,k])
                 for j = i-1:-1:1 
                     Δy[j,k] += D22[j, i]*Δy[i,k]
@@ -187,7 +191,7 @@ function impulse(sys::HammersteinWienerSystem{T}, t::AbstractVector; kwargs...) 
 end
 
 
-struct Saturation{T}
+struct Saturation{T} <: Function
     l::T
     u::T
 end
@@ -203,7 +207,7 @@ Create a saturating nonlinearity.
 """
 saturation(args...) = nonlinearity(Saturation(args...))
 
-struct Offset{T}
+struct Offset{T} <: Function
     o::T
 end
 

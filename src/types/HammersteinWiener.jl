@@ -5,7 +5,7 @@ Represents an LTISystem with nonlinearities at the inputs and outputs. See `?non
 """
 struct HammersteinWienerSystem{T} <: LFTSystem{Continuous, T}
     P::PartionedStateSpace{Continuous, StateSpace{Continuous,T}}
-    Tau::Vector # The length of the vector tau implicitly defines the partitionging of P
+    Tau::Vector{Function} # The length of the vector tau implicitly defines the partitionging of P
 end
 
 feedback_channel(sys::HammersteinWienerSystem) = sys.Tau
@@ -13,11 +13,11 @@ feedback_channel(sys::HammersteinWienerSystem) = sys.Tau
 timeevol(sys::HammersteinWienerSystem) = timeevol(sys.P)
 
 """
-    HammersteinWienerSystem{T, S}(sys::StateSpace, Tau::AbstractVector{S}=Float64[]) where {T <: Number}
+    HammersteinWienerSystem{T, S}(sys::StateSpace, Tau::Vector{Function}=[]) where {T <: Number}
 
 Create a nonlinearityed system by speciying both the system and time-nonlinearity vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
 """
-function HammersteinWienerSystem{T}(sys::StateSpace, Tau::AbstractVector = Any[]) where {T<:Number}
+function HammersteinWienerSystem{T}(sys::StateSpace, Tau::Vector{Function} = Function[]) where {T<:Number}
     nu = ninputs(sys) - length(Tau)
     ny = noutputs(sys) - length(Tau)
 
@@ -29,11 +29,11 @@ function HammersteinWienerSystem{T}(sys::StateSpace, Tau::AbstractVector = Any[]
     HammersteinWienerSystem{T}(psys, Tau)
 end
 # For converting HammersteinWienerSystem{T,S} to different T
-HammersteinWienerSystem{T}(sys::HammersteinWienerSystem) where {T} = HammersteinWienerSystem{T}(PartionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys.P), Any[])
-HammersteinWienerSystem{T}(sys::StateSpace) where {T} = HammersteinWienerSystem{T}(sys, Any[])
+HammersteinWienerSystem{T}(sys::HammersteinWienerSystem) where {T} = HammersteinWienerSystem{T}(PartionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys.P), Function[])
+HammersteinWienerSystem{T}(sys::StateSpace) where {T} = HammersteinWienerSystem{T}(sys, Function[])
 
 # From StateSpace, infer type
-HammersteinWienerSystem(sys::StateSpace{Continuous,T}, Tau::Vector = Any[]) where {T} = HammersteinWienerSystem{T}(sys, Tau)
+HammersteinWienerSystem(sys::StateSpace{Continuous,T}, Tau::Vector{Function} = Function[]) where {T} = HammersteinWienerSystem{T}(sys, Tau)
 
 # From TransferFunction, infer type TODO Use proper constructor instead of convert here when defined
 HammersteinWienerSystem(sys::TransferFunction{TE,S}) where {TE,T,S<:SisoTf{T}} = HammersteinWienerSystem{T}(convert(StateSpace{Continuous,T}, sys))
@@ -92,7 +92,7 @@ tf(1, [1, 1])*nonlinearity(x->clamp(x, -1, 1))
 ```
 """
 function nonlinearity(::Type{T}, f) where T <: Number
-    return HammersteinWienerSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), [f])
+    return HammersteinWienerSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), Function[f])
 end
 
 nonlinearity(f) = nonlinearity(Float64, f)

@@ -8,7 +8,7 @@ using ControlSystems: HammersteinWienerSystem
 
 @test typeof(promote(nonlinearity(abs2), ss(1))[1]) == HammersteinWienerSystem{Float64}
 
-@test sprint(show, ss(1,1,1,1)*nonlinearity(abs2)) == "HammersteinWienerSystem{Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nNonlinearities: Any[abs2]"
+@test sprint(show, ss(1,1,1,1)*nonlinearity(abs2)) == "HammersteinWienerSystem{Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nNonlinearities: Function[abs2]"
 
 
 P1 = HammersteinWienerSystem(ss(-1.0, 1, 1, 0))
@@ -47,7 +47,11 @@ f2 = [s11 s12;
 # Test step
 println("Simulating first nonlinearity system:")
 @test step(nonlinearity(identity)*tf(1,[1.,1]), 5).y ≈ step(tf(1,[1.,1]), 5).y rtol=1e-3
-@test step(nonlinearity(abs2)*tf(1,[1.,1]), 5).y ≈ abs2.(step(tf(1,[1.,1]), 5).y) rtol=1e-3
+@test step(nonlinearity(abs2)*tf(1,[1.,1]), 0:0.01:5).y ≈ abs2.(step(tf(1,[1.,1]), 0:0.01:5).y) rtol=1e-3
+
+# plot(step(nonlinearity(abs2)*tf(1,[1.,1]), 0:0.01:5).y')
+# plot!(abs2.(step(tf(1,[1.,1]), 0:0.01:5).y'))
+
 @test step(tf(1,[1.,1])*nonlinearity(x->0.5x), 5).y ≈ 0.5step(tf(1,[1.,1]), 5).y rtol=1e-3
 
 @time step(nonlinearity(abs2)*tf(1,[1.,1]))
@@ -72,9 +76,8 @@ y2, t2, x2 = step([1.0/s 2/s; 3/s 4/s], t)
 @test size(x1,3) == 2
 
 
-## Test nonlinearity with D22 term
+## Test only nonlinearity
 t = 0:0.01:4
-
 sys = nonlinearity(abs2)
 
 y, t, x = step(sys, t)
@@ -107,8 +110,8 @@ Lnl = G*Cnl
 
 @test all(step(feedback(Cnl,G)).y .<= th)
 
-plot(step([feedback(L); feedback(C,G)], 5), lab=["Linear y" "Linear u"])
-plot!(step([feedback(Lnl); feedback(Cnl,G)], 5), lab=["Nonlinear y" "Nonlinear u"])
+# plot(step([feedback(L); feedback(C,G)], 5), lab=["Linear y" "Linear u"])
+# plot!(step([feedback(Lnl); feedback(Cnl,G)], 5), lab=["Nonlinear y" "Nonlinear u"])
 
 # offset
 using ControlSystems: offset
