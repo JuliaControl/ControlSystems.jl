@@ -246,6 +246,8 @@ Saturation(u) = Saturation(-u, u)
 Create a saturating nonlinearity.
 """
 saturation(args...) = nonlinearity(Saturation(args...))
+saturation(v::AbstractVector, args...) = nonlinearity(Saturation.(v, args...))
+Base.show(io::IO, f::Saturation) = f.u == -f.l ? print(io, "saturation($(f.u))") : print(io, "saturation($(f.l), $(f.u))")
 
 struct Offset{T} <: Function
     o::T
@@ -260,3 +262,6 @@ Create a constant-offset nonlinearity `x -> x + val`.
 """
 offset(val::Number) = nonlinearity(Offset(val))
 offset(v::AbstractVector) = nonlinearity(Offset.(v))
+
+
+Base.show(io::IO, f::Offset) = print(io, "offset($(f.val))")
