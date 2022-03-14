@@ -1,7 +1,21 @@
 """
     struct HammersteinWienerSystem{T} <: LTISystem
 
-Represents an LTISystem with nonlinearities at the inputs and outputs. See `?nonlinearity` for a convenience constructor.
+Represents an LTISystem with element-wise static nonlinearities at the inputs and outputs. See `?nonlinearity` for a convenience constructor.
+
+```
+      ┌─────────┐
+ y◄───┤         │◄────u
+      │    P    │
+Δy┌───┤         │◄───┐Δu
+  │   └─────────┘    │
+  │                  │
+  │      ┌───┐       │
+  │      │   │       │
+  └─────►│ f ├───────┘
+         │   │
+         └───┘
+```
 """
 struct HammersteinWienerSystem{T} <: LFTSystem{Continuous, T}
     P::PartionedStateSpace{Continuous, StateSpace{Continuous,T}}
@@ -15,7 +29,7 @@ timeevol(sys::HammersteinWienerSystem) = timeevol(sys.P)
 """
     HammersteinWienerSystem{T, S}(sys::StateSpace, Tau::Vector{Function}=[]) where {T <: Number}
 
-Create a nonlinearityed system by speciying both the system and time-nonlinearity vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
+Create a nonlinear system by speciying both the system and nonlinearity. Users should prefer to use the function [`nonlinearity`](@ref).
 """
 function HammersteinWienerSystem{T}(sys::StateSpace, Tau::Vector{Function} = Function[]) where {T<:Number}
     nu = ninputs(sys) - length(Tau)
@@ -90,6 +104,8 @@ Create a LTI system with an input nonlinearity of `f`
 ```julia
 tf(1, [1, 1])*nonlinearity(x->clamp(x, -1, 1))
 ```
+
+See also predefined nonlinearities [`saturation`](@ref), [`offser`](@ref).
 """
 function nonlinearity(::Type{T}, f) where T <: Number
     return HammersteinWienerSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), Function[f])
