@@ -18,7 +18,7 @@ Represents an LTISystem with element-wise static nonlinearities at the inputs an
 ```
 """
 struct HammersteinWienerSystem{T} <: LFTSystem{Continuous, T}
-    P::PartionedStateSpace{Continuous, StateSpace{Continuous,T}}
+    P::PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}
     Tau::Vector{Function} # The length of the vector tau implicitly defines the partitionging of P
 end
 
@@ -39,11 +39,11 @@ function HammersteinWienerSystem{T}(sys::StateSpace, Tau::Vector{Function} = Fun
         throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
 
-    psys = PartionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys, nu, ny)
+    psys = PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys, nu, ny)
     HammersteinWienerSystem{T}(psys, Tau)
 end
 # For converting HammersteinWienerSystem{T,S} to different T
-HammersteinWienerSystem{T}(sys::HammersteinWienerSystem) where {T} = HammersteinWienerSystem{T}(PartionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys.P), Function[])
+HammersteinWienerSystem{T}(sys::HammersteinWienerSystem) where {T} = HammersteinWienerSystem{T}(PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys.P), Function[])
 HammersteinWienerSystem{T}(sys::StateSpace) where {T} = HammersteinWienerSystem{T}(sys, Function[])
 
 # From StateSpace, infer type
@@ -109,6 +109,10 @@ See also predefined nonlinearities [`saturation`](@ref), [`offser`](@ref).
 """
 function nonlinearity(::Type{T}, f) where T <: Number
     return HammersteinWienerSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), Function[f])
+end
+
+function nonlinearity(::Type{T}, fs::AbstractVector) where T <: Number
+    return append(nonlinearity.(T, fs)...)
 end
 
 nonlinearity(f) = nonlinearity(Float64, f)

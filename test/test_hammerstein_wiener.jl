@@ -110,8 +110,8 @@ Lnl = G*Cnl
 
 @test all(step(feedback(Cnl,G)).y .<= th)
 
-# plot(step([feedback(L); feedback(C,G)], 5), lab=["Linear y" "Linear u"])
-# plot!(step([feedback(Lnl); feedback(Cnl,G)], 5), lab=["Nonlinear y" "Nonlinear u"])
+plot(step([feedback(L); feedback(C,G)], 5), lab=["Linear y" "Linear u"])
+plot!(step([feedback(Lnl); feedback(Cnl,G)], 5), lab=["Nonlinear y" "Nonlinear u"])
 
 # offset
 using ControlSystems: offset
@@ -124,6 +124,16 @@ nl = offset(o)
 w = exp10.(LinRange(-2, 2, 2))
 @test all(freqresp(nl, w) .== 1)
 @test evalfr(nl, rand())[] == 1
+
+# MIMO offset
+o = randn(2) 
+nl = offset(o)
+@test all(step(nl, 1).y[:,:,1] .== o .+ [1;0])
+@test all(step(nl, 1).y[:,:,2] .== o .+ [0;1])
+
+G = ssrand(2,1,1)
+nlG = nl*G
+@test nlG.ny1 == G.ny
 
 ## test linearize
 using ControlSystems: linearize

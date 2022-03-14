@@ -218,4 +218,5 @@ end
 
 Create a constant-offset nonlinearity `x -> x + val`.
 """
-offset(args...) = nonlinearity(Offset(args...))
+offset(val::Number) = nonlinearity(Offset(val))
+offset(v::AbstractVector) = nonlinearity(Offset.(v))

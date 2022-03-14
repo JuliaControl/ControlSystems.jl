@@ -140,7 +140,8 @@ include("types/SisoTfTypes/conversion.jl")
 include("types/StateSpace.jl")
 
 # TODO Sample time
-include("types/PartionedStateSpace.jl")
+include("types/PartitionedStateSpace.jl")
+include("types/LFTSystem.jl")
 include("types/DelayLtiSystem.jl")
 include("types/HammersteinWiener.jl")
 

@@ -7,7 +7,7 @@ using LinearAlgebra
 # ———————
 # 4 | 5 6
 # 7 | 8 9
-sys1 = ControlSystems.PartionedStateSpace(ss(1.0, [2.0 3.0], [4.0; 7.0], [5.0 6.0; 8.0 9.0]), 1, 1)
+sys1 = ControlSystems.PartitionedStateSpace(ss(1.0, [2.0 3.0], [4.0; 7.0], [5.0 6.0; 8.0 9.0]), 1, 1)
 
 matrix(x::Number) = fill(x, 1, 1)
 
@@ -22,7 +22,7 @@ sys1.D21 == matrix(8.0)
 sys1.D22 == matrix(9.0)
 
 ##
-sys2 = ControlSystems.PartionedStateSpace(ss(fill(1.0, 2, 2), fill(2.0, 2, 5), fill(3.0, 7, 2), fill(4.0, 7, 5)), 2, 3)
+sys2 = ControlSystems.PartitionedStateSpace(ss(fill(1.0, 2, 2), fill(2.0, 2, 5), fill(3.0, 7, 2), fill(4.0, 7, 5)), 2, 3)
 
 @test sys2.A == fill(1.0, 2, 2)
 @test sys2.B1 == fill(2.0, 2, 2)
