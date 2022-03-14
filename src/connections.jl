@@ -172,7 +172,7 @@ If `C2` is an integer it will be interpreted as an index and an output matrix co
 function add_output(sys::AbstractStateSpace, C2::AbstractArray, D2=0)
     T = promote_type(numeric_type(sys), eltype(C2), eltype(D2))
     A,B,C,D = ssdata(sys)
-    D3 = D2 == 0 ? zeros(T, size(C2, 1), sys.nx) : D2
+    D3 = D2 == 0 ? zeros(T, size(C2, 1), sys.nu) : D2
     basetype(sys)(A, B, [C; C2], [D; D3], sys.timeevol)
 end
 
