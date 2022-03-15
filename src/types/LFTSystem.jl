@@ -9,15 +9,16 @@ end
 *(n::Number, sys::LFTSystem) = *(sys, n)
 
 
-function +(sys::LFTSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
+function +(sys::LFTSystem{TE,T1}, n::T2) where {TE,T1,T2<:Number}
     T = promote_type(T1,T2)
     if T == T1 # T2 can be stored in sys
         +(sys, T1(n))
     else # We need to upgrade sys
-        +(basetype(typeof(sys)){T,S}(sys), T(n))
+        +(basetype(sys){T}(sys), T(n))
     end
 end
 
+# Same numeric type
 function +(sys::LFTSystem{<:Any,T}, n::T) where {T<:Number}
     ny, nu = size(sys)
     ssold = sys.P.P

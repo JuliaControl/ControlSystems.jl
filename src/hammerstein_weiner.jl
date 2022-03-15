@@ -167,7 +167,7 @@ function _lsim(sys::HammersteinWienerSystem{T}, u!, t::AbstractArray{<:Real}, x0
 
     if nx > 0
         p = (A, B1, B2, C1, C2, D11, D12, D21, D22, f, u!, uout, dy, order)
-        prob = ODEProblem{true}(hw_f, x0, (T(t[1]), T(t[end])), p)
+        prob = ODEProblem{true}(hw_f, x0, (T(t[1]), T(t[end]+dt/2)), p)
         sol = OrdinaryDiffEq.solve(prob, alg; saveat=t, kwargs...)
         x = reduce(hcat, sol.u)::Matrix{T}
     else

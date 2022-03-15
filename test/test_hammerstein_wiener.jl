@@ -151,6 +151,23 @@ Lnl = G * Cnl
 plot(step([feedback(L); feedback(C, G)], 5), lab = ["Linear y" "Linear u"])
 plot!(step([feedback(Lnl); feedback(Cnl, G)], 5), lab = ["Nonlinear y" "Nonlinear u"])
 
+@test (Lnl + 1) == (Lnl + 1.0)
+@test (Lnl + 1) isa ControlSystems.HammersteinWienerSystem{Float64}
+@test (Lnl - 1) == (Lnl - 1.0)
+@test (Lnl - 1) isa ControlSystems.HammersteinWienerSystem{Float64}
+@test (1-Lnl) == (1.0 - Lnl)
+@test (1-Lnl) isa ControlSystems.HammersteinWienerSystem{Float64}
+
+@test ControlSystems.HammersteinWienerSystem{Float32}(Lnl) isa ControlSystems.HammersteinWienerSystem{Float32}
+@test ControlSystems.HammersteinWienerSystem{Float32}(ss(G)) isa ControlSystems.HammersteinWienerSystem{Float32}
+
+n = convert(ControlSystems.HammersteinWienerSystem{Float32}, 1)
+@test n isa ControlSystems.HammersteinWienerSystem{Float32}
+@test n.D == [1f0;;]
+@test n.nx == 0
+
+
+
 # offset
 using ControlSystems: offset
 o = 1.5

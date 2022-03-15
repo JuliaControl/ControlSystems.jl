@@ -48,7 +48,7 @@ end
 # For converting HammersteinWienerSystem{T,S} to different T
 HammersteinWienerSystem{T}(sys::HammersteinWienerSystem) where {T} = HammersteinWienerSystem{T}(PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys.P), Function[])
 HammersteinWienerSystem{T}(sys::StateSpace) where {T} = HammersteinWienerSystem{T}(sys, Function[])
-
+HammersteinWienerSystem(sys::HammersteinWienerSystem) = sys
 # From StateSpace, infer type
 HammersteinWienerSystem(sys::StateSpace{Continuous,T}, f::Vector{Function} = Function[]) where {T} = HammersteinWienerSystem{T}(sys, f)
 
