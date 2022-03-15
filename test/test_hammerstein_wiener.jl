@@ -1,7 +1,7 @@
 using ControlSystems
 using ControlSystems: HammersteinWienerSystem
 using SparseArrays
-using ControlSystems: equation_order
+using ControlSystems: _equation_order
 
 # @testset "test_nonlinearity_system" begin
 
@@ -10,13 +10,13 @@ using ControlSystems: equation_order
     @info "Testing equation_order"
 
     D22 = [0 1; 0 0]
-    @test equation_order(D22) == [2,1]
+    @test _equation_order(D22) == [2,1]
 
     D22 = [0 0; 1 0]
-    @test equation_order(D22) == [1,2]
+    @test _equation_order(D22) == [1,2]
 
     D22 = [1 0; 0 0]
-    @test_throws ErrorException equation_order(D22)
+    @test_throws ErrorException _equation_order(D22)
 
     function rand_lt(n)
         M = zeros(n, n)
@@ -29,7 +29,7 @@ using ControlSystems: equation_order
 
     for i = 1:1000
         D = rand_lt(n)
-        perm = equation_order(D)
+        perm = _equation_order(D)
         @test sort(perm) == 1:n
     end
 
@@ -197,7 +197,7 @@ G = ss(1)
 # Two identical saturations in a row is equivalent to a single saturation
 # Due to the direct feedthrough in G, we fail to solve this problem and encounter an algebraic loop
 D22 = feedback(nl, G*nl).D22
-@test_throws ErrorException ControlSystems.equation_order(D22)
+@test_throws ErrorException ControlSystems._equation_order(D22)
 
 ## With a proper system, two identical saturations in a row is equivalent to a single saturation
 G = ss(-1,1,1,0)
