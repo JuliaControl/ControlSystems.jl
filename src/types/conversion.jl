@@ -87,7 +87,7 @@ function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; 
 end
 
 # Note: balancing is only applied by default for floating point types, integer systems are not balanced since that would change the type. 
-function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T <: Integer)) where {TE,T<:Number}
+function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T <: Union{Integer, Rational})) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
