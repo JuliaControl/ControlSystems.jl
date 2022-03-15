@@ -67,8 +67,8 @@ end
 
 
 
-ninputs(sys::LFTSystem) = size(sys.P.P, 2) - length(sys.Tau)
-noutputs(sys::LFTSystem) = size(sys.P.P, 1) - length(sys.Tau)
+ninputs(sys::LFTSystem) = size(sys.P.P, 2) - length(feedback_channel(sys))
+noutputs(sys::LFTSystem) = size(sys.P.P, 1) - length(feedback_channel(sys))
 nstates(sys::LFTSystem) = nstates(sys.P.P)
 
 Base.size(sys::LFTSystem) = (noutputs(sys), ninputs(sys))

@@ -57,7 +57,7 @@ s = tf("s")
 sys1 = HammersteinWienerSystem(1.0 / s)
 @test sys1.P.A == sys1.P.D == fill(0, 1, 1)
 @test sys1.P.B * sys1.P.C == fill(1, 1, 1)
-@test sys1.Tau == []
+@test sys1.f == []
 
 ## Multiple nonlinearitys
 G = ss(1.0) + nonlinearity(abs2) + nonlinearity(abs2)
@@ -77,7 +77,7 @@ f2 = [
 ]
 
 
-@test propertynames(nonlinearity(abs2)) == (:P, :Tau, :nu, :ny)
+@test propertynames(nonlinearity(abs2)) == (:P, :f, :nu, :ny)
 
 # Test step
 println("Simulating first nonlinear system:")
@@ -120,7 +120,7 @@ sys = nonlinearity(abs2)
 
 y, t, x = step(sys, t)
 @test y[:] ≈ ones(length(t)) atol = 1e-12
-@test size(x) == (0, 401)
+@test size(x) == (0, 401, 1)
 
 
 ## Test that nonlinearities can be composed 
@@ -139,7 +139,7 @@ res2 = step(sys2, t)
 using ControlSystems: saturation
 th = 0.7
 G = tf(1.0, [1, 1])
-nl = saturation(th)
+@show nl = saturation(th)
 Gnl = G * nl
 C = tf(1)
 Cnl = nl * C
@@ -155,7 +155,7 @@ plot!(step([feedback(Lnl); feedback(Cnl, G)], 5), lab = ["Nonlinear y" "Nonlinea
 using ControlSystems: offset
 o = 1.5
 G = tf(1.0, [1, 1])
-nl = offset(o)
+@show nl = offset(o)
 @test all(step(nl, 1).y .== 2.5)
 # end
 
@@ -168,6 +168,9 @@ o = randn(2)
 nl = offset(o)
 @test all(step(nl, 1).y[:, :, 1] .== o .+ [1; 0])
 @test all(step(nl, 1).y[:, :, 2] .== o .+ [0; 1])
+
+@test all(impulse(nl, 1).y[:, :, 1] .== o)
+@test all(impulse(nl, 1).y[:, :, 2] .== o)
 
 G = ssrand(2, 1, 1)
 nlG = nl * G
@@ -196,7 +199,22 @@ G = ss(1)
 D22 = feedback(nl, G*nl).D22
 @test_throws ErrorException ControlSystems.equation_order(D22)
 
-# This kind of system is not yet supported due to algebraic loops
-# @test_broken step(feedback(nl, G*nl)).y ≈ step(feedback(nl, G)).y atol=1e-3
-# plot(step(feedback(nl, G*nl)))
-# plot!(step(feedback(nl, G)))
+## With a proper system, two identical saturations in a row is equivalent to a single saturation
+G = ss(-1,1,1,0)
+feedback(nl, G*nl)
+@test step(feedback(nl, G*nl)).y ≈ step(feedback(nl, G)).y atol=1e-3
+
+
+## Benchmark
+# o = 1.5
+# G = tf(1.0, [1, 1])
+# nl = offset(o)
+
+# Gnl = feedback(nl*nl*nl*nl*nl*G)
+# u = @inline (u,x,t)-> copyto!(u, 0)
+# @btime lsim($Gnl, u, 0:0.01:5)
+# # 386.459 μs (7695 allocations: 201.34 KiB) @inbounds
+# # 395.817 μs (7698 allocations: 201.61 KiB) @inbounds
+# # 383.694 μs (7698 allocations: 201.61 KiB) @simd
+# # 151.506 μs (1020 allocations: 125.41 KiB) make f a tuple of functions
+# # 148.230 μs (1020 allocations: 125.41 KiB) inline u
