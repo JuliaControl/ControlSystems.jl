@@ -60,7 +60,7 @@ Base.promote_rule(::Type{AbstractMatrix{T1}}, ::Type{HammersteinWienerSystem{T2}
 Base.promote_rule(::Type{T1}, ::Type{HammersteinWienerSystem{T2}}) where {T1<:Number,T2<:Number} = HammersteinWienerSystem{promote_type(T1,T2)}
 
 Base.promote_rule(::Type{<:StateSpace{<:TimeEvolution,T1}}, ::Type{HammersteinWienerSystem{T2}}) where {T1,T2} = HammersteinWienerSystem{promote_type(T1,T2)}
-Base.promote_rule(::Type{<:TransferFunction}, ::Type{HammersteinWienerSystem{T}}) where {T} = HammersteinWienerSystem{T}
+Base.promote_rule(::Type{<:TransferFunction{<:Any, ST}}, ::Type{HammersteinWienerSystem{T}}) where {T, ST} = HammersteinWienerSystem{promote_type(T, numeric_type(ST))}
 
 function Base.convert(::Type{HammersteinWienerSystem{T}}, sys::StateSpace) where {T}
     HammersteinWienerSystem{T}(sys)
@@ -72,7 +72,9 @@ function Base.convert(::Type{HammersteinWienerSystem{T1}}, d::T2) where {T1,T2 <
     HammersteinWienerSystem{T1}(StateSpace(T1.(d)))
 end
 
-Base.convert(::Type{<:HammersteinWienerSystem}, sys::TransferFunction)  = HammersteinWienerSystem(sys)
+function Base.convert(::Type{HammersteinWienerSystem{T}}, sys::TransferFunction{TE}) where {T,TE}
+    HammersteinWienerSystem{T}(convert(StateSpace{TE, T}, sys))
+end
 # Catch convertsion between T
 Base.convert(::Type{V}, sys::HammersteinWienerSystem)  where {T, V<:HammersteinWienerSystem{T}} =
     sys isa V ? sys : V(StateSpace{Continuous,T}(sys.P.P), sys.f)
