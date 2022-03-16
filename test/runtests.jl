@@ -26,6 +26,7 @@ my_tests = [
             "test_pid_design",
             "test_partitioned_statespace",
             "test_delayed_systems",
+            "test_hammerstein_wiener",
             "test_demo_systems",
             "test_autovec",
             "test_plots"

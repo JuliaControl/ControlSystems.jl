@@ -41,16 +41,16 @@ append(systems::LTISystem...) = append(promote(systems...))
 append(systems::Union{<:Tuple, <:Base.Generator}) = append(systems...)
 
 
-function Base.vcat(systems::DelayLtiSystem...)
+function Base.vcat(systems::LFTT...) where LFTT <: LFTSystem
     P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
-    Tau = reduce(vcat, sys.Tau for sys in systems)
-    return DelayLtiSystem(P, Tau)
+    f = reduce(vcat, feedback_channel(sys) for sys in systems)
+    return LFTT(P, f)
 end
 
-function Base.hcat(systems::DelayLtiSystem...)
+function Base.hcat(systems::LFTT...) where LFTT <: LFTSystem
     P = hcat_1([sys.P for sys in systems]...)  # See PartitionedStateSpace
-    Tau = reduce(vcat, sys.Tau for sys in systems)
-    return DelayLtiSystem(P, Tau)
+    f = reduce(vcat, feedback_channel(sys) for sys in systems)
+    return LFTT(P, f)
 end
 
 
@@ -172,7 +172,7 @@ If `C2` is an integer it will be interpreted as an index and an output matrix co
 function add_output(sys::AbstractStateSpace, C2::AbstractArray, D2=0)
     T = promote_type(numeric_type(sys), eltype(C2), eltype(D2))
     A,B,C,D = ssdata(sys)
-    D3 = D2 == 0 ? zeros(T, size(C2, 1), sys.nx) : D2
+    D3 = D2 == 0 ? zeros(T, size(C2, 1), sys.nu) : D2
     basetype(sys)(A, B, [C; C2], [D; D3], sys.timeevol)
 end
 
@@ -249,7 +249,7 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
     return TransferFunction{TE,T}(fill(sisozpk,1,1), timeevol(L))
 end
 
-function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
+function feedback(sys::Union{AbstractStateSpace, LFTSystem})
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
     feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)))
 end

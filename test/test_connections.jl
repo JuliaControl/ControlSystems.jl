@@ -117,6 +117,9 @@ Dtf_1110 = [Dtf_111 zero(typeof(Dtf_111))]
 @test [delay(1.0) tf(1, [1,2])] == [delay(1.0) ss(-2.0,1,1,0)]
 @test [delay(1.0) zpk([], [-2], 1)] == [delay(1.0) ss(-2.0,1,1,0)]
 
+@test [nonlinearity(identity) tf(1, [1,2])] == [nonlinearity(identity) ss(-2.0,1,1,0)]
+@test [nonlinearity(identity) zpk([], [-2], 1)] == [nonlinearity(identity) ss(-2.0,1,1,0)]
+
 # hcat and vcat for StateSpace and Matrix
 A = [-1.1 -1.2; -1.3 -1.4]
 B = [1 2; 3 4]

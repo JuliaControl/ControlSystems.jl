@@ -80,6 +80,7 @@ export  LTISystem,
         # delay systems
         delay,
         pade,
+        nonlinearity,
         # demo systems
         ssrand,
         DemoSystems, # A module containing some example systems
@@ -110,6 +111,7 @@ export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
+using ForwardDiff
 import MatrixPencils
 using DelayDiffEq
 using MacroTools
@@ -138,8 +140,10 @@ include("types/SisoTfTypes/conversion.jl")
 include("types/StateSpace.jl")
 
 # TODO Sample time
-include("types/PartionedStateSpace.jl")
+include("types/PartitionedStateSpace.jl")
+include("types/LFTSystem.jl")
 include("types/DelayLtiSystem.jl")
+include("types/HammersteinWiener.jl")
 
 # Convenience constructors
 include("types/tf.jl")
@@ -168,6 +172,7 @@ include("pid_design.jl")
 include("demo_systems.jl")
 
 include("delay_systems.jl")
+include("hammerstein_weiner.jl")
 
 include("plotting.jl")
 
