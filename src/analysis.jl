@@ -401,7 +401,7 @@ function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
 end
 
 """
-    ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 
@@ -432,14 +432,14 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
         end
     end
     if full
-        wgm, gm, wpm, pm, fullPhase
+        (; wgm, gm, wpm, pm, fullPhase)
     else
-        wgm, gm, wpm, pm
+        (; wgm, gm, wpm, pm)
     end
 end
 
 """
-    ωgₘ, gₘ, ωϕₘ, ϕₘ = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    wgm, gm, wpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 """
@@ -478,9 +478,9 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
         end
     end
     if full
-        wgm, gm, wpm, pm, fullPhase
+        (; wgm, gm, wpm, pm, fullPhase)
     else
-        wgm, gm, wpm, pm
+        (; wgm, gm, wpm, pm)
     end
 end
 margin(system::LTISystem; kwargs...) =

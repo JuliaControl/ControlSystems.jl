@@ -25,6 +25,7 @@ Linearize the nonlinear system `sys` around the operating point implied by the s
          │   │
          └───┘
 ```
+$nonlinear_warning
 """
 function linearize(sys::HammersteinWienerSystem, Δy)
     f = [ForwardDiff.derivative(f, dy) for (f,dy) in zip(sys.f, Δy)]
@@ -36,7 +37,7 @@ _equation_order_error(D22) = error("D22 contains algebraic loops. This problem c
 """
     _equation_order(D22)
 
-Return a permutation vector that determines the order of evaluation such that each equation is evaluated after all of its dependencies.
+Internal function. Return a permutation vector that determines the order of evaluation such that each equation is evaluated after all of its dependencies.
 """
 function _equation_order(D22)
     # NOTE: I think it would theoretically be possible to handle some kinds of algebraic loops, as long as the sub-matrix of the connected component is invertible. Consider the case feedback(ss(1)) == 0.5 which is clearly solvable, while feedback(nonlinearity(identity)) will detect and fail on an algebraic loop. Handling this case may require solving nonlinear systems during simulation and might come with a considerable complexity cost.
@@ -78,14 +79,14 @@ Simulate system `sys`, over time `t`, using input signal `u`, with initial state
 
 # Arguments:
 
-`t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
-`u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
+- `t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
+- `u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
     Can be a constant `Number` or `Vector`, interpreted as `uₜ .= u` , or
     Function `uₜ .= u(x, t)`, or
     In-place function `u(uₜ, x, t)`. (Slightly more effienct)
-`alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
+- `alg, abstol, reltol` and `kwargs...`: are sent to `OrdinaryDiffEq.solve`.
 
-Returns: times `t`, and `y` and `x` at those times.
+Returns an instance of [`SimResult`](@ref).
 """
 function lsim(sys::HammersteinWienerSystem{T}, u, t::AbstractArray{<:Real};
         x0=fill(zero(T), nstates(sys)),
@@ -99,9 +100,9 @@ function lsim(sys::HammersteinWienerSystem{T}, u, t::AbstractArray{<:Real};
         let u = u
             @inline (uout, x, t) -> copyto!(uout, u)
         end
-    elseif DiffEqBase.isinplace(u, 3)               # If u is an inplace (more than 2 argument function)
+    elseif DiffEqBase.isinplace(u, 3) # If u is an inplace (more than 2 argument function)
         u
-    else                                            # If u is a regular u(t) function
+    else                              # If u is a regular u(t) function
         let u = u
             @inline (out, x, t) -> copyto!(out, u(x, t))
         end
@@ -110,7 +111,7 @@ function lsim(sys::HammersteinWienerSystem{T}, u, t::AbstractArray{<:Real};
     _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
 end
 
-
+"Internal function. The right-hand side dynamics function for simulation of HammersteinWienerSystem"
 function hw_f(dx, x, p, t)
     (A, B1, B2, C1, C2, D11, D12, D21, D22, f, u!, uout, Δy, order) = p
     u!(uout, x, t)
