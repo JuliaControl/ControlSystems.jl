@@ -241,7 +241,11 @@ Saturation(u) = Saturation(-u, u)
     saturation(val)
     saturation(lower, upper)
 
-Create a saturating nonlinearity.
+Create a saturating nonlinearity. Connect it to the output of a controller `C` using
+```
+Csat = saturation(val) * C
+```
+
 $nonlinear_warning
 """
 saturation(args...) = nonlinearity(Saturation(args...))
@@ -258,6 +262,7 @@ end
     offset(val)
 
 Create a constant-offset nonlinearity `x -> x + val`.
+
 $nonlinear_warning
 """
 offset(val::Number) = nonlinearity(Offset(val))

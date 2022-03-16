@@ -1,6 +1,6 @@
 # Nonlinear functionality
 
-!!! warning "Experimental"
+!!! danger "Experimental"
     The nonlinear interface is currently experimental and at any time subject to breaking changes not respecting semantic versioning. 
 
 
@@ -18,13 +18,13 @@ ControlSystems.jl can represent nonlinear feedback systems that can be written o
          │   │
          └───┘
 ```
-i.e., as a linear-fractional transform (LFT) between a linear system ``P`` and a diagonal matrix with scalar non-linear functions `f`. This representation is identical to that used for delay systems, and is exposed to the user in a similar way as well. The main entry point is the function [`nonlinearity`](@ref) which takes a nonlinear function `f` like so, `nonlinearity(f)`. This creates a primitive system containing only the nonlinearity, but which behaves like a standard `LTISystem` during algebraic operations. We illustrate its usage through a number of examples:
+i.e., as a linear-fractional transform (LFT) between a linear system ``P`` and a diagonal matrix with scalar non-linear functions $f$. This representation is identical to that used for delay systems, and is exposed to the user in a similar way as well. The main entry point is the function [`nonlinearity`](@ref) which takes a nonlinear function $f$ like so, `nonlinearity(f)`. This creates a primitive system containing only the nonlinearity, but which behaves like a standard `LTISystem` during algebraic operations. We illustrate its usage through a number of examples:
 
 ## Examples
 ### Control-signal saturation
 To create a controller that saturates the output at ``\pm 0.7``, we call
 ```@example nonlinear
-using ControlSystems
+using ControlSystems, Plots
 using ControlSystems: nonlinearity # This functionality is not exported due to the beta status
 
 C    = pid(; kp=1, ki=0.1)                  # A standard PI controller
@@ -61,12 +61,14 @@ The system is linearized around the operating point
 ```@example nonlinear
 xr = [10, 10, 4.9, 4.9] # reference state
 ur = [0.263, 0.263]     # control input at the operating point
+nothing # hide
 ```
 and is given by
 ```@example nonlinear
+using LinearAlgebra
 kc, k1, k2, g = 0.5, 1.6, 1.6, 9.81
 A1 = A3 = A2 = A4 = 4.9
-a1, a3, a2, a4= 0.03, 0.03, 0.03, 0.03
+a1, a3, a2, a4 = 0.03, 0.03, 0.03, 0.03
 h01, h02, h03, h04 = xr
 T1, T2 = (A1/a1)sqrt(2*h01/g), (A2/a2)sqrt(2*h02/g)
 T3, T4 = (A3/a3)sqrt(2*h03/g), (A4/a4)sqrt(2*h04/g)
@@ -86,17 +88,20 @@ B = [γ1*k1/A1     0
 C = kc*[I(2) 0*I(2)] # Measure the first two tank levels
 D = 0
 G = ss(A,B,C,D)
+nothing # hide
 ```
 A PID controller with a filter is given by
 ```@example nonlinear
 F = tf(1, [0.63, 1.12, 1])
 Cpid = ss(pid(;kp=0.26, ki=0.001, kd=15.9)*F)
+nothing # hide
 ```
 and to make the controller MIMO, we add a static pre-compensator that approximately decouples the system at the intended crossover frequency ``\omega = 0.01``rad/s
 ```@example nonlinear
 iG0 = abs.(inv(freqresp(G, 0.01)))
 iG0 ./= maximum(abs, iG0)
 C = Cpid*iG0
+nothing # hide
 ```
 The pumps (there are two of them) that service the tanks can only add liquid to the tanks, not remove liquid. The pump is thus saturated from below at 0, and from above at the maximum pump capacity 0.4. 
 ```@example nonlinear
