@@ -25,7 +25,7 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
         end
         for pole = lcmpoles
             idx = findfirst(poles .≈ pole)
-            if idx != nothing
+            if idx !== nothing
                 deleteat!(poles, idx)
             end
         end
