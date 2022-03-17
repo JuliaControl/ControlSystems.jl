@@ -45,17 +45,17 @@ A documentation website is available at [http://juliacontrol.github.io/ControlSy
 
 Some of the available commands are:
 ##### Constructing systems
-`ss, tf, zpk`
+`ss, tf, zpk, delay`
 ##### Analysis
 `poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin`
 ##### Synthesis
 `are, lyap, lqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc`
 ###### PID design
-`pid, stabregionPID, loopshapingPI, pidplots`
+`pid, stabregionPID, loopshapingPI, pidplots, placePI`
 ##### Time and Frequency response
 `step, impulse, lsim, freqresp, evalfr, bode, nyquist`
 ##### Plotting
-`lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve`
+`bodeplot, nyquistplot, sigmaplot, plot(lsim(...)), plot(step(...)), plot(impulse(...)), marginplot, gangoffourplot, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve`
 ##### Other
 `minreal, sminreal, c2d`
 ## Usage
