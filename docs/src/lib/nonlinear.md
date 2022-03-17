@@ -13,9 +13,7 @@ ControlSystems.jl can represent nonlinear feedback systems that can be written o
   │   └─────────┘    │
   │                  │
   │      ┌───┐       │
-  │      │   │       │
   └─────►│ f ├───────┘
-         │   │
          └───┘
 ```
 i.e., as a linear-fractional transform (LFT) between a linear system ``P`` and a diagonal matrix with scalar non-linear functions $f$. This representation is identical to that used for delay systems, and is exposed to the user in a similar way as well. The main entry point is the function [`nonlinearity`](@ref) which takes a nonlinear function $f$ like so, `nonlinearity(f)`. This creates a primitive system containing only the nonlinearity, but which behaves like a standard `LTISystem` during algebraic operations. We illustrate its usage through a number of examples:
@@ -96,9 +94,9 @@ F = tf(1, [0.63, 1.12, 1])
 Cpid = ss(pid(;kp=0.26, ki=0.001, kd=15.9)*F)
 nothing # hide
 ```
-and to make the controller MIMO, we add a static pre-compensator that approximately decouples the system at the intended crossover frequency ``\omega = 0.01``rad/s
+and to make the controller MIMO, we add a static pre-compensator that decouples the system at the the zero frequency.
 ```@example nonlinear
-iG0 = abs.(inv(freqresp(G, 0.01)))
+iG0 = dcgain(G)
 iG0 ./= maximum(abs, iG0)
 C = Cpid*iG0
 nothing # hide
