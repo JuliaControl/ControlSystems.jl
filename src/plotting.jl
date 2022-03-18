@@ -810,7 +810,6 @@ rgaplot
             for i in 1:size(sv, 3)
                 @series begin
                     xscale --> :log10
-                    seriescolor --> si
                     label --> "System $si, from $i to $j"
                     ws, sv[:, j, i]
                 end
