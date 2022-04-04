@@ -172,7 +172,6 @@ include("demo_systems.jl")
 
 include("delay_systems.jl")
 include("hammerstein_weiner.jl")
-include("nonlinear_components.jl")
 
 include("plotting.jl")
 
