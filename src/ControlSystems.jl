@@ -36,7 +36,6 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
-        prescale,
         innovation_form,
         observer_predictor,
         observer_controller,
@@ -173,6 +172,7 @@ include("demo_systems.jl")
 
 include("delay_systems.jl")
 include("hammerstein_weiner.jl")
+include("nonlinear_components.jl")
 
 include("plotting.jl")
 
