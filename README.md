@@ -41,7 +41,7 @@ using Pkg; Pkg.add("ControlSystems")
 
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
 
-A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/) and an [introductory video is available here](https://www.youtube.com/watch?v=Fdz2Fsm1aTY&ab_channel=jolin%E2%80%A4io).
 
 Some of the available commands are:
 ##### Constructing systems

@@ -42,3 +42,5 @@ The JuliaControl and surrounding ecosystem contains a few additional packages th
 See also [the paper](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) describing the toolbox
 
 > Bagge Carlson, F., Fält, M., Heimerson, A., & Troeng, O. (2021). ControlSystems.jl: A Control Toolbox in Julia. In 2021 60th IEEE Conference on Decision and Control (CDC) IEEE Press. https://doi.org/10.1109/CDC45484.2021.9683403
+
+and the introductory Youtube video https://www.youtube.com/watch?v=Fdz2Fsm1aTY&ab_channel=jolin%E2%80%A4io
