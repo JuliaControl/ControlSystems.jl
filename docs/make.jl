@@ -46,6 +46,7 @@ makedocs(modules=[ControlSystems],
         "Examples" => Any[
             "Design" => "examples/example.md",
             "Smith predictor" => "examples/smith_predictor.md",
+            "Iterative Learning Control (ILC)" => "examples/ilc.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",
