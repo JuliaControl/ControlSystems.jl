@@ -1,19 +1,19 @@
 # Iterative-Learning Control
-In this example, we will design an Iterative-Learning Control (ILC) iteration scheme. ILC can be though of as a simple form of reinforcement-learning strategy that is suitable in situations where a repetitive task is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
+In this example, we will design an Iterative-Learning Control (ILC) iteration scheme. ILC can be though of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
 
 ## Algorithm
 
 The ILC iteration scheme typically looks something like this (many variants exists), at ILC iteration $k$:
 ```math
 \begin{aligned}
-y_k(t) &= G(q) (r(t) + a_k(t)) \\
+y_k(t) &= G(q) \big(r(t) + a_k(t) \big) \\
 e_k(t) &= r(t) - y_k(t) \\
-a_k(t) &= Q(q) ( a_{k-1}(t) + L(q) e_{k-1}(t) )
+a_k(t) &= Q(q) \big( a_{k-1}(t) + L(q) e_{k-1}(t) \big)
 \end{aligned}
 ```
-where $q$ is the time-shift operator, $G(q)$ is the transfer function from the reference $r$ to the output $y$, i.e, typically a closed-loop transfer function, `e_k` is the control error and $a_k$ is the ILC adjustment signal, an additive correction to the reference that is learned throughout the ILC iterations in order to minimize the control error. $Q(q)$ and $L(q)$ are stable filters that control the learning dynamics. Interestingly, these filters must not be causal since they operate on the signals $e$ and $a$ between ILC iterations when the whole signal is available for acausal filtering. 
+where $q$ is the time-shift operator, $G(q)$ is the transfer function from the reference $r$ to the output $y$, i.e, typically a closed-loop transfer function, $e_k$ is the control error and $a_k$ is the ILC adjustment signal, an additive correction to the reference that is learned throughout the ILC iterations in order to minimize the control error. $Q(q)$ and $L(q)$ are stable filters that control the learning dynamics. Interestingly, these filters does not have to be causal since they operate on the signals $e$ and $a$ *between* ILC iterations, when the whole signals are available at once for acausal filtering. 
 
-In simulation (the rollout $y_k = G(q) (r + a_k)$ is simulated), this scheme is nothing other than an optimal control strategy, while if $y_k = G(q) (r + a_k)$ amounts to performing an actual experiment on a process, ILC turns into episode-based reinforcement learning or adaptive control.
+In simulation (the rollout $y_k = G(q) (r + a_k)$ is simulated), this scheme is nothing other than an open-loop optimal-control strategy, while if $y_k = G(q) (r + a_k)$ amounts to performing an actual experiment on a process, ILC turns into episode-based reinforcement learning or adaptive control.
 
 The system to control in this example is a double-mass system with a spring and damper in between. This system is a common model of a servo system where one mass represents the motor and the other represents the load. The spring and damper represents a flexible transmission between them. We will create two instances of the system model. ``G`` represents the nominal model, whereas ``G_{act}`` represents the actual (unknown) dynamics. This simulates a model-based approach where there is a slight error in the model. The error will lie in the mass of the load, simulating, e.g., that the motor is driving a heavier load than specified. 
 
@@ -28,7 +28,8 @@ function double_mass_model(;
                 k  = 100, # stiffness
                 c0 = 1,   # motor damping
                 c1 = 1,   # transmission damping
-                c2 = 1)   # load damping
+                c2 = 1,   # load damping
+)
 
     A = [
         0.0 1 0 0
@@ -36,7 +37,6 @@ function double_mass_model(;
         0 0 0 1
         k/Jl c1/Jl -k/Jl -(c1 + c2)/Jl
     ]
-
     B = [0, 1/Jm, 0, 0]
     C = [1 0 0 0]
     ss(A, B, C, 0)
@@ -127,7 +127,7 @@ Above, we plotted this curve also for the actual dynamics. This is of course not
 
 ## ILC iteration
 
-The next step is to implement the ILC scheme:
+The next step is to implement the ILC scheme and run it:
 
 ```@example ilc
 function ilc(Gc, Q, L)
@@ -142,14 +142,21 @@ function ilc(Gc, Q, L)
         a  = lsim_zerophase(Q, a + Le, t) # Update ILC adjustment
 
         plot!(res, plotu=true, sp=[1 2], title=["Output \$y(t)\$" "Adjusted reference \$r + a\$"], lab="Iter $iter", c=iter)
-        plot!(e[:], sp=3, title="Tracking error \$e(t)\$", lab="Iter $iter", c=iter)
+        plot!(e[:], sp=3, title="Tracking error \$e(t)\$", lab="err: $(round(sum(abs2, e), digits=2))", c=iter)
     end
     fig
 end
-ilc(Gcact, Q, L)
+ilc(Gc, Q, L)
 ```
+When running on the model, the result looks very good.
 We see that the tracking error in the last plot decreases rapidly and is much smaller after only a couple of iterations. We also note that the adjusted reference $r+a$ has effectively been phase-advanced slightly to compensate for the lag in the system dynamics. This is an effect of the acausal filtering due to $L = G_C^{-1}$.
 
+
+How does it work on the "actual" dynamics?
+```@example ilc
+ilc(Gcact, Q, L)
+```
+The result is subtly worse, but considering the rather big model error the result is still quite good. 
 ## Summary
 We have seen how ILC can be used to improve tracking performance in a scenario where a repetitive task is to be executed several times. In simulation like here, ILC can be seen as an optimal-control strategy to come up with a optimal reference trajectory to minimize the control error, while if implemented on a physical process, the scheme amounts to a simple but effective reinforcement-learning or adaptive-control approach. ILC often works very well in practice and has been used in robotics and machining among other areas. 
 
