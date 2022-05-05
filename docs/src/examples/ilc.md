@@ -13,7 +13,7 @@ In simulation (the rollout $y_k = G(q) (r + a_k)$ is simulated), this scheme is 
 The system to control in this example is a double-mass system with a spring and damper in between. This system is a common model of a servo system where one mass represents the motor and the other represents the load. The spring and damper represents a flexible transmission between them. We will create two instances of the system model. ``G`` represents the nominal model, whereas ``G_{act}`` represents the actual (unknown) dynamics. This simulates a model-based approach where there is a slight error in the model. The error will lie in the mass of the load, simulating, e.g., that the motor is driving a heavier load than specified. 
 
 ```@example ilc
-using ControlSystems
+using ControlSystems, Plots
 
 function double_mass_model(; 
                 Jm = 1,   # motor inertia
