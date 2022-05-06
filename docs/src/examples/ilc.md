@@ -1,5 +1,5 @@
 # Iterative-Learning Control
-In this example, we will design an Iterative-Learning Control (ILC) iteration scheme. ILC can be though of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
+In this example, we will design an [Iterative-Learning Control (ILC)](https://en.wikipedia.org/wiki/Iterative_learning_control) iteration scheme. ILC can be though of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
 
 ## Algorithm
 
