@@ -262,18 +262,33 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
 end
 
 """
-    mag, phase, w = bode(sys[, w])
+    mag, phase, w = bode(sys[, w]; unwrap=true)
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`. See also [`bodeplot`](@ref)
 
-`mag` and `phase` has size `(length(w), ny, nu)`""" 
-@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
+`mag` and `phase` has size `(length(w), ny, nu)`.
+If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
+
+For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
+""" 
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
     resp = freqresp(sys, w)
-    return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
+    angles = angle.(resp)
+    unwrap && unwrap!(angles,1)
+    @. angles = rad2deg(angles)
+    return abs.(resp), angles, w
 end
 @autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
+# Performance difference between bode and bodemag for tf. Note how expensive the phase unwrapping is.
+# using ControlSystems
+# G = tf(ssrand(2,2,5))
+# w = exp10.(LinRange(-2, 2, 20000))
+# @btime bode($G, $w);
+# # 55.120 ms (517957 allocations: 24.42 MiB)
+# @btime bode($G, $w, unwrap=false);
+# # 3.624 ms (7 allocations: 2.44 MiB)
 """
     re, im, w = nyquist(sys[, w])
 
