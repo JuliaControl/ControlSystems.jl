@@ -1,4 +1,5 @@
 import OrdinaryDiffEq
+using ControlSystems
 
 @testset "test_timeresp" begin
 
@@ -13,22 +14,48 @@ L = lqr(sys,Q,R)
 u1(x,i) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1.,0]
-y, t, x, uout = lsim(sys,u1,t,x0=x0) # Continuous time
+res = lsim(sys,u1,t,x0=x0) # Continuous time
+y, t, x, uout = res
 
 th = 1e-6
 @test sum(abs.(x[:,end])) < th
 
-y, t, x, uout = lsim(c2d(sys,0.1),u1,t,x0=x0) # Discrete time
+sysd = c2d(sys,0.1)
+res = lsim(sysd,u1,t,x0=x0) # Discrete time
+y, t, x, uout = res
 @test sum(abs.(x[:,end])) < th
 
+## Use workspace method directly
+lsws = LsimWorkspace(sysd, length(t))
+res2 = lsim!(lsws, sysd, u1, t; x0 = copy(x0))
+@test res2.sys === res.sys
+@test res2.y == res.y
+@test res2.x == res.x
+@test res2.u == res.u
+
 #Do a manual simulation with uout
-ym, tm, xm = lsim(sys, uout, t, x0=x0)
+resm = lsim(sys, uout, t, x0=x0)
+ym, tm, xm = resm
 @test y ≈ ym
 @test x ≈ xm
 
+# Discrete-time
+resm = lsim(sysd, uout, t, x0=x0)
+ym, tm, xm = resm
+@test y ≈ ym
+@test x ≈ xm
+
+#Do a manual simulation with uout and workspace
+res2 = lsim!(lsws, sysd, uout, t; x0 = copy(x0))
+@test res2.sys === resm.sys
+@test res2.y == resm.y
+@test res2.x == resm.x
+@test res2.u == resm.u
+
+@test lsim!(lsws, sysd, uout, t; x0 = copy(x0)).t == res2.t
+
 # Now compare to closed loop
 # Discretization is needed before feedback
-sysd = c2d(sys, 0.1)
 # Create the closed loop system
 sysdfb = ss(sysd.A-sysd.B*L, sysd.B, sysd.C, sysd.D, 0.1)
 #Simulate without input
@@ -55,8 +82,11 @@ yd, td, xd = lsim(sysdfb, zeros(1, 501), t, x0=x0)
 @test lsim(ss(1,1,1,1,1), big.(ones(1, 5)), 0:4)[1][:] == 1:5
 
 # Tests for HeteroStateSpace
-@test lsim(HeteroStateSpace(big.(1.0),1,1,1,1), ones(1, 5), 0:4)[1][:] == 1:5
-
+sysb = HeteroStateSpace(big.(1.0),1,1,1,1)
+u = ones(1, 5)
+@test lsim(sysb, u, 0:4)[1][:] == 1:5
+ws = LsimWorkspace(sysb, u)
+@test lsim!(ws, sysb, u, 0:4)[1][:] == 1:5
 
 # lsim for discrete-time complex-coefficient systems
 

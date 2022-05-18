@@ -68,6 +68,8 @@ export  LTISystem,
         step,
         impulse,
         lsim,
+        lsim!,
+        LsimWorkspace,
         solve,
         Simulator,
         # Frequency Response
