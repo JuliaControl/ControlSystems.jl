@@ -1,3 +1,30 @@
+struct BodemagWorkspace{T}
+    R::Array{Complex{T}, 3}
+    mag::Array{T, 3}
+end
+
+"""
+    BodemagWorkspace(sys::LTISystem, N::Int)
+    BodemagWorkspace(sys::LTISystem, ω::AbstractVector)
+    BodemagWorkspace(R::Array{Complex{T}, 3}, mag::Array{T, 3})
+
+Genereate a workspace object for use with the in-place function [`bodemag!`](@ref).
+`N` is the number of frequency points, alternatively, the input `ω` can be provided instead of `N`.
+Note: for threaded applications, create one workspace object per thread. 
+
+# Arguments:
+- `mag`: The output array ∈ 𝐑(ny, nu, nω)
+- `R`: Frequency-response array ∈ 𝐂(ny, nu, nω)
+"""
+function BodemagWorkspace(sys::LTISystem, N::Int)
+    T = float(numeric_type(sys))
+    R = Array{Complex{T},3}(undef, sys.ny, sys.nu, N)
+    mag = Array{T,3}(undef, sys.ny, sys.nu, N)
+    BodemagWorkspace(R, mag)
+end
+
+BodemagWorkspace(sys::LTISystem, ω::AbstractVector) = BodemagWorkspace(sys, length(ω))
+
 function freqresp(sys::LTISystem, w::Real)
     # Create imaginary freq vector s
     if iscontinuous(sys)
@@ -289,6 +316,22 @@ end
 # # 55.120 ms (517957 allocations: 24.42 MiB)
 # @btime bode($G, $w, unwrap=false);
 # # 3.624 ms (7 allocations: 2.44 MiB)
+# ws = ControlSystems.BodemagWorkspace(G, w)
+# @btime bodemag!($ws, $G, $w);
+# # 2.991 ms (1 allocation: 64 bytes)
+
+"""
+    mag = bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+
+Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspace`](@ref). Note that the returned magnitude array is aliased with `ws.mag`.
+The output array `mag` is ∈ 𝐑(ny, nu, nω) as opposed from the result of [`bode`](@ref) which has the frequency-dimension first. [`bodemag!`](@ref) is optimized for performance.
+"""
+function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+    freqresp!(ws.R, sys, w)
+    @. ws.mag = abs(ws.R)
+    ws.mag
+end
+
 """
     re, im, w = nyquist(sys[, w])
 

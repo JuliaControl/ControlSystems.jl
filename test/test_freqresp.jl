@@ -115,6 +115,8 @@ for (i,w) in enumerate(ws)
 end
 
 @test bode(sys, ws)[1:2] == (abs.(resp), rad2deg.(angle.(resp)))
+workspace = BodemagWorkspace(sys, ws)
+@test bode(sys, ws)[1] == permutedims(bodemag!(workspace, sys, ws), (3,1,2))
 @test nyquist(sys, ws)[1:2] == (real(resp), imag(resp))
 sigs = Array{Float64}(undef, 50,2)
 for i in eachindex(ws)
