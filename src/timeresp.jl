@@ -3,14 +3,21 @@
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
 struct LsimWorkspace{T}
-    x::T
-    u::T
-    y::T
+    x::Matrix{T}
+    u::Matrix{T}
+    y::Matrix{T}
+end
+function LsimWorkspace{T}(ny::Int, nu::Int, nx::Int, N::Int) where T
+    x = Matrix{T}(undef, nx, N)
+    u = Matrix{T}(undef, nu, N)
+    y = Matrix{T}(undef, ny, N)
+    LsimWorkspace{T}(x, u, y)
 end
 
 """
     LsimWorkspace(sys::AbstractStateSpace, N::Int)
     LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix)
+    LsimWorkspace{T}(ny, nu, nx, N)
 
 Genereate a workspace object for use with the in-place function [`lsim!`](@ref).
 `sys` is the discrete-time system to be simulated and `N` is the number of time steps, alternatively, the input `u` can be provided instead of `N`.
