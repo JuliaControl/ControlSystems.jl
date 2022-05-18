@@ -1,3 +1,30 @@
+struct BodemagWorkspace{T}
+    R::Array{Complex{T}, 3}
+    mag::Array{T, 3}
+end
+
+"""
+    BodemagWorkspace(sys::LTISystem, N::Int)
+    BodemagWorkspace(sys::LTISystem, ω::AbstractVector)
+    BodemagWorkspace(R::Array{Complex{T}, 3}, mag::Array{T, 3})
+
+Genereate a workspace object for use with the in-place function [`bodemag!`](@ref).
+`N` is the number of frequency points, alternatively, the input `ω` can be provided instead of `N`.
+Note: for threaded applications, create one workspace object per thread. 
+
+# Arguments:
+- `mag`: The output array ∈ 𝐑(ny, nu, nω)
+- `R`: Frequency-response array ∈ 𝐂(ny, nu, nω)
+"""
+function BodemagWorkspace(sys::LTISystem, N::Int)
+    T = float(numeric_type(sys))
+    R = Array{Complex{T},3}(undef, sys.ny, sys.nu, N)
+    mag = Array{T,3}(undef, sys.ny, sys.nu, N)
+    BodemagWorkspace(R, mag)
+end
+
+BodemagWorkspace(sys::LTISystem, ω::AbstractVector) = BodemagWorkspace(sys, length(ω))
+
 function freqresp(sys::LTISystem, w::Real)
     # Create imaginary freq vector s
     if iscontinuous(sys)
@@ -262,17 +289,48 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
 end
 
 """
-    mag, phase, w = bode(sys[, w])
+    mag, phase, w = bode(sys[, w]; unwrap=true)
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`. See also [`bodeplot`](@ref)
 
-`mag` and `phase` has size `(length(w), ny, nu)`""" 
-@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
+`mag` and `phase` has size `(length(w), ny, nu)`.
+If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
+
+For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
+""" 
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
     resp = freqresp(sys, w)
-    return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
+    angles = angle.(resp)
+    unwrap && unwrap!(angles,1)
+    @. angles = rad2deg(angles)
+    return abs.(resp), angles, w
 end
 @autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+
+# Performance difference between bode and bodemag for tf. Note how expensive the phase unwrapping is.
+# using ControlSystems
+# G = tf(ssrand(2,2,5))
+# w = exp10.(LinRange(-2, 2, 20000))
+# @btime bode($G, $w);
+# # 55.120 ms (517957 allocations: 24.42 MiB)
+# @btime bode($G, $w, unwrap=false);
+# # 3.624 ms (7 allocations: 2.44 MiB)
+# ws = ControlSystems.BodemagWorkspace(G, w)
+# @btime bodemag!($ws, $G, $w);
+# # 2.991 ms (1 allocation: 64 bytes)
+
+"""
+    mag = bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+
+Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspace`](@ref). Note that the returned magnitude array is aliased with `ws.mag`.
+The output array `mag` is ∈ 𝐑(ny, nu, nω) as opposed from the result of [`bode`](@ref) which has the frequency-dimension first. [`bodemag!`](@ref) is optimized for performance.
+"""
+function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+    freqresp!(ws.R, sys, w)
+    @. ws.mag = abs(ws.R)
+    ws.mag
+end
 
 """
     re, im, w = nyquist(sys[, w])

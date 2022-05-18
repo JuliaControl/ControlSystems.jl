@@ -76,6 +76,8 @@ export  LTISystem,
         freqresp, freqrespv, freqresp!,
         evalfr,
         bode, bodev,
+        bodemag!,
+        BodemagWorkspace,
         nyquist, nyquistv,
         sigma, sigmav,
         # delay systems
