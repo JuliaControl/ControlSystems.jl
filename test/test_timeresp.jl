@@ -52,6 +52,8 @@ res2 = lsim!(lsws, sysd, uout, t; x0 = copy(x0))
 @test res2.x == resm.x
 @test res2.u == resm.u
 
+@test lsim!(lsws, sysd, uout, t; x0 = copy(x0)).t == res2.t
+
 # Now compare to closed loop
 # Discretization is needed before feedback
 # Create the closed loop system
@@ -80,8 +82,11 @@ yd, td, xd = lsim(sysdfb, zeros(1, 501), t, x0=x0)
 @test lsim(ss(1,1,1,1,1), big.(ones(1, 5)), 0:4)[1][:] == 1:5
 
 # Tests for HeteroStateSpace
-@test lsim(HeteroStateSpace(big.(1.0),1,1,1,1), ones(1, 5), 0:4)[1][:] == 1:5
-
+sysb = HeteroStateSpace(big.(1.0),1,1,1,1)
+u = ones(1, 5)
+@test lsim(sysb, u, 0:4)[1][:] == 1:5
+ws = LsimWorkspace(sysb, u)
+@test lsim!(ws, sysb, u, 0:4)[1][:] == 1:5
 
 # lsim for discrete-time complex-coefficient systems
 

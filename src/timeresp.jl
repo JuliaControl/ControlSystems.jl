@@ -324,7 +324,7 @@ In-place version of [`lsim`](@ref) that takes a workspace object created by call
 *Notice*, if `u` is a function, `res.u === ws.u`. If `u` is an array, `res.u === u`.
 """
 function lsim!(ws::LsimWorkspace{T}, sys::AbstractStateSpace{<:Discrete}, u, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(T, nstates(sys))) where T
+        x0::AbstractVecOrMat=zeros(eltype(T), nstates(sys))) where T
 
     x, y = ws.x, ws.y
     size(x, 2) == length(t) || throw(ArgumentError("Inconsitent lengths of workspace cache and t"))
