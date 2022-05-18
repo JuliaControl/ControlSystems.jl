@@ -88,6 +88,13 @@ u = ones(1, 5)
 ws = LsimWorkspace(sysb, u)
 @test lsim!(ws, sysb, u, 0:4)[1][:] == 1:5
 
+# test explicit size and type constructor
+ws2 = LsimWorkspace{Float32}(1,2,3,10)
+@test size(ws2.y) == (1,10)
+@test size(ws2.u) == (2,10)
+@test size(ws2.x) == (3,10)
+@test ws2.x isa Array{Float32, 2}
+
 # lsim for discrete-time complex-coefficient systems
 
 # Complex system, real input signal

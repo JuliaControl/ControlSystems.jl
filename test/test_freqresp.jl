@@ -124,6 +124,13 @@ for i in eachindex(ws)
 end
 @test sigma(sys, ws)[1] == sigs
 
+# test explicit size and type constructor
+ws2 = BodemagWorkspace{Float32}(2,2,length(ws))
+@test size(ws2.mag) == (2,2,length(ws))
+@test size(ws2.R) == (2,2,length(ws))
+@test ws2.mag isa Array{Float32, 3}
+@test ws2.R isa Array{Complex{Float32}, 3}
+
 #Test default freq vector contains at least half a decade more than all features
 p, z = 100, 1/1000
 sys2 = [tf([1],[1/p,1]) tf([1/z, 2/z, 1],[1])]

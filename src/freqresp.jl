@@ -2,11 +2,17 @@ struct BodemagWorkspace{T}
     R::Array{Complex{T}, 3}
     mag::Array{T, 3}
 end
+function BodemagWorkspace{T}(ny::Int, nu::Int, N::Int) where T <: Real
+    R = Array{Complex{T},3}(undef, ny, nu, N)
+    mag = Array{T,3}(undef, ny, nu, N)
+    BodemagWorkspace{T}(R, mag)
+end
 
 """
     BodemagWorkspace(sys::LTISystem, N::Int)
     BodemagWorkspace(sys::LTISystem, ω::AbstractVector)
     BodemagWorkspace(R::Array{Complex{T}, 3}, mag::Array{T, 3})
+    BodemagWorkspace{T}(ny, nu, N)
 
 Genereate a workspace object for use with the in-place function [`bodemag!`](@ref).
 `N` is the number of frequency points, alternatively, the input `ω` can be provided instead of `N`.
