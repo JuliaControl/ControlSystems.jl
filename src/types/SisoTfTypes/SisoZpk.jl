@@ -113,7 +113,7 @@ function pairup_conjugates!(x::AbstractVector)
         imag(x[i]) == 0 && continue
 
         # Attempt to find a matching conjugate to x[i]
-        j = findnext(isequal(conj(x[i])), x, i+1)
+        j = findnext(==(conj(x[i])), x, i+1)
         j === nothing && return false
 
         tmp = x[j]
