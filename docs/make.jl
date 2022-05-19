@@ -42,6 +42,7 @@ makedocs(modules=[ControlSystems],
         "Guide" => Any[
             "Introduction" => "man/introduction.md",
             "Creating Systems" => "man/creating_systems.md",
+            "Performance considerations" => "man/numerical.md",
         ],
         "Examples" => Any[
             "Design" => "examples/example.md",
