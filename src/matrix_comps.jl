@@ -541,7 +541,9 @@ where indices 1/2 correspond to the remaining/truncated states respectively.
 
 See also `gram`, `balreal`
 
-Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder.
+
+For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduction](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Model-reduction).
 """
 function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)

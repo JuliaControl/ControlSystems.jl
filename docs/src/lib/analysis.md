@@ -2,6 +2,8 @@
 Pages = ["analysis.md"]
 ```
 
+For robust analysis, see [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#System-analysis).
+
 # Analysis
 
 ```@autodocs

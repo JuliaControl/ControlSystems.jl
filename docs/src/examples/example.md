@@ -9,8 +9,10 @@ DocTestSetup = quote
 end
 ```
 
+# Examples
 
-# LQR design
+
+## LQR design
 ```jldoctest; output = false
 using LinearAlgebra # For identity matrix I
 using Plots
@@ -37,7 +39,7 @@ save_docs_plot("lqrplot.svg"); # hide
 
 ![](../../plots/lqrplot.svg)
 
-# PID design functions
+## PID design functions
 By plotting the gang of four under unit feedback for the process
 ```jldoctest PIDDESIGN; output = false
 P = tf(1,[1,1])^4
@@ -95,7 +97,7 @@ Here we specify that we want the Nyquist curve `L(iω) = P(iω)C(iω)` to pass t
 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles.
 ![](../../plots/pidgofnyquistplot2.svg)
 
-# Advanced pole-zero placement
+## Advanced pole-zero placement
 This example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.
 
 
@@ -150,7 +152,7 @@ save_docs_plot("ppgofplot.svg"); # hide
 ![](../../plots/ppgofplot.svg)
 
 
-# Stability boundary for PID controllers
+## Stability boundary for PID controllers
 The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plotted with the command `stabregionPID`. The process can be given in string form or as a regular LTIsystem.
 
 ```jldoctest; output = false
@@ -173,7 +175,7 @@ save_docs_plot(f3, "stab3.svg"); # hide
 ![](../../plots/stab3.svg)
 
 
-# PID plots
+## PID plots
 This example utilizes the function `pidplots`, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
 ```jldoctest PIDPLOTS; output = false
 P = tf([1.],[1., 1])
@@ -223,7 +225,7 @@ save_docs_plot("pidplotsgof2.svg"); # hide
 ![](../../plots/pidplotsnyquist2.svg)
 ![](../../plots/pidplotsgof2.svg)
 
-# Further examples
-See the [examples folder](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example) as well as the notebooks in [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl).
-
-See also [the paper introducing the toolbox](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) with [supplementary material](https://github.com/JuliaControl/CDC2021).
+## Further examples
+- See the [examples folder](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example) as well as the notebooks in [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl).
+- See also [the paper introducing the toolbox](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) with [supplementary material](https://github.com/JuliaControl/CDC2021).
+- See the [docs for RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/) for additional examples.
