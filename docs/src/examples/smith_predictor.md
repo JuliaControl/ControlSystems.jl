@@ -1,3 +1,4 @@
+# Smith predictor
 This example designs a controller for a plant with a time delay using the internal-model principle, which in this case implies the use of a Smith predictor. The plant is given by
 $$ \dfrac{1}{s + 1}e^{-s\tau} = P_0 e^{-s\tau}$$
 
