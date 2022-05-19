@@ -124,6 +124,8 @@ Otherwise, this is a discrete-time model with sampling period `Ts`.
 
 `D` may be specified as `0` in which case a zero matrix of appropriate size is constructed automatically. 
 `sys = ss(D [, Ts])` specifies a static gain matrix `D`.
+
+To associate names with states, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems).
 """
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 

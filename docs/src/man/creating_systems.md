@@ -51,22 +51,6 @@ Continuous-time transfer function model
 
 The transfer functions created using this method will be of type `TransferFunction{SisoZpk}`.
 
-## Converting between types
-It is sometime useful to convert one representation to another, this is possible using the same functions, for example
-```jldoctest
-tf(zpk([-1], [1], 2, 0.1))
-
-# output
-
-TransferFunction{Discrete{Float64}, ControlSystems.SisoRational{Int64}}
-2z + 2
-------
-z - 1
-
-Sample Time: 0.1 (seconds)
-Discrete-time transfer function model
-```
-
 
 # ss - Creating State-Space Systems
 A state-space system is created using
@@ -139,6 +123,21 @@ D =
 Continuous-time state-space model
 ```
 
+## Converting between types
+It is sometime useful to convert one representation to another, this is possible using the same functions, for example
+```jldoctest
+tf(zpk([-1], [1], 2, 0.1))
+
+# output
+
+TransferFunction{Discrete{Float64}, ControlSystems.SisoRational{Int64}}
+2z + 2
+------
+z - 1
+
+Sample Time: 0.1 (seconds)
+Discrete-time transfer function model
+```
 
 # Creating Delay Systems
 The constructor [`delay`](@ref) creates a pure delay, which may be connected to a system by multiplication:
