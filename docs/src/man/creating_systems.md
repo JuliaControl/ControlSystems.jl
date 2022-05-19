@@ -1,18 +1,19 @@
-# Creating Transfer Functions
+# Creating Systems
+## Creating Transfer Functions
 ```@meta
 DocTestSetup = quote
     using ControlSystems
 end
 ```
 
-## tf - Rational Representation
+### tf - Rational Representation
 The syntax for creating a transfer function is
 ```julia
 tf(num, den)     # Continuous-time system
 tf(num, den, Ts) # Discrete-time system
 ```
 where `num` and `den` are the polynomial coefficients of the numerator and denominator of the polynomial and `Ts`, if provided, is the sample time for a discrete-time system.
-### Example:
+#### Example:
 ```jldoctest
 tf([1.0],[1,2,1])
 
@@ -28,14 +29,14 @@ Continuous-time transfer function model
 
 The transfer functions created using this method will be of type `TransferFunction{SisoRational}`.
 
-## zpk - Pole-Zero-Gain Representation
+### zpk - Pole-Zero-Gain Representation
 Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using
 ```julia
 zpk(zeros, poles, gain)     # Continuous-time system
 zpk(zeros, poles, gain, Ts) # Discrete-time system
 ```
 where `zeros` and `poles` are `Vectors` of the zeros and poles for the system and `gain` is a gain coefficient.
-### Example
+#### Example
 ```jldoctest
 zpk([-1.0,1], [-5, -10], 2)
 
@@ -52,7 +53,7 @@ Continuous-time transfer function model
 The transfer functions created using this method will be of type `TransferFunction{SisoZpk}`.
 
 
-# ss - Creating State-Space Systems
+## ss - Creating State-Space Systems
 A state-space system is created using
 ```julia
 ss(A,B,C,D)    # Continuous-time system
@@ -139,7 +140,7 @@ Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
 ```
 
-# Creating Delay Systems
+## Creating Delay Systems
 The constructor [`delay`](@ref) creates a pure delay, which may be connected to a system by multiplication:
 ```julia
 delay(1.2)               # Pure delay or 1.2s
@@ -154,5 +155,5 @@ L = 1.2 # Delay time
 tf(1, [1, 1]) * exp(-L*s)
 ```
 
-# Creating Nonlinear Systems
+## Creating Nonlinear Systems
 See [Nonlinear functionality](@ref).
