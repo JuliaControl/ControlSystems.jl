@@ -16,7 +16,7 @@ nyquistplot(ssrand(1,1,1))
 ## Guide
 
 ```@contents
-Pages = ["man/introduction.md", "man/creating_systems.md"]
+Pages = ["man/introduction.md", "man/creating_systems.md", "man/numerical.md", "man/differences.md"]
 Depth = 1
 ```
 
