@@ -43,6 +43,7 @@ makedocs(modules=[ControlSystems],
             "Introduction" => "man/introduction.md",
             "Creating Systems" => "man/creating_systems.md",
             "Performance considerations" => "man/numerical.md",
+            "Noteworthy differences from other languages" => "man/differences.md",
         ],
         "Examples" => Any[
             "Design" => "examples/example.md",
