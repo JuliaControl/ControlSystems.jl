@@ -306,7 +306,7 @@ If `hz=true`, the hover information will be displayed in Hertz, the input freque
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false, hz=false)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false, hz=false, critical_origin=false)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -340,7 +340,7 @@ nyquistplot
                         seriescolor := :red
                         markersize := 5
                         seriesstyle := :scatter
-                        [-1], [0]
+                        [critical_origin ? 0 : -1], [0]
                     end
                     for Ms in Ms_circles
                         @series begin
