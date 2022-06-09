@@ -298,4 +298,11 @@ P_wb = DemoSystems.woodberry()
 
 @test freqresp(pade(feedback(eye_(2), P_wb), 3), Ω) ≈ freqresp(feedback(eye_(2), P_wb), Ω) atol=1e-4
 
+# Step below fails without force_dtmin to the solver
+s = tf("s")
+P = 1 / (0.85*s + 1)*exp(-0.14*s)
+res = step(P, 5)
+@test res.t[end] > 4.5
+@test length(res.y) > 30
+
 end
