@@ -65,25 +65,28 @@ end
 
 
 """
-    `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), abstol=1e-6, reltol=1e-6, kwargs...)`
+    res = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), abstol=1e-6, reltol=1e-6, force_dtmin=true, kwargs...)
 
-    Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
+Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
 
-    Arguments:
+Arguments:
 
-    `t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
-    `u`: Function to determine control signal `ut` at a time `t`, on any of the following forms:
-        Can be a constant `Number` or `Vector`, interpreted as `ut .= u` , or
-        Function `ut .= u(t)`, or
-        In-place function `u(ut, t)`. (Slightly more effienct)
-    `alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
+`t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
+`u`: Function to determine control signal `ut` at a time `t`, on any of the following forms:
+- A constant `Number` or `Vector`, interpreted as `ut .= u`
+- Function `ut .= u(t)`
+- In-place function `u(ut, t)`. (Slightly more effienct)
 
-    Returns: times `t`, and `y` and `x` at those times.
+`alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
+
+This methods sets `force_dtmin=true` by default to handle the discontinuity implied by, e.g., step inputs. This may lead to the solver taking a long time to solve ill-conditioned problems rather than exiting early with a warning.
+
+Returns an instance of [`SimResult`](@ref) which can be plotted directly or destructured into `y, t, x, u = res`.
 """
 function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
         x0=fill(zero(T), nstates(sys)),
         alg=DelayDiffEq.MethodOfSteps(Tsit5()),
-        abstol=1e-6, reltol=1e-6,
+        abstol=1e-6, reltol=1e-6, force_dtmin = true,
         kwargs...) where {T,S}
 
     # Make u! in-place function of u
@@ -95,7 +98,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
         (out, t) -> (out .= u(t))
     end
 
-    _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
+    _lsim(sys, u!, t, x0, alg; abstol, reltol, force_dtmin, kwargs...)
 end
 
 # Generic parametrized dde used for simulating DelayLtiSystem
