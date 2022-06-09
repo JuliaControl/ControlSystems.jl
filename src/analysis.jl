@@ -343,7 +343,7 @@ The RGA can be used to find input-output pairings for MIMO control using individ
     - Element uncertainty. Large RGA-elements imply sensitivity to element-by-element uncertainty.
     However, this kind of uncertainty may not occur in practice due to physical couplings
     between the transfer function elements. Therefore, diagonal input uncertainty
-    (which is always present) is usually of more concern for plants with large RGAelemen
+    (which is always present) is usually of more concern for plants with large RGA elements.
 
 The relative gain array is computed using the The unit-consistent (UC) generalized inverse
 Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
