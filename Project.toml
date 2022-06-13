@@ -24,6 +24,7 @@ RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
+Aqua = "0.5"
 Colors = "0.9.2, 0.10, 0.11, 0.12"
 DSP = "0.6.1, 0.7"
 DelayDiffEq = "5.31"
@@ -40,10 +41,11 @@ RecipesBase = "1"
 julia = "1.6"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Documenter", "GR", "Plots"]
+test = ["Test", "Aqua", "Documenter", "GR", "Plots"]
