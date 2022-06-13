@@ -92,7 +92,7 @@ function lsim(sys::HammersteinWienerSystem{T}, u, t::AbstractArray{<:Real};
         x0=fill(zero(T), nstates(sys)),
         alg=Tsit5(),
         abstol=1e-6, reltol=1e-6,
-        kwargs...) where {T,S}
+        kwargs...) where {T}
 
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
