@@ -76,8 +76,8 @@ zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 zpk(z, p, k, Ts::Number) = zpk(z, p, k, Discrete(Ts))
 zpk(z, p, k) = zpk(z, p, k, Continuous())
 # Catch all 1(2) argument versions
-zpk(gain, Ts::Number; kwargs...) where {T <: Number} = zpk(gain, Discrete(Ts))
-zpk(gain; kwargs...) where {T <: Number} = zpk(gain, Continuous())
+zpk(gain, Ts::Number; kwargs...) = zpk(gain, Discrete(Ts))
+zpk(gain; kwargs...) = zpk(gain, Continuous())
 
 # This method is required since the Base method uses promote_op(matprod, eltype(A), eltype(B)) which fails to infer correctly
 function Base.:(*)(A::AbstractMatrix{<:Union{<:SisoZpk, <:SisoRational}}, B::AbstractMatrix{<:Union{<:SisoZpk, <:SisoRational}})

@@ -23,7 +23,7 @@ Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
 
 undef_sampletime(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLEPETIME)
-undef_sampletime(::Type{Continuous}) where T = Continuous()
+undef_sampletime(::Type{Continuous}) = Continuous()
 
 
 # Promotion
