@@ -18,15 +18,15 @@ using LinearAlgebra # For identity matrix I
 using Plots
 Ts      = 0.1
 A       = [1 Ts; 0 1]
-B       = [0 1]' # To handle bug TODO
+B       = [0; 1]
 C       = [1 0]
-sys     = ss(A,B,C,0, Ts)
+sys     = ss(A,B,C,0,Ts)
 Q       = I
 R       = I
 L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
-t       =0:Ts:5
+t       = 0:Ts:5
 x0      = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
@@ -107,8 +107,8 @@ Define the process
 ω = 1
 
 B = [1]
-A   = [1, 2ζ*ω, ω^2]
-P  = tf(B,A)
+A = [1, 2ζ*ω, ω^2]
+P = tf(B,A)
 
 # output
 
@@ -138,8 +138,8 @@ R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomia
 
 Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
 
-plot(step(P))
-plot!(step(Gcl)) # Visualize the open and closed loop responses.
+plot(step(P, 20))
+plot!(step(Gcl, 20)) # Visualize the open and closed loop responses.
 save_docs_plot("ppstepplot.svg") # hide
 gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
 save_docs_plot("ppgofplot.svg"); # hide
