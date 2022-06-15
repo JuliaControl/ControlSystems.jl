@@ -327,4 +327,47 @@ G2 = add_output(G, C2, D2)
 @test G2.C[3:4,:] == C2
 @test G2.D[3:4,:] == D2
 
+
+# Sensitivity functions
+P = ssrand(2,3,2, Ts=1, proper=true)
+C = ssrand(3,2,2, Ts=1)
+
+# Test that the transfer functions are the same as stated in sensedoc
+S = output_sensitivity(P,C)
+T = output_comp_sensitivity(P,C)
+d2 = randn(2, 10)
+
+resS = lsim(S, d2)
+resT = lsim(T, d2)
+e3 = resS.y
+e4 = resT.y
+e3 ≈ d2 .- e4
+
+CS = G_CS(P,C)
+resCS = lsim(CS, d2)
+resC = lsim(C, e3)
+@test resC.y ≈ resCS.y
+
+d1 = randn(3, 10)
+
+Si = input_sensitivity(P, C)
+resSi = lsim(Si, d1)
+e1 = resSi.y
+e42 = lsim(P, e1).y
+
+PS = G_PS(P,C)
+resPS = lsim(PS, d1)
+@test resPS.y ≈ e42
+
+Ti = input_comp_sensitivity(P, C)
+resTi = lsim(Ti, d1)
+e2 = resTi.y
+e22 = lsim(C, e42).y
+@test e2 ≈ e22
+
+@test linfnorm(PS - output_sensitivity(P, C)*P)[1] < 1e-8
+@test linfnorm(CS - input_sensitivity(P, C)*C)[1] < 1e-8
+@test sensitivity(P,C) == output_sensitivity(P,C)
+@test comp_sensitivity(P,C) == output_comp_sensitivity(P,C)
+
 end
