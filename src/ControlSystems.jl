@@ -58,6 +58,14 @@ export  LTISystem,
         feedback2dof,
         starprod,
         lft,
+        sensitivity,
+        input_sensitivity,
+        output_sensitivity,
+        comp_sensitivity,
+        input_comp_sensitivity,
+        output_comp_sensitivity,
+        G_PS,
+        G_CS,
         # Discrete
         c2d,
         c2d_x0map,
@@ -155,6 +163,7 @@ include("utilities.jl")
 include("types/promotion.jl")
 include("types/conversion.jl")
 include("connections.jl")
+include("sensitivity_functions.jl")
 
 # Analysis
 include("freqresp.jl")

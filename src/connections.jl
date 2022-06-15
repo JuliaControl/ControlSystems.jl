@@ -293,7 +293,7 @@ and outputs (corresponding to [z1; z2]) in the resulting statespace model.
 
 Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for positive feedback (α = 1).
 
-See also `lft`, `starprod`.
+See also `lft`, `starprod`, `sensitivity`, `input_sensitivity`, `output_sensitivity`, `comp_sensitivity`, `input_comp_sensitivity`, `output_comp_sensitivity`, `G_PS`, `G_CS`.
 
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
