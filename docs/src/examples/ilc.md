@@ -104,7 +104,9 @@ nothing # hide
 ## Choosing filters
 The next step is to define the ILC filters ``Q(x)`` and ``L(z)``.
 
-The filter $L(q)$ acts as a frequency-dependent step size. To make the procedure take smaller steps, simply scale $L$ by a constant < 1. Scaling down $L$ makes the learning process slower but more robust. A heuristic choice of $L$ is some form of scaled lookahead, such as $0.5z^l$ where $l \geq 0$ is the number of samples lookahead. A model-based approach may use some form of inverse of the system model, which is what we will use here.
+The filter $L(q)$ acts as a frequency-dependent step size. To make the procedure take smaller steps, simply scale $L$ by a constant < 1. Scaling down $L$ makes the learning process slower but more robust. A heuristic choice of $L$ is some form of scaled lookahead, such as $0.5z^l$ where $l \geq 0$ is the number of samples lookahead. A model-based approach may use some form of inverse of the system model, which is what we will use here. [^nonlinear]
+
+[^nonlinear]: Inverse models can be formed also for some nonlinear systems. [ModelingToolkit.jl](https://mtk.sciml.ai/dev/) is particularily well suited for inverting models due to its acausal nature.
 
 The filter $Q(q)$ acts to make the procedure robust w.r.t. noise and modeling errors. $Q$ has a final say over what frequencies appear in $a$ and it's good to choose $Q$ with low-pass properties. $Q$ will here be applied in zero-phase mode, so the effective transfer function will be $Q(z)Q(z̄)$.
 
