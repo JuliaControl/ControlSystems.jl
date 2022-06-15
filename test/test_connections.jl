@@ -367,5 +367,7 @@ e22 = lsim(C, e42).y
 
 @test linfnorm(PS - output_sensitivity(P, C)*P)[1] < 1e-8
 @test linfnorm(CS - input_sensitivity(P, C)*C)[1] < 1e-8
+@test sensitivity(P,C) == output_sensitivity(P,C)
+@test comp_sensitivity(P,C) == output_comp_sensitivity(P,C)
 
 end
