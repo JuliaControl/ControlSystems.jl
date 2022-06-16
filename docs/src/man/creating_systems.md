@@ -157,3 +157,20 @@ tf(1, [1, 1]) * exp(-L*s)
 
 ## Creating Nonlinear Systems
 See [Nonlinear functionality](@ref).
+
+## Simplifying systems
+A statespace system with a non-minimal realization, or a transfer function with overlapping zeros and poles, may be simplified using the function [`minreal`](@ref). Systems that are structurally singular, i.e., that contains outputs that can not be reached from the inputs based on analysis of the structure of the zeros in the system matrices only, can be simplified with the function [`sminreal`](@ref).
+
+Examples:
+```@repl
+using ControlSystems
+G = tf([1, 1], [1, 1])
+minreal(G) # Performs pole-zero cancellation
+
+P = tf(1, [1, 1]) |> ss
+G = P / (1 + P) # this creates a non-minimal realization, use feedback(P) instead
+feedback(P) # Creates a minimal realization directly
+Gmin = minreal(G) # this simplifies the realization to a minimal realization
+norm(Gmin - feedback(P), Inf) # No difference
+bodeplot([G, Gmin, feedback(P)]) # They are all identical
+```
