@@ -287,7 +287,7 @@ If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and on
 
 Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
 
-See also `pidplots`, `stabregionPID`
+See also [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
 """
 function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
     Pw = P(im*ωp)[1]
@@ -331,6 +331,7 @@ should be returned on.
 
 `C` is the transfer function of the controller.
 
+See also [`loopshapingPI`](@ref)
 """
 function placePI(P, ω₀, ζ; form=:standard)
     P = tf(P)
