@@ -356,7 +356,7 @@ function placePI(P, ω₀, ζ; form=:standard)
     elseif form === :series
         return (;Kc=Kp, τi=Ti), C
     elseif form === :parallel
-        return (;Kp=Kp, ki=Kp/Ti), C
+        return (;Kp=Kp, Ki=Kp/Ti, ki=Kp/Ti), C # ki duplicated to fix name bug without breakage
     elseif form === :Ti
         return (;Kp=Kp, Ti=Ti/Kp), C
     else
