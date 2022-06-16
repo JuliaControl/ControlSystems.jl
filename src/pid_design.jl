@@ -279,7 +279,7 @@ end
 """
     kp,ki,C = loopshapingPI(P,ωp; ϕl,rl, phasemargin, doplot = false)
 
-Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
+Selects the parameters of a PI-controller (on parallel form) such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
 If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
@@ -295,6 +295,7 @@ function loopshapingPI(P,ωp; ϕl=0,rl=0, phasemargin = 0, doplot = false)
     rp = abs.(Pw)
 
     if phasemargin > 0
+        ϕl == 0 || @warn "Both phasemargin and ϕl provided, the provided value for ϕl will be ignored."
         ϕl = deg2rad(-180+phasemargin)
     else
         ϕl = ϕl == 0 ? ϕp : ϕl
