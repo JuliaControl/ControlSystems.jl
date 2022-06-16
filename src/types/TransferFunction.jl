@@ -70,10 +70,12 @@ denvec(G::TransferFunction) = map(denvec, G.matrix)
 numpoly(G::TransferFunction) = map(numpoly, G.matrix)
 denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 
-"""`tf = minreal(tf::TransferFunction, eps=sqrt(eps()))`
+"""
+    minreal(tf::TransferFunction, eps=sqrt(eps()))
 
 Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros
-will promote system to an appropriate numeric type"""
+will promote system to an appropriate numeric type
+"""
 function minreal(G::TransferFunction, eps::Real=sqrt(eps()))
     matrix = similar(G.matrix, typeof(minreal(one(first(G.matrix)), eps)))
     for i = eachindex(G.matrix)
@@ -82,10 +84,12 @@ function minreal(G::TransferFunction, eps::Real=sqrt(eps()))
     return TransferFunction(matrix, G.timeevol)
 end
 
-"""`isproper(tf)`
+"""
+    isproper(tf)
 
 Returns `true` if the `TransferFunction` is proper. This means that order(den)
->= order(num))"""
+>= order(num))
+"""
 function isproper(G::TransferFunction)
     return all(isproper(f) for f in G.matrix)
 end
