@@ -2,6 +2,7 @@
 Pages = ["constructors.md"]
 ```
 
+See also [Connecting named systems together](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Connecting-systems-together).
 # Constructing systems
 
 ```@docs
