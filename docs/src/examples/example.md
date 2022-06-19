@@ -39,6 +39,8 @@ save_docs_plot("lqrplot.svg"); # hide
 
 ![](../../plots/lqrplot.svg)
 
+For more advanced LQR and LQG design, see the [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+
 ## PID design functions
 By plotting the gang of four under unit feedback for the process
 ```jldoctest PIDDESIGN; output = false
