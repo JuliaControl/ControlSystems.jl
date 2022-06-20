@@ -281,7 +281,7 @@ end
 
 Selects the parameters of a PI-controller (on parallel form) such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
-If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
+If `phasemargin` is supplied (in degrees), `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees.
 
 If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
 

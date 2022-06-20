@@ -759,29 +759,41 @@ pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
 pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 """
-    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, kwargs...)
-    gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; minimal=true, plotphase=false, kwargs...)
+    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, Ms_lines = [1.0, 1.1, 1.2], sigma = true, kwargs...)
 
-Gang-of-Four plot. `kwargs` is sent as argument to RecipesBase.plot.
+Gang-of-Four plot.
+
+`sigma` determines whether a [`sigmaplot`](@ref) is used instead of a [`bodeplot`](@ref) for MIMO `S` and `T`.
+`kwargs` are sent as argument to RecipesBase.plot.
 """
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)    
+function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.1, 1.2], sigma = true,  plotphase=false, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
-    sys = gangoffour.(P,C; minimal=minimal)
-    fig = bodeplot([[sys[i][1] sys[i][2]; sys[i][3] sys[i][4]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
-    RecipesBase.plot!(fig, [x-> _PlotScale == "dB" ? 0 : 1 for _ in 1:4], l=(:black, :dash), primary=false)
-    titles = fill("", 1, plotphase ? 8 : 4)
-    # Empty titles on phase
-    titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
-    titles[titleIdx] = ["S = 1/(1+PC)", "P/(1+PC)", "C/(1+PC)", "T = PC/(1+PC)"]
-    RecipesBase.plot!(fig, title = titles)
-    return fig
+    plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
+    haskey(Base.loaded_modules, plots_id) || error("Call using Plots before calling this function")
+    Plots = Base.loaded_modules[plots_id]
+
+    gofs = gangoffour.(P,C)
+    S,D,N,T = ntuple(i->getindex.(gofs, i), 4)
+    bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, kwargs...)
+    f1 = bp(S, args...; show=false, title="S = 1/(1+PC)", kwargs...)
+    if !isnothing(Ms_lines) && !isempty(Ms_lines)
+        Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(1e-3,8e1))
+    else
+        Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-3,1.8))
+    end
+    f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
+    Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
+    f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
+    f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-3,8e1), kwargs...)
+    Plots.hline!([1], l=(:black, :dash), primary=false)
+    Plots.plot(f1,f2,f3,f4, ticks=:default, ylabel="", legend=:bottomright)
 end
 
 
-function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwargs...)
-    gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
+function gangoffourplot(P::Union{<:Vector, LTISystem},C::LTISystem, args...; kwargs...)
+    gangoffourplot(P,[C], args...; kwargs...)
 end
 
 @userplot Rgaplot
