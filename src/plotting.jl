@@ -784,7 +784,7 @@ function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minim
         Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-3,1.8))
     end
     f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
-    Plots.hline!(ones(1, length(D)), l=(:black, :dash), primary=false, sp=(1:length(D))')
+    Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
     f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
     f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-3,8e1), kwargs...)
     Plots.hline!([1], l=(:black, :dash), primary=false)
