@@ -562,22 +562,18 @@ end
 Given a transfer function describing the plant `P` and a transfer function describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 
 - `S = 1/(1+PC)` Sensitivity function
-- `PS = P/(1+PC)` Load disturbance to measurement signal
-- `CS = C/(1+PC)` Measurement noise to control signal
+- `PS = (1+PC)\\P` Load disturbance to measurement signal
+- `CS = (1+PC)\\C` Measurement noise to control signal
 - `T = PC/(1+PC)` Complementary sensitivity function
 
 If `minimal=true`, [`minreal`](@ref) will be applied to all transfer functions.
-Only supports SISO systems
 """
 function gangoffour(P::LTISystem, C::LTISystem; minimal=true)
-    if !issiso(P) || !issiso(C)
-        error("gangoffour only supports SISO systems")
-    end
     minfun = minimal ? robust_minreal : identity
-    S = feedback(1, P*C)    |> minfun
+    S = feedback(I(noutputs(P)), P*C)    |> minfun
     PS = feedback(P, C)     |> minfun
     CS = feedback(C, P)     |> minfun
-    T = feedback(P*C, 1)    |> minfun
+    T = feedback(P*C, I(noutputs(P)))    |> minfun
     return S, PS, CS, T
 end
 
@@ -594,12 +590,8 @@ computes the four transfer functions in the Gang-of-Four and the transferfunctio
 - `RY = PCF/(1+PC)`
 - `RU = CF/(1+P*C)`
 - `RE = F/(1+P*C)`
-
-Only supports SISO systems"""
-function gangofseven(P::TransferFunction, C::TransferFunction, F::TransferFunction)
-    if !issiso(P) || !issiso(C) || !issiso(F)
-        error("gangofseven only supports SISO systems")
-    end
+"""
+function gangofseven(P::LTISystem, C::LTISystem, F::LTISystem)
     S, PS, CS, T = gangoffour(P,C)
     RY = T*F
     RU = CS*F
