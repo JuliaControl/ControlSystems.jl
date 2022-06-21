@@ -284,7 +284,7 @@ end
 
 # Used for pade approximation
 """
-`p2 = _linscale(p::Polynomial, a)`
+    p2 = _linscale(p::Polynomial, a)
 
 Given a polynomial `p` and a number `a, returns the polynomials `p2` such that
 `p2(s) == p(a*s)`.
