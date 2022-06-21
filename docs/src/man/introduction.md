@@ -48,25 +48,19 @@ TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
 
 Continuous-time transfer function model
 ```
+or use `feedback(P)` to get a minimal realization directly:
+```@example INTRO
+feedback(P)
+```
 
 !!! note "Numerical accuracy"
     Transfer functions represent systems using polynomials and may have poor numerical properties for high-order systems. Well-balanced state-space representations are often better behaved. See [Performance considerations](@ref) for more details.
 
 ## Plotting
 The ControlSystems package is using `RecipesBase.jl` ([link](https://github.com/JuliaPlots/RecipesBase.jl)) as interface to generate all the plots. This means that it is up to the user to choose a plotting library that supports `RecipesBase.jl`, a suggestion would be `Plots.jl` with which the user is also able to freely choose a back-end. The plots in this manual are generated using `Plots.jl` with the `GR` backend. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is
-```jldoctest; output=false
+```@example
 using Plots
-
-fig = bodeplot(tf(1,[1,2,1]))
-
-savefig(fig, "myfile.svg")
-
-save_docs_plot(fig, "intro_bode.svg") # hide
-
-# output
-
+bodeplot(tf(1,[1,2,1]))
 ```
-
-![](../../plots/intro_bode.svg)
 
 More examples of plots are provided in [Plotting](@ref).

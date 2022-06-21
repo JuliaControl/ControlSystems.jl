@@ -122,11 +122,11 @@ plot(result, plotu=true, plotx=false)
 ```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower level inteface, see `?Simulator` and `?solve`
+Continuous-time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
+To simulate a unit step at `t=t₀`, use `(x,i)-> Ts*i ≥ t₀`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
 
 For maximum performance, see function [`lsim!`](@ref), avaialable for discrete-time systems only.
 
@@ -143,8 +143,8 @@ Q = I
 R = I
 L = lqr(sys,Q,R)
 
-u(x,t) = -L*x # Form control law,
-t=0:0.1:5
+u(x,t) = -L*x # Form control law
+t  = 0:0.1:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
@@ -205,6 +205,17 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real; kwargs...)
 end
 
 # Function for DifferentialEquations lsim
+"""
+    f_lsim(dx, x, p, t)
+
+Internal function: Dynamics equation for simulation of a linear system.
+
+# Arguments:
+- `dx`: State derivative vector written to in place.
+- `x`: State
+- `p`: is equal to `(A, B, u)` where `u(x, t)` returns the control input
+- `t`: Time
+"""
 @inline function f_lsim(dx, x, p, t) 
     A, B, u = p
     # dx .= A * x .+ B * u(x, t)
