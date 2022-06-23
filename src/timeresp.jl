@@ -235,7 +235,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
-    dt = T(t[2] - t[1])
+    dt = t[2] - t[1]
 
     if !iscontinuous(sys) || method === :zoh
         if iscontinuous(sys)
