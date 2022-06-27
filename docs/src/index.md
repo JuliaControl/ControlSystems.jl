@@ -41,6 +41,7 @@ The JuliaControl and surrounding ecosystem contains a few additional packages th
 - [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl) contains more advanced features for LQG design, robust analysis and synthesis, uncertainty modeling, named systems and an interface to [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl).
 - [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl) contains basic C-code generation for linear systems.
 - [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is a system-identification toolbox for identification of LTI systems using either time or frequency-domain data.
+- [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl) contains a reference implementation in Julia of a discrete-time PID controller including set-point weighting, integrator anti-windup, derivative filtering and bumpless transfer.
 
 See also [the paper](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) describing the toolbox
 
