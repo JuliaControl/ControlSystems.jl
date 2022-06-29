@@ -105,4 +105,4 @@ plot(step.(CLs, 5), label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ![StepResponse](/example/step_response.png)
 
 ### Additional examples
-See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/)
+See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/) and several examples in the [documentation](http://juliacontrol.github.io/ControlSystems.jl/latest/).

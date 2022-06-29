@@ -48,9 +48,9 @@ TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
 
 Continuous-time transfer function model
 ```
-or use `feedback(P)` to get a minimal realization directly:
+or use `feedback(P)` to get a minimal realization directly (recommended):
 ```@example INTRO
-feedback(P)
+feedback(P) # Equivalent to P/(1+P)
 ```
 
 !!! note "Numerical accuracy"
