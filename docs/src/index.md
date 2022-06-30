@@ -15,7 +15,7 @@ nyquistplot(ssrand(1,1,1))
 
 ControlSystems.jl and the rest of the packages in the [JuliaControl](https://github.com/JuliaControl/) organization implement solutions for analysis and design of (primarily linear) control systems. If you are new to the Julia programming language, [learn more here](https://julialang.org/learning/). If you are familiar with Julia but unfamiliar with the ecosystem for control, learn more under [Ecosystem](@ref).
 
-This documentation is structured into an introductory section labeled [Introductory guide](@ref), a section with [Examples](@ref) and a reference section sorted into topics, labeled [Functions](@ref).
+This documentation is structured into an introductory section labeled [Introductory guide](@ref), a section with [Examples](@ref index_examples) and a reference section sorted into topics, labeled [Functions](@ref).
 
 ## Introductory guide
 
@@ -24,7 +24,7 @@ Pages = ["man/introduction.md", "man/creating_systems.md", "man/numerical.md", "
 Depth = 1
 ```
 
-## Examples
+## [Examples](@id index_examples)
 ```@contents
 Pages = ["examples/example.md", "examples/ilc.md", "examples/smith_predictor.md"]
 Depth = 2
