@@ -94,21 +94,26 @@ end
 
 
 """
+    nonlinearity(f)
     nonlinearity(T, f)
 
-Create a pure nonlinearity.
+Create a pure nonlinearity. `f` is assumed to be a static (no memory) nonlinear
+function from ``f : R -> R``.
+
+The type `T` defaults to `Float64`.
 
 $nonlinear_warning
 
-The type `T` defaults to `promote_type(Float64, typeof(f))`
-
 # Example:
-Create a LTI system with an input nonlinearity of `f`
+Create a LTI system with a static input nonlinearity that saturates the input to [-1,1].
 ```julia
 tf(1, [1, 1])*nonlinearity(x->clamp(x, -1, 1))
 ```
 
-See also predefined nonlinearities [`saturation`](@ref), [`offser`](@ref).
+See also predefined nonlinearities [`saturation`](@ref), [`offset`](@ref).
+
+Note: when composing linear systems with nonlinearities, it's often important to handle operating points correctly.
+See [`ControlSystems.offset`](@ref) for handling operating points.
 """
 function nonlinearity(::Type{T}, f) where T <: Number
     return HammersteinWienerSystem(ControlSystems.ss([zero(T) one(T); one(T) zero(T)], Continuous()), Function[f])

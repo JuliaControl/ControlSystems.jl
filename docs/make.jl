@@ -39,7 +39,7 @@ makedocs(modules=[ControlSystems],
     ],
     pages=[
         "Home" => "index.md",
-        "Guide" => Any[
+        "Introductory guide" => Any[
             "Introduction" => "man/introduction.md",
             "Creating Systems" => "man/creating_systems.md",
             "Performance considerations" => "man/numerical.md",

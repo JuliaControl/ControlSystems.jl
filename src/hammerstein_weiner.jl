@@ -247,6 +247,9 @@ Csat = saturation(val) * C
 ```
 
 $nonlinear_warning
+
+Note: when composing linear systems with nonlinearities, it's often important to handle operating points correctly.
+See [`ControlSystems.offset`](@ref) for handling operating points.
 """
 saturation(args...) = nonlinearity(Saturation(args...))
 saturation(v::AbstractVector, args...) = nonlinearity(Saturation.(v, args...))
@@ -264,6 +267,14 @@ end
 Create a constant-offset nonlinearity `x -> x + val`.
 
 $nonlinear_warning
+
+# Example:
+To create a linear system that operates around operating point `y₀, u₀`, use
+```julia
+offset_sys = offset(y₀) * sys * offset(-u₀)
+```
+note the sign on the offset `u₀`. This ensures that `sys` operates in the coordinates
+`Δu = u-u₀, Δy = y-y₀` and the inputs and outputs to the offset system are in their non-offset coordinate system. If the system is linearized around `x₀`, `y₀` is given by `C*x₀`. Additional information and an example is available here https://juliacontrol.github.io/ControlSystems.jl/latest/lib/nonlinear/#Non-zero-operating-point
 """
 offset(val::Number) = nonlinearity(Offset(val))
 offset(v::AbstractVector) = nonlinearity(Offset.(v))
