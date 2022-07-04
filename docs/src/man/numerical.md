@@ -57,7 +57,7 @@ ws = ControlSystems.BodemagWorkspace(G, w)
 ## Time-domain simulation
 
 ### Time scale
-When simulating a dynamical system in continuous time, a differential-equation integrator is used. These integrators are sensitive to the scaling of the equations, and may perform poorly for stiff problems or problems with a poorly chosen time scale. In, e.g., electronics, it's common to simulate systems where the dominant dynamics have time constants on the order of microseconds. To simulate such systems accurately, it's often a good idea to model the system in microseconds rather than in seconds. 
+When simulating a dynamical system in continuous time, a differential-equation integrator is used. These integrators are sensitive to the scaling of the equations, and may perform poorly for stiff problems or problems with a poorly chosen time scale. In, e.g., electronics, it's common to simulate systems where the dominant dynamics have time constants on the order of microseconds. To simulate such systems accurately, it's often a good idea to model the system in microseconds rather than in seconds. The function [`time_scale`](@ref) can be used to automatically change the time scale of a system.
 
 ### Transfer functions
 Transfer functions are automatically converted to state-space form before time-domain simulation. If you want control over the exact internal representation used, consider modeling the system as a state-space system already from start. 
