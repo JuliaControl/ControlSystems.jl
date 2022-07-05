@@ -235,3 +235,28 @@ feedback(nl, G*nl)
 # # 383.694 μs (7698 allocations: 201.61 KiB) @simd
 # # 151.506 μs (1020 allocations: 125.41 KiB) make f a tuple of functions
 # # 148.230 μs (1020 allocations: 125.41 KiB) inline u
+
+## Test non-commutativity of multiplication
+
+using ControlSystems: nonlinearity
+# build the duffing oscillator 
+# ẍ = -kx -k₃x^3 - cẋ + u
+# and multiply by 10 on input or output. These are not the same for nonlinear systems
+k=10
+k3=2
+c=1
+
+s = tf("s")
+cube = nonlinearity(x->x^3)
+vel_loop = feedback(1/s, c)
+pos_loop = (k3*cube + k)
+duffing = feedback(vel_loop/s, pos_loop)
+
+# Solve for steady state 
+# root of (10x + 2x^3) = 10
+# https://www.wolframalpha.com/input?i=10x+%2B+2x%5E3+%3D+10
+@test step(duffing*10, 1000).y[end] ≈ 0.868830020341475 rtol=1e-3
+
+# 10 times root of (10*x + 2*x^3) = 1
+# https://www.wolframalpha.com/input?i=%2810*x+%2B+2*%28x%29%5E3%29+%3D+1
+@test step(10*duffing, 1000).y[end] ≈ 10*0.0998011904871354 rtol=1e-3
