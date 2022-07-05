@@ -9,7 +9,7 @@ end
 
 function *(sys::LFTSystem, n::Number)
     new_B = [sys.P.B1*n sys.P.B2]
-    new_D = [sys.P.D11 sys.P.D12*n; sys.P.D21 sys.P.D22*n]
+    new_D = [sys.P.D11*n sys.P.D12; sys.P.D21*n sys.P.D22]
     return basetype(sys)(StateSpace(sys.P.A, new_B, sys.P.C, new_D, sys.P.timeevol), feedback_channel(sys))
 end
 
