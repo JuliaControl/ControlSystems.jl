@@ -87,6 +87,19 @@
         @inferred C_111 * C_221
         @inferred C_111 * I(2)
 
+        # Test that multiplication/division is applied at correct input/output location
+        @test (10*C_111).C == 10*C_111.C
+        @test (10*C_111).B == C_111.B
+
+        @test (C_111*10).C == C_111.C
+        @test (C_111*10).B == 10*C_111.B
+
+        @test (10\C_111).C == 10\C_111.C
+        @test (10\C_111).B == C_111.B
+
+        @test (C_111/10).C == C_111.C
+        @test (C_111/10).B == C_111.B/10
+
         # Division
         @test 1/C_222_d == SS([-6 -3; 2 -11],[1 0; 0 2],[-1 0; -0 -1],[1 -0; 0 1])
         @test C_221/C_222_d == SS([-5 -3 -1 0; 2 -9 -0 -2; 0 0 -6 -3;

@@ -284,8 +284,9 @@ function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     return basetype(ST)(A, B, C, D, timeevol)
 end
 
-*(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
-*(n::Number, sys::AbstractStateSpace) = *(sys, n)
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B*n, sys.C, sys.D*n, sys.timeevol)
+*(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
+
 
 ## DIVISION ##
 /(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = sys1*inv(sys2)
@@ -302,7 +303,8 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
-/(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B/n, sys.C, sys.D/n, sys.timeevol)
+Base.:\(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
 
 
 #####################################################################

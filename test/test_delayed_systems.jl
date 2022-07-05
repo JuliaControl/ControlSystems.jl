@@ -81,6 +81,7 @@ s_vec = [0, 1im, 1, 1 + 1im]
 @test freqresp(feedback(1.0, P1*delay(1)), ω)[:] ≈ 1 ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
 
 @test freqresp(feedback(1.0, P2*0.5*(ss(1.0) + delay(2))), ω)[:] ≈ 1 ./(1 .+ P2_fr .* 0.5.*(1 .+ exp.(-2*im*ω)))
+@test freqresp(feedback(1.0, 0.5*P2*(ss(1.0) + delay(2))), ω)[:] ≈ 1 ./(1 .+ P2_fr .* 0.5.*(1 .+ exp.(-2*im*ω)))
 
 
 @test freqresp(1.0 + delay(2), ω)[:] ≈ 1 .+ exp.(-2im*ω) rtol=1e-15

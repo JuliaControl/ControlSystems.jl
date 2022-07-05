@@ -1,12 +1,17 @@
 abstract type LFTSystem{TE, T} <: LTISystem{TE} end
 timeevol(sys::LFTSystem) = timeevol(sys.P)
 
-function *(sys::LFTSystem, n::Number)
+function *(n::Number, sys::LFTSystem)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
     return basetype(sys)(StateSpace(sys.P.A, sys.P.B, new_C, new_D, sys.P.timeevol), feedback_channel(sys))
 end
-*(n::Number, sys::LFTSystem) = *(sys, n)
+
+function *(sys::LFTSystem, n::Number)
+    new_B = [sys.P.B1*n sys.P.B2]
+    new_D = [sys.P.D11*n sys.P.D12; sys.P.D21*n sys.P.D22]
+    return basetype(sys)(StateSpace(sys.P.A, new_B, sys.P.C, new_D, sys.P.timeevol), feedback_channel(sys))
+end
 
 
 function +(sys::LFTSystem{TE,T1}, n::T2) where {TE,T1,T2<:Number}
