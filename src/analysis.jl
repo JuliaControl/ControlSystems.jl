@@ -351,7 +351,7 @@ Jeffrey Uhlmann
 https://arxiv.org/pdf/1805.10312.pdf
 """
 function relative_gain_array(G, w::AbstractVector)
-    mapslices(relative_gain_array, freqresp(G, w), dims=(2,3))
+    mapslices(relative_gain_array, freqresp(G, w), dims=(1,2))
 end
 
 relative_gain_array(G, w::Number) = relative_gain_array(freqresp(G, w))

@@ -2,7 +2,7 @@ function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}) wh
     ny = noutputs(sys)
     nu = ninputs(sys)
     @boundscheck size(R) == (ny,nu,length(ω))
-    P_fr = freqresp(sys.P.P, ω).parent
+    P_fr = freqresp(sys.P.P, ω)
 
     cache = cis.(ω[1].*sys.Tau)
 
@@ -17,7 +17,7 @@ function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}) wh
 
         R[:,:,ω_idx] .= P11_fr .+ P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
     end
-    return PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
+    return R
 end
 
 function evalfr(sys::DelayLtiSystem, s)
