@@ -213,7 +213,12 @@ function +(f1::SisoZpk{T1,TR1}, f2::SisoZpk{T2,TR2}) where {T1<:Number,T2<:Numbe
     TRtmp = promote_type(TR1, TR2)
     # Calculating roots can make integers floats
     TRnew = Base.promote_op(/, TRtmp, TRtmp)
-    z = convert(Vector{TRnew}, roots(numPoly))
+    r = roots(numPoly)
+    if eltype(r) <: Complex && TRnew <: Real
+        # Have to widen to a complex type
+        TRnew = Complex{TRnew}
+    end
+    z = convert(Vector{TRnew}, r)
     #TODO gains could remain integers, but numerical precision inhibits this
     Ttmp = promote_type(T1,T2)
     Tnew = Base.promote_op(/, Ttmp, Ttmp)
