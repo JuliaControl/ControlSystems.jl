@@ -63,13 +63,6 @@ function print_siso(io::IO, f::SisoRational, var=:s)
     println(io, denstr)
 end
 
-# TODO is this working?
-function print_compact(io::Base.IO, f::SisoRational, var)
-    numstr = sprint(print_poly, f.num)
-    denstr = sprint(print_poly, f.den)
-    println(io, "($numstr)/($denstr)")
-end
-
 numvec(f::SisoRational) = reverse(coeffs(f.num))
 denvec(f::SisoRational) = reverse(coeffs(f.den))
 
