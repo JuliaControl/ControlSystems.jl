@@ -173,6 +173,7 @@ We now show how we can make use of the circle criterion to prove stability of th
 function circle_criterion(L::ControlSystems.HammersteinWienerSystem, domain::Tuple; N=10000)
     fun = x->L.f[](x)/x
     x = range(domain[1], stop=domain[2], length=N)
+    0 ∈ x && (x = filter(!=(0), x)) # We cannot divide by zero
     k1, k2 = extrema(fun, x)
 
     f1 = plot(L.f[], domain[1], domain[2], title="Nonlinearity", lab="f(x)", xlab="x")
@@ -201,7 +202,7 @@ end
 C = pid(kp=2, ki=0, kd=1)*tf(1, [0.01,1])
 f1 = circle_criterion(duffing*C, (-1, 1))
 plot!(sp=2, ylims=(-10, 3), xlims=(-5, 11))
-f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Duffing oscillator closed-loop step response", layout=4)
+f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Controlled oscillator disturbance step response", layout=4)
 plot(f1,f2, size=(1300,800))
 ```
 Since we evaluated the nonlinearity over a small domain, we should convince ourselves that we indeed never risk leaving this domain. 
@@ -212,7 +213,7 @@ f(x) = x + \sin(x)
 ```
 to get an actual circle in the Nyquist plane.
 ```@example DUFFING
-wiggly = nonlinearity(x->x+sin(x))
+wiggly = nonlinearity(x->x+sin(x)) # This function is a bit wiggly
 vel_loop = feedback(1/s, c)
 pos_loop_feedback = (k3*wiggly + k)
 duffing = feedback(vel_loop/s, pos_loop_feedback)*10
@@ -220,7 +221,7 @@ duffing = feedback(vel_loop/s, pos_loop_feedback)*10
 C = pid(kp=2, ki=5, kd=1)*tf(1,[0.1, 1]) 
 f1 = circle_criterion(duffing*C, (-2pi, 2pi))
 plot!(sp=2, ylims=(-5, 2), xlims=(-2.1, 0.1))
-f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Wiggly oscillator closed-loop step response", layout=5)
+f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Controlled wiggly oscillator disturbance step response", layout=5)
 plot(f1,f2, size=(1300,800))
 ```
 

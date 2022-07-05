@@ -202,7 +202,22 @@ b = [1.0, 3.0]
 @test ControlSystems.SisoRational{Float64}(v1,v2) isa ControlSystems.SisoRational{Float64}
 @test ControlSystems.SisoRational{Float64}(v1,1.0*v2) isa ControlSystems.SisoRational{Float64}
 @test ControlSystems.SisoRational{Int64}(v1,1.0*v2) isa ControlSystems.SisoRational{Int64}
+@test ControlSystems.SisoRational([1], [1.0]) isa ControlSystems.SisoRational{Float64}
+@test_throws ErrorException ControlSystems.SisoRational([1], [0])
 
 @test_throws InexactError ControlSystems.SisoRational{Int64}(v1,1.5*v2)
+@test poles(ControlSystems.SisoRational([1], [1])) |> isempty
+@test poles(ControlSystems.SisoRational([1], [1, 1])) == [-1]
+
+@test ControlSystems.SisoRational([1], [1]) - ControlSystems.SisoRational([1], [1]) == ControlSystems.SisoRational([0], [1])
+
+@test ControlSystems.SisoRational([1], [1]) - 1 == ControlSystems.SisoRational([0], [1])
+@test ControlSystems.SisoRational([1], [1]) / 1 == ControlSystems.SisoRational([1], [1])
+@test ControlSystems.SisoRational([1], [1]) / 2 == ControlSystems.SisoRational([1], [2])
+
+@test tf(1, 0.1).Ts == 0.1
+if VERSION >= v"1.8.0-rc1"
+    @test @test_logs (:warn, r"deprecated") tf(1).Ts == 0
+end
 
 end

@@ -154,10 +154,17 @@
         end
 
         # Different types
-        K1 = ss(I(2)) # Bool
-        K2 = ss(1.0I(2)) # Float64
-        P = ssrand(3,3,2)
-        @test lft(P, -K1) == lft(P, -K2)
+        if VERSION >= v"1.8.0-rc1"
+            K1 = SS(I(2)) # Bool
+            K2 = SS(1.0I(2)) # Float64
+            P = ssrand(3,3,2)
+            @test lft(P, -K1) == lft(P, -K2)
+        else # With HeteroStateSpace, we get an error on julia < 1.8 due to inverse of sparse I
+            K1 = ss(I(2)) # Bool
+            K2 = ss(1.0I(2)) # Float64
+            P = ssrand(3,3,2)
+            @test lft(P, -K1) == lft(P, -K2)
+        end
 
         # Errors
         @test_throws ErrorException C_111 + C_222             # Dimension mismatch
@@ -176,6 +183,21 @@
         @test_throws ErrorException SS([1], [2], [3 4], [1])      # I/0 dim mismatch
         @test_throws ErrorException SS([1], [2], [3], [4], -0.1)  # Negative samping time
         @test_throws ErrorException SS(eye_(2), eye_(2), eye_(2), [0]) # Dimension mismatch
+
+        # Misc tests
+        @test SS(1) == SS(zeros(Int,0,0),zeros(Int,0,1),zeros(Int, 1,0),1)
+        @test SS(1, 0.1) == SS(zeros(Int,0,0),zeros(Int,0,1),zeros(Int, 1,0),1, 0.1)
+        @test zero(StateSpace{Continuous, Float64}) == SS(0)
+        @test ss(1) - 1 == (1 - ss(1)) == zero(StateSpace{Continuous, Int})
+        @test ndims(C_111) == 2
+        @test_nowarn print(C_111)
+        @test isproper(C_222)
+        @test !isproper(C_222_d)
+
+        @test SS(1, 0.1).Ts == 0.1
+        if VERSION >= v"1.8.0-rc1"
+            @test @test_logs (:warn, r"deprecated") SS(1).Ts == 0
+        end
 
     end
 
