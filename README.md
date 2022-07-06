@@ -25,23 +25,6 @@ using Pkg; Pkg.add("ControlSystems")
 - *Breaking*: `baltrunc` and `balreal` now return the diagonal of the Gramian as the second argument rather than the full matrix.
 - *Breaking*: The `pid` constructor no longer takes parameters as keyword arguments. `pid` has also gotten some new features, the new signature is `pid(P, I, D=0; form = :standard, Ts=nothing, Tf=nothing, state_space=false)`
 
-### 2022-02
-- *Breaking*: `Plots.jl` is no longer loaded by `ControlSystems.jl`. This improves loading times for the package, but means that users will have to run `using Plots` manually before plotting functions are available.
-- *Deprecations*: Functions `dare/dlyap/dkalman/dlqr` are now deprecated in favor of an interface that uses dispatch on the types `Continuous / Discrete`. Example: `dare(A,B,Q,R)` is now `are(Discrete,A,B,Q,R)` or `are(sysd,Q,R)`.
-
-### 2021-11
-- Time-domain simuations now return a result structure (non breaking)
-- *Breaking*: `lsimplot, stepplot, impulseplot` have been replaced by `plot(lsim())` etc.
-- *Breaking*: `pole, tzero` has been renamed to their plural form, `poles, tzeros`.
-- *Breaking*: `c2d` now no longer returns the `x0map` for statespace systems, see function `c2d_x0map` for the old behavior.
-- *Breaking*: The array layout of time and frequency responses has been transposed, i.e., in `y,t,x,u = lsim(sys, ...)`, the output arrays `y,x,u` are now of shape `size(y) == (sys.ny, T)`.
-- New functions `observer_controller, observer_predictor, placePI`.
-- *Breaking*: The type `LQG` has been removed, see [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/src/lqg.jl) for its replacement.
-- *Breaking*: `balreal` and `baltrunc` return an additional value, the applied similarity transform.
-- A large set of bug fixes
-- For a full list of changes, [see here](https://github.com/JuliaControl/ControlSystems.jl/pull/565/commits).
-
-
 ## Documentation
 
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
