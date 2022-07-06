@@ -52,7 +52,7 @@
         @test C_111 + C_111 == SS([-5 0; 0 -5],[2; 2],[3 3],[0])
         @test C_222 + C_222 == SS([-5 -3 0 0; 2 -9 0 0; 0 0 -5 -3;
         0 0 2 -9],[1 0; 0 2; 1 0; 0 2], [1 0 1 0; 0 1 0 1],[0 0; 0 0])
-        @test C_222 + 1 == SS([-5 -3; 2 -9],[1 0; 0 2],[1 0; 0 1],[1 1; 1 1])
+        @test_throws DimensionMismatch C_222 + 1
         @test D_111 + D_111 == SS([-0.5 0; 0 -0.5],[2; 2],[3 3],[0], 0.005)
 
         @inferred C_111 + C_111
@@ -63,12 +63,15 @@
 
         @inferred C_111 + false
 
-        @test C_222 + 1.5 == 1.0C_222 + 1.5 # C_222 has eltype Int
-        @test 1.5 + C_222 == 1.0C_222 + 1.5
+        @test_throws DimensionMismatch C_222 + 1.5
+        @test_throws DimensionMismatch 1.5 + C_222
+
+        @test_throws DimensionMismatch ss(-ones(2,2), ones(2,2), ones(2,2), zeros(2,2)) + 1 
+        @test ss(-ones(2,2), ones(2,2), ones(2,2), zeros(2,2)) + ones(2, 2) == ss(-ones(2,2), ones(2,2), ones(2,2), ones(2,2))
 
         # Subtraction
         @test C_111 - C_211 == SS([-5 0 0; 0 -5 -3; 0 2 -9],[2; 1; 2],[3 -1 -0],[0])
-        @test 1 - C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[-1 -0; -0 -1],[1 1; 1 1])
+        @test_throws DimensionMismatch 1 - C_222
         @test D_111 - D_211 == SS([-0.5 0 0; 0 0.2 -0.8; 0 -0.8 0.07],[2; 1; 2],
         [3 -1 -0],[0], 0.005)
 
@@ -80,12 +83,47 @@
         @test 4*C_222 == SS([-5 -3; 2 -9],[1 0; 0 2],[4 0; 0 4],[0 0; 0 0])
         @test D_111 * D_221 == SS([-0.5 2 0; 0 0.2 -0.8; 0 -0.8 0.07],
         [0 0; 1 0; 0 2],[3 0 0],[0 0],0.005)
-        @test C_111 * I(2) == I(2) * C_111 == SS(diagm([a_1; a_1]), 2*I(2), 3*I(2), 0*I(2))
-        @test minreal(C_111*C_222_d - C_222_d*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
-        @test C_111*C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
 
-        @inferred C_111 * C_221
-        @inferred C_111 * I(2)
+        # Broadcasting
+        @test C_111 .* I(2) == I(2) .* C_111 == SS(diagm([a_1; a_1]), 2*I(2), 3*I(2), 0*I(2))
+        @test minreal(C_111.*C_222_d - C_222_d.*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
+        @test C_111 .* C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
+
+        @test_broken @inferred C_111 .* I(2)
+
+        C_111_d = ssrand(1,1,2)
+        M = ones(2,2)
+
+        @test_throws DimensionMismatch C_111_d.*M # We do not allow broadcasting with non-diagonal matrices https://github.com/JuliaControl/ControlSystems.jl/issues/416
+        # Unless we wrap the system in a Ref to indicate that we really want it to broadcast like a scalar
+        
+        @test Ref(C_111_d).*M ==  [C_111_d C_111_d; C_111_d C_111_d]
+
+        M = ones(1,2)
+        @test Ref(C_111_d).*M ==  [C_111_d C_111_d]
+
+        M = ones(2,1)
+        @test Ref(C_111_d).*M ==  [C_111_d; C_111_d]
+
+        M = randn(2,2)
+        @test Ref(C_111_d).*M ==  [M[1,1]*C_111_d M[1,2]*C_111_d; M[2,1]*C_111_d M[2,2]*C_111_d]
+
+        M = randn(1,2)
+        @test Ref(C_111_d).*M ==  [M[1]*C_111_d M[2]*C_111_d]
+
+        M = randn(2,1)
+        @test Ref(C_111_d).*M ==  [M[1]*C_111_d; M[2]*C_111_d]
+
+
+        M = randn(2,2)
+        @test M .* Ref(C_111_d) ==  [C_111_d*M[1,1] C_111_d*M[1,2]; C_111_d*M[2,1] C_111_d*M[2,2]]
+
+        M = randn(1,2)
+        @test M .* Ref(C_111_d) ==  [C_111_d*M[1,1] C_111_d*M[1,2]]
+
+        M = randn(2,1)
+        @test M .* Ref(C_111_d) ==  [C_111_d*M[1,1]; C_111_d*M[2,1]]
+
 
         # Test that multiplication/division is applied at correct input/output location
         @test (10*C_111).C == 10*C_111.C

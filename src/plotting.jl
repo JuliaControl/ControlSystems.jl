@@ -222,12 +222,12 @@ bodeplot
         for j=1:nu
             for i=1:ny
                 group_ind += 1
-                magdata = vec(mag[:, i, j])
+                magdata = vec(mag[i, j, :])
                 if all(magdata .== -Inf)
                     # 0 system, don't plot anything
                     continue
                 end
-                phasedata = vec(phase[:, i, j])
+                phasedata = vec(phase[i, j, :])
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
@@ -321,8 +321,8 @@ nyquistplot
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata = re_resp[:, i, j]
-                imdata = im_resp[:, i, j]
+                redata = re_resp[i, j, :]
+                imdata = im_resp[i, j, :]
                 ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                 xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                 title --> "Nyquist plot from: u($j)"
@@ -540,8 +540,8 @@ nicholsplot
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
     for (sysi,s) = enumerate(systems)
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
-        ℜdata               = dropdims(ℜresp, dims=(2,3))
-        ℑdata               = dropdims(ℑresp, dims=(2,3))
+        ℜdata               = dropdims(ℜresp, dims=(1,2))
+        ℑdata               = dropdims(ℑresp, dims=(1,2))
         mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
         extremas = extrema([extremas..., extrema(mag)...])
@@ -579,7 +579,7 @@ sigmaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
-        sv = sigma(s, w)[1]
+        sv = sigma(s, w)[1]'
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
         end
@@ -657,7 +657,7 @@ A frequency vector `w` can be optionally provided.
                     primary := true
                     subplot --> s2i(2i-1,j)
                     seriestype := :bodemag
-                    w, bmag[:, i, j]
+                    w, bmag[i, j, :]
                 end
 
                 primary --> false
@@ -680,7 +680,7 @@ A frequency vector `w` can be optionally provided.
                     primary := true
                     subplot --> s2i(2i,j)
                     seriestype := :bodephase
-                    w, bphase[:, i, j]
+                    w, bphase[i, j, :]
                 end
                 @series begin
                     subplot --> s2i(2i,j)
@@ -835,12 +835,12 @@ rgaplot
     yguide --> "Element magnitudes"
     for (si, s) in enumerate(systems)
         sv = abs.(relative_gain_array(s, w))
-        for j in 1:size(sv, 2)
-            for i in 1:size(sv, 3)
+        for j in 1:size(sv, 1)
+            for i in 1:size(sv, 2)
                 @series begin
                     xscale --> :log10
                     label --> "System $si, from $i to $j"
-                    ws, sv[:, j, i]
+                    ws, sv[j, i, :]
                 end
             end
         end

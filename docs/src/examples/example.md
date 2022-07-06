@@ -66,9 +66,10 @@ we notice that the sensitivity function is a bit too high around frequencies ω 
 function [`loopshapingPI`](@ref) and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
 
 ```@example PIDDESIGN
-using Plots
+using ControlSystems, Plots
+P = tf(1,[1,1])^4
 ωp = 0.8
-kp,ki,C = loopshapingPI(P,ωp,phasemargin=60)
+C,kp,ki = loopshapingPI(P,ωp,phasemargin=60,form=:parallel)
 
 p1 = gangoffourplot(P, [tf(1), C]);
 p2 = nyquistplot([P, P*C], ylims=(-1,1), xlims=(-1.5,1.5));
@@ -77,11 +78,11 @@ plot(p1,p2, layout=(2,1), size=(800,800))
 ```
 
 
-We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like
+We could also consider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like
 ```jldoctest PIDDESIGN; output = false
 using Plots
 ωp = 2
-kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60, doplot=true)
+kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60,form=:standard,doplot=true)
 
 p1 = gangoffourplot(P, [tf(1), C60]);
 p2 = nyquistplot([P, P*C60], ylims=(-2,2), xlims=(-3,3));
@@ -161,11 +162,12 @@ The stability boundary, i.e., the surface of PID parameters where the transfer f
 
 ```jldoctest; output = false
 P1 = s -> exp(-sqrt(s))
-f1, kp, ki = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000))); f1
+doplot = true
+kp, ki, f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)); doplot); f1
 P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
-f2, kp, ki = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000))); f2
+kp, ki, f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)); doplot); f2
 P3 = tf(1,[1,1])^4
-f3, kp, ki = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000))); f3
+kp, ki, f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)); doplot); f3
 
 save_docs_plot(f1, "stab1.svg") # hide
 save_docs_plot(f2, "stab2.svg") # hide
@@ -194,14 +196,15 @@ ki = ws.^2
 pidplots(
     P,
     :nyquist;
-    kps = kp,
-    kis = ki,
+    params_p = kp,
+    params_i = ki,
     ω = ω,
     ylims = (-2, 2),
     xlims = (-3, 3),
+    form = :parallel,
 )
 save_docs_plot("pidplotsnyquist1.svg") # hide
-pidplots(P, :gof; kps = kp, kis = ki, ω = ω, legend = false)
+pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false, form=:parallel)
 # You can also request both Nyquist and Gang-of-four plots (more plots are available, see ?pidplots ):
 # pidplots(P,:nyquist,:gof;kps=kp,kis=ki,ω=ω);
 save_docs_plot("pidplotsgof1.svg"); # hide
@@ -218,9 +221,9 @@ Now try a different strategy, where we have specified a gain crossover frequency
 kp = range(-1, stop=1, length=8) #
 ki = sqrt.(1 .- kp.^2)/10
 
-pidplots(P,:nyquist,;kps=kp,kis=ki,ylims=(-1,1),xlims=(-1.5,1.5))
+pidplots(P,:nyquist,;params_p=kp,params_i=ki,ylims=(-1,1),xlims=(-1.5,1.5), form=:parallel)
 save_docs_plot("pidplotsnyquist2.svg") # hide
-pidplots(P,:gof,;kps=kp,kis=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20))
+pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20), form=:parallel, legendfontsize=6)
 save_docs_plot("pidplotsgof2.svg"); # hide
 
 # output

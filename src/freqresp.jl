@@ -72,7 +72,7 @@ function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
     @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
         R[yi,ui,wi] = evalfr(sys[yi,ui], _freq(w_vec[wi], te))[]
     end
-    PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
+    R
 end
 
 function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<:Real}) where T
@@ -82,7 +82,7 @@ function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<
     @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
         R[yi,ui,wi] = evalfr(sys.matrix[yi,ui], _freq(w_vec[wi], te))
     end
-    PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}(R)
+    R
 end
 
 @autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
@@ -99,12 +99,11 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
 @autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
-    PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if sys.nx == 0 # Only D-matrix
         @inbounds for i in eachindex(w_vec)
             R[:,:,i] .= sys.D
         end
-        return PDT(R)::PDT
+        return R
     end
     local F, Q
     try
@@ -135,7 +134,7 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
         ldiv2!(u, cs, A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PDT(R)::PDT # PermutedDimsArray doesn't allocate to perform the permutation
+    R
 end
 
 #=
@@ -147,7 +146,7 @@ to
 
 w = exp10.(LinRange(-2, 2, 50000))
 G = ssrand(2,2,3)
-R = freqresp(G, w).parent;
+R = freqresp(G, w);
 @btime ControlSystems.freqresp!($R, $G, $w);
 =# 
 function ldiv2!(u, cs, F::UpperHessenberg, B::AbstractVecOrMat; shift::Number=false)
@@ -208,12 +207,11 @@ freqresp_nohess
     ny, nu = size(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
     nx = sys.nx
-    PDT = PermutedDimsArray{T,3,(3,1,2),(2,3,1),Array{T,3}}
     if nx == 0 # Only D-matrix
         @inbounds for i in eachindex(w_vec)
             R[:,:,i] .= sys.D
         end
-        return PDT(R)::PDT
+        return R
     end
     A,B,C0,D = ssdata(sys)
     C = complex.(C0) # We make C complex in order to not incur allocations in mul! below
@@ -230,7 +228,7 @@ freqresp_nohess
         Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PDT(R)::PDT # PermutedDimsArray doesn't allocate to perform the permutation
+    R
 end
 
 
@@ -291,7 +289,7 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
-    [v[i,j]  for v in vals, i in 1:nu, j in 1:ny]
+    [v[i,j]  for i in 1:nu, j in 1:ny, v in vals]
 end
 
 """
@@ -360,7 +358,7 @@ frequencies `w`. See also [`sigmaplot`](@ref)
 `sv` has size `(length(w), max(ny, nu))`""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
+    sv = dropdims(mapslices(svdvals, resp, dims=(1,2)),dims=2)
     return sv, w
 end
 @autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))

@@ -26,6 +26,8 @@ function Documenter.Documents.doctest_replace!(block::Markdown.Code)
     return false
 end
 
+# Update doctest outputs with doctest("/home/fredrikb/.julia/dev/ControlSystems/docs", [ControlSystems], fix=true)
+
 println("Making docs")
 makedocs(modules=[ControlSystems],
     format=Documenter.HTML(),

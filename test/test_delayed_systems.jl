@@ -14,7 +14,7 @@ using ControlSystems
 @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]"
 
 # Extremely basic tests
-@test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), length(ω), 1, 1) rtol=1e-15
+@test freqresp(delay(1), ω) ≈ reshape(exp.(-im*ω), 1, 1, length(ω)) rtol=1e-15
 @test freqresp(delay(2.5), ω)[:] ≈ exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(3.5*delay(2.5), ω)[:] ≈ 3.5*exp.(-2.5im*ω) rtol=1e-15
 @test freqresp(delay(2.5)*1.5, ω)[:] ≈ exp.(-2.5im*ω)*1.5 rtol=1e-15
@@ -72,34 +72,34 @@ s_vec = [0, 1im, 1, 1 + 1im]
 @test freqresp(feedback(1.0, DelayLtiSystem(ss(0.5))), [0])[:] == [2/3]
 @test freqresp(feedback(1.0, P2), ω)[:] ≈ 1 ./ (1 .+ P2_fr)
 
-@test freqresp(feedback(0.5, delay(2.0)), ω) ≈ 0.5 ./ (1 .+ 0.5*exp.(-2im*ω))
-@test freqresp(feedback(delay(2.0), 0.5), ω) ≈ exp.(-2im*ω) ./ (1 .+ 0.5*exp.(-2im*ω))
+@test freqrespv(feedback(0.5, delay(2.0)), ω) ≈ 0.5 ./ (1 .+ 0.5*exp.(-2im*ω))
+@test freqrespv(feedback(delay(2.0), 0.5), ω) ≈ exp.(-2im*ω) ./ (1 .+ 0.5*exp.(-2im*ω))
 
-@test freqresp(feedback(P1, delay(1)), ω)[:] ≈ P1_fr ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
-@test freqresp(feedback(delay(1), P1), ω)[:] ≈ exp.(-im*ω) ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15 #FIXME: Answer is Inf, but should give error.. rtol=1e-15
-@test freqresp(feedback(P1*delay(1), 1.0), ω)[:] ≈ P1_fr .* exp.(-im*ω) ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
-@test freqresp(feedback(1.0, P1*delay(1)), ω)[:] ≈ 1 ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
+@test freqrespv(feedback(P1, delay(1)), ω) ≈ P1_fr ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
+@test freqrespv(feedback(delay(1), P1), ω) ≈ exp.(-im*ω) ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15 #FIXME: Answer is Inf, but should give error.. rtol=1e-15
+@test freqrespv(feedback(P1*delay(1), 1.0), ω) ≈ P1_fr .* exp.(-im*ω) ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
+@test freqrespv(feedback(1.0, P1*delay(1)), ω) ≈ 1 ./ (1 .+ exp.(-im*ω) .* P1_fr) rtol=1e-15
 
-@test freqresp(feedback(1.0, P2*0.5*(ss(1.0) + delay(2))), ω)[:] ≈ 1 ./(1 .+ P2_fr .* 0.5.*(1 .+ exp.(-2*im*ω)))
-@test freqresp(feedback(1.0, 0.5*P2*(ss(1.0) + delay(2))), ω)[:] ≈ 1 ./(1 .+ P2_fr .* 0.5.*(1 .+ exp.(-2*im*ω)))
+@test freqrespv(feedback(1.0, P2*0.5*(ss(1.0) + delay(2))), ω) ≈ 1 ./(1 .+ P2_fr .* 0.5.*(1 .+ exp.(-2*im*ω)))
+@test freqrespv(feedback(1.0, 0.5*P2*(ss(1.0) + delay(2))), ω) ≈ 1 ./(1 .+ P2_fr .* 0.5.*(1 .+ exp.(-2*im*ω)))
 
 
-@test freqresp(1.0 + delay(2), ω)[:] ≈ 1 .+ exp.(-2im*ω) rtol=1e-15
+@test freqrespv(1.0 + delay(2), ω) ≈ 1 .+ exp.(-2im*ω) rtol=1e-15
 
 G = ss(0.5) + 0.5*delay(2)# + 0.5*delay(3)
 G_fr = 0.5 .+ 0.5*exp.(-2*im*ω)# + 0.5*exp.(-3*im*ω)
-@test freqresp(G, ω)[:] ≈ G_fr rtol=1e-15
+@test freqrespv(G, ω) ≈ G_fr rtol=1e-15
 
-@test freqresp(feedback(1.0, P1*G), ω)[:] ≈ 1 ./(1 .+ P1_fr .* G_fr) rtol=1e-15
-@test freqresp(feedback(P1, G), ω)[:] ≈ P1_fr ./(1 .+ P1_fr .* G_fr) rtol=1e-15
+@test freqrespv(feedback(1.0, P1*G), ω) ≈ 1 ./(1 .+ P1_fr .* G_fr) rtol=1e-15
+@test freqrespv(feedback(P1, G), ω) ≈ P1_fr ./(1 .+ P1_fr .* G_fr) rtol=1e-15
 
-@test freqresp(feedback(P2, G), ω)[:] ≈ P2_fr ./(1 .+ P2_fr .* G_fr) rtol=1e-15
+@test freqrespv(feedback(P2, G), ω) ≈ P2_fr ./(1 .+ P2_fr .* G_fr) rtol=1e-15
 
 s = tf("s")
 
 # Test alternative exp constructor for delays
 d = exp(-2*s)
-@test freqresp(d, [0, 1, 2]) ≈ [1, exp(-2im), exp(-4im)]
+@test freqrespv(d, [0, 1, 2]) ≈ [1, exp(-2im), exp(-4im)]
 
 @test_throws ErrorException exp(-s^2 - 2*s)
 @test_throws ErrorException exp(-2*s+1) # in principle ok, but not allowed anyway
@@ -114,9 +114,9 @@ d = exp(-2*s)
 @test_throws ErrorException ControlSystems.delayd_ss(3.2, 0.5)
 
 # Simple tests for c2d of DelayLtiSystems
-@test freqresp(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
-@test freqresp(c2d(feedback(delay(1.5), delay(1.0)), 0.5), Ω) ≈ [z^-3/(1 + z^-5) for z in exp.(im*Ω*0.5)]
-@test freqresp(c2d(feedback(0.5, delay(1.5)), 0.5), Ω) ≈ [0.5/(1 + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
+@test freqrespv(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
+@test freqrespv(c2d(feedback(delay(1.5), delay(1.0)), 0.5), Ω) ≈ [z^-3/(1 + z^-5) for z in exp.(im*Ω*0.5)]
+@test freqrespv(c2d(feedback(0.5, delay(1.5)), 0.5), Ω) ≈ [0.5/(1 + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
 
 
 # Random conversions

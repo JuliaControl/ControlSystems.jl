@@ -15,13 +15,13 @@ sminreal(sys)
 ```
 See also [`minreal`](@ref)
 """
-function sminreal(sys::StateSpace)
+function sminreal(sys::AbstractStateSpace)
     A, B, C, inds = struct_ctrb_obsv(sys)
     return basetype(sys)(A, B, C, sys.D, sys.timeevol)
 end
 
 # Determine the structurally controllable and observable realization for the system
-struct_ctrb_obsv(sys::StateSpace) = struct_ctrb_obsv(sys.A, sys.B, sys.C)
+struct_ctrb_obsv(sys::AbstractStateSpace) = struct_ctrb_obsv(sys.A, sys.B, sys.C)
 
 function struct_ctrb_obsv(A::AbstractVecOrMat, B::AbstractVecOrMat, C::AbstractVecOrMat)
     costates = struct_ctrb_states(A, B) .& struct_ctrb_states(A', C')

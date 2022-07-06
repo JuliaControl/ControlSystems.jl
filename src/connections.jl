@@ -40,6 +40,17 @@ append(systems::LTISystem...) = append(promote(systems...))
 
 append(systems::Union{<:Tuple, <:Base.Generator}) = append(systems...)
 
+"""
+    array2mimo(M::AbstractArray{<:LTISystem})
+
+Take an array of `LTISystem`s and create a single MIMO system.
+"""
+function array2mimo(M::AbstractArray{<:LTISystem})
+    rows = map(axes(M, 1)) do row
+        hcat(M[row, :]...)
+    end
+    vcat(rows...)
+end
 
 function Base.vcat(systems::LFTT...) where LFTT <: LFTSystem
     P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace

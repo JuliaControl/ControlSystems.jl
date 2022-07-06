@@ -104,6 +104,13 @@ Dtf_1110 = [Dtf_111 zero(typeof(Dtf_111))]
 @test Dtf_1110 == [Dtf_111 zero(Dtf_111)]
 
 
+## arrays to MIMO systems
+arraysys = diagm(fill(C_111, 3))
+mimosys = array2mimo(arraysys)
+for i = axes(arraysys, 1), j = axes(arraysys, 2)
+    @test arraysys[i,j] == sminreal(mimosys[i,j])
+end
+
     
 # Combination tf and ss
 @test [C_111 Ctf_221] == [C_111 convert(StateSpace, Ctf_221, balance=false)]
@@ -281,7 +288,7 @@ G4 = ss(-6, [7 8], [11; 12], 0)
 # Feedback2dof
 
 P0 = tf(1.0, [1, 1, 1])
-C = pid(kp=1, ki=1, kd=1)
+C = pid(1, 1, 1, form=:parallel)
 F = tf(1.0, [1,1])
 @test feedback2dof(P0, 0*C, F) == P0*F
 @test feedback2dof(P0, C, 0*F) == feedback(P0*C)

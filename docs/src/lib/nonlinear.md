@@ -25,7 +25,7 @@ To create a controller that saturates the output at ``\pm 0.7``, we call
 using ControlSystems, Plots
 using ControlSystems: nonlinearity # This functionality is not exported due to the beta status
 
-C    = pid(; kp=1, ki=0.1)                  # A standard PI controller
+C    = pid(1, 0.1, form=:parallel)                  # A standard PI controller
 nl   = nonlinearity(x->clamp(x, -0.7, 0.7)) # a saturating nonlinearity
 satC = nl*C # Connect the saturation at the output of C
 ```
@@ -91,14 +91,14 @@ nothing # hide
 A PID controller with a filter is given by
 ```@example nonlinear
 F = tf(1, [0.63, 1.12, 1])
-Cpid = ss(pid(;kp=0.26, ki=0.001, kd=15.9)*F)
+Cpid = ss(pid(0.26, 0.001, 15.9, form=:parallel)*F)
 nothing # hide
 ```
 and to make the controller MIMO, we add a static pre-compensator that decouples the system at the the zero frequency.
 ```@example nonlinear
 iG0 = dcgain(G)
 iG0 ./= maximum(abs, iG0)
-C = Cpid*iG0
+C = (Cpid .* I(2)) * iG0 
 nothing # hide
 ```
 The pumps (there are two of them) that service the tanks can only add liquid to the tanks, not remove liquid. The pump is thus saturated from below at 0, and from above at the maximum pump capacity 0.4. 
@@ -199,7 +199,7 @@ function circle_criterion(L::ControlSystems.HammersteinWienerSystem, domain::Tup
 end
 
 
-C = pid(kp=2, ki=0, kd=1)*tf(1, [0.01,1])
+C = pid(2, 0, 1, form=:parallel)*tf(1, [0.01,1])
 f1 = circle_criterion(duffing*C, (-1, 1))
 plot!(sp=2, ylims=(-10, 3), xlims=(-5, 11))
 f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Controlled oscillator disturbance step response", layout=4)
@@ -218,7 +218,7 @@ vel_loop = feedback(1/s, c)
 pos_loop_feedback = (k3*wiggly + k)
 duffing = feedback(vel_loop/s, pos_loop_feedback)*10
 
-C = pid(kp=2, ki=5, kd=1)*tf(1,[0.1, 1]) 
+C = pid(2, 5, 1, form=:parallel)*tf(1,[0.1, 1]) 
 f1 = circle_criterion(duffing*C, (-2pi, 2pi))
 plot!(sp=2, ylims=(-5, 2), xlims=(-2.1, 0.1))
 f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Controlled wiggly oscillator disturbance step response", layout=5)

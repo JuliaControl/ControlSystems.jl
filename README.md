@@ -20,6 +20,11 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
+### 2022-07 v1.0
+- *Breaking*: Frequency-responses have changed data layout to `ny×nu×nω` from the previous `nω×ny×nu`. This is for performance reasons and to be consistent with time responses. This affects downstream functions `bode` and `nyquist` as well.
+- *Breaking*: `baltrunc` and `balreal` now return the diagonal of the Gramian as the second argument rather than the full matrix.
+- *Breaking*: The `pid` constructor no longer takes parameters as keyword arguments. `pid` has also gotten some new features, the new signature is `pid(P, I, D=0; form = :standard, Ts=nothing, Tf=nothing, state_space=false)`
+
 ### 2022-02
 - *Breaking*: `Plots.jl` is no longer loaded by `ControlSystems.jl`. This improves loading times for the package, but means that users will have to run `using Plots` manually before plotting functions are available.
 - *Deprecations*: Functions `dare/dlyap/dkalman/dlqr` are now deprecated in favor of an interface that uses dispatch on the types `Continuous / Discrete`. Example: `dare(A,B,Q,R)` is now `are(Discrete,A,B,Q,R)` or `are(sysd,Q,R)`.
