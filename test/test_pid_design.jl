@@ -24,8 +24,15 @@ leadlinkcurve()
 
 # Test stabregionPID
 stabregionPID(tf(1,[1,0]))
-stabregionPID(s -> exp(-sqrt(s)))
-@test stabregionPID(s->exp(-sqrt(s)), exp10.(range(-3, stop=3, length=50)); kd=1)[2][1][1] ≈ -1.022356911142034
+stabregionPID(s -> exp(-sqrt(s)), doplot=true)
+
+w = exp10.(range(-3, stop=3, length=50))
+kp, ki = stabregionPID(s->exp(-sqrt(s)), w; form=:parallel, kd=1)
+
+for i in eachindex(w)
+    w1 = w[i]
+    @test exp(-sqrt(w1*im))*pid(kp[i],ki[i],1, form=:parallel)(w1*im)[] ≈ -1 atol=1e-2
+end
 
 # Test loopshapingPI
 P = tf(1,[1, 1, 1])

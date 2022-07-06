@@ -50,7 +50,7 @@ bodeplot([G, Gact], lab=["G model" "G actual"], plotphase=false)
 We will design a PID controller with a filter for the system, the controller is poorly tuned and not very good at tracking fast reference steps, in practice, one would likely design a feedforward controller as well to improve upon this, but for now we'll stick with the simple feedback controller.
 
 ```@example ilc
-C  = pid(kp=10, ki=1, kd=1, series=true) * tf(1, [0.02, 1])
+C  = pid(10, 1, 1, form = :series) * tf(1, [0.02, 1])
 Ts = 0.02 # Sample time
 Gc = c2d(feedback(G*C), Ts)       |> tf
 Gcact = c2d(feedback(Gact*C), Ts) |> tf
