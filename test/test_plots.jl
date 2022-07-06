@@ -15,16 +15,16 @@ function getexamples()
       setPlotScale("dB")
       bodeplot(sys,ws)
     end
-    nyquistgen() = nyquistplot(sysss,ws)
+    nyquistgen() = nyquistplot(sysss,ws, Ms_circles=1.2, Mt_circles=1.2)
     sigmagen() = sigmaplot(sysss,ws)
     #Only siso for now
     nicholsgen() = nicholsplot(tf1,ws)
 
     stepgen() = plot(step(sys, ts[end]), l=(:dash, 4))
     impulsegen() = plot(impulse(sys, ts[end]), l=:blue)
-    L = lqr(sysss.A, sysss.B, [1 0; 0 1], [1 0; 0 1])
+    L = lqr(sysss, [1 0; 0 1], [1 0; 0 1])
     lsimgen() = plot(lsim(sysss, (x,i)->-L*x, ts; x0=[1;2]), plotu=true)
-    plot(lsim.([sysss, sysss], (x,i)->-L*x, Ref(ts); x0=[1;2]), plotu=true)
+    plot(lsim.([sysss, sysss], (x,i)->-L*x, Ref(ts); x0=[1;2]), plotu=true, plotx=true)
 
     margingen() = marginplot([tf1, tf2], ws)
     gangoffourgen() = begin

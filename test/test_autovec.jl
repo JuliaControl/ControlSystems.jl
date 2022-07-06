@@ -7,7 +7,7 @@ w = exp10.(LinRange(-3,3,10))
 
 # Check output of bode and make sure dimensions are correct
 mag, phase, w = bode(sys)
-@test size(mag) == size(phase) == (size(w,1), 1, 1)
+@test size(mag) == size(phase) == (1, 1, size(w,1))
 
 # Check output of bodev and make sure dimensions are correct
 magv, phasev, w = bodev(sys)
@@ -19,7 +19,7 @@ mag, phase, _ = bodev(sys, w)
 
 # Check output of nyquist and make sure dimensions are correct
 real, imag, w = nyquist(sys)
-@test size(real) == size(imag) == (size(w,1), 1, 1)
+@test size(real) == size(imag) == (1, 1, size(w,1))
 
 # Check output of nyquistv and make sure dimensions are correct
 realv, imagv, w = nyquistv(sys)
@@ -31,7 +31,7 @@ real, imag, _ = nyquistv(sys, w)
 
 # Check output of sigma and make sure dimensions are correct
 sv, w = sigma(sys)
-@test size(sv) == (size(w,1), 1)
+@test size(sv) == (1, size(w,1))
 
 # Check output of sigmav and make sure dimensions are correct
 svv, w = sigmav(sys)
@@ -43,7 +43,7 @@ sv, _ = sigmav(sys, w)
 
 # Check output of freqresp and make sure dimensions are correct
 fs = freqresp(sys, w)
-@test size(fs) == (size(w,1), 1, 1)
+@test size(fs) == (1, 1, size(w,1))
 
 # Check output of freqrespv and make sure dimensions are correct
 fsv = freqrespv(sys, w)

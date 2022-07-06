@@ -145,18 +145,28 @@ end
 @deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
 
-
-function getpoles(G, K) # If OrdinaryDiffEq is installed, we override getpoles with an adaptive method
-    P          = numpoly(G)[1]
-    Q          = denpoly(G)[1]
-    f          = (y,_,k) -> sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
-    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0.),(0.,K[end]))
+function getpoles(G, K)
+    G isa TransferFunction || (G = tf(G))
+    P = numpoly(G)[1]
+    Q = denpoly(G)[1]
+    T = float(eltype(K))
+    ϵ = eps(T)
+    f = function (y,_,k)
+        if k == 0 && length(P) > length(Q) 
+            # More zeros than poles, make sure the vector of roots is of correct length when k = 0
+            # When this happens, there are fewer poles for k = 0, these poles can be seen as beeing located somewhere at Inf
+            # We get around the problem by not allowing k = 0 for non-proper systems.
+            k = ϵ
+        end
+        sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
+    end
+    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0),(0,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     ts         = Vector{Float64}()
     poleout    = Vector{Vector{ComplexF64}}()
     for i in integrator
-       push!(poleout,integrator.k[1])
-       push!(ts,integrator.t[1])
+        push!(poleout,integrator.k[1])
+        push!(ts,integrator.t[1])
     end
     poleout = hcat(poleout...)'
     poleout, ts
@@ -173,16 +183,17 @@ range(1e-6,stop=500,length=10000) is used.
 If `OrdinaryDiffEq.jl` is installed and loaded by the user (`using OrdinaryDiffEq`), `rlocusplot` will use an adaptive step-size algorithm to
 select values of `K`. A scalar `Kmax` can then be given as second argument.
 """
-rlocus
-@recipe function rlocus(p::Rlocusplot; K=500)
+rlocusplot
+@recipe function rlocusplot(p::Rlocusplot; K=500)
     P = p.args[1]
     K = K isa Number ? range(1e-6,stop=K,length=10000) : K
     Z = tzeros(P)
-    poles, K = getpoles(P,K)
-    redata = real.(poles)
-    imdata = imag.(poles)
-    ylim = (max(-50,minimum(imdata)), min(50,maximum(imdata)))
-    xlim = (max(-50,minimum(redata)), min(50,maximum(redata)))
+    roots, K = getpoles(P,K)
+    redata = real.(roots)
+    imdata = imag.(roots)
+    
+    ylims --> (max(-50,minimum(imdata) - 1), min(50,maximum(imdata) + 1))
+    xlims --> (max(-50,minimum(redata) - 1), clamp(maximum(redata) + 1, 1, 50))
     framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
@@ -190,9 +201,7 @@ rlocus
     form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
     @series begin
         legend --> false
-        ylims  --> ylim
-        xlims  --> xlim
-        hover := "K=" .* form.(K,poles)
+        hover := "K=" .* form.(K,roots)
         label := ""
         redata, imdata
     end
@@ -275,7 +284,7 @@ end
 @userplot LeadLinkCurve
 
 """
-    fig = leadlinkcurve(start=1)
+    leadlinkcurve(start=1)
 
 Plot the phase advance as a function of `N` for a lead link (phase advance link)
 If an input argument `s` is given, the curve is plotted from `s` to 10, else from 1 to 10.
@@ -338,7 +347,7 @@ end
 """
     C, kp, ki = loopshapingPI(P, ωp; ϕl, rl, phasemargin, form=:standard, doplot=false)
 
-Selects the parameters of a PI-controller such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
+Selects the parameters of a PI-controller (on parallel form) such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
@@ -346,13 +355,13 @@ chosen by `form`, the options are
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
 
-If `phasemargin` is supplied, `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
+If `phasemargin` is supplied (in degrees), `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
 If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
 
 Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
 
-See also `pidplots`, `stabregionPID`
+See also [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
 """
 function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form=:standard, doplot=false)
     Pw = P(im*ωp)[1]
@@ -360,6 +369,7 @@ function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form=:standard, doplo
     rp = abs.(Pw)
 
     if phasemargin > 0
+        ϕl == 0 || @warn "Both phasemargin and ϕl provided, the provided value for ϕl will be ignored."
         ϕl = deg2rad(-180+phasemargin)
     else
         ϕl = ϕl == 0 ? ϕp : ϕl
@@ -397,6 +407,8 @@ chose by `form`, the options are
 is a named tuple containing the parameters.
 The parameters can be accessed as `params.Kp` or `params["Kp"]` from the named tuple,
 or they can be unpacked using `Kp, Ti, Td = values(params)`.
+
+See also [`loopshapingPI`](@ref)
 """
 function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ; form=:standard) where T
     num = numvec(P)[]

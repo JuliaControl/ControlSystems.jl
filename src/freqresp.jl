@@ -1,3 +1,36 @@
+struct BodemagWorkspace{T}
+    R::Array{Complex{T}, 3}
+    mag::Array{T, 3}
+end
+function BodemagWorkspace{T}(ny::Int, nu::Int, N::Int) where T <: Real
+    R = Array{Complex{T},3}(undef, ny, nu, N)
+    mag = Array{T,3}(undef, ny, nu, N)
+    BodemagWorkspace{T}(R, mag)
+end
+
+"""
+    BodemagWorkspace(sys::LTISystem, N::Int)
+    BodemagWorkspace(sys::LTISystem, ω::AbstractVector)
+    BodemagWorkspace(R::Array{Complex{T}, 3}, mag::Array{T, 3})
+    BodemagWorkspace{T}(ny, nu, N)
+
+Genereate a workspace object for use with the in-place function [`bodemag!`](@ref).
+`N` is the number of frequency points, alternatively, the input `ω` can be provided instead of `N`.
+Note: for threaded applications, create one workspace object per thread. 
+
+# Arguments:
+- `mag`: The output array ∈ 𝐑(ny, nu, nω)
+- `R`: Frequency-response array ∈ 𝐂(ny, nu, nω)
+"""
+function BodemagWorkspace(sys::LTISystem, N::Int)
+    T = float(numeric_type(sys))
+    R = Array{Complex{T},3}(undef, sys.ny, sys.nu, N)
+    mag = Array{T,3}(undef, sys.ny, sys.nu, N)
+    BodemagWorkspace(R, mag)
+end
+
+BodemagWorkspace(sys::LTISystem, ω::AbstractVector) = BodemagWorkspace(sys, length(ω))
+
 function freqresp(sys::LTISystem, w::Real)
     # Create imaginary freq vector s
     if iscontinuous(sys)
@@ -8,57 +41,159 @@ function freqresp(sys::LTISystem, w::Real)
     evalfr(sys, s)
 end
 
+freqresp(G::Union{UniformScaling, AbstractMatrix, Number}, w::Real) = G
+
 """
     sys_fr = freqresp(sys, w)
 
 Evaluate the frequency response of a linear system
 
-`w -> C*((iw*im -A)^-1)*B + D`
+`w -> C*((iw*im*I - A)^-1)*B + D`
 
 of system `sys` over the frequency vector `w`.
 """
-@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{<:Real})
+@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{W}) where W <: Real
+    te = timeevol(sys)
+    ny,nu = noutputs(sys), ninputs(sys)
+    T = promote_type(Complex{real(numeric_type(sys))}, Complex{W})
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    freqresp!(R, sys, w_vec)
+end
+
+"""
+    freqresp!(R::Array{T, 3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
+
+In-place version of [`freqresp`](@ref) that takes a pre-allocated array `R` of size (ny, nu, nw)`
+"""
+function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real}) where T
     te = sys.timeevol
     ny,nu = noutputs(sys), ninputs(sys)
-    [evalfr(sys[i,j], _freq(w, te))[] for w in w_vec, i in 1:ny, j in 1:nu]
+    @boundscheck size(R) == (ny,nu,length(w_vec))
+    @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
+        R[yi,ui,wi] = evalfr(sys[yi,ui], _freq(w_vec[wi], te))[]
+    end
+    R
+end
+
+function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<:Real}) where T
+    te = sys.timeevol
+    ny,nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny,nu,length(w_vec))
+    @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
+        R[yi,ui,wi] = evalfr(sys.matrix[yi,ui], _freq(w_vec[wi], te))
+    end
+    R
+end
+
+@autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
+    repeat(G, 1, 1, length(w_vec))
+end
+
+@autovec () function freqresp(G::Number, w_vec::AbstractVector{<:Real})
+    fill(G, 1, 1, length(w_vec))
 end
 
 _freq(w, ::Continuous) = complex(0, w)
 _freq(w, te::Discrete) = cis(w*te.Ts)
 
-@autovec () function freqresp(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+@autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
-    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    @boundscheck size(R) == (ny,nu,length(w_vec))
     if sys.nx == 0 # Only D-matrix
-        return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
+        @inbounds for i in eachindex(w_vec)
+            R[:,:,i] .= sys.D
+        end
+        return R
     end
-    local F
+    local F, Q
     try
         F = hessenberg(sys.A)
+        Q = Matrix(F.Q)
     catch e
         # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
-        e isa MethodError && return freqresp_nohess(sys, w_vec)
+        e isa Union{MethodError, ErrorException} && return freqresp_nohess!(R, sys, w_vec)
+        # ErrorException appears if we try to access Q on a type which does not have Q as a field or property, notably HessenbergFactorization from GenericLinearAlgebra
         rethrow()
     end
-    Q = Matrix(F.Q)
     A = F.H
-    C = sys.C*Q
+    C = complex.(sys.C*Q) # We make C complex in order to not incur allocations in mul! below
     B = Q\sys.B 
     D = sys.D
 
     te = sys.timeevol
-    R = Array{T, 3}(undef, ny, nu, length(w_vec))
     Bc = similar(B, T) # for storage
-    for i in eachindex(w_vec)
-        Ri = @views R[:,:,i]
+    w = -_freq(w_vec[1], te)
+    u = Vector{typeof(zero(eltype(A.data))+w)}(undef, sys.nx)
+    cs = Vector{Tuple{real(eltype(u)),eltype(u)}}(undef, length(u)) # store Givens rotations
+    @inbounds for i in eachindex(w_vec)
+        Ri = @view(R[:, :, i])
         copyto!(Ri,D) # start with the D-matrix
         isinf(w_vec[i]) && continue
         copyto!(Bc,B) # initialize storage to B
         w = -_freq(w_vec[i], te)
-        ldiv!(A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
+        ldiv2!(u, cs, A, Bc, shift = w) # B += (A - w*I)\B # solve (A-wI)X = B, storing result in B
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PermutedDimsArray(R, (3,1,2)) # PermutedDimsArray doesn't allocate to perform the permutation
+    R
+end
+
+#=
+Custom implementation of hessenberg ldiv to allow reuse of u and cs
+With this method, the following benchmark goes from 
+(100017 allocations: 11.48 MiB) # before
+to 
+(17 allocations: 35.45 KiB)     # after
+
+w = exp10.(LinRange(-2, 2, 50000))
+G = ssrand(2,2,3)
+R = freqresp(G, w);
+@btime ControlSystems.freqresp!($R, $G, $w);
+=# 
+function ldiv2!(u, cs, F::UpperHessenberg, B::AbstractVecOrMat; shift::Number=false)
+    LinearAlgebra.checksquare(F)
+    m = size(F,1)
+    m != size(B,1) && throw(DimensionMismatch("wrong right-hand-side # rows != $m"))
+    LinearAlgebra.require_one_based_indexing(B)
+    n = size(B,2)
+    H = F.data
+    μ = shift
+    copyto!(u, 1, H, m*(m-1)+1, m) # u .= H[:,m]
+    u[m] += μ
+    X = B # not a copy, just rename to match paper
+    @inbounds for k = m:-1:2
+        c, s, ρ = LinearAlgebra.givensAlgorithm(u[k], H[k,k-1])
+        cs[k] = (c, s)
+        for i = 1:n
+            X[k,i] /= ρ
+            t₁ = s * X[k,i]; t₂ = c * X[k,i]
+            @simd for j = 1:k-2
+                X[j,i] -= u[j]*t₂ + H[j,k-1]*t₁
+            end
+            X[k-1,i] -= u[k-1]*t₂ + (H[k-1,k-1] + μ) * t₁
+        end
+        @simd for j = 1:k-2
+            u[j] = H[j,k-1]*c - u[j]*s'
+        end
+        u[k-1] = (H[k-1,k-1] + μ) * c - u[k-1]*s'
+    end
+    for i = 1:n
+        τ₁ = X[1,i] / u[1]
+        @inbounds for j = 2:m
+            τ₂ = X[j,i]
+            c, s = cs[j]
+            X[j-1,i] = c*τ₁ + s*τ₂
+            τ₁ = c*τ₂ - s'τ₁
+        end
+        X[m,i] = τ₁
+    end
+    return X
+end
+
+function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+    ny, nu = size(sys)
+    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
+    R = Array{T, 3}(undef, ny, nu, length(w_vec))
+    freqresp_nohess!(R, sys, w_vec)
 end
 
 """
@@ -68,19 +203,22 @@ Compute the frequency response of `sys` without forming a Hessenberg factorizati
 This function is called automatically if the Hessenberg factorization fails.
 """
 freqresp_nohess
-@autovec () function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+@autovec () function freqresp_nohess!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
     ny, nu = size(sys)
+    @boundscheck size(R) == (ny,nu,length(w_vec))
     nx = sys.nx
-    T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
     if nx == 0 # Only D-matrix
-        return PermutedDimsArray(repeat(T.(sys.D), 1, 1, length(w_vec)), (3,1,2))
+        @inbounds for i in eachindex(w_vec)
+            R[:,:,i] .= sys.D
+        end
+        return R
     end
-    A,B,C,D = ssdata(sys)
+    A,B,C0,D = ssdata(sys)
+    C = complex.(C0) # We make C complex in order to not incur allocations in mul! below
     te = sys.timeevol
-    R = Array{T, 3}(undef, ny, nu, length(w_vec))
     Ac = (A+one(T)*I) # for storage
     Adiag = diagind(A)
-    for i in eachindex(w_vec)
+    @inbounds for i in eachindex(w_vec)
         Ri = @views R[:,:,i]
         copyto!(Ri,D) # start with the D-matrix
         isinf(w_vec[i]) && continue
@@ -90,7 +228,7 @@ freqresp_nohess
         Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
     end
-    PermutedDimsArray(R, (3,1,2)) # PermutedDimsArray doesn't allocate to perform the permutation
+    R
 end
 
 
@@ -101,7 +239,9 @@ function _evalfr_return_type(sys::AbstractStateSpace, s::Number)
 end
 
 """
-`evalfr(sys, x)` Evaluate the transfer function of the LTI system sys
+    evalfr(sys, x)
+    
+Evaluate the transfer function of the LTI system sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
 
 For many values of `x`, use `freqresp` instead.
@@ -120,6 +260,8 @@ end
 function evalfr(G::TransferFunction{<:TimeEvolution,<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
+
+evalfr(G::Union{UniformScaling, AbstractMatrix, Number}, s) = G
 
 """
 `F(s)`, `F(omega, true)`, `F(z, false)`
@@ -147,25 +289,58 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
-    [v[i,j]  for v in vals, i in 1:nu, j in 1:ny]
+    [v[i,j]  for i in 1:nu, j in 1:ny, v in vals]
 end
 
-"""`mag, phase, w = bode(sys[, w])`
+"""
+    mag, phase, w = bode(sys[, w]; unwrap=true)
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
-at frequencies `w`
+at frequencies `w`. See also [`bodeplot`](@ref)
 
-`mag` and `phase` has size `(length(w), ny, nu)`""" 
-@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector)
+`mag` and `phase` has size `(length(w), ny, nu)`.
+If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
+
+For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
+""" 
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
     resp = freqresp(sys, w)
-    return abs.(resp), rad2deg.(unwrap!(angle.(resp),1)), w
+    angles = angle.(resp)
+    unwrap && unwrap!(angles,1)
+    @. angles = rad2deg(angles)
+    return abs.(resp), angles, w
 end
 @autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 
-"""`re, im, w = nyquist(sys[, w])`
+# Performance difference between bode and bodemag for tf. Note how expensive the phase unwrapping is.
+# using ControlSystems
+# G = tf(ssrand(2,2,5))
+# w = exp10.(LinRange(-2, 2, 20000))
+# @btime bode($G, $w);
+# # 55.120 ms (517957 allocations: 24.42 MiB)
+# @btime bode($G, $w, unwrap=false);
+# # 3.624 ms (7 allocations: 2.44 MiB)
+# ws = ControlSystems.BodemagWorkspace(G, w)
+# @btime bodemag!($ws, $G, $w);
+# # 2.991 ms (1 allocation: 64 bytes)
+
+"""
+    mag = bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+
+Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspace`](@ref). Note that the returned magnitude array is aliased with `ws.mag`.
+The output array `mag` is ∈ 𝐑(ny, nu, nω) as opposed from the result of [`bode`](@ref) which has the frequency-dimension first. [`bodemag!`](@ref) is optimized for performance.
+"""
+function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+    freqresp!(ws.R, sys, w)
+    @. ws.mag = abs(ws.R)
+    ws.mag
+end
+
+"""
+    re, im, w = nyquist(sys[, w])
 
 Compute the real and imaginary parts of the frequency response of system `sys`
-at frequencies `w`
+at frequencies `w`. See also [`nyquistplot`](@ref)
 
 `re` and `im` has size `(length(w), ny, nu)`""" 
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
@@ -174,15 +349,16 @@ at frequencies `w`
 end
 @autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
 
-"""`sv, w = sigma(sys[, w])`
+"""
+    sv, w = sigma(sys[, w])
 
 Compute the singular values `sv` of the frequency response of system `sys` at
-frequencies `w`
+frequencies `w`. See also [`sigmaplot`](@ref)
 
 `sv` has size `(length(w), max(ny, nu))`""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    sv = dropdims(mapslices(svdvals, resp, dims=(2,3)),dims=3)
+    sv = dropdims(mapslices(svdvals, resp, dims=(1,2)),dims=2)
     return sv, w
 end
 @autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
@@ -210,8 +386,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         zp = vcat(zpType[], zs..., ps...) # Emty vector to avoid type unstable vcat()
         zp = zp[imag(zp) .>= 0.0]
     else
-         # For sigma plots, use the MIMO poles and zeros
-         zp = [tzeros(sys); poles(sys)]
+        # For sigma plots, use the MIMO poles and zeros
+        zp = [tzeros(sys); poles(sys)]
     end
     # Get the frequencies of the features, ignoring low frequency dynamics
     fzp = log10.(abs.(zp))

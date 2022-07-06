@@ -23,32 +23,45 @@ Append systems in block diagonal form
 function append(systems::(ST where ST<:AbstractStateSpace)...)
     ST = promote_type(typeof.(systems)...)
     timeevol = common_timeevol(systems...)
-    A = blockdiag([s.A for s in systems]...)
-    B = blockdiag([s.B for s in systems]...)
-    C = blockdiag([s.C for s in systems]...)
-    D = blockdiag([s.D for s in systems]...)
+    A = blockdiag(s.A for s in systems)
+    B = blockdiag(s.B for s in systems)
+    C = blockdiag(s.C for s in systems)
+    D = blockdiag(s.D for s in systems)
     return ST(A, B, C, D, timeevol)
 end
 
 function append(systems::TransferFunction...)
     timeevol = common_timeevol(systems...)
-    mat = blockdiag([s.matrix for s in systems]...)
+    mat = blockdiag(s.matrix for s in systems)
     return TransferFunction(mat, timeevol)
 end
 
-append(systems::LTISystem...) = append(promote(systems...)...)
+append(systems::LTISystem...) = append(promote(systems...))
 
+append(systems::Union{<:Tuple, <:Base.Generator}) = append(systems...)
 
-function Base.vcat(systems::DelayLtiSystem...)
-    P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
-    Tau = vcat([sys.Tau for sys in systems]...)
-    return DelayLtiSystem(P, Tau)
+"""
+    array2mimo(M::AbstractArray{<:LTISystem})
+
+Take an array of `LTISystem`s and create a single MIMO system.
+"""
+function array2mimo(M::AbstractArray{<:LTISystem})
+    rows = map(axes(M, 1)) do row
+        hcat(M[row, :]...)
+    end
+    vcat(rows...)
 end
 
-function Base.hcat(systems::DelayLtiSystem...)
+function Base.vcat(systems::LFTT...) where LFTT <: LFTSystem
+    P = vcat_1([sys.P for sys in systems]...) # See PartitionedStateSpace
+    f = reduce(vcat, feedback_channel(sys) for sys in systems)
+    return LFTT(P, f)
+end
+
+function Base.hcat(systems::LFTT...) where LFTT <: LFTSystem
     P = hcat_1([sys.P for sys in systems]...)  # See PartitionedStateSpace
-    Tau = vcat([sys.Tau for sys in systems]...)
-    return DelayLtiSystem(P, Tau)
+    f = reduce(vcat, feedback_channel(sys) for sys in systems)
+    return LFTT(P, f)
 end
 
 
@@ -58,10 +71,10 @@ function Base.vcat(systems::ST...) where ST <: AbstractStateSpace
     if !all(s.nu == nu for s in systems)
         error("All systems must have same input dimension")
     end
-    A = blockdiag([s.A for s in systems]...)
-    B = vcat([s.B for s in systems]...)
-    C = blockdiag([s.C for s in systems]...)
-    D = vcat([s.D for s in systems]...)
+    A = blockdiag(s.A for s in systems)
+    B = reduce(vcat, s.B for s in systems)
+    C = blockdiag(s.C for s in systems)
+    D = reduce(vcat, s.D for s in systems)
     timeevol = common_timeevol(systems...)
     return ST(A, B, C, D, timeevol)
 end
@@ -73,7 +86,7 @@ function Base.vcat(systems::TransferFunction...)
         error("All systems must have same input dimension")
     end
     timeevol = common_timeevol(systems...)
-    mat = vcat([s.matrix for s in systems]...)
+    mat = reduce(vcat, s.matrix for s in systems)
 
     return TransferFunction(mat, timeevol)
 end
@@ -87,10 +100,10 @@ function Base.hcat(systems::ST...) where ST <: AbstractStateSpace
         error("All systems must have same output dimension")
     end
     timeevol = common_timeevol(systems...)
-    A = blockdiag([s.A for s in systems]...)
-    B = blockdiag([s.B for s in systems]...)
-    C = hcat([s.C for s in systems]...)
-    D = hcat([s.D for s in systems]...)
+    A = blockdiag(s.A for s in systems)
+    B = blockdiag(s.B for s in systems)
+    C = reduce(hcat, s.C for s in systems)
+    D = reduce(hcat, s.D for s in systems)
 
     return ST(A, B, C, D, timeevol)
 end
@@ -102,12 +115,12 @@ function Base.hcat(systems::TransferFunction...)
         error("All systems must have same output dimension")
     end
     timeevol = common_timeevol(systems...)
-    mat = hcat([s.matrix for s in systems]...)
+    mat = reduce(hcat, s.matrix for s in systems)
 
     return TransferFunction(mat, timeevol)
 end
 
-Base.hcat(systems::LTISystem...) = hcat(promote(systems...)...)
+Base.hcat(systems::LTISystem...) = reduce(hcat, promote(systems...))
 
 function Base._cat_t(::Val{1}, T::Type{<:LTISystem}, X...)
         vcat(convert.(T, X)...)
@@ -125,29 +138,74 @@ end
 Base.typed_hcat(::Type{S}, X::Number...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:Number,2}}...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 
+"""
+    add_input(sys::AbstractStateSpace, B2::AbstractArray, D2 = 0)
+
+Add inputs to `sys` by forming
+```math
+x' = Ax + [B B2]u
+y  = Cx + [D D2]u
+```
+If `B2` is an integer it will be interpreted as an index and an input matrix containing a single 1 at the specified index will be used.
+
+Example:
+The following example forms an innovation model that takes innovations as inputs
+```julia
+G   = ssrand(2,2,3, Ts=1)
+K   = kalman(G, I(G.nx), I(G.ny))
+sys = add_input(G, K)
+```
+"""
+function add_input(sys::AbstractStateSpace, B2::AbstractArray, D2=0)
+    T = promote_type(numeric_type(sys), eltype(B2), eltype(D2))
+    A,B,C,D = ssdata(sys)
+    D3 = D2 == 0 ? zeros(T, sys.ny, size(B2, 2)) : D2
+    basetype(sys)(A, [B B2], C, [D D3], sys.timeevol)
+end
+
+function add_input(sys::AbstractStateSpace, b2::Integer)
+    T = promote_type(numeric_type(sys), eltype(b2))
+    B2 = zeros(T, sys.nx, 1)
+    B2[b2] = 1
+    add_input(sys, B2)
+end
+
+"""
+    add_output(sys::AbstractStateSpace, C2::AbstractArray, D2 = 0)
+
+Add outputs to `sys` by forming
+```math
+x' = Ax + Bu
+y  = [C; C2]x + [D; D2]u
+```
+If `C2` is an integer it will be interpreted as an index and an output matrix containing a single 1 at the specified index will be used.
+"""
+function add_output(sys::AbstractStateSpace, C2::AbstractArray, D2=0)
+    T = promote_type(numeric_type(sys), eltype(C2), eltype(D2))
+    A,B,C,D = ssdata(sys)
+    D3 = D2 == 0 ? zeros(T, size(C2, 1), sys.nu) : D2
+    basetype(sys)(A, B, [C; C2], [D; D3], sys.timeevol)
+end
+
+function add_output(sys::AbstractStateSpace, c2::Integer)
+    T = promote_type(numeric_type(sys), eltype(c2))
+    C2 = zeros(T, 1, sys.nx)
+    C2[c2] = 1
+    add_output(sys, C2)
+end
+
 # Catch special cases where inv(sys) might not be possible after promotion, like improper tf
 function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     sys1new, sys2new = promote(sys1, 1/sys2)
     return sys1new*sys2new
 end
 
-blockdiag(mats::AbstractMatrix...) = blockdiag(promote(mats...)...)
-
-function blockdiag(mats::AbstractMatrix{T}...) where T
-    rows = Int[size(m, 1) for m in mats]
-    cols = Int[size(m, 2) for m in mats]
-    res = zeros(T, sum(rows), sum(cols))
-    m = 1
-    n = 1
-    for ind=1:length(mats)
-        mat = mats[ind]
-        i = rows[ind]
-        j = cols[ind]
-        res[m:m + i - 1, n:n + j - 1] = mat
-        m += i
-        n += j
-    end
-    return res
+@static if VERSION >= v"1.8.0-beta1"
+    blockdiag(anything...) = cat(anything..., dims=Val((1,2)))
+    blockdiag(anything::Union{<:Tuple, <:Base.Generator}) = cat(anything..., dims=Val((1,2)))
+else
+    blockdiag(anything...) = cat(anything..., dims=(1,2))
+    blockdiag(anything::Union{<:Tuple, <:Base.Generator}) = cat(anything..., dims=(1,2))
 end
 
 
@@ -186,7 +244,7 @@ function feedback(L::TransferFunction{<:TimeEvolution,T}) where T<:SisoRational
     end
     P = numpoly(L)
     Q = denpoly(L)
-    tf(P, P+Q, L.timeevol)
+    tf(P, P+Q, timeevol(L))
 end
 
 function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZpk}
@@ -199,12 +257,12 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
     kden = denpol[end] # Get coeff of s^n
     # Create siso system
     sisozpk = T(L.matrix[1].z, roots(denpol), k/kden)
-    return TransferFunction{TE,T}(fill(sisozpk,1,1), L.timeevol)
+    return TransferFunction{TE,T}(fill(sisozpk,1,1), timeevol(L))
 end
 
-function feedback(sys::Union{AbstractStateSpace, DelayLtiSystem})
+function feedback(sys::Union{AbstractStateSpace, LFTSystem})
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), sys.timeevol))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)))
 end
 
 """
@@ -246,7 +304,7 @@ and outputs (corresponding to [z1; z2]) in the resulting statespace model.
 
 Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for positive feedback (α = 1).
 
-See also `lft`, `starprod`.
+See also `lft`, `starprod`, `sensitivity`, `input_sensitivity`, `output_sensitivity`, `comp_sensitivity`, `input_comp_sensitivity`, `output_comp_sensitivity`, `G_PS`, `G_CS`.
 
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
@@ -336,7 +394,7 @@ end
 """
 function feedback2dof(P::TransferFunction,R,S,T)
     !issiso(P) && error("Feedback not implemented for MIMO systems")
-    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S), P.timeevol)
+    tf(conv(poly2vec(numpoly(P)[1]),T),zpconv(poly2vec(denpoly(P)[1]),R,poly2vec(numpoly(P)[1]),S), timeevol(P))
 end
 
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))

@@ -1,26 +1,23 @@
-""" `zpk(gain[, Ts]), zpk(num, den, k[, Ts]), zpk(sys)`
+"""
+    zpk(gain[, Ts])
+    zpk(num, den, k[, Ts])
+    zpk(sys)
 
 Create transfer function on zero pole gain form. The numerator and denominator are represented by their poles and zeros.
 
-`sys::TransferFunction{SisoZpk{T,TR}} = k*numerator/denominator`
+- `sys::TransferFunction{SisoZpk{T,TR}} = k*numerator/denominator`
 where `T` is the type of `k` and `TR` the type of the zeros/poles, usually Float64 and Complex{Float64}.
-
-`num`: the roots of the numerator polynomial. Either scalar or vector to create SISO systems
+- `num`: the roots of the numerator polynomial. Either scalar or vector to create SISO systems
 or an array of vectors to create MIMO system.
-
-`den`: the roots of the denominator polynomial. Either vector to create SISO systems
+- `den`: the roots of the denominator polynomial. Either vector to create SISO systems
 or an array of vectors to create MIMO system.
-
-`k`: The gain of the system. Obs, this is not the same as `dcgain`.
-
-`Ts`: Sample time if discrete time system.
+- `k`: The gain of the system. Obs, this is not the same as `dcgain`.
+- `Ts`: Sample time if discrete time system.
 
 Other uses:
 
-`zpk(sys)`: Convert `sys` to `zpk` form.
-
-`zpk("s")`: Create the transferfunction `s`.
-
+- `zpk(sys)`: Convert `sys` to `zpk` form.
+- `zpk("s")`: Create the transferfunction `s`.
 """
 function zpk(z::VecOrMat{<:AbstractVector{TZ}}, p::VecOrMat{<:AbstractVector{TP}}, k::VecOrMat{T0}, Ts::TE) where {TE<:TimeEvolution, T0<:Number, TZ<:Number, TP<:Number}
     # Validate input and output dimensions match
@@ -65,7 +62,7 @@ end
 zpk(k::Real, Ts::TimeEvolution) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 
 
-zpk(sys::StateSpace) = zpk(zpkdata(sys)...)
+zpk(sys::StateSpace) = zpk(zpkdata(sys)..., timeevol(sys))
 
 function zpk(G::TransferFunction{TE,S}) where {TE<:TimeEvolution,T0, S<:SisoTf{T0}}
     T = typeof(one(T0)/one(T0))
@@ -79,8 +76,8 @@ zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
 zpk(z, p, k, Ts::Number) = zpk(z, p, k, Discrete(Ts))
 zpk(z, p, k) = zpk(z, p, k, Continuous())
 # Catch all 1(2) argument versions
-zpk(gain, Ts::Number; kwargs...) where {T <: Number} = zpk(gain, Discrete(Ts))
-zpk(gain; kwargs...) where {T <: Number} = zpk(gain, Continuous())
+zpk(gain, Ts::Number; kwargs...) = zpk(gain, Discrete(Ts))
+zpk(gain; kwargs...) = zpk(gain, Continuous())
 
 # This method is required since the Base method uses promote_op(matprod, eltype(A), eltype(B)) which fails to infer correctly
 function Base.:(*)(A::AbstractMatrix{<:Union{<:SisoZpk, <:SisoRational}}, B::AbstractMatrix{<:Union{<:SisoZpk, <:SisoRational}})

@@ -108,29 +108,35 @@ end
     C = [1 0]
     Q = I
     R = I
-    L = dlqr(A,B,Q,R)
+    L = lqr(Discrete, A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
     sys = ss(A,B,C,0,Ts)
     L = lqr(sys, Q, R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
-    L = dlqr(sys, Q, R)
+    L = lqr(sys, Q, R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
     B = reshape(B,2,1)  # Note B is matrix, B'B is compatible with I
-    L = dlqr(A,B,Q,R)
+    L = lqr(Discrete, A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
     Q = eye_(2)
     R = eye_(1)
-    L = dlqr(A,B,Q,R)
+    L = lqr(Discrete, A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
 
     B = [0;1]   # Note B is vector, B'B is scalar 
     Q = eye_(2)
     R = eye_(1)
-    L ≈ dlqr(A,B,Q,R)
+    L ≈ lqr(Discrete, A,B,Q,R)
     #L ≈ [0.5890881713787511 0.7118839434795103]
+end
+
+@testset "issue #304" begin
+    @test feedback(ss(0.5, 1, 1, 0, 1), 1) == ss(-0.5, 1, 1, 0, 1)
+    @test feedback(1, ss(0.5, 1, 1, 0, 1)) == ss(-0.5, 1, -1, 1, 1)
+    @test [ss(1,1,1,0,1) 1] == ss(1, [1 0], 1, [0 1], 1)
 end
 
 end

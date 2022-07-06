@@ -2,6 +2,12 @@
 Pages = ["plotting.md"]
 ```
 
+!!! note "Using Plots"
+    All plotting requires the user to manually load the Plots.jl library, e.g., by calling `using Plots`.
+
+!!! note "Time-domain responses"
+    There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure ([`SimResult`](@ref)) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
+
 # Plotting functions
 
 ```@autodocs

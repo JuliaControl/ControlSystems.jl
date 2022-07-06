@@ -25,7 +25,7 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
         end
         for pole = lcmpoles
             idx = findfirst(poles .≈ pole)
-            if idx != nothing
+            if idx !== nothing
                 deleteat!(poles, idx)
             end
         end
@@ -35,12 +35,12 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
     return lcmpoles
 end
 
+# TODO: Improve implementation, should be more efficient ways.
+# Calculates the same minors several times in some cases.
 """
     minorpoles(sys)
 
 Compute the poles of all minors of the system."""
-# TODO: Improve implementation, should be more efficient ways.
-# Calculates the same minors several times in some cases.
 function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     minors = Array{TR,1}[]
     ny, nu = size(sys)
@@ -68,11 +68,11 @@ function minorpoles(sys::Matrix{SisoZpk{T, TR}}) where {T, TR}
     return minors
 end
 
+# TODO: improve this implementation, should be more efficient ones
 """
     det(sys)
 
 Compute the determinant of the Matrix `sys` of SisoTf systems, returns a SisoTf system."""
-# TODO: improve this implementation, should be more efficient ones
 function det(sys::Matrix{S}) where {S<:SisoZpk}
     ny, nu = size(sys)
     ny == nu || throw(ArgumentError("sys matrix is not square"))
@@ -101,6 +101,7 @@ the stability region of the complex plane.
 function dcgain(sys::LTISystem, ϵ=0)
     return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*sys.Ts))
 end
+dcgain(G::Union{UniformScaling, Number, AbstractMatrix}) = G
 
 """
     markovparam(sys, n)
@@ -145,13 +146,13 @@ poles, `ps`, of `sys`"""
 function damp(sys::LTISystem)
     ps = poles(sys)
     if isdiscrete(sys)
-        ps = log.(complex.(ps))/sys.Ts
+        ps = @. log(complex(ps))/sys.Ts
     end
     Wn = abs.(ps)
     order = sortperm(Wn; by=z->(abs(z), real(z), imag(z)))
     Wn = Wn[order]
     ps = ps[order]
-    ζ = -cos.(angle.(ps))
+    ζ = @. -cos(angle(ps))
     return Wn, ζ, ps
 end
 
@@ -229,16 +230,14 @@ function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}
     A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
 
     # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
-    A_rc, B_rc, C_rc, D_rc = reduce_sys(transpose(A_r), transpose(C_r), transpose(B_r), transpose(D_r), meps)
-    if isempty(A)   return complex(T)[]    end
+    A_rc, B_rc, C_rc, D_rc = reduce_sys(copy(transpose(A_r)), copy(transpose(C_r)), copy(transpose(B_r)), copy(transpose(D_r)), meps)
+    isempty(A) && return complex(T)[]
 
     # Step 3:
     # Compress cols of [C D] to [0 Df]
     mat = [C_rc D_rc]
-    # To ensure type-stability, we have to annote the type here, as qrfact
-    # returns many different types.
-    W = qr(mat').Q
-    W = reverse(W, dims=2)
+    Wr = qr(mat').Q
+    W = reverse(Wr, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
         nf = size(A_rc, 1)
@@ -255,6 +254,7 @@ end
 
 
 """
+    reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
 Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
 A, B, C, D matrices. These are empty if there are no zeros.
 """
@@ -278,8 +278,7 @@ function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
         end
 
         # Compress columns of Ctilde
-        V = qr(Ctilde').Q
-        V = reverse(V,dims=2)
+        V = reverse(qr(Ctilde').Q, dims=2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
@@ -293,13 +292,13 @@ function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
         end
         # Update System
         n, m = size(B)
-        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)]
+        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)] # I(m) is not used for type stability reasons (as of julia v1.7)
         if sigma > 0
             M = [A B; Cbar Dbar]
-            Vs = [V' zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
+            Vs = [copy(V') zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
         else
             M = [A B]
-            Vs = V'
+            Vs = copy(V')
         end
         sigma, rho, nu
         M = Vs * M * Vm
@@ -344,7 +343,7 @@ The RGA can be used to find input-output pairings for MIMO control using individ
     - Element uncertainty. Large RGA-elements imply sensitivity to element-by-element uncertainty.
     However, this kind of uncertainty may not occur in practice due to physical couplings
     between the transfer function elements. Therefore, diagonal input uncertainty
-    (which is always present) is usually of more concern for plants with large RGAelemen
+    (which is always present) is usually of more concern for plants with large RGA elements.
 
 The relative gain array is computed using the The unit-consistent (UC) generalized inverse
 Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
@@ -352,7 +351,7 @@ Jeffrey Uhlmann
 https://arxiv.org/pdf/1805.10312.pdf
 """
 function relative_gain_array(G, w::AbstractVector)
-    mapslices(relative_gain_array, freqresp(G, w), dims=(2,3))
+    mapslices(relative_gain_array, freqresp(G, w), dims=(1,2))
 end
 
 relative_gain_array(G, w::Number) = relative_gain_array(freqresp(G, w))
@@ -402,14 +401,14 @@ function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
 end
 
 """
-`ωgₘ, gₘ, ωϕₘ, ϕₘ = margin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)`
+    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 
 If `!allMargins`, return only the smallest margin
 
 If `full` return also `fullPhase`
-
+See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
 function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
@@ -433,14 +432,14 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
         end
     end
     if full
-        wgm, gm, wpm, pm, fullPhase
+        (; wgm, gm, wpm, pm, fullPhase)
     else
-        wgm, gm, wpm, pm
+        (; wgm, gm, wpm, pm)
     end
 end
 
 """
-`ωgₘ, gₘ, ωϕₘ, ϕₘ = sisomargin{S<:Real}(sys::LTISystem, w::AbstractVector{S}; full=false, allMargins=false)`
+    wgm, gm, wpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 """
@@ -479,9 +478,9 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
         end
     end
     if full
-        wgm, gm, wpm, pm, fullPhase
+        (; wgm, gm, wpm, pm, fullPhase)
     else
-        wgm, gm, wpm, pm
+        (; wgm, gm, wpm, pm)
     end
 end
 margin(system::LTISystem; kwargs...) =
@@ -531,12 +530,12 @@ end
 """
     dₘ = delaymargin(G::LTISystem)
 
-Only supports SISO systems"""
+Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
+Only supports SISO systems.
+"""
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
-    if G.nu + G.ny > 2
-        error("delaymargin only supports SISO systems")
-    end
+    issiso(G) || error("delaymargin only supports SISO systems")
     m     = margin(G,allMargins=true)
     ϕₘ, i = findmin(m[4])
     ϕₘ   *= π/180
@@ -563,21 +562,18 @@ end
 Given a transfer function describing the plant `P` and a transfer function describing the controller `C`, computes the four transfer functions in the Gang-of-Four.
 
 - `S = 1/(1+PC)` Sensitivity function
-- `PS = P/(1+PC)` Load disturbance to measurement signal
-- `CS = C/(1+PC)` Measurement noise to control signal
+- `PS = (1+PC)\\P` Load disturbance to measurement signal
+- `CS = (1+PC)\\C` Measurement noise to control signal
 - `T = PC/(1+PC)` Complementary sensitivity function
 
-Only supports SISO systems
+If `minimal=true`, [`minreal`](@ref) will be applied to all transfer functions.
 """
 function gangoffour(P::LTISystem, C::LTISystem; minimal=true)
-    if !issiso(P) || !issiso(C)
-        error("gangoffour only supports SISO systems")
-    end
     minfun = minimal ? robust_minreal : identity
-    S = feedback(1, P*C)    |> minfun
+    S = feedback(I(noutputs(P)), P*C)    |> minfun
     PS = feedback(P, C)     |> minfun
     CS = feedback(C, P)     |> minfun
-    T = feedback(P*C, 1)    |> minfun
+    T = feedback(P*C, I(noutputs(P)))    |> minfun
     return S, PS, CS, T
 end
 
@@ -587,25 +583,15 @@ end
 Given transfer functions describing the Plant `P`, the controller `C` and a feed forward block `F`,
 computes the four transfer functions in the Gang-of-Four and the transferfunctions corresponding to the feed forward.
 
-`S = 1/(1+PC)` Sensitivity function
-
-`PS = P/(1+PC)`
-
-`CS = C/(1+PC)`
-
-`T = PC/(1+PC)` Complementary sensitivity function
-
-`RY = PCF/(1+PC)`
-
-`RU = CF/(1+P*C)`
-
-`RE = F/(1+P*C)`
-
-Only supports SISO systems"""
-function gangofseven(P::TransferFunction, C::TransferFunction, F::TransferFunction)
-    if !issiso(P) || !issiso(C) || !issiso(F)
-        error("gangofseven only supports SISO systems")
-    end
+- `S = 1/(1+PC)` Sensitivity function
+- `PS = P/(1+PC)`
+- `CS = C/(1+PC)`
+- `T = PC/(1+PC)` Complementary sensitivity function
+- `RY = PCF/(1+PC)`
+- `RU = CF/(1+P*C)`
+- `RE = F/(1+P*C)`
+"""
+function gangofseven(P::LTISystem, C::LTISystem, F::LTISystem)
     S, PS, CS, T = gangoffour(P,C)
     RY = T*F
     RU = CS*F

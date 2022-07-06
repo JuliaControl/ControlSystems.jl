@@ -39,12 +39,17 @@ makedocs(modules=[ControlSystems],
     ],
     pages=[
         "Home" => "index.md",
-        "Guide" => Any[
+        "Introductory guide" => Any[
             "Introduction" => "man/introduction.md",
             "Creating Systems" => "man/creating_systems.md",
+            "Performance considerations" => "man/numerical.md",
+            "Noteworthy differences from other languages" => "man/differences.md",
         ],
         "Examples" => Any[
             "Design" => "examples/example.md",
+            "Smith predictor" => "examples/smith_predictor.md",
+            "Iterative Learning Control (ILC)" => "examples/ilc.md",
+            "Properties of delay systems" => "examples/delay_systems.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",
@@ -52,7 +57,9 @@ makedocs(modules=[ControlSystems],
             "Synthesis" => "lib/synthesis.md",
             "Time and Frequency response" => "lib/timefreqresponse.md",
             "Plotting" => "lib/plotting.md",
+            "Nonlinear" => "lib/nonlinear.md",
         ],
+        "API" => "api.md",
     ]
 )
 

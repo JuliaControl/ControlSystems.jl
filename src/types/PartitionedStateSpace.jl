@@ -11,16 +11,51 @@ u = [u1 u2]^T
 y = [y1 y2]^T
 
 """
-struct PartionedStateSpace{TE<:TimeEvolution, S<:AbstractStateSpace{TE}} <: LTISystem{TE}
+struct PartitionedStateSpace{TE<:TimeEvolution, S<:AbstractStateSpace{TE}} <: LTISystem{TE}
     P::S
     nu1::Int
     ny1::Int
 end
 # For converting between different S
-PartionedStateSpace{TE, S}(partsys::PartionedStateSpace{TE}) where {TE, S<:StateSpace} =
-    PartionedStateSpace{TE, S}(S(partsys.P), partsys.nu1, partsys.ny1)
+PartitionedStateSpace{TE, S}(partsys::PartitionedStateSpace{TE}) where {TE, S<:StateSpace} =
+    PartitionedStateSpace{TE, S}(S(partsys.P), partsys.nu1, partsys.ny1)
 
-function getproperty(sys::PartionedStateSpace, d::Symbol)
+function PartitionedStateSpace(
+    A,
+    B1,
+    B2,
+    C1,
+    C2,
+    D11,
+    D12,
+    D21,
+    D22,
+    timeevol::TimeEvolution,
+)
+    nx = size(A, 1)
+    nw = size(B1, 2)
+    nu = size(B2, 2)
+    nz = size(C1, 1)
+    ny = size(C2, 1)
+
+    size(A, 2) != nx && nx != 0 && error("A must be square")
+    size(B1, 1)  == nx ||          error("B1 must have the same row size as A")
+    size(B2, 1)  == nx ||          error("B2 must have the same row size as A")
+    size(C1, 2)  == nx ||          error("C1 must have the same column size as A")
+    size(C2, 2)  == nx ||          error("C2 must have the same column size as A")
+    size(D11, 2) == nw ||          error("D11 must have the same column size as B1")
+    size(D21, 2) == nw ||          error("D21 must have the same column size as B1")
+    size(D12, 2) == nu ||          error("D12 must have the same column size as B2")
+    size(D22, 2) == nu ||          error("D22 must have the same column size as B2")
+    size(D11, 1) == nz ||          error("D11 must have the same row size as C1")
+    size(D12, 1) == nz ||          error("D12 must have the same row size as C1")
+    size(D21, 1) == ny ||          error("D21 must have the same row size as C2")
+    size(D22, 1) == ny ||          error("D22 must have the same row size as C2")
+
+    PartitionedStateSpace(ss(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], timeevol), nw, nz)
+end
+
+function getproperty(sys::PartitionedStateSpace, d::Symbol)
     P = getfield(sys, :P)
     nu1 = getfield(sys, :nu1)
     ny1 = getfield(sys, :ny1)
@@ -52,13 +87,17 @@ function getproperty(sys::PartionedStateSpace, d::Symbol)
     elseif d === :D22
         return P.D[ny1+1:end, nu1+1:end]
     else
-        return getfield(P, d)
+        return getproperty(P, d)
     end
 end
 
-timeevol(sys::PartionedStateSpace) = timeevol(sys.P)
+function Base.propertynames(s::PartitionedStateSpace, private::Bool=false)
+    (fieldnames(typeof(s))..., :A, :B, :C, :D, :B1, :B2, :C1, :C2, :D11, :D12, :D21, :D22, :nu, :ny, :nx, (isdiscrete(s) ? (:Ts,) : ())...)
+end
 
-function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
+timeevol(sys::PartitionedStateSpace) = timeevol(sys.P)
+
+function +(s1::PartitionedStateSpace, s2::PartitionedStateSpace)
     timeevol = common_timeevol(s1,s2)
 
     A = blockdiag(s1.A, s2.A)
@@ -72,7 +111,7 @@ function +(s1::PartionedStateSpace, s2::PartionedStateSpace)
     [s1.D21; s2.D21] blockdiag(s1.D22, s2.D22)]
 
     P = StateSpace(A, B, C, D, timeevol) # How to handle discrete?
-    PartionedStateSpace(P, s1.nu1 + s2.nu1, s1.ny1 + s2.ny1)
+    PartitionedStateSpace(P, s1.nu1 + s2.nu1, s1.ny1 + s2.ny1)
 end
 
 
@@ -82,7 +121,7 @@ end
 """
     Series connection of partioned StateSpace systems.
 """
-function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
+function *(s1::PartitionedStateSpace, s2::PartitionedStateSpace)
     timeevol = common_timeevol(s1,s2)
 
     A = [s1.A                           s1.B1*s2.C1;
@@ -100,13 +139,13 @@ function *(s1::PartionedStateSpace, s2::PartionedStateSpace)
     s2.D21          zeros(size(s2.D22,1),size(s1.D22,2))          s2.D22        ]
 
     P = StateSpace(A, B, C, D, timeevol)
-    PartionedStateSpace(P, s2.nu1, s1.ny1)
+    PartitionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
 
 
 # QUESTION: What about algebraic loops and well-posedness?! Perhaps issue warning if P1(∞)*P2(∞) > 1
-function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
+function feedback(s1::PartitionedStateSpace, s2::PartitionedStateSpace)
     timeevol = common_timeevol(s1,s2)
     X_11 = (I + s2.D11*s1.D11)\[-s2.D11*s1.C1  -s2.C1]
     X_21 = (I + s1.D11*s2.D11)\[s1.C1  -s1.D11*s2.C1]
@@ -147,7 +186,7 @@ function feedback(s1::PartionedStateSpace, s2::PartionedStateSpace)
     #D[:, end-size(tmp,2)+1:end] .+= tmp
 
     P = StateSpace(A, B, C, D, timeevol)
-    PartionedStateSpace(P, s2.nu1, s1.ny1)
+    PartitionedStateSpace(P, s2.nu1, s1.ny1)
 end
 
 """ Concatenate systems vertically with
@@ -157,7 +196,7 @@ end
                 y2 = [y2_1; y2_2, ...]
     for u1_i, u2_i, y1_i, y2_i, where i denotes system i
 """
-function vcat_1(systems::PartionedStateSpace...)
+function vcat_1(systems::PartitionedStateSpace...)
     # Perform checks
     timeevol = common_timeevol(systems...)
 
@@ -180,7 +219,7 @@ function vcat_1(systems::PartionedStateSpace...)
     D22 = blockdiag([s.D22 for s in systems]...)
 
     sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], timeevol)
-    return PartionedStateSpace(sysnew, nu1, sum(s -> s.ny1, systems))
+    return PartitionedStateSpace(sysnew, nu1, sum(s -> s.ny1, systems))
 end
 
 
@@ -191,7 +230,7 @@ end
     u2 = [u2_1; u2_2, ...]
     for u1_i, u2_i, y1_i, y2_i, where i denotes system i
 """
-function hcat_1(systems::PartionedStateSpace...)
+function hcat_1(systems::PartitionedStateSpace...)
     # Perform checks
     timeevol = common_timeevol(systems...)
 
@@ -214,14 +253,14 @@ function hcat_1(systems::PartionedStateSpace...)
     D22 = blockdiag([s.D22 for s in systems]...)
 
     sysnew = StateSpace(A, [B1 B2], [C1; C2], [D11 D12; D21 D22], timeevol)
-    return PartionedStateSpace(sysnew, sum(s -> s.nu1, systems), ny1)
+    return PartitionedStateSpace(sysnew, sum(s -> s.nu1, systems), ny1)
 end
 
-function Base.convert(::Type{<:PartionedStateSpace}, sys::T) where T<: StateSpace
-    PartionedStateSpace(sys,sys.nu,sys.ny)
+function Base.convert(::Type{<:PartitionedStateSpace}, sys::T) where T<: StateSpace
+    PartitionedStateSpace(sys,sys.nu,sys.ny)
 end
 
 # Test equality (of realizations)
-function ==(sys1::PartionedStateSpace, sys2::PartionedStateSpace)
-    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(PartionedStateSpace))
+function ==(sys1::PartitionedStateSpace, sys2::PartitionedStateSpace)
+    all(getfield(sys1, f) == getfield(sys2, f) for f in fieldnames(PartitionedStateSpace))
 end

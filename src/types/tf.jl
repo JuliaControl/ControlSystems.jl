@@ -1,23 +1,22 @@
-""" `sys = tf(num, den[, Ts]), sys = tf(gain[, Ts])`
+""" 
+    sys = tf(num, den[, Ts])
+    sys = tf(gain[, Ts])
 
 Create as a fraction of polynomials:
 
-`sys::TransferFunction{SisoRational{T,TR}} = numerator/denominator`
+- `sys::TransferFunction{SisoRational{T,TR}} = numerator/denominator`
 where T is the type of the coefficients in the polynomial.
-
-`num`: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems
+- `num`: the coefficients of the numerator polynomial. Either scalar or vector to create SISO systems
 or an array of vectors to create MIMO system.
-
-`den`: the coefficients of the denominator polynomial. Either vector to create SISO systems
+- `den`: the coefficients of the denominator polynomial. Either vector to create SISO systems
 or an array of vectors to create MIMO system.
-
-`Ts`: Sample time if discrete time system.
+- `Ts`: Sample time if discrete time system.
 
 Other uses:
-`tf(sys)`: Convert `sys` to `tf` form.
-`tf("s")`, `tf("z")`: Create the continuous transferfunction `s`.
+- `tf(sys)`: Convert `sys` to `tf` form.
+- `tf("s")`, `tf("z")`: Create the continuous transferfunction `s`.
 
-See also: `zpk`, `ss`
+See also: [`zpk`](@ref), [`ss`](@ref).
 """
 function tf(num::AbstractVecOrMat{<:AbstractVector{T1}}, den::AbstractVecOrMat{<:AbstractVector{T2}}, Ts::TE) where {TE<:TimeEvolution, T1<:Number, T2<:Number}
     # Validate input and output dimensions match
@@ -74,12 +73,12 @@ end
 
 # Function for creation of 's' or 'z' var
 function tf(var::AbstractString)
-    var != "s" && error("var must be 's' for continuous time tf.")
+    var != "s" && error("""var must be 's' for continuous time tf. Call tf("z", Ts) for a discrete-time variable.""")
     return tf([1, 0], [1], Continuous())
 end
 function tf(var::AbstractString, Ts::Real)
-    var != "z" && error("var must be 'z' for discrete time tf.")
-    Ts == 0 && error("Ts must not be 0 for discrete time tf.")
+    var != "z" && error("var must be 'z' for discrete-time tf.")
+    Ts == 0 && error("Ts must not be 0 for discrete-time tf.")
     return tf([1, 0], [1], Discrete(Ts))
 end
 

@@ -2,11 +2,13 @@
 Pages = ["analysis.md"]
 ```
 
+For robust analysis, see [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#System-analysis).
+
 # Analysis
 
 ```@autodocs
 Modules = [ControlSystems]
-Pages   = ["analysis.jl", "matrix_comps.jl"]
+Pages   = ["analysis.jl", "matrix_comps.jl", "conversion.md"]
 Order   = [:function, :type]
 Private = false
 ```

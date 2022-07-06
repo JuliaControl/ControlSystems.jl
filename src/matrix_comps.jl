@@ -1,41 +1,51 @@
-"""`care(A, B, Q, R)`
+"""
+    are(::Continuous, A, B, Q, R)
 
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 
 Uses `MatrixEquations.arec`.
 """
-function care(A, B, Q, R)
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R)
     arec(A, B, R, Q)[1]
 end
 
-care(A::Number, B::Number, Q::Number, R::Number) = care(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
-
 """
-    dare(A, B, Q, R; kwargs...)
+    are(::Discrete, A, B, Q, R; kwargs...)
 
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.ared`
 """
-function dare(A, B, Q, R; kwargs...)
+function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
     ared(A, B, R, Q; kwargs...)[1]
 end
 
-dare(A::Number, B::Number, Q::Number, R::Number) = dare(fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
+are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
+
+@deprecate care(args...; kwargs...) are(Continuous, args...; kwargs...)
+@deprecate dare(args...; kwargs...) are(Discrete, args...; kwargs...)
 
 """
-    dlyap(A, Q; kwargs...)
+    lyap(A, Q; kwargs...)
 
 Compute the solution `X` to the discrete Lyapunov equation
 `AXA' - X + Q = 0`.
 
-Uses `MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapd`
+Uses `MatrixEquations.lyapc / MatrixEquations.lyapd`. For keyword arguments, see the docstring of `ControlSystems.MatrixEquations.lyapc / ControlSystems.MatrixEquations.lyapd`
 """
-function dlyap(A::AbstractMatrix, Q; kwargs...)
+function LinearAlgebra.lyap(::DiscreteType, A::AbstractMatrix, Q; kwargs...)
     lyapd(A, Q; kwargs...)
 end
+
+LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyapc(args...; kwargs...)
+LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = lyapd(args...; kwargs...)
+
+plyap(::ContinuousType, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
+plyap(::DiscreteType, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
+
+@deprecate dlyap(args...; kwargs...) lyap(Discrete, args...; kwargs...)
 
 
 """
@@ -53,11 +63,10 @@ function grampd(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     if !isstable(sys)
         error("gram only valid for stable A")
     end
-    func = iscontinuous(sys) ? MatrixEquations.plyapc : MatrixEquations.plyapd
     if opt === :c
-        func(sys.A, sys.B; kwargs...)
+        plyap(sys.timeevol, sys.A, sys.B; kwargs...)
     elseif opt === :o
-        func(sys.A', sys.C'; kwargs...)
+        plyap(sys.timeevol, sys.A', sys.C'; kwargs...)
     else
         error("opt must be either :c for controllability grammian, or :o for
                 observability grammian")
@@ -147,10 +156,9 @@ function covar(sys::AbstractStateSpace, W)
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
-    func = iscontinuous(sys) ? plyapc : plyapd
     Wc = cholesky(W).L
     Q1 = sys.nx == 0 ? B*Wc : try
-        func(A, B*Wc)
+        plyap(sys.timeevol, A, B*Wc)
     catch e
         @error("No solution to the Lyapunov equation was found in covar.")
         rethrow(e)
@@ -178,7 +186,7 @@ covar(sys::TransferFunction, W) = covar(ss(sys), W)
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
 """
-`..  norm(sys, p=2; tol=1e-6)`
+    norm(sys, p=2; tol=1e-6)
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
@@ -206,7 +214,7 @@ LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p
 
 
 """
-`   (Ninf, ω_peak) = hinfnorm(sys; tol=1e-6)`
+    Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain Ninf is achieved.
@@ -234,7 +242,7 @@ hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
-`   (Ninf, ω_peak) = linfnorm(sys; tol=1e-6)`
+    Ninf, ω_peak = linfnorm(sys; tol=1e-6)
 
 Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain `Ninf` is achieved.
@@ -309,7 +317,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
                          opnorm(evalfr(sys, im*m_vec_init[2]));
                          opnorm(sys.D)])
     ω_peak = m_vec_init[idx]
-
+    lb == 0 && (return zero(T), zero(T))
     # Iterations
     for iter=1:maxIters
         gamma = (1+2*T(tol))*lb
@@ -533,7 +541,9 @@ where indices 1/2 correspond to the remaining/truncated states respectively.
 
 See also `gram`, `balreal`
 
-Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder
+Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder.
+
+For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduction](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Model-reduction).
 """
 function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
@@ -574,7 +584,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
 end
 
 """
-    syst = similarity_transform(sys, T)
+    syst = similarity_transform(sys, T; unitary=false)
 Perform a similarity transform `T : Tx̃ = x` on `sys` such that
 ```
 Ã = T⁻¹AT
@@ -582,46 +592,83 @@ B̃ = T⁻¹ B
 C̃ = CT
 D̃ = D
 ```
+
+If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
+See also [`balance_statespace`](@ref).
 """
-function similarity_transform(sys::ST, T) where ST <: AbstractStateSpace
-    Tf = factorize(T)
-    A = Tf\sys.A*T
-    B = Tf\sys.B
+function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
+    if unitary
+        A = T'sys.A*T
+        B = T'sys.B
+    else
+        Tf = factorize(T)
+        A = Tf\sys.A*T
+        B = Tf\sys.B
+    end
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
 end
 
 """
-    syst, S = prescale(sys)
-Perform a eigendecomposition on system state-transition matrix `sys.A`.
+    time_scale(sys::AbstractStateSpace{Continuous}, a; balanced = false)
+    time_scale(G::TransferFunction{Continuous},     a; balanced = true)
+
+Rescale the time axis (change time unit) of `sys`.
+
+For systems where the dominant time constants are very far from 1, e.g., in electronics, rescaling the time axis may be beneficial for numerical performance, in particular for continuous-time simulations.
+
+Scaling of time for a function ``f(t)`` with Laplace transform ``F(s)`` can be stated as
+```math
+f(at) \\leftrightarrow \\dfrac{1}{a} F\\big(\\dfrac{s}{a}\\big)
 ```
-Ã = S⁻¹AS
-B̃ = S⁻¹ B
-C̃ = CS
-D̃ = D
+
+The keyword argument `balanced` indicates whether or not to apply a balanced scaling on the `B` and `C` matrices.
+For statespace systems, this defaults to false since it changes the state representation, only `B` will be scaled.
+For transfer functions, it defaults to true.
+
+# Example:
+The following example show how a system with a time constant on the order of one micro-second is rescaled such that the time constant becomes 1, i.e., the time unit is changed from seconds to micro-seconds. 
+```julia
+Gs  = tf(1, [1e-6, 1])     # micro-second time scale modeled in seconds
+Gms = time_scale(Gs, 1e-6) # Change to micro-second time scale
+Gms == tf(1, [1, 1])       # Gms now has micro-seconds as time unit
 ```
-Such that `Ã` is diagonal.
-Returns a new scaled state-space object and the associated transformation
-matrix.
+
+The next example illustrates how the time axis of a time-domain simulation changes by time scaling 
+```julia
+t = 0:0.1:50 # original time axis
+a = 10       # Scaling factor
+sys1 = ssrand(1,1,5)
+res1 = step(sys1, t)      # Perform original simulation
+sys2 = time_scale(sys, a) # Scale time
+res2 = step(sys2, t ./ a) # Simulate on scaled time axis, note the `1/a`
+isapprox(res1.y, res2.y, rtol=1e-3, atol=1e-3)
+```
 """
-function prescale(sys::AbstractStateSpace)
-    d, S = eigen(sys.A)
-    A = Diagonal(d)
-    B = S\sys.B
-    C = sys.C*S
-    normalized_sys = iscontinuous(sys) ? ss(A, B, C, sys.D) : ss(A, B, C, sys.D, sys.Ts)
-    return normalized_sys, S
+function time_scale(sys::AbstractStateSpace{Continuous}, a; balanced = false)
+    a isa Real && (a > 0 || error("Time scaling constant must be positive"))
+    A,B,C,D = ssdata(sys)
+    A = a*I * A
+    if balanced
+        B = √(a)*I * B # Split the scaling equally on B and C to keep good balance
+        C = √(a)*I * C
+    else
+        B = a*I*B
+    end
+    ss(A,B,C,D,sys.timeevol)
 end
 
+time_scale(G::TransferFunction{Continuous}, a; balanced = true) = tf(time_scale(ss(G), a; balanced))
+
 """
-    sysi = innovation_form(sys, R1, R2)
+    sysi = innovation_form(sys, R1, R2[, R12])
     sysi = innovation_form(sys; sysw=I, syse=I, R1=I, R2=I)
 
 Takes a system
 ```
 x' = Ax + Bu + w ~ R1
-y  = Cx + e ~ R2
+y  = Cx + Du + e ~ R2
 ```
 and returns the system
 ```
@@ -634,37 +681,84 @@ If `sysw` (`syse`) is given, the covariance resulting in filtering noise with `R
 
 See Stochastic Control, Chapter 4, Åström
 """
-function innovation_form(sys::ST, R1, R2) where ST <: AbstractStateSpace
-    K = kalman(sys, R1, R2)
-    ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+function innovation_form(sys::ST, R1, R2, args...) where ST <: AbstractStateSpace
+    K = kalman(sys, R1, R2, args...)
+    innovation_form(sys, K)
 end
 # Set D = I to get transfer function H = I + C(sI-A)\ K
 function innovation_form(sys::ST; sysw=I, syse=I, R1=I, R2=I) where ST <: AbstractStateSpace
 	K = kalman(sys, covar(sysw,R1), covar(syse, R2))
-	ST(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+	ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
+end
+
+
+"""
+    sysi = innovation_form(sys, K)    
+
+Takes a system
+```
+x' = Ax + Bu + Kv
+y  = Cx + Du + v
+```
+and returns the system
+```
+x' = Ax + Kv
+y  = Cx + v
+```
+where `v` is the innovation sequence.
+
+See Stochastic Control, Chapter 4, Åström
+"""
+function innovation_form(sys::ST, K) where ST <: AbstractStateSpace
+    ss(sys.A, K, sys.C, Matrix{eltype(sys.A)}(I, sys.ny, sys.ny), sys.timeevol)
 end
 
 """
-    observer_predictor(sys::AbstractStateSpace, R1, R2)
-    observer_predictor(sys::AbstractStateSpace, K)
+    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1)
+    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12])
 
-Return the observer_predictor system
-x̂' = (A - KC)x̂ + (B-KD)u + Ky
-ŷ  = Cx + Du
-with the input equation [B K] * [u; y]
+If `sys` is continuous, return the observer predictor system
+```math
+\\begin{aligned}
+x̂' &= (A - KC)x̂ + (B-KD)u + Ky \\\\
+ŷ  &= Cx + Du
+\\end{aligned}
+```
+with the input equation `[B-KD K] * [u; y]`
 
-If covariance matrices `R1, R2` are given, the kalman gain `K` is calculaded.
+If `sys` is discrete, the prediction horizon `h` may be specified, in which case measurements up to and including time `t-h` and inputs up to and including time `t` are used to predict `y(t)`.
 
-See also `innovation_form`.
+If covariance matrices `R1, R2` are given, the kalman gain `K` is calculated using [`kalman`](@ref).
+
+See also [`innovation_form`](@ref) and [`observer_controller`](@ref).
 """
-function observer_predictor(sys::ST, R1, R2) where ST <: AbstractStateSpace
-    K = kalman(sys, R1, R2)
-    observer_predictor(sys, K)
+function observer_predictor(sys::AbstractStateSpace, R1, R2::Union{AbstractArray, UniformScaling}, args...; kwargs...)
+    K = kalman(sys, R1, R2, args...)
+    observer_predictor(sys, K; kwargs...)
 end
 
-function observer_predictor(sys, K::AbstractMatrix)
+function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1)
+    h >= 1 || throw(ArgumentError("h must be positive."))
+    ny = noutputs(sys)
+    size(K, 1) == sys.nx && size(K,2) == ny || throw(ArgumentError("K has the wrong size, expected $((sys.nx, ny))"))
     A,B,C,D = ssdata(sys)
-    ss(A-K*C, [B-K*D K], C, [D zeros(size(D,1), size(K, 2))], sys.timeevol)
+    if h == 1
+        ss(A-K*C, [B-K*D K], C, [D zeros(ny, ny)], sys.timeevol)
+    else
+        isdiscrete(sys) || throw(ArgumentError("A prediction horizon is only supported for discrete systems. "))
+        # The impulse response of the innovation form calculates the influence of a measurement at time t on the prediction at time t+h
+        # Below, we form a system del (delay) that convolves the input (y) with the impulse response
+        # We then add the output again to account for the fact that we propagated error and not measurement
+        inn = innovation_form(sys, K)
+        ts = (0:h-1) .* sys.Ts
+        imp = impulse(inn, ts).y * sys.Ts # Impulse response differs from Markov params by 1/Ts
+        del_components = map(Iterators.product(1:inn.ny, 1:inn.nu)) do (i,j)
+            tf(imp[i,:,j], [1; zeros(h-1)]) # This forms a system that convolves the input with the impulse response
+        end
+        del = tf(first.(numvec.(del_components)), first.(denvec.(del_components)), sys.timeevol) |> ss
+        pe = ss(A-K*C, [B-K*D K], C, [D -I(ny)], sys.timeevol) # prediction error system ŷ-y
+        return ss([zero(D) I(ny)], sys.timeevol) + del*pe # add y back to compensate for -y in pe
+    end
 end
 
 """
@@ -679,6 +773,8 @@ Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues g
 - `sys`: Model of system
 - `L`: State-feedback gain `u = -Lx`
 - `K`: Observer gain
+
+See also [`observer_predictor`](@ref) and [`innovation_form`](@ref).
 """
 function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
     A,B,C,D = ssdata(sys)

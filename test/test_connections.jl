@@ -28,8 +28,16 @@ D_022 = ss(4*eye_(2), 0.005)
 @test [D_022 D_222] == ss(eye_(2), [0 0 1 0; 0 0 0 2], [1 0; 0 1], [4 0 0 0; 0 4 0 0], 0.005)
 @test [D_022; D_222] == ss(eye_(2), [1 0; 0 2], [0 0; 0 0; 1 0; 0 1], [4 0; 0 4; 0 0; 0 0], 0.005)
 
+@inferred hcat(C_111, C_221)
+
 @test series(C_111, C_212) == C_212*C_111
 @test parallel(C_111, C_211) == C_111 + C_211
+
+# test that zero(::Type) promotes to correct sample time
+@test zero(D_111) == ss(0, 0.005)
+D_1110 = [D_111 zero(typeof(D_111))]
+@test D_1110.Ts == D_111.Ts
+@test D_1110 == [D_111 zero(D_111)]
 
 # Errors
 @test_throws ErrorException [C_111 D_111]                 # Sampling time mismatch
@@ -89,20 +97,35 @@ s = tf("s")
 @test zero(ss(randn(2,3))) == ss(zeros(2,3))
 @test zero(tf(randn(2,3))) == tf(zeros(2,3))
 
+# test that zero(::Type) promotes to correct sample time
+@test zero(Dtf_111) == tf(0, 0.005)
+Dtf_1110 = [Dtf_111 zero(typeof(Dtf_111))]
+@test Dtf_1110.Ts == Dtf_111.Ts
+@test Dtf_1110 == [Dtf_111 zero(Dtf_111)]
 
+
+## arrays to MIMO systems
+arraysys = diagm(fill(C_111, 3))
+mimosys = array2mimo(arraysys)
+for i = axes(arraysys, 1), j = axes(arraysys, 2)
+    @test arraysys[i,j] == sminreal(mimosys[i,j])
+end
 
     
 # Combination tf and ss
-@test [C_111 Ctf_221] == [C_111 ss(Ctf_221)]
-@test [C_111; Ctf_212] == [C_111; ss(Ctf_212)]
-@test append(C_111, Ctf_211) == append(C_111, ss(Ctf_211))
-@test [D_111 Dtf_221] == [D_111 ss(Dtf_221)]
-@test [D_111; Dtf_212] == [D_111; ss(Dtf_212)]
-@test append(D_111, Dtf_211) == append(D_111, ss(Dtf_211))
+@test [C_111 Ctf_221] == [C_111 convert(StateSpace, Ctf_221, balance=false)]
+@test [C_111; Ctf_212] == [C_111; convert(StateSpace, Ctf_212, balance=false)]
+@test append(C_111, Ctf_211) == append(C_111, convert(StateSpace, Ctf_211, balance=false))
+@test [D_111 Dtf_221] == [D_111 convert(StateSpace, Dtf_221, balance=false)]
+@test [D_111; Dtf_212] == [D_111; convert(StateSpace, Dtf_212, balance=false)]
+@test append(D_111, Dtf_211) == append(D_111, convert(StateSpace, Dtf_211, balance=false))
 
 # Combination of DelayLtiSystem with TransferFunction and StateSpace
 @test [delay(1.0) tf(1, [1,2])] == [delay(1.0) ss(-2.0,1,1,0)]
 @test [delay(1.0) zpk([], [-2], 1)] == [delay(1.0) ss(-2.0,1,1,0)]
+
+@test [nonlinearity(identity) tf(1, [1,2])] == [nonlinearity(identity) ss(-2.0,1,1,0)]
+@test [nonlinearity(identity) zpk([], [-2], 1)] == [nonlinearity(identity) ss(-2.0,1,1,0)]
 
 # hcat and vcat for StateSpace and Matrix
 A = [-1.1 -1.2; -1.3 -1.4]
@@ -173,10 +196,9 @@ arr4[1] = ss(0); arr4[2] = ss(1); arr4[3] = ss(2)
 @test [C_111 1.0] == ss([1.0], [2.0 0.0], [3.0], [4.0 1.0])
 @test [1.0 C_111] == ss([1.0], [0.0 2.0], [3.0], [1.0 4.0])
 @test [C_111 1.0] isa StateSpace{Continuous,Float64}
-@test [C_111 1.0].Ts == 0.0
-@test_logs (:warn,
+@test (@test_logs (:warn,
             "Getting time 0.0 for non-discrete systems is deprecated. Check `isdiscrete` before trying to access time."
-            ) [C_111 1.0].Ts
+            ) [C_111 1.0].Ts) == 0.0
 # Concatenation of discrete system with matrix
 @test [D_222 fill(1.5, 2, 2)] == [D_222 ss(fill(1.5, 2, 2),0.005)]
 @test [C_222 fill(1.5, 2, 2)] == [C_222 ss(fill(1.5, 2, 2))]
@@ -208,7 +230,7 @@ K1d = ss(-1, 1, 1, 0, 1)
 @test feedback(K1, ss(1.0)) == ss(-2, 1, 1, 0)
 @test feedback(K1, 1.0) == ss(-2, 1, 1, 0)
 @test feedback(K1d, ss(1.0, 1)) == ss(-2, 1, 1, 0, 1)
-@test_broken feedback(G2d, 1.0) == ss(-2, 1, 1, 0, 1)
+@test feedback(G2d, 1.0) == ss(-62, 7, 8, 0, 1)
 
 # Check that errors for sample-time mismatc are thrown
 @test_throws ErrorException feedback(G2, K1d)
@@ -283,5 +305,76 @@ G2 = tf(1.0, [1, 5])
 @test feedback(1, G2) == tf([1, 5], [1, 6])
 @test feedback(G2, G1) == tf(1, [1, 6])
 @test feedback(G2, 1) == tf(1, [1, 6])
+
+
+
+## Add inputs and outputs
+G = ssrand(1,1,1)
+G2 = add_input(G, 1)
+@test G2[1,1] == G
+@test G2[1,2].B == [1;;]
+@test G2[1,2].D == [0;;]
+
+G2 = add_output(G, 1)
+@test G2[1,1] == G
+@test G2[2,1].C == [1;;]
+@test G2[2,1].D == [0;;]
+
+G = ssrand(2,2,2)
+B2 = randn(2,2)
+D2 = randn(2,2)
+G2 = add_input(G, B2, D2)
+@test G2[1:2,1:2] == G
+@test G2.B[:,3:4] == B2
+@test G2.D[:,3:4] == D2
+
+C2 = randn(2,2)
+G2 = add_output(G, C2, D2)
+@test G2[1:2,1:2] == G
+@test G2.C[3:4,:] == C2
+@test G2.D[3:4,:] == D2
+
+
+# Sensitivity functions
+P = ssrand(2,3,2, Ts=1, proper=true)
+C = ssrand(3,2,2, Ts=1)
+
+# Test that the transfer functions are the same as stated in sensedoc
+S = output_sensitivity(P,C)
+T = output_comp_sensitivity(P,C)
+d2 = randn(2, 10)
+
+resS = lsim(S, d2)
+resT = lsim(T, d2)
+e3 = resS.y
+e4 = resT.y
+e3 ≈ d2 .- e4
+
+CS = G_CS(P,C)
+resCS = lsim(CS, d2)
+resC = lsim(C, e3)
+@test resC.y ≈ resCS.y
+
+d1 = randn(3, 10)
+
+Si = input_sensitivity(P, C)
+resSi = lsim(Si, d1)
+e1 = resSi.y
+e42 = lsim(P, e1).y
+
+PS = G_PS(P,C)
+resPS = lsim(PS, d1)
+@test resPS.y ≈ e42
+
+Ti = input_comp_sensitivity(P, C)
+resTi = lsim(Ti, d1)
+e2 = resTi.y
+e22 = lsim(C, e42).y
+@test e2 ≈ e22
+
+@test linfnorm(PS - output_sensitivity(P, C)*P)[1] < 1e-8
+@test linfnorm(CS - input_sensitivity(P, C)*C)[1] < 1e-8
+@test sensitivity(P,C) == output_sensitivity(P,C)
+@test comp_sensitivity(P,C) == output_comp_sensitivity(P,C)
 
 end

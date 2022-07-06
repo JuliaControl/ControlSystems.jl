@@ -20,14 +20,12 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
-### 2021-01
-- *Breaking*: Support for julia versions older than 1.3 is dropped
-- *Breaking*: `c2d(::StateSpace)` now returns only the system, not the `x0map`. See `c2d_x0map` for the old functionality.
-- System order can be specified in `baltrunc`.
-- New discretization methods in `c2d`. We now support `:zoh,:foh,:fwdeuler,:tustin`
-- Symbolic computation utilities in [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl)
+### 2022-07 v1.0
+- *Breaking*: Frequency-responses have changed data layout to `ny×nu×nω` from the previous `nω×ny×nu`. This is for performance reasons and to be consistent with time responses. This affects downstream functions `bode` and `nyquist` as well.
 
-More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/releases).
+### 2022-02
+- *Breaking*: `Plots.jl` is no longer loaded by `ControlSystems.jl`. This improves loading times for the package, but means that users will have to run `using Plots` manually before plotting functions are available.
+- *Deprecations*: Functions `dare/dlyap/dkalman/dlqr` are now deprecated in favor of an interface that uses dispatch on the types `Continuous / Discrete`. Example: `dare(A,B,Q,R)` is now `are(Discrete,A,B,Q,R)` or `are(sysd,Q,R)`.
 
 ### 2021-11
 - Time-domain simuations now return a result structure (non breaking)
@@ -46,23 +44,23 @@ More details under [releases](https://github.com/JuliaControl/ControlSystems.jl/
 
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
 
-A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/) and an [introductory video is available here](https://www.youtube.com/watch?v=Fdz2Fsm1aTY&ab_channel=jolin%E2%80%A4io).
 
 Some of the available commands are:
 ##### Constructing systems
-ss, tf, zpk
+`ss, tf, zpk, delay`
 ##### Analysis
-poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin
+`poles, tzeros, norm, hinfnorm, linfnorm, ctrb, obsv, gangoffour, margin, markovparam, damp, dampreport, zpkdata, dcgain, covar, gram, sigma, sisomargin`
 ##### Synthesis
-care, dare, dlyap, lqr, dlqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc
+`are, lyap, lqr, place, leadlink, laglink, leadlinkat, rstd, rstc, dab, balreal, baltrunc`
 ###### PID design
-pid, stabregionPID, loopshapingPI, pidplots
+`pid, stabregionPID, loopshapingPI, pidplots, placePI`
 ##### Time and Frequency response
-step, impulse, lsim, freqresp, evalfr, bode, nyquist
+`step, impulse, lsim, freqresp, evalfr, bode, nyquist`
 ##### Plotting
-lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, gangoffourplot, pidplots, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve
+`bodeplot, nyquistplot, sigmaplot, plot(lsim(...)), plot(step(...)), plot(impulse(...)), marginplot, gangoffourplot, pzmap, nicholsplot, pidplots, rlocus, leadlinkcurve`
 ##### Other
-minreal, sminreal, c2d
+`minreal, sminreal, c2d`
 ## Usage
 
 This toolbox works similar to that of other major computer-aided control
@@ -110,4 +108,4 @@ plot(step.(CLs, 5), label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ![StepResponse](/example/step_response.png)
 
 ### Additional examples
-See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/)
+See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/) and several examples in the [documentation](http://juliacontrol.github.io/ControlSystems.jl/latest/).

@@ -19,6 +19,16 @@ Ab,Bb,Cb,T = ControlSystems.balance_statespace(A,B,C)
 @test Cb*T ≈ C
 
 @test sysb.A ≈ Ab
+@test similarity_transform(sysb, T) ≈ sys
+
+
+U = svd(randn(2,2)).U
+syst = similarity_transform(sys, U, unitary = true)
+Ab,Bb,Cb,Db = ssdata(syst)
+@test Ab ≈ U'A*U
+@test Bb ≈ U'B
+@test Cb ≈ C*U
+
 
 @test ControlSystems.balance_transform(A,B,C) ≈ ControlSystems.balance_transform(sys)
 
@@ -71,11 +81,6 @@ syst = similarity_transform(sys, Tr)
 @test sys.B ≈ Tr*syst.B
 @test sys.C*Tr ≈ syst.C
 
-nsys, T = prescale(sys)
-@test isdiag(nsys.A)
-@test T*nsys.A ≈ sys.A*T
-@test T*nsys.B ≈ sys.B
-@test nsys.C ≈ sys.C*T
 
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
 sysi = ControlSystems.innovation_form(sys, I, I)
@@ -113,6 +118,67 @@ K = kalman(sys, I(2), I(1))
 @test sysp.A == sys.A-K*sys.C
 @test sysp.B == [sys.B-K*sys.D K]
 
+# test longer prediction horizons
+
+# With K=0, y should have no influence
+sys = ssrand(1,1,2, Ts=1)
+u = randn(1,5)
+K = zeros(2,1)
+sysp = observer_predictor(sys, K; h=2)
+
+# test with two different random outputs
+@test lsim(sysp, [u; randn(1,5)]).y == lsim(sysp, [u; randn(1,5)]).y
+
+# test that it's the same as simulating the system by itself
+@test lsim(sysp, [u; randn(1,5)]).y == lsim(sys, u).y
+
+
+# With K != 0 but u = 0
+K = randn(2,1)
+h = 3
+sysp = observer_predictor(sys, K; h)
+u = zeros(1, 5)
+y = zeros(1, 5)
+y[1] = 1
+
+yh = lsim(sysp, [u; y]).y
+
+# The first h outputs are all zero
+@test maximum(abs, yh[1:h]) < 10eps()
+@test abs(yh[h+1]) > eps()
+
+##
+A = [
+    -0.6437   -0.5055   -0.3211  -0.03438
+    -0.165    0.7435   -0.4341   -0.2137
+    -0.07843    0.1487    0.4797   -0.7199
+    0.5509   -0.3798    -0.175   -0.4614]
+
+B = [
+    -0.001511   -0.03363
+    0.01829   -0.01114
+    -0.03234   -0.01333
+    0.01556    -0.0131]
+
+C = [-33.01   32.88   23.15  -5.471]
+
+D = [0   0]
+
+K = [
+    -0.005343
+    0.003431
+    0.0139
+    0.008578;;]
+
+sys = ss(A,B,C,D,1)
+sysp = observer_predictor(sys, K; h=3)
+u = [0.7378277077784556 -0.9823648579212658 0.16545080647905613 -0.04218269410737019 2.0392261068878264 1.1557293975007483 -0.38811443803683415 2.0733577162855688 -0.03625300688766673 -0.12317844047992449; 0.14799957126508187 0.4859599561753988 -1.07200839703822 -0.8326580050678177 0.24617707129291685 0.6912641690407068 0.3761998517214711 -1.604656172130068 -0.747064482343228 -0.974687925632395]
+y = [-0.842859151936594 -0.19786693123277427 0.6436197988164484 0.053887981499727844 1.141282640261743 -0.9797169106947525 -0.19891450532826468 1.2050598007441486 0.9346495338941443 0.48283808371749715]
+
+res = lsim(sysp, [u; y])
+@test res.y ≈ [0.0 -0.05966333850248531 0.503489609536266 -0.20592242042526876 0.5894787365287978 -0.6386410889293671 0.45779714753135586 2.278268660780028 2.4541372811479922 4.849094227405488]
+
+
 
 # Test observer_controller
 sys = ssrand(2,3,4)
@@ -135,3 +201,18 @@ allpoles = [
 @test cont.B == K
 
 end 
+
+## Test time scaling
+for balanced in [true, false]
+    sys = ssrand(1,1,5);
+    t = 0:0.1:50
+    a = 10
+    res1 = step(sys, t)
+    sys2 = time_scale(sys, a; balanced)
+    res2 = step(sys2, t ./ a)
+    @test res1.y ≈ res2.y rtol=1e-3 atol=1e-3
+
+    Gs = tf(1, [1e-6, 1]) # micro-second time scale modeled in seconds
+    Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
+    @test Gms == tf(1, [1, 1])
+end

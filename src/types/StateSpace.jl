@@ -113,7 +113,8 @@ StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
 StateSpace(sys::LTISystem) = convert(StateSpace, sys)
 
 """
-    `sys = ss(A, B, C, D [,Ts])`
+    sys = ss(A, B, C, D)      # Continuous
+    sys = ss(A, B, C, D, Ts)  # Discrete
 
 Create a state-space model `sys::StateSpace{TE, T}`
 with matrix element type `T` and TE is `Continuous` or `<:Discrete`.
@@ -121,7 +122,10 @@ with matrix element type `T` and TE is `Continuous` or `<:Discrete`.
 This is a continuous-time model if `Ts` is omitted.
 Otherwise, this is a discrete-time model with sampling period `Ts`.
 
+`D` may be specified as `0` in which case a zero matrix of appropriate size is constructed automatically. 
 `sys = ss(D [, Ts])` specifies a static gain matrix `D`.
+
+To associate names with states, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems).
 """
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
@@ -223,15 +227,17 @@ function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpac
 end
 
 ## ADDITION ##
-Base.zero(sys::AbstractStateSpace) = ss(zero(sys.D), sys.timeevol)
-Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous()) # Cannot make a zero of discrete system since sample time is not stored in type.
+Base.zero(sys::AbstractStateSpace) = basetype(sys)(zero(sys.D), sys.timeevol)
+Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
+Base.zero(::Type{StateSpace{D, F}}) where {D<:Discrete, F} = ss([zero(F)], undef_sampletime(D))
 
-function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
+function +(s1::ST, s2::ST) where {ST <: AbstractStateSpace}
     #Ensure systems have same dimensions
     if size(s1) != size(s2)
         error("Systems have different shapes.")
     end
     timeevol = common_timeevol(s1,s2)
+    T = promote_type(numeric_type(s1), numeric_type(s2))
 
     A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
          zeros(T, nstates(s2), nstates(s1))        s2.A]
@@ -239,31 +245,12 @@ function +(s1::StateSpace{TE,T}, s2::StateSpace{TE,T}) where {TE,T}
     C = [s1.C s2.C;]
     D = [s1.D + s2.D;]
 
-    return StateSpace{TE,T}(A, B, C, D, timeevol)
+    return ST(A, B, C, D, timeevol)
 end
 
-function +(s1::HeteroStateSpace, s2::HeteroStateSpace)
-    #Ensure systems have same dimensions
-    if size(s1) != size(s2)
-        error("Systems have different shapes.")
-    end
-    timeevol = common_timeevol(s1,s2)
-    T = promote_type(eltype(s1.A),eltype(s2.A))
-    A = [s1.A                   zeros(T, nstates(s1), nstates(s2));
-         zeros(T, nstates(s2), nstates(s1))        s2.A]
-    B = [s1.B ; s2.B]
-    C = [s1.C s2.C;]
-    D = [s1.D + s2.D;]
 
-    return HeteroStateSpace(A, B, C, D, timeevol)
-end
-
-+(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
++(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
-+(sys::StateSpace, n::Number) = ss(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
-function +(sys::HeteroStateSpace, n::Number)
-    HeteroStateSpace(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
-end
 
 ## SUBTRACTION ##
 -(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = +(sys1, -sys2)
@@ -271,57 +258,85 @@ end
 -(n::Number, sys::AbstractStateSpace) = +(-sys, n)
 
 ## NEGATION ##
--(sys::ST) where ST <: AbstractStateSpace = ST(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
--(sys::StateSpace) = ss(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
+-(sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, -sys.C, -sys.D, sys.timeevol)
 
 ## MULTIPLICATION ##
-function *(sys1::StateSpace{TE,T}, sys2::StateSpace{TE,T}) where {TE,T}
+function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if xor(issiso(sys1), issiso(sys2))
-        if issiso(sys1)
-            sys1 = append(fill(sys1, sys2.ny)...)
-        else
-            sys2 = append(fill(sys2, sys1.nu)...)
-        end
-    elseif sys1.nu != sys2.ny
-        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
-    end
+    sys1.nu == sys2.ny || error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     timeevol = common_timeevol(sys1,sys2)
+    T = promote_type(numeric_type(sys1), numeric_type(sys2))
 
     A = [sys1.A    sys1.B*sys2.C;
          zeros(T, sys2.nx, sys1.nx)  sys2.A]
     B = [sys1.B*sys2.D ; sys2.B]
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
-    return StateSpace{TE,T}(A, B, C, D, timeevol)
+    return basetype(ST)(A, B, C, D, timeevol)
 end
 
-function *(sys1::HeteroStateSpace, sys2::HeteroStateSpace)
-    #Check dimension alignment
-    #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if xor(issiso(sys1), issiso(sys2))
-        if issiso(sys1)
-            sys1 = append(fill(sys1, sys2.ny)...)
-        else
-            sys2 = append(fill(sys2, sys1.nu)...)
-        end
-    elseif sys1.nu != sys2.ny
-        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
+function Base.Broadcast.broadcasted(::typeof(*), sys1::AbstractStateSpace, sys2::AbstractStateSpace)
+    issiso(sys1) || issiso(sys2) || error("Only SISO statespace systems can be broadcasted")
+    if issiso(sys1) && !issiso(sys2) # Check !issiso(sys2) to avoid calling fill if both are siso
+        sys1 = append(sys1 for i in 1:sys2.ny)
+    elseif issiso(sys2)
+        sys2 = append(sys2 for i in 1:sys1.nu)
     end
-    timeevol = common_timeevol(sys1,sys2)
-    T = promote_type(eltype(sys1.A),eltype(sys2.A))
-    A = [sys1.A    sys1.B*sys2.C;
-         zeros(T, sys2.nx, sys1.nx)  sys2.A]
-    B = [sys1.B*sys2.D ; sys2.B]
-    C = [sys1.C   sys1.D*sys2.C;]
-    D = [sys1.D*sys2.D;]
-
-    return HeteroStateSpace(A, B, C, D, timeevol)
+    return sys1 * sys2
 end
 
-*(sys::ST, n::Number) where ST <: AbstractStateSpace = StateSpace(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
-*(n::Number, sys::AbstractStateSpace) = *(sys, n)
+function Base.Broadcast.broadcasted(::typeof(*), sys1::ST, M::AbstractArray) where {ST <: AbstractStateSpace}
+    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`. See also function `array2mimo`.")
+    sys1 .* ss(M, sys1.timeevol) # If diagonal, broadcast by replicating input channels
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::ST) where {ST <: AbstractStateSpace}
+    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `array .* Ref(sys)`. See also function `array2mimo`.")
+    ss(M, sys1.timeevol) .* sys1 # If diagonal, broadcast by replicating output channels
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), sys1::Base.RefValue{ST}, M::AbstractArray) where {ST <: AbstractStateSpace}
+    sys1 = sys1[]
+    issiso(sys1) || error("Only SISO statespace systems can be broadcasted")
+    T = promote_type(numeric_type(sys1), eltype(M))
+    A,B,C,D = ssdata(sys1)
+    nx = sys1.nx
+    ny,nu = size(M,1), size(M,2)
+    Ae = cat(fill(A, ny*nu)..., dims=(1,2))
+    Be::Matrix{T} = ControlSystems.blockdiag(B for i in 1:nu)
+    Be = repeat(Be, ny, 1)
+
+    Ce::Matrix{T} = repeat(C, 1, nu)
+    Ce = ControlSystems.blockdiag(Ce for i in 1:ny)
+    Ce = Ce * kron(Diagonal(vec(M')), I(nx))
+
+    De = D .* M
+    sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::Base.RefValue{ST}) where {ST <: AbstractStateSpace}
+    sys1 = sys1[]
+    issiso(sys1) || error("Only SISO statespace systems can be broadcasted")
+    T = promote_type(numeric_type(sys1), eltype(M))
+    A,B,C,D = ssdata(sys1)
+    nx = sys1.nx
+    ny,nu = size(M,1), size(M,2)
+    Ae = cat(fill(A, ny*nu)..., dims=(1,2))
+    Be::Matrix{T} = ControlSystems.blockdiag(convert(Matrix{T}, B) for i in 1:nu)
+    Be = repeat(Be, ny, 1)
+    Be = kron(Diagonal(vec(M')), I(nx)) * Be
+
+    Ce::Matrix{T} = repeat(convert(Matrix{T}, C), 1, nu)
+    Ce = ControlSystems.blockdiag(Ce for i in 1:ny)
+
+    De = D .* M
+    sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
+end
+
+*(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B*n, sys.C, sys.D*n, sys.timeevol)
+*(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
+
 
 ## DIVISION ##
 /(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = sys1*inv(sys2)
@@ -334,11 +349,12 @@ function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     catch
         error("D isn't invertible")
     end
-    return ST(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.timeevol)
+    return basetype(ST)(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.timeevol)
 end
 
 Base.inv(sys::AbstractStateSpace) = 1/sys
-/(sys::ST, n::Number) where ST <: AbstractStateSpace = ST(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
+/(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B/n, sys.C, sys.D/n, sys.timeevol)
+Base.:\(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
 
 
 #####################################################################
@@ -355,7 +371,7 @@ function Base.getindex(sys::ST, inds...) where ST <: AbstractStateSpace
         error("Must specify 2 indices to index statespace model")
     end
     rows, cols = index2range(inds...) # FIXME: ControlSystems.index2range(inds...)
-    return ST(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.timeevol)
+    return basetype(ST)(copy(sys.A), sys.B[:, cols], sys.C[rows, :], sys.D[rows, cols], sys.timeevol)
 end
 
 function Base.getproperty(sys::AbstractStateSpace, s::Symbol)
@@ -376,6 +392,10 @@ function Base.getproperty(sys::AbstractStateSpace, s::Symbol)
     else
         return getfield(sys, s)
     end
+end
+
+function Base.propertynames(s::AbstractStateSpace, private::Bool=false)
+    (fieldnames(typeof(s))..., :nu, :ny, :nx, (isdiscrete(s) ? (:Ts,) : ())...)
 end
 
 #####################################################################
@@ -426,6 +446,8 @@ end
 Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
 
 For information about the options, see `?ControlSystems.MatrixPencils.lsminreal`
+
+See also [`sminreal`](@ref), which is both numerically exact and substantially faster than `minreal`, but with a much more limited potential in removing non-minimal dynamics.
 """
 function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <: AbstractStateSpace
     A,B,C,D = ssdata(sys)

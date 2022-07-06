@@ -1,24 +1,23 @@
-function freqresp(sys::DelayLtiSystem, ω::AbstractVector{T}) where {T <: Real}
+function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}) where {T, W <: Real}
     ny = noutputs(sys)
     nu = ninputs(sys)
+    @boundscheck size(R) == (ny,nu,length(ω))
+    P_fr = freqresp(sys.P.P, ω)
 
-    P_fr = freqresp(sys.P.P, ω);
+    cache = cis.(ω[1].*sys.Tau)
 
-    G_fr = zeros(eltype(P_fr), length(ω), ny, nu)
-
-    for ω_idx=1:length(ω)
-        P11_fr = P_fr[ω_idx, 1:ny, 1:nu]
-        P12_fr = P_fr[ω_idx, 1:ny, nu+1:end]
-        P21_fr = P_fr[ω_idx, ny+1:end, 1:nu]
-        P22_fr = P_fr[ω_idx, ny+1:end, nu+1:end]
-
-        delay_matrix_inv_fr = Diagonal(exp.(im*ω[ω_idx]*sys.Tau)) # Frequency response of the diagonal matrix with delays
+    @views for ω_idx=1:length(ω)
+        P11_fr = P_fr[1:ny, 1:nu, ω_idx]
+        P12_fr = P_fr[1:ny, nu+1:end, ω_idx]
+        P21_fr = P_fr[ny+1:end, 1:nu, ω_idx]
+        P22_fr = P_fr[ny+1:end, nu+1:end, ω_idx]
+        @. cache = cis(ω[ω_idx]*sys.Tau)
+        delay_matrix_inv_fr = Diagonal(cache) # Frequency response of the diagonal matrix with delays
         # Inverse of the delay matrix, so there should not be any minus signs in the exponents
 
-        G_fr[ω_idx,:,:] .= P11_fr + P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
+        R[:,:,ω_idx] .= P11_fr .+ P12_fr/(delay_matrix_inv_fr - P22_fr)*P21_fr # The matrix is invertible (?!)
     end
-
-    return G_fr
+    return R
 end
 
 function evalfr(sys::DelayLtiSystem, s)
@@ -59,32 +58,35 @@ function c2d(G::DelayLtiSystem, Ts::Real, method=:zoh)
     if !(method === :zoh)
         error("c2d for DelayLtiSystems only supports zero-order hold")
     end
-    X = append([delayd_ss(τ, Ts) for τ in G.Tau]...)
+    X = append(delayd_ss(τ, Ts) for τ in G.Tau)
     Pd = c2d(G.P.P, Ts)
     return lft(Pd, X)
 end
 
 
 """
-    `y, t, x = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), abstol=1e-6, reltol=1e-6, kwargs...)`
+    res = lsim(sys::DelayLtiSystem, u, t::AbstractArray{<:Real}; x0=fill(0.0, nstates(sys)), alg=MethodOfSteps(Tsit5()), abstol=1e-6, reltol=1e-6, force_dtmin=true, kwargs...)
 
-    Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
+Simulate system `sys`, over time `t`, using input signal `u`, with initial state `x0`, using method `alg` .
 
-    Arguments:
+Arguments:
 
-    `t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
-    `u`: Function to determine control signal `ut` at a time `t`, on any of the following forms:
-        Can be a constant `Number` or `Vector`, interpreted as `ut .= u` , or
-        Function `ut .= u(t)`, or
-        In-place function `u(ut, t)`. (Slightly more effienct)
-    `alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
+`t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
+`u`: Function to determine control signal `ut` at a time `t`, on any of the following forms:
+- A constant `Number` or `Vector`, interpreted as `ut .= u`
+- Function `ut .= u(t)`
+- In-place function `u(ut, t)`. (Slightly more effienct)
 
-    Returns: times `t`, and `y` and `x` at those times.
+`alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
+
+This methods sets `force_dtmin=true` by default to handle the discontinuity implied by, e.g., step inputs. This may lead to the solver taking a long time to solve ill-conditioned problems rather than exiting early with a warning.
+
+Returns an instance of [`SimResult`](@ref) which can be plotted directly or destructured into `y, t, x, u = res`.
 """
 function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
         x0=fill(zero(T), nstates(sys)),
         alg=DelayDiffEq.MethodOfSteps(Tsit5()),
-        abstol=1e-6, reltol=1e-6,
+        abstol=1e-6, reltol=1e-6, force_dtmin = true,
         kwargs...) where {T,S}
 
     # Make u! in-place function of u
@@ -96,7 +98,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
         (out, t) -> (out .= u(t))
     end
 
-    _lsim(sys, u!, t, x0, alg; abstol=abstol, reltol=reltol, kwargs...)
+    _lsim(sys, u!, t, x0, alg; abstol, reltol, force_dtmin, kwargs...)
 end
 
 # Generic parametrized dde used for simulating DelayLtiSystem
@@ -282,7 +284,7 @@ end
 
 # Used for pade approximation
 """
-`p2 = _linscale(p::Polynomial, a)`
+    p2 = _linscale(p::Polynomial, a)
 
 Given a polynomial `p` and a number `a, returns the polynomials `p2` such that
 `p2(s) == p(a*s)`.
@@ -334,6 +336,6 @@ Approximate all time-delays in `G` by Padé approximations of degree `N`.
 function pade(G::DelayLtiSystem, N)
     ny, nu = size(G)
     nTau = length(G.Tau)
-    X = append([ss(pade(τ,N)) for τ in G.Tau]...) # Perhaps append should be renamed blockdiag
+    X = append(ss(pade(τ,N)) for τ in G.Tau) # Perhaps append should be renamed blockdiag
     return lft(G.P.P, X)
 end

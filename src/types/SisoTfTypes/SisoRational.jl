@@ -1,8 +1,8 @@
 ## User should just use TransferFunction
 struct SisoRational{T} <: SisoTf{T}
-    num::Polynomial{T}
-    den::Polynomial{T}
-    function SisoRational{T}(num::Polynomial{T}, den::Polynomial{T}) where T <: Number
+    num::Polynomial{T, :x}
+    den::Polynomial{T, :x}
+    function SisoRational{T}(num::Polynomial{T, S}, den::Polynomial{T, S}) where {T <: Number, S}
         if isequal(den, zero(den))
             error("Cannot create SisoRational with zero denominator")
         elseif isequal(num, zero(num))
@@ -14,12 +14,12 @@ struct SisoRational{T} <: SisoTf{T}
 end
 function SisoRational(num::Polynomial{T1}, den::Polynomial{T2}) where T1 <: Number where T2 <: Number
     T = promote_type(T1,T2)
-    SisoRational{T}(Polynomial{T}(num.coeffs), Polynomial{T}(den.coeffs))
+    SisoRational{T}(Polynomial{T, :x}(num.coeffs), Polynomial{T, :x}(den.coeffs))
 end
-SisoRational{T}(num::Polynomial, den::Polynomial) where T = SisoRational{T}(convert(Polynomial{T}, num), convert(Polynomial{T}, den))
+SisoRational{T}(num::Polynomial, den::Polynomial) where T = SisoRational{T}(convert(Polynomial{T, :x}, num), convert(Polynomial{T, :x}, den))
 
 function SisoRational{T}(num::AbstractVector, den::AbstractVector) where T <: Number # NOTE: Typearguemnts on the parameters?
-    SisoRational{T}(Polynomial{T}(reverse(num)), Polynomial{T}(reverse(den)))
+    SisoRational{T}(Polynomial{T, :x}(reverse(num)), Polynomial{T, :x}(reverse(den)))
 end
 function SisoRational(num::AbstractVector{T1}, den::AbstractVector{T2}) where T1 <: Number where T2 <: Number
     T = promote_type(T1,T2)
@@ -63,13 +63,6 @@ function print_siso(io::IO, f::SisoRational, var=:s)
     println(io, denstr)
 end
 
-# TODO is this working?
-function print_compact(io::Base.IO, f::SisoRational, var)
-    numstr = sprint(print_poly, f.num)
-    denstr = sprint(print_poly, f.den)
-    println(io, "($numstr)/($denstr)")
-end
-
 numvec(f::SisoRational) = reverse(coeffs(f.num))
 denvec(f::SisoRational) = reverse(coeffs(f.den))
 
@@ -89,11 +82,29 @@ function evalfr(f::SisoRational{T}, s::Number) where T
     end
 end
 
-==(f1::SisoRational, f2::SisoRational) = (f1.num * f2.den[1] == f2.num * f1.den[1] && f1.den * f2.den[1] == f2.den * f1.den[1]) # NOTE: Not in analogy with how it's done for SisoZpk
+function ==(f1::SisoRational, f2::SisoRational)
+    # Get representation of num/den so index access is correct
+    f1num, f1den = numvec(f1), denvec(f1)
+    f2num, f2den = numvec(f2), denvec(f2)
+    (f1num * f2den[1] == f2num * f1den[1] && f1den * f2den[1] == f2den * f1den[1]) # NOTE: Not in analogy with how it's done for SisoZpk
+end
 
 # We might want to consider alowing scaled num and den as equal
 function isapprox(f1::SisoRational, f2::SisoRational; rtol::Real=sqrt(eps()), atol::Real=0)
-    isapprox(f1.num * f2.den[1], f2.num * f1.den[1], rtol=rtol, atol=atol) && isapprox(f1.den * f2.den[1], f2.den * f1.den[1], rtol=rtol, atol=atol)
+    # Get representation of num/den so index access is correct
+    f1num, f1den = numvec(f1), denvec(f1)
+    f2num, f2den = numvec(f2), denvec(f2)
+    if length(f1num) < length(f2num)
+        f1num = [zeros(length(f2num) - length(f1num)); f1num]
+    elseif length(f2num) < length(f1num)
+        f2num = [zeros(length(f1num) - length(f2num)); f2num]
+    end
+    if length(f1den) < length(f2den)
+        f1den = [zeros(length(f2den) - length(f1den)); f1den]
+    elseif length(f2den) < length(f1den)
+        f2den = [zeros(length(f1den) - length(f2den)); f2den]
+    end
+    isapprox(f1num * f2den[1], f2num * f1den[1], rtol=rtol, atol=atol) && isapprox(f1den * f2den[1], f2den * f1den[1], rtol=rtol, atol=atol)
 end
 
 +(f1::SisoRational, f2::SisoRational) = SisoRational(f1.num*f2.den + f2.num*f1.den, f1.den*f2.den)
@@ -108,7 +119,7 @@ end
 #.-(f::SisoRational, n::Number) = -(t, n)
 #.-(n::Number, f::SisoRational) = -(n, t)
 
--(f::SisoRational) = SisoRational(-f.num, f.den)
+-(f::SisoRational) = SisoRational((-f.num)::typeof(f.num), f.den) # typeassert due to https://github.com/JuliaMath/Polynomials.jl/issues/395 and can be removed once that is closed
 
 # We overload this method to circumvent the Base methods use of promote_op(matprod,...)
 function (*)(A::AbstractMatrix{<:SisoRational}, B::AbstractMatrix{<:SisoRational})

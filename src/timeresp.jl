@@ -2,21 +2,53 @@
 
 # XXX : `step` is a function in Base, with a different meaning than it has
 # here. This shouldn't be an issue, but it might be.
+struct LsimWorkspace{T}
+    x::Matrix{T}
+    u::Matrix{T}
+    y::Matrix{T}
+end
+function LsimWorkspace{T}(ny::Int, nu::Int, nx::Int, N::Int) where T
+    x = Matrix{T}(undef, nx, N)
+    u = Matrix{T}(undef, nu, N)
+    y = Matrix{T}(undef, ny, N)
+    LsimWorkspace{T}(x, u, y)
+end
+
+"""
+    LsimWorkspace(sys::AbstractStateSpace, N::Int)
+    LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix)
+    LsimWorkspace{T}(ny, nu, nx, N)
+
+Genereate a workspace object for use with the in-place function [`lsim!`](@ref).
+`sys` is the discrete-time system to be simulated and `N` is the number of time steps, alternatively, the input `u` can be provided instead of `N`.
+Note: for threaded applications, create one workspace object per thread. 
+"""
+function LsimWorkspace(sys::AbstractStateSpace, N::Int)
+    T = numeric_type(sys)
+    x = Matrix{T}(undef, sys.nx, N)
+    u = Matrix{T}(undef, sys.nu, N)
+    y = Matrix{T}(undef, sys.ny, N)
+    LsimWorkspace(x, u, y)
+end
+
+LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix) = LsimWorkspace(sys, size(u, 2))
+
 """
     y, t, x = step(sys[, tfinal])
     y, t, x = step(sys[, t])
 
 Calculate the step response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
-locations.
+locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
     nx = nstates(sys)
-    u_element = [one(eltype(t))] # to avoid allocating this multiple times
-    u = (x,t)->u_element
+    u = let u_element = [one(eltype(t))] # to avoid allocating this multiple times
+        (x,t)->u_element
+    end
     x0 = zeros(T, nx)
     if nu == 1
         y, tout, x, uout = lsim(sys, u, t; x0, method, kwargs...)
@@ -40,7 +72,7 @@ Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t
 
 Calculate the impulse response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
-locations.
+locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
 function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
@@ -49,13 +81,12 @@ function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
     nx = nstates(sys)
     if iscontinuous(sys) #&& method === :cont
         u = (x,t) -> [zero(T)]
-        # impulse response equivalent to unforced response of
-        # ss(A, 0, C, 0) with x0 = B.
-        imp_sys = ss(sys.A, zeros(T, nx, 1), sys.C, zeros(T, ny, 1))
+        # impulse response equivalent to unforced response with x0 = B.
+        imp_sys = ss(sys.A, zeros(T, nx, nu), sys.C, 0)
         x0s = sys.B
     else
-        u = (x,i) -> (i == t[1] ? [one(T)]/sys.Ts : [zero(T)])
-        imp_sys = sys
+        u_element = [zero(T)]
+        u = (x,i) -> (i == t[1] ? [one(T)]/sys.Ts : u_element)
         x0s = zeros(T, nx, nu)
     end
     if nu == 1 # Why two cases # QUESTION: Not type stable?
@@ -85,13 +116,19 @@ The result structure contains the fields `y, t, x, u` and can be destructured au
 ```julia
 y, t, x, u = result
 ```
+`result::SimResult` can also be plotted directly:
+```julia
+plot(result, plotu=true, plotx=false)
+```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower level inteface, see `?Simulator` and `?solve`
+Continuous-time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
-To simulate a unit step, use `(x,i)-> 1`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
+To simulate a unit step at `t=t₀`, use `(x,i)-> Ts*i ≥ t₀`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
+
+For maximum performance, see function [`lsim!`](@ref), avaialable for discrete-time systems only.
 
 Usage example:
 ```julia
@@ -106,8 +143,8 @@ Q = I
 R = I
 L = lqr(sys,Q,R)
 
-u(x,t) = -L*x # Form control law,
-t=0:0.1:5
+u(x,t) = -L*x # Form control law
+t  = 0:0.1:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
@@ -147,7 +184,10 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     end
 
     x = ltitr(dsys.A, dsys.B, u, x0)
-    y = sys.C*x + sys.D*u
+    y = sys.C*x
+    if !iszero(sys.D)
+        mul!(y, sys.D, u, 1, 1)
+    end
     return SimResult(y, t, x, u, dsys) # saves the system that actually produced the simulation
 end
 
@@ -165,9 +205,22 @@ function lsim(sys::AbstractStateSpace, u::Function, tfinal::Real; kwargs...)
 end
 
 # Function for DifferentialEquations lsim
-function f_lsim(dx, x, p, t) 
+"""
+    f_lsim(dx, x, p, t)
+
+Internal function: Dynamics equation for simulation of a linear system.
+
+# Arguments:
+- `dx`: State derivative vector written to in place.
+- `x`: State
+- `p`: is equal to `(A, B, u)` where `u(x, t)` returns the control input
+- `t`: Time
+"""
+@inline function f_lsim(dx, x, p, t) 
     A, B, u = p
-    dx .= A * x .+ B * u(x, t)
+    # dx .= A * x .+ B * u(x, t)
+    mul!(dx, A, x)
+    mul!(dx, B, u(x, t), 1, 1)
 end
 
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
@@ -182,7 +235,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
-    dt = T(t[2] - t[1])
+    dt = t[2] - t[1]
 
     if !iscontinuous(sys) || method === :zoh
         if iscontinuous(sys)
@@ -196,17 +249,23 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         x,uout = ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]), p), alg; saveat=t, kwargs...)
-        x = reduce(hcat, sol.u)
-        uout = reduce(hcat, u(x[:, i], t[i]) for i in eachindex(t))
+        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; saveat=t, kwargs...)
+        x = reduce(hcat, sol.u)::Matrix{T}
+        uout = Matrix{T}(undef, nu, length(t))
+        for i = eachindex(t)
+            uout[:, i] = u(@view(x[:, i]), t[i])
+        end
         simsys = sys
     end
-    y = sys.C*x + sys.D*uout
+    y = sys.C*x
+    if !iszero(sys.D)
+        mul!(y, sys.D, uout, 1, 1)
+    end
     return SimResult(y, t, x, uout, simsys) # saves the system that actually produced the simulation
 end
 
 
-lsim(sys::TransferFunction, u, t; kwargs...) = lsim(ss(sys), u, t; kwargs...)
+lsim(sys::TransferFunction, args...; kwargs...) = lsim(ss(sys), args...; kwargs...)
 
 
 """
@@ -221,20 +280,33 @@ e.g, `x0` should prefereably not be a sparse vector.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
-@views function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
-        x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
+function ltitr(A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
+    x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
 
     T = promote_type(LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(A), eltype(x0)),
-                      LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
+                  LinearAlgebra.promote_op(LinearAlgebra.matprod, eltype(B), eltype(u)))
 
     n = size(u, 2)
-
     # Using similar instead of Matrix{T} to allow for CuArrays to be used.
     # This approach is problematic if x0 is sparse for example, but was considered
     # to be good enough for now
     x = similar(x0, T, (length(x0), n))
+    ltitr!(x, A, B, u, x0)
+end
 
+function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
+    x0::AbstractVecOrMat=zeros(T, size(A, 1))) where T
+    iters = length(t)
+    x = similar(A, size(A, 1), iters)
+    uout = similar(A, size(B, 2), iters)
+    ltitr!(x, uout, A, B, u, t, x0)
+end
+
+## In-place
+@views function ltitr!(x, A::AbstractMatrix, B::AbstractMatrix, u::AbstractVecOrMat,
+    x0::AbstractVecOrMat=zeros(eltype(A), size(A, 1)))
     x[:,1] .= x0
+    n = size(u, 2)
     mul!(x[:, 2:end], B, u[:, 1:end-1]) # Do all multiplications B*u[:,k] to save view allocations
 
     for k=1:n-1
@@ -243,18 +315,53 @@ If `u` is a function, then `u(x,i)` is called to calculate the control signal ev
     return x
 end
 
-function ltitr(A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
+@views function ltitr!(x, uout, A::AbstractMatrix{T}, B::AbstractMatrix{T}, u::Function, t,
     x0::AbstractVecOrMat=zeros(T, size(A, 1))) where T
-    iters = length(t)
-    x = similar(A, size(A, 1), iters)
-    uout = similar(A, size(B, 2), iters)
-
-    for i=1:iters
-        x[:,i] = x0
-        uout[:,i] .= u(x0,t[i])
-        x0 = A * x0 + B * uout[:,i]
+    size(x,2) == length(t) == size(uout, 2) || throw(ArgumentError("Inconsistent array sizes."))
+    x[:, 1] .= x0
+    @inbounds for i=1:length(t)-1
+        xi = x[:,i]
+        xp = x[:,i+1]
+        uout[:,i] .= u(xi,t[i])
+        mul!(xp, B, uout[:,i])
+        mul!(xp, A, xi, true, true)
     end
+    uout[:,end] .= u(x[:,end],t[end])
     return x, uout
+end
+
+function lsim!(ws::LsimWorkspace, sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
+    t = range(0, length=size(u, 2), step=sys.Ts)
+    lsim!(ws, sys, u, t; kwargs...)
+end
+
+"""
+    res = lsim!(ws::LsimWorkspace, sys::AbstractStateSpace{<:Discrete}, u, [t]; x0)
+
+In-place version of [`lsim`](@ref) that takes a workspace object created by calling [`LsimWorkspace`](@ref).
+*Notice*, if `u` is a function, `res.u === ws.u`. If `u` is an array, `res.u === u`.
+"""
+function lsim!(ws::LsimWorkspace{T}, sys::AbstractStateSpace{<:Discrete}, u, t::AbstractVector;
+        x0::AbstractVecOrMat=zeros(eltype(T), nstates(sys))) where T
+
+    x, y = ws.x, ws.y
+    size(x, 2) == length(t) || throw(ArgumentError("Inconsitent lengths of workspace cache and t"))
+    arr = u isa AbstractArray
+    if arr
+        copyto!(ws.u, u)
+        ltitr!(x, sys.A, sys.B, u, x0)
+    else # u is a function
+        ltitr!(x, ws.u, sys.A, sys.B, u, t, x0)
+    end
+    mul!(y, sys.C, x)
+    if !iszero(sys.D)
+        mul!(y, sys.D, arr ? u : ws.u, 1, 1)
+    end
+    if arr
+        SimResult(y, t, x, u, sys)
+    else
+        SimResult(y, t, x, ws.u, sys)
+    end
 end
 
 # HELPERS:

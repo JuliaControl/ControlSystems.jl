@@ -18,7 +18,7 @@ DocTestSetup = quote
     save_docs_plot(p, name) = Plots.savefig(p, joinpath(plotsDir,name))
 end
 ```
-Transfer functions can easily be created using the function `tf(num, den, Ts=0)`, where `num` and `den` are vectors representing the numerator and denominator of a rational function. See [`tf`](@ref) or the section "Creating Transfer Functions" for more info. These functions can then be connected and modified using the operators `+,-,*,/` and functions like [`append`](@ref).
+State-space systems can be created using the function [`ss`](@ref) and transfer functions can be created using the function `tf(num, den)` or `tf(num, den, Ts)`, where `num` and `den` are vectors representing the numerator and denominator of a rational function and `Ts` is the sample time for a discrete-time system. See [`tf`](@ref) or the section [Creating Systems] for more info. These functions can then be connected and modified using the operators `+,-,*,/` and functions like [`append`](@ref).
 
 Example:
 ```jldoctest INTRO
@@ -48,21 +48,19 @@ TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
 
 Continuous-time transfer function model
 ```
-## Plotting
-Plotting requires some extra care. The ControlSystems package is using `RecipesBase.jl` ([link](https://github.com/JuliaPlots/RecipesBase.jl)) as interface to generate all the plots. This means that it is up to the user to choose a plotting library that supports `RecipesBase.jl`, a suggestion would be `Plots.jl` with which the user is also able to freely choose a back-end. The plots in this manual are generated using `Plots.jl` with the `GR` backend. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is
-```jldoctest; output=false
-using Plots
-
-fig = bodeplot(tf(1,[1,2,1]))
-
-savefig(fig, "myfile.svg")
-
-save_docs_plot(fig, "intro_bode.svg") # hide
-
-# output
-
+or use `feedback(P)` to get a minimal realization directly (recommended):
+```@example INTRO
+feedback(P) # Equivalent to P/(1+P)
 ```
 
-![](../../plots/intro_bode.svg)
+!!! note "Numerical accuracy"
+    Transfer functions represent systems using polynomials and may have poor numerical properties for high-order systems. Well-balanced state-space representations are often better behaved. See [Performance considerations](@ref) for more details.
+
+## Plotting
+The ControlSystems package is using `RecipesBase.jl` ([link](https://github.com/JuliaPlots/RecipesBase.jl)) as interface to generate all the plots. This means that it is up to the user to choose a plotting library that supports `RecipesBase.jl`, a suggestion would be `Plots.jl` with which the user is also able to freely choose a back-end. The plots in this manual are generated using `Plots.jl` with the `GR` backend. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is
+```@example
+using Plots
+bodeplot(tf(1,[1,2,1]))
+```
 
 More examples of plots are provided in [Plotting](@ref).

@@ -135,32 +135,33 @@ end
 
 
 """
-See ?rstd for the discerte case
+See `?rstd` for the discrete case
 """
 rstc(args...)=rst(args..., ;cont=true)
 
 """
-    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)
-    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)
-    R,S,T=rstd(BPLUS,BMINUS,A,BM1,AM,AO)
+    R,S,T = rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR,AS)
+    R,S,T = rstd(BPLUS,BMINUS,A,BM1,AM,AO,AR)
+    R,S,T = rstd(BPLUS,BMINUS,A,BM1,AM,AO)
 
-rstd  Polynomial synthesis in discrete time.
+Polynomial synthesis in discrete time.
 
 Polynomial synthesis according to CCS ch 10 to
-design a controller R(q) u(k) = T(q) r(k) - S(q) y(k)
+design a controller ``R(q) u(k) = T(q) r(k) - S(q) y(k)``
 
-Inputs:  BPLUS  : Part of open loop numerator
-BMINUS : Part of open loop numerator
-A      : Open loop denominator
-BM1    : Additional zeros
-AM     : Closed loop denominator
-AO     : Observer polynomial
-AR     : Pre-specified factor of R,
+Inputs:
+- `BPLUS`  : Part of open loop numerator
+- `BMINUS` : Part of open loop numerator
+- `A`      : Open loop denominator
+- `BM1`    : Additional zeros
+- `AM`     : Closed loop denominator
+- `AO`     : Observer polynomial
+- `AR`     : Pre-specified factor of R,
 e.g integral part [1, -1]^k
-AS     : Pre-specified factor of S,
+- `AS`     : Pre-specified factor of S,
 e.g notch filter [1, 0, w^2]
 
-Outputs: R,S,T  : Polynomials in controller
+Outputs: `R,S,T`  : Polynomials in controller
 
 See function `dab` how the solution to the Diophantine-
 Aryabhatta-Bezout identity is chosen.
@@ -174,10 +175,10 @@ rstd(args...)=rst(args..., ;cont=false)
 """
     X,Y = dab(A,B,C)
 
-DAB   Solves the Diophantine-Aryabhatta-Bezout identity
+Solves the Diophantine-Aryabhatta-Bezout identity
 
-AX + BY = C, where A, B, C, X and Y are polynomials
-and deg Y = deg A - 1.
+``AX + BY = C``, where ``A, B, C, X`` and ``Y`` are polynomials
+and ``deg Y = deg A - 1``.
 
 See Computer-Controlled Systems: Theory and Design, Third Edition
 Karl Johan Åström, Björn Wittenmark
@@ -267,7 +268,7 @@ end
 """
     zpc(a,r,b,s)
 
-form conv(a,r) + conv(b,s) where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
+form `conv(a,r) + conv(b,s)` where the lengths of the polynomials are equalized by zero-padding such that the addition can be carried out
 """
 function zpconv(a,r,b,s)
     d = length(a)+length(r)-length(b)-length(s)

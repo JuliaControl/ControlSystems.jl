@@ -15,15 +15,9 @@ export  LTISystem,
         # Linear Algebra
         balance,
         balance_statespace,
-        care,
-        dare,
-        dlyap,
+        are,
         lqr,
-        dlqr,
         kalman,
-        dkalman,
-        lqg,
-        lqgi,
         covar,
         norm,
         hinfnorm,
@@ -40,7 +34,7 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
-        prescale,
+        time_scale,
         innovation_form,
         observer_predictor,
         observer_controller,
@@ -61,10 +55,19 @@ export  LTISystem,
         append,
         series,
         parallel,
+        array2mimo,
         feedback,
         feedback2dof,
         starprod,
         lft,
+        sensitivity,
+        input_sensitivity,
+        output_sensitivity,
+        comp_sensitivity,
+        input_comp_sensitivity,
+        output_comp_sensitivity,
+        G_PS,
+        G_CS,
         # Discrete
         c2d,
         c2d_x0map,
@@ -73,17 +76,22 @@ export  LTISystem,
         step,
         impulse,
         lsim,
+        lsim!,
+        LsimWorkspace,
         solve,
         Simulator,
         # Frequency Response
-        freqresp, freqrespv,
+        freqresp, freqrespv, freqresp!,
         evalfr,
         bode, bodev,
+        bodemag!,
+        BodemagWorkspace,
         nyquist, nyquistv,
         sigma, sigmav,
         # delay systems
         delay,
         pade,
+        nonlinearity,
         # demo systems
         ssrand,
         DemoSystems, # A module containing some example systems
@@ -96,7 +104,9 @@ export  LTISystem,
         denpoly,
         iscontinuous,
         isdiscrete,
-        ssdata
+        ssdata,
+        add_input,
+        add_output
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
@@ -112,10 +122,12 @@ export lyap # Make sure LinearAlgebra.lyap is available
 import Printf, Colors
 import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
+using ForwardDiff
 import MatrixPencils
 using DelayDiffEq
 using MacroTools
 using MatrixEquations
+using UUIDs # to load Plots in gangoffourplot
 
 abstract type AbstractSystem end
 
@@ -140,8 +152,10 @@ include("types/SisoTfTypes/conversion.jl")
 include("types/StateSpace.jl")
 
 # TODO Sample time
-include("types/PartionedStateSpace.jl")
+include("types/PartitionedStateSpace.jl")
+include("types/LFTSystem.jl")
 include("types/DelayLtiSystem.jl")
+include("types/HammersteinWiener.jl")
 
 # Convenience constructors
 include("types/tf.jl")
@@ -152,6 +166,7 @@ include("utilities.jl")
 include("types/promotion.jl")
 include("types/conversion.jl")
 include("connections.jl")
+include("sensitivity_functions.jl")
 
 # Analysis
 include("freqresp.jl")
@@ -170,6 +185,7 @@ include("pid_design.jl")
 include("demo_systems.jl")
 
 include("delay_systems.jl")
+include("hammerstein_weiner.jl")
 
 include("plotting.jl")
 

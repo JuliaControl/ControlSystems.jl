@@ -1,5 +1,5 @@
 import Colors
-export lsimplot, stepplot, impulseplot, bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
+export bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
 _PlotScale = "log10"
 _PlotScaleFunc = :log10
@@ -25,90 +25,93 @@ function setPlotScale(str::AbstractString)
     _PlotScale, _PlotScaleFunc, _PlotScaleStr = plotSettings
 end
 
-"""
-Get atributes from xlims or ylims
-default to extrema(wmag) if xlims/ylims not defined or empty
-"""
-function getlims(xylims, plotattributes, wmag)
-    lims = get(plotattributes, xylims, extrema(wmag))
-    if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
-        lims = extrema(wmag)
-    end
-    if !isempty(get_serieslist(plotattributes))
-        subplot = get(plotattributes, :subplot, 0)
-        (subplot == 0 || (subplot isa Array)) && (return lims)
-        se = seriesextrema(xylims, plotattributes, subplot)
-        lims = extremareducer(lims, se)
-    end
-    lims
-end
+# """
+# Get atributes from xlims or ylims
+# default to extrema(wmag) if xlims/ylims not defined or empty
+# """
+# function getlims(xylims, plotattributes, wmag)
+#     lims = get(plotattributes, xylims, extrema(wmag))
+#     if !isa(lims, Tuple{<:Number, <:Number}) # If x/ylims not supplied as empty
+#         lims = extrema(wmag)
+#     end
+#     if !isempty(get_serieslist(plotattributes))
+#         subplot = get(plotattributes, :subplot, 0)
+#         (subplot == 0 || (subplot isa Array)) && (return lims)
+#         se = seriesextrema(xylims, plotattributes, subplot)
+#         lims = extremareducer(lims, se)
+#     end
+#     lims
+# end
 
-get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
-get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
+# get_serieslist(plotattributes) = plotattributes[:plot_object].series_list
+# get_serieslist(plotattributes, subplot) = plotattributes[:plot_object].subplots[subplot].series_list
 
-function seriesextrema(xylims, plotattributes, subplot)
-    serieslist = get_serieslist(plotattributes, subplot)
-    isempty(serieslist) && (return (Inf, -Inf))
-    sym = xylims === :xlims ? :x : :y
-    mapreduce(extremareducer, serieslist) do series
-        extrema(series[sym])
-    end
-end
-extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
+# function seriesextrema(xylims, plotattributes, subplot)
+#     serieslist = get_serieslist(plotattributes, subplot)
+#     isempty(serieslist) && (return (Inf, -Inf))
+#     sym = xylims === :xlims ? :x : :y
+#     mapreduce(extremareducer, serieslist) do series
+#         extrema(series[sym])
+#     end
+# end
+# extremareducer(x,y) = (min(x[1],y[1]),max(x[2],y[2]))
 
-function getPhaseTicks(x, minmax)
-    minx, maxx =  minmax
-    min               = ceil(minx/90)
-    max               = floor(maxx/90)
-    if max-min < 5
-        ## If we span less than a full rotation 45° steps are ok
-        major = ((min-0.5):0.5:(max+0.5)).*90
-    else
-        ## Create additional 45° before/behind first/last plot
-        ## this helps identifying at the edges.
-        major = [(min-0.5);min:max;(max+0.5)].*90
-    end
-    majorText = ["$(round(Int64,i))" for i = major]
+# function getPhaseTicks(x, minmax)
+#     minx, maxx =  minmax
+#     min               = ceil(minx/90)
+#     max               = floor(maxx/90)
+#     if max-min < 5
+#         ## If we span less than a full rotation 45° steps are ok
+#         major = ((min-0.5):0.5:(max+0.5)).*90
+#     else
+#         ## Create additional 45° before/behind first/last plot
+#         ## this helps identifying at the edges.
+#         major = [(min-0.5);min:max;(max+0.5)].*90
+#     end
+#     majorText = ["$(round(Int64,i))" for i = major]
 
-    return major, majorText
+#     return major, majorText
 
-end
+# end
 
-function getLogTicks(x, minmax)
-    minx, maxx =  minmax
-    major_minor_limit = 6
-    minor_text_limit  = 8
-    min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
-    max               = floor(log10(maxx))
-    major             = exp10.(min:max)
+# function getLogTicks(x, minmax)
+#     minx, maxx =  minmax
+#     major_minor_limit = 6
+#     minor_text_limit  = 8
+#     min               = minx <= 0 ? minimum(x) : ceil(log10(minx))
+#     max               = floor(log10(maxx))
+#     major             = exp10.(min:max)
 
-    majorText = ["10^{$(round(Int64,i))}" for i = min:max]
+#     majorText = ["10^{$(round(Int64,i))}" for i = min:max]
 
-    if max - min < major_minor_limit
-        minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
-        minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
-        ind       = findall(minx .<= minor .<= maxx)
-        minor     = minor[ind]
-        minorText = minorText[ind]
-        if length(minor) > minor_text_limit
-            minorText = [" " for t in minorText]#fill!(minorText, L" ")
-        end
-        perm = sortperm([major; minor])
-        return [major; minor][perm], [majorText; minorText][perm]
+#     if max - min < major_minor_limit
+#         minor     = [j*exp10(i) for i = (min-1):(max+1) for j = 2:9]
+#         minorText = ["$j*10^{$(round(Int64,i))}" for i = (min-1):(max+1) for j = 2:9]
+#         ind       = findall(minx .<= minor .<= maxx)
+#         minor     = minor[ind]
+#         minorText = minorText[ind]
+#         if length(minor) > minor_text_limit
+#             minorText = [" " for t in minorText]#fill!(minorText, L" ")
+#         end
+#         perm = sortperm([major; minor])
+#         return [major; minor][perm], [majorText; minorText][perm]
 
-    else
-        return major, majorText
-    end
-end
+#     else
+#         return major, majorText
+#     end
+# end
 
 
 # This will be called on plot(lsim(sys, args...))
-@recipe function simresultplot(r::SimResult; plotu=false)
-    ny, nu = r.ny, r.nu
+@recipe function simresultplot(r::SimResult; plotu=false, plotx=false)
+    ny, nu, nx = r.ny, r.nu, r.nx
     t = r.t
     n_series = size(r.y, 3) # step and impulse produce multiple results
-    layout --> ((plotu ? ny + nu : ny), 1)
-    seriestype := iscontinuous(r.sys) ? :path : :steppost
+    nplots = ny
+    plotu && (nplots += nu)
+    plotx && (nplots += nx)
+    layout --> (nplots, 1)
+    seriestype --> (iscontinuous(r.sys) ? :path : :steppost)
     for ms in 1:n_series
         for i=1:ny
             ytext = (ny > 1) ? "y($i)" : "y"
@@ -121,16 +124,31 @@ end
             end
         end
     end 
+    plotind = ny+1
     if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
             utext = (nu > 1) ? "u($i)" : "u"
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> utext
-                subplot --> ny+i
+                subplot --> plotind
                 label --> ""
                 t,  r.u[i, :]
             end
+            plotind += 1
+        end
+    end
+    if plotx
+        for i=1:nx
+            xtext = (nx > 1) ? "x($i)" : "x"
+            @series begin
+                xguide  --> "Time (s)"
+                yguide  --> xtext
+                subplot --> plotind
+                label --> ""
+                t,  r.x[i, :]
+            end
+            plotind += 1
         end
     end
 end
@@ -189,7 +207,7 @@ bodeplot
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
     nw = length(w)
-    xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
+    # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
 
     for (si,s) = enumerate(systems)
@@ -204,23 +222,23 @@ bodeplot
         for j=1:nu
             for i=1:ny
                 group_ind += 1
-                magdata = vec(mag[:, i, j])
+                magdata = vec(mag[i, j, :])
                 if all(magdata .== -Inf)
                     # 0 system, don't plot anything
                     continue
                 end
-                phasedata = vec(phase[:, i, j])
+                phasedata = vec(phase[i, j, :])
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
-                    if _PlotScale != "dB"
-                        yticks    --> getLogTicks(magdata, getlims(:ylims, plotattributes, magdata))
-                    end
+                    # if _PlotScale != "dB"
+                    #     yticks    --> getLogTicks(magdata, getlims(:ylims, plotattributes, magdata))
+                    # end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
                     subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
-                    title     --> "Bode plot from: u($j)"
-                    label     --> "\$G_{$(si)}\$"
+                    # title     --> "Bode plot from: u($j)"
+                    # label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
                     ws, magdata
                 end
@@ -228,12 +246,12 @@ bodeplot
 
                 @series begin
                     xscale    --> :log10
-                    ylims      := ylimsphase
-                    yticks    --> getPhaseTicks(phasedata, getlims(:ylims, plotattributes, phasedata))
+                    # ylims      := ylimsphase
+                    # yticks    --> yphaseticks
                     yguide    --> "Phase (deg)"
                     subplot   --> s2i(2i,j)
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
-                    label     --> "\$G_{$(si)}\$"
+                    # label     --> "\$G_{$(si)}\$"
                     group     --> group_ind
                     ws, unwrap ? ControlSystems.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
@@ -274,21 +292,23 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; Ms_circles=Float64[], unit_circle=false, hz = false, kwargs...)
-    nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], unit_circle=false, kwargs...)
+    fig = nyquistplot(sys; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
+    nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-- `unit_circle`: if the unit circle should be displayed
+- `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain corssover frequency.
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
+- `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
+- `critical_point`: point on real axis to mark as critical for encirclements
 
 If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], unit_circle=false, hz=false)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -301,8 +321,8 @@ nyquistplot
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
-                redata = re_resp[:, i, j]
-                imdata = im_resp[:, i, j]
+                redata = re_resp[i, j, :]
+                imdata = im_resp[i, j, :]
                 ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                 xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
                 title --> "Nyquist plot from: u($j)"
@@ -322,7 +342,7 @@ nyquistplot
                         seriescolor := :red
                         markersize := 5
                         seriesstyle := :scatter
-                        [-1], [0]
+                        [critical_point], [0]
                     end
                     for Ms in Ms_circles
                         @series begin
@@ -334,6 +354,21 @@ nyquistplot
                             markershape := :none
                             label := "Ms = $(round(Ms, digits=2))"
                             (-1 .+ (1/Ms) * C, (1/Ms) * S)
+                        end
+                    end 
+                    for Mt in Mt_circles
+                        @series begin
+                            subplot --> s2i(i,j)
+                            primary := false
+                            linestyle := :dash
+                            linecolor := :gray
+                            seriestype := :path
+                            markershape := :none
+                            label := "Mt = $(round(Mt, digits=2))"
+                            (-1 .+ (1/Mt) * C, (1/Mt) * S)
+                            ct = -Mt^2/(Mt^2-1) # Mt center
+                            rt = Mt/(Mt^2-1)    # Mt radius
+                            ct.+rt.*C, rt.*S
                         end
                     end                
                     if unit_circle 
@@ -505,8 +540,8 @@ nicholsplot
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
     for (sysi,s) = enumerate(systems)
         ℜresp, ℑresp        = nyquist(s, w)[1:2]
-        ℜdata               = dropdims(ℜresp, dims=(2,3))
-        ℑdata               = dropdims(ℑresp, dims=(2,3))
+        ℜdata               = dropdims(ℜresp, dims=(1,2))
+        ℑdata               = dropdims(ℑresp, dims=(1,2))
         mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles              = 180/π*angle(im*ℑdata.+ℜdata)
         extremas = extrema([extremas..., extrema(mag)...])
@@ -544,20 +579,28 @@ sigmaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
-        sv = sigma(s, w)[1]
+        sv = sigma(s, w)[1]'
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
         end
-        for i in 1:size(sv, 2)
-            @series begin
-                xscale --> :log10
-                yscale --> _PlotScaleFunc
-                seriescolor --> si
-                ws, sv[:, i]
-            end
+        @series begin
+            xscale --> :log10
+            yscale --> _PlotScaleFunc
+            seriescolor --> si
+            _to1series(ws, sv)
         end
     end
 end
+
+"This is a helper function to make multiple series into one series separated by `Inf`. This makes plotting vastly more efficient. It's also useful to make many lines appear as a single series with a single legend entry."
+function _to1series(x,y)
+    r,c = size(y)
+    y2 = vec([y; fill(Inf, 1, c)])
+    x2 = repeat([x; Inf], c)
+    x2,y2
+end
+
+_to1series(y) = _to1series(1:size(y,1),y)
 
 @userplot Marginplot
 """
@@ -614,7 +657,7 @@ A frequency vector `w` can be optionally provided.
                     primary := true
                     subplot --> s2i(2i-1,j)
                     seriestype := :bodemag
-                    w, bmag[:, i, j]
+                    w, bmag[i, j, :]
                 end
 
                 primary --> false
@@ -637,7 +680,7 @@ A frequency vector `w` can be optionally provided.
                     primary := true
                     subplot --> s2i(2i,j)
                     seriestype := :bodephase
-                    w, bphase[:, i, j]
+                    w, bphase[i, j, :]
                 end
                 @series begin
                     subplot --> s2i(2i,j)
@@ -732,29 +775,41 @@ pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
 pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 """
-    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, kwargs...)
-    gangoffourplot(P::Union{Vector, LTISystem}, C::Vector; minimal=true, plotphase=false, kwargs...)
+    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, Ms_lines = [1.0, 1.1, 1.2], sigma = true, kwargs...)
 
-Gang-of-Four plot. `kwargs` is sent as argument to RecipesBase.plot.
+Gang-of-Four plot.
+
+`sigma` determines whether a [`sigmaplot`](@ref) is used instead of a [`bodeplot`](@ref) for MIMO `S` and `T`.
+`kwargs` are sent as argument to RecipesBase.plot.
 """
-function gangoffourplot(P::Union{Vector, LTISystem}, C::Vector, args...; minimal=true, plotphase=false, kwargs...)    
+function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.1, 1.2], sigma = true,  plotphase=false, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
-    sys = gangoffour.(P,C; minimal=minimal)
-    fig = bodeplot([[sys[i][1] sys[i][2]; sys[i][3] sys[i][4]] for i = 1:length(C)], args..., plotphase=plotphase; kwargs...)
-    RecipesBase.plot!(fig, [x-> _PlotScale == "dB" ? 0 : 1 for _ in 1:4], l=(:black, :dash), primary=false)
-    titles = fill("", 1, plotphase ? 8 : 4)
-    # Empty titles on phase
-    titleIdx = plotphase ? [1,2,5,6] : [1,2,3,4]
-    titles[titleIdx] = ["S = 1/(1+PC)", "P/(1+PC)", "C/(1+PC)", "T = PC/(1+PC)"]
-    RecipesBase.plot!(fig, title = titles)
-    return fig
+    plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
+    haskey(Base.loaded_modules, plots_id) || error("Call using Plots before calling this function")
+    Plots = Base.loaded_modules[plots_id]
+
+    gofs = gangoffour.(P,C)
+    S,D,N,T = ntuple(i->getindex.(gofs, i), 4)
+    bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, kwargs...)
+    f1 = bp(S, args...; show=false, title="S = 1/(1+PC)", kwargs...)
+    if !isnothing(Ms_lines) && !isempty(Ms_lines)
+        Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(1e-3,8e1))
+    else
+        Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-3,1.8))
+    end
+    f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
+    Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
+    f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
+    f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-3,8e1), kwargs...)
+    Plots.hline!([1], l=(:black, :dash), primary=false)
+    Plots.plot(f1,f2,f3,f4, ticks=:default, ylabel="", legend=:bottomright)
 end
 
 
-function gangoffourplot(P::LTISystem,C::LTISystem, args...; plotphase=false, kwargs...)
-    gangoffourplot(P,[C], args...; plotphase=plotphase, kwargs...)
+function gangoffourplot(P::Union{<:Vector, LTISystem},C::LTISystem, args...; kwargs...)
+    gangoffourplot(P,[C], args...; kwargs...)
 end
 
 @userplot Rgaplot
@@ -780,13 +835,12 @@ rgaplot
     yguide --> "Element magnitudes"
     for (si, s) in enumerate(systems)
         sv = abs.(relative_gain_array(s, w))
-        for j in 1:size(sv, 2)
-            for i in 1:size(sv, 3)
+        for j in 1:size(sv, 1)
+            for i in 1:size(sv, 2)
                 @series begin
                     xscale --> :log10
-                    seriescolor --> si
                     label --> "System $si, from $i to $j"
-                    ws, sv[:, j, i]
+                    ws, sv[j, i, :]
                 end
             end
         end

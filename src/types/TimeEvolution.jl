@@ -23,7 +23,7 @@ Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
 
 undef_sampletime(::Type{Discrete{T}}) where T = Discrete{T}(UNDEF_SAMPLEPETIME)
-undef_sampletime(::Type{Continuous}) where T = Continuous()
+undef_sampletime(::Type{Continuous}) = Continuous()
 
 
 # Promotion
@@ -61,3 +61,7 @@ common_timeevol(x::Continuous, ys::Continuous...) = Continuous()
 isapprox(x::TimeEvolution, y::TimeEvolution, args...; kwargs...) = false
 isapprox(x::Discrete, y::Discrete, args...; kwargs...) = isapprox(x.Ts, y.Ts, args...; kwargs...)
 isapprox(::Continuous, ::Continuous, args...; kwargs...) = true
+
+const TimeEvolType = Union{<:TimeEvolution, Type{<:TimeEvolution}}
+const DiscreteType = Union{Discrete, Type{Discrete}}
+const ContinuousType = Union{Continuous, Type{Continuous}}

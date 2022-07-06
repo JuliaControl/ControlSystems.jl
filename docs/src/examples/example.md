@@ -9,22 +9,24 @@ DocTestSetup = quote
 end
 ```
 
+# Examples
 
-# LQR design
+
+## LQR design
 ```jldoctest; output = false
 using LinearAlgebra # For identity matrix I
 using Plots
 Ts      = 0.1
 A       = [1 Ts; 0 1]
-B       = [0 1]' # To handle bug TODO
+B       = [0; 1]
 C       = [1 0]
-sys     = ss(A,B,C,0, Ts)
+sys     = ss(A,B,C,0,Ts)
 Q       = I
 R       = I
-L       = dlqr(A,B,Q,R) # lqr(sys,Q,R) can also be used
+L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 
 u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
-t       =0:Ts:5
+t       = 0:Ts:5
 x0      = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
@@ -37,8 +39,18 @@ save_docs_plot("lqrplot.svg"); # hide
 
 ![](../../plots/lqrplot.svg)
 
-# PID design functions
+For more advanced LQR and LQG design, see the [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+
+## PID design functions
+A basic PID controller can be constructed using the constructor [`pid`](@ref).
+
+The following examples show basic workflows for designing PI/PID controllers. 
+
+### PI loop shaping example
 By plotting the gang of four under unit feedback for the process
+```math
+P(s) = \dfrac{1}{(s + 1)^4}
+```
 ```jldoctest PIDDESIGN; output = false
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
@@ -51,9 +63,9 @@ save_docs_plot("pidgofplot.svg"); # hide
 ![](../../plots/pidgofplot.svg)
 
 we notice that the sensitivity function is a bit too high around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the
-function `loopshapingPI` and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
+function [`loopshapingPI`](@ref) and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
 
-```jldoctest PIDDESIGN; output = false
+```@example PIDDESIGN
 using Plots
 ωp = 0.8
 C,kp,ki = loopshapingPI(P,ωp,phasemargin=60,form=:paralell)
@@ -62,14 +74,8 @@ p1 = gangoffourplot(P, [tf(1), C]);
 p2 = nyquistplot([P, P*C], ylims=(-1,1), xlims=(-1.5,1.5));
 
 plot(p1,p2, layout=(2,1), size=(800,800))
-# save_docs_plot("pidgofplot2.svg") # hide
-# save_docs_plot("pidnyquistplot.svg"); # hide
-save_docs_plot("pidgofnyquistplot.svg") # hide
-
-# output
-
 ```
-![](../../plots/pidgofnyquistplot.svg)
+
 
 We could also cosider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like
 ```jldoctest PIDDESIGN; output = false
@@ -95,8 +101,8 @@ Here we specify that we want the Nyquist curve `L(iω) = P(iω)C(iω)` to pass t
 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles.
 ![](../../plots/pidgofnyquistplot2.svg)
 
-# Advanced pole-zero placement
-This example illustrates how we can perform advanced pole-zero placement. The task is to make the process a bit faster and damp the poorly damped poles.
+## Advanced pole-zero placement
+This example illustrates how we can perform advanced pole-zero placement. The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
 
 
 Define the process
@@ -105,8 +111,8 @@ Define the process
 ω = 1
 
 B = [1]
-A   = [1, 2ζ*ω, ω^2]
-P  = tf(B,A)
+A = [1, 2ζ*ω, ω^2]
+P = tf(B,A)
 
 # output
 
@@ -118,7 +124,7 @@ TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
 Continuous-time transfer function model
 ```
 
-Define the desired closed loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.
+Define the desired closed-loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.
 ```jldoctest POLEPLACEMENT; output = false
 import DSP: conv
 # Control design
@@ -136,8 +142,8 @@ R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomia
 
 Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
 
-plot(step(P))
-plot!(step(Gcl)) # Visualize the open and closed loop responses.
+plot(step(P, 20))
+plot!(step(Gcl, 20)) # Visualize the open and closed loop responses.
 save_docs_plot("ppstepplot.svg") # hide
 gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
 save_docs_plot("ppgofplot.svg"); # hide
@@ -150,8 +156,8 @@ save_docs_plot("ppgofplot.svg"); # hide
 ![](../../plots/ppgofplot.svg)
 
 
-# Stability boundary for PID controllers
-The stability boundary, where the transfer function `P(s)C(s) = -1`, can be plotted with the command `stabregionPID`. The process can be given in string form or as a regular LTIsystem.
+## Stability boundary for PID controllers
+The stability boundary, i.e., the surface of PID parameters where the transfer function ``P(s)C(s)`` equals -1, can be plotted with the command [`stabregionPID`](@ref). The process can be given in function form or as a regular LTIsystem.
 
 ```jldoctest; output = false
 P1 = s -> exp(-sqrt(s))
@@ -173,10 +179,10 @@ save_docs_plot(f3, "stab3.svg"); # hide
 ![](../../plots/stab3.svg)
 
 
-# PID plots
-This example utilizes the function `pidplots`, which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
+## PID plots
+This example utilizes the function [`pidplots`](@ref), which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
 ```jldoctest PIDPLOTS; output = false
-P = tf([1.],[1., 1])
+P = tf([1.], [1., 1])
 
 ζ = 0.5 # Desired damping
 
@@ -222,3 +228,8 @@ save_docs_plot("pidplotsgof2.svg"); # hide
 ```
 ![](../../plots/pidplotsnyquist2.svg)
 ![](../../plots/pidplotsgof2.svg)
+
+## Further examples
+- See the [examples folder](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example) as well as the notebooks in [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl).
+- See also [the paper introducing the toolbox](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) with [supplementary material](https://github.com/JuliaControl/CDC2021).
+- See the [docs for RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/) for additional examples.

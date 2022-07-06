@@ -73,6 +73,9 @@ end
 Base.convert(::Type{HeteroStateSpace{TE1,AT,BT,CT,DT}}, s::StateSpace{TE2,T}) where {TE1,TE2,T,AT,BT,CT,DT} =
     HeteroStateSpace{TE1,AT,BT,CT,DT}(s.A,s.B,s.C,s.D,TE1(s.timeevol))
 
+Base.convert(::Type{HeteroStateSpace{TE,AT,BT,CT,DT}}, s::HeteroStateSpace) where {TE,AT,BT,CT,DT} =
+    HeteroStateSpace{TE,AT,BT,CT,DT}(AT(s.A),BT(s.B),CT(s.C),DT(s.D),TE(s.timeevol))
+
 Base.convert(::Type{HeteroStateSpace}, s::StateSpace) = HeteroStateSpace(s)
 
 Base.convert(::Type{StateSpace}, s::HeteroStateSpace) = StateSpace(s.A, s.B, s.C, s.D, s.Ts)
@@ -83,7 +86,8 @@ function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; 
     convert(StateSpace{TE,T}, G; kwargs...)
 end
 
-function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=false) where {TE,T<:Number}
+# Note: balancing is only applied by default for floating point types, integer systems are not balanced since that would change the type. 
+function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T <: Union{Integer, Rational, ForwardDiff.Dual})) where {TE,T<:Number}
     if !isproper(G)
         error("System is improper, a state-space representation is impossible")
     end
@@ -114,7 +118,7 @@ function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=fal
         end
     end
     if balance
-        A, B, C = balance_statespace(A, B, C)[1:3] 
+        A, B, C = balance_statespace(A, B, C)
     end
     return StateSpace{TE,T}(A, B, C, D, TE(G.timeevol))
 end
@@ -133,24 +137,24 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
     N = length(den) - 1 # The order of the rational function f
 
     # Get numerator coefficient of the same order as the denominator
-    bN = length(num) == N+1 ? num[1] : 0
+    bN = length(num) == N+1 ? num[1] : zero(num[1])
 
-    if N == 0 #|| num == zero(Polynomial{T})
-        A = zeros(T, (0, 0))
-        B = zeros(T, (0, 1))
-        C = zeros(T, (1, 0))
+    @views if N == 0 #|| num == zero(Polynomial{T})
+        A = zeros(T, 0, 0)
+        B = zeros(T, 0, 1)
+        C = zeros(T, 1, 0)
     else
         A = diagm(1 => ones(T, N-1))
-        A[end, :] .= -reverse(den)[1:end-1]
+        A[end, :] .= .-reverse(den)[1:end-1]
 
-        B = zeros(T, (N, 1))
+        B = zeros(T, N, 1)
         B[end] = one(T)
 
-        C = zeros(T, (1, N))
+        C = zeros(T, 1, N)
         C[1:min(N, length(num))] = reverse(num)[1:min(N, length(num))]
-        C[:] -= bN * reverse(den)[1:end-1] # Can index into polynomials at greater inddices than their length
+        C[:] .-= bN .* reverse(den)[1:end-1] # Can index into polynomials at greater inddices than their length
     end
-    D = fill(bN, (1, 1))
+    D = fill(bN, 1, 1)
 
     return A, B, C, D
 end
@@ -172,7 +176,7 @@ function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMat
         return _balance_statespace(A,B,C, perm)
     catch
         @warn "Unable to balance state-space, returning original system"
-        return A,B,C,I
+        return A,B,C,convert(typeof(A), I(size(A, 1)))
     end
 end
 
@@ -296,10 +300,9 @@ end
 
 # TODO: Could perhaps be made more accurate. See: An accurate and efficient
 # algorithm for the computation of the # characteristic polynomial of a general square matrix.
-function charpoly(A::AbstractMatrix{<:Number})
-    Λ = eigvalsnosort(A)
-
-    return prod(roots2poly_factors(Λ)) # Compute the polynomial factors directly?
+function charpoly(A::AbstractMatrix{T}) where T
+    Λ::Vector{T} = eigvalsnosort(A)
+    return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
 end
 function charpoly(A::AbstractMatrix{<:Real})
     Λ = eigvalsnosort(A)

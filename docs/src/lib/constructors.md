@@ -2,7 +2,8 @@
 Pages = ["constructors.md"]
 ```
 
-# Constructing transfer functions
+See also [Connecting named systems together](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Connecting-systems-together).
+# Constructing systems
 
 ```@docs
 append
@@ -16,4 +17,5 @@ sminreal
 ss
 tf
 zpk
+delay
 ```

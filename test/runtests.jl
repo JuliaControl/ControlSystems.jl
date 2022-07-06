@@ -3,6 +3,15 @@ using Test, LinearAlgebra, Random
 import Base.isapprox        # In framework and test_synthesis
 import SparseArrays: sparse # In test_matrix_comps
 import DSP: conv            # In test_conversion and test_synthesis
+using Aqua
+@testset "Aqua" begin
+    Aqua.test_all(ControlSystems;
+        ambiguities = false, # casues 100s of hits in all dependencies
+        stale_deps = false,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
+    )
+end
+
+
 include("framework.jl")
 
 my_tests = [
@@ -26,6 +35,7 @@ my_tests = [
             "test_pid_design",
             "test_partitioned_statespace",
             "test_delayed_systems",
+            "test_hammerstein_wiener",
             "test_demo_systems",
             "test_autovec",
             "test_plots"

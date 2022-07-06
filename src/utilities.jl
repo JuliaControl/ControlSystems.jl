@@ -1,5 +1,7 @@
 # Are only really needed for cases when we accept general LTISystem
 # we should either use them consistently, with a good definition, or remove them
+basetype(sys::LTISystem) = basetype(typeof(sys))
+basetype(::Type{T}) where T <: LTISystem = T.name.wrapper
 numeric_type(::Type{SisoRational{T}}) where T = T
 numeric_type(::Type{<:SisoZpk{T}}) where T = T
 numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
@@ -7,7 +9,7 @@ numeric_type(sys::SisoTf) = numeric_type(typeof(sys))
 numeric_type(::Type{TransferFunction{TE,S}}) where {TE,S} = numeric_type(S)
 numeric_type(::Type{<:StateSpace{TE,T}}) where {TE,T} = T
 numeric_type(::Type{<:HeteroStateSpace{TE,AT}}) where {TE,AT} = eltype(AT)
-numeric_type(::Type{<:DelayLtiSystem{T}}) where {T} = T
+numeric_type(::Type{<:LFTSystem{<:Any, T}}) where {T} = T
 numeric_type(sys::AbstractStateSpace) = eltype(sys.A)
 numeric_type(sys::LTISystem) = numeric_type(typeof(sys))
 
@@ -52,12 +54,12 @@ printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printp
 # returned by LAPACK routines for eigenvalues.
 function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
     T = real(cT)
-    poly_factors = Vector{Polynomial{T}}()
+    poly_factors = Vector{Polynomial{T,:x}}()
     for k=1:length(roots)
         r = roots[k]
 
         if isreal(r)
-            push!(poly_factors,Polynomial{T}([-real(r),1]))
+            push!(poly_factors,Polynomial{T,:x}([-real(r),1]))
         else
             if imag(r) < 0 # This roots was handled in the previous iteration # TODO: Fix better error handling
                 continue
@@ -67,7 +69,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
                 throw(ArgumentError("Found pole without matching conjugate."))
             end
 
-            push!(poly_factors,Polynomial{T}([real(r)^2+imag(r)^2, -2*real(r), 1]))
+            push!(poly_factors,Polynomial{T,:x}([real(r)^2+imag(r)^2, -2*real(r), 1]))
             # k += 1 # Skip one iteration in the loop
         end
     end
@@ -76,7 +78,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 end
 # This function should hande both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
-    return Polynomial{T}[Polynomial{T}([-r, 1]) for r in roots]
+    return Polynomial{T,:x}[Polynomial{T,:x}([-r, 1]) for r in roots]
 end
 
 
@@ -111,7 +113,7 @@ poly2vec(p::Polynomial) = p.coeffs[1:end]
 
 
 function unwrap!(M::Array, dim=1)
-    alldims(i) = [ n==dim ? i : (1:size(M,n)) for n in 1:ndims(M) ]
+    alldims(i) = ntuple(n->n==dim ? i : (1:size(M,n)), ndims(M))
     for i = 2:size(M, dim)
         #This is a copy of slicedim from the JuliaLang but enables us to write to it
         #The code (with dim=1) is equivalent to
@@ -119,16 +121,22 @@ function unwrap!(M::Array, dim=1)
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
         π2 = eltype(M)(2π)
-        M[alldims(i)...] -= floor.((d .+ π) / π2) * π2
+        M[alldims(i)...] -= @. floor((d + π) / π2) * π2
     end
     return M
 end
 
 #Collect will create a copy and collect the elements
+"""
+    unwrap(m::AbstractArray, args...)
+
+Unwrap a vector of phase angles (radians) in (-π, π) such that it does not wrap around the edges -π and π, i.e., the result may leave the range (-π, π).
+"""
 unwrap(m::AbstractArray, args...) = unwrap!(collect(m), args...)
 unwrap(x::Number) = x
 
-"""outs = index2range(ind1, ind2)
+"""
+    outs = index2range(ind1, ind2)
 
 Helper function to convert indexes with scalars to ranges. Used to avoid dropping dimensions
 """
@@ -137,7 +145,8 @@ index2range(ind::T) where {T<:Number} = ind:ind
 index2range(ind::T) where {T<:AbstractArray} = ind
 index2range(ind::Colon) = ind
 
-"""@autovec (indices...) f() = (a, b, c)
+"""
+    @autovec (indices...) f() = (a, b, c)
 
 A macro that helps in creating versions of functions where excessive dimensions are
 removed automatically for specific outputs. `indices` contains each index for which
