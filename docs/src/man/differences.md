@@ -4,7 +4,8 @@ If you are new to the Julia programming language, you are encouraged to visit th
 The rest of this page will list noteworthy differences between ControlSystems.jl and other pieces of control-systems software.
 
 - Functions to calculate poles and zeros of systems are named using their plural forms, i.e., [`poles`](@ref) instead of `pole`, and [`tzeros`](@ref) instead of `tzero`.
-- Simulation using [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc. computes arrays where time is in the second dimension rather than in the first dimension. Julia uses a *column major* memory layout, and this choice is made for performance reasons.
+- Simulation using [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) returns arrays where time is in the second dimension rather than in the first dimension (applies also to `freqresp, bode, nyquist` etc.). Julia uses a *column major* memory layout, and this choice is made for performance reasons.
+- Functions [`are`](@ref), [`lqr`](@ref) and [`kalman`](@ref) have slightly different signatures in julia compared to in other languages. More advanced LQG functionalities are located in [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/).
 - Simulation using [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc. return a structure that can be plotted. These functions never plot anything themselves.
 - Functions [`bode`](@ref), [`nyquist`](@ref) etc. never produce a plot. Instead, see [`bodeplot`](@ref), [`nyquistplot`](@ref) etc.
 - In Julia, functionality is often split up into several different packages. You may therefore have to install and use additional packages in order to cover all your needs. See [Ecosystem](@ref) for a collection of control-related packages.
