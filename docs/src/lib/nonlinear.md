@@ -91,7 +91,7 @@ nothing # hide
 A PID controller with a filter is given by
 ```@example nonlinear
 F = tf(1, [0.63, 1.12, 1])
-Cpid = ss(pid(0.26, 0.001, 15.9, form=:parallel)*F)
+Cpid = pid(0.26, 0.001, 15.9, form=:parallel)*F |> ss
 nothing # hide
 ```
 and to make the controller MIMO, we add a static pre-compensator that decouples the system at the the zero frequency.
@@ -115,8 +115,8 @@ We now simulate the closed-loop system, the initial state of the plant is adjust
 ```@example nonlinear
 x0 = [2, 1, 8, 3] # Initial tank levels
 plot(
-	plot(lsim(feedback(Gop*C_sat), yr, 0:1:3000, x0=[x0-xr; zeros(C.nx)]), layout=1, sp=1, title="Outputs", ylabel=""),
-	plot(lsim(feedback(C_sat, Gop), yr, 0:1:3000, x0=[zeros(C.nx); x0-xr]), layout=1, sp=1, title="Control signals", ylabel="")
+    plot(lsim(feedback(Gop*C_sat), yr, 0:1:3000, x0=[x0-xr; zeros(C.nx)]), layout=1, sp=1, title="Outputs", ylabel=""),
+    plot(lsim(feedback(C_sat, Gop), yr, 0:1:3000, x0=[zeros(C.nx); x0-xr]), layout=1, sp=1, title="Control signals", ylabel="")
 )
 hline!([yr[1]], label="Reference", l=:dash, sp=1, c=1)
 ```

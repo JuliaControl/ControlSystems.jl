@@ -59,10 +59,12 @@ feedback(P) # Equivalent to P/(1+P)
     Transfer functions represent systems using polynomials and may have poor numerical properties for high-order systems. Well-balanced state-space representations are often better behaved. See [Performance considerations](@ref) for more details.
 
 ## Plotting
-The ControlSystems package is using `RecipesBase.jl` ([link](https://github.com/JuliaPlots/RecipesBase.jl)) as interface to generate all the plots. This means that it is up to the user to choose a plotting library that supports `RecipesBase.jl`, a suggestion would be `Plots.jl` with which the user is also able to freely choose a back-end. The plots in this manual are generated using `Plots.jl` with the `GR` backend. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is
+The ControlSystems package is using `RecipesBase.jl` ([link](https://github.com/JuliaPlots/RecipesBase.jl)) as interface to generate all the plots. This means that it is up to the user to choose a plotting library that supports `RecipesBase.jl`, a suggestion would be `Plots.jl` with which the user is also able to freely choose a back-end. The plots in this manual are generated using `Plots.jl` with the `GR` backend. If you have several back-ends for plotting then you can select the one you want to use with the corresponding `Plots` call (for `GR` this is `Plots.gr()`, some alternatives are `pyplot(), plotly(), pgfplots()`). A simple example where we generate a plot and save it to a file is shown below.
+
+More examples of plots are provided in [Plotting functions](@ref).
+
 ```@example INTRO
 using Plots
 bodeplot(tf(1,[1,2,1]))
 ```
 
-More examples of plots are provided in [Plotting](@ref).
