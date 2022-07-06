@@ -288,7 +288,7 @@ G4 = ss(-6, [7 8], [11; 12], 0)
 # Feedback2dof
 
 P0 = tf(1.0, [1, 1, 1])
-C = pid(kp=1, ki=1, kd=1)
+C = pid(1, 1, 1, form=:parallel)
 F = tf(1.0, [1,1])
 @test feedback2dof(P0, 0*C, F) == P0*F
 @test feedback2dof(P0, C, 0*F) == feedback(P0*C)
