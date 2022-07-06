@@ -138,7 +138,8 @@ function ctrb(A::AbstractMatrix, B::AbstractMatrix)
 end
 ctrb(sys::AbstractStateSpace) = ctrb(sys.A, sys.B)
 
-"""`P = covar(sys, W)`
+"""
+    P = covar(sys, W)
 
 Calculate the stationary covariance `P = E[y(t)y(t)']` of the output `y` of a
 `StateSpace` model `sys` driven by white Gaussian noise `w` with covariance

@@ -38,6 +38,8 @@ function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts
     end
 end
 
+@deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
+
 function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
