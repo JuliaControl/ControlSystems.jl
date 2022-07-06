@@ -6,8 +6,8 @@ D = 0
 sys = ss(A,B,C,D)
 sysr, G = balreal(sys)
 
-@test gram(sysr, :c) ≈ G
-@test gram(sysr, :o) ≈ G
+@test gram(sysr, :c) ≈ diagm(G)
+@test gram(sysr, :o) ≈ diagm(G)
 @test sort(poles(sysr)) ≈ sort(poles(sys))
 
 sysb,T = ControlSystems.balance_statespace(sys)

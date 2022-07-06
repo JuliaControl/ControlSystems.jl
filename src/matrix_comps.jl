@@ -489,7 +489,7 @@ end
 """
 `sysr, G, T = balreal(sys::StateSpace)`
 
-Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and `diagm(G)`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
+Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
 
 See also `gram`, `baltrunc`
 
@@ -548,7 +548,6 @@ For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduc
 """
 function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
-    S = diag(S)
     if n === nothing
         S = S[S .>= atol]
         S = S[S .>= S[1]*rtol]

@@ -249,7 +249,10 @@ function +(s1::ST, s2::ST) where {ST <: AbstractStateSpace}
 end
 
 
-+(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
+function +(sys::ST, n::Number) where ST <: AbstractStateSpace
+    issiso(sys) || throw(DimensionMismatch("Numbers and systems can only be added for SISO systems."))
+    basetype(ST)(sys.A, sys.B, sys.C, sys.D .+ n, sys.timeevol)
+end
 +(n::Number, sys::ST) where ST <: AbstractStateSpace = +(sys, n)
 
 ## SUBTRACTION ##
@@ -265,9 +268,9 @@ function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
     if (sys1.nu != sys2.ny) && (sys1.nu == 1 || sys2.ny == 1)
-        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs. If you want to broadcast a scalar system to a diagonal system, use broadcasted multiplication sys1 .* sys2")
+        throw(DimensionMismatch("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs. If you want to broadcast a scalar system to a diagonal system, use broadcasted multiplication sys1 .* sys2"))
     end
-    sys1.nu == sys2.ny || error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
+    sys1.nu == sys2.ny || throw(DimensionMismatch("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs"))
     timeevol = common_timeevol(sys1,sys2)
     T = promote_type(numeric_type(sys1), numeric_type(sys2))
 
@@ -280,7 +283,7 @@ function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
 end
 
 function Base.Broadcast.broadcasted(::typeof(*), sys1::AbstractStateSpace, sys2::AbstractStateSpace)
-    issiso(sys1) || issiso(sys2) || error("Only SISO statespace systems can be broadcasted")
+    issiso(sys1) || issiso(sys2) || throw(DimensionMismatch("Only SISO statespace systems can be broadcasted"))
     if issiso(sys1) && !issiso(sys2) # Check !issiso(sys2) to avoid calling fill if both are siso
         sys1 = append(sys1 for i in 1:sys2.ny)
     elseif issiso(sys2)
@@ -290,18 +293,18 @@ function Base.Broadcast.broadcasted(::typeof(*), sys1::AbstractStateSpace, sys2:
 end
 
 function Base.Broadcast.broadcasted(::typeof(*), sys1::ST, M::AbstractArray) where {ST <: AbstractStateSpace}
-    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`. See also function `array2mimo`.")
+    LinearAlgebra.isdiag(M) || throw(DimensionMismatch("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`. See also function `array2mimo`."))
     sys1 .* ss(M, sys1.timeevol) # If diagonal, broadcast by replicating input channels
 end
 
 function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::ST) where {ST <: AbstractStateSpace}
-    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `array .* Ref(sys)`. See also function `array2mimo`.")
+    LinearAlgebra.isdiag(M) || throw(DimensionMismatch("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `array .* Ref(sys)`. See also function `array2mimo`."))
     ss(M, sys1.timeevol) .* sys1 # If diagonal, broadcast by replicating output channels
 end
 
 function Base.Broadcast.broadcasted(::typeof(*), sys1::Base.RefValue{ST}, M::AbstractArray) where {ST <: AbstractStateSpace}
     sys1 = sys1[]
-    issiso(sys1) || error("Only SISO statespace systems can be broadcasted")
+    issiso(sys1) || throw(DimensionMismatch("Only SISO statespace systems can be broadcasted"))
     T = promote_type(numeric_type(sys1), eltype(M))
     A,B,C,D = ssdata(sys1)
     nx = sys1.nx
@@ -320,7 +323,7 @@ end
 
 function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::Base.RefValue{ST}) where {ST <: AbstractStateSpace}
     sys1 = sys1[]
-    issiso(sys1) || error("Only SISO statespace systems can be broadcasted")
+    issiso(sys1) || throw(DimensionMismatch("Only SISO statespace systems can be broadcasted"))
     T = promote_type(numeric_type(sys1), eltype(M))
     A,B,C,D = ssdata(sys1)
     nx = sys1.nx
