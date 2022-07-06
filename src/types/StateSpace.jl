@@ -264,6 +264,9 @@ end
 function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
+    if (sys1.nu != sys2.ny) && (sys1.nu == 1 || sys2.ny == 1)
+        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs. If you want to broadcast a scalar system to a diagonal system, use broadcasted multiplication sys1 .* sys2")
+    end
     sys1.nu == sys2.ny || error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     timeevol = common_timeevol(sys1,sys2)
     T = promote_type(numeric_type(sys1), numeric_type(sys2))
