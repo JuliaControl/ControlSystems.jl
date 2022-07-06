@@ -77,51 +77,10 @@ ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_
 
 ```
 Notice the different matrix types used
-```jldoctest HSS
-julia> sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
-StateSpace{Continuous, Int64}
-A =
- -5   0
-  0  -5
-B =
- 2
- 2
-C =
- 3  3
-D =
- 0
-
-Continuous-time state-space model
-
-julia> HeteroStateSpace(sys, to_static)
-HeteroStateSpace{Continuous, SMatrix{2, 2, Int64, 4}, SMatrix{2, 1, Int64, 2}, SMatrix{1, 2, Int64, 2}, SMatrix{1, 1, Int64, 1}}
-A =
- -5   0
-  0  -5
-B =
- 2
- 2
-C =
- 3  3
-D =
- 0
-
-Continuous-time state-space model
-
-julia> HeteroStateSpace(sys, to_sized)
-HeteroStateSpace{Continuous, SizedMatrix{2, 2, Int64, 2, Matrix{Int64}}, SizedMatrix{2, 1, Int64, 2, Matrix{Int64}}, SizedMatrix{1, 2, Int64, 2, Matrix{Int64}}, SizedMatrix{1, 1, Int64, 2, Matrix{Int64}}}
-A =
- -5   0
-  0  -5
-B =
- 2
- 2
-C =
- 3  3
-D =
- 0
-
-Continuous-time state-space model
+```@repl HSS
+sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
+HeteroStateSpace(sys, to_static)
+HeteroStateSpace(sys, to_sized)
 ```
 
 ## Converting between types
