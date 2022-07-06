@@ -264,15 +264,7 @@ end
 function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     #Check dimension alignment
     #Note: sys1*sys2 = y <- sys1 <- sys2 <- u
-    if xor(issiso(sys1), issiso(sys2))
-        if issiso(sys1)
-            sys1 = append(fill(sys1, sys2.ny)...)::ST
-        else
-            sys2 = append(fill(sys2, sys1.nu)...)::ST
-        end
-    elseif sys1.nu != sys2.ny
-        error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
-    end
+    sys1.nu == sys2.ny || error("sys1*sys2: sys1 must have same number of inputs as sys2 has outputs")
     timeevol = common_timeevol(sys1,sys2)
     T = promote_type(numeric_type(sys1), numeric_type(sys2))
 
@@ -282,6 +274,64 @@ function *(sys1::ST, sys2::ST) where {ST <: AbstractStateSpace}
     C = [sys1.C   sys1.D*sys2.C;]
     D = [sys1.D*sys2.D;]
     return basetype(ST)(A, B, C, D, timeevol)
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), sys1::AbstractStateSpace, sys2::AbstractStateSpace)
+    issiso(sys1) || issiso(sys2) || error("Only SISO statespace systems can be broadcasted")
+    if issiso(sys1) && !issiso(sys2) # Check !issiso(sys2) to avoid calling fill if both are siso
+        sys1 = append(sys1 for i in 1:sys2.ny)
+    elseif issiso(sys2)
+        sys2 = append(sys2 for i in 1:sys1.nu)
+    end
+    return sys1 * sys2
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), sys1::ST, M::AbstractArray) where {ST <: AbstractStateSpace}
+    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`. See also function `array2mimo`.")
+    sys1 .* ss(M, sys1.timeevol) # If diagonal, broadcast by replicating input channels
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::ST) where {ST <: AbstractStateSpace}
+    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `array .* Ref(sys)`. See also function `array2mimo`.")
+    ss(M, sys1.timeevol) .* sys1 # If diagonal, broadcast by replicating output channels
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), sys1::Base.RefValue{ST}, M::AbstractArray) where {ST <: AbstractStateSpace}
+    sys1 = sys1[]
+    issiso(sys1) || error("Only SISO statespace systems can be broadcasted")
+    T = promote_type(numeric_type(sys1), eltype(M))
+    A,B,C,D = ssdata(sys1)
+    nx = sys1.nx
+    ny,nu = size(M,1), size(M,2)
+    Ae = cat(fill(A, ny*nu)..., dims=(1,2))
+    Be::Matrix{T} = ControlSystems.blockdiag(B for i in 1:nu)
+    Be = repeat(Be, ny, 1)
+
+    Ce::Matrix{T} = repeat(C, 1, nu)
+    Ce = ControlSystems.blockdiag(Ce for i in 1:ny)
+    Ce = Ce * kron(Diagonal(vec(M')), I(nx))
+
+    De = D .* M
+    sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::Base.RefValue{ST}) where {ST <: AbstractStateSpace}
+    sys1 = sys1[]
+    issiso(sys1) || error("Only SISO statespace systems can be broadcasted")
+    T = promote_type(numeric_type(sys1), eltype(M))
+    A,B,C,D = ssdata(sys1)
+    nx = sys1.nx
+    ny,nu = size(M,1), size(M,2)
+    Ae = cat(fill(A, ny*nu)..., dims=(1,2))
+    Be::Matrix{T} = ControlSystems.blockdiag(convert(Matrix{T}, B) for i in 1:nu)
+    Be = repeat(Be, ny, 1)
+    Be = kron(Diagonal(vec(M')), I(nx)) * Be
+
+    Ce::Matrix{T} = repeat(convert(Matrix{T}, C), 1, nu)
+    Ce = ControlSystems.blockdiag(Ce for i in 1:ny)
+
+    De = D .* M
+    sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
 end
 
 *(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B*n, sys.C, sys.D*n, sys.timeevol)
