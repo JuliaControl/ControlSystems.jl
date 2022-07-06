@@ -488,7 +488,7 @@ end
 """
 `sysr, G, T = balreal(sys::StateSpace)`
 
-Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
+Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and `diagm(G)`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
 
 See also `gram`, `baltrunc`
 
@@ -522,14 +522,14 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
     Tr = lmul!(S,V[:,i1])*hsi2
     # return the minimal balanced system
     T = L'SF.Z'
-    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Diagonal(Σ), T
+    return ss(L'SF.T*Tr, L'bs, cs*Tr, sys.D, sys.timeevol), Σ, T
 end
 
 
 """
     sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, n = nothing, residual = false)
 
-Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `G`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
+Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
 
 `T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
 
@@ -580,7 +580,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
         D = sysbal.D
     end
 
-    return ST(A,B,C,D,sys.timeevol), diagm(S), T
+    return ST(A,B,C,D,sys.timeevol), S, T
 end
 
 """

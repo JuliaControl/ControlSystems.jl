@@ -22,6 +22,7 @@ using Pkg; Pkg.add("ControlSystems")
 
 ### 2022-07 v1.0
 - *Breaking*: Frequency-responses have changed data layout to `ny×nu×nω` from the previous `nω×ny×nu`. This is for performance reasons and to be consistent with time responses. This affects downstream functions `bode` and `nyquist` as well.
+- *Breaking*: `baltrunc` and `balreal` now return the diagonal of the Gramian as the second argument rather than the full matrix.
 
 ### 2022-02
 - *Breaking*: `Plots.jl` is no longer loaded by `ControlSystems.jl`. This improves loading times for the package, but means that users will have to run `using Plots` manually before plotting functions are available.
