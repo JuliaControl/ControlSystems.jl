@@ -326,7 +326,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=
     phi = angle.(Pv)
     kp  = @. -cos(phi)/r
     ki  = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki = convert_pidparams_from_standard(convert_pidparams_to_standard(kp, ki, kd, :parallel)..., form)
+    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
     fig = if doplot
         RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
@@ -342,7 +342,7 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = @. kd*ω^2 - ω*sin(phi)/r
-    kp,ki = convert_pidparams_from_standard(convert_pidparams_to_standard(kp, ki, kd, :parallel)..., form)
+    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
     fig = if doplot
         RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
@@ -402,7 +402,7 @@ end
 
 
 """
-    C, params = placePI(P, ω₀, ζ; form=:standard)
+    C, p, i = placePI(P, ω₀, ζ; form=:standard)
 
 Selects the parameters of a PI-controller such that the poles of 
 closed loop between `P` and `C` are placed to match the poles of 
@@ -410,9 +410,9 @@ closed loop between `P` and `C` are placed to match the poles of
 
 The parameters can be returned as one of several common representations 
 chose by `form`, the options are
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:standard` - `Kp*(1 + 1/(Ti*s))` 
+* `:series` - `Kc*(1 + 1/(τi*s))` (equivalent to above for PI controllers)
+* `:parallel` - `Kp + Ki/s`
 
 `C` is the returned transfer function of the controller and `params` 
 is a named tuple containing the parameters.
@@ -436,7 +436,7 @@ function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ
     tmp = (a*c*ω₀^2 - 2*b*c*ζ*ω₀ + b*d)
     kp = -tmp / (a^2*ω₀^2 - 2*a*b*ω₀*ζ + b^2)
     ki = tmp / (ω₀^2*(a*d - b*c))
-    pid(kp, ki), convert_pidparams_from_standard(kp, ki, 0, form)[1:2]...
+    pid(kp, ki; form=:series), convert_pidparams_from_standard(kp, ki, 0, form)[1:2]...
 end
 
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
@@ -491,4 +491,9 @@ function convert_pidparams_from_standard(Kp, Ti, Td, form)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
+end
+
+function convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
+    kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, from)
+    convert_pidparams_from_standard(kp, ki, kd, to)
 end

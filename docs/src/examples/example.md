@@ -163,11 +163,12 @@ The stability boundary, i.e., the surface of PID parameters where the transfer f
 ```jldoctest; output = false
 P1 = s -> exp(-sqrt(s))
 doplot = true
-kp, ki, f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)); doplot); f1
+form = :parallel
+kp, ki, f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)); doplot, form); f1
 P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
-kp, ki, f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)); doplot); f2
+kp, ki, f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)); doplot, form); f2
 P3 = tf(1,[1,1])^4
-kp, ki, f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)); doplot); f3
+kp, ki, f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)); doplot, form); f3
 
 save_docs_plot(f1, "stab1.svg") # hide
 save_docs_plot(f2, "stab2.svg") # hide
@@ -187,7 +188,6 @@ This example utilizes the function [`pidplots`](@ref), which accepts vectors of 
 P = tf([1.], [1., 1])
 
 ζ = 0.5 # Desired damping
-
 ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
 kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
 ki = ws.^2
@@ -204,7 +204,7 @@ pidplots(
     form = :parallel,
 )
 save_docs_plot("pidplotsnyquist1.svg") # hide
-pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false, form=:parallel)
+pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false, form=:parallel, legendfontsize=6, size=(1000, 1000))
 # You can also request both Nyquist and Gang-of-four plots (more plots are available, see ?pidplots ):
 # pidplots(P,:nyquist,:gof;kps=kp,kis=ki,ω=ω);
 save_docs_plot("pidplotsgof1.svg"); # hide
@@ -223,7 +223,7 @@ ki = sqrt.(1 .- kp.^2)/10
 
 pidplots(P,:nyquist,;params_p=kp,params_i=ki,ylims=(-1,1),xlims=(-1.5,1.5), form=:parallel)
 save_docs_plot("pidplotsnyquist2.svg") # hide
-pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20), form=:parallel, legendfontsize=6)
+pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20), form=:parallel, legendfontsize=6, size=(1000, 1000))
 save_docs_plot("pidplotsgof2.svg"); # hide
 
 # output

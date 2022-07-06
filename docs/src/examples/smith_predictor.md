@@ -31,7 +31,7 @@ We design a PI controller for nominal system using [`placePI`](@ref). To verify 
 ```@example smith
 ω0 = 2
 ζ  = 0.7
-_, C0 = placePI(P0, ω0, ζ)
+C0, _ = placePI(P0, ω0, ζ)
 ```
 We then setup delayed plant + Smith predictor-based controller
 ```@example smith
