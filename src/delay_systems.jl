@@ -73,9 +73,10 @@ Arguments:
 
 `t`: Has to be an `AbstractVector` with equidistant time samples (`t[i] - t[i-1]` constant)
 `u`: Function to determine control signal `ut` at a time `t`, on any of the following forms:
-- A constant `Number` or `Vector`, interpreted as `ut .= u`
-- Function `ut .= u(t)`
-- In-place function `u(ut, t)`. (Slightly more effienct)
+- `u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
+    - A constant `Number` or `Vector`, interpreted as a constant input.
+    - Function `u(x, t)` that takes the internal state and time, note, the state representation for delay systems is not the same as for rational systems.
+    - In-place function `u(uₜ, x, t)`. (Slightly more effienct)
 
 `alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
 
@@ -91,11 +92,16 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
 
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
-        (uout, t) -> uout .= u
-    elseif DiffEqBase.isinplace(u, 2)               # If u is an inplace (more than 1 argument function)
+        (isa(u,AbstractVector) && length(u) == sys.nu1) || error("Vector u must be of length $(sys.nu1)")
+        let u = u
+            @inline (uout, x, t) -> copyto!(uout, u)
+        end
+    elseif DiffEqBase.isinplace(u, 3) # If u is an inplace (more than 2 argument function)
         u
-    else                                            # If u is a regular u(t) function
-        (out, t) -> (out .= u(t))
+    else
+        let u = u
+            @inline (out, x, t) -> copyto!(out, u(x, t))
+        end
     end
 
     _lsim(sys, u!, t, x0, alg; abstol, reltol, force_dtmin, kwargs...)
@@ -119,7 +125,7 @@ function dde_param(du, u, h, p, t)
     x = view(u, 1:nx)
 
     # uout = u(t)
-    u!(uout, t)
+    u!(uout, x, t)
 
     # hout = d(t-Tau)
     for k=1:length(Tau)
@@ -202,14 +208,14 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
     sol = DelayDiffEq.solve(prob, alg; tstops=t, saveat=t, kwargs...)
 
     # Retrive the saved values
-    uout = zeros(T, nu, nt)
+    uout2 = zeros(T, nu, nt)
     for k = 1:nt
         x[:,k] .= sv.saveval[k][1]
         y[:,k] .= sv.saveval[k][2]
-        @views u!(uout[:, k], t[k])
+        @views u!(uout2[:, k], x[:, k], t[k])
     end
 
-    return SimResult(y, t, x, uout, sys)
+    return SimResult(y, t, x, uout2, sys)
 end
 
 # We have to default to something, look at the sys.P.P and delays
@@ -244,7 +250,7 @@ function Base.step(sys::DelayLtiSystem{T}, t::AbstractVector; kwargs...) where T
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in step"))
     end
-    u = (out, t) -> (t < 0 ? out .= 0 : out .= 1)
+    u = (out, x, t) -> (t < 0 ? out .= 0 : out .= 1)
     x0=fill(zero(T), nstates(sys))
     if nu == 1
         return lsim(sys, u, t; x0=x0, kwargs...)
@@ -267,7 +273,7 @@ function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS
     if t[1] != 0
         throw(ArgumentError("First time point must be 0 in impulse"))
     end
-    u = (out, t) -> (out .= 0)
+    u = (out, x, t) -> (out .= 0)
     if nu == 1
         return lsim(sys, u, t; alg=alg, x0=sys.P.B[:,1], kwargs...)
     else

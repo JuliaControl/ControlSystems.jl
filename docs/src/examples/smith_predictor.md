@@ -42,7 +42,7 @@ C = feedback(C0, (1.0 - delay(τ))*P0) # form the inner feedback connection in t
 We now plot the closed loop responses. The transfer function from $r$ to $y$ is given by $PC_r/(1+PC_r)$ = `feedback(P*C,1)`, and from a load disturbance entering at $u$ the transfer function is $P/(1+PC_r)$ = `feedback(P, C)`
 ```@example smith
 G = [feedback(P*C, 1) feedback(P, C)] # Reference step at t = 0 and load disturbance step at t = 15
-fig_timeresp = plot(lsim(G, t -> [1; t >= 15], 0:0.1:40),  title="τ = $τ")
+fig_timeresp = plot(lsim(G, (_,t) -> [1; t >= 15], 0:0.1:40),  title="τ = $τ")
 ```
 Plot the frequency response of the predictor part and compare to a negative delay, which would be an ideal controller that can (typically) not be realized in practice (a negative delay implies foresight). 
 ```@example smith
