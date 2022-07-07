@@ -3,7 +3,6 @@
 
 Compute the poles of system `sys`."""
 poles(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
-poles(sys::SisoTf) = error("pole is not implemented for type $(typeof(sys))")
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
 # converting to zpk before works better in the cases I have tested.
@@ -428,7 +427,7 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
     end
     for j=1:nu
         for i=1:ny
-            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w, full=true, allMargins=allMargins)
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins)
         end
     end
     if full
@@ -439,9 +438,9 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
 end
 
 """
-    wgm, gm, wpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
 
-returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
+Return frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. If `allMargins=false`, only the smallest margins are returned.
 """
 function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
@@ -473,6 +472,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
             end
         end
     else
+        isempty(gm) && (gm = [Inf])
         if full #We know that all values are defined and fullPhase is a vector
             fullPhase = interpolate(fi, phase)
         end

@@ -208,6 +208,17 @@ P = tf(1,[1.0, 1, 0])
 @test ωϕₘ[] ≈ 0.7871132039227572
 marginplot(P, w)
 
+ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w, allMargins=true)
+@test length.((ωgₘ, gₘ, ωϕₘ, ϕₘ)) == (1,1,1,1)
+@test gₘ[][] == Inf
+@test ϕₘ[][] ≥ 50
+@test ωϕₘ[][] ≈ 0.7871132039227572
+
+## Delay margin
+dm = delaymargin(P)[]
+R = freqresp(P*delay(dm), ωϕₘ[][]-0.5:0.0001:ωϕₘ[][]+0.5)
+@test minimum(abs, R .- (-1)) ≈ 0 atol=1e-3
+
 
 # RGA
 a = 10
