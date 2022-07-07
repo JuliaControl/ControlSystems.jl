@@ -31,7 +31,7 @@ function getexamples()
       setPlotScale("log10");
       gangoffourplot(tf1, [tf(1), tf(5)])
     end
-    pzmapgen() = pzmap(tf2, xlims=(-15,5))
+    pzmapgen() = pzmap(c2d(tf2, 0.1))
     rlocusgen() = rlocusplot(tf2)
 
     refs = ["bode.png", "nyquist.png", "sigma.png", "nichols.png", "step.png",
