@@ -284,5 +284,7 @@ gof = gangoffour(P,C)
 @test_nowarn gangoffourplot([P, P], C)
 @test_nowarn gangoffourplot(P, [C, C])
 
+F = ssrand(2,2,2,proper=true)
+@test_nowarn gangofseven(P, C, F)
 
 end
