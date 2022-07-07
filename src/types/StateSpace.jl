@@ -340,6 +340,8 @@ function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::Base.Re
     sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
 end
 
+*(sys1::ST, D::Diagonal) where {ST <: AbstractStateSpace} = sys1 .* D
+
 *(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B*n, sys.C, sys.D*n, sys.timeevol)
 *(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
 
