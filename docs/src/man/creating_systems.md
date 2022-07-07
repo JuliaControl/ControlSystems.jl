@@ -61,7 +61,7 @@ ss(A,B,C,D,Ts) # Discrete-time system
 ```
 and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
 ```@example HSS
-using StaticArrays
+using ControlSystems, StaticArrays
 import ControlSystems.HeteroStateSpace
 to_static(a::Number) = a
 to_static(a::AbstractArray) = SMatrix{size(a)...}(a)
@@ -133,6 +133,69 @@ Gmin = minreal(G) # this simplifies the realization to a minimal realization
 norm(Gmin - feedback(P), Inf) # No difference
 bodeplot([G, Gmin, feedback(P)]) # They are all identical
 ```
+
+## MIMO systems and arrays of systems
+Concatenation of systems creates MIMO systems, which is different from an array of systems. For example
+```@example MIMO
+using ControlSystems
+P = ss(-1,1,1,0)
+P_MIMO = [P 2P]
+```
+is a 1×2 MISO system, not a 1×2 array.
+
+### From SISO to MIMO
+SISO systems do not multiply MIMO systems directly, i.e.,
+```@example MIMO
+using Test
+siso = ss(-1,1,1,0)
+mimo = ssrand(2,2,2)
+@test_throws DimensionMismatch siso * mimo
+```
+
+To multiply `siso` with each output channel of `mimo` in the example above, use broadcasting:
+```@example MIMO
+siso .* mimo
+```
+This is equivalent to first expanding the SISO system into a diagonal system
+```@example MIMO
+using LinearAlgebra
+(siso .* I(2)) * mimo
+```
+
+
+
+### Converting an array of systems to a MIMO system
+Diagonal MIMO systems can be created from a vector of systems using [`append`](@ref)
+```@example MIMO
+P1 = ssrand(1,1,1)
+P2 = ssrand(1,1,1)
+append(P1, P2)
+```
+More general arrays of systems can be converted to a MIMO system using [`array2mimo`](@ref).
+```@example MIMO
+sys_array = fill(P, 2, 2) # Creates an array of systems
+mimo_sys = array2mimo(sys_array)
+```
+
+### Converting MIMO system to an array of systems
+This conversion is not explicitly supported, but is easy enough to accomplish with standard Julia code, for example:
+```@example MIMO
+P = ssrand(2,3,1) # A random 2×3 MIMO system
+sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)')
+```
+
+### Creating arrays with different types of systems
+When calling `hcat/vcat`, Julia automatically tries to promote the types to the smallest common supertype, this means that creating an array with one continuous and one discrete-time system fails
+```@example MIMO
+P_cont = ssrand(2,3,1) 
+P_disc = ssrand(2,3,1, Ts=1)
+@test_throws ErrorException [P_cont, P_disc] # ERROR: Sampling time mismatch
+```
+You can explicitly tell Julia that you want a particular supertype, e.g,
+```@example MIMO
+StateSpace[P_cont, P_disc]
+```
+The type `StateSpace` is abstract, since the type parameters are not specified.
 
 ## Demo systems
 The module `ControlSystems.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.
