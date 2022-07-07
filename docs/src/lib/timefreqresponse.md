@@ -13,7 +13,7 @@ Any `TransferFunction` can be evaluated at a point using
 
 ```@autodocs
 Modules = [ControlSystems]
-Pages   = ["timeresp.jl", "freqresp.jl", "simulators.jl"]
+Pages   = ["timeresp.jl", "result_types.jl", "freqresp.jl", "simulators.jl"]
 Order   = [:function, :type]
 Private = false
 ```

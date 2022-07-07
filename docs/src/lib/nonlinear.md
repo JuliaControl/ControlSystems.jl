@@ -42,14 +42,14 @@ plot(step([G; Gu], 5), lab = ["Linear y" "Linear u"])
 plot!(step([Gnl; Gunl], 5), lab = ["Nonlinear y" "Nonlinear u"])
 ```
 
-Since the saturating nonlinearity is common, we provide the constructor [`saturation`](@ref) that automatically forms the equivalent to `nonlinearity(x->clamp(x, -0.7, 0.7))` while at the same time making sure the function has a recognizable name when the system is printed
+Since the saturating nonlinearity is common, we provide the constructor [`ControlSystems.saturation`](@ref) that automatically forms the equivalent to `nonlinearity(x->clamp(x, -0.7, 0.7))` while at the same time making sure the function has a recognizable name when the system is printed
 ```@example nonlinear
 using ControlSystems: saturation
 saturation(0.7)
 ```
 
 ### Non-zero operating point
-It's common to linearize nonlinear systems around some operating point. We may make use of the helper constructor [`offset`](@ref) to create affine functions at the inputs and outputs of the linearized system to, e.g.,
+It's common to linearize nonlinear systems around some operating point. We may make use of the helper constructor [`ControlSystems.offset`](@ref) to create affine functions at the inputs and outputs of the linearized system to, e.g.,
 1. Make sure that simulations result are given in the original coordinates rather than in the coordinates of the linearization point.
 2. Allow nonlinearities that are added back after the linearization (such as saturations) to operate with their original parameters.
 
