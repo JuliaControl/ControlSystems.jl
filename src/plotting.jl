@@ -762,10 +762,9 @@ pzmap
         if isdiscrete(system)
             θ = range(0,stop=2π,length=100)
             S,C = sin.(θ),cos.(θ)
+            seriestype := :path
             @series begin
-                linestyle --> :dash
                 linecolor := :black
-                grid --> true
                 C,S
             end
         end
