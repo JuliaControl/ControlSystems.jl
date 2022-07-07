@@ -133,3 +133,6 @@ Gmin = minreal(G) # this simplifies the realization to a minimal realization
 norm(Gmin - feedback(P), Inf) # No difference
 bodeplot([G, Gmin, feedback(P)]) # They are all identical
 ```
+
+## Demo systems
+The module `ControlSystems.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.

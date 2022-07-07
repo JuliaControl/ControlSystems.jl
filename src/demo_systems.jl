@@ -81,9 +81,9 @@ sotd(;T=1, T2=10, τ=1) = ss(-1/T, 1, 1/T, 0)*ss(-1/T2, 1, 1/T2, 0)*delay(τ)
 """
     resonant(;ω0=1, ζ=0.25)
 
-Returns a second-order system + a time delay `exp(-sτ)/(sT+1)/(sT2 + 1)` (`DelayLTISystem`).
+Returns a resonant second-order system with natural frequency `ω0` and relative damping `ζ`.
 """
-resonant(;ω0=1, ζ=0.25) = ss([-ζ -ω0; ω0 -ζ], [ω0; 0], [0 ω0], 0) # QUESTION: Is this the form that we like? Perhhaps not.
+resonant(;ω0=1, ζ=0.25) = ss([-ζ -ω0; ω0 -ζ], [ω0; 0], [0 ω0], 0) 
 
 
 """
@@ -122,5 +122,53 @@ function woodberry()
             6.6/(1 + 10.9*s) * delay(7.0)  -19.4/(1 + 14.4*s) * delay(3.0)]
 end
 
+
+"""
+    double_mass_model(; Jm = 1, Jl = 1, k = 100, c0 = 1, c1 = 1, c2 = 1, outputs = 1, load_input = false,)
+
+Creates a double-mass model with two rotational masses (inertias) of inertia `Jl` (load) and `Jm` (motor). 
+
+This is a common model of a servo system where a motor drives a load through a flexible transmission.
+
+The state order is
+motor position, motor velocity, load position, load velocity.
+
+The input is the torque on the motor side. If `load_input = true`, there is an additional input corresponding to a load torque disturbance.
+
+The default output is the motor position, a common case in, e.g., robotics.
+
+# Arguments:
+- `Jm`: Motor inertia
+- `Jl`: Load inertia
+- `k`: Spring stiffness
+- `c0`: Motor-side damping
+- `c1`: Transmission damping
+- `c2`: Load-side damping
+- `outputs`: The states that are outputs of the model, can be an Int or a vector
+- `load_input`: add an additional load torque disturbance
+"""
+function double_mass_model(;
+                        Jm = 1,  # Intertia motor
+                        Jl = 1,  # Inertia load
+                        k = 100, # Spring constant
+                        c0 = 1,  # Dampings
+                        c1 = 1,
+                        c2 = 1,
+                        outputs = 1,
+                        load_input = false,
+)
+    A = [
+        0.0 1 0 0
+        -k/Jm -(c1 + c0)/Jm k/Jm c1/Jm
+        0 0 0 1
+        k/Jl c1/Jl -k/Jl -(c1 + c2)/Jl
+    ]
+    B = [0, 1/Jm, 0, 0]
+    if load_input
+        B = [B [0, 0, 0, 1/Jl]]
+    end
+    C = reduce(vcat, [(1:4)' .== o for o in outputs])
+    ss(A,B,C,0)
+end
 
 end

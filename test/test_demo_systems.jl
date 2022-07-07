@@ -36,4 +36,8 @@ sys = ssrand(2,2,5,proper=false,stable=true, Ts=0.5)
 sys = ssrand(2,2,5,proper=false,stable=false, Ts=0.5)
 @test !isstable(sys)
 
+
+dmm = DemoSystems.double_mass_model(; load_input=true, outputs=[1,2])
+@test size(dmm) == (2,2)
+
 end
