@@ -23,7 +23,7 @@ using Pkg; Pkg.add("ControlSystems")
 ### 2022-07 v1.0
 - *Breaking*: Frequency-responses have changed data layout to `ny×nu×nω` from the previous `nω×ny×nu`. This is for performance reasons and to be consistent with time responses. This affects downstream functions `bode` and `nyquist` as well.
 - *Breaking*: `baltrunc` and `balreal` now return the diagonal of the Gramian as the second argument rather than the full matrix.
-- *Breaking*: The `pid` constructor no longer takes parameters as keyword arguments. `pid` has also gotten some new features, the new signature is `pid(P, I, D=0; form = :standard, Ts=nothing, Tf=nothing, state_space=false)`
+- *Breaking*: The `pid` constructor no longer takes parameters as keyword arguments. `pid` has also gotten some new features, the new signature is `pid(P, I, D=0; form = :standard, Ts=nothing, Tf=nothing, state_space=false)`. This change affects downstream functions like `placePI, loopshapingPI, pidplots`.
 
 ## Documentation
 

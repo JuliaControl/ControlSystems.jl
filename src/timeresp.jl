@@ -148,6 +148,10 @@ t  = 0:0.1:5
 x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
+
+# Alternative way of plotting
+res = lsim(sys,u,t,x0=x0)
+plot(res)
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;

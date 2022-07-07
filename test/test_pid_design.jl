@@ -55,4 +55,23 @@ series_params = ControlSystems.convert_pidparams_from_standard(params..., :serie
 @test series_params == ((3-sqrt(3))/3, (3-sqrt(3))/2, (3+sqrt(3))/2)
 @test ControlSystems.convert_pidparams_to_standard(series_params..., :series) == params
 
+# lead lag link
+a = 1
+M = 10
+L = laglink(a, M)
+@test freqresp(L, 1000a)[] ≈ 1+0im atol=1e-3
+@test freqresp(L, 0)[] ≈ M+0im atol=1e-3
+
+b = 1
+K = 10
+N = 5
+L = leadlink(b, N, K)
+@test freqresp(L, 10000a)[] ≈ K*N+0im atol=3e-2
+@test freqresp(L, 0)[] ≈ K+0im atol=1e-3
+@test abs(freqresp(L, b*√(N))[]) ≈ K*√(N) atol=1e-3
+
+w = 1
+L = leadlinkat(w, N, K)
+@test abs(freqresp(L, w)[]) ≈ K*√(N) atol=1e-3
+
 end
