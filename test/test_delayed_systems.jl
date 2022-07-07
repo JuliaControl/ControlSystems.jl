@@ -232,6 +232,11 @@ y_impulse, t, _ = impulse(sys_known, 3)
 @test y_impulse' ≈ dy_expected.(t, K) rtol=1e-13
 @test maximum(abs, y_impulse' - dy_expected.(t, K)) < 1e-12
 
+y_impulse, t, _ = impulse([sys_known sys_known], 3)
+
+@test y_impulse[1,:,1] ≈ dy_expected.(t, K) rtol=1e-13
+@test y_impulse[1,:,2] ≈ dy_expected.(t, K) rtol=1e-13
+
 y_impulse, t, _ = impulse(sys_known, 3, alg=MethodOfSteps(Tsit5()))
 # Two orders of magnitude better with BS3 in this case, which is default for impulse
 @test y_impulse' ≈ dy_expected.(t, K) rtol=1e-5
@@ -305,5 +310,11 @@ P = 1 / (0.85*s + 1)*exp(-0.14*s)
 res = step(P, 5)
 @test res.t[end] > 4.5
 @test length(res.y) > 30
+
+# test automatic frequency selection
+mag, phase, w = bode(ssrand(1,1,1)*delay(1))
+@test w[1] <= 0.05
+@test w[end] >= 5
+
 
 end

@@ -281,7 +281,7 @@ function impulse(sys::DelayLtiSystem{T}, t::AbstractVector; alg=MethodOfSteps(BS
         y = Array{T}(undef, noutputs(sys), length(t), nu)
         uout = zeros(T, ninputs(sys), length(t), nu)
         for i=1:nu
-            y[:,:,i], tout, x[:,:,i], uout[:,:,i] = lsim(sys[:,i], u, t; alg=alg, x0=sys.P.B[:,i], kwargs...)
+            y[:,:,i], tout, x[:,:,i], uout[i,:,i] = lsim(sys[:,i], u, t; alg=alg, x0=sys.P.B[:,i], kwargs...)
         end
         SimResult(y, t, x, uout, sys)
     end
