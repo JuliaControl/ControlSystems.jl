@@ -340,7 +340,13 @@ function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::Base.Re
     sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
 end
 
-*(sys1::ST, D::Diagonal) where {ST <: AbstractStateSpace} = sys1 .* D
+function *(sys1::ST, D::Diagonal) where {ST <: AbstractStateSpace}
+    if issiso(sys1) # This is a special case that falls back on broadcasting
+        return sys1 .* D
+    else # This is the standard implementation but must be handled here since we special case diagonal matrices for the case above
+        sys1 * ss(D, sys1.timeevol)
+    end
+end
 
 *(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B*n, sys.C, sys.D*n, sys.timeevol)
 *(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)

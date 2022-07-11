@@ -125,6 +125,11 @@
         M = randn(2,1)
         @test M .* Ref(C_111_d) ==  [C_111_d*M[1,1]; C_111_d*M[2,1]]
 
+        # it's okay to multiply matrices of compatible dimensions
+        D1 = randn(2,2)
+        D = Diagonal(randn(2))
+        @test (ss(D1)*D).D == D1 * D
+
         ## Test that tf behaves same as ss
         @test minreal(tf(C_111 .* I(2))) == tf(C_111) .* I(2)
         M = randn(2,2)
