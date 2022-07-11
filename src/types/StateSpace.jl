@@ -464,7 +464,7 @@ function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <
         atol = tol
     end
     Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
-    T(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
+    basetype(T)(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
 end
 
 

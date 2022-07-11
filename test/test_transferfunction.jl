@@ -93,6 +93,47 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test tf(1) .* C_222 == C_222
 @test tf(1) .* I(2) == tf(I(2))
 
+
+# Broadcasting
+@test C_111 .* I(2) == I(2) .* C_111
+@test minreal(C_111.*C_222 - C_222.*C_111, 1e-3) == tf(ss(0*I(2))) # scalar times MIMO
+@test C_111 .* C_222 == (C_111 .* I(2)) * C_222
+
+@test_broken @inferred C_111 .* I(2)
+
+C_111_d = tf(ssrand(1,1,2))
+M = ones(2,2)
+
+@test_throws ErrorException C_111_d.*M # We do not allow broadcasting with non-diagonal matrices https://github.com/JuliaControl/ControlSystems.jl/issues/416
+# Unless we wrap the system in a Ref to indicate that we really want it to broadcast like a scalar
+
+@test Ref(C_111_d).*M ==  [C_111_d C_111_d; C_111_d C_111_d]
+
+M = ones(1,2)
+@test Ref(C_111_d).*M ==  [C_111_d C_111_d]
+
+M = ones(2,1)
+@test Ref(C_111_d).*M ==  [C_111_d; C_111_d]
+
+M = randn(2,2)
+@test Ref(C_111_d).*M ==  [M[1,1]*C_111_d M[1,2]*C_111_d; M[2,1]*C_111_d M[2,2]*C_111_d]
+
+M = randn(1,2)
+@test Ref(C_111_d).*M ==  [M[1]*C_111_d M[2]*C_111_d]
+
+M = randn(2,1)
+@test Ref(C_111_d).*M ==  [M[1]*C_111_d; M[2]*C_111_d]
+
+
+M = randn(2,2)
+@test M .* Ref(C_111_d) ≈  [C_111_d*M[1,1] C_111_d*M[1,2]; C_111_d*M[2,1] C_111_d*M[2,2]]
+
+M = randn(1,2)
+@test M .* Ref(C_111_d) ≈  [C_111_d*M[1,1] C_111_d*M[1,2]]
+
+M = randn(2,1)
+@test M .* Ref(C_111_d) ≈  [C_111_d*M[1,1]; C_111_d*M[2,1]]
+
 # Division
 @test 1/C_111 == tf([1,5], [1,2])
 @test C_212/C_111 == tf(vecarray(2, 1, [1,7,13,15], [0,1,7,10]),
