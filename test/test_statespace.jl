@@ -89,6 +89,7 @@
         @test minreal(C_111.*C_222_d - C_222_d.*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
         @test C_111 .* C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
 
+        @test_broken @inferred C_111 * C_221
         @test_broken @inferred C_111 .* I(2)
 
         C_111_d = ssrand(1,1,2)
@@ -124,6 +125,10 @@
         M = randn(2,1)
         @test M .* Ref(C_111_d) ==  [C_111_d*M[1,1]; C_111_d*M[2,1]]
 
+        ## Test that tf behaves same as ss
+        @test minreal(tf(C_111 .* I(2))) == tf(C_111) .* I(2)
+        M = randn(2,2)
+        @test minreal(tf(minreal(Ref(C_111).*M))) ≈  Ref(tf(C_111)).*M
 
         # Test that multiplication/division is applied at correct input/output location
         @test (10*C_111).C == 10*C_111.C
