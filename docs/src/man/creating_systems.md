@@ -152,6 +152,7 @@ Psiso .* Pmimo ≈ [Psiso 0; 0 Psiso] * Pmimo # Broadcasted multiplication expan
 
 Broadcasted multiplication between a system and an array is only allowed for diagonal arrays
 ```@example MIMO
+using LinearAlgebra
 Psiso .* I(2)
 ```
 
