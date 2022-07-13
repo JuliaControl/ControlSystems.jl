@@ -43,14 +43,15 @@ end
 function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if isnothing(Tf)
-        if Ti != Inf
+        if ia
             return tf([Kp * Td, Kp, Kp / Ti], [1, 0], TE)
         else
             return tf([Kp * Td, Kp], [1], TE)
         end
     else
-        if Ti != Inf
+        if ia
             return tf([Kp * Td, Kp, Kp / Ti], [Tf^2/2, Tf, 1, 0], TE)
         else
             return tf([Kp * Td, Kp], [Tf^2/2, Tf, 1], TE)
@@ -61,16 +62,27 @@ end
 function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if !isnothing(Tf)
-        A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
-        B = [0; 0; 1]
-        C = 2 * Kp / Tf^2 * [1/Ti 1 Td]
+        if ia
+            A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
+            B = [0; 0; 1]
+            C = 2 * Kp / Tf^2 * [1/Ti 1 Td]
+        else
+            A = [0 1; -2/Tf^2 -2/Tf]
+            B = [0; 1]
+            C = 2 * Kp / Tf^2 * [1 Td]
+        end
         D = 0
     elseif Td == 0
-        A = 0
-        B = 1
-        C = Kp / Ti
-        D = Kp
+        if ia
+            A = 0
+            B = 1
+            C = Kp / Ti # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            D = Kp
+        else
+            return StateSpace([Kp], TE)
+        end
     else
         throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
     end

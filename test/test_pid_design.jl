@@ -16,6 +16,12 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 # ss
 @test tf(pid(1.0, 1, 0; state_space=true)) == tf(1) + tf(1,[1,0])
 
+# Zero integral action
+Tf = 0.01
+@test tf(pid(2.0, 0; state_space=true, Tf)) ≈ minreal(pid(2.0, 0; state_space=false, Tf))
+
+@test tf(pid(2.0, 0, 1; state_space=true, Tf)) ≈ minreal(pid(2.0, 0, 1; state_space=false, Tf))
+
 # Test pidplots
 C = pid(1.0, 1, 1) 
 pidplots(C, :nyquist, :gof, :pz, :controller; params_p=[1.0, 2], params_i=[2, 3], grid=true) # Simply test that the functions runs and not errors
