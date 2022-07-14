@@ -655,7 +655,7 @@ A frequency vector `w` can be optionally provided.
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
 
-                subplot --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
+                subplot := min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                 if si == length(systems)
                     title := (titles[j,i,1,1]*" "*titles[j,i,1,2])
                 end
@@ -678,7 +678,7 @@ A frequency vector `w` can be optionally provided.
                 plotphase || continue
                 
                 # Phase margins
-                subplot --> s2i(2i,j)
+                subplot := s2i(2i,j)
                 if si == length(systems)
                     title := (titles[j,i,2,1]*" "*titles[j,i,2,2])
                 end
