@@ -12,3 +12,19 @@ end
 
 ##
 
+using ControlSystems
+using ControlSystems: deadzone
+
+th = 0.7
+@show nl = deadzone(th)
+res = lsim(nl, (x,t)->sin(t), 0:0.01:4pi)
+# plot(res)
+@test minimum(res.y) ≈ -0.3 rtol=1e-3
+@test maximum(res.y) ≈ 0.3 rtol=1e-3
+
+@show nl = deadzone(-2th, th)
+res = lsim(nl, (x,t)->2sin(t), 0:0.01:4pi)
+# plot(res)
+@test minimum(res.y) ≈ -0.6 rtol=1e-3
+@test maximum(res.y) ≈ 1.3 rtol=1e-3
+
