@@ -25,7 +25,8 @@ c2d(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; kwargs
 Returns the discretization `sysd` of the system `sys` and a matrix `x0map` that
 transforms the initial conditions to the discrete domain by `x0_discrete = x0map*[x0; u0]`
 
-See `c2d` for further details."""
+See `c2d` for further details.
+"""
 function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symbol=:zoh; w_prewarp=0)
     A, B, C, D = ssdata(sys)
     T = promote_type(eltype.((A,B,C,D))...)
@@ -63,7 +64,7 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
         Dd = a*Cd*B + D
         x0map = Matrix{T}(I, nx, nx)
     elseif method === :matched
-        error("NotImplemented: Only `:zoh`, `:foh` and `:fwdeuler` implemented so far")
+        error("NotImplemented: Only `:zoh`, `:foh`, :tustin and `:fwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
     end
