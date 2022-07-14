@@ -152,18 +152,18 @@ mimo = ssrand(2,2,2)
   Expression: siso * mimo
       Thrown: DimensionMismatch</code></pre><p>To multiply <code>siso</code> with each output channel of <code>mimo</code> in the example above, use broadcasting:</p><pre><code class="language-julia hljs">siso .* mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -1.0   0.0  -0.10405524471256454  -0.42106096377992175
-  0.0  -1.0  -1.3831337027825443    0.24792139156957438
-  0.0   0.0  -0.9035969592280317    1.91819471762204
-  0.0   0.0   0.3026423161018056   -1.1264946228133785
+ -1.0   0.0  -0.8793065191568968   0.7991652200718665
+  0.0  -1.0   0.394428127336852    0.3998747380108808
+  0.0   0.0  -0.972901189246981    0.011083375098142303
+  0.0   0.0  -0.2837146139393999  -0.09738249078247985
 B = 
- -0.5464272643843361    0.8896304106408547
-  0.17486011581810618  -0.47901015766935423
- -1.1273612958836163    0.5983725449787919
-  0.14702095726297296   0.09983007691940224
+  0.5538891582652078   0.3862841019734628
+  1.9242150298273064  -0.1352063413105651
+ -1.4081717269271912   0.4730325011187968
+  0.7066620040677382  -0.13083376554913945
 C = 
- 1.0  0.0  -0.0  0.0
- 0.0  1.0  -0.0  0.0
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
 D = 
  0.0  0.0
  0.0  0.0
@@ -171,18 +171,18 @@ D =
 Continuous-time state-space model</code></pre><p>This is equivalent to first expanding the SISO system into a diagonal system</p><pre><code class="language-julia hljs">using LinearAlgebra
 (siso .* I(2)) * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -1.0   0.0  -0.10405524471256454  -0.42106096377992175
-  0.0  -1.0  -1.3831337027825443    0.24792139156957438
-  0.0   0.0  -0.9035969592280317    1.91819471762204
-  0.0   0.0   0.3026423161018056   -1.1264946228133785
+ -1.0   0.0  -0.8793065191568968   0.7991652200718665
+  0.0  -1.0   0.394428127336852    0.3998747380108808
+  0.0   0.0  -0.972901189246981    0.011083375098142303
+  0.0   0.0  -0.2837146139393999  -0.09738249078247985
 B = 
- -0.5464272643843361    0.8896304106408547
-  0.17486011581810618  -0.47901015766935423
- -1.1273612958836163    0.5983725449787919
-  0.14702095726297296   0.09983007691940224
+  0.5538891582652078   0.3862841019734628
+  1.9242150298273064  -0.1352063413105651
+ -1.4081717269271912   0.4730325011187968
+  0.7066620040677382  -0.13083376554913945
 C = 
- 1.0  0.0  -0.0  0.0
- 0.0  1.0  -0.0  0.0
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
 D = 
  0.0  0.0
  0.0  0.0
@@ -191,17 +191,17 @@ Continuous-time state-space model</code></pre><h3 id="Converting-an-array-of-sys
 P2 = ssrand(1,1,1)
 append(P1, P2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -0.18120415873890014   0.0
-  0.0                  -0.990393129487555
+ -1.1512019252337173   0.0
+  0.0                 -0.9892107288675017
 B = 
- 0.0015812809154356659  0.0
- 0.0                    0.05926146641709733
+ 0.40289138399904345   0.0
+ 0.0                  -1.4810823116516112
 C = 
- -1.5923829943838643   0.0
-  0.0                 -1.073606963794819
+ -0.3010755498169736  0.0
+  0.0                 1.1439447585148914
 D = 
- 1.1479078864856331  0.0
- 0.0                 1.238712043613831
+ -0.1333902070146966   0.0
+  0.0                 -0.4648177207509541
 
 Continuous-time state-space model</code></pre><p>More general arrays of systems can be converted to a MIMO system using <a href="../../lib/synthesis/#ControlSystems.array2mimo-Tuple{AbstractArray{&lt;:LTISystem}}"><code>array2mimo</code></a>.</p><pre><code class="language-julia hljs">sys_array = fill(P, 2, 2) # Creates an array of systems
 mimo_sys = array2mimo(sys_array)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
@@ -226,44 +226,44 @@ Continuous-time state-space model</code></pre><h3 id="Converting-MIMO-system-to-
 sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)&#39;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2×3 Matrix{StateSpace{Continuous, Float64}}:
  StateSpace{Continuous, Float64}
 A = 
- -0.11275135381109669
+ -0.16926201150377307
 B = 
- -1.2619451570829587
+ 0.6659226201099451
 C = 
- 1.361938150158497
+ 0.13724380362383173
 D = 
- -0.5148785069440165
+ -1.7703058151885283
 
-Continuous-time state-space model     …  StateSpace{Continuous, Float64}
+Continuous-time state-space model  …  StateSpace{Continuous, Float64}
 A = 
- -0.11275135381109669
+ -0.16926201150377307
 B = 
- -0.5635043860554244
+ -0.05071878537177229
 C = 
- 1.361938150158497
+ 0.13724380362383173
 D = 
- 0.9032362928038886
+ -0.5001011908353429
 
 Continuous-time state-space model
  StateSpace{Continuous, Float64}
 A = 
- -0.11275135381109669
+ -0.16926201150377307
 B = 
- -1.2619451570829587
+ 0.6659226201099451
 C = 
- -0.17784484969865286
+ 0.36149805342167174
 D = 
- -0.4236792956658614
+ -0.7800884545004282
 
 Continuous-time state-space model     StateSpace{Continuous, Float64}
 A = 
- -0.11275135381109669
+ -0.16926201150377307
 B = 
- -0.5635043860554244
+ -0.05071878537177229
 C = 
- -0.17784484969865286
+ 0.36149805342167174
 D = 
- -0.4955219021549973
+ 0.13891159921696192
 
 Continuous-time state-space model</code></pre><h3 id="Creating-arrays-with-different-types-of-systems"><a class="docs-heading-anchor" href="#Creating-arrays-with-different-types-of-systems">Creating arrays with different types of systems</a><a id="Creating-arrays-with-different-types-of-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-arrays-with-different-types-of-systems" title="Permalink"></a></h3><p>When calling <code>hcat/vcat</code>, Julia automatically tries to promote the types to the smallest common supertype, this means that creating an array with one continuous and one discrete-time system fails</p><pre><code class="language-julia hljs">P_cont = ssrand(2,3,1)
 P_disc = ssrand(2,3,1, Ts=1)
@@ -272,28 +272,28 @@ P_disc = ssrand(2,3,1, Ts=1)
       Thrown: ErrorException</code></pre><p>You can explicitly tell Julia that you want a particular supertype, e.g,</p><pre><code class="language-julia hljs">StateSpace[P_cont, P_disc]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{StateSpace}:
  StateSpace{Continuous, Float64}
 A = 
- -0.41914796626620865
+ -0.15351848895121378
 B = 
- -0.35246584294041444  1.3351154569450836  -0.7027022332232066
+ 0.1134124390020438  -0.25423617602110793  -0.4356285735487893
 C = 
- -0.735514830080231
-  0.16725294758651066
+ -0.4010703265406935
+ -0.5240956350237185
 D = 
- -0.7765876349189825   -1.2275224510164466    -1.1732243795521047
- -0.20254509489835046   0.004275487076982475  -0.03143437220324202
+  0.18975946781570055  1.3840889387334703  1.4257374267286522
+ -0.7244221656782788   1.904729068665977   0.9698881533062095
 
 Continuous-time state-space model
  StateSpace{Discrete{Int64}, Float64}
 A = 
  -0.9
 B = 
- 0.23566702634751419  0.10055400353336803  -0.4882129128355058
+ 1.8356670827212513  0.1374705945039388  1.1574097511993229
 C = 
- -0.4607878962210526
-  0.5145578015571027
+  0.336636364685893
+ -1.3022911715756593
 D = 
-  1.169970489834043   2.0815565429432663  0.06891497555166484
- -0.4407781274066938  0.6743151957092616  2.9100910395246884
+  0.8390853905712365  1.6234307014814326    0.4041923100357903
+ -1.2462177176276155  0.06169808174410248  -1.266659040499696
 
 Sample Time: 1 (seconds)
-Discrete-time state-space model</code></pre><p>The type <code>StateSpace</code> is abstract, since the type parameters are not specified.</p><h2 id="Demo-systems"><a class="docs-heading-anchor" href="#Demo-systems">Demo systems</a><a id="Demo-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Demo-systems" title="Permalink"></a></h2><p>The module <code>ControlSystems.DemoSystems</code> contains a number of demo systems demonstrating different kinds of dynamics.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../numerical/">Performance considerations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.20 on <span class="colophon-date" title="Wednesday 13 July 2022 09:22">Wednesday 13 July 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Discrete-time state-space model</code></pre><p>The type <code>StateSpace</code> is abstract, since the type parameters are not specified.</p><h2 id="Demo-systems"><a class="docs-heading-anchor" href="#Demo-systems">Demo systems</a><a id="Demo-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Demo-systems" title="Permalink"></a></h2><p>The module <code>ControlSystems.DemoSystems</code> contains a number of demo systems demonstrating different kinds of dynamics.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../numerical/">Performance considerations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.21 on <span class="colophon-date" title="Thursday 14 July 2022 07:22">Thursday 14 July 2022</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
