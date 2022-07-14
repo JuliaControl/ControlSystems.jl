@@ -238,7 +238,6 @@ plot(f1,f2, size=(1300,800))
 - Discrete-time support.
 - Basic support for nonlinear analysis such as stability proof through the circle criterion etc. In particular, predefined nonlinear functions may specify sector bounds for the gain, required by the circle-criterion calculations.
 - Additional nonlinear components, such as 
-    - Dead zone
     - Integrator anti-windup
     - Friction models?
 
@@ -249,4 +248,5 @@ ControlSystems.nonlinearity
 ControlSystems.offset
 ControlSystems.saturation
 ControlSystems.ratelimit
+ControlSystems.deadzone
 ```
