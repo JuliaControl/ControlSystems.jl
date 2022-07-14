@@ -612,16 +612,18 @@ A frequency vector `w` can be optionally provided.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
-@recipe function marginplot(p::Marginplot)
+@recipe function marginplot(p::Marginplot; plotphase=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
-    s2i(i,j) = LinearIndices((ny,2nu))[j,i]
+    s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
+    layout --> ((plotphase ? 2 : 1)*ny, nu)
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
     titles[:,:,2,1] .= "Pm: "
     titles[:,:,1,2] .= "Wgm: "
     titles[:,:,2,2] .= "Wpm: "
     layout --> (2ny, nu)
+    label --> ""
     for (si, s) in enumerate(systems)
         bmag, bphase = bode(s, w)
         for j=1:nu
@@ -653,60 +655,54 @@ A frequency vector `w` can be optionally provided.
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
                 titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
 
+                subplot := min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
+                if si == length(systems)
+                    title := (titles[j,i,1,1]*" "*titles[j,i,1,2])
+                end
                 @series begin
                     primary := true
-                    subplot --> s2i(2i-1,j)
                     seriestype := :bodemag
                     w, bmag[i, j, :]
                 end
-
-                primary --> false
+                
                 #Plot gain margins
+                primary --> false
                 @series begin
-                    subplot --> s2i(2i-1,j)
-                    primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1],w[end]], [oneLine,oneLine]
                 end
                 @series begin
-                    subplot --> s2i(2i-1,j)
-                    title --> titles[j,i,1,1]*" "*titles[j,i,1,2]
                     [wgm wgm]', [ones(length(mag)) mag]'
                 end
-
+                plotphase || continue
+                
                 # Phase margins
+                subplot := s2i(2i,j)
+                if si == length(systems)
+                    title := (titles[j,i,2,1]*" "*titles[j,i,2,2])
+                end
                 @series begin
                     primary := true
-                    subplot --> s2i(2i,j)
                     seriestype := :bodephase
                     w, bphase[i, j, :]
                 end
                 @series begin
-                    subplot --> s2i(2i,j)
-                    primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1],w[end]], [oneLine,oneLine]
                 end
                 @series begin
-                    primary --> false
-                    subplot --> s2i(2i,j)
                     [wpm wpm]', [fullPhase fullPhase-pm]'
                 end
                 @series begin
-                    title --> titles[j,i,2,1]*" "*titles[j,i,2,2]
-                    subplot --> s2i(2i,j)
-                    primary --> false
                     color --> :gray
                     linestyle --> :dash
                     [w[1] w[end]]', ((fullPhase .- pm) .* ones(1, 2))'
                 end
-
             end
         end
     end
-
 end
 
 # HELPERS:
