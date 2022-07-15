@@ -7,7 +7,7 @@ const StaticStateSpace{TE, ny, nu, nx} = HeteroStateSpace{TE,
 
 
 to_static(a::Number) = a
-to_static(a::AbstractArray) = SMatrix{size(a)...}(a)
+to_static(a::AbstractArray) = SMatrix{size(a,1), size(a,2), eltype(a), prod(size(a))}(a)
 to_static(a::SArray) = a
 to_sized(a::Number) = a
 to_sized(a::AbstractArray) = SizedArray{Tuple{size(a)...}}(a)
@@ -65,6 +65,10 @@ function HeteroStateSpace(D::SArray, timeevol::TimeEvolution)
         D,
         timeevol
     )
+end
+
+function StaticStateSpace(D::Array, args...)
+    HeteroStateSpace(to_static(D), args...)
 end
 
 function Base.promote_rule(::Type{N}, ::Type{<:HeteroStateSpace{TE}}) where {N <: Number, TE}
@@ -206,7 +210,8 @@ end
         end
         return R
     end
-    A,B,C,D = ssdata(sys)
+    A,B,C0,D = ssdata(sys)
+    C = complex.(C0) # Still important when using ForwardDiff
     te = sys.timeevol
     
     let R=R, A=A, B=B, C=C, D=D, te=te
