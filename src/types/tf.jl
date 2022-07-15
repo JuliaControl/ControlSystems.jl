@@ -72,12 +72,12 @@ function tf(G::TransferFunction{TE,<:SisoTf{T}}) where {TE<:TimeEvolution,T<:Num
 end
 
 # Function for creation of 's' or 'z' var
-function tf(var::AbstractString)
-    var != "s" && error("""var must be 's' for continuous time tf. Call tf("z", Ts) for a discrete-time variable.""")
+function tf(var::Union{AbstractString, Char})
+    var ∉ ("s", 's') && error("""var must be 's' for continuous time tf. Call tf("z", Ts) for a discrete-time variable.""")
     return tf([1, 0], [1], Continuous())
 end
-function tf(var::AbstractString, Ts::Real)
-    var != "z" && error("var must be 'z' for discrete-time tf.")
+function tf(var::Union{AbstractString, Char}, Ts::Real)
+    var ∉ ("z", 'z') && error("var must be 'z' for discrete-time tf.")
     Ts == 0 && error("Ts must not be 0 for discrete-time tf.")
     return tf([1, 0], [1], Discrete(Ts))
 end
