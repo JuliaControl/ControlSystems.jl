@@ -131,7 +131,7 @@ using DelayDiffEq
 using MacroTools
 using MatrixEquations
 using UUIDs # to load Plots in gangoffourplot
-using StaticArrays
+using StaticArrays, Polyester
 
 abstract type AbstractSystem end
 

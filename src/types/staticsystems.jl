@@ -206,19 +206,19 @@ end
         end
         return R
     end
-    A,B,C0,D = ssdata(sys)
-    C = complex.(C0) # We make C complex in order to not incur allocations in mul! below
+    A,B,C,D = ssdata(sys)
     te = sys.timeevol
     
-    Adiag = diagind(A)
-    @inbounds for i in eachindex(w_vec)
-        Ri = @views R[:,:,i]
-        copyto!(Ri,D) # start with the D-matrix
-        isinf(w_vec[i]) && continue
-        w = _freq(w_vec[i], te)
-        Ac = A - w*I
-        Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
-        Ri .-= C*Bc # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
+    let R=R, A=A, B=B, C=C, D=D, te=te
+        @inbounds Polyester.@batch for i in eachindex(w_vec)
+            Ri = @views R[:,:,i]
+            copyto!(Ri,D) # start with the D-matrix
+            isinf(w_vec[i]) && continue
+            w = _freq(w_vec[i], te)
+            Ac = A - w*I
+            Bc = Ac \ B # Bc = (A - w*I)\B 
+            Ri .-= C*Bc # - rather than + since (A - w*I) instead of (w*I - A)
+        end
     end
     R
 end

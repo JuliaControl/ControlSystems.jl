@@ -123,19 +123,23 @@ eye, sys2 = promote(1, sys)
 ## Freqresp
 
 w = exp10.(LinRange(-2, 2, 20000))
-R = zeros(ComplexF64, 1,1,20000)
+R = zeros(ComplexF64, 1,1, length(w))
 syss = StaticStateSpace(ssrand(1,1,5,proper=false))
 sys = ss(syss)
 
-
+ControlSystems.freqresp_nohess!(R, syss, w) # precompile
 @test @allocated(ControlSystems.freqresp_nohess!(R, syss, w)) == 0
 
 @test ControlSystems.freqresp_nohess!(R, syss, w) ≈ freqresp(ss(syss), w)
 
+# Benchmarks with length(w) = 20000
 # @btime ControlSystems.freqresp_nohess!(R, syss, w);
 # 29.660 ms (240001 allocations: 409.55 MiB)
 # 27.232 ms (200001 allocations: 408.02 MiB) # loop A
 # 7.018 ms (0 allocations: 0 bytes) # Separate Static method
+# 6.917 ms (0 allocations: 0 bytes) Float64 isntead of Complex C
+# 638.585 μs (73 allocations: 9.70 KiB) # @threads
+# 621.413 μs (0 allocations: 0 bytes) # Polyester.@batch
 
 # @btime ControlSystems.freqresp_nohess!(R, sys, w);
 # 15.132 ms (240002 allocations: 22.89 MiB)
