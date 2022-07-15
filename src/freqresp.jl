@@ -223,7 +223,10 @@ freqresp_nohess
         copyto!(Ri,D) # start with the D-matrix
         isinf(w_vec[i]) && continue
         w = _freq(w_vec[i], te)
-        @views copyto!(Ac[Adiag],A[Adiag]) # reset storage to A
+        # @views copyto!(Ac[Adiag],A[Adiag]) # reset storage to A
+        for j in Adiag # Loop slightly faster
+            Ac[j] = A[j] # reset storage to A
+        end
         @views Ac[Adiag] .-= w # Ac = A - w*I
         Bc = Ac \ B # Bc = (A - w*I)\B # avoid inplace to handle sparse matrices etc.
         mul!(Ri, C, Bc, -1, 1) # use of 5-arg mul to subtract from D already in Ri. - rather than + since (A - w*I) instead of (w*I - A)
