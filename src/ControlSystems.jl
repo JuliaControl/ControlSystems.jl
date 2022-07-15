@@ -12,6 +12,9 @@ export  LTISystem,
         tf,
         zpk,
         isproper,
+        StaticStateSpace,
+        to_static,
+        to_sized,
         # Linear Algebra
         balance,
         balance_statespace,
@@ -128,6 +131,7 @@ using DelayDiffEq
 using MacroTools
 using MatrixEquations
 using UUIDs # to load Plots in gangoffourplot
+using StaticArrays
 
 abstract type AbstractSystem end
 
@@ -187,6 +191,8 @@ include("demo_systems.jl")
 include("delay_systems.jl")
 include("hammerstein_weiner.jl")
 include("nonlinear_components.jl")
+
+include("types/staticsystems.jl")
 
 include("plotting.jl")
 
