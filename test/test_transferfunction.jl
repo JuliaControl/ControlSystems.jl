@@ -5,6 +5,7 @@
 # type: C: Continuous, D: Discrete
 # dims: "npnuny" (np = # poles)
 s = tf("s")
+@test s == tf('s')
 @inferred 1.0/s
 @inferred 1/s
 
@@ -16,6 +17,7 @@ C_221 = @inferred tf(vecarray(1, 2,[1, 2, 3], [1, 2]), vecarray(1, 2, [1, 8, 15]
 C_222 = [C_221; C_221]
 C_022 = @inferred tf(4*[1 0; 0 1])
 s = @inferred tf("s")
+s = @inferred tf('s')
 
 # DISCRETE
 D_111 = @inferred tf([1, 2], [1, -0.5], 0.005)
