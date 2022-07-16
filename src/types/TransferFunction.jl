@@ -169,15 +169,46 @@ function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::Trans
     issiso(G1) || issiso(G2) || error("Only SISO transfer function can be broadcasted")
     # Note: G1*G2 = y <- G1 <- G2 <- u
     timeevol = common_timeevol(G1,G2)
-    matrix = G1.matrix .* G2.matrix
+    
+    if issiso(G1) && !issiso(G2) # Check !issiso(G2) to avoid calling fill if both are siso
+        G1 = append(G1 for i in 1:G2.ny)
+    elseif issiso(G2)
+        G2 = append(G2 for i in 1:G1.nu)
+    end
+    return G1 * G2
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, M::AbstractArray)
+    issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`.")
+    # Note: G1*G2 = y <- G1 <- G2 <- u
+    timeevol = G1.timeevol
+    matrix = G1.matrix .* M
     return TransferFunction(matrix, timeevol)
 end
 
-function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::AbstractArray)
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, G1::TransferFunction)
     issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`.")
     # Note: G1*G2 = y <- G1 <- G2 <- u
     timeevol = G1.timeevol
-    matrix = G1.matrix .* G2
+    matrix = M .* G1.matrix
+    return TransferFunction(matrix, timeevol)
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), G1r::Base.RefValue{<:TransferFunction}, M::AbstractArray)
+    G1 = G1r[]
+    issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    timeevol = G1.timeevol
+    matrix = G1.matrix .* M
+    return TransferFunction(matrix, timeevol)
+end
+
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, G1r::Base.RefValue{<:TransferFunction})
+    G1 = G1r[]
+    issiso(G1) || error("Only SISO transfer function can be broadcasted")
+    timeevol = G1.timeevol
+    matrix = M .* G1.matrix
     return TransferFunction(matrix, timeevol)
 end
 

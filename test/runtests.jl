@@ -18,6 +18,7 @@ my_tests = [
             "test_result_types",
             "test_timeevol",
             "test_statespace",
+            "test_staticsystems",
             "test_transferfunction",            
             "test_zpk",
             "test_promotion",
@@ -37,6 +38,7 @@ my_tests = [
             "test_delayed_systems",
             "test_hammerstein_wiener",
             "test_demo_systems",
+            "test_nonlinear_components",
             "test_autovec",
             "test_plots"
             ]

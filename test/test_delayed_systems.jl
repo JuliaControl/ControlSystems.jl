@@ -312,7 +312,7 @@ res = step(P, 5)
 @test length(res.y) > 30
 
 # test automatic frequency selection
-mag, phase, w = bode(ssrand(1,1,1)*delay(1))
+mag, phase, w = bode(DemoSystems.lag()*delay(1))
 @test w[1] <= 0.05
 @test w[end] >= 5
 

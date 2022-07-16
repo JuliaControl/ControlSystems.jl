@@ -134,6 +134,29 @@ norm(Gmin - feedback(P), Inf) # No difference
 bodeplot([G, Gmin, feedback(P)]) # They are all identical
 ```
 
+## Multiplying systems
+Two systems can be connected in series by multiplication
+```@example MIMO
+using ControlSystems
+P1 = ss(-1,1,1,0)
+P2 = ss(-2,1,1,0)
+P2*P1
+```
+If the input dimension of `P2` does not match the output dimension of `P1`, an error is thrown. If one of the systems is SISO and the other is MIMO, broadcasted multiplication will expand the SISO system to match the input or output dimension of the MIMO system, e.g.,
+```@example MIMO
+Pmimo = ssrand(2,2,1)
+Psiso = ss(-2,1,1,0)
+# Psiso * Pmimo # error
+Psiso .* Pmimo ≈ [Psiso 0; 0 Psiso] * Pmimo # Broadcasted multiplication expands SISO into diagonal system
+```
+
+Broadcasted multiplication between a system and an array is only allowed for diagonal arrays
+```@example MIMO
+using LinearAlgebra
+Psiso .* I(2)
+```
+
+
 ## MIMO systems and arrays of systems
 Concatenation of systems creates MIMO systems, which is different from an array of systems. For example
 ```@example MIMO

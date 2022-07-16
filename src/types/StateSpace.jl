@@ -64,7 +64,7 @@ function to_similar_matrices(A,B,C,D)
     T = promote_type(eltype(A),eltype(B),eltype(C),eltype(D))
     A = to_matrix(T, A)
     B = to_matrix(T, B)
-    C = to_matrix(T, C)
+    C = C isa UniformScaling ? to_matrix(T, Matrix(C(size(A, 1)))) : to_matrix(T, C)
     D = fix_D_matrix(T, B, C, D)
     return A, B, C, D, T
 end
@@ -82,15 +82,15 @@ function StateSpace{TE,T}(sys::StateSpace) where {TE, T}
     StateSpace{TE,T}(sys.A,sys.B,sys.C,sys.D,sys.timeevol)
 end
 
-function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
+function StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{AbstractNumOrArray, UniformScaling}, D::AbstractNumOrArray, timeevol::TimeEvolution)
     A, B, C, D, T = to_similar_matrices(A,B,C,D)
     return StateSpace{typeof(timeevol),T}(A, B, C, D, timeevol)
 end
 # General Discrete constructor
-StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number) =
+StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{AbstractNumOrArray, UniformScaling}, D::AbstractNumOrArray, Ts::Number) =
     StateSpace(A, B, C, D, Discrete(Ts))
 # General continuous constructor
-StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray) =
+StateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{AbstractNumOrArray, UniformScaling}, D::AbstractNumOrArray) =
     StateSpace(A, B, C, D, Continuous())
 
 # Function for creation of static gain
@@ -153,10 +153,10 @@ struct HeteroStateSpace{TE <: TimeEvolution, AT<:AbstractMatrix,BT<:AbstractVecO
         )
     end
     # Base constructor
-    function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, timeevol::TimeEvolution)
+    function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{AbstractNumOrArray, UniformScaling}, D::AbstractNumOrArray, timeevol::TimeEvolution)
         A = to_abstract_matrix(A)
         B = to_abstract_matrix(B)
-        C = to_abstract_matrix(C)
+        C = C isa UniformScaling ? C(size(A, 1)) : to_abstract_matrix(C)
         if D == 0
             D = fill(zero(eltype(C)), size(C,1), size(B,2))
         else
@@ -167,10 +167,10 @@ struct HeteroStateSpace{TE <: TimeEvolution, AT<:AbstractMatrix,BT<:AbstractVecO
     end
 end
 
-function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray, Ts::Number)
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{AbstractNumOrArray, UniformScaling}, D::AbstractNumOrArray, Ts::Number)
     HeteroStateSpace(A, B, C, D, Discrete(Ts))
 end
-function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::AbstractNumOrArray, D::AbstractNumOrArray)
+function HeteroStateSpace(A::AbstractNumOrArray, B::AbstractNumOrArray, C::Union{AbstractNumOrArray, UniformScaling}, D::AbstractNumOrArray)
     HeteroStateSpace(A, B, C, D, Continuous())
 end
 HeteroStateSpace(s::AbstractStateSpace) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol)
@@ -340,7 +340,13 @@ function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, sys1::Base.Re
     sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
 end
 
-*(sys1::ST, D::Diagonal) where {ST <: AbstractStateSpace} = sys1 .* D
+function *(sys1::ST, D::Diagonal) where {ST <: AbstractStateSpace}
+    if issiso(sys1) # This is a special case that falls back on broadcasting
+        return sys1 .* D
+    else # This is the standard implementation but must be handled here since we special case diagonal matrices for the case above
+        sys1 * ss(D, sys1.timeevol)
+    end
+end
 
 *(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B*n, sys.C, sys.D*n, sys.timeevol)
 *(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C*n, sys.D*n, sys.timeevol)
@@ -464,7 +470,7 @@ function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <
         atol = tol
     end
     Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
-    T(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
+    basetype(T)(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
 end
 
 

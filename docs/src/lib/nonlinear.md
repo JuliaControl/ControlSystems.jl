@@ -48,6 +48,8 @@ using ControlSystems: saturation
 saturation(0.7)
 ```
 
+See also [`ControlSystems.ratelimit`](@ref) that saturates the derivative of a signal.
+
 ### Non-zero operating point
 It's common to linearize nonlinear systems around some operating point. We may make use of the helper constructor [`ControlSystems.offset`](@ref) to create affine functions at the inputs and outputs of the linearized system to, e.g.,
 1. Make sure that simulations result are given in the original coordinates rather than in the coordinates of the linearization point.
@@ -134,7 +136,7 @@ To do this, we first draw the block diagram
  ┌────►│-  │ ẍ │ 1 │ ẋ │ 1 │ x
  │ ┌──►│-  ├──►│ - ├┬─►│ - ├─┬──►
  │ │ ┌►│-  │   │ s ││  │ s │ │
- │ │ │ └───┘   └───┴┤  └───┘ │
+ │ │ │ └───┘   └───┘│  └───┘ │
  │ │ │              │        │
  │ │ │   ┌───┐      │        │
  │ │ └───┤ c │◄─────┘        │
@@ -236,7 +238,6 @@ plot(f1,f2, size=(1300,800))
 - Discrete-time support.
 - Basic support for nonlinear analysis such as stability proof through the circle criterion etc. In particular, predefined nonlinear functions may specify sector bounds for the gain, required by the circle-criterion calculations.
 - Additional nonlinear components, such as 
-    - Dead zone
     - Integrator anti-windup
     - Friction models?
 
@@ -246,4 +247,6 @@ plot(f1,f2, size=(1300,800))
 ControlSystems.nonlinearity
 ControlSystems.offset
 ControlSystems.saturation
+ControlSystems.ratelimit
+ControlSystems.deadzone
 ```

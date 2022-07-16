@@ -43,14 +43,15 @@ end
 function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if isnothing(Tf)
-        if Ti != Inf
+        if ia
             return tf([Kp * Td, Kp, Kp / Ti], [1, 0], TE)
         else
             return tf([Kp * Td, Kp], [1], TE)
         end
     else
-        if Ti != Inf
+        if ia
             return tf([Kp * Td, Kp, Kp / Ti], [Tf^2/2, Tf, 1, 0], TE)
         else
             return tf([Kp * Td, Kp], [Tf^2/2, Tf, 1], TE)
@@ -61,16 +62,27 @@ end
 function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
     TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if !isnothing(Tf)
-        A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
-        B = [0; 0; 1]
-        C = 2 * Kp / Tf^2 * [1/Ti 1 Td]
+        if ia
+            A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
+            B = [0; 0; 1]
+            C = 2 * Kp / Tf^2 * [1/Ti 1 Td]
+        else
+            A = [0 1; -2/Tf^2 -2/Tf]
+            B = [0; 1]
+            C = 2 * Kp / Tf^2 * [1 Td]
+        end
         D = 0
     elseif Td == 0
-        A = 0
-        B = 1
-        C = Kp / Ti
-        D = Kp
+        if ia
+            A = 0
+            B = 1
+            C = Kp / Ti # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            D = Kp
+        else
+            return StateSpace([Kp], TE)
+        end
     else
         throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
     end
@@ -227,9 +239,14 @@ end
     laglink(a, M; [Ts])
 
 Returns a phase retarding link, the rule of thumb `a = 0.1ωc` guarantees less than 6 degrees phase margin loss. The bode curve will go from `M`, bend down at `a/M` and level out at 1 for frequencies > `a`
+
+```math
+\\dfrac{s + a}{s + a/M} = M \\dfrac{1 + s/a}{1 + sM/a}
+```
 """
 function laglink(a, M; Ts=nothing)
     Ts !== nothing && (Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported.")))
+    M > 1 || @warn "M should be ≥ 1 for the link to be phase retarding (increasing gain)"
     numerator = [1/a, 1]
     denominator = [M/a, 1]
     gain = M
@@ -247,10 +264,15 @@ The phase advance at `ω = b√(N)` can be plotted as a function of `N` with `le
 
 Values of `N < 1` will give a phase retarding link.
 
+```math
+KN \\dfrac{s + b}{s + bN} = K \\dfrac{1 + s/b}{1 + s/(bN)}
+```
+
 See also `leadlinkat` `laglink`
 """
 function leadlink(b, N, K; h=nothing, Ts=nothing)
     Ts !== nothing && (Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported.")))
+    N > 1 || @warn "N should be ≥ 1 for the link to be phase advancing."
     numerator = [1/b, 1]
     denominator = [1/(b*N), 1]
     gain = K
@@ -281,7 +303,7 @@ end
     leadlinkcurve(start=1)
 
 Plot the phase advance as a function of `N` for a lead link (phase advance link)
-If an input argument `s` is given, the curve is plotted from `s` to 10, else from 1 to 10.
+If an input argument `start` is given, the curve is plotted from `start` to 10, else from 1 to 10.
 
 See also `leadlink, leadlinkat`
 """
@@ -289,7 +311,7 @@ leadlinkcurve
 @recipe function leadlinkcurve(p::LeadLinkCurve)
     start = isempty(p.args) ? 1 : p.args[1]
     N = range(start, stop=10, length=50)
-    dph = 180/pi*map(Ni->atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
+    dph = map(Ni->180/pi*atan(sqrt(Ni))-atan(1/sqrt(Ni)), N)
     @series begin
         xlabel := "N"
         ylabel := "Phase advance [deg]"
@@ -306,9 +328,11 @@ is the boundary of the stability region for a
 process with transfer function P(s)
 The provided derivative gain is expected on parallel form, i.e., the form kp + ki/s + kd s, but the result can be transformed to any form given by the `form` keyword.
 The curve is found by analyzing
-P(s)*C(s) = -1 ⟹
-|PC| = |P| |C| = 1
+```math
+P(s)C(s) = -1 ⟹ \\\\
+|PC| = |P| |C| = 1 \\\\
 arg(P) + arg(C) = -π
+```
 If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
 See also `stabregionPID`, `loopshapingPI`, `pidplots`
 """
@@ -351,9 +375,9 @@ Selects the parameters of a PI-controller (on parallel form) such that the Nyqui
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
 
 If `phasemargin` is supplied (in degrees), `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
 
@@ -363,7 +387,7 @@ Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system
 
 See also [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
 """
-function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form=:standard, doplot=false)
+function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard, doplot=false)
     Pw = P(im*ωp)[1]
     ϕp = angle(Pw)
     rp = abs.(Pw)
@@ -402,9 +426,9 @@ closed loop between `P` and `C` are placed to match the poles of
 
 The parameters can be returned as one of several common representations 
 chose by `form`, the options are
-* `:standard` - `Kp*(1 + 1/(Ti*s))` 
-* `:series` - `Kc*(1 + 1/(τi*s))` (equivalent to above for PI controllers)
-* `:parallel` - `Kp + Ki/s`
+* `:standard` - ``K_p(1 + 1/(T_i s))``
+* `:series` - ``K_c(1 + 1/(τ_i s))`` (equivalent to above for PI controllers)
+* `:parallel` - ``K_p + K_i/s``
 
 `C` is the returned transfer function of the controller and `params` 
 is a named tuple containing the parameters.
@@ -413,7 +437,7 @@ or they can be unpacked using `Kp, Ti, Td = values(params)`.
 
 See also [`loopshapingPI`](@ref)
 """
-function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ; form=:standard) where T
+function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ; form::Symbol=:standard) where T
     num = numvec(P)[]
     den = denvec(P)[]
     if length(den) != 2 || length(num) > 2
@@ -439,11 +463,11 @@ placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs..
 Convert parameters from form `form` to `:standard` form. 
 
 The `form` can be chosen as one of the following
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
 """
-function convert_pidparams_to_standard(param_p, param_i, param_d, form)
+function convert_pidparams_to_standard(param_p, param_i, param_d, form::Symbol)
     if form === :standard
         return param_p, param_i, param_d
     elseif form === :series
@@ -465,11 +489,11 @@ end
 Convert parameters to form `form` from `:standard` form. 
 
 The `form` can be chosen as one of the following
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
 """
-function convert_pidparams_from_standard(Kp, Ti, Td, form)
+function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
         return Kp, Ti, Td
     elseif form === :series
@@ -485,6 +509,9 @@ function convert_pidparams_from_standard(Kp, Ti, Td, form)
     end
 end
 
+"""
+    convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
+"""
 function convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
     kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, from)
     convert_pidparams_from_standard(kp, ki, kd, to)

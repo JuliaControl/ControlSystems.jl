@@ -12,7 +12,7 @@ function ssrand(T::Type, ny::Int, nu::Int, nstates::Int; proper=false, stable=tr
     A = randn(T, nstates, nstates)
     if stable
         Λ = eigvals(A)
-        A = isnothing(Ts) ? A - 1.1*max(0, maximum(real(Λ)))*I : A*0.9/maximum(abs.(Λ))
+        A = isnothing(Ts) ? A - T(1.1)*max(0, maximum(real(Λ)))*I : A*T(0.9)/maximum(abs.(Λ))
     end
 
     B = randn(T, nstates, nu)
