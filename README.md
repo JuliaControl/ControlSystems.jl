@@ -7,8 +7,6 @@
 [![codecov](https://codecov.io/gh/JuliaControl/ControlSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaControl/ControlSystems.jl)
 
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/latest)
-<a class="github-button" href="https://github.com/JuliaControl/ControlSystems.jl" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-star" data-show-count="true" aria-label="Star JuliaControl/ControlSystems.jl on GitHub">Star</a>
-<script async defer src="https://buttons.github.io/buttons.js"></script>
 
 A control systems design toolbox for Julia.
 
