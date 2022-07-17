@@ -1,3 +1,16 @@
+```@raw html
+<p style="text-align:center">
+
+<img src="https://avatars.githubusercontent.com/u/10605979?s=400&u=7b2efdd404c4db3b3f067f04c305d40c025a8961&v=4" alt="JuliaControl logo">
+
+<br> 
+
+<a class="github-button" href="https://github.com/JuliaControl/ControlSystems.jl" data-color-scheme="no-preference: light; light: light; dark: dark;" data-icon="octicon-star" data-show-count="true" aria-label="Star JuliaControl/ControlSystems.jl on GitHub">Star</a>
+
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+</p> 
+```
+
 # ControlSystems.jl Manual
 
 ```@meta
@@ -13,9 +26,13 @@ DocTestFilters = [
 nyquistplot(ssrand(1,1,1))
 ```
 
+
 ControlSystems.jl and the rest of the packages in the [JuliaControl](https://github.com/JuliaControl/) organization implement solutions for analysis and design of (primarily linear) control systems. If you are new to the Julia programming language, [learn more here](https://julialang.org/learning/). If you are familiar with Julia but unfamiliar with the ecosystem for control, learn more under [Ecosystem](@ref).
 
 This documentation is structured into an introductory section labeled [Introductory guide](@ref), a section with [Examples](@ref index_examples) and a reference section sorted into topics, labeled [Functions](@ref).
+
+
+
 
 ## Introductory guide
 
