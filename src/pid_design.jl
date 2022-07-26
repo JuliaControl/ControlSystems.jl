@@ -388,7 +388,7 @@ Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system
 See also [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
 """
 function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard, doplot=false)
-    Pw = P(im*ωp)[1]
+    Pw = freqresp(P, ωp)[]
     ϕp = angle(Pw)
     rp = abs.(Pw)
 
