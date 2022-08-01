@@ -235,7 +235,7 @@ function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}
     # Step 3:
     # Compress cols of [C D] to [0 Df]
     mat = [C_rc D_rc]
-    Wr = Matrix(qr(mat').Q)
+    Wr = qr(mat').Q * I
     W = reverse(Wr, dims=2)
     mat = mat*W
     if fastrank(mat', meps) > 0
@@ -277,7 +277,7 @@ function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
         end
 
         # Compress columns of Ctilde
-        V = reverse(Matrix(qr(Ctilde').Q), dims=2)
+        V = reverse(qr(Ctilde').Q * I, dims=2)
         Sj = Ctilde*V
         rho = fastrank(Sj', meps)
         nu = size(Sj, 2) - rho
