@@ -80,13 +80,13 @@ The following is a list of packages from the wider Julia ecosystem that may be o
 - [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl) contains types that represent statespace systems on descriptor form, i.e., with a mass matrix. These systems can represent linear DAE systems and non-proper systems.
 - [TrajectoryOptimization.jl](http://roboticexplorationlab.org/TrajectoryOptimization.jl/stable/) is one of the more developed packages for open-loop **optimal control** and trajectory optimization in Julia.
 - [LowLevelParticleFilters.jl](https://github.com/baggepinnen/LowLevelParticleFilters.jl) is a library for state estimation using particle filters and Kalman filters of different flavors.
+- [ModelingToolkit.jl](https://mtk.sciml.ai/stable/) is an acausal modeling tool, similar in spirit to Modelica. A vide showing ControlSystems and ModelingToolkit together is [available here](https://youtu.be/favQKOyyx4o). [ControlSystemsMTK.jl](https://github.com/baggepinnen/ControlSystemsMTK.jl) exists to ease the use of these two packages together.
 - [FaultDetectionTools.jl](https://github.com/andreasvarga/FaultDetectionTools.jl) contains utilities and observers for online fault detection.
 - [ReachabilityAnalysis.jl](https://juliareach.github.io/ReachabilityAnalysis.jl/dev/generated_examples/Building/) is a package for reachability analysis. This can be used to verify stability and safety properties of linear and nonlinear systems.
 - [MatrixEquations.jl](https://github.com/andreasvarga/MatrixEquations.jl) contains solvers for many different matrix equations common in control. ControlSystems.jl makes use of this package for solving Riccati and Lyapunov equations.
 - [JuMP.jl](https://jump.dev/JuMP.jl/stable/) is a modeling language for optimization, similar to YALMIP. JuMP is suitable for solving LMI/SDP problems as well as advanced linear MPC problems. 
 - [SumOfSquares.jl](https://jump.dev/SumOfSquares.jl/stable/) is a package for sum-of-squares programming that builds on top of JuMP. Their documentation contains examples of Lyapunov-function search and nonlinear synthesis.
 - [MonteCarloMeasurements.jl](https://baggepinnen.github.io/MonteCarloMeasurements.jl/stable/) is a library for working with parametric uncertainty. An example using ControlSystems is available [here](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/controlsystems.jl).
-- [ModelingToolkit.jl](https://mtk.sciml.ai/stable/) is an acausal modeling tool, similar in spirit to Modelica.
 - [DifferentialEquations.jl](https://diffeq.sciml.ai/stable/) is the home of the SciML ecosystem that provides solvers for scientific problems. ControlSystems.jl uses these solvers for continuous-time simulations.
 - [Dojo.jl](https://github.com/dojo-sim/Dojo.jl) is a differentiable robot simulator.
 - [StaticCompiler.jl](https://github.com/tshort/StaticCompiler.jl) contains tools for compiling small binaries of Julia programs.
