@@ -135,7 +135,7 @@ eye, sys2 = promote(1, sys)
 promote_type(typeof(StaticStateSpace(ssrand(1,1,1,Ts=0.1))), typeof(1)) == HeteroStateSpace{Discrete{Float64}}
 
 sys = StaticStateSpace(ssrand(1,1,2,proper=false))
-@test feedback(sys,sys) == feedback(ss(sys),ss(sys))
+@test feedback(sys,sys) ≈ feedback(ss(sys),ss(sys))
 @inferred  feedback(sys,sys)
 
 ## Freqresp

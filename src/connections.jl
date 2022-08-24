@@ -308,7 +308,7 @@ See also `lft`, `starprod`, `sensitivity`, `input_sensitivity`, `output_sensitiv
 
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
-@views function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
+function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
     Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
@@ -328,34 +328,54 @@ See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 
     α = pos_feedback ? 1 : -1 # The sign of feedback
 
-    s1_B1 = sys1.B[:,W1]
-    s1_B2 = sys1.B[:,U1]
-    s1_C1 = sys1.C[Z1,:]
-    s1_C2 = sys1.C[Y1,:]
+    @views begin
+        s1_B2 = U1 isa Colon ? sys1.B : sys1.B[:,U1]
+        s1_C2 = Y1 isa Colon ? sys1.C : sys1.C[Y1,:]
+        s1_D12 = Z1 isa Colon && U1 isa Colon ? sys1.D : sys1.D[Z1,U1]
+        s1_D21 = Y1 isa Colon && W1 isa Colon ? sys1.D : sys1.D[Y1,W1]
+        s1_D22 = Y1 isa Colon && U1 isa Colon ? sys1.D : sys1.D[Y1,U1]
+        
+        s2_B2 = sys2.B[:,U2]
+        s2_C2 = sys2.C[Y2,:]
+        s2_D22 = sys2.D[Y2,U2]
+    end
+    # These are deliberate copies instead of views for two reasons.
+    # 1) Many of them are overwritten in-place below
+    # 2) Some that are not overwritten are still copied since it greatly reduces compile time. These are the ones that are by default indexed by an empty array (W2/Z2), implying that the copy will be an empty array as well.
     s1_D11 = sys1.D[Z1,W1]
-    s1_D12 = sys1.D[Z1,U1]
-    s1_D21 = sys1.D[Y1,W1]
-    s1_D22 = sys1.D[Y1,U1]
-
+    s1_C1 = sys1.C[Z1,:]
+    s1_B1 = sys1.B[:,W1]
     s2_B1 = sys2.B[:,W2]
-    s2_B2 = sys2.B[:,U2]
     s2_C1 = sys2.C[Z2,:]
-    s2_C2 = sys2.C[Y2,:]
     s2_D11 = sys2.D[Z2,W2]
-    s2_D12 = sys2.D[Z2,U2]
     s2_D21 = sys2.D[Y2,W2]
-    s2_D22 = sys2.D[Y2,U2]
+    s2_D12 = sys2.D[Z2,U2]
+
+    αs2_D12 = α*s2_D12
+    s2_D22s1_C2 = s2_D22*s1_C2
+    αs2_B2 = α*s2_B2
+    s1_D22s2_C2 = s1_D22*s2_C2
+    s1_D22s2_D21 = s1_D22*s2_D21
 
     if iszero(s1_D22) || iszero(s2_D22)
-        A = [sys1.A + α*s1_B2*s2_D22*s1_C2        α*s1_B2*s2_C2;
-                 s2_B2*s1_C2            sys2.A + α*s2_B2*s1_D22*s2_C2]
+        αs1_D12 = α*s1_D12
+        A11 = mul!(copy(sys1.A), s1_B2, s2_D22s1_C2, α, 1)
+        A22 = mul!(copy(sys2.A), αs2_B2, s1_D22s2_C2, 1, 1)
+        C11 = mul!(s1_C1, αs1_D12, s2_D22s1_C2, 1, 1)
+        C22 = mul!(s2_C1, αs2_D12, s1_D22s2_C2, 1, 1)
+        B11 = mul!(s1_B1, s1_B2, s2_D22*s1_D21, α, 1)
+        B22 = mul!(s2_B1, αs2_B2, s1_D22s2_D21, 1, 1)
+        D22 = mul!(s2_D11, αs2_D12, s1_D22s2_D21, 1, 1)
+        D11 = mul!(s1_D11, αs1_D12, s2_D22*s1_D21, 1, 1)
+        A = [A11        ((s1_B2*s2_C2) .*= α);
+            s2_B2*s1_C2            A22]
 
-        B = [s1_B1 + α*s1_B2*s2_D22*s1_D21        α*s1_B2*s2_D21;
-                      s2_B2*s1_D21            s2_B1 + α*s2_B2*s1_D22*s2_D21]
-        C = [s1_C1 + α*s1_D12*s2_D22*s1_C2        α*s1_D12*s2_C2;
-                      s2_D12*s1_C2           s2_C1 + α*s2_D12*s1_D22*s2_C2]
-        D = [s1_D11 + α*s1_D12*s2_D22*s1_D21        α*s1_D12*s2_D21;
-                      s2_D12*s1_D21           s2_D11 + α*s2_D12*s1_D22*s2_D21]
+        B = [B11        ((s1_B2*s2_D21) .*= α);
+            s2_B2*s1_D21            B22]
+        C = [C11        αs1_D12*s2_C2;
+                      s2_D12*s1_C2           C22]
+        D = [D11        αs1_D12*s2_D21;
+                      s2_D12*s1_D21           D22]
     else
         # inv seems to be better than lu
         R1 = try
@@ -370,15 +390,21 @@ See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
             error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
         end
 
-        A = [sys1.A + s1_B2*R1*s2_D22*s1_C2        s1_B2*R1*s2_C2;
-                 s2_B2*R2*s1_C2            sys2.A + α*s2_B2*R2*s1_D22*s2_C2]
+        s2_B2R2 = s2_B2*R2
+        s1_D12R1 = s1_D12*R1
+        s1_B2R1 = s1_B2*R1
+        s2_D22s1_D21 = s2_D22*s1_D21
+        αs2_D12R2 = αs2_D12*R2
+        αs2_B2R2 = α*s2_B2R2
+        A = [sys1.A + s1_B2R1*s2_D22s1_C2        s1_B2R1*s2_C2;
+                 s2_B2R2*s1_C2            sys2.A + αs2_B2R2*s1_D22s2_C2]
 
-        B = [s1_B1 + s1_B2*R1*s2_D22*s1_D21        s1_B2*R1*s2_D21;
-                     s2_B2*R2*s1_D21            s2_B1 + α*s2_B2*R2*s1_D22*s2_D21]
-        C = [s1_C1 + s1_D12*R1*s2_D22*s1_C2        s1_D12*R1*s2_C2;
-                     s2_D12*R2*s1_C2           s2_C1 + α*s2_D12*R2*s1_D22*s2_C2]
-        D = [s1_D11 + s1_D12*R1*s2_D22*s1_D21        s1_D12*R1*s2_D21;
-                     s2_D12*R2*s1_D21           s2_D11 + α*s2_D12*R2*s1_D22*s2_D21]
+        B = [s1_B1 + s1_B2R1*s2_D22s1_D21        s1_B2R1*s2_D21;
+                     s2_B2R2*s1_D21            s2_B1 + αs2_B2R2*s1_D22s2_D21]
+        C = [s1_C1 + s1_D12R1*s2_D22s1_C2        s1_D12R1*s2_C2;
+                     s2_D12*R2*s1_C2           s2_C1 + αs2_D12R2*s1_D22s2_C2]
+        D = [s1_D11 + s1_D12R1*s2_D22s1_D21        s1_D12R1*s2_D21;
+                     s2_D12*R2*s1_D21           s2_D11 + αs2_D12R2*s1_D22s2_D21]
     end
 
     return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], timeevol)
