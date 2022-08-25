@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        version: [1]
+        version: [1.7]
         os: [ubuntu-latest]
         arch: [x64]
     steps:
