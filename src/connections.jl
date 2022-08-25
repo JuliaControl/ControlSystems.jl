@@ -359,14 +359,14 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
 
     if iszero(s1_D22) || iszero(s2_D22)
         αs1_D12 = α*s1_D12
-        A11 = mul!(copy(sys1.A), s1_B2, s2_D22s1_C2, α, 1)
-        A22 = mul!(copy(sys2.A), αs2_B2, s1_D22s2_C2, 1, 1)
-        C11 = mul!(s1_C1, αs1_D12, s2_D22s1_C2, 1, 1)
-        C22 = mul!(s2_C1, αs2_D12, s1_D22s2_C2, 1, 1)
-        B11 = mul!(s1_B1, s1_B2, s2_D22*s1_D21, α, 1)
-        B22 = mul!(s2_B1, αs2_B2, s1_D22s2_D21, 1, 1)
-        D22 = mul!(s2_D11, αs2_D12, s1_D22s2_D21, 1, 1)
-        D11 = mul!(s1_D11, αs1_D12, s2_D22*s1_D21, 1, 1)
+        A11 = mul!(Base.copymutable(sys1.A), s1_B2, s2_D22s1_C2, α, 1)
+        A22 = mul!(Base.copymutable(sys2.A), αs2_B2, s1_D22s2_C2, 1, 1)
+        C11 = mul!(mutable(s1_C1), αs1_D12, s2_D22s1_C2, 1, 1)
+        C22 = mul!(mutable(s2_C1), αs2_D12, s1_D22s2_C2, 1, 1)
+        B11 = mul!(mutable(s1_B1), s1_B2, s2_D22*s1_D21, α, 1)
+        B22 = mul!(mutable(s2_B1), αs2_B2, s1_D22s2_D21, 1, 1)
+        D22 = mul!(mutable(s2_D11), αs2_D12, s1_D22s2_D21, 1, 1)
+        D11 = mul!(mutable(s1_D11), αs1_D12, s2_D22*s1_D21, 1, 1)
         A = [A11        ((s1_B2*s2_C2) .*= α);
             s2_B2*s1_C2            A22]
 
@@ -409,6 +409,9 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
 
     return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], timeevol)
 end
+
+mutable(x::AbstractArray) = x
+mutable(x::StaticArray) = Base.copymutable(x)
 
 
 """

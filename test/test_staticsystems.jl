@@ -122,6 +122,8 @@ eye = SMatrix{1,1,Float64,1}(1.0)
 @inferred feedback(HeteroStateSpace(eye), sys)
 @inferred feedback(sys, HeteroStateSpace(eye))
 @inferred feedback(sys, sys)
+@inferred feedback(sys, ss(sys))
+@inferred feedback(ss(sys), sys)
 
 @test feedback(HeteroStateSpace(eye), sys) == feedback(1, ss(sys))
 
