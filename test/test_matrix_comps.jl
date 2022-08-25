@@ -144,7 +144,7 @@ y[1] = 1
 yh = lsim(sysp, [u; y]).y
 
 # The first h outputs are all zero
-@test maximum(abs, yh[1:h]) < 10eps()
+@test maximum(abs, yh[1:h]) < 1e-12
 @test abs(yh[h+1]) > eps()
 
 ##
