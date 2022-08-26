@@ -313,6 +313,7 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
     timeevol = common_timeevol(sys1,sys2)
+    T = Base.promote_type(numeric_type(sys1), numeric_type(sys2))
 
     if !(isa(Y1, Colon) || allunique(Y1)); @warn "Connecting single output to multiple inputs Y1=$Y1"; end
     if !(isa(Y2, Colon) || allunique(Y2)); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
@@ -359,14 +360,14 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
 
     if iszero(s1_D22) || iszero(s2_D22)
         αs1_D12 = α*s1_D12
-        A11 = mul!(Base.copymutable(sys1.A), s1_B2, s2_D22s1_C2, α, 1)
-        A22 = mul!(Base.copymutable(sys2.A), αs2_B2, s1_D22s2_C2, 1, 1)
-        C11 = mul!(mutable(s1_C1), αs1_D12, s2_D22s1_C2, 1, 1)
-        C22 = mul!(mutable(s2_C1), αs2_D12, s1_D22s2_C2, 1, 1)
-        B11 = mul!(mutable(s1_B1), s1_B2, s2_D22*s1_D21, α, 1)
-        B22 = mul!(mutable(s2_B1), αs2_B2, s1_D22s2_D21, 1, 1)
-        D22 = mul!(mutable(s2_D11), αs2_D12, s1_D22s2_D21, 1, 1)
-        D11 = mul!(mutable(s1_D11), αs1_D12, s2_D22*s1_D21, 1, 1)
+        A11 = mul!(mutable(copy(sys1.A), T), s1_B2, s2_D22s1_C2, α, 1)
+        A22 = mul!(mutable(copy(sys2.A), T), αs2_B2, s1_D22s2_C2, 1, 1)
+        C11 = mul!(mutable(s1_C1, T), αs1_D12, s2_D22s1_C2, 1, 1)
+        C22 = mul!(mutable(s2_C1, T), αs2_D12, s1_D22s2_C2, 1, 1)
+        B11 = mul!(mutable(s1_B1, T), s1_B2, s2_D22*s1_D21, α, 1)
+        B22 = mul!(mutable(s2_B1, T), αs2_B2, s1_D22s2_D21, 1, 1)
+        D22 = mul!(mutable(s2_D11, T), αs2_D12, s1_D22s2_D21, 1, 1)
+        D11 = mul!(mutable(s1_D11, T), αs1_D12, s2_D22*s1_D21, 1, 1)
         A = [A11        ((s1_B2*s2_C2) .*= α);
             s2_B2*s1_C2            A22]
 
@@ -410,8 +411,8 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     return StateSpace(A, B[:, Wperm], C[Zperm,:], D[Zperm, Wperm], timeevol)
 end
 
-mutable(x::AbstractArray) = x
-mutable(x::StaticArray) = Base.copymutable(x)
+mutable(x::AbstractArray, ::Type{T}) where T = convert(Matrix{T}, x)
+mutable(x::StaticArray, ::Type{T}) where T = Matrix{T}(x)
 
 
 """
