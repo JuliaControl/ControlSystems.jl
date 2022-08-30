@@ -199,7 +199,9 @@ HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
 # Getter functions ###################################################
 
 """
-    `A, B, C, D = ssdata(sys)`
+    A, B, C, D = ssdata(sys)
+
+A destructor that outputs the statespace matrices.
 """
 ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
 
