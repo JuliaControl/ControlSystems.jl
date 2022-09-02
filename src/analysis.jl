@@ -598,3 +598,72 @@ function gangofseven(P::LTISystem, C::LTISystem, F::LTISystem)
     RE = S*F
     return S, PS, CS, T, RY, RU, RE
 end
+
+"""
+    lower, upper = fundamental_limitations(P::LTISystem{Continuous},[ C]; verbose=true)
+
+Check the following list of rules-of-thumb for fundamental limitations on the gain-crossover frequency ωgc imposed by RHP poles and zeros and time delays. 
+
+- A RHP zero z: gives an upper bound to bandwidth: ωgc / z < 0.5
+- A double RHP zero: ωgc / z < 0.25
+- A time delay L gives an upper bound to bandwidth: ωgc * L < 1
+- A RHP pole p gives a lower bound to bandwidth: ωgc / p > 2
+- A double RHP pole: ωgc / p > 4
+- A RHP pole zero pair requires: z / p > 4
+
+These rules, give sensitivities Mₛ and Mₜ around 2 and phase lags of the nonminimum phase factor around 90°.
+
+If a controller `C` is provided as the second argument, a check of the gain-crossover frequency of `P*C` is performed.
+
+Ref: "Loop Shaping", Bo Bernhardsson and Karl Johan Åström 2016
+"""
+function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=true)
+
+    ωgc_l = 0.0
+    ωgc_u = Inf
+
+    if P isa DelayLtiSystem
+        τ = maximum(P.Tau)
+        verbose && @info "ωgc upper bounded by a time delay to 1/τ = $(1/τ) rad/s"
+        ωgc_u = min(ωgc_u, 1/τ)
+        return (; ωgc_l, ωgc_u)
+    end
+
+    ps = poles(P)
+    zs = tzeros(P)
+    rhpp = filter(p->real(p) > 0, ps)
+    rhpz = filter(z->real(z) > 0, zs)
+
+    p = maximum(abs, rhpp)
+    if length(rhpp) >= 2
+        verbose && @info "ωgc lower bounded by double RHP pole to 4*p = $(4p) rad/s"
+        ωgc_l = 4p
+
+    elseif length(rhpp) == 1
+        verbose && @info "ωgc lower bounded by RHP pole to 2*p = $(2p) rad/s"
+        ωgc_l = 2p
+    end
+
+    z = maximum(abs, rhpz)
+    if length(rhpz) >= 2
+        verbose && @info "ωgc upper bounded by double RHP zero to z/4 = $(z/4) rad/s"
+        ωgc_u = z/4
+    elseif length(rhpz) == 1
+        verbose && @info "ωgc upper bounded by RHP zero to z/2 = $(z/2) rad/s"
+        ωgc_u = z/2
+    end
+
+    if length(rhpp) > 1 && length(rhpz) > 1
+        verbose && @info "RHP pole and zero requires z > 4p which is $(z > 4p)"
+    end
+
+    if C !== nothing
+        wgm, gm, wpm, pm = margin(P*C)
+        # ωgc = wpm
+        if isfinite(pm[]) # No gain crossover if phase margin is not finite
+            (ωgc_l ≤ maximum(wpm) ≤ ωgc_u) || error("Failed to meet rules-of-thumb with the given controller, ωgc = $wpm")
+        end
+    end
+
+    (; ωgc_l, ωgc_u)
+end
