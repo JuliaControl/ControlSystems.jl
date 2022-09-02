@@ -104,7 +104,7 @@ end
 
 # This will be called on plot(lsim(sys, args...))
 @recipe function simresultplot(r::SimResult; plotu=false, plotx=false)
-    ny, nu, nx = r.ny, r.nu, r.nx
+    ny, nu, nx, sys = r.ny, r.nu, r.nx, r.sys
     t = r.t
     n_series = size(r.y, 3) # step and impulse produce multiple results
     nplots = ny
@@ -114,11 +114,11 @@ end
     seriestype --> (iscontinuous(r.sys) ? :path : :steppost)
     for ms in 1:n_series
         for i=1:ny
-            ytext = (ny > 1) ? "y($i)" : "y"
+            ytext = output_names(sys, i)
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> ytext
-                label   --> (n_series > 1 ? "From u($(ms))" : "")
+                label   --> (n_series > 1 ? "From $(input_names(sys, ms))" : "")
                 subplot --> i
                 t,  r.y[i, :, ms]
             end
@@ -127,7 +127,7 @@ end
     plotind = ny+1
     if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
-            utext = (nu > 1) ? "u($i)" : "u"
+            utext = input_names(sys, i)
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> utext
@@ -140,7 +140,7 @@ end
     end
     if plotx
         for i=1:nx
-            xtext = (nx > 1) ? "x($i)" : "x"
+            xtext = state_names(sys, i)
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> xtext
@@ -325,8 +325,6 @@ nyquistplot
                 imdata = im_resp[i, j, :]
                 ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
                 xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
-                title --> "Nyquist plot from: u($j)"
-                yguide --> "To: y($i)"
                 @series begin
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
@@ -335,15 +333,6 @@ nyquistplot
                 end                
                 
                 if si == length(systems)
-                    @series begin # Mark the critical point
-                        subplot --> s2i(i,j)
-                        primary := false
-                        markershape := :xcross
-                        seriescolor := :red
-                        markersize := 5
-                        seriesstyle := :scatter
-                        [critical_point], [0]
-                    end
                     for Ms in Ms_circles
                         @series begin
                             subplot --> s2i(i,j)
@@ -381,6 +370,18 @@ nyquistplot
                             markershape := :none
                             (C, S)
                         end
+                    end
+                    @series begin # Mark the critical point
+                        # Title and yguide must be here in the last series for the result to be correct
+                        title --> "Nyquist plot from: $(input_names(s, j))"
+                        yguide --> "To: $(output_names(s, i))"
+                        subplot --> s2i(i,j)
+                        primary := false
+                        markershape := :xcross
+                        seriescolor := :red
+                        markersize := 5
+                        seriesstyle := :scatter
+                        [critical_point], [0]
                     end
                 end
                 

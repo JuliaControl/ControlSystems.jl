@@ -89,3 +89,44 @@ isstable(sys::LTISystem{<:Discrete}) = all(abs.(poles(sys)) .< 1)
 
 # Fallback since LTISystem not AbstractArray
 Base.size(sys::LTISystem, i::Integer) = size(sys)[i]
+
+
+## Names =======================================================================
+"""
+    input_names(P)
+    input_names(P, i)
+
+Get a vector of strings with the names of the inputs of `P`, or the `i`:th name if and index is given.
+"""
+input_names(P::LTISystem) = [input_names(P, i) for i in 1:ninputs(P)]
+function input_names(P::LTISystem, i)
+    i <= ninputs(P) || throw(BoundsError(P, i))
+    ninputs(P) == 1 && (return "u")
+    "u($i)"
+end
+
+"""
+    output_names(P)
+    output_names(P, i)
+
+Get a vector of strings with the names of the outputs of `P`, or the `i`:th name if and index is given.
+"""
+output_names(P::LTISystem) = [output_names(P, i) for i in 1:noutputs(P)]
+function output_names(P::LTISystem, i)
+    i <= noutputs(P) || throw(BoundsError(P, i))
+    noutputs(P) == 1 && (return "y")
+    "y($i)"
+end
+
+"""
+    state_names(P)
+    state_names(P, i)
+
+Get a vector of strings with the names of the states of `P`, or the `i`:th name if and index is given.
+"""
+state_names(P::LTISystem) = [state_names(P, i) for i in 1:nstates(P)]
+function state_names(P::LTISystem, i)
+    i <= nstates(P) || throw(BoundsError(P, i))
+    nstates(P) == 1 && (return "x")
+    "x($i)"
+end

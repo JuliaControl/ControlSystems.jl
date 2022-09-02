@@ -208,6 +208,11 @@
             @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
         end
 
+        G = ssrand(1,2,3)
+        @test output_names(G) == ["y"]
+        @test input_names(G) == ["u(1)", "u(2)"]
+        @test state_names(G) == ["x(1)", "x(2)", "x(3)"]
+
         # Different types
         if VERSION >= v"1.8.0-rc1"
             K1 = SS(I(2)) # Bool
