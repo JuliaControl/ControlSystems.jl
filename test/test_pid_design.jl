@@ -81,3 +81,27 @@ L = leadlinkat(w, N, K)
 @test abs(freqresp(L, w)[]) ≈ K*√(N) atol=1e-3
 
 end
+
+
+
+## Test loopshapingPID
+
+Ms = 1.3
+phasemargin = rad2deg(2asin(1/(2Ms)))
+gm = Ms/(Ms-1)
+P0 = tf(1, [1, 0, 0]) # loopshapingPI does not handle a double integrator
+ωp = 1
+form = :standard
+
+# set rl = 1 to make the crossing point on the nyquistplot below easier to draw
+C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
+@test kp >= 0
+@test ki >= 0
+@test kd >= 0
+
+w = exp10.(LinRange(-0.1, 2, 200))
+_,_,_,pm = margin(P*C, w)
+@test pm[] > 0.99*phasemargin
+@test rad2deg(angle(freqresp(P*C, ωp)[])) ≈ -180 + phasemargin
+
+# nyquistplot(P*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")

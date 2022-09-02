@@ -1,4 +1,4 @@
-export pid, pid_tf, pid_ss, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI
+export pid, pid_tf, pid_ss, pidplots, rlocus, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
 
 """
     C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts])
@@ -385,9 +385,10 @@ If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and on
 
 Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
 
-See also [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
+See also [`loopshapingPID`](@ref), [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
 """
 function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard, doplot=false)
+    issiso(P) || throw(ArgumentError("P must be SISO"))
     Pw = freqresp(P, ωp)[]
     ϕp = angle(Pw)
     rp = abs.(Pw)
@@ -418,7 +419,7 @@ end
 
 
 """
-    C, p, i = placePI(P, ω₀, ζ; form=:standard)
+    C, kp, ki = placePI(P, ω₀, ζ; form=:standard)
 
 Selects the parameters of a PI-controller such that the poles of 
 closed loop between `P` and `C` are placed to match the poles of 
@@ -456,6 +457,58 @@ function placePI(P::TransferFunction{<:Continuous, <:SisoRational{T}}, ω₀, ζ
 end
 
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
+
+"""
+    C, kp, ki, kd, fig = loopshapingPI(P, ωp; ϕl, rl, phasemargin, form=:standard)
+
+Selects the parameters of a PID-controller (on parallel form) such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`.
+This function tries to find the smallest derivative term such that the design can be satisfied with positive parameters for the P and I parts.
+
+The parameters can be returned as one of several common representations 
+chosen by `form`, the options are
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
+
+If `phasemargin` is supplied (in degrees), `ϕl` is selected such that the curve is moved to an angle of `phasemargin - 180` degrees
+
+If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
+
+Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
+
+See also [`loopshapingPI`](@ref), [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
+
+# Example:
+```julia
+Ms = 1.3 # Desired maximum sensitivity
+phasemargin = rad2deg(2asin(1/(2Ms)))
+gm = Ms/(Ms-1)
+P0 = tf(1, [1, 0, 0]) # loopshapingPI does not handle a double integrator
+ωp = 1 # Frequency at which the pahse margin is specified
+# set rl = 1 to make the crossing point on the nyquistplot below easier to draw
+C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
+
+w = exp10.(LinRange(-0.1, 2, 200))
+nyquistplot(P*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point"
+```
+"""
+function loopshapingPID(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard)
+    kp = ki = -Inf
+    P = P0
+    τd = 1e-7
+    # Iteratively add more derivative term to the plant and design using loopshapingPI
+    # break when a design is found with all parameters positive
+    for i = 1:40
+        _, kp, ki = loopshapingPI(P, ωp; ϕl, rl, phasemargin, form=:standard, doplot=false)
+        kp > 0 && ki > 0 && break
+        τd *= 1.5
+        P = tf(P0) * tf([τd, 1], [1]) # Add derivative term on series form
+        i == 40 && error("Failed to find a controller that satisfies the requirements")
+    end
+    C = pid(kp, ki, τd; form=:series)
+    kp, ki, kd = convert_pidparams_from_to(kp, ki, τd, :series, form)
+    C, kp, ki, kd 
+end
 
 """
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
