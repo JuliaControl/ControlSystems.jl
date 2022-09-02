@@ -80,9 +80,6 @@ w = 1
 L = leadlinkat(w, N, K)
 @test abs(freqresp(L, w)[]) ≈ K*√(N) atol=1e-3
 
-end
-
-
 
 ## Test loopshapingPID
 
@@ -102,7 +99,7 @@ C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
 w = exp10.(LinRange(-0.1, 2, 200))
 _,_,_,pm = margin(P*C, w)
 @test pm[] > 0.99*phasemargin
-@test rad2deg(angle(freqresp(P*C, ωp)[])) ≈ -180 + phasemargin
+@test rad2deg(angle(freqresp(P*C, ωp)[])) ≈ -180 + phasemargin atol=1e-2
 
 # nyquistplot(P*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")
 
@@ -122,3 +119,5 @@ C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
 @test kd >= 0
 
 # nyquistplot(tf(P)*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")
+end
+
