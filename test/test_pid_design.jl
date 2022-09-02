@@ -105,3 +105,20 @@ _,_,_,pm = margin(P*C, w)
 @test rad2deg(angle(freqresp(P*C, ωp)[])) ≈ -180 + phasemargin
 
 # nyquistplot(P*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")
+
+# Test one more system
+P = let
+    PA = [0.0 1.0; -1.2000000000000002e-6 -0.12000999999999999]
+    PB = [0.0; 1.0;;]
+    PC = [11.2 0.0]
+    PD = [0.0;;]
+    ss(PA, PB, PC, PD)
+end
+w = exp10.(LinRange(-2, 2, 400))
+ωp = 4
+C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
+@test kp >= 0
+@test ki >= 0
+@test kd >= 0
+
+# nyquistplot(tf(P)*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")
