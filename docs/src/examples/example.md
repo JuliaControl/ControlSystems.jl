@@ -51,16 +51,12 @@ By plotting the gang of four under unit feedback for the process
 ```math
 P(s) = \dfrac{1}{(s + 1)^4}
 ```
-```jldoctest PIDDESIGN; output = false
+```@example PIDDESIGN
+using ControlSystems, Plots
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
-
-save_docs_plot("pidgofplot.svg"); # hide
-
-# output
-
 ```
-![](../../plots/pidgofplot.svg)
+
 
 we notice that the sensitivity function is a bit too high around frequencies ω = 0.8 rad/s. Since we want to control the process using a simple PI-controller, we utilize the
 function [`loopshapingPI`](@ref) and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
@@ -69,38 +65,18 @@ function [`loopshapingPI`](@ref) and tell it that we want 60 degrees phase margi
 using ControlSystems, Plots
 P = tf(1,[1,1])^4
 ωp = 0.8
-C,kp,ki = loopshapingPI(P,ωp,phasemargin=60,form=:parallel)
-
-p1 = gangoffourplot(P, [tf(1), C]);
-p2 = nyquistplot([P, P*C], ylims=(-1,1), xlims=(-1.5,1.5));
-
-plot(p1,p2, layout=(2,1), size=(800,800))
+C,kp,ki,fig = loopshapingPI(P,ωp,phasemargin=60,form=:parallel, doplot=true)
+fig
 ```
 
-
 We could also consider a situation where we want to create a closed-loop system with the bandwidth ω = 2 rad/s, in which case we would write something like
-```jldoctest PIDDESIGN; output = false
-using Plots
+```@example PIDDESIGN
 ωp = 2
-kp,ki,C60 = loopshapingPI(P,ωp,rl=1,phasemargin=60,form=:standard,doplot=true)
-
-p1 = gangoffourplot(P, [tf(1), C60]);
-p2 = nyquistplot([P, P*C60], ylims=(-2,2), xlims=(-3,3));
-
-plot(p1,p2, layout=(2,1), size=(800,800))
-
-# gangoffourplot(P, [tf(1), C60]) # hide
-# save_docs_plot("pidgofplot3.svg") # hide
-# nyquistplot([P, P*C60]) # hide
-# save_docs_plot("pidnyquistplot2.svg"); # hide
-save_docs_plot("pidgofnyquistplot2.svg") # hide
-
-# output
-
+C60,kp,ki,fig = loopshapingPI(P,ωp,rl=1,phasemargin=60,form=:standard,doplot=true)
+fig
 ```
 Here we specify that we want the Nyquist curve `L(iω) = P(iω)C(iω)` to pass the point `|L(iω)| = rl = 1,  arg(L(iω)) = -180 + phasemargin = -180 + 60`
 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles.
-![](../../plots/pidgofnyquistplot2.svg)
 
 
 ### PID loop shaping
