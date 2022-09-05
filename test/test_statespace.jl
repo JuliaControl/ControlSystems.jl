@@ -253,6 +253,7 @@
         @test_nowarn print(C_111)
         @test isproper(C_222)
         @test !isproper(C_222_d)
+        @test poles(CS_111) == [-5]
 
         @test SS(1, 0.1).Ts == 0.1
         if VERSION >= v"1.8.0-rc1"

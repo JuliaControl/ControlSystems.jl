@@ -35,6 +35,7 @@ to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
 eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+eigvalsnosort(A::StaticMatrix; kwargs...) =  eigvalsnosort(Matrix(A); kwargs...)
 roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 
 issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
