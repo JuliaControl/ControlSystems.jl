@@ -178,7 +178,7 @@ function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, G2::Trans
     return G1 * G2
 end
 
-function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, M::AbstractArray)
+function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, M::AbstractArray{<:Number})
     issiso(G1) || error("Only SISO transfer function can be broadcasted")
     LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`.")
     # Note: G1*G2 = y <- G1 <- G2 <- u
@@ -187,7 +187,7 @@ function Base.Broadcast.broadcasted(::typeof(*), G1::TransferFunction, M::Abstra
     return TransferFunction(matrix, timeevol)
 end
 
-function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, G1::TransferFunction)
+function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray{<:Number}, G1::TransferFunction)
     issiso(G1) || error("Only SISO transfer function can be broadcasted")
     LinearAlgebra.isdiag(M) || error("Broadcasting multiplication of an LTI system with an array is only supported for diagonal arrays. If you want the system to behave like a scalar and multiply each element of the array, wrap the system in a `Ref` to indicate this, i.e., `Ref(sys) .* array`.")
     # Note: G1*G2 = y <- G1 <- G2 <- u
@@ -196,7 +196,7 @@ function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray, G1::TransferF
     return TransferFunction(matrix, timeevol)
 end
 
-function Base.Broadcast.broadcasted(::typeof(*), G1r::Base.RefValue{<:TransferFunction}, M::AbstractArray)
+function Base.Broadcast.broadcasted(::typeof(*), G1r::Base.RefValue{<:TransferFunction}, M::AbstractArray{<:Number})
     G1 = G1r[]
     issiso(G1) || error("Only SISO transfer function can be broadcasted")
     timeevol = G1.timeevol

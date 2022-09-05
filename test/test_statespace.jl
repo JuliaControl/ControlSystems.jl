@@ -9,6 +9,7 @@
 # names: append "_n" if some inputs/outputs/states are named
 @testset "test_statespace" begin
     # SCALARS
+    SS = SS2 = StateSpace
     for SS in (StateSpace, HeteroStateSpace), SS2 in (StateSpace, HeteroStateSpace)
         a_2 = [-5 -3; 2 -9]
         CS_111 = @inferred SS(-5, 2, 3, [0])
@@ -95,6 +96,7 @@
         @test C_111 .* I(2) == I(2) .* C_111 == SS(diagm([a_1; a_1]), 2*I(2), 3*I(2), 0*I(2))
         @test minreal(C_111.*C_222_d - C_222_d.*C_111, atol=1e-3) == ss(0*I(2)) # scalar times MIMO
         @test C_111 .* C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
+        @test Ref(ss(1)) .* [C_111, C_111] == [C_111, C_111]
 
         @test_broken @inferred C_111 * C_221
         @test_broken @inferred C_111 .* I(2)
