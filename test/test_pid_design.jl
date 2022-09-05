@@ -127,6 +127,56 @@ mt, wt = hinfnorm(T)
 @test wt ≈ ω  rtol=1e-4
 
 
+##
+P = ControlSystems.DemoSystems.resonant()
+ω = 5
+Mt = 1.3
+ϕt = 75
+C,kp,ki,kd,fig = loopshapingPID(tf(P), ω; Mt, ϕt, doplot=true)
+@test kp >= 0
+@test ki >= 0
+@test kd >= 0
+
+T = comp_sensitivity(tf(P), C)
+mt, wt = hinfnorm(T)
+@test mt ≈ Mt rtol=1e-4
+@test wt ≈ ω  rtol=1e-4
+
+##
+P = ControlSystems.DemoSystems.double_mass_model()
+ω = 100
+for ω = [1, 100]
+    Mt = 1.3
+    ϕt = 75
+    C,kp,ki,kd,fig = loopshapingPID(tf(P), ω; Mt, ϕt, doplot=true)
+    @test kp >= 0
+    @test ki >= 0
+    @test kd >= 0
+
+    T = comp_sensitivity(tf(P), C)
+    mt, wt = hinfnorm(T)
+    @test mt ≈ Mt rtol=1e-3
+    @test wt ≈ ω  rtol=1e-2
+end
+
+##
+P = ControlSystems.DemoSystems.sotd()
+ω = 0.5
+Mt = 1.1
+ϕt = 10
+C,kp,ki,kd,fig,CF = loopshapingPID((P), ω; Mt, ϕt, doplot=true)
+@test kp >= 0
+@test ki >= 0
+@test kd >= 0
+
+T = comp_sensitivity((P), CF)
+w = exp10.(LinRange(-2, 2, 2000))
+mag = ControlSystems.bode(T, w)[1]
+mt = maximum(mag)
+wt = w[findmax(mag[:])[2]]
+@test mt ≈ Mt rtol=1e-2
+@test wt ≈ ω  rtol=1e-2
+
 
 
 end

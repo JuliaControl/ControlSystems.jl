@@ -459,13 +459,23 @@ end
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
 
 """
-    C, kp, ki, kd, fig = loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form=:standard, doplot=false)
+    C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form=:standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω)
 
 Selects the parameters of a PID-controller such that the Nyquist curve of the loop-transfer function ``L = PC`` at the frequency `ω` is tangent to the circle where the magnitude of ``T = PC / (1+PC)`` equals `Mt`. `ϕt` denotes the positive angle in degrees between the real axis and the tangent point.
 
 The default values for `Mt` and `ϕt` are chosen to give a good design for processes with inertia, and may need tuning for simpler processes.
 
 The gain of the resulting controller is generally increasing with increasing `ω` and `Mt`.
+
+# Arguments:
+- `P`: A SISO plant.
+- `ω`: The specification frequency.
+- `Mt`: The magnitude of the complementary sensitivity function at the specification frequency, ``|T(iω)|``.
+- `ϕt`: The 
+- `doplot`: If true, gang of four and Nyquist plots will be returned in `fig`.
+- `lb`: log10 of lower bound for `kd`
+- `ub`: log10 of upper bound for `kd`
+- `Tf`: Time constant for second-order measurement noise filter on the form `tf(1, [Tf^2, 2*Tf/sqrt(2), 1])` to make the controller strictly proper. A practical controller typically sets this time constant slower than the default, e.g., `Tf = 1/100ω` or `Tf = 1/10ω`
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
@@ -477,13 +487,13 @@ See also [`loopshapingPI`](@ref), [`pidplots`](@ref), [`stabregionPID`](@ref) an
 
 # Example:
 ```julia
-P = tf(1, [1,0,0]) # A double integrator
-Mt = 1.3 # Maximum magnitude of complementary sensitivity
-ω = 1    # Frequency at which the specification holds
+P  = tf(1, [1,0,0]) # A double integrator
+Mt = 1.3  # Maximum magnitude of complementary sensitivity
+ω  = 1    # Frequency at which the specification holds
 C, kp, ki, kd = loopshapingPID(P, ω; Mt, ϕt = 75, doplot=true)
 ```
 """
-function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false)
+function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω)
 
     ct = -Mt^2/(Mt^2-1) # Mt center
     rt = Mt/(Mt^2-1)    # Mt radius
@@ -501,39 +511,49 @@ function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplo
     g = rl/rp
     kp = g*cos(ϕp-ϕl)
     kp ≥ 0 || @warn "Calculated kp is negative, try adjusting ω"
+    function evalkd(_kd)
+        kikd = sin(ϕp-ϕl)
+        _ki = ω*(kikd + ω*_kd)
+        _ki *= g
+        _kd *= g
 
+        dc_dω = complex(0, _kd + _ki/ω^2)
+        Cω = kp + im*(ω*_kd - _ki/ω) # Freqresp of C
+        dl_dω = Pω*dc_dω + Cω*dp_dω
+        orthogonality_condition = rad2deg(angle(dl_dω)) - (90 - ϕt)
+        orthogonality_condition, _ki, _kd
+    end
+    # Try a range of kd values to initialize bisection
+    kds = exp10.(LinRange(lb, ub, 1500))
+    # RecipesBase.plot(first.(evalkd.(kds))) |> display
+    orths = abs.(first.(evalkd.(kds)))
+    _, ind = findmin(orths)
+    lb = log10(kds[max(ind-1, 1)]) # Bisect between the neighbors of the best found value in range
+    ub = log10(kds[min(ind+1, end)])
     # Bisect over kd to find the root orthogonality_condition = 0
-    lb,ub = -10, 10 # in log scale
+    local orthogonality_condition, ki, kd
     for i = 1:30
         midpoint = (lb+ub)/2
         kd = exp10(midpoint)
-        kikd = sin(ϕp-ϕl)
-        ki = ω*(kikd + ω*kd)
-        ki *= g
-        kd *= g
-
-        dc_dω = complex(0, kd + ki/ω^2)
-        Cω = kp + im*(ω*kd - ki/ω) # Freqresp of C
-        dl_dω = Pω*dc_dω + Cω*dp_dω
-        orthogonality_condition = rad2deg(angle(dl_dω)) - (90 - ϕt)
+        orthogonality_condition, ki, kd = evalkd(kd)
         # @show kp, ki, kd
-        # @show orthogonality_condition
+        orthogonality_condition
         if orthogonality_condition > 0
             lb = midpoint
         else
             ub = midpoint
         end
     end
-    kd ≥ 0 || @warn "Calculated kd is negative, try adjusting ω or the angle ϕt"
-    ki ≥ 0 || @warn "Calculated ki is negative, try adjusting ω or the angle ϕt"
+    abs(orthogonality_condition) < 1e-5 || @error "Bisection failed, inspect the Nyquist plot generated with doplot = true and try adjusting Mt or ϕt."
+    ki ≥ 0 || @warn "Calculated ki is negative, inspect the Nyquist plot generated with doplot = true and try adjusting ω or the angle ϕt"
 
     C = pid(kp, ki, kd, form=:parallel)
     kp, ki, kd = ControlSystems.convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    CF = C*tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
     fig = if doplot
         w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 500))
-
-        f1 =  gangoffourplot(P,C, w)
-        f2 = nyquistplot([P * C, P], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, Mt_circles=[Mt], show=false, lab=["PC" "P"])
+        f1 =  gangoffourplot(P,CF, w)
+        f2 = nyquistplot([P * CF, P], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, Mt_circles=[Mt], show=false, lab=["PC" "P"])
         RecipesBase.plot!([ct, real(specpoint)], [0, imag(specpoint)], lab="ϕt = $(ϕt)°", l=:dash)
 
         α = LinRange(0, -deg2rad(ϕt), 30)
@@ -544,7 +564,7 @@ function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplo
     else
         nothing
     end
-    C, kp, ki, kd, fig
+    (; C, kp, ki, kd, fig, CF)
 end
 
 """
