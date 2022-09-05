@@ -334,7 +334,7 @@ P(s)C(s) = -1 ⟹ \\\\
 arg(P) + arg(C) = -π
 ```
 If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
-See also `stabregionPID`, `loopshapingPI`, `pidplots`
+See also [`loopshapingPI`](@ref), [`loopshapingPID`](@ref), [`pidplots`](@ref)
 """
 function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=:standard, doplot=false)
     Pv  = freqrespv(P,ω)
@@ -459,7 +459,7 @@ end
 placePI(sys::LTISystem, args...; kwargs...) = placePI(tf(sys), args...; kwargs...)
 
 """
-    C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form=:standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω)
+    C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form=:standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω, F = nothing)
 
 Selects the parameters of a PID-controller such that the Nyquist curve of the loop-transfer function ``L = PC`` at the frequency `ω` is tangent to the circle where the magnitude of ``T = PC / (1+PC)`` equals `Mt`. `ϕt` denotes the positive angle in degrees between the real axis and the tangent point.
 
@@ -473,9 +473,10 @@ The gain of the resulting controller is generally increasing with increasing `ω
 - `Mt`: The magnitude of the complementary sensitivity function at the specification frequency, ``|T(iω)|``.
 - `ϕt`: The 
 - `doplot`: If true, gang of four and Nyquist plots will be returned in `fig`.
-- `lb`: log10 of lower bound for `kd`
-- `ub`: log10 of upper bound for `kd`
+- `lb`: log10 of lower bound for `kd`.
+- `ub`: log10 of upper bound for `kd`.
 - `Tf`: Time constant for second-order measurement noise filter on the form `tf(1, [Tf^2, 2*Tf/sqrt(2), 1])` to make the controller strictly proper. A practical controller typically sets this time constant slower than the default, e.g., `Tf = 1/100ω` or `Tf = 1/10ω`
+- `F`: A pre-designed filter to use instead of the default second-order filter.
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
@@ -490,11 +491,16 @@ See also [`loopshapingPI`](@ref), [`pidplots`](@ref), [`stabregionPID`](@ref) an
 P  = tf(1, [1,0,0]) # A double integrator
 Mt = 1.3  # Maximum magnitude of complementary sensitivity
 ω  = 1    # Frequency at which the specification holds
-C, kp, ki, kd = loopshapingPID(P, ω; Mt, ϕt = 75, doplot=true)
+C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt = 75, doplot=true)
 ```
 """
-function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω, verbose=true)
+function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω, verbose=true, F=nothing)
 
+    if F === nothing
+        F = tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
+    end
+    P = P0*F
+    
     ct = -Mt^2/(Mt^2-1) # Mt center
     rt = Mt/(Mt^2-1)    # Mt radius
 
@@ -549,11 +555,11 @@ function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplo
     C = pid(kp, ki, kd, form=:parallel)
     any(real(p) > 0 for p in poles(C)) && @error "Calculated controller is unstable."
     kp, ki, kd = ControlSystems.convert_pidparams_from_to(kp, ki, kd, :parallel, form)
-    CF = C*tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
+    CF = C*F
     fig = if doplot
         w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 500))
-        f1 =  gangoffourplot(P,CF, w)
-        f2 = nyquistplot([P * CF, P], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, Mt_circles=[Mt], show=false, lab=["PC" "P"])
+        f1 =  gangoffourplot(P0,CF, w)
+        f2 = nyquistplot([P0 * CF, P0], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, Mt_circles=[Mt], show=false, lab=["PC" "P"])
         RecipesBase.plot!([ct, real(specpoint)], [0, imag(specpoint)], lab="ϕt = $(ϕt)°", l=:dash)
 
         α = LinRange(0, -deg2rad(ϕt), 30)
