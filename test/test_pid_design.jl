@@ -83,7 +83,7 @@ L = leadlinkat(w, N, K)
 
 ## Test loopshapingPID
 
-Ms = 1.3
+Mt = Ms = 1.3
 phasemargin = rad2deg(2asin(1/(2Ms)))
 gm = Ms/(Ms-1)
 P0 = tf(1, [1, 0, 0]) # loopshapingPI does not handle a double integrator
@@ -91,17 +91,20 @@ P0 = tf(1, [1, 0, 0]) # loopshapingPI does not handle a double integrator
 form = :standard
 
 # set rl = 1 to make the crossing point on the nyquistplot below easier to draw
-C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
+C,kp,ki,kd = loopshapingPID(P, ωp; Mt)
 @test kp >= 0
 @test ki >= 0
 @test kd >= 0
 
 w = exp10.(LinRange(-0.1, 2, 200))
-_,_,_,pm = margin(P*C, w)
-@test pm[] > 0.99*phasemargin
-@test rad2deg(angle(freqresp(P*C, ωp)[])) ≈ -180 + phasemargin atol=1e-2
 
-# nyquistplot(P*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")
+T = comp_sensitivity(P, C)
+mt, wt = hinfnorm(T)
+@test mt ≈ Mt rtol=1e-4
+@test wt ≈ ωp rtol=1e-4
+
+
+
 
 # Test one more system
 P = let
@@ -113,11 +116,18 @@ P = let
 end
 w = exp10.(LinRange(-2, 2, 400))
 ωp = 4
-C,kp,ki,kd = loopshapingPID(P, ωp; rl = 1, phasemargin)
+C,kp,ki,kd,fig = loopshapingPID(tf(P), ωp; Mt, doplot=true)
 @test kp >= 0
 @test ki >= 0
 @test kd >= 0
 
-# nyquistplot(tf(P)*C, w, unit_circle=true, Ms_circles=[Ms]); scatter!([cosd(-180+phasemargin)], [sind(-180+phasemargin)], lab="Specification point")
+T = comp_sensitivity(tf(P), C)
+mt, wt = hinfnorm(T)
+@test mt ≈ Mt rtol=1e-4
+@test wt ≈ ωp rtol=1e-4
+
+
+
+
 end
 
