@@ -100,8 +100,8 @@ C,kp,ki,kd = loopshapingPID(P, ω; Mt, ϕt)
 
 T = comp_sensitivity(P, C)
 mt, wt = hinfnorm(T)
-@test mt ≈ Mt rtol=1e-4
-@test wt ≈ ω  rtol=1e-4
+@test mt ≈ Mt rtol=1e-2
+@test wt ≈ ω  rtol=1e-2
 
 
 
@@ -123,8 +123,8 @@ C,kp,ki,kd,fig = loopshapingPID(tf(P), ω; Mt, ϕt, doplot=true)
 
 T = comp_sensitivity(tf(P), C)
 mt, wt = hinfnorm(T)
-@test mt ≈ Mt rtol=1e-4
-@test wt ≈ ω  rtol=1e-4
+@test mt ≈ Mt rtol=1e-2
+@test wt ≈ ω  rtol=1e-2
 
 
 ##
@@ -139,8 +139,8 @@ C,kp,ki,kd,fig = loopshapingPID(tf(P), ω; Mt, ϕt, doplot=true)
 
 T = comp_sensitivity(tf(P), C)
 mt, wt = hinfnorm(T)
-@test mt ≈ Mt rtol=1e-4
-@test wt ≈ ω  rtol=1e-4
+@test mt ≈ Mt rtol=1e-2
+@test wt ≈ ω  rtol=1e-2
 
 ##
 P = ControlSystems.DemoSystems.double_mass_model()
@@ -155,7 +155,7 @@ for ω = [1, 100]
 
     T = comp_sensitivity(tf(P), C)
     mt, wt = hinfnorm(T)
-    @test mt ≈ Mt rtol=1e-3
+    @test mt ≈ Mt rtol=1e-2
     @test wt ≈ ω  rtol=1e-2
 end
 
