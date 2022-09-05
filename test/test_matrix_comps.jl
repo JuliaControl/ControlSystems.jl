@@ -210,7 +210,7 @@ for balanced in [true, false]
     res1 = step(sys, t)
     sys2 = time_scale(sys, a; balanced)
     res2 = step(sys2, t ./ a)
-    @test res1.y ≈ res2.y rtol=1e-3 atol=1e-3
+    @test res1.y ≈ res2.y rtol=1e-2 atol=1e-2
 
     Gs = tf(1, [1e-6, 1]) # micro-second time scale modeled in seconds
     Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
