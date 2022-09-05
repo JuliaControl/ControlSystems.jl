@@ -354,7 +354,6 @@ nyquistplot
                             seriestype := :path
                             markershape := :none
                             label := "Mt = $(round(Mt, digits=2))"
-                            (-1 .+ (1/Mt) * C, (1/Mt) * S)
                             ct = -Mt^2/(Mt^2-1) # Mt center
                             rt = Mt/(Mt^2-1)    # Mt radius
                             ct.+rt.*C, rt.*S
@@ -380,7 +379,7 @@ nyquistplot
                         markershape := :xcross
                         seriescolor := :red
                         markersize := 5
-                        seriesstyle := :scatter
+                        seriestype := :scatter
                         [critical_point], [0]
                     end
                 end

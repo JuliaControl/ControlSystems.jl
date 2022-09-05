@@ -102,6 +102,26 @@ Here we specify that we want the Nyquist curve `L(iω) = P(iω)C(iω)` to pass t
 The gang of four tells us that we can indeed get a very robust and fast controller with this design method, but it will cost us significant control action to double the bandwidth of all four poles.
 ![](../../plots/pidgofnyquistplot2.svg)
 
+
+### PID loop shaping
+Processes with inertia, like double integrators, require a derivative term in the controller for good results.
+The function [`loopshapingPID`](@ref) allows you to specify a point in the Nyquist plane where the loop-transfer function 
+$L(s) = P(s)C(s)$
+should be tangent to the circle that denotes
+$|T| = |\dfrac{PC}{1 + PC}| = M_t$
+The tangent point is specified by specifying $M_t$ and the angle $\phi_t$ between the real axis and the tangent point, indicated in the Nyquist plot below.
+```@example PIDDESIGN
+using ControlSystems, Plots
+P  = tf(1, [1,0,0]) # A double integrator
+Mt = 1.3            # Maximum magnitude of complementary sensitivity
+ϕt = 75             # Angle of tangent point
+ω  = 1              # Frequency at which the specification holds
+C, kp, ki, kd, fig = loopshapingPID(P, ω; Mt, ϕt, doplot=true)
+fig
+```
+To get good robustness, we typically aim for a $M_t$ less than 1.5. In general, the smaller $M_t$ we require, the larger the controller gain will be.
+
+
 ## Advanced pole-zero placement
 This example illustrates how we can perform advanced pole-zero placement. The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
 

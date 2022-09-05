@@ -80,4 +80,54 @@ w = 1
 L = leadlinkat(w, N, K)
 @test abs(freqresp(L, w)[]) ≈ K*√(N) atol=1e-3
 
+
+## Test loopshapingPID
+
+Mt = Ms = 1.3
+phasemargin = rad2deg(2asin(1/(2Ms)))
+gm = Ms/(Ms-1)
+P = tf(1, [1, 0, 0]) # loopshapingPI does not handle a double integrator
+ω = 1
+form = :standard
+
+# set rl = 1 to make the crossing point on the nyquistplot below easier to draw
+Mt = 1.3
+ϕt = 75
+C,kp,ki,kd = loopshapingPID(P, ω; Mt, ϕt)
+@test kp >= 0
+@test ki >= 0
+@test kd >= 0
+
+T = comp_sensitivity(P, C)
+mt, wt = hinfnorm(T)
+@test mt ≈ Mt rtol=1e-4
+@test wt ≈ ω  rtol=1e-4
+
+
+
+
+# Test one more system
+P = let
+    PA = [0.0 1.0; -1.2000000000000002e-6 -0.12000999999999999]
+    PB = [0.0; 1.0;;]
+    PC = [11.2 0.0]
+    PD = [0.0;;]
+    ss(PA, PB, PC, PD)
 end
+
+ω = 4
+C,kp,ki,kd,fig = loopshapingPID(tf(P), ω; Mt, ϕt, doplot=true)
+@test kp >= 0
+@test ki >= 0
+@test kd >= 0
+
+T = comp_sensitivity(tf(P), C)
+mt, wt = hinfnorm(T)
+@test mt ≈ Mt rtol=1e-4
+@test wt ≈ ω  rtol=1e-4
+
+
+
+
+end
+
