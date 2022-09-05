@@ -493,7 +493,7 @@ Mt = 1.3  # Maximum magnitude of complementary sensitivity
 C, kp, ki, kd = loopshapingPID(P, ω; Mt, ϕt = 75, doplot=true)
 ```
 """
-function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω)
+function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω, verbose=true)
 
     ct = -Mt^2/(Mt^2-1) # Mt center
     rt = Mt/(Mt^2-1)    # Mt radius
@@ -510,7 +510,7 @@ function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplo
 
     g = rl/rp
     kp = g*cos(ϕp-ϕl)
-    kp ≥ 0 || @warn "Calculated kp is negative, try adjusting ω"
+    verbose && kp < 0 && @warn "Calculated kp is negative, try adjusting ω"
     function evalkd(_kd)
         kikd = sin(ϕp-ϕl)
         _ki = ω*(kikd + ω*_kd)
@@ -544,10 +544,10 @@ function loopshapingPID(P, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplo
             ub = midpoint
         end
     end
-    abs(orthogonality_condition) < 1e-5 || @error "Bisection failed, inspect the Nyquist plot generated with doplot = true and try adjusting Mt or ϕt."
-    ki ≥ 0 || @warn "Calculated ki is negative, inspect the Nyquist plot generated with doplot = true and try adjusting ω or the angle ϕt"
-
+    verbose && abs(orthogonality_condition) > 1e-5 && @warn "Bisection failed, inspect the Nyquist plot generated with doplot = true and try adjusting Mt or ϕt."
+    verbose && ki < 0 && @warn "Calculated ki is negative, inspect the Nyquist plot generated with doplot = true and try adjusting ω or the angle ϕt"
     C = pid(kp, ki, kd, form=:parallel)
+    any(real(p) > 0 for p in poles(C)) && @error "Calculated controller is unstable."
     kp, ki, kd = ControlSystems.convert_pidparams_from_to(kp, ki, kd, :parallel, form)
     CF = C*tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
     fig = if doplot
