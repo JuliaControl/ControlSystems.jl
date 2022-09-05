@@ -95,6 +95,8 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test tf(1) .* C_222 == C_222
 @test tf(1) .* I(2) == tf(I(2))
 
+@test Ref(tf(1)) .* [C_111, C_111] == [C_111, C_111]
+
 
 # Broadcasting
 @test C_111 .* I(2) == I(2) .* C_111
