@@ -125,7 +125,7 @@ import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 export lyap # Make sure LinearAlgebra.lyap is available
-import Printf, Colors
+import Printf
 import DSP: conv
 import DiffEqCallbacks: SavingCallback, SavedValues
 using ForwardDiff
