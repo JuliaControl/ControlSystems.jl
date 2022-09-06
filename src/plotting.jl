@@ -600,7 +600,7 @@ function _to1series(x,y)
     x2,y2
 end
 
-_to1series(y) = _to1series(1:size(y,1),y)
+_to1series(y) = _to1series(1:size(y,3),y)
 
 @userplot Marginplot
 """
@@ -770,14 +770,14 @@ pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
 pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 """
-    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, Ms_lines = [1.0, 1.1, 1.2], sigma = true, kwargs...)
+    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, Ms_lines = [1.0, 1.1, 1.2], Mt_lines = [], sigma = true, kwargs...)
 
 Gang-of-Four plot.
 
 `sigma` determines whether a [`sigmaplot`](@ref) is used instead of a [`bodeplot`](@ref) for MIMO `S` and `T`.
 `kwargs` are sent as argument to RecipesBase.plot.
 """
-function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.1, 1.2], sigma = true,  plotphase=false, kwargs...)    
+function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.1, 1.2], Mt_lines = [], sigma = true,  plotphase=false, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
@@ -798,7 +798,11 @@ function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minim
     Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
     f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
     f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(3e-3,8), kwargs...)
-    Plots.hline!([1], l=(:black, :dash), primary=false)
+    if !isnothing(Mt_lines) && !isempty(Mt_lines)
+        Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(3e-3,8))
+    else
+        Plots.hline!([1.0], l=(:dash, :black), ylims=(3e-3,8))
+    end
     Plots.plot(f1,f2,f3,f4, ticks=:default, ylabel="", legend=:bottomright)
 end
 

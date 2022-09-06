@@ -97,7 +97,7 @@ fig
 ```
 To get good robustness, we typically aim for a $M_t$ less than 1.5. In general, the smaller $M_t$ we require, the larger the controller gain will be.
 
-Since we are designing a PID controller, we expect a large controller gain for high frequencies. This is generally undesirable for both robustness and noise reasons, and is commonly solved by introducing a lowpass filter in series with the controller. The example below passes the keyword argument `Tf=1/30ω` to indicate that we want to add a second-order lowpass filter with a cutoff frequency 20 times faster than the design frequency.
+Since we are designing a PID controller, we expect a large controller gain for high frequencies. This is generally undesirable for both robustness and noise reasons, and is commonly solved by introducing a lowpass filter in series with the controller. The example below passes the keyword argument `Tf=1/20ω` to indicate that we want to add a second-order lowpass filter with a cutoff frequency 20 times faster than the design frequency.
 ```@example PIDDESIGN
 Tf = 1/20ω
 C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt, doplot=true, Tf)
