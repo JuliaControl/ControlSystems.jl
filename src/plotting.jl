@@ -1,4 +1,3 @@
-import Colors
 export bodeplot, nyquistplot, sigmaplot, marginplot, setPlotScale, gangoffour, gangoffourplot, gangofseven, pzmap, pzmap!, nicholsplot
 
 _PlotScale = "log10"
@@ -430,6 +429,11 @@ nicholsplot
     sat      = 0.4,
     val      = 0.85,
     fontsize = 10)
+
+    plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
+    haskey(Base.loaded_modules, plots_id) || error("Call using Plots before calling this function")
+    Plots = Base.loaded_modules[plots_id]
+    Colors = Plots.Colors
 
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
