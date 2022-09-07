@@ -46,6 +46,11 @@ C, kp, ki = loopshapingPI(P,10; phasemargin = 30, doplot = false)
 _,_,_,pm = margin(P*C)
 @test pm[] > 30
 
+C, kp, ki, fig, CF = loopshapingPI(P,1; phasemargin = 45, doplot = true, Tf = 0.1)
+_,_,_,pm = margin(P*CF)
+@test pm[] > 45*0.99
+
+
 # Test placePI
 P = tf(1,[1, 1])
 C, Kp, Ti = placePI(P, 2, 0.7; form=:standard)

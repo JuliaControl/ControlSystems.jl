@@ -382,7 +382,7 @@ end
 
 
 """
-    C, kp, ki, fig = loopshapingPI(P, ωp; ϕl, rl, phasemargin, form=:standard, doplot=false)
+    C, kp, ki, fig, CF = loopshapingPI(P, ωp; ϕl, rl, phasemargin, form=:standard, doplot=false, Tf, F)
 
 Selects the parameters of a PI-controller (on parallel form) such that the Nyquist curve of `P` at the frequency `ωp` is moved to `rl exp(i ϕl)`
 
@@ -396,12 +396,22 @@ If `phasemargin` is supplied (in degrees), `ϕl` is selected such that the curve
 
 If no `rl` is given, the magnitude of the curve at `ωp` is kept the same and only the phase is affected, the same goes for `ϕl` if no phasemargin is given.
 
-Set `doplot = true` to plot the `gangoffourplot` and `nyquistplot` of the system.
+- `Tf`: An optional time constant for second-order measurement noise filter on the form `tf(1, [Tf^2, 2*Tf/sqrt(2), 1])` to make the controller strictly proper.
+- `F`: A pre-designed filter to use instead of the default second-order filter that is used if `Tf` is given.
+- `doplot` plot the `gangoffourplot` and `nyquistplot` of the system.
 
 See also [`loopshapingPID`](@ref), [`pidplots`](@ref), [`stabregionPID`](@ref) and [`placePI`](@ref).
 """
-function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard, doplot=false)
-    issiso(P) || throw(ArgumentError("P must be SISO"))
+function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard, doplot=false, Tf = nothing, F=nothing)
+    issiso(P0) || throw(ArgumentError("P must be SISO"))
+    if F === nothing && Tf !== nothing
+        F = tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
+    end
+    if F !== nothing
+        P = P0*F
+    else
+        P = P0
+    end
     Pw = freqresp(P, ωp)[]
     ϕp = angle(Pw)
     rp = abs.(Pw)
@@ -419,15 +429,18 @@ function loopshapingPI(P, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standar
 
     Kp, Ti, Td = convert_pidparams_to_standard(kp, ki, 0, :parallel)
     C = pid(Kp, Ti, Td)
+    CF = F === nothing ? C : C*F
 
     fig = if doplot
-        f1 = gangoffourplot(P,[tf(1),C])
-        f2 = nyquistplot([P, P*C])
+        w = exp10.(LinRange(log10(ωp)-2, log10(ωp)+2, 500))
+        f1 = gangoffourplot(P0,CF, w)
+        f2 = nyquistplot([P0 * CF, P0], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, show=false, lab=["PC" "P"])
+        RecipesBase.plot!([rl*cos(ϕl)], [rl*sin(ϕl)], lab="Specification point", seriestype=:scatter)
         RecipesBase.plot(f1, f2)
     else
         nothing
     end
-    C, convert_pidparams_from_standard(Kp, Ti, Td, form)[1:2]..., fig
+    (; C, Kp, Ti, fig, CF)
 end
 
 
