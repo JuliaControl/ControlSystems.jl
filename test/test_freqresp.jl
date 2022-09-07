@@ -124,6 +124,13 @@ for i in eachindex(ws)
 end
 @test sigma(sys, ws)[1] == sigs
 
+
+# test unwrap
+P = tf(1, [1, 1, 0]) * tf(1, [1, 1])
+w = exp10.(LinRange(-2, 4, 200))
+mag, ph = bode(P, w)
+@test ph[end] ≈ -(180 + 90) rtol = 1e-2
+
 # test explicit size and type constructor
 ws2 = BodemagWorkspace{Float32}(2,2,length(ws))
 @test size(ws2.mag) == (2,2,length(ws))
