@@ -309,7 +309,7 @@ For higher performance, see the function [`bodemag!`](@ref) that computes the ma
 @autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
     resp = freqresp(sys, w)
     angles = angle.(resp)
-    unwrap && unwrap!(angles,1)
+    unwrap && unwrap!(angles,3)
     @. angles = rad2deg(angles)
     return abs.(resp), angles, w
 end
