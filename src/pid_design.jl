@@ -160,11 +160,16 @@ end
 
 
 function getpoles(G, K)
+    issiso(G) || error("root locus only supports SISO systems")
     G isa TransferFunction || (G = tf(G))
-    P = numpoly(G)[1]
-    Q = denpoly(G)[1]
+    P = numpoly(G)[]
+    Q = denpoly(G)[]
     T = float(eltype(K))
     ϵ = eps(T)
+    nx = length(Q)
+    D = zeros(nx-1, nx-1) # distance matrix
+    prevpoles = ComplexF64[]
+    temppoles = zeros(ComplexF64, nx-1)
     f = function (y,_,k)
         if k == 0 && length(P) > length(Q) 
             # More zeros than poles, make sure the vector of roots is of correct length when k = 0
@@ -172,7 +177,17 @@ function getpoles(G, K)
             # We get around the problem by not allowing k = 0 for non-proper systems.
             k = ϵ
         end
-        sort(ComplexF64.(Polynomials.roots(k[1]*P+Q)), by=imag)
+        newpoles = ComplexF64.(Polynomials.roots(k[1]*P+Q))
+        if !isempty(prevpoles)
+            D .= abs.(newpoles .- transpose(prevpoles))
+            assignment, cost = Hungarian.hungarian(D)
+            for i = 1:nx-1
+                temppoles[assignment[i]] = newpoles[i]
+            end
+            newpoles .= temppoles
+        end
+        prevpoles = newpoles
+        newpoles
     end
     prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0),(0,K[end]))
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)

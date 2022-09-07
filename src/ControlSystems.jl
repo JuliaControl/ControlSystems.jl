@@ -124,6 +124,7 @@ import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
+import Hungarian # For pole assignment in rlocusplot
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf
 import DSP: conv
