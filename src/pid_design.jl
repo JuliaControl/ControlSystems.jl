@@ -426,9 +426,7 @@ function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standa
 
     kp = rl/rp*cos(ϕp-ϕl)
     ki = rl*ωp/rp*sin(ϕp-ϕl)
-
-    Kp, Ti, Td = convert_pidparams_to_standard(kp, ki, 0, :parallel)
-    C = pid(Kp, Ti, Td)
+    C = pid(kp, ki, 0, form=:parallel)
     CF = F === nothing ? C : C*F
 
     fig = if doplot
@@ -440,7 +438,8 @@ function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standa
     else
         nothing
     end
-    (; C, Kp, Ti, fig, CF)
+    kp, ki = convert_pidparams_from_to(kp, ki, 0, :parallel, form)
+    (; C, kp, ki, fig, CF)
 end
 
 
