@@ -21,6 +21,33 @@ using Pkg; Pkg.add("ControlSystems")
 
 ## News
 
+### 2022-09 v1.5
+ControlSystems have now been divided into two packages:
+- ControlSystemsBase.jl lives in this same repository in the folder `lib/`, and contains most of the original functionality of ControlSystems, except continuous-time simulation and root locus.
+- ControlSystems.jl internally uses and reexports ControlSystemsBase.jl and adds continuous-time simulation.
+
+This is **not** a breaking change, users of ControlSystems.jl will have the same functionality now as before, but users who do not need continuous-time simulation (including simulation of delay systems and nonlinear systems) can use the considerably more lightweight ControlSystemsBase.jl package instead. 
+
+OrdinaryDiffEq.jl and DelayDiffEq.jl contributed the vast majority of both pre-compilation time and loading time of ControlSystems.jl, and workflows that do not require these packages were thus burdened by this overhead unnecessarily. If you do not need this, install and use ControlSystemsBase rather than ControlSystems (do not even install ControlSystems to avoid the pre-compilation time of OrdinaryDiffEq).
+
+We still encourage advanced users to build a system image following [the instructions in the documentation](https://juliacontrol.github.io/ControlSystems.jl/latest/man/differences/#Precompilation-for-faster-load-times), but in the absence of such a system image, we now have the following timings:
+```julia
+julia> @time using ControlSystemsBase
+  1.70 seconds
+```
+```julia
+julia> @time using ControlSystems
+  21.71 seconds
+```
+
+
+### 2022-09 v1.4
+New feature: `loopshapingPID`
+Release notes: https://github.com/JuliaControl/ControlSystems.jl/releases
+
+### 2022-07 v1.2
+Better support for static systems (using StaticArrays)
+
 ### 2022-07 v1.0
 - *Breaking*: Frequency-responses have changed data layout to `ny×nu×nω` from the previous `nω×ny×nu`. This is for performance reasons and to be consistent with time responses. This affects downstream functions `bode` and `nyquist` as well.
 - *Breaking*: `baltrunc` and `balreal` now return the diagonal of the Gramian as the second argument rather than the full matrix.
