@@ -61,8 +61,8 @@ ss(A,B,C,D,Ts) # Discrete-time system
 ```
 and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
 ```@example HSS
-using ControlSystems, StaticArrays
-import ControlSystems.HeteroStateSpace
+using ControlSystemsBase, StaticArrays
+import ControlSystemsBase.HeteroStateSpace
 to_static(a::Number) = a
 to_static(a::AbstractArray) = SMatrix{size(a)...}(a)
 to_sized(a::Number) = a
@@ -71,7 +71,7 @@ function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
     HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
 end
 HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol,f)
-ControlSystems._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
+ControlSystemsBase._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
 
 nothing # hide
 ```
@@ -122,7 +122,7 @@ A statespace system with a non-minimal realization, or a transfer function with 
 
 Examples:
 ```@repl
-using ControlSystems
+using ControlSystemsBase
 G = tf([1, 1], [1, 1])
 minreal(G) # Performs pole-zero cancellation
 
@@ -137,7 +137,7 @@ bodeplot([G, Gmin, feedback(P)]) # They are all identical
 ## Multiplying systems
 Two systems can be connected in series by multiplication
 ```@example MIMO
-using ControlSystems
+using ControlSystemsBase
 P1 = ss(-1,1,1,0)
 P2 = ss(-2,1,1,0)
 P2*P1
@@ -160,7 +160,7 @@ Psiso .* I(2)
 ## MIMO systems and arrays of systems
 Concatenation of systems creates MIMO systems, which is different from an array of systems. For example
 ```@example MIMO
-using ControlSystems
+using ControlSystemsBase
 P = ss(-1,1,1,0)
 P_MIMO = [P 2P]
 ```

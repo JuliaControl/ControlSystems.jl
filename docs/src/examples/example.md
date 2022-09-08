@@ -14,6 +14,7 @@ end
 
 ## LQR design
 ```jldoctest; output = false
+using ControlSystemsBase
 using LinearAlgebra # For identity matrix I
 using Plots
 Ts      = 0.1
@@ -52,7 +53,7 @@ By plotting the gang of four under unit feedback for the process
 P(s) = \dfrac{1}{(s + 1)^4}
 ```
 ```@example PIDDESIGN
-using ControlSystems, Plots
+using ControlSystemsBase, Plots
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
 ```
@@ -62,7 +63,7 @@ we notice that the sensitivity function is a bit too high around frequencies ω 
 function [`loopshapingPI`](@ref) and tell it that we want 60 degrees phase margin at this frequency. The resulting gang of four is plotted for both the constructed controller and for unit feedback.
 
 ```@example PIDDESIGN
-using ControlSystems, Plots
+using ControlSystemsBase, Plots
 P = tf(1,[1,1])^4
 ωp = 0.8
 C,kp,ki,fig = loopshapingPI(P,ωp,phasemargin=60,form=:parallel, doplot=true)
@@ -87,7 +88,7 @@ should be tangent to the circle that denotes
 $|T| = |\dfrac{PC}{1 + PC}| = M_t$
 The tangent point is specified by specifying $M_t$ and the angle $\phi_t$ between the real axis and the tangent point, indicated in the Nyquist plot below.
 ```@example PIDDESIGN
-using ControlSystems, Plots
+using ControlSystemsBase, Plots
 P  = tf(1, [1,0,0]) # A double integrator
 Mt = 1.3            # Maximum magnitude of complementary sensitivity
 ϕt = 75             # Angle of tangent point
@@ -137,6 +138,7 @@ Continuous-time transfer function model
 
 Define the desired closed-loop response, calculate the controller polynomials and simulate the closed-loop system. The design utilizes an observer poles twice as fast as the closed-loop poles. An additional observer pole is added in order to get a casual controller when an integrator is added to the controller.
 ```jldoctest POLEPLACEMENT; output = false
+using ControlSystems
 import DSP: conv
 # Control design
 ζ0 = 0.7
@@ -195,6 +197,7 @@ save_docs_plot(f3, "stab3.svg"); # hide
 ## PID plots
 This example utilizes the function [`pidplots`](@ref), which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
 ```jldoctest PIDPLOTS; output = false
+using ControlSystemsBase
 P = tf([1.], [1., 1])
 
 ζ = 0.5 # Desired damping

@@ -1,51 +1,27 @@
 using ControlSystems
 using Test, LinearAlgebra, Random
-import Base.isapprox        # In framework and test_synthesis
-import SparseArrays: sparse # In test_matrix_comps
-import DSP: conv            # In test_conversion and test_synthesis
 using Aqua
-@testset "Aqua" begin
-    Aqua.test_all(ControlSystems;
-        ambiguities = false, # casues 100s of hits in all dependencies
-        stale_deps = false,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
-    )
+# @testset "Aqua" begin
+#     Aqua.test_all(ControlSystems;
+#         ambiguities = false, # casues 100s of hits in all dependencies
+#         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
+#     )
+# end
+
+# Helper to call dev on one of the packages in folder /lib
+function dev_subpkg(subpkg)
+    subpkg_path = joinpath(dirname(@__DIR__), "lib", subpkg)
+    Pkg.develop(PackageSpec(path = subpkg_path))
 end
 
+dev_subpkg("ControlSystemsBase") # Always dev this package to test with the latest code
 
-include("framework.jl")
+const GROUP = ENV["GROUP"] # Get the GROUP attribute from the test.yml file
 
-my_tests = [
-            "test_result_types",
-            "test_timeevol",
-            "test_statespace",
-            "test_staticsystems",
-            "test_transferfunction",            
-            "test_zpk",
-            "test_promotion",
-            "test_connections",
-            "test_discrete",
-            "test_conversion",
-            "test_complex",
-            "test_linalg",
-            "test_simplification",
-            "test_freqresp",
-            "test_timeresp",
-            "test_analysis",
-            "test_matrix_comps",
-            "test_synthesis",
-            "test_pid_design",
-            "test_partitioned_statespace",
-            "test_delayed_systems",
-            "test_hammerstein_wiener",
-            "test_demo_systems",
-            "test_nonlinear_components",
-            "test_autovec",
-            "test_plots"
-            ]
-
-@testset "All Tests" begin
-    println("Testing code")
-    _t0 = time()
-    run_tests(my_tests)
-    println("Ran all code tests in $(round(time()-_t0, digits=2)) seconds")
+if GROUP == "ControlSystems"
+    include("runtests_controlsystems.jl")
+else
+    GROUP == "ControlSystemsBase" || dev_subpkg(GROUP) # This relies on the groups having the same name as the packages
+    subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
+    Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
 end

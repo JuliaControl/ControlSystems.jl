@@ -20,7 +20,7 @@ The system to control in this example is a double-mass system with a spring and 
 ## System model and controller
 
 ```@example ilc
-using ControlSystems, Plots
+using ControlSystemsBase, Plots
 
 function double_mass_model(; 
                 Jm = 1,   # motor inertia
