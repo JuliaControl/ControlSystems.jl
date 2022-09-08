@@ -8,26 +8,20 @@ using Aqua
 #     )
 # end
 
-@testset "ControlSystems" begin
-    @info "Testing ControlSystems"
+# Helper to call dev on one of the packages in folder /lib
+function dev_subpkg(subpkg)
+    subpkg_path = joinpath(dirname(@__DIR__), "lib", subpkg)
+    Pkg.develop(PackageSpec(path = subpkg_path))
+end
 
-    @testset "timeresp" begin
-        @info "Testing timeresp"
-        include("test_timeresp.jl")
-    end
+dev_subpkg("ControlSystemsBase") # Always dev this package to test with the latest code
 
-    @testset "delay_timeresp" begin
-        @info "Testing delay_timeresp"
-        include("test_delay_timeresp.jl")
-    end
+const GROUP = ENV["GROUP"] # Get the GROUP attribute from the test.yml file
 
-    @testset "nonlinear_timeresp" begin
-        @info "Testing nonlinear_timeresp"
-        include("test_nonlinear_timeresp.jl")
-    end
-
-    @testset "rootlocus" begin
-        @info "Testing rootlocus"
-        include("test_rootlocus.jl")
-    end
+if GROUP == "ControlSystems"
+    include("runtests_controlsystems.jl")
+else
+    GROUP == "ControlSystemsBase" || dev_subpkg(GROUP) # This relies on the groups having the same name as the packages
+    subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
+    Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
 end
