@@ -23,8 +23,13 @@ if GROUP ∈ ("ControlSystems", "All")
     include("runtests_controlsystems.jl")
 end
 
-if GROUP ∈ ("ControlSystemsBase", "All")
-    # dev_subpkg(GROUP) # Do this if more sub packages are added, don't forget to avoid doing it if GROUP is CSBase or All
+if GROUP == "All"
+    for GROUP in readdir(joinpath(dirname(@__DIR__), "lib")) # Loop over all subpackages
+        subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
+        Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
+    end
+else
+    # dev_subpkg(GROUP) # Do this if more sub packages are added, don't forget to avoid doing it if GROUP is CSBase
     subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
     Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
 end
