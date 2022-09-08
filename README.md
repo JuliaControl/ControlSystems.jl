@@ -37,7 +37,7 @@ julia> @time using ControlSystemsBase
 ```
 ```julia
 julia> @time using ControlSystems
-  21.71 seconds
+  10.90 seconds
 ```
 
 

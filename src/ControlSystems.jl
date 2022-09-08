@@ -12,7 +12,7 @@ import Hungarian # For pole assignment in rlocusplot
 import DiffEqCallbacks: SavingCallback, SavedValues
 using DelayDiffEq
 using SparseArrays
-using StaticArrays, Polyester
+using StaticArrays
 using RecipesBase
 using Printf
 
