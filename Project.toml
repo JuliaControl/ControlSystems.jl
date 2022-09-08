@@ -27,16 +27,17 @@ DiffEqCallbacks = "2.16"
 ForwardDiff = "0.10"
 Hungarian = "0.6"
 OrdinaryDiffEq = "5.2, 6.0"
-StaticArrays = "1"
 RecipesBase = "1"
+StaticArrays = "1"
 julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Aqua", "Documenter", "GR", "Plots"]
+test = ["Pkg", "Test", "Aqua", "Documenter", "GR", "Plots"]

@@ -1,3 +1,4 @@
+using Pkg
 using ControlSystems
 using Test, LinearAlgebra, Random
 using Aqua
@@ -16,12 +17,15 @@ end
 
 dev_subpkg("ControlSystemsBase") # Always dev this package to test with the latest code
 
-const GROUP = ENV["GROUP"] # Get the GROUP attribute from the test.yml file
+const GROUP = get(ENV, "GROUP", "All") # Get the GROUP attribute from the test.yml file, default to "All" for testing locally
 
-if GROUP == "ControlSystems"
+if GROUP ∈ ("ControlSystems", "All")
     include("runtests_controlsystems.jl")
-else
-    GROUP == "ControlSystemsBase" || dev_subpkg(GROUP) # This relies on the groups having the same name as the packages
+end
+
+if GROUP ∈ ("ControlSystemsBase", "All")
+    # dev_subpkg(GROUP) # Do this if more sub packages are added, don't forget to avoid doing it if GROUP is CSBase or All
     subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
     Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
 end
+
