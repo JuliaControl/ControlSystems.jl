@@ -40,7 +40,7 @@ Other functions that accept preallocated workspaces are
 
 an example using [`bodemag!`](@ref) follows:
 ```julia
-using ControlSystems
+using ControlSystemsBase
 G = tf(ssrand(2,2,5))
 w = exp10.(LinRange(-2, 2, 20000))
 @btime bode($G, $w);

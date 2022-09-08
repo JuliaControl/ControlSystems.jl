@@ -3,7 +3,7 @@ Delay systems can sometimes have non-intuitive properties, in particular when th
 
 The Nyquist plot of delay systems usually spirals towards the origin for delay systems. This is due to the phase loss at high frequencies due to the delay:
 ```@example DELAY
-using ControlSystems, Plots
+using ControlSystemsBase, Plots
 w = exp10.(LinRange(-2, 2, 2000))
 P = tf(1, [1, 1]) * delay(2) # Plant with delay on the input
 nyquistplot(P, w)
@@ -16,6 +16,7 @@ bodeplot(feedback(P), w)
 
 If the system with delay has a direct feedthrough term, step responses may show repeated steps at integer multiples of the delay:
 ```@example DELAY
+using ControlSystems # Load full control systems to get simulation functionality
 P = tf([1, 1], [1, 0])*delay(1)
 plot(step(feedback(P, 0.5), 0:0.001:20))
 ```

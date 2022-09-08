@@ -18,8 +18,8 @@ Simulation with arbitrary inputs is primarily handled by the function [`lsim`](@
 For more extensive nonlinear simulation capabilities, see the notes on ModelingToolkit and DifferentialEquations under [The wider Julia ecosystem for control](@ref).
 
 ```@autodocs
-Modules = [ControlSystems]
-Pages   = ["timeresp.jl", "result_types.jl", "freqresp.jl", "simulators.jl"]
+Modules = [ControlSystems, ControlSystemsBase]
+Pages   = ["lib/ControlSystemsBase/src/timeresp.jl", "lib/ControlSystemsBase/src/result_types.jl", "lib/ControlSystemsBase/src/freqresp.jl", "simulators.jl"]
 Order   = [:function, :type]
 Private = false
 ```

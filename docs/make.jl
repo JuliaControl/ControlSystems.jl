@@ -29,7 +29,7 @@ end
 # Update doctest outputs with doctest("/home/fredrikb/.julia/dev/ControlSystems/docs", [ControlSystems], fix=true)
 
 println("Making docs")
-makedocs(modules=[ControlSystems],
+makedocs(modules=[ControlSystems, ControlSystemsBase],
     format=Documenter.HTML(),
     sitename="ControlSystems.jl",
     strict=[

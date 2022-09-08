@@ -11,8 +11,8 @@ Pages = ["plotting.md"]
 # Plotting functions
 
 ```@autodocs
-Modules = [ControlSystems]
-Pages   = ["plotting.jl"]
+Modules = [ControlSystemslib, ControlSystemsBase]
+Pages   = ["lib/ControlSystemsBase/src/plotting.jl"]
 Order   = [:function]
 Private = false
 ```

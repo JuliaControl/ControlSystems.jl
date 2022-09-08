@@ -23,7 +23,7 @@ The benefit of this approach is that the controller $C_0$ can be designed for th
 We now set up the nominal system and PI controller
 
 ```@example smith
-using ControlSystems, Plots
+using ControlSystemsBase, Plots
 P0 = ss(-1, 1, 1, 0) # Nominal system
 ```
 
@@ -41,6 +41,7 @@ C = feedback(C0, (1.0 - delay(τ))*P0) # form the inner feedback connection in t
 ```
 We now plot the closed loop responses. The transfer function from $r$ to $y$ is given by $PC_r/(1+PC_r)$ = `feedback(P*C,1)`, and from a load disturbance entering at $u$ the transfer function is $P/(1+PC_r)$ = `feedback(P, C)`
 ```@example smith
+using ControlSystems # Load full ControlSystems for delay-system simulation
 G = [feedback(P*C, 1) feedback(P, C)] # Reference step at t = 0 and load disturbance step at t = 15
 fig_timeresp = plot(lsim(G, (_,t) -> [1; t >= 15], 0:0.1:40),  title="τ = $τ")
 ```

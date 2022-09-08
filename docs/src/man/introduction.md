@@ -1,10 +1,15 @@
 # Introduction
 ## Installation
 
-To install this package simply run
+To install the full set of features, simply run
 ```julia
 using Pkg; Pkg.add("ControlSystems")
 ```
+For workflows that do not require continuous-time simulation, you may instead opt to install the *much* lighter package ControlSystemsBase.jl
+```julia
+using Pkg; Pkg.add("ControlSystemsBase")
+```
+ControlSystemsBase contains all functionality of COntrolSystems except continuous-time simulation and root locus, and is *considerably* faster to load and precompile. To enjoy the faster pre-compilation, do not even install ControlSystems since this will cause pre-compilation of OrdinaryDiffEq, which can take several minutes.
 
 ## Basic functions
 ```@meta
