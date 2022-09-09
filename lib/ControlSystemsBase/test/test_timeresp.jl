@@ -194,4 +194,14 @@ sysd = tf(1, [1, 1], 0.01)
 @test ControlSystemsBase._default_dt(sysint) == 0.05
 @test ControlSystemsBase._default_dt(sysd) == 0.01
 
+
+# Test error hints
+if VERSION >= v"1.7"
+    # If ControlSystems is not loaded, the 
+    G = ssrand(1,1,1)
+    @test_throws "install and load ControlSystems.jl" lsim(G, (u,t)->[1], 10)
+    @test_throws "install and load ControlSystems.jl" lsim(G*delay(1), (u,t)->[1], 10)
+    @test_throws "step with continuous-time systems" step(G*delay(1), 10)
+end
+
 end

@@ -255,7 +255,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         end
         x,uout = ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
-        error("Continuous-time simulation requires using ControlSystems or passing method = :zoh to automatically discretize the system.")
+        throw(MethodError(lsim, (sys, u, t)))
     end
     y = sys.C*x
     if !iszero(sys.D)
