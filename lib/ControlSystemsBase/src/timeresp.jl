@@ -41,8 +41,9 @@ Calculate the step response of system `sys`. If the final time `tfinal` or time
 vector `t` is not provided, one is calculated based on the system pole
 locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
 
-`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
-function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:cont, kwargs...)
+`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`
+"""
+function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:zoh, kwargs...)
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
     nx = nstates(sys)
@@ -122,7 +123,7 @@ plot(result, plotu=true, plotx=false)
 ```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous-time systems are simulated using an ODE solver if `u` is a function. If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
+Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
 
 `u` can be a function or a matrix/vector of precalculated control signals.
 If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
@@ -132,6 +133,7 @@ For maximum performance, see function [`lsim!`](@ref), avaialable for discrete-t
 
 Usage example:
 ```julia
+using ControlSystems
 using LinearAlgebra # For identity matrix I
 using Plots
 
@@ -253,7 +255,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         end
         x,uout = ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
-        error("Continuous-time simulation requires using ControlSystems")
+        error("Continuous-time simulation requires using ControlSystems or passing method = :zoh to automatically discretize the system.")
     end
     y = sys.C*x
     if !iszero(sys.D)
