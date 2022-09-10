@@ -13,7 +13,7 @@ L = lqr(sys,Q,R)
 u1(x,i) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1.,0]
-@test_throws ErrorException lsim(sys,u1,t,x0=x0) # Continuous time simulation not loaded
+@test_throws MethodError lsim(sys,u1,t,x0=x0) # Continuous time simulation not loaded
 
 
 th = 1e-6
