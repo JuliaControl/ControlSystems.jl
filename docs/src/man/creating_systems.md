@@ -19,7 +19,7 @@ tf([1.0],[1,2,1])
 
 # output
 
-TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
+TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
         1.0
 -------------------
 1.0s^2 + 2.0s + 1.0
@@ -42,7 +42,7 @@ zpk([-1.0,1], [-5, -10], 2)
 
 # output
 
-TransferFunction{Continuous, ControlSystems.SisoZpk{Float64, Float64}}
+TransferFunction{Continuous, ControlSystemsBase.SisoZpk{Float64, Float64}}
    (1.0s + 1.0)(1.0s - 1.0)
 2.0-------------------------
    (1.0s + 5.0)(1.0s + 10.0)
@@ -71,7 +71,7 @@ function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
     HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
 end
 HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol,f)
-ControlSystemsBase._string_mat_with_headers(a::SizedArray) = ControlSystems._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
+ControlSystemsBase._string_mat_with_headers(a::SizedArray) = ControlSystemsBase._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
 
 nothing # hide
 ```
@@ -90,7 +90,7 @@ tf(zpk([-1], [1], 2, 0.1))
 
 # output
 
-TransferFunction{Discrete{Float64}, ControlSystems.SisoRational{Int64}}
+TransferFunction{Discrete{Float64}, ControlSystemsBase.SisoRational{Int64}}
 2z + 2
 ------
 z - 1
@@ -221,4 +221,4 @@ StateSpace[P_cont, P_disc]
 The type `StateSpace` is abstract, since the type parameters are not specified.
 
 ## Demo systems
-The module `ControlSystems.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.
+The module `ControlSystemsBase.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.

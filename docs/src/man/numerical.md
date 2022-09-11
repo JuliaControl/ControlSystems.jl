@@ -47,7 +47,7 @@ w = exp10.(LinRange(-2, 2, 20000))
 # 55.120 ms (517957 allocations: 24.42 MiB)
 @btime bode($G, $w, unwrap=false); # phase unwrapping is slow
 # 3.624 ms (7 allocations: 2.44 MiB)
-ws = ControlSystems.BodemagWorkspace(G, w)
+ws = ControlSystemsBase.BodemagWorkspace(G, w)
 @btime bodemag!($ws, $G, $w);
 # 2.991 ms (1 allocation: 64 bytes)
 ```
