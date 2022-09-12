@@ -139,7 +139,6 @@ sol_k = [0.0 3.0; 1.0 2.0]
 z, p, k = zpkdata(H)
 
 @test_array_vecs_eps z sol_z 2*eps(Float64)
-@test_broken true == false # order of poles changed below, should probably be consistent
 #@test_array_vecs_eps p sol_p 2*eps(Float64)
 @test k == sol_k
 z, p, k = zpkdata(G)
@@ -183,11 +182,11 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 
 @test sprint(dampreport, 1/(s+1+2im)/(s+2+3im)) == "|        Pole        |   Damping     |   Frequency   |   Frequency   | Time Constant |\n|                    |    Ratio      |   (rad/sec)   |     (Hz)      |     (sec)     |\n+--------------------+---------------+---------------+---------------+---------------+\n| -1            -2im |  0.447        |  2.24         |  0.356        |  1            |\n| -2            -3im |  0.555        |  3.61         |  0.574        |  0.5          |\n"
 
-# Example 5.5 from http://www.control.lth.se/media/Education/EngineeringProgram/FRTN10/2017/e05_both.pdf
+# Example 5.5 from https://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN10/2019/e05_both.pdf
 G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 @test_broken length(poles(G)) == 1
 @test length(tzeros(G)) == 1
-@test_broken size(minreal(ss(G)).A) == (2,2)
+@test minreal(ss(G)).A ≈ [-2]
 
 
 ## MARGIN ##

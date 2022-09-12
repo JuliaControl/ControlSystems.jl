@@ -212,4 +212,14 @@ end
 # The path has to be evaluated upon initial import
 const __ControlSystemsBase_SOURCE_DIR__ = dirname(Base.source_path())
 
+function __init__()
+    Base.Experimental.register_error_hint(MethodError) do io, exc, argtypes, kwargs
+        if exc.f ∈ (lsim, step, impulse) && argtypes[1] <: LTISystem{Continuous}
+            print(io, "\n$(exc.f) with continuous-time systems, including delay systems and nonlinear systems, require the user to first ")
+            printstyled(io, "install and load ControlSystems.jl, or pass the keyword method = :zoh", color=:green, bold=true)
+            print(io, " for automatic discretization (applicable to systems without delays or nonlinearities only).")
+        end
+    end
+end
+
 end

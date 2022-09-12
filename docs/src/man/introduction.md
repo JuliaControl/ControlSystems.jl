@@ -32,7 +32,7 @@ T = P/(1+P)
 
 # output
 
-TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
+TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
     1.0s + 1.0
 -------------------
 1.0s^2 + 3.0s + 2.0
@@ -46,7 +46,7 @@ minreal(T)
 
 # output
 
-TransferFunction{Continuous, ControlSystems.SisoRational{Float64}}
+TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
    1.0
 ----------
 1.0s + 2.0

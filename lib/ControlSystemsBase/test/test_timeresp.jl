@@ -13,7 +13,7 @@ L = lqr(sys,Q,R)
 u1(x,i) = -L*x # Form control law
 t=0:0.1:50
 x0 = [1.,0]
-@test_throws ErrorException lsim(sys,u1,t,x0=x0) # Continuous time simulation not loaded
+@test_throws MethodError lsim(sys,u1,t,x0=x0) # Continuous time simulation not loaded
 
 
 th = 1e-6
@@ -193,5 +193,15 @@ sysd = tf(1, [1, 1], 0.01)
 @test ControlSystemsBase._default_dt(sysunstab) == 0.083
 @test ControlSystemsBase._default_dt(sysint) == 0.05
 @test ControlSystemsBase._default_dt(sysd) == 0.01
+
+
+# Test error hints
+if VERSION >= v"1.7"
+    # If ControlSystems is not loaded, the 
+    G = ssrand(1,1,1)
+    @test_throws "install and load ControlSystems.jl" lsim(G, (u,t)->[1], 10)
+    @test_throws "install and load ControlSystems.jl" lsim(G*delay(1), (u,t)->[1], 10)
+    @test_throws "step with continuous-time systems" step(G*delay(1), 10)
+end
 
 end

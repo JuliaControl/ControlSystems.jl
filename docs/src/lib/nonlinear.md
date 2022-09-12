@@ -42,16 +42,16 @@ plot(step([G; Gu], 5), lab = ["Linear y" "Linear u"])
 plot!(step([Gnl; Gunl], 5), lab = ["Nonlinear y" "Nonlinear u"])
 ```
 
-Since the saturating nonlinearity is common, we provide the constructor [`ControlSystems.saturation`](@ref) that automatically forms the equivalent to `nonlinearity(x->clamp(x, -0.7, 0.7))` while at the same time making sure the function has a recognizable name when the system is printed
+Since the saturating nonlinearity is common, we provide the constructor [`ControlSystemsBase.saturation`](@ref) that automatically forms the equivalent to `nonlinearity(x->clamp(x, -0.7, 0.7))` while at the same time making sure the function has a recognizable name when the system is printed
 ```@example nonlinear
 using ControlSystems: saturation
 saturation(0.7)
 ```
 
-See also [`ControlSystems.ratelimit`](@ref) that saturates the derivative of a signal.
+See also [`ControlSystemsBase.ratelimit`](@ref) that saturates the derivative of a signal.
 
 ### Non-zero operating point
-It's common to linearize nonlinear systems around some operating point. We may make use of the helper constructor [`ControlSystems.offset`](@ref) to create affine functions at the inputs and outputs of the linearized system to, e.g.,
+It's common to linearize nonlinear systems around some operating point. We may make use of the helper constructor [`ControlSystemsBase.offset`](@ref) to create affine functions at the inputs and outputs of the linearized system to, e.g.,
 1. Make sure that simulations result are given in the original coordinates rather than in the coordinates of the linearization point.
 2. Allow nonlinearities that are added back after the linearization (such as saturations) to operate with their original parameters.
 
@@ -172,7 +172,7 @@ plot(step(duffing, 20), title="Duffing oscillator open-loop step response")
 
 We now show how we can make use of the circle criterion to prove stability of the closed loop. The function `circle_criterion` below plots the Nyquist curve of the loop-transfer function and figures out the circle to avoid by finding sector bounds for the static nonlinearity ``f(x) = x^3``. We then choose a controller an check that it stays outside of the circle. To find the sector bounds, we choose a domain to evaluate the nonlinearity over. The function ``f(x) = x^3`` goes to infinity faster than any linear function, and the upper sector bound is thus ∞, but if we restrict the nonlinearity to a smaller domain, we get a finite sector bound:
 ```@example DUFFING
-function circle_criterion(L::ControlSystems.HammersteinWienerSystem, domain::Tuple; N=10000)
+function circle_criterion(L::ControlSystemsBase.HammersteinWienerSystem, domain::Tuple; N=10000)
     fun = x->L.f[](x)/x
     x = range(domain[1], stop=domain[2], length=N)
     0 ∈ x && (x = filter(!=(0), x)) # We cannot divide by zero
@@ -244,9 +244,9 @@ plot(f1,f2, size=(1300,800))
 ## Docstrings
 
 ```@docs
-ControlSystems.nonlinearity
-ControlSystems.offset
-ControlSystems.saturation
-ControlSystems.ratelimit
-ControlSystems.deadzone
+ControlSystemsBase.nonlinearity
+ControlSystemsBase.offset
+ControlSystemsBase.saturation
+ControlSystemsBase.ratelimit
+ControlSystemsBase.deadzone
 ```

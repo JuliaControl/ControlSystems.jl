@@ -1,5 +1,6 @@
 [deps]
 ControlSystems = "a6e380b2-a6ca-5380-bf3e-84a91bcd477e"
+ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"

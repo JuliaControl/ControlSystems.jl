@@ -96,7 +96,7 @@ xreal[3,:,2] = exp.(-t).*t
     x0             = [0.,0]
     tspan          = (0.0,tfinal)
     sol            = solve(s, x0, tspan, OrdinaryDiffEq.Tsit5())
-    @test step(P,t)[3] ≈ reduce(hcat,sol.(t))
+    @test step(P,t)[3] ≈ reduce(hcat,sol.(t)) rtol=1e-4
 end
 
 # test fwd euler

@@ -44,7 +44,7 @@ i.e. of z^-N where N = τ / Ts.
 τ must be a multiple of Ts.
 """
 function delayd_ss(τ::Number, Ts::Number)
-    n = Int(round(τ / Ts))
+    n = round(Int, τ / Ts)
     if !(τ - n*Ts ≈ 0)
         error("The delay τ must be a multiple of the sample time Ts")
     end
