@@ -19,6 +19,8 @@ dev_subpkg("ControlSystemsBase") # Always dev this package to test with the late
 
 const GROUP = get(ENV, "GROUP", "All") # Get the GROUP attribute from the test.yml file, default to "All" for testing locally
 
+@show GROUP
+
 if GROUP ∈ ("ControlSystems", "All")
     include("runtests_controlsystems.jl")
 end
@@ -28,7 +30,7 @@ if GROUP == "All"
         subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
         Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
     end
-else
+elseif GROUP != "ControlSystems"
     # dev_subpkg(GROUP) # Do this if more sub packages are added, don't forget to avoid doing it if GROUP is CSBase
     subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
     Pkg.test(PackageSpec(name = GROUP, path = subpkg_path))
