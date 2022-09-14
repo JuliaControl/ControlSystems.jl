@@ -23,7 +23,7 @@ i.e., as a linear-fractional transform (LFT) between a linear system ``P`` and a
 To create a controller that saturates the output at ``\pm 0.7``, we call
 ```@example nonlinear
 using ControlSystems, Plots
-using ControlSystems: nonlinearity # This functionality is not exported due to the beta status
+using ControlSystemsBase: nonlinearity # This functionality is not exported due to the beta status
 
 C    = pid(1, 0.1, form=:parallel)                  # A standard PI controller
 nl   = nonlinearity(x->clamp(x, -0.7, 0.7)) # a saturating nonlinearity
@@ -44,7 +44,7 @@ plot!(step([Gnl; Gunl], 5), lab = ["Nonlinear y" "Nonlinear u"])
 
 Since the saturating nonlinearity is common, we provide the constructor [`ControlSystemsBase.saturation`](@ref) that automatically forms the equivalent to `nonlinearity(x->clamp(x, -0.7, 0.7))` while at the same time making sure the function has a recognizable name when the system is printed
 ```@example nonlinear
-using ControlSystems: saturation
+using ControlSystemsBase: saturation
 saturation(0.7)
 ```
 
@@ -105,7 +105,7 @@ nothing # hide
 ```
 The pumps (there are two of them) that service the tanks can only add liquid to the tanks, not remove liquid. The pump is thus saturated from below at 0, and from above at the maximum pump capacity 0.4. 
 ```@example nonlinear
-using ControlSystems: offset
+using ControlSystemsBase: offset
 umin = [0.0, 0.0]
 umax = [0.4, 0.4]
 
@@ -155,7 +155,7 @@ We see that the input ``u`` passes through the inner velocity loop before reachi
 
 ```@example DUFFING
 using ControlSystems, Plots
-using ControlSystems: nonlinearity
+using ControlSystemsBase: nonlinearity
 k  = 10
 k3 = 2
 c  = 1
