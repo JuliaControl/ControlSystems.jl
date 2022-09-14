@@ -15,6 +15,7 @@
 
 ```@meta
 CurrentModule = ControlSystems
+const libpath = haskey(ENV, "CI") ? dirname(pathof(ControlSystemsBase)) : "lib/src"
 DocTestFilters = [
     r"StateSpace.+?\n"
     r"HeteroStateSpace.+?\n"
