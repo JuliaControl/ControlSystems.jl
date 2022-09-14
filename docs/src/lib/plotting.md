@@ -12,7 +12,7 @@ Pages = ["plotting.md"]
 
 ```@autodocs
 Modules = [ControlSystems, ControlSystemsBase]
-Pages   = ["lib/ControlSystemsBase/src/plotting.jl"]
+Pages   = [libpath*"/plotting.jl"]
 Order   = [:function]
 Private = false
 ```

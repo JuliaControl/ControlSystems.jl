@@ -19,7 +19,7 @@ For more extensive nonlinear simulation capabilities, see the notes on ModelingT
 
 ```@autodocs
 Modules = [ControlSystems, ControlSystemsBase]
-Pages   = ["lib/ControlSystemsBase/src/timeresp.jl", "lib/ControlSystemsBase/src/result_types.jl", "lib/ControlSystemsBase/src/freqresp.jl", "simulators.jl"]
+Pages   = [libpath*"/timeresp.jl", libpath*"/result_types.jl", libpath*"/freqresp.jl", "simulators.jl"]
 Order   = [:function, :type]
 Private = false
 ```

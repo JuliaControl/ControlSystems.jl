@@ -8,7 +8,11 @@ For robust analysis, see [RobustAndOptimalControl.jl](https://juliacontrol.githu
 
 ```@autodocs
 Modules = [ControlSystems, ControlSystemsBase]
-Pages   = ["lib/ControlSystemsBase/src/analysis.jl", "lib/ControlSystemsBase/src/matrix_comps.jl", "lib/ControlSystemsBase/src/conversion.jl"]
+Pages   = [
+         libpath*"/analysis.jl", 
+         libpath*"/matrix_comps.jl", 
+         libpath*"/conversion.jl"
+        ]
 Order   = [:function, :type]
 Private = false
 ```

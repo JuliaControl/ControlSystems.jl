@@ -3,6 +3,7 @@ ENV["PLOTS_TEST"] = "true"
 ENV["GKSwstype"] = "nul"
 
 using Documenter, ControlSystems, ControlSystemsBase, Plots, LinearAlgebra, DSP
+# ENV["JULIA_DEBUG"]=Documenter # Enable this for debugging
 #import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 gr()
 default(show=false, size=(800,450))
@@ -25,6 +26,9 @@ function Documenter.Documents.doctest_replace!(block::Markdown.Code)
     block.language = occursin(r"^julia> "m, block.code) ? "julia-repl" : "julia"
     return false
 end
+
+const libpath = haskey(ENV, "CI") ? dirname(pathof(ControlSystemsBase)) : "lib/ControlSystemsBase/src"
+dirname(pathof(ControlSystemsBase))
 
 # Update doctest outputs with doctest("/home/fredrikb/.julia/dev/ControlSystems/docs", [ControlSystems], fix=true)
 
