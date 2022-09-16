@@ -41,6 +41,7 @@ jobs:
           julia --project=docs -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.develop(path=joinpath(pwd(), "lib", "ControlSystemsBase"))
             Pkg.instantiate()'
       - name: Make documentation and run doctest
         run: julia --project=docs --color=yes docs/make.jl
