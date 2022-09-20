@@ -624,8 +624,8 @@ A frequency vector `w` can be optionally provided.
     titles = Array{AbstractString}(undef, nu,ny,2,2)
     titles[:,:,1,1] .= "Gm: "
     titles[:,:,2,1] .= "Pm: "
-    titles[:,:,1,2] .= "Wgm: "
-    titles[:,:,2,2] .= "Wpm: "
+    titles[:,:,1,2] .= "ω gm: "
+    titles[:,:,2,2] .= "ω pm: "
     layout --> (2ny, nu)
     label --> ""
     for (si, s) in enumerate(systems)
