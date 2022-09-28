@@ -324,7 +324,7 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
         error("Lengths of U1 ($U1) and Y2 ($Y2) must be equal")
     end
     if (U2 isa Colon ? size(sys2, 2) : length(U2)) != (Y1 isa Colon ? size(sys1, 1) : length(Y1))
-        error("Lengths of U1 ($U2) and Y2 ($Y1) must be equal")
+        error("Lengths of U2 ($U2) and Y1 ($Y1) must be equal")
     end
 
     α = pos_feedback ? 1 : -1 # The sign of feedback
