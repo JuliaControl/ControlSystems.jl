@@ -102,28 +102,31 @@ end
 
 
 # This will be called on plot(lsim(sys, args...))
-@recipe function simresultplot(r::SimResult; plotu=false, plotx=false)
+@recipe function simresultplot(r::SimResult; plotu=false, plotx=false, ploty=true)
     ny, nu, nx, sys = r.ny, r.nu, r.nx, r.sys
     t = r.t
     n_series = size(r.y, 3) # step and impulse produce multiple results
-    nplots = ny
+    nplots = ploty ? ny : 0
     plotu && (nplots += nu)
     plotx && (nplots += nx)
     layout --> (nplots, 1)
     seriestype --> (iscontinuous(r.sys) ? :path : :steppost)
-    for ms in 1:n_series
-        for i=1:ny
-            ytext = output_names(sys, i)
-            @series begin
-                xguide  --> "Time (s)"
-                yguide  --> ytext
-                label   --> (n_series > 1 ? "From $(input_names(sys, ms))" : "")
-                subplot --> i
-                t,  r.y[i, :, ms]
+    plotind = 1
+    if ploty
+        for ms in 1:n_series
+            for i=1:ny
+                ytext = output_names(sys, i)
+                @series begin
+                    xguide  --> "Time (s)"
+                    yguide  --> ytext
+                    label   --> (n_series > 1 ? "From $(input_names(sys, ms))" : "")
+                    subplot --> i
+                    t,  r.y[i, :, ms]
+                end
             end
-        end
+        end 
+        plotind = ny+1
     end 
-    plotind = ny+1
     if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
             utext = input_names(sys, i)
@@ -208,6 +211,8 @@ bodeplot
     nw = length(w)
     # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
+
+    link --> :x
 
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
@@ -794,18 +799,18 @@ function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minim
     bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, kwargs...)
     f1 = bp(S, args...; show=false, title="S = 1/(1+PC)", kwargs...)
     if !isnothing(Ms_lines) && !isempty(Ms_lines)
-        Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(3e-3,8))
+        Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(1e-2,4))
     else
-        Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(3e-3,8))
+        Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-2,1.8))
     end
     f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
     Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
     f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
-    f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(3e-3,8), kwargs...)
+    f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-2,4), kwargs...)
     if !isnothing(Mt_lines) && !isempty(Mt_lines)
-        Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(3e-3,8))
+        Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(1e-2,4))
     else
-        Plots.hline!([1.0], l=(:dash, :black), ylims=(3e-3,8))
+        Plots.hline!([1.0], l=(:dash, :black), ylims=(1e-2,4))
     end
     Plots.plot(f1,f2,f3,f4, ticks=:default, ylabel="", legend=:bottomright)
 end
