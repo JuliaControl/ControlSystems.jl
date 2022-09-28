@@ -797,18 +797,18 @@ function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minim
     bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, kwargs...)
     f1 = bp(S, args...; show=false, title="S = 1/(1+PC)", kwargs...)
     if !isnothing(Ms_lines) && !isempty(Ms_lines)
-        Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(3e-3,8))
+        Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(1e-2,4))
     else
-        Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(3e-3,8))
+        Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-2,1.8))
     end
     f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
     Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
     f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
-    f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(3e-3,8), kwargs...)
+    f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-2,4), kwargs...)
     if !isnothing(Mt_lines) && !isempty(Mt_lines)
-        Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(3e-3,8))
+        Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(1e-2,4))
     else
-        Plots.hline!([1.0], l=(:dash, :black), ylims=(3e-3,8))
+        Plots.hline!([1.0], l=(:dash, :black), ylims=(1e-2,4))
     end
     Plots.plot(f1,f2,f3,f4, ticks=:default, ylabel="", legend=:bottomright)
 end
