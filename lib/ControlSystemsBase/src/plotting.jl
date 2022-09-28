@@ -212,6 +212,8 @@ bodeplot
     # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
 
+    link --> :x
+
     for (si,s) = enumerate(systems)
         mag, phase = bode(s, w)[1:2]
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
