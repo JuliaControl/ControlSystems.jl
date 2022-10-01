@@ -115,13 +115,13 @@ poly2vec(p::Polynomial) = p.coeffs[1:end]
 
 function unwrap!(M::Array, dim=1)
     alldims(i) = ntuple(n->n==dim ? i : (1:size(M,n)), ndims(M))
+    π2 = eltype(M)(2π)
     for i = 2:size(M, dim)
         #This is a copy of slicedim from the JuliaLang but enables us to write to it
         #The code (with dim=1) is equivalent to
         # d = M[i,:,:,...,:] - M[i-1,:,...,:]
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
-        π2 = eltype(M)(2π)
         M[alldims(i)...] -= @. floor((d + π) / π2) * π2
     end
     return M

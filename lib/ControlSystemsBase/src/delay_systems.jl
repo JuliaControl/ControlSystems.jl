@@ -6,7 +6,7 @@ function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}) wh
 
     cache = cis.(ω[1].*sys.Tau)
 
-    @views for ω_idx=1:length(ω)
+    @views for ω_idx = eachindex(ω)
         P11_fr = P_fr[1:ny, 1:nu, ω_idx]
         P12_fr = P_fr[1:ny, nu+1:end, ω_idx]
         P21_fr = P_fr[ny+1:end, 1:nu, ω_idx]

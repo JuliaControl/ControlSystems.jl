@@ -18,7 +18,7 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
     for poles = minorpoles(sys.matrix)
         # Poles have to be equal to existing poles for the individual transfer functions and this
         # calculation probably is more precise than the full. Seems to work better at least.
-        for i = 1:length(poles)
+        for i = eachindex(poles)
             idx = argmin(map(abs, individualpoles .- poles[i]))
             poles[i] = individualpoles[idx]
         end
