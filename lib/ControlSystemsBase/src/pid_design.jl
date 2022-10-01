@@ -31,37 +31,37 @@ The functions `pid_tf` and `pid_ss` are also exported. They take the same parame
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
 function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
-    if state_space # Type unstability? Can it be fixed easily, does it matter?
-        pid_ss(param_p, param_i, param_d; form, Ts, Tf)
+    C = if state_space # Type unstability? Can it be fixed easily, does it matter?
+        pid_ss(param_p, param_i, param_d; form, Tf)
     else
-        pid_tf(param_p, param_i, param_d; form, Ts, Tf)
+        pid_tf(param_p, param_i, param_d; form, Tf)
     end
+    Ts === nothing ? C : c2d(C, Ts, :tustin)
 end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
 
-function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
-    TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
     ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if isnothing(Tf)
         if ia
-            return tf([Kp * Td, Kp, Kp / Ti], [1, 0], TE)
+            return tf([Kp * Td, Kp, Kp / Ti], [1, 0])
         else
-            return tf([Kp * Td, Kp], [1], TE)
+            return tf([Kp * Td, Kp], [1])
         end
     else
         if ia
-            return tf([Kp * Td, Kp, Kp / Ti], [Tf^2/2, Tf, 1, 0], TE)
+            return tf([Kp * Td, Kp, Kp / Ti], [Tf^2/2, Tf, 1, 0])
         else
-            return tf([Kp * Td, Kp], [Tf^2/2, Tf, 1], TE)
+            return tf([Kp * Td, Kp], [Tf^2/2, Tf, 1])
         end
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
     Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
-    TE = isnothing(Ts) ? Continuous() : Discrete(Ts)
+    TE = Continuous()
     ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if !isnothing(Tf)
         if ia
@@ -81,12 +81,12 @@ function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
             C = Kp / Ti # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
             D = Kp
         else
-            return StateSpace([Kp], TE)
+            return ss([Kp])
         end
     else
         throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
     end
-    return StateSpace(A, B, C, D, TE)
+    return ss(A, B, C, D)
 end
 
 """
