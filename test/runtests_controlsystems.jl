@@ -1,3 +1,4 @@
+using ControlSystems
 @testset "ControlSystems" begin
     @info "Testing ControlSystems"
 
