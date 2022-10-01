@@ -222,3 +222,165 @@ The type `StateSpace` is abstract, since the type parameters are not specified.
 
 ## Demo systems
 The module `ControlSystemsBase.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.
+
+
+## From block diagrams to code
+This section lists a number of block diagrams, and indicate the corresponding transfer functions and how they are built in code.
+
+The function `feedback(G1, G2)` can be though of like this: the first argument `G1` is the system that appears directly between the input and the output, while the second argument `G2` (defaults to 1 if omitted) is all other systems that appear in the closed loop. The feedback is assumed to be negative, unless the argument `pos_feedback = true` is passed (`lft` is an exception, which due to convention defaults to positive feedback).
+
+```
+r   ┌─────┐     ┌─────┐
+───►│     │  u  │     │ y
+    │  C  ├────►│  P  ├─┬─►
+ -┌►│     │     │     │ │
+  │ └─────┘     └─────┘ │
+  │                     │
+  └─────────────────────┘
+```
+```math
+Y = \dfrac{PC}{I+PC}R
+```
+
+Code: `feedback(P*C)` or equivalently `comp_sensitivity(P, C)`. Here, the system ``PC`` appears directly between the input ``r`` and the output ``y``, and the feedback loop is negative identity. We thus call `feedback(P*C) = feedback(P*C, 1)`
+
+---
+
+```
+d     ┌───┐   y
+───+─►│ P ├─┬───►
+  -▲  └───┘ │
+   │        │
+   │  ┌───┐ │
+   └──┤ C │◄┘
+      └───┘
+```
+```math
+Y = \dfrac{P}{I+PC}D = PSD
+```
+
+Code: `feedback(P, C)` or equivalently `G_PS(P, C)`. Here, only ``P`` appears directly between ``d`` and ``y``, while ``C`` appears first in the feedback loop. We thus call `feedback(P, C)`
+
+---
+Sensitivity function at plant input
+
+```
+d    e┌───┐   
+───+─►│ P ├─┬───►
+  -▲  └───┘ │
+   │        │
+   │  ┌───┐ │
+   └──┤ C │◄┘
+      └───┘
+```
+```math
+E = \dfrac{1}{I+CP}D = SD
+```
+
+Code: `feedback(1, C*P)` or equivalently `input_sensitivity(P, C)`. Here, there are no systems directly between the input and the output, we thus call `feedback(1, C*P)`. Note the order in `C*P`, which is important for MIMO systems. This computes the sensitivity function at the *plant input*. It's more common to analyze the sensitivity function at the plant output, illustrated below (for SISO systems they are equivalent).
+
+---
+
+Sensitivity function at plant output
+
+```
+      ┌───┐   
+───+─►│ P ├─+◄── e
+  -▲  └───┘ │
+   │        │y
+   │  ┌───┐ │
+   └──┤ C │◄┘
+      └───┘
+```
+```math
+Y = \dfrac{1}{I+PC}D = SE
+```
+
+Code: `feedback(1, P*C)` or equivalently `output_sensitivity(P, C)`. Note the reverse order in ``PC`` compared to the input sensitivity function above.
+
+
+---
+
+Linear fractional transform
+
+```
+     ┌─────────┐
+z◄───┤         │◄────w
+     │    P    │
+y┌───┤         │◄───┐u
+ │   └─────────┘    │
+ │                  │
+ │      ┌───┐       │
+ │      │   │       │
+ └─────►│ K ├───────┘
+        │   │
+        └───┘
+```
+```math
+Z = \operatorname{lft}{(P, K)} W
+```
+
+Code: `lft(P, C)`
+
+---
+
+```
+      z1          z2
+      ▲  ┌─────┐  ▲      ┌─────┐
+      │  │     │  │      │     │
+w1──+─┴─►│  C  ├──┴───+─►│  P  ├─┐
+    │    │     │      │  │     │ │
+    │    └─────┘      │  └─────┘ │
+    │                 w2         │
+    └────────────────────────────┘
+```
+
+The transfer function from ``w_1, w_2`` to ``z_1, z_2`` contains all the transfer functions that are commonly called "gang of four" (see also [`gangoffour`](@ref)).
+
+```math
+\begin{bmatrix}
+z_1 \\ z_2
+\end{bmatrix} = 
+\begin{bmatrix}
+I \\ C
+\end{bmatrix} (I + PC)^{-1} \begin{bmatrix}
+I & P
+\end{bmatrix}
+\begin{bmatrix}
+w_1 \\ w_2
+\end{bmatrix}
+```
+Code: This function requires the package [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/).
+```julia
+RobustAndOptimalControl.extended_gangoffour(P, C, pos=true)
+# For SISO P
+S  = G[1, 1]
+PS = G[1, 2]
+CS = G[2, 1]
+T  = G[2, 2]
+
+# For MIMO P
+S  = G[1:P.ny,     1:P.nu]
+PS = G[1:P.ny,     P.nu+1:end]
+CS = G[P.ny+1:end, 1:P.nu]
+T  = G[P.ny+1:end, P.nu+1:end]
+```
+
+---
+
+This diagram is more complicated and forms several connections, including both feedforward and feedback connections. A code file that goes through how to form such complicated connections using named signals is linked below. This example uses the package [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/).
+
+```
+                 yF
+              ┌────────────────────────────────┐
+              │                                │
+    ┌───────┐ │  ┌───────┐ yR   ┌─────────┐    │    ┌───────┐
+uF  │       │ │  │       ├──────►         │ yC │  uP│       │    yP
+────►   F   ├─┴──►   R   │      │    C    ├────+────►   P   ├────┬────►
+    │       │    │       │   ┌──►         │         │       │    │
+    └───────┘    └───────┘   │- └─────────┘         └───────┘    │
+                             │                                   │
+                             └───────────────────────────────────┘
+```
+
+See code example [complicated_feedback.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/examples/complicated_feedback.jl).
