@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.8.1']
+        version: ['1']
         os: [ubuntu-latest]
         arch: [x64]
         group:
@@ -47,8 +47,8 @@ jobs:
           GROUP: ${{ matrix.group }}
         # continue-on-error: ${{ matrix.version == 'nightly' }} # Allow nightly to fail and workflow still count as completed
       - uses: julia-actions/julia-processcoverage@v1
-        if: ${{ matrix.version == '1.8.1' }}
+        if: ${{ matrix.version == '1' }}
       - uses: codecov/codecov-action@v1
-        if: ${{ matrix.version == '1.8.1' }}
+        if: ${{ matrix.version == '1' }}
         with:
           file: lcov.info
