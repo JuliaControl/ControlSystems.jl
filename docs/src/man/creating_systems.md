@@ -293,7 +293,7 @@ Sensitivity function at plant output
       └───┘
 ```
 ```math
-Y = \dfrac{1}{I+PC}D = SE
+Y = \dfrac{1}{I+PC}E = SE
 ```
 
 Code: `feedback(1, P*C)` or equivalently `output_sensitivity(P, C)`. Note the reverse order in ``PC`` compared to the input sensitivity function above.
@@ -301,7 +301,7 @@ Code: `feedback(1, P*C)` or equivalently `output_sensitivity(P, C)`. Note the re
 
 ---
 
-Linear fractional transform
+Linear fractional transformation
 
 ```
      ┌─────────┐
@@ -365,6 +365,16 @@ PS = G[1:P.ny,     P.nu+1:end]
 CS = G[P.ny+1:end, 1:P.nu]
 T  = G[P.ny+1:end, P.nu+1:end]
 ```
+
+See also
+- [`output_sensitivity`](@ref)
+- [`input_sensitivity`](@ref)
+- [`output_comp_sensitivity`](@ref)
+- [`input_comp_sensitivity`](@ref)
+- [`G_PS`](@ref)
+- [`G_CS`](@ref)
+- [`gangoffour`](@ref))
+- [`gangoffourplot`](@ref))
 
 ---
 
