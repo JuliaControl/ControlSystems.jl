@@ -4,8 +4,8 @@ DocTestSetup = quote
     plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
     mkpath(plotsDir)
     nyquistplot(ssrand(1,1,1)) # to get the warning for hover already here
-    save_docs_plot(name) = Plots.savefig(joinpath(plotsDir,name))
-    save_docs_plot(p, name) = Plots.savefig(p, joinpath(plotsDir,name))
+    save_docs_plot(name) = (Plots.savefig(joinpath(plotsDir,name)); nothing)
+    save_docs_plot(p, name) = (Plots.savefig(p, joinpath(plotsDir,name)); nothing)
 end
 ```
 
