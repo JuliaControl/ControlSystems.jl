@@ -62,9 +62,11 @@ rlocusplot
     roots, K = getpoles(P,K)
     redata = real.(roots)
     imdata = imag.(roots)
+    all_redata = [vec(redata); real.(Z)]
+    all_imdata = [vec(imdata); imag.(Z)]
     
-    ylims --> (max(-50,minimum(imdata) - 1), min(50,maximum(imdata) + 1))
-    xlims --> (max(-50,minimum(redata) - 1), clamp(maximum(redata) + 1, 1, 50))
+    ylims --> (max(-50,minimum(all_imdata) - 1), min(50,maximum(all_imdata) + 1))
+    xlims --> (max(-50,minimum(all_redata) - 1), clamp(maximum(all_redata) + 1, 1, 50))
     framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
