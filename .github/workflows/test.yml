@@ -47,8 +47,10 @@ jobs:
           GROUP: ${{ matrix.group }}
         # continue-on-error: ${{ matrix.version == 'nightly' }} # Allow nightly to fail and workflow still count as completed
       - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: lib/ControlSystemsBase/src
         if: ${{ matrix.version == '1' }}
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: ${{ matrix.version == '1' }}
         with:
           file: lcov.info
