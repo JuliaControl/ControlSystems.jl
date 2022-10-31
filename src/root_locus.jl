@@ -46,9 +46,11 @@ end
 
 
 """
-    rlocus(P::LTISystem; K)
+    roots, Z, K = rlocus(P::LTISystem; K)
 
-Computes the root locus of the SISO LTISystem P with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
+Compute the root locus of the SISO LTISystem `P` with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
+
+`roots` is a complex matrix containig the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 """
 function rlocus(P; K=500)
     K = K isa Number ? range(1e-6,stop=K,length=10000) : K
@@ -61,7 +63,7 @@ end
 """
     rlocusplot(P::LTISystem; K)
 
-Plot the root locus of the SISO LTISystem P as computed by `rlocus`.
+Plot the root locus of the SISO LTISystem `P` as computed by `rlocus`.
 """
 rlocusplot
 @recipe function rlocusplot(p::Rlocusplot; K=500)

@@ -16,7 +16,7 @@ using StaticArrays
 using RecipesBase
 using Printf
 
-export Simulator, rlocusplot
+export Simulator, rlocus, rlocusplot
 
 include("timeresp.jl")
 include("simulators.jl")
