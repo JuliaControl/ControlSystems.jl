@@ -1,6 +1,5 @@
 const Polynomials = ControlSystemsBase.Polynomials
 @userplot Rlocusplot
-@deprecate rlocus(args...;kwargs...) rlocusplot(args...;kwargs...)
 
 
 function getpoles(G, K)
@@ -15,7 +14,7 @@ function getpoles(G, K)
     prevpoles = ComplexF64[]
     temppoles = zeros(ComplexF64, nx-1)
     f = function (y,_,k)
-        if k == 0 && length(P) > length(Q) 
+        if k == 0 && length(P) > length(Q)
             # More zeros than poles, make sure the vector of roots is of correct length when k = 0
             # When this happens, there are fewer poles for k = 0, these poles can be seen as beeing located somewhere at Inf
             # We get around the problem by not allowing k = 0 for non-proper systems.
@@ -46,25 +45,34 @@ function getpoles(G, K)
 end
 
 
+"""
+    roots, Z, K = rlocus(P::LTISystem; K)
+
+Compute the root locus of the SISO LTISystem `P` with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
+
+`roots` is a complex matrix containig the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
+"""
+function rlocus(P; K=500)
+    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
+    Z = tzeros(P)
+    roots, K = getpoles(P,K)
+    roots, Z, K
+end
+
 
 """
     rlocusplot(P::LTISystem; K)
 
-Computes and plots the root locus of the SISO LTISystem P with
-a negative feedback loop and feedback gains between 0 and `K`. `rlocusplot` will use an adaptive step-size algorithm to
-determine the values of the feedback gains used to generate the plot.
+Plot the root locus of the SISO LTISystem `P` as computed by `rlocus`.
 """
 rlocusplot
 @recipe function rlocusplot(p::Rlocusplot; K=500)
-    P = p.args[1]
-    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
-    Z = tzeros(P)
-    roots, K = getpoles(P,K)
+    roots, Z, K = rlocus(p.args[1]; K=K)
     redata = real.(roots)
     imdata = imag.(roots)
     all_redata = [vec(redata); real.(Z)]
     all_imdata = [vec(imdata); imag.(Z)]
-    
+
     ylims --> (max(-50,minimum(all_imdata) - 1), min(50,maximum(all_imdata) + 1))
     xlims --> (max(-50,minimum(all_redata) - 1), clamp(maximum(all_redata) + 1, 1, 50))
     framestyle --> :zerolines
