@@ -125,16 +125,16 @@ plot(result, plotu=true, plotx=false)
 
 Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
 
-`u` can be a function or a matrix/vector of precalculated control signals.
-If `u` is a function, then `u(x,i)` (`u(x,t)`) is called to calculate the control signal every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
+`u` can be a function or a matrix/vector of precalculated control signals and must have dimentions `(nu, length(t))`.
+If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuos ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
 To simulate a unit step at `t=t₀`, use `(x,i)-> Ts*i ≥ t₀`, for a ramp, use `(x,i)-> i*Ts`, for a step at `t=5`, use (x,i)-> (i*Ts >= 5) etc.
 
-For maximum performance, see function [`lsim!`](@ref), avaialable for discrete-time systems only.
+For maximum performance, see function [`lsim!`](@ref), available for discrete-time systems only.
 
 Usage example:
 ```julia
 using ControlSystems
-using LinearAlgebra # For identity matrix I
+using LinearAlgebra: I
 using Plots
 
 A = [0 1; 0 0]
@@ -161,16 +161,15 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
     ny, nu = size(sys)
     nx = sys.nx
 
-    if length(x0) != nx
-        error("size(x0) must match the number of states of sys")
-    end
-    if size(u) != (nu, length(t))
-        error("u must be of size (nu, length(t))")
-    end
+    length(x0) == nx ||
+        error("x0 must have length $nx: got length $(length(x0))")
+
+    size(u) == (nu, length(t)) ||
+        error("u must have size ($nu, $(length(t))): got size $(size(u))")
 
     dt = Float64(t[2] - t[1])
     if !all(x -> x ≈ dt, diff(t))
-        error("time vector t must be uniformly spaced")
+        error("Time vector t must be uniformly spaced")
     end
 
     if iscontinuous(sys)
@@ -184,7 +183,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
         end
     else
         if sys.Ts != dt
-            error("Time vector must match sample time of discrete-time system")
+            error("Time vector must match the sample time of the discrete-time system, $(sys.Ts): got $dt")
         end
         dsys = sys
     end
@@ -236,9 +235,9 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     nx = sys.nx
     u0 = u(x0,1)
     if length(x0) != nx
-        error("size(x0) must match the number of states of sys")
+        error("x0 must have length $nx: got length $(length(x0))")
     elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
-        error("return value of u must be of size nu")
+        error("u must have size ($nu,): got size(u0)")
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 

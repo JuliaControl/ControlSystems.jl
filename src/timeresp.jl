@@ -25,9 +25,9 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
     nx = sys.nx
     u0 = u(x0,1)
     if length(x0) != nx
-        error("size(x0) must match the number of states of sys")
+        error("x0 must have length $nx: got length $(length(x0))")
     elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
-        error("return value of u must be of size nu")
+        error("u must have size ($nu,): got size $(size(u0))")
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
@@ -85,7 +85,7 @@ function lsim(sys::DelayLtiSystem{T,S}, u, t::AbstractArray{<:Real};
 
     # Make u! in-place function of u
     u! = if isa(u, Number) || isa(u,AbstractVector) # Allow for u to be a constant number or vector
-        (isa(u,AbstractVector) && length(u) == sys.nu1) || error("Vector u must be of length $(sys.nu1)")
+        (isa(u,AbstractVector) && length(u) == sys.nu1) || error("u must have size ($sys.nu1,1): got size $(size(u))")
         let u = u
             @inline (uout, x, t) -> copyto!(uout, u)
         end

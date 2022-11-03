@@ -20,6 +20,12 @@ th = 1e-6
 @test sum(abs.(x[:,end])) < th
 
 
+# Error for wrong size of u
+@test_throws ErrorException lsim(sys, (x,t)->[sin(t), cos(t)], 2; x0=[0, 1])
+
+# Error for wrong size of x0
+@test_throws ErrorException lsim(sys, (x,t)->[sin(t)], 2; x0=[0, 1, 1])
+
 # Error for nonuniformly spaced vector
 @test_throws ErrorException lsim(sys, [1 2 3 4], [0, 1, 1, 2])
 
