@@ -11,7 +11,7 @@ Internal function: Dynamics equation for simulation of a linear system.
 - `p`: is equal to `(A, B, u)` where `u(x, t)` returns the control input
 - `t`: Time
 """
-@inline function f_lsim(dx, x, p, t) 
+@inline function f_lsim(dx, x, p, t)
     A, B, u = p
     # dx .= A * x .+ B * u(x, t)
     mul!(dx, A, x)
@@ -25,9 +25,9 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
     nx = sys.nx
     u0 = u(x0,1)
     if length(x0) != nx
-        error("size(x0) must match the number of states of sys")
+        error("length(x0), ($(length(x0))), must match the number of states of sys ($nx)")
     elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
-        error("return value of u must be of size nu")
+        error("return value of u, ($(size(u0,1))), must be of size $nu")
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
@@ -111,7 +111,7 @@ function dde_param(du, u, h, p, t)
     nx = size(A,1)
     nd = length(Tau)
     ny = size(C1,1)
-    
+
     dx = view(du, 1:nx)
     dY = view(du, (nx+1):(nx+ny))
     dD = view(du, (nx+ny+1):(nx+ny+nd))
@@ -195,7 +195,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
                 (T(t[1]), T(t[end])),
                 p,
                 constant_lags=sort(Tau),# Not sure if sort needed
-                neutral=true,           # We have derivatives on RHS (d(t)) 
+                neutral=true,           # We have derivatives on RHS (d(t))
                 callback=cb)
     # Important to stop at t since we can not access derivatives in SavingCallback
     sol = DelayDiffEq.solve(prob, alg; tstops=t, saveat=t, kwargs...)
@@ -283,7 +283,7 @@ function _equation_order(D22)
             if isempty(depsj) || all(d ∈ order for d in depsj)
                 # Either no dependencies and can be solved at any time,
                 # or we can solve this equation since all of it's dependencies are already solved
-                push!(order, j) 
+                push!(order, j)
                 continue # move on to look at next equation
             end
         end
@@ -360,9 +360,9 @@ function nonlinear_activation!(Δu, f, D22, order)
             Δu[i,k] = f[i](Δu[i,k])
         end
     else
-        # If D22 has entries on the diagonal, there would be an algebraic loop, 
+        # If D22 has entries on the diagonal, there would be an algebraic loop,
         # D22[:,order] will however always be lower triangular due to s1*s2 for PartitionedStateSpace, we can thus use the permutation as the order in which to apply nonlinearities
-        for k in axes(Δu, 2), i in order 
+        for k in axes(Δu, 2), i in order
             Δu[i,k] = f[i](Δu[i,k])
             for j = 1:n
                 Δu[j,k] += D22[j, i]*Δu[i,k]
@@ -406,7 +406,7 @@ function _lsim(sys::HammersteinWienerSystem{T}, u!, t::AbstractArray{<:Real}, x0
     Δy = C2*x
     yout = C1*x
     iszero(D11) || mul!(yout, D11, uout2, true, true)
-    
+
     if !iszero(D12)
         iszero(D21) || mul!(Δy, D21, uout2, true, true)
         nonlinear_activation!(Δy, f, D22, order)
