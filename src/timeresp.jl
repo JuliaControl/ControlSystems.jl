@@ -23,12 +23,14 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
         x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, alg = Tsit5(), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
-    u0 = u(x0,1)
-    if length(x0) != nx
+    u0 = u(x0,t[1])
+    length(x0) == nx ||
         error("x0 must have length $nx: got length $(length(x0))")
-    elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
+    isa(u0, Number) &&
+        error("u must be a vector of size ($nu,)")
+    size(u0) == (nu,) ||
         error("u must have size ($nu,): got size $(size(u0))")
-    end
+
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
     dt = t[2] - t[1]
