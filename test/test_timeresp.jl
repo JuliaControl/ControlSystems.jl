@@ -23,6 +23,11 @@ th = 1e-6
 # Error for wrong size of u
 @test_throws ErrorException lsim(sys, (x,t)->[sin(t), cos(t)], 2; x0=[0, 1])
 
+# Restrict u to being vectors
+@test_throws ErrorException lsim(sys, (x,t)->[sin(t)]', 0:0.1:1)
+@test_throws ErrorException lsim(sys, (x,t)->[sin(t)]', 2)
+@test_throws ErrorException lsim(sys, (x,t)->sin(t), 2)
+
 # Error for wrong size of x0
 @test_throws ErrorException lsim(sys, (x,t)->[sin(t)], 2; x0=[0, 1, 1])
 
