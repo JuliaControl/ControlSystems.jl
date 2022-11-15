@@ -225,10 +225,12 @@ The module `ControlSystemsBase.DemoSystems` contains a number of demo systems de
 
 
 ## From block diagrams to code
-This section lists a number of block diagrams, and indicate the corresponding transfer functions and how they are built in code.
+This section lists a number of block diagrams, and indicates the corresponding transfer functions and how they are built in code.
 
-The function `feedback(G1, G2)` can be though of like this: the first argument `G1` is the system that appears directly between the input and the output, while the second argument `G2` (defaults to 1 if omitted) is all other systems that appear in the closed loop. The feedback is assumed to be negative, unless the argument `pos_feedback = true` is passed (`lft` is an exception, which due to convention defaults to positive feedback).
+The function `feedback(G1, G2)` can be thought of like this: the first argument `G1` is the system that appears directly between the input and the output, while the second argument `G2` (defaults to 1 if omitted) contains all other systems that appear in the closed loop. The feedback is assumed to be negative, unless the argument `pos_feedback = true` is passed (`lft` is an exception, which due to convention defaults to positive feedback).
 
+---
+Closed-loop system from reference to output
 ```
 r   ┌─────┐     ┌─────┐
 ───►│     │  u  │     │ y
@@ -320,7 +322,7 @@ y┌───┤         │◄───┐u
 Z = \operatorname{lft}{(P, K)} W
 ```
 
-Code: `lft(P, C)`
+Code: `lft(P, K)`
 
 ---
 

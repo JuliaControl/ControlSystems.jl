@@ -296,7 +296,7 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
+    fig = nyquistplot(sys;                Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
     nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
