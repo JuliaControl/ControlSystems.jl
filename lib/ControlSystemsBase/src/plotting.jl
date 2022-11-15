@@ -327,8 +327,9 @@ nyquistplot
             for i=1:ny
                 redata = re_resp[i, j, :]
                 imdata = im_resp[i, j, :]
-                ylims --> (min(max(-20,minimum(imdata)),-1), max(min(20,maximum(imdata)),1))
-                xlims --> (min(max(-20,minimum(redata)),-1), max(min(20,maximum(redata)),1))
+                mask = @. (-20 ≤ imdata ≤ 20) && (-20 ≤ redata ≤ 20)
+                ylims --> (min(minimum(imdata[mask]),-1.05), max(maximum(imdata[mask]),1.05))
+                xlims --> (min(minimum(redata[mask]),-1.05), max(maximum(redata[mask]),1.05))
                 @series begin
                     subplot --> s2i(i,j)
                     label --> "\$G_{$(si)}\$"
