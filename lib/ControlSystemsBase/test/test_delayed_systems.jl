@@ -10,6 +10,10 @@ using ControlSystemsBase
 
 @test typeof(promote(delay(0.2), ss(1.0 + im))[1]) == DelayLtiSystem{Complex{Float64}, Float64}
 
+@test delay(1, 1) isa ControlSystemsBase.StateSpace{<:Discrete}
+@test_throws ErrorException delay(1, 0.3)
+@test delay(1, 1) == ss(zeros(1,1), ones(1,1), ones(1,1), zeros(1,1), 1)
+
 @test sprint(show, ss(1,1,1,1)*delay(1.0)) == "DelayLtiSystem{Float64, Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nDelays: [1.0]"
 
 # Extremely basic tests
