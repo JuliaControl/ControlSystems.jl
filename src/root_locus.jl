@@ -2,7 +2,7 @@ const Polynomials = ControlSystemsBase.Polynomials
 @userplot Rlocusplot
 
 
-function getpoles(G, K)
+function getpoles(G, K::Number)
     issiso(G) || error("root locus only supports SISO systems")
     G isa TransferFunction || (G = tf(G))
     P = numpoly(G)[]
@@ -45,6 +45,28 @@ function getpoles(G, K)
 end
 
 
+function getpoles(G, K::AbstractVector{T}) where T<:Number
+    issiso(G) || error("root locus only supports SISO systems")
+    G isa TransferFunction || (G = tf(G))
+    P, Q = numpoly(G)[], denpoly(G)[]
+    poleout = Matrix{ComplexF64}(undef, Polynomials.degree(Q), length(K))
+    for (i, k) in enumerate(K)
+        k == 0 && length(P) > length(Q) && (k = eps(T))
+        poleout[:,i] = ComplexF64.(Polynomials.roots(k[1]*P+Q))
+    end
+    nx = length(Q)
+    D = zeros(nx-1, nx-1) # distance matrix
+    temppoles = zeros(ComplexF64, nx-1)
+    for j = 2:size(poleout,2)
+        D .= abs.(poleout[:,j] .- transpose(poleout[:,j-1]))
+        assignment, _ = Hungarian.hungarian(D)
+        foreach(i->temppoles[assignment[i]] = poleout[:,j][i], 1:nx-1)
+        poleout[:,j] .= temppoles
+    end
+    copy(poleout'), K
+end
+
+
 """
     roots, Z, K = rlocus(P::LTISystem; K)
 
@@ -53,9 +75,8 @@ Compute the root locus of the SISO LTISystem `P` with a negative feedback loop a
 `roots` is a complex matrix containig the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 """
 function rlocus(P; K=500)
-    K = K isa Number ? range(1e-6,stop=K,length=10000) : K
     Z = tzeros(P)
-    roots, K = getpoles(P,K)
+    roots, K = getpoles(P, K)
     roots, Z, K
 end
 
