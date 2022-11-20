@@ -76,7 +76,7 @@ Compute the root locus of the SISO LTISystem `P` with a negative feedback loop a
 """
 function rlocus(P; K=500)
     Z = tzeros(P)
-    roots, K = getpoles(P, K)
+    roots, K = getpoles(P,K)
     roots, Z, K
 end
 
