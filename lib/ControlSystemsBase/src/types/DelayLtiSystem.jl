@@ -109,11 +109,15 @@ end
 
 """
     delay(tau)
+    delay(tau, Ts)
     delay(T::Type{<:Number}, tau)
+    delay(T::Type{<:Number}, tau, Ts)
 
 Create a pure time delay of length `τ` of type `T`.
 
-The type `T` defaults to `promote_type(Float64, typeof(tau))`
+The type `T` defaults to `promote_type(Float64, typeof(tau))`.
+
+If `Ts` is given, the delay is discretized with sampling time `Ts` and a discrete-time StateSpace object is returned.
 
 # Example:
 Create a LTI system with an input delay of `L`
@@ -128,6 +132,9 @@ function delay(T::Type{<:Number}, τ)
     return DelayLtiSystem(ControlSystemsBase.ss([zero(T) one(T); one(T) zero(T)], Continuous()), [T(τ)])
 end
 delay(τ::Number) = delay(promote_type(Float64,eltype(τ)), τ)
+
+delay(τ::Number, Ts::Number) = c2d(delay(τ), Ts)
+delay(T::Type{<:Number}, τ::Number, Ts::Number) = c2d(delay(T, τ), Ts)
 
 
 """
