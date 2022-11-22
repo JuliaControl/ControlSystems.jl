@@ -7,13 +7,13 @@ function getpoles(G, K::Number)
     G isa TransferFunction || (G = tf(G))
     P = numpoly(G)[]
     Q = denpoly(G)[]
-    T = float(eltype(K))
+    T = float(typeof(K))
     ϵ = eps(T)
     nx = length(Q)
     D = zeros(nx-1, nx-1) # distance matrix
     prevpoles = ComplexF64[]
     temppoles = zeros(ComplexF64, nx-1)
-    f = function (y,_,k)
+    f = function (_,_,k)
         if k == 0 && length(P) > length(Q)
             # More zeros than poles, make sure the vector of roots is of correct length when k = 0
             # When this happens, there are fewer poles for k = 0, these poles can be seen as beeing located somewhere at Inf
@@ -37,7 +37,7 @@ function getpoles(G, K::Number)
     ts         = Vector{Float64}()
     poleout    = Vector{Vector{ComplexF64}}()
     for i in integrator
-        push!(poleout,integrator.k[1])
+        push!(poleout,integrator.k[end])
         push!(ts,integrator.t[1])
     end
     poleout = hcat(poleout...)'
@@ -45,23 +45,23 @@ function getpoles(G, K::Number)
 end
 
 
-function getpoles(G, K::AbstractVector{T}) where T<:Number
+function getpoles(G, K::AbstractVector{T}) where {T<:Number}
     issiso(G) || error("root locus only supports SISO systems")
     G isa TransferFunction || (G = tf(G))
     P, Q = numpoly(G)[], denpoly(G)[]
     poleout = Matrix{ComplexF64}(undef, Polynomials.degree(Q), length(K))
-    for (i, k) in enumerate(K)
-        k == 0 && length(P) > length(Q) && (k = eps(T))
-        poleout[:,i] = ComplexF64.(Polynomials.roots(k[1]*P+Q))
-    end
     nx = length(Q)
     D = zeros(nx-1, nx-1) # distance matrix
     temppoles = zeros(ComplexF64, nx-1)
-    for j = 2:size(poleout,2)
-        D .= abs.(poleout[:,j] .- transpose(poleout[:,j-1]))
-        assignment, _ = Hungarian.hungarian(D)
-        foreach(i->temppoles[assignment[i]] = poleout[:,j][i], 1:nx-1)
-        poleout[:,j] .= temppoles
+    for (i, k) in enumerate(K)
+        k == 0 && length(P) > length(Q) && (k = eps(T))
+        poleout[:,i] = ComplexF64.(Polynomials.roots(k[1]*P+Q))
+        if i > 1
+            D .= abs.(poleout[:,i] .- transpose(poleout[:,i-1]))
+            assignment, _ = Hungarian.hungarian(D)
+            foreach(k->temppoles[assignment[k]] = poleout[:,i][k], 1:nx-1)
+            poleout[:,i] .= temppoles
+        end
     end
     copy(poleout'), K
 end
