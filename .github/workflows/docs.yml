@@ -1,41 +1,20 @@
-name: Docs
+name: Documentation
 
 on:
-  pull_request:
-    branches:
-      - master
   push:
     branches:
       - master
-    tags: 
-      - '*'
+    tags: '*'
+  pull_request:
 
 jobs:
-  docs:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }} 
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        version: [1.7]
-        os: [ubuntu-latest]
-        arch: [x64]
+  build:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@latest
         with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+          version: '1.8'
       - name: Setup docs environment
         run: |
           julia --project=docs -e '
@@ -43,8 +22,8 @@ jobs:
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.develop(path=joinpath(pwd(), "lib", "ControlSystemsBase"))
             Pkg.instantiate()'
-      - name: Make documentation and run doctest
-        run: julia --project=docs --color=yes docs/make.jl
+      - name: Build and deploy
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
+        run: julia --project=docs/ docs/make.jl
