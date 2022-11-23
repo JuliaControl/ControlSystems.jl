@@ -34,12 +34,13 @@ dirname(pathof(ControlSystemsBase))
 
 println("Making docs")
 makedocs(modules=[ControlSystems, ControlSystemsBase],
-    format=Documenter.HTML(),
+    format = Documenter.HTML(prettyurls = haskey(ENV, "CI")),
     sitename="ControlSystems.jl",
     strict=[
         :doctest, 
         :linkcheck, 
-        :parse_error, 
+        :parse_error,
+        :example_block,
         # Other available options are
         # :autodocs_block, :cross_references, :docs_block, :eval_block, :example_block, :footnote, :meta_block, :missing_docs, :setup_block
     ],
