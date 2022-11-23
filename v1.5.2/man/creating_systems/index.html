@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Creating Systems · ControlSystems.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="ControlSystems.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">ControlSystems.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Introductory guide</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li class="is-active"><a class="tocitem" href>Creating Systems</a><ul class="internal"><li><a class="tocitem" href="#Creating-Transfer-Functions"><span>Creating Transfer Functions</span></a></li><li><a class="tocitem" href="#ss-Creating-State-Space-Systems"><span>ss - Creating State-Space Systems</span></a></li><li><a class="tocitem" href="#Converting-between-types"><span>Converting between types</span></a></li><li><a class="tocitem" href="#Creating-Delay-Systems"><span>Creating Delay Systems</span></a></li><li><a class="tocitem" href="#Creating-Nonlinear-Systems"><span>Creating Nonlinear Systems</span></a></li><li><a class="tocitem" href="#Simplifying-systems"><span>Simplifying systems</span></a></li><li><a class="tocitem" href="#Multiplying-systems"><span>Multiplying systems</span></a></li><li><a class="tocitem" href="#MIMO-systems-and-arrays-of-systems"><span>MIMO systems and arrays of systems</span></a></li><li><a class="tocitem" href="#Demo-systems"><span>Demo systems</span></a></li><li><a class="tocitem" href="#From-block-diagrams-to-code"><span>From block diagrams to code</span></a></li></ul></li><li><a class="tocitem" href="../numerical/">Performance considerations</a></li><li><a class="tocitem" href="../differences/">Noteworthy differences from other languages</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../examples/example/">Design</a></li><li><a class="tocitem" href="../../examples/smith_predictor/">Smith predictor</a></li><li><a class="tocitem" href="../../examples/ilc/">Iterative Learning Control (ILC)</a></li><li><a class="tocitem" href="../../examples/delay_systems/">Properties of delay systems</a></li></ul></li><li><span class="tocitem">Functions</span><ul><li><a class="tocitem" href="../../lib/constructors/">Constructors</a></li><li><a class="tocitem" href="../../lib/analysis/">Analysis</a></li><li><a class="tocitem" href="../../lib/synthesis/">Synthesis</a></li><li><a class="tocitem" href="../../lib/timefreqresponse/">Time and Frequency response</a></li><li><a class="tocitem" href="../../lib/plotting/">Plotting</a></li><li><a class="tocitem" href="../../lib/nonlinear/">Nonlinear</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Introductory guide</a></li><li class="is-active"><a href>Creating Systems</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Creating Systems</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaControl/ControlSystems.jl/blob/master/docs/src/man/creating_systems.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Creating-Systems"><a class="docs-heading-anchor" href="#Creating-Systems">Creating Systems</a><a id="Creating-Systems-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-Systems" title="Permalink"></a></h1><h2 id="Creating-Transfer-Functions"><a class="docs-heading-anchor" href="#Creating-Transfer-Functions">Creating Transfer Functions</a><a id="Creating-Transfer-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-Transfer-Functions" title="Permalink"></a></h2><h3 id="tf-Rational-Representation"><a class="docs-heading-anchor" href="#tf-Rational-Representation">tf - Rational Representation</a><a id="tf-Rational-Representation-1"></a><a class="docs-heading-anchor-permalink" href="#tf-Rational-Representation" title="Permalink"></a></h3><p>The syntax for creating a transfer function is</p><pre><code class="language-julia hljs">tf(num, den)     # Continuous-time system
+tf(num, den, Ts) # Discrete-time system</code></pre><p>where <code>num</code> and <code>den</code> are the polynomial coefficients of the numerator and denominator of the polynomial and <code>Ts</code>, if provided, is the sample time for a discrete-time system.</p><h4 id="Example:"><a class="docs-heading-anchor" href="#Example:">Example:</a><a id="Example:-1"></a><a class="docs-heading-anchor-permalink" href="#Example:" title="Permalink"></a></h4><pre><code class="language-julia hljs">tf([1.0],[1,2,1])
+
+# output
+
+TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
+        1.0
+-------------------
+1.0s^2 + 2.0s + 1.0
+
+Continuous-time transfer function model</code></pre><p>The transfer functions created using this method will be of type <code>TransferFunction{SisoRational}</code>.</p><h3 id="zpk-Pole-Zero-Gain-Representation"><a class="docs-heading-anchor" href="#zpk-Pole-Zero-Gain-Representation">zpk - Pole-Zero-Gain Representation</a><a id="zpk-Pole-Zero-Gain-Representation-1"></a><a class="docs-heading-anchor-permalink" href="#zpk-Pole-Zero-Gain-Representation" title="Permalink"></a></h3><p>Sometimes it&#39;s better to represent the transfer function by its poles, zeros and gain, this can be done using</p><pre><code class="language-julia hljs">zpk(zeros, poles, gain)     # Continuous-time system
+zpk(zeros, poles, gain, Ts) # Discrete-time system</code></pre><p>where <code>zeros</code> and <code>poles</code> are <code>Vectors</code> of the zeros and poles for the system and <code>gain</code> is a gain coefficient.</p><h4 id="Example"><a class="docs-heading-anchor" href="#Example">Example</a><a id="Example-1"></a><a class="docs-heading-anchor-permalink" href="#Example" title="Permalink"></a></h4><pre><code class="language-julia hljs">zpk([-1.0,1], [-5, -10], 2)
+
+# output
+
+TransferFunction{Continuous, ControlSystemsBase.SisoZpk{Float64, Float64}}
+   (1.0s + 1.0)(1.0s - 1.0)
+2.0-------------------------
+   (1.0s + 5.0)(1.0s + 10.0)
+
+Continuous-time transfer function model</code></pre><p>The transfer functions created using this method will be of type <code>TransferFunction{SisoZpk}</code>.</p><h2 id="ss-Creating-State-Space-Systems"><a class="docs-heading-anchor" href="#ss-Creating-State-Space-Systems">ss - Creating State-Space Systems</a><a id="ss-Creating-State-Space-Systems-1"></a><a class="docs-heading-anchor-permalink" href="#ss-Creating-State-Space-Systems" title="Permalink"></a></h2><p>A state-space system is created using</p><pre><code class="language-julia hljs">ss(A,B,C,D)    # Continuous-time system
+ss(A,B,C,D,Ts) # Discrete-time system</code></pre><p>and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,</p><pre><code class="language-julia hljs">using ControlSystemsBase, StaticArrays
+import ControlSystemsBase.HeteroStateSpace
+to_static(a::Number) = a
+to_static(a::AbstractArray) = SMatrix{size(a)...}(a)
+to_sized(a::Number) = a
+to_sized(a::AbstractArray) = SizedArray{Tuple{size(a)...}}(a)
+function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
+    HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
+end
+HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol,f)
+ControlSystemsBase._string_mat_with_headers(a::SizedArray) = ControlSystemsBase._string_mat_with_headers(Matrix(a)); # Overload for printing purposes</code></pre><p>Notice the different matrix types used</p><pre><code class="language- hljs">sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
+HeteroStateSpace(sys, to_static)
+HeteroStateSpace(sys, to_sized)</code></pre><h2 id="Converting-between-types"><a class="docs-heading-anchor" href="#Converting-between-types">Converting between types</a><a id="Converting-between-types-1"></a><a class="docs-heading-anchor-permalink" href="#Converting-between-types" title="Permalink"></a></h2><p>It is sometime useful to convert one representation to another, this is possible using the constructors <code>tf, zpk, ss</code>, for example</p><pre><code class="language-julia hljs">tf(zpk([-1], [1], 2, 0.1))
+
+# output
+
+TransferFunction{Discrete{Float64}, ControlSystemsBase.SisoRational{Int64}}
+2z + 2
+------
+z - 1
+
+Sample Time: 0.1 (seconds)
+Discrete-time transfer function model</code></pre><h2 id="Creating-Delay-Systems"><a class="docs-heading-anchor" href="#Creating-Delay-Systems">Creating Delay Systems</a><a id="Creating-Delay-Systems-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-Delay-Systems" title="Permalink"></a></h2><p>The constructor <a href="../../lib/constructors/#ControlSystemsBase.delay"><code>delay</code></a> creates a pure delay, which may be connected to a system by multiplication:</p><pre><code class="language-julia hljs">delay(1.2)               # Pure delay or 1.2s
+tf(1, [1, 1])*delay(1.2) # Input delay
+delay(1.2)*tf(1, [1, 1]) # Output delay</code></pre><p>Delayed systems can also be created using</p><pre><code class="language-julia hljs">s = tf(&quot;s&quot;)
+L = 1.2 # Delay time
+tf(1, [1, 1]) * exp(-L*s)</code></pre><h2 id="Creating-Nonlinear-Systems"><a class="docs-heading-anchor" href="#Creating-Nonlinear-Systems">Creating Nonlinear Systems</a><a id="Creating-Nonlinear-Systems-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-Nonlinear-Systems" title="Permalink"></a></h2><p>See <a href="../../lib/nonlinear/#Nonlinear-functionality">Nonlinear functionality</a>.</p><h2 id="Simplifying-systems"><a class="docs-heading-anchor" href="#Simplifying-systems">Simplifying systems</a><a id="Simplifying-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Simplifying-systems" title="Permalink"></a></h2><p>A statespace system with a non-minimal realization, or a transfer function with overlapping zeros and poles, may be simplified using the function <a href="../../lib/constructors/#ControlSystemsBase.minreal"><code>minreal</code></a>. Systems that are structurally singular, i.e., that contains outputs that can not be reached from the inputs based on analysis of the structure of the zeros in the system matrices only, can be simplified with the function <a href="../../lib/constructors/#ControlSystemsBase.sminreal"><code>sminreal</code></a>.</p><p>Examples:</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; using ControlSystemsBase</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; G = tf([1, 1], [1, 1])</code><code class="nohighlight hljs ansi" style="display:block;">TransferFunction{Continuous, ControlSystemsBase.SisoRational{Int64}}
+s + 1
+-----
+s + 1
+
+Continuous-time transfer function model</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; minreal(G) # Performs pole-zero cancellation</code><code class="nohighlight hljs ansi" style="display:block;">TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
+1.0
+---
+1.0
+
+Continuous-time transfer function model</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; P = tf(1, [1, 1]) |&gt; ss</code><code class="nohighlight hljs ansi" style="display:block;">StateSpace{Continuous, Float64}
+A =
+ -1.0
+B =
+ 1.0
+C =
+ 1.0
+D =
+ 0.0
+
+Continuous-time state-space model</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; G = P / (1 + P) # this creates a non-minimal realization, use feedback(P) instead</code><code class="nohighlight hljs ansi" style="display:block;">StateSpace{Continuous, Float64}
+A =
+ -1.0  -1.0
+  0.0  -2.0
+B =
+ 1.0
+ 1.0
+C =
+ 1.0  0.0
+D =
+ 0.0
+
+Continuous-time state-space model</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; feedback(P) # Creates a minimal realization directly</code><code class="nohighlight hljs ansi" style="display:block;">StateSpace{Continuous, Float64}
+A =
+ -2.0
+B =
+ 1.0
+C =
+ 1.0
+D =
+ 0.0
+
+Continuous-time state-space model</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; Gmin = minreal(G) # this simplifies the realization to a minimal realization</code><code class="nohighlight hljs ansi" style="display:block;">StateSpace{Continuous, Float64}
+A =
+ -1.9999999999999993
+B =
+ -1.4142135623730951
+C =
+ -0.7071067811865472
+D =
+ 0.0
+
+Continuous-time state-space model</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; norm(Gmin - feedback(P), Inf) # No difference</code><code class="nohighlight hljs ansi" style="display:block;">1.110224134848181e-16</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; bodeplot([G, Gmin, feedback(P)]) # They are all identical</code><code class="nohighlight hljs ansi" style="display:block;">Plot{Plots.GRBackend() n=6}</code></pre><h2 id="Multiplying-systems"><a class="docs-heading-anchor" href="#Multiplying-systems">Multiplying systems</a><a id="Multiplying-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Multiplying-systems" title="Permalink"></a></h2><p>Two systems can be connected in series by multiplication</p><pre><code class="language-julia hljs">using ControlSystemsBase
+P1 = ss(-1,1,1,0)
+P2 = ss(-2,1,1,0)
+P2*P1</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
+A = 
+ -2   1
+  0  -1
+B = 
+ 0
+ 1
+C = 
+ 1  0
+D = 
+ 0
+
+Continuous-time state-space model</code></pre><p>If the input dimension of <code>P2</code> does not match the output dimension of <code>P1</code>, an error is thrown. If one of the systems is SISO and the other is MIMO, broadcasted multiplication will expand the SISO system to match the input or output dimension of the MIMO system, e.g.,</p><pre><code class="language-julia hljs">Pmimo = ssrand(2,2,1)
+Psiso = ss(-2,1,1,0)
+# Psiso * Pmimo # error
+Psiso .* Pmimo ≈ [Psiso 0; 0 Psiso] * Pmimo # Broadcasted multiplication expands SISO into diagonal system</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>Broadcasted multiplication between a system and an array is only allowed for diagonal arrays</p><pre><code class="language-julia hljs">using LinearAlgebra
+Psiso .* I(2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
+A = 
+ -2   0
+  0  -2
+B = 
+ 1  0
+ 0  1
+C = 
+ 1  0
+ 0  1
+D = 
+ 0  0
+ 0  0
+
+Continuous-time state-space model</code></pre><h2 id="MIMO-systems-and-arrays-of-systems"><a class="docs-heading-anchor" href="#MIMO-systems-and-arrays-of-systems">MIMO systems and arrays of systems</a><a id="MIMO-systems-and-arrays-of-systems-1"></a><a class="docs-heading-anchor-permalink" href="#MIMO-systems-and-arrays-of-systems" title="Permalink"></a></h2><p>Concatenation of systems creates MIMO systems, which is different from an array of systems. For example</p><pre><code class="language-julia hljs">using ControlSystemsBase
+P = ss(-1,1,1,0)
+P_MIMO = [P 2P]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
+A = 
+ -1   0
+  0  -1
+B = 
+ 1  0
+ 0  1
+C = 
+ 1  2
+D = 
+ 0  0
+
+Continuous-time state-space model</code></pre><p>is a 1×2 MISO system, not a 1×2 array.</p><h3 id="From-SISO-to-MIMO"><a class="docs-heading-anchor" href="#From-SISO-to-MIMO">From SISO to MIMO</a><a id="From-SISO-to-MIMO-1"></a><a class="docs-heading-anchor-permalink" href="#From-SISO-to-MIMO" title="Permalink"></a></h3><p>SISO systems do not multiply MIMO systems directly, i.e.,</p><pre><code class="language-julia hljs">using Test
+siso = ss(-1,1,1,0)
+mimo = ssrand(2,2,2)
+@test_throws DimensionMismatch siso * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Test Passed
+      Thrown: DimensionMismatch</code></pre><p>To multiply <code>siso</code> with each output channel of <code>mimo</code> in the example above, use broadcasting:</p><pre><code class="language-julia hljs">siso .* mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
+A = 
+ -1.0   0.0  1.2780814090083803    1.8061436775793849
+  0.0  -1.0  0.3154309290804861    0.13804046385677685
+  0.0   0.0  0.01936547564761354  -0.03091560319632928
+  0.0   0.0  0.5033992754004241   -0.3233528487586549
+B = 
+ -1.3357695520681587  -1.804681088364182
+ -1.7982885789986784  -0.40079795240470745
+  0.3904377574156185   0.36903090070365274
+  0.9618872266808223  -1.5900129113880253
+C = 
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
+D = 
+ -0.0  -0.0
+ -0.0  -0.0
+
+Continuous-time state-space model</code></pre><p>This is equivalent to first expanding the SISO system into a diagonal system</p><pre><code class="language-julia hljs">using LinearAlgebra
+(siso .* I(2)) * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
+A = 
+ -1.0   0.0  1.2780814090083803    1.8061436775793849
+  0.0  -1.0  0.3154309290804861    0.13804046385677685
+  0.0   0.0  0.01936547564761354  -0.03091560319632928
+  0.0   0.0  0.5033992754004241   -0.3233528487586549
+B = 
+ -1.3357695520681587  -1.804681088364182
+ -1.7982885789986784  -0.40079795240470745
+  0.3904377574156185   0.36903090070365274
+  0.9618872266808223  -1.5900129113880253
+C = 
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
+D = 
+ -0.0  -0.0
+ -0.0  -0.0
+
+Continuous-time state-space model</code></pre><h3 id="Converting-an-array-of-systems-to-a-MIMO-system"><a class="docs-heading-anchor" href="#Converting-an-array-of-systems-to-a-MIMO-system">Converting an array of systems to a MIMO system</a><a id="Converting-an-array-of-systems-to-a-MIMO-system-1"></a><a class="docs-heading-anchor-permalink" href="#Converting-an-array-of-systems-to-a-MIMO-system" title="Permalink"></a></h3><p>Diagonal MIMO systems can be created from a vector of systems using <a href="../../lib/constructors/#ControlSystemsBase.append"><code>append</code></a></p><pre><code class="language-julia hljs">P1 = ssrand(1,1,1)
+P2 = ssrand(1,1,1)
+append(P1, P2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
+A = 
+ -0.1599174554913465   0.0
+  0.0                 -0.4403564934910688
+B = 
+ 0.8089437892185518   0.0
+ 0.0                 -1.2066816392364272
+C = 
+ 0.678489396481081  0.0
+ 0.0                0.2642071147029379
+D = 
+ 0.8725417921718363   0.0
+ 0.0                 -0.7841539031167937
+
+Continuous-time state-space model</code></pre><p>More general arrays of systems can be converted to a MIMO system using <a href="../../lib/synthesis/#ControlSystemsBase.array2mimo-Tuple{AbstractArray{&lt;:LTISystem}}"><code>array2mimo</code></a>.</p><pre><code class="language-julia hljs">sys_array = fill(P, 2, 2) # Creates an array of systems
+mimo_sys = array2mimo(sys_array)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
+A = 
+ -1   0   0   0
+  0  -1   0   0
+  0   0  -1   0
+  0   0   0  -1
+B = 
+ 1  0
+ 0  1
+ 1  0
+ 0  1
+C = 
+ 1  1  0  0
+ 0  0  1  1
+D = 
+ 0  0
+ 0  0
+
+Continuous-time state-space model</code></pre><h3 id="Converting-MIMO-system-to-an-array-of-systems"><a class="docs-heading-anchor" href="#Converting-MIMO-system-to-an-array-of-systems">Converting MIMO system to an array of systems</a><a id="Converting-MIMO-system-to-an-array-of-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Converting-MIMO-system-to-an-array-of-systems" title="Permalink"></a></h3><p>This conversion is not explicitly supported, but is easy enough to accomplish with standard Julia code, for example:</p><pre><code class="language-julia hljs">P = ssrand(2,3,1) # A random 2×3 MIMO system
+sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)&#39;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2×3 Matrix{StateSpace{Continuous, Float64}}:
+ StateSpace{Continuous, Float64}
+A = 
+ -1.2358402291098092
+B = 
+ -0.5224902294181073
+C = 
+ 0.6466024323012274
+D = 
+ -0.35312863192167554
+
+Continuous-time state-space model  …  StateSpace{Continuous, Float64}
+A = 
+ -1.2358402291098092
+B = 
+ -0.0068958328872625535
+C = 
+ 0.6466024323012274
+D = 
+ 1.5443107475323494
+
+Continuous-time state-space model
+ StateSpace{Continuous, Float64}
+A = 
+ -1.2358402291098092
+B = 
+ -0.5224902294181073
+C = 
+ -0.5108827636885344
+D = 
+ -0.5160628911563372
+
+Continuous-time state-space model     StateSpace{Continuous, Float64}
+A = 
+ -1.2358402291098092
+B = 
+ -0.0068958328872625535
+C = 
+ -0.5108827636885344
+D = 
+ 1.2060335229953913
+
+Continuous-time state-space model</code></pre><h3 id="Creating-arrays-with-different-types-of-systems"><a class="docs-heading-anchor" href="#Creating-arrays-with-different-types-of-systems">Creating arrays with different types of systems</a><a id="Creating-arrays-with-different-types-of-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-arrays-with-different-types-of-systems" title="Permalink"></a></h3><p>When calling <code>hcat/vcat</code>, Julia automatically tries to promote the types to the smallest common supertype, this means that creating an array with one continuous and one discrete-time system fails</p><pre><code class="language-julia hljs">P_cont = ssrand(2,3,1)
+P_disc = ssrand(2,3,1, Ts=1)
+@test_throws ErrorException [P_cont, P_disc] # ERROR: Sampling time mismatch</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Test Passed
+      Thrown: ErrorException</code></pre><p>You can explicitly tell Julia that you want a particular supertype, e.g,</p><pre><code class="language-julia hljs">StateSpace[P_cont, P_disc]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{StateSpace}:
+ StateSpace{Continuous, Float64}
+A = 
+ -0.06107477018408847
+B = 
+ -0.2856310385022849  -0.06156037786546427  1.959575127552966
+C = 
+ -0.982269489362338
+  0.37274216650017666
+D = 
+ -0.5149279250654943   0.27776614702132263  0.2151126345654485
+  0.9618186843043435  -0.2860334008962715   0.5282669995888802
+
+Continuous-time state-space model
+ StateSpace{Discrete{Int64}, Float64}
+A = 
+ -0.8999999999999999
+B = 
+ -0.03376230976624608  1.3149881953675149  0.8363792806282133
+C = 
+ 1.4307891722230124
+ 0.0437000686993009
+D = 
+ -0.18630336297144257   0.31765401298660256  -0.08327061046302571
+ -1.1665230664252113   -1.1899786344760175   -0.025485709782715138
+
+Sample Time: 1 (seconds)
+Discrete-time state-space model</code></pre><p>The type <code>StateSpace</code> is abstract, since the type parameters are not specified.</p><h2 id="Demo-systems"><a class="docs-heading-anchor" href="#Demo-systems">Demo systems</a><a id="Demo-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Demo-systems" title="Permalink"></a></h2><p>The module <code>ControlSystemsBase.DemoSystems</code> contains a number of demo systems demonstrating different kinds of dynamics.</p><h2 id="From-block-diagrams-to-code"><a class="docs-heading-anchor" href="#From-block-diagrams-to-code">From block diagrams to code</a><a id="From-block-diagrams-to-code-1"></a><a class="docs-heading-anchor-permalink" href="#From-block-diagrams-to-code" title="Permalink"></a></h2><p>This section lists a number of block diagrams, and indicates the corresponding transfer functions and how they are built in code.</p><p>The function <code>feedback(G1, G2)</code> can be thought of like this: the first argument <code>G1</code> is the system that appears directly between the input and the output, while the second argument <code>G2</code> (defaults to 1 if omitted) contains all other systems that appear in the closed loop. The feedback is assumed to be negative, unless the argument <code>pos_feedback = true</code> is passed (<code>lft</code> is an exception, which due to convention defaults to positive feedback).</p><hr/><p>Closed-loop system from reference to output</p><pre><code class="nohighlight hljs">r   ┌─────┐     ┌─────┐
+───►│     │  u  │     │ y
+    │  C  ├────►│  P  ├─┬─►
+ -┌►│     │     │     │ │
+  │ └─────┘     └─────┘ │
+  │                     │
+  └─────────────────────┘</code></pre><p class="math-container">\[Y = \dfrac{PC}{I+PC}R\]</p><p>Code: <code>feedback(P*C)</code> or equivalently <code>comp_sensitivity(P, C)</code>. Here, the system <span>$PC$</span> appears directly between the input <span>$r$</span> and the output <span>$y$</span>, and the feedback loop is negative identity. We thus call <code>feedback(P*C) = feedback(P*C, 1)</code></p><hr/><pre><code class="nohighlight hljs">d     ┌───┐   y
+───+─►│ P ├─┬───►
+  -▲  └───┘ │
+   │        │
+   │  ┌───┐ │
+   └──┤ C │◄┘
+      └───┘</code></pre><p class="math-container">\[Y = \dfrac{P}{I+PC}D = PSD\]</p><p>Code: <code>feedback(P, C)</code> or equivalently <code>G_PS(P, C)</code>. Here, only <span>$P$</span> appears directly between <span>$d$</span> and <span>$y$</span>, while <span>$C$</span> appears first in the feedback loop. We thus call <code>feedback(P, C)</code></p><hr/><p>Sensitivity function at plant input</p><pre><code class="nohighlight hljs">d    e┌───┐   
+───+─►│ P ├─┬───►
+  -▲  └───┘ │
+   │        │
+   │  ┌───┐ │
+   └──┤ C │◄┘
+      └───┘</code></pre><p class="math-container">\[E = \dfrac{1}{I+CP}D = SD\]</p><p>Code: <code>feedback(1, C*P)</code> or equivalently <code>input_sensitivity(P, C)</code>. Here, there are no systems directly between the input and the output, we thus call <code>feedback(1, C*P)</code>. Note the order in <code>C*P</code>, which is important for MIMO systems. This computes the sensitivity function at the <em>plant input</em>. It&#39;s more common to analyze the sensitivity function at the plant output, illustrated below (for SISO systems they are equivalent).</p><hr/><p>Sensitivity function at plant output</p><pre><code class="nohighlight hljs">      ┌───┐   
+───+─►│ P ├─+◄── e
+  -▲  └───┘ │
+   │        │y
+   │  ┌───┐ │
+   └──┤ C │◄┘
+      └───┘</code></pre><p class="math-container">\[Y = \dfrac{1}{I+PC}E = SE\]</p><p>Code: <code>feedback(1, P*C)</code> or equivalently <code>output_sensitivity(P, C)</code>. Note the reverse order in <span>$PC$</span> compared to the input sensitivity function above.</p><hr/><p>Linear fractional transformation</p><pre><code class="nohighlight hljs">     ┌─────────┐
+z◄───┤         │◄────w
+     │    P    │
+y┌───┤         │◄───┐u
+ │   └─────────┘    │
+ │                  │
+ │      ┌───┐       │
+ │      │   │       │
+ └─────►│ K ├───────┘
+        │   │
+        └───┘</code></pre><p class="math-container">\[Z = \operatorname{lft}{(P, K)} W\]</p><p>Code: <code>lft(P, K)</code></p><hr/><pre><code class="nohighlight hljs">      z1          z2
+      ▲  ┌─────┐  ▲      ┌─────┐
+      │  │     │  │      │     │
+w1──+─┴─►│  C  ├──┴───+─►│  P  ├─┐
+    │    │     │      │  │     │ │
+    │    └─────┘      │  └─────┘ │
+    │                 w2         │
+    └────────────────────────────┘</code></pre><p>The transfer function from <span>$w_1, w_2$</span> to <span>$z_1, z_2$</span> contains all the transfer functions that are commonly called &quot;gang of four&quot; (see also <a href="../../lib/analysis/#ControlSystemsBase.gangoffour-Tuple{LTISystem, LTISystem}"><code>gangoffour</code></a>).</p><p class="math-container">\[\begin{bmatrix}
+z_1 \\ z_2
+\end{bmatrix} = 
+\begin{bmatrix}
+I \\ C
+\end{bmatrix} (I + PC)^{-1} \begin{bmatrix}
+I &amp; P
+\end{bmatrix}
+\begin{bmatrix}
+w_1 \\ w_2
+\end{bmatrix}\]</p><p>Code: This function requires the package <a href="https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/">RobustAndOptimalControl.jl</a>.</p><pre><code class="language-julia hljs">RobustAndOptimalControl.extended_gangoffour(P, C, pos=true)
+# For SISO P
+S  = G[1, 1]
+PS = G[1, 2]
+CS = G[2, 1]
+T  = G[2, 2]
+
+# For MIMO P
+S  = G[1:P.ny,     1:P.nu]
+PS = G[1:P.ny,     P.nu+1:end]
+CS = G[P.ny+1:end, 1:P.nu]
+T  = G[P.ny+1:end, P.nu+1:end]</code></pre><p>See also</p><ul><li><a href="../../lib/synthesis/#ControlSystemsBase.output_sensitivity-Tuple{Any, Any}"><code>output_sensitivity</code></a></li><li><a href="../../lib/synthesis/#ControlSystemsBase.input_sensitivity-Tuple{Any, Any}"><code>input_sensitivity</code></a></li><li><a href="../../lib/synthesis/#ControlSystemsBase.output_comp_sensitivity-Tuple{Any, Any}"><code>output_comp_sensitivity</code></a></li><li><a href="../../lib/synthesis/#ControlSystemsBase.input_comp_sensitivity-Tuple{Any, Any}"><code>input_comp_sensitivity</code></a></li><li><a href="../../lib/synthesis/#ControlSystemsBase.G_PS-Tuple{Any, Any}"><code>G_PS</code></a></li><li><a href="../../lib/synthesis/#ControlSystemsBase.G_CS-Tuple{Any, Any}"><code>G_CS</code></a></li><li><a href="../../lib/analysis/#ControlSystemsBase.gangoffour-Tuple{LTISystem, LTISystem}"><code>gangoffour</code></a>)</li><li><a href="../../lib/plotting/#ControlSystemsBase.gangoffourplot-Tuple{Union{LTISystem, Vector}, Vector, Vararg{Any}}"><code>gangoffourplot</code></a>)</li></ul><hr/><p>This diagram is more complicated and forms several connections, including both feedforward and feedback connections. A code file that goes through how to form such complicated connections using named signals is linked below. This example uses the package <a href="https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/">RobustAndOptimalControl.jl</a>.</p><pre><code class="nohighlight hljs">                 yF
+              ┌────────────────────────────────┐
+              │                                │
+    ┌───────┐ │  ┌───────┐ yR   ┌─────────┐    │    ┌───────┐
+uF  │       │ │  │       ├──────►         │ yC │  uP│       │    yP
+────►   F   ├─┴──►   R   │      │    C    ├────+────►   P   ├────┬────►
+    │       │    │       │   ┌──►         │         │       │    │
+    └───────┘    └───────┘   │- └─────────┘         └───────┘    │
+                             │                                   │
+                             └───────────────────────────────────┘</code></pre><p>See code example <a href="https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/examples/complicated_feedback.jl">complicated_feedback.jl</a>.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../numerical/">Performance considerations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Wednesday 23 November 2022 10:26">Wednesday 23 November 2022</span>. Using Julia version 1.8.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
