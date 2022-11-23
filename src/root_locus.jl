@@ -36,6 +36,8 @@ function getpoles(G, K::Number)
     integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
     ts         = Vector{Float64}()
     poleout    = Vector{Vector{ComplexF64}}()
+    push!(poleout,integrator.k[1])
+    push!(ts,0)
     for i in integrator
         push!(poleout,integrator.k[end])
         push!(ts,integrator.t[1])
