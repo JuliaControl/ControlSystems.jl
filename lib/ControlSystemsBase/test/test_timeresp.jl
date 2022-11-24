@@ -197,7 +197,7 @@ sysd = tf(1, [1, 1], 0.01)
 
 # Test error hints
 if VERSION >= v"1.7"
-    # If ControlSystems is not loaded, the 
+    # If ControlSystems is not loaded, the following should error
     G = ssrand(1,1,1)
     @test_throws "install and load ControlSystems.jl" lsim(G, (u,t)->[1], 10)
     @test_throws "install and load ControlSystems.jl" lsim(G*delay(1), (u,t)->[1], 10)

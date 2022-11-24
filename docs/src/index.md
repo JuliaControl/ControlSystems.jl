@@ -51,7 +51,7 @@ Depth = 2
 ## Functions
 
 ```@contents
-Pages = ["lib/constructors.md",  "lib/analysis.md", "lib/syntheis.md", "lib/timefreqresponse.md", "lib/plotting.md"]
+Pages = ["lib/constructors.md",  "lib/analysis.md", "lib/synthesis.md", "lib/timefreqresponse.md", "lib/plotting.md", "lib/nonlinear.md"]
 Depth = 1
 ```
 
