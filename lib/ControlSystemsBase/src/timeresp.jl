@@ -197,6 +197,9 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
 end
 
 function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
+    nu = sys.nu
+    size(u, 1) == nu ||
+        error("u must be a matrix of size (nu, length(t)) where nu=$nu, got size u = $(size(u))")
     t = range(0, length=size(u, 2), step=sys.Ts)
     lsim(sys, u, t; kwargs...)
 end
