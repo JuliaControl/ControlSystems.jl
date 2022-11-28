@@ -125,7 +125,7 @@ plot(result, plotu=true, plotx=false)
 
 Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
 
-`u` can be a function or a *matrix* of precalculated control signals and must have dimentions `(nu, length(t))`.
+`u` can be a function or a *matrix* of precalculated control signals and must have dimensions `(nu, length(t))`.
 If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuos ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
 To simulate a unit step at `t=t₀`, use `(x,t)-> t ≥ t₀`, for a ramp, use `(x,t)-> t`, for a step at `t=5`, use (x,t)-> (t >= 5) etc.
 
