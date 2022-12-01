@@ -69,7 +69,7 @@ See also [the paper](https://portal.research.lu.se/en/publications/controlsystem
 
 > Bagge Carlson, F., Fält, M., Heimerson, A., & Troeng, O. (2021). ControlSystems.jl: A Control Toolbox in Julia. In 2021 60th IEEE Conference on Decision and Control (CDC) IEEE Press. https://doi.org/10.1109/CDC45484.2021.9683403
 
-and the introductory Youtube video below.
+and the introductory Youtube video below, as well as the following [Youtube playlist](https://youtube.com/playlist?list=PLd_RaCnvGpJAk8JXI9dVtIkhoe10CadnI) with videos about using Julia for control.
 
 ```@raw html
 <iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/Fdz2Fsm1aTY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
