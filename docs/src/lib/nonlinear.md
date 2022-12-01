@@ -16,7 +16,7 @@ ControlSystems.jl can represent nonlinear feedback systems that can be written o
   └─────►│ f ├───────┘
          └───┘
 ```
-i.e., as a linear-fractional transform (LFT) between a linear system ``P`` and a diagonal matrix with scalar non-linear functions $f$. This representation is identical to that used for delay systems, and is exposed to the user in a similar way as well. The main entry point is the function [`nonlinearity`](@ref) which takes a nonlinear function $f$ like so, `nonlinearity(f)`. This creates a primitive system containing only the nonlinearity, but which behaves like a standard `LTISystem` during algebraic operations. We illustrate its usage through a number of examples:
+i.e., as a linear-fractional transform (LFT) between a linear system ``P`` and a diagonal matrix with scalar non-linear functions $f$. This representation is identical to that used for delay systems, and is exposed to the user in a similar way as well. The main entry point is the function [`nonlinearity`](@ref) which takes a nonlinear function $f$ like so, `nonlinearity(f)`. This creates a primitive system containing only the nonlinearity, but which behaves like a standard `LTISystem` during algebraic operations. We illustrate its usage through a number of examples.
 
 ## Examples
 ### Control-signal saturation
@@ -240,6 +240,14 @@ plot(f1,f2, size=(1300,800))
 - Additional nonlinear components, such as 
     - Integrator anti-windup
     - Friction models?
+
+## See also
+More advanced nonlinear modeling is facilitated by [ModelingToolkit.jl](https://github.com/SciML/ModelingToolkit.jl/) (MTK) and [ModelingToolkitStandardLibrary.jl](https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/). The tutorials 
+- [Modeling for control using ModelingToolkit](https://help.juliahub.com/juliasimcontrol/dev/examples/mtk_control/)
+- [Disturbance modeling in ModelingToolkit](https://help.juliahub.com/juliasimcontrol/dev/examples/mtk_disturbance_modeling/)
+- [Modal analysis of a series of masses and springs using MTK](https://help.juliahub.com/juliasimcontrol/dev/linear_analysis/#Example:-Modal-analysis-of-a-series-of-masses-and-springs)
+
+show how to use these packages to model and simulate control systems.
 
 ## Docstrings
 
