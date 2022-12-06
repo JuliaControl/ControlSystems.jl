@@ -157,15 +157,22 @@ plot(res)
 ```
 """
 function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:zoh)
+        x0::AbstractVecOrMat=zeros(eltype(u), nstates(sys)), method::Symbol=:zoh)
     ny, nu = size(sys)
     nx = sys.nx
+    T = typeof(u)
 
     length(x0) == nx ||
         error("x0 must have length $nx: got length $(length(x0))")
 
-    size(u) == (nu, length(t)) ||
-        error("u must have size ($nu, $(length(t))): got size $(size(u))")
+    if size(u) != (nu, length(t))
+        if (size(u) == (length(t), nu)) || (u isa AbstractVector && length(u) == length(t))
+            @warn("u should be a matrix of size ($nu, $(length(t))): got an u of type $(typeof(u)) and size $(size(u)). An attempt at using the transpose of u will be performed (this may fail if it can not be done in a type stable way, in which case you get a TypeError). To silence this warning, use the correct input dimension.")
+            u = copy(transpose(u))::T
+        else
+            error("u must have size ($nu, $(length(t))): got size $(size(u))")
+        end
+    end
 
     dt = Float64(t[2] - t[1])
     if !all(x -> x ≈ dt, diff(t))
@@ -198,8 +205,15 @@ end
 
 function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs...)
     nu = sys.nu
-    size(u, 1) == nu ||
-        error("u must be a matrix of size (nu, length(t)) where nu=$nu, got size u = $(size(u))")
+    if size(u, 1) != nu
+        if u isa AbstractVector && sys.nu == 1
+            # The isa Array is a safeguard against type instability due to the copy(u')
+            @warn("u should be a row-vector of size (1, $nu): got size $(size(u)). The transpose of u will be used. To silence this warning, use the correct input dimension.")
+            u = copy(transpose(u))
+        else
+            error("u must be a matrix of size (nu, length(t)) where nu=$nu, got size u = $(size(u))")
+        end
+    end
     t = range(0, length=size(u, 2), step=sys.Ts)
     lsim(sys, u, t; kwargs...)
 end
@@ -240,7 +254,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     if length(x0) != nx
         error("x0 must have length $nx: got length $(length(x0))")
     elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
-        error("u must have size ($nu,): got size(u0)")
+        error("u returned by the input function must have size ($nu,): got size(u0)")
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 

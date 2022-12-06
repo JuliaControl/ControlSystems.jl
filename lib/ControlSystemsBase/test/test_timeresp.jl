@@ -67,6 +67,11 @@ yd, td, xd = lsim(sysdfb, zeros(1, 501), t, x0=x0)
 # Error for mismatch of sample rates of discrete-system and signal
 @test_throws ErrorException lsim(sysd, [1 2 3 4], 0:0.2:0.6)
 
+# Warning for wrong input dimension
+@test_logs (:warn, r"should be a matrix") lsim(sys, [1; 2; 3; 4;;], 1:4)
+@test_throws TypeError lsim(sys, [1; 2; 3; 4], 1:4)
+@test_logs (:warn, r"row-vector") lsim(sysd, [1, 2, 3, 4])
+
 # Test for problem with broadcast dimensions
 @test lsim(sys, zeros(1, 5), 0:0.2:0.8)[1][:] == zeros(5)
 
