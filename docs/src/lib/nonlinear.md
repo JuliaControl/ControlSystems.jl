@@ -170,7 +170,7 @@ duffing = feedback(vel_loop/s, pos_loop_feedback)*10
 plot(step(duffing, 20), title="Duffing oscillator open-loop step response")
 ```
 
-We now show how we can make use of the circle criterion to prove stability of the closed loop. The function `circle_criterion` below plots the Nyquist curve of the loop-transfer function and figures out the circle to avoid by finding sector bounds for the static nonlinearity ``f(x) = x^3``. We then choose a controller an check that it stays outside of the circle. To find the sector bounds, we choose a domain to evaluate the nonlinearity over. The function ``f(x) = x^3`` goes to infinity faster than any linear function, and the upper sector bound is thus ∞, but if we restrict the nonlinearity to a smaller domain, we get a finite sector bound:
+We now show how we can make use of the circle criterion to prove stability of the closed loop. The function `circle_criterion` below plots the Nyquist curve of the loop-transfer function and figures out the circle to avoid by finding sector bounds for the static nonlinearity ``f(x) = x^3``. We then choose a controller and check that it stays outside of the circle. To find the sector bounds, we choose a domain to evaluate the nonlinearity over. The function ``f(x) = x^3`` goes to infinity faster than any linear function, and the upper sector bound is thus ∞, but if we restrict the nonlinearity to a smaller domain, we get a finite sector bound:
 ```@example DUFFING
 function circle_criterion(L::ControlSystemsBase.HammersteinWienerSystem, domain::Tuple; N=10000)
     fun = x->L.f[](x)/x
@@ -230,16 +230,16 @@ plot(f1,f2, size=(1300,800))
 
 ## Limitations
 - Remember, this functionality is experimental and subject to breakage.
-- Currently only `Continuous` systems supported. Discrete-time systems will come soon.
+- Currently only `Continuous` systems supported.
 - No nonlinear root-finding is performed during simulation. This limits the kinds of systems that can be simulated somewhat, in particular, no algebraic loops are allowed. 
 - A lot of functions that expect linear systems will not work for nonlinear systems (naturally).
 
-## Future work
+## Possible future work
 - Discrete-time support.
 - Basic support for nonlinear analysis such as stability proof through the circle criterion etc. In particular, predefined nonlinear functions may specify sector bounds for the gain, required by the circle-criterion calculations.
 - Additional nonlinear components, such as 
     - Integrator anti-windup
-    - Friction models?
+    - Friction models
 
 ## See also
 More advanced nonlinear modeling is facilitated by [ModelingToolkit.jl](https://github.com/SciML/ModelingToolkit.jl/) (MTK) and [ModelingToolkitStandardLibrary.jl](https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/). The tutorials 
