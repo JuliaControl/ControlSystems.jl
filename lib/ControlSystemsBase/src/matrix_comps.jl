@@ -4,10 +4,14 @@
 Compute 'X', the solution to the continuous-time algebraic Riccati equation,
 defined as A'X + XA - (XB)R^-1(B'X) + Q = 0, where R is non-singular.
 
-Uses `MatrixEquations.arec`.
+In an LQR problem, `Q` is associated with the state penalty ``x'Qx`` while `R` is associated with the control penalty ``u'Ru``.
+See [`lqr`](@ref) for more details.
+
+Uses `MatrixEquations.arec`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.arec`,
+note that they define the input arguments in a different order.
 """
-function are(::ContinuousType, A::AbstractMatrix, B, Q, R)
-    arec(A, B, R, Q)[1]
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R; kwargs...)
+    arec(A, B, R, Q; kwargs...)[1]
 end
 
 """
@@ -16,13 +20,18 @@ end
 Compute `X`, the solution to the discrete-time algebraic Riccati equation,
 defined as A'XA - X - (A'XB)(B'XB + R)^-1(B'XA) + Q = 0, where Q>=0 and R>0
 
-Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.ared`
+In an LQR problem, `Q` is associated with the state penalty ``x'Qx`` while `R` is associated with the control penalty ``u'Ru``.
+See [`lqr`](@ref) for more details.
+
+Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.ared`,
+note that they define the input arguments in a different order.
 """
 function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
     ared(A, B, R, Q; kwargs...)[1]
 end
 
 are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
+are(sys::AbstractStateSpace, args...; kwargs...) = are(timeevol(sys), sys.A, sys.B, args...; kwargs...)
 
 @deprecate care(args...; kwargs...) are(Continuous, args...; kwargs...)
 @deprecate dare(args...; kwargs...) are(Discrete, args...; kwargs...)
@@ -41,6 +50,7 @@ end
 
 LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyapc(args...; kwargs...)
 LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = lyapd(args...; kwargs...)
+LinearAlgebra.lyap(sys::AbstractStateSpace, args...; kwargs...) = lyap(timeevol(sys), sys.A, args...; kwargs...)
 
 plyap(::ContinuousType, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
 plyap(::DiscreteType, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
