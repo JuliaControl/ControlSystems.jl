@@ -218,6 +218,12 @@ dm = delaymargin(P)[]
 R = freqresp(P*delay(dm), ωϕₘ[][]-0.5:0.0001:ωϕₘ[][]+0.5)
 @test minimum(abs, R .- (-1)) ≈ 0 atol=1e-3
 
+P = 100DemoSystems.double_mass_model() * tf(1, [0.002, 1])
+ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w, allMargins=true)
+@test size(ϕₘ[1]) == (3,)
+dm = delaymargin(P)[]
+@test dm ≈ 0.03743336128009814 atol=1e-6
+@test minimum(abs, R .- (-1)) ≈ 0 atol=1e-3
 
 # RGA
 a = 10
