@@ -537,9 +537,9 @@ function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     issiso(G) || error("delaymargin only supports SISO systems")
     m     = margin(G,allMargins=true)
-    ϕₘ, i = findmin(m[4])
+    ϕₘ, i = findmin(m[4][1])
     ϕₘ   *= π/180
-    ωϕₘ   = m[3][i]
+    ωϕₘ   = m[3][1][i]
     dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
