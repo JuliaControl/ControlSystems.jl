@@ -176,7 +176,7 @@ end
 
 
 """
-    leadlink(b, N, K; [Ts])
+    leadlink(b, N, K=1; [Ts])
 
 Returns a phase advancing link, the top of the phase curve is located at `ω = b√(N)` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `b` and level out at `KN` for frequencies > `bN`
 
@@ -190,7 +190,7 @@ KN \\dfrac{s + b}{s + bN} = K \\dfrac{1 + s/b}{1 + s/(bN)}
 
 See also `leadlinkat` `laglink`
 """
-function leadlink(b, N, K; h=nothing, Ts=nothing)
+function leadlink(b, N, K=1; h=nothing, Ts=nothing)
     Ts !== nothing && (Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported.")))
     N > 1 || @warn "N should be ≥ 1 for the link to be phase advancing."
     numerator = [1/b, 1]
@@ -202,7 +202,7 @@ function leadlink(b, N, K; h=nothing, Ts=nothing)
 end
 
 """
-    leadlinkat(ω, N, K; [Ts])
+    leadlinkat(ω, N, K=1; [Ts])
 
 Returns a phase advancing link, the top of the phase curve is located at `ω` where the link amplification is `K√(N)` The bode curve will go from `K`, bend up at `ω/√(N)` and level out at `KN` for frequencies > `ω√(N)`
 
@@ -212,7 +212,7 @@ Values of `N < 1` will give a phase retarding link.
 
 See also `leadlink` `laglink`
 """
-function leadlinkat(ω, N, K; Ts=nothing)
+function leadlinkat(ω, N, K=1; Ts=nothing)
     b = ω / sqrt(N)
     return leadlink(b,N,K,Ts=Ts)
 end
