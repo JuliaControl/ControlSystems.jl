@@ -377,4 +377,14 @@ e22 = lsim(C, e42).y
 @test sensitivity(P,C) == output_sensitivity(P,C)
 @test comp_sensitivity(P,C) == output_comp_sensitivity(P,C)
 
+P = ssrand(1,2,1,proper=false)
+K = ssrand(2,1,1,proper=false)
+G = extended_gangoffour(P, K, false)
+@test tf(G[1,1]) ≈ tf(sensitivity(P, K))
+@test tf(G[2,1]) ≈ tf(G_CS(P, K))
+
+G = extended_gangoffour(P, K, true)
+@test tf(G[1,1]) ≈ tf(sensitivity(P, K))
+@test tf(G[2,1]) ≈ tf(-G_CS(P, K))
+
 end
