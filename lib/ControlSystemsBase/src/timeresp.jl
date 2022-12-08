@@ -254,7 +254,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     if length(x0) != nx
         error("x0 must have length $nx: got length $(length(x0))")
     elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
-        error("u returned by the input function must have size ($nu,): got size(u0)")
+        error("u returned by the input function must have size ($nu,): got size(u0) = $(size(u0))")
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
