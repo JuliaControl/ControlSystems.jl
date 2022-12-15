@@ -31,7 +31,7 @@ This is **not** a breaking change, users of ControlSystems.jl will have the same
 
 OrdinaryDiffEq.jl and DelayDiffEq.jl contributed the vast majority of both pre-compilation time and loading time of ControlSystems.jl, and workflows that do not require these packages were thus burdened by this overhead unnecessarily. If you do not need this, install and use ControlSystemsBase rather than ControlSystems (do not even install ControlSystems to avoid the pre-compilation time of OrdinaryDiffEq).
 
-We still encourage advanced users to build a system image following [the instructions in the documentation](https://juliacontrol.github.io/ControlSystems.jl/latest/man/differences/#Precompilation-for-faster-load-times), but in the absence of such a system image, we now have the following timings:
+We still encourage advanced users to build a system image following [the instructions in the documentation](https://juliacontrol.github.io/ControlSystems.jl/dev/man/differences/#Precompilation-for-faster-load-times), but in the absence of such a system image, we now have the following timings:
 ```julia
 julia> @time using ControlSystemsBase
   1.70 seconds
@@ -53,13 +53,13 @@ Better support for static systems (using StaticArrays)
 - *Breaking*: Frequency-responses have changed data layout to `ny×nu×nω` from the previous `nω×ny×nu`. This is for performance reasons and to be consistent with time responses. This affects downstream functions `bode` and `nyquist` as well.
 - *Breaking*: `baltrunc` and `balreal` now return the diagonal of the Gramian as the second argument rather than the full matrix.
 - *Breaking*: The `pid` constructor no longer takes parameters as keyword arguments. `pid` has also gotten some new features, the new signature is `pid(P, I, D=0; form = :standard, Ts=nothing, Tf=nothing, state_space=false)`. This change affects downstream functions like `placePI, loopshapingPI, pidplots`.
-- *Breaking*: The semantics of broadcasted multiplication between two systems was previously inconsistent between `StateSpace` and `TransferFunction`. The new behavior is documented under [Multiplying systems](https://juliacontrol.github.io/ControlSystems.jl/latest/man/creating_systems/#Multiplying-systems) in the documentation.
+- *Breaking*: The semantics of broadcasted multiplication between two systems was previously inconsistent between `StateSpace` and `TransferFunction`. The new behavior is documented under [Multiplying systems](https://juliacontrol.github.io/ControlSystems.jl/dev/man/creating_systems/#Multiplying-systems) in the documentation.
 
 ## Documentation
 
 All functions have docstrings, which can be viewed from the REPL, using for example `?tf `.
 
-A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/latest/](http://juliacontrol.github.io/ControlSystems.jl/latest/) and an [introductory video is available here](https://www.youtube.com/watch?v=Fdz2Fsm1aTY&ab_channel=jolin%E2%80%A4io).
+A documentation website is available at [http://juliacontrol.github.io/ControlSystems.jl/dev/](http://juliacontrol.github.io/ControlSystems.jl/dev/) and an [introductory video is available here](https://www.youtube.com/watch?v=Fdz2Fsm1aTY&ab_channel=jolin%E2%80%A4io).
 
 Some of the available commands are:
 ##### Constructing systems
@@ -123,4 +123,4 @@ plot(step.(CLs, 5), label=["Kp = 1" "Kp = 5" "Kp = 15"])
 ![StepResponse](/example/step_response.png)
 
 ### Additional examples
-See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/) and several examples in the [documentation](http://juliacontrol.github.io/ControlSystems.jl/latest/).
+See the examples folder and [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl/) and several examples in the [documentation](http://juliacontrol.github.io/ControlSystems.jl/dev/).
