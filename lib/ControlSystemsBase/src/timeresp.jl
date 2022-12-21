@@ -129,6 +129,8 @@ Continuous-time systems are simulated using an ODE solver if `u` is a function (
 If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuos ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
 To simulate a unit step at `t=t₀`, use `(x,t)-> t ≥ t₀`, for a ramp, use `(x,t)-> t`, for a step at `t=5`, use (x,t)-> (t >= 5) etc.
 
+*Note:* The function `u` will be called once before simulating to verify that it returns an array of the correct dimensions. This can cause problems if `u` is stateful. You can disable this check by passing `check_u = false`.
+
 For maximum performance, see function [`lsim!`](@ref), available for discrete-time systems only.
 
 Usage example:
@@ -245,16 +247,19 @@ Internal function: Dynamics equation for simulation of a linear system.
     mul!(dx, B, u(x, t), 1, 1)
 end
 
-# This method is less specific than the lsim in ControlSystems that specifies Continuous timeevol for sys, hence, if ControlSystems is loaded, COntrolSystems.lsim will take precedence over this
+# This method is less specific than the lsim in ControlSystems that specifies Continuous timeevol for sys, hence, if ControlSystems is loaded, ControlSystems.lsim will take precedence over this
 function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, kwargs...)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, check_u = true, kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
-    u0 = u(x0,1)
     if length(x0) != nx
         error("x0 must have length $nx: got length $(length(x0))")
-    elseif !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
-        error("u returned by the input function must have size ($nu,): got size(u0) = $(size(u0))")
+    end
+    if check_u
+        u0 = u(x0,t[1])
+        if !(u0 isa Number && nu == 1) && (size(u0) != (nu,) && size(u0) != (nu,1))
+            error("u returned by the input function must have size ($nu,): got size(u0) = $(size(u0))")
+        end
     end
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
