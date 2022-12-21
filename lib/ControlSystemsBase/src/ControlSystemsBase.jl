@@ -223,6 +223,8 @@ function __init__()
         plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
         if nameof(exc.f) === :plot && parentmodule(argtypes[1]) == @__MODULE__() && !haskey(Base.loaded_modules, plots_id)
             printstyled(io, "\nPlotting is not available unless Plots.jl is loaded manually. Call `using Plots` before plotting.", color=:green, bold=true)
+        elseif (exc.f == /) && argtypes[2] <: DelayLtiSystem
+            print(io, "A delayed system can not be inverted. Consider use of the function `feedback`.")
         end
     end
 end

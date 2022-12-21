@@ -95,6 +95,10 @@ function /(anything, sys::DelayLtiSystem)
     /(anything, sys.P.P) # If all delays are zero, invert the inner system
 end
 
+for other_type in [:Number, :AbstractMatrix, :LTISystem]
+    @eval /(a::$other_type, sys::DelayLtiSystem) = invoke(/, Tuple{Any, DelayLtiSystem}, a, sys)
+end
+
 
 function Base.show(io::IO, sys::DelayLtiSystem)
     println(io, typeof(sys))

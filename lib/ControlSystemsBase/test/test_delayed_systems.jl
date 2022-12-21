@@ -153,7 +153,7 @@ f1 = [s1;s2]
 f2 = [s11 s12;
       s21 s22]
 
-# Test that different consatenations work
+# Test that different concatenations work
 w = 10 .^ (-2:0.1:2)
 @test freqresp(f1, w) ≈ freqresp(f2, w) rtol=1e-15
 
@@ -163,6 +163,9 @@ w = 10 .^ (-2:0.1:2)
 
 @test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny)
 
+@test_throws ErrorException 1/f2
+@test_throws ErrorException randn(2,2)/f2
+@test_throws ErrorException f2/f2
 
 #FIXME: A lot more tests, including MIMO systems in particular
 
