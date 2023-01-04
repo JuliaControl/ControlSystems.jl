@@ -13,6 +13,8 @@ end
 
 
 ## LQR design
+This example will perform a simple LQR design for a double integrator in discrete time. In this example, we will use the method of [`lsim`](@ref) that accepts a function `u(x, t)` as input. This allows us to easily simulate the system both control input and a disturbance input. For more advanced LQR and LQG design, see the [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+```math
 ```jldoctest; output = false
 using ControlSystemsBase
 using LinearAlgebra # For identity matrix I
@@ -22,13 +24,14 @@ A       = [1 Ts; 0 1]
 B       = [0; 1]
 C       = [1 0]
 sys     = ss(A,B,C,0,Ts)
-Q       = I
-R       = I
+Q       = I # Weighting matrix for state
+R       = I # Weighting matrix for input
 L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 
-u(x,t)  = -L*x .+ 1.5(t>=2.5)# Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
-t       = 0:Ts:5
-x0      = [1,0]
+# Simulation
+u(x,t)  = -L*x .+ 1.5(t>=2.5) # Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
+t       = 0:Ts:5              # Time vector
+x0      = [1,0]               # Initial condition
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
 
@@ -40,7 +43,12 @@ save_docs_plot("lqrplot.svg"); # hide
 
 ![](../../plots/lqrplot.svg)
 
-For more advanced LQR and LQG design, see the [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+
+To design an LQG controller (LQR with a Kalman filter), see the functions
+- [`kalman`](@ref)
+- [`observer_controller`](@ref)
+- [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+
 
 ## PID design functions
 A basic PID controller can be constructed using the constructor [`pid`](@ref).
@@ -54,8 +62,8 @@ P(s) = \dfrac{1}{(s + 1)^4}
 ```
 ```@example PIDDESIGN
 using ControlSystemsBase, Plots
-P = tf(1,[1,1])^4
-gangoffourplot(P,tf(1))
+P = tf(1, [1,1])^4
+gangoffourplot(P, tf(1))
 ```
 
 
@@ -64,7 +72,7 @@ function [`loopshapingPI`](@ref) and tell it that we want 60 degrees phase margi
 
 ```@example PIDDESIGN
 using ControlSystemsBase, Plots
-P = tf(1,[1,1])^4
+P = tf(1, [1,1])^4
 ωp = 0.8
 C,kp,ki,fig = loopshapingPI(P,ωp,phasemargin=60,form=:parallel, doplot=true)
 fig
