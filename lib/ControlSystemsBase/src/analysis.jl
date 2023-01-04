@@ -105,13 +105,13 @@ dcgain(G::Union{UniformScaling, Number, AbstractMatrix}) = G
 """
     markovparam(sys, n)
 
-Compute the `n`th markov parameter of state-space system `sys`. This is defined
+Compute the `n`th markov parameter of discrete-time state-space system `sys`. This is defined
 as the following:
 
 `h(0) = D`
 
 `h(n) = C*A^(n-1)*B`"""
-function markovparam(sys::AbstractStateSpace, n::Integer)
+function markovparam(sys::AbstractStateSpace{<:Discrete}, n::Integer)
     n < 0 && error("n must be >= 0")
     return n == 0 ? sys.D : sys.C * sys.A^(n-1) * sys.B
 end
@@ -122,11 +122,9 @@ end
 Compute the zeros, poles, and gains of system `sys`.
 
 ### Returns
-`z` : Matrix{Vector{ComplexF64}}, (ny x nu)
-
-`p` : Matrix{Vector{ComplexF64}}, (ny x nu)
-
-`k` : Matrix{Float64}, (ny x nu)"""
+- `z` : Matrix{Vector{ComplexF64}}, (ny × nu)
+- `p` : Matrix{Vector{ComplexF64}}, (ny × nu)
+- `k` : Matrix{Float64}, (ny × nu)"""
 function zpkdata(sys::LTISystem)
     G = convert(TransferFunction{typeof(timeevol(sys)),SisoZpk}, sys)
 
