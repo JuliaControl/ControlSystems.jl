@@ -153,9 +153,11 @@ z, p, k = zpkdata(G)
 @test dcgain(H[2, 1], 1e-6)[] ≈ 0.2 rtol=1e-5
 
 ## MARKOVPARAM ##
-@test markovparam(G, 0) == [0.0 0.0; 1.0 0.0]
-@test markovparam(G, 1) == [0.0 3.0; -4.0 2.0]
-@test markovparam(G, 2) == [0.0 -3.0; 20.0 -12.0]
+Hd = [tf(0, 1) tf([3, 0],[1, 1, 10], 1) ; tf([1, 1],[1, 5], 1) tf([2],[1, 6], 1)]
+Gd = ss(Hd)
+@test markovparam(Gd, 0) == [0.0 0.0; 1.0 0.0]
+@test markovparam(Gd, 1) == [0.0 3.0; -4.0 2.0]
+@test markovparam(Gd, 2) == [0.0 -3.0; 20.0 -12.0]
 
 ## DAMP ##
 @test damp(sys)[1] ≈ [1.0, 4.0, 4.0]
