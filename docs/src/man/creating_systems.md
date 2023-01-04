@@ -303,6 +303,36 @@ Code: `feedback(1, P*C)` or equivalently `output_sensitivity(P, C)`. Note the re
 
 ---
 
+Reference ``r`` and input disturbance ``d`` to output ``y`` and control signal ``u``. This example forms the transfer function matrix with ``r`` and ``d`` as inputs, and ``y`` and ``u`` as outputs.
+```
+              d
+     ┌─────┐  │  ┌─────┐
+r    │     │u ▼  │     │ y
+──+─►│  C  ├──+─►│  P  ├─┬─►
+  ▲  │     │     │     │ │
+ -│  └─────┘     └─────┘ │
+  │                      │
+  └──────────────────────┘
+```
+
+```math
+\begin{bmatrix}
+y \\ u
+\end{bmatrix} = 
+\begin{bmatrix}
+\dfrac{PC}{I + PC} & \dfrac{C}{I + PC} \\
+\dfrac{P}{I + PC} & \dfrac{-PC}{I + PC}
+\end{bmatrix}
+\begin{bmatrix}
+r \\ d
+\end{bmatrix}
+```
+
+Code: `feedback(C, P, W2=:, Z2=:, Zperm=[(1:P.ny).+P.nu; 1:P.nu]) # y,u from r,d`.
+Here, we have reversed the order of `P` and `C` to get the correct sign of the control signal. We also make use of the keyword arguments `W2` and `Z2` to specify that we want to include the inputs and outputs of `P` as external inputs and outputs, and `Zperm` to specify the order of the outputs (``y`` before ``u``).
+
+---
+
 Linear fractional transformation
 
 ```
