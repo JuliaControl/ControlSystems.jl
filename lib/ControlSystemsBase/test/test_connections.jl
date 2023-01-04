@@ -382,9 +382,14 @@ K = ssrand(2,1,1,proper=false)
 G = extended_gangoffour(P, K, false)
 @test tf(G[1,1]) ≈ tf(sensitivity(P, K))
 @test tf(G[2,1]) ≈ tf(G_CS(P, K))
+@test tf(G[1,2]) ≈ tf(G_PS(P, K))
+@test tf(G[2,2]) ≈ tf(input_comp_sensitivity(P, K))
+
 
 G = extended_gangoffour(P, K, true)
 @test tf(G[1,1]) ≈ tf(sensitivity(P, K))
-@test tf(G[2,1]) ≈ tf(-G_CS(P, K))
+@test tf(G[2,1]) ≈ tf(G_CS(P, K))
+@test tf(G[1,2]) ≈ tf(-G_PS(P, K))
+@test tf(G[2,2]) ≈ tf(-input_comp_sensitivity(P, K))
 
 end
