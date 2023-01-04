@@ -780,14 +780,14 @@ pzmap(sys::LTISystem; kwargs...) = pzmap([sys]; kwargs...)
 pzmap!(sys::LTISystem; kwargs...) = pzmap!([sys]; kwargs...)
 
 """
-    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, Ms_lines = [1.0, 1.1, 1.2], Mt_lines = [], sigma = true, kwargs...)
+    fig = gangoffourplot(P::LTISystem, C::LTISystem; minimal=true, plotphase=false, Ms_lines = [1.0, 1.25, 1.5], Mt_lines = [], sigma = true, kwargs...)
 
 Gang-of-Four plot.
 
 `sigma` determines whether a [`sigmaplot`](@ref) is used instead of a [`bodeplot`](@ref) for MIMO `S` and `T`.
 `kwargs` are sent as argument to RecipesBase.plot.
 """
-function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.1, 1.2], Mt_lines = [], sigma = true,  plotphase=false, kwargs...)    
+function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.25, 1.5], Mt_lines = [], sigma = true,  plotphase=false, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
