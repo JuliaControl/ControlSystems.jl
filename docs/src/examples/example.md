@@ -13,17 +13,27 @@ end
 
 
 ## LQR design
-This example will perform a simple LQR design for a double integrator in discrete time. In this example, we will use the method of [`lsim`](@ref) that accepts a function `u(x, t)` as input. This allows us to easily simulate the system both control input and a disturbance input. For more advanced LQR and LQG design, see the [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+The infinite-horizon LQR controller is derived as the linear state-feedback ``u = -Lx`` that minimizes the following quadratic cost function
 ```math
+L = \text{arg\;min}_L \int_0^\infty x^T Q x + u^T R u \; dt
+```
+where $x$ is the state vector and $u$ is the input vector.
+
+The example below performs a simple LQR design for a double integrator in discrete time using the function [`lqr`](@ref). In this example, we will use the method of [`lsim`](@ref) that accepts a function ``u(x, t)`` as input. This allows us to easily simulate the system both control input and a disturbance input. For more advanced LQR and LQG design, see the [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
+
 ```jldoctest; output = false
 using ControlSystemsBase
 using LinearAlgebra # For identity matrix I
 using Plots
+
+# Create system
 Ts      = 0.1
 A       = [1 Ts; 0 1]
 B       = [0; 1]
 C       = [1 0]
 sys     = ss(A,B,C,0,Ts)
+
+# Design controller
 Q       = I # Weighting matrix for state
 R       = I # Weighting matrix for input
 L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
@@ -52,6 +62,13 @@ To design an LQG controller (LQR with a Kalman filter), see the functions
 
 ## PID design functions
 A basic PID controller can be constructed using the constructor [`pid`](@ref).
+In ControlSystems.jl, we often refer to three different formulations of the PID controller, which are defined as
+
+* Standard form: ``K_p(1 + \frac{1}{T_i s} + T_ds)``
+* Series form: ``K_c(1 + \frac{1}{τ_i s})(τ_d s + 1)``
+* Parallel form: ``K_p + \frac{K_i}{s} + K_d s``
+
+Most functions that construct PID controllers allow the user to select which form to use.
 
 The following examples show basic workflows for designing PI/PID controllers. 
 
@@ -122,7 +139,7 @@ C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt, doplot=true, F)
 
 
 ## Advanced pole-zero placement
-This example illustrates how we can perform advanced pole-zero placement. The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
+This example illustrates how we can perform advanced pole-zero placement using the function [`rstc`](@ref) ([`rstd`](@ref) in discrete time). The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
 
 
 Define the process
