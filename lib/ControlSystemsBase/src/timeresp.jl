@@ -390,9 +390,14 @@ end
 # TODO: This is a poor heuristic to estimate a "good" time vector to use for
 # simulation, in cases when one isn't provided.
 function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
-    dt = _default_dt(sys)
+    dt = _default_dt(sys) # This is set small enough to resolve the fastest dynamics. 
     if tfinal == -1
-        tfinal = 200dt
+        # The final simulation time should be chosen to also let the slowest dynamics run its course. 
+        # Integrating systems pose a problem for this heuristic, and we sort out any poles that appear to be integrators.
+        ws = abs.(poles(sys))
+        ω0_min = minimum(w for w in ws if w > 1e-6; init=dt)
+        dt_slow = round(1/(2ω0_min), sigdigits=2)
+        tfinal = max(200dt, dt_slow)
     end
     return 0:dt:tfinal
 end

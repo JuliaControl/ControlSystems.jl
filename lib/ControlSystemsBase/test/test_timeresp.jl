@@ -193,11 +193,16 @@ sysunstab = tf(1, [1, -1])
 sysint = tf(1, [1, 0])
 sysd = tf(1, [1, 1], 0.01)
 
+sys2tau = tf(1, [0.1, 1]) * tf(1, [10, 1])
+
 @test ControlSystemsBase._default_dt(sysstab) == 0.17
 @test ControlSystemsBase._default_dt(sysstatic) == 0.05
 @test ControlSystemsBase._default_dt(sysunstab) == 0.083
 @test ControlSystemsBase._default_dt(sysint) == 0.05
 @test ControlSystemsBase._default_dt(sysd) == 0.01
+@test 10 < ControlSystemsBase._default_time_vector(sysstab)[end] < 100 # These are set loose to allow some future tweaking. 
+@test 5 < ControlSystemsBase._default_time_vector(sysint)[end] < 15
+@test 20 < ControlSystemsBase._default_time_vector(sys2tau)[end] < 100
 
 
 # Test error hints
