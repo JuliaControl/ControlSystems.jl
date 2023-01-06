@@ -14,6 +14,7 @@ for (k, rs, rs2) = zip(eachrow(K), eachrow(rts), eachrow(rts2))
     @test isapprox(rs, rs2)
 end
 rlocusplot(tf2)
+plot(rlocus(tf2))
 
 # https://github.com/JuliaControl/ControlSystems.jl/issues/740
 Nroots = -1.0 .+  [-1.732050807568877im, 1.732050807568877im]
