@@ -129,39 +129,5 @@ end
 
 Plot the root locus of the SISO LTISystem `P` as computed by `rlocus`.
 """
-rlocusplot
-@recipe function rlocusplot(p::Rlocusplot; K=500)
-    roots, Z, K = rlocus(p.args[1]; K=K)
-    redata = real.(roots)
-    imdata = imag.(roots)
-    all_redata = [vec(redata); real.(Z)]
-    all_imdata = [vec(imdata); imag.(Z)]
-
-    ylims --> (max(-50,minimum(all_imdata) - 1), min(50,maximum(all_imdata) + 1))
-    xlims --> (max(-50,minimum(all_redata) - 1), clamp(maximum(all_redata) + 1, 1, 50))
-    framestyle --> :zerolines
-    title --> "Root locus"
-    xguide --> "Re(roots)"
-    yguide --> "Im(roots)"
-    form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
-    @series begin
-        legend --> false
-        hover := "K=" .* form.(K,roots)
-        label := ""
-        redata, imdata
-    end
-    @series begin
-        seriestype := :scatter
-        markershape --> :circle
-        markersize --> 10
-        label --> "Zeros"
-        real.(Z), imag.(Z)
-    end
-    @series begin
-        seriestype := :scatter
-        markershape --> :xcross
-        markersize --> 10
-        label --> "Open-loop poles"
-        redata[1,:], imdata[1,:]
-    end
-end
+@recipe rlocusplot(::Type{Rlocusplot}, p::Rlocusplot; K=500) =
+    rlocus(p.args[1]; K=K)
