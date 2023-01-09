@@ -1,5 +1,5 @@
 # Creating Systems
-## Creating Transfer Functions
+## Transfer Functions
 ```@meta
 DocTestSetup = quote
     using ControlSystems
@@ -53,7 +53,7 @@ Continuous-time transfer function model
 The transfer functions created using this method will be of type `TransferFunction{SisoZpk}`.
 
 
-## ss - Creating State-Space Systems
+## State-Space Systems
 A state-space system is created using
 ```julia
 ss(A,B,C,D)    # Continuous-time system
@@ -99,7 +99,7 @@ Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
 ```
 
-## Creating Delay Systems
+## Delay Systems
 The constructor [`delay`](@ref) creates a pure delay, which may be connected to a system by multiplication:
 ```julia
 delay(1.2)               # Pure delay or 1.2s
@@ -114,7 +114,7 @@ L = 1.2 # Delay time
 tf(1, [1, 1]) * exp(-L*s)
 ```
 
-## Creating Nonlinear Systems
+## Nonlinear Systems
 See [Nonlinear functionality](@ref).
 
 ## Simplifying systems
