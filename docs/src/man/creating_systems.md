@@ -59,29 +59,16 @@ A state-space system is created using
 ss(A,B,C,D)    # Continuous-time system
 ss(A,B,C,D,Ts) # Discrete-time system
 ```
-and they behave similarily to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
+and they behave similarly to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
 ```@example HSS
 using ControlSystemsBase, StaticArrays
-import ControlSystemsBase.HeteroStateSpace
-to_static(a::Number) = a
-to_static(a::AbstractArray) = SMatrix{size(a)...}(a)
-to_sized(a::Number) = a
-to_sized(a::AbstractArray) = SizedArray{Tuple{size(a)...}}(a)
-function HeteroStateSpace(A,B,C,D,Ts=0,f::F=to_static) where F
-    HeteroStateSpace(f(A),f(B),f(C),f(D),Ts)
-end
-HeteroStateSpace(s,f) = HeteroStateSpace(s.A,s.B,s.C,s.D,s.timeevol,f)
-ControlSystemsBase._string_mat_with_headers(a::SizedArray) = ControlSystemsBase._string_mat_with_headers(Matrix(a)); # Overload for printing purposes
-
-nothing # hide
-```
-
-Notice the different matrix types used
-```@@exampleHSS
 sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
-HeteroStateSpace(sys, to_static)
 HeteroStateSpace(sys, to_sized)
+HeteroStateSpace(sys, to_static)
 ```
+
+Notice the different matrix types used.
+
 
 ## Converting between types
 It is sometime useful to convert one representation to another, this is possible using the constructors `tf, zpk, ss`, for example
