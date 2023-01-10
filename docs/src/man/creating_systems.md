@@ -7,7 +7,7 @@ end
 ```
 
 ### tf - Rational Representation
-The syntax for creating a transfer function is
+The syntax for creating a transfer function is [`tf`](@ref)
 ```julia
 tf(num, den)     # Continuous-time system
 tf(num, den, Ts) # Discrete-time system
@@ -30,7 +30,7 @@ Continuous-time transfer function model
 The transfer functions created using this method will be of type `TransferFunction{SisoRational}`.
 
 ### zpk - Pole-Zero-Gain Representation
-Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using
+Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using the function [`zpk`](@ref)
 ```julia
 zpk(zeros, poles, gain)     # Continuous-time system
 zpk(zeros, poles, gain, Ts) # Discrete-time system
@@ -59,15 +59,22 @@ A state-space system is created using
 ss(A,B,C,D)    # Continuous-time system
 ss(A,B,C,D,Ts) # Discrete-time system
 ```
-and they behave similarly to transfer functions. State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
+and they behave similarly to transfer functions.
+
+The [`ss`](@ref) constructor allows you to
+- Pass `0` instead of a ``D`` matrix, and an appropriately sized zero matrix is created automatically.
+- Pass `I` instead of a ``C`` matrix, and an appropriately sized identity matrix is created automatically. The `UniformScaling` operator `I` lives in the `LinearAlgebra` standard library which must be loaded first.
+
+State-space systems with heterogeneous matrix types are also available, which can be used to create systems with static or sized matrices, e.g.,
 ```@example HSS
 using ControlSystemsBase, StaticArrays
 sys = ss([-5 0; 0 -5],[2; 2],[3 3],[0])
 HeteroStateSpace(sys, to_sized)
 HeteroStateSpace(sys, to_static)
 ```
-
 Notice the different matrix types used.
+
+To associate **names** with states, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems) from RobustAndOptimalControl.jl.
 
 
 ## Converting between types
