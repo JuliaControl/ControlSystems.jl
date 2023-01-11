@@ -1,4 +1,5 @@
 const Polynomials = ControlSystemsBase.Polynomials
+import ControlSystemsBase.RootLocusResult
 @userplot Rlocusplot
 
 
@@ -42,7 +43,7 @@ function getpoles(G, K::Number)
         push!(poleout,integrator.k[end])
         push!(ts,integrator.t[1])
     end
-    poleout = hcat(poleout...)'
+    poleout = copy(hcat(poleout...)')
     poleout, ts
 end
 
@@ -79,19 +80,15 @@ Compute the root locus of the SISO LTISystem `P` with a negative feedback loop a
 function rlocus(P, K)
     Z = tzeros(P)
     roots, K = getpoles(P,K)
-    roots, Z, K
+    ControlSystemsBase.RootLocusResult(roots, Z, K, P)
 end
 
 rlocus(P; K=500) = rlocus(P, K)
 
-"""
-    rlocusplot(P::LTISystem; K)
 
-Plot the root locus of the SISO LTISystem `P` as computed by `rlocus`.
-"""
-rlocusplot
-@recipe function rlocusplot(p::Rlocusplot; K=500)
-    roots, Z, K = rlocus(p.args[1]; K=K)
+# This will be called on plot(rlocus(sys, args...))
+@recipe function rootlocusresultplot(r::RootLocusResult)
+    roots, Z, K = r
     redata = real.(roots)
     imdata = imag.(roots)
     all_redata = [vec(redata); real.(Z)]
@@ -125,3 +122,12 @@ rlocusplot
         redata[1,:], imdata[1,:]
     end
 end
+
+
+"""
+    rlocusplot(P::LTISystem; K)
+
+Plot the root locus of the SISO LTISystem `P` as computed by `rlocus`.
+"""
+@recipe rlocusplot(::Type{Rlocusplot}, p::Rlocusplot; K=500) =
+    rlocus(p.args[1]; K=K)

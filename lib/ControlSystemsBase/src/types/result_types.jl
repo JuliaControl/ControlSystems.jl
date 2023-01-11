@@ -63,3 +63,36 @@ function Base.getproperty(r::SimResult, s::Symbol)
         throw(ArgumentError("Unsupported property $s"))
     end
 end
+
+
+"""
+    RootLocusResult{T} <: AbstractResult
+
+Result structure containing the result of the root locus using `rlocus`.
+The structure can be plotted using
+```julia
+result = rlocus(...)
+plot(result; plotu=true, plotx=false)?
+```
+and destructured like
+```julia
+roots, Z, K = result
+```
+
+# Fields:
+- `roots::Tr`
+- `Z::Tz`
+- `K::Tk`
+- `sys::Ts`
+"""
+struct RootLocusResult{Tr, Tz, Tk, Ts} <: AbstractResult # Result of rlocus
+    roots::Tr
+    Z::Tz
+    K::Tk
+    sys::Ts
+end
+
+Base.iterate(r::RootLocusResult)               = (r.roots, Val(:Z))
+Base.iterate(r::RootLocusResult, ::Val{:Z})    = (r.Z, Val(:K))
+Base.iterate(r::RootLocusResult, ::Val{:K})    = (r.K, Val(:done))
+Base.iterate(r::RootLocusResult, ::Val{:done}) = nothing
