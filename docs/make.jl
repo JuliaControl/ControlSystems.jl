@@ -54,6 +54,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
         ],
         "Examples" => Any[
             "Design" => "examples/example.md",
+            "Analysis" => "examples/analysis.md",
             "Smith predictor" => "examples/smith_predictor.md",
             "Iterative Learning Control (ILC)" => "examples/ilc.md",
             "Properties of delay systems" => "examples/delay_systems.md",
