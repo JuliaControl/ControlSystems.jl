@@ -43,7 +43,7 @@ function getpoles(G, K::Number)
         push!(poleout,integrator.k[end])
         push!(ts,integrator.t[1])
     end
-    poleout = hcat(poleout...)'
+    poleout = copy(hcat(poleout...)')
     poleout, ts
 end
 
