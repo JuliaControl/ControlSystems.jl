@@ -11,6 +11,7 @@ C = pid(0.2, 1)
 loopgain = P*C
 marginplot(loopgain)
 ```
+This plot tells us that there is one gain margin of 1.27, i.e., the gain can increase by a factor of 1.27 before the system goes unstable. It also tells us that there are three different phase margins, the smallest of which is about 9°. We usually aim for a gain margin of >1.5 and a phase margin above 30-45° for a robust system. The vertical lines in the plot indicate the frequencies at which the margins have been computed.
 
 ## Sensitivity analysis
 More generally applicable measures of robustness include analysis of sensitivity functions, notably the peaks of the sensitivity function
