@@ -770,7 +770,6 @@ pzmap
                 seriestype := :shape
                 fillalpha := 0
                 Plots.partialcircle(0, 2π, 100)
-                C,S
             end
         end
     end
