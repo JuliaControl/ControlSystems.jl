@@ -735,6 +735,8 @@ _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
     fig = pzmap(fig, system, args...; kwargs...)
 
 Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.
+
+To customize the unit-circle drawn for discrete systems, modify the line attributes, e.g., `linecolor=:red`.
 """
 pzmap
 @recipe function pzmap(p::Pzmap)
@@ -766,12 +768,13 @@ pzmap
         end
 
         if isdiscrete(system)
-            θ = range(0,stop=2π,length=100)
-            S,C = sin.(θ),cos.(θ)
-            seriestype := :path
+            plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
+            haskey(Base.loaded_modules, plots_id) || error("Call using Plots before calling this function")
+            Plots = Base.loaded_modules[plots_id]
             @series begin
-                linecolor := :black
-                C,S
+                seriestype := :shape
+                fillalpha := 0
+                Plots.partialcircle(0, 2π, 100)
             end
         end
     end
