@@ -766,11 +766,10 @@ pzmap
         end
 
         if isdiscrete(system)
-            θ = range(0,stop=2π,length=100)
-            S,C = sin.(θ),cos.(θ)
             @series begin
                 seriestype := :shape
                 fillalpha := 0
+                Plots.partialcircle(0, 2π, 100)
                 C,S
             end
         end
