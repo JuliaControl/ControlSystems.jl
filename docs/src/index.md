@@ -62,7 +62,8 @@ Depth = 1
 The JuliaControl and surrounding ecosystem contains a few additional packages that may be of interest
 - [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl) contains more advanced features for LQG design, robust analysis and synthesis, uncertainty modeling, named systems and an interface to [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl).
 - [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl) contains basic C-code generation for linear systems.
-- [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is a system-identification toolbox for identification of LTI systems using either time or frequency-domain data.
+- [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is a system-identification toolbox for identification of LTI systems using either time or frequency-domain data. This package can use data to estimate statespace models, transfer-function models and Kalman filters that can be used for control design.
+- [ControlSystemsMTK.jl](https://juliacontrol.github.io/ControlSystemsMTK.jl/dev/) is an interface between ControlSystems.jl and [ModelingToolkit.jl](https://mtk.sciml.ai/stable/).
 - [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl) contains a reference implementation in Julia of a discrete-time PID controller including set-point weighting, integrator anti-windup, derivative filtering and bumpless transfer.
 
 See also [the paper](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) describing the toolbox
@@ -81,7 +82,7 @@ The following is a list of packages from the wider Julia ecosystem that may be o
 - [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl) contains types that represent statespace systems on descriptor form, i.e., with a mass matrix. These systems can represent linear DAE systems and non-proper systems.
 - [TrajectoryOptimization.jl](http://roboticexplorationlab.org/TrajectoryOptimization.jl/stable/) is one of the more developed packages for open-loop **optimal control** and trajectory optimization in Julia.
 - [LowLevelParticleFilters.jl](https://github.com/baggepinnen/LowLevelParticleFilters.jl) is a library for state estimation using particle filters and Kalman filters of different flavors.
-- [ModelingToolkit.jl](https://mtk.sciml.ai/stable/) is an acausal modeling tool, similar in spirit to Modelica. A video showing ControlSystems and ModelingToolkit together is [available here](https://youtu.be/favQKOyyx4o). [ControlSystemsMTK.jl](https://github.com/baggepinnen/ControlSystemsMTK.jl) exists to ease the use of these two packages together.
+- [ModelingToolkit.jl](https://mtk.sciml.ai/stable/) is an acausal modeling tool, similar in spirit to Modelica. A video showing ControlSystems and ModelingToolkit together is [available here](https://youtu.be/favQKOyyx4o). [ControlSystemsMTK.jl](https://juliacontrol.github.io/ControlSystemsMTK.jl/dev/) exists to ease the use of these two packages together.
 - [JuliaSimControl.jl](https://help.juliahub.com/juliasimcontrol/dev/) is a product that builds upon the JuliaControl ecosystem and ModelingToolkit, providing additional nonlinear and robust control methods.
 - [FaultDetectionTools.jl](https://github.com/andreasvarga/FaultDetectionTools.jl) contains utilities and observers for online fault detection.
 - [ReachabilityAnalysis.jl](https://juliareach.github.io/ReachabilityAnalysis.jl/dev/generated_examples/Building/) is a package for reachability analysis. This can be used to verify stability and safety properties of linear and nonlinear systems.
