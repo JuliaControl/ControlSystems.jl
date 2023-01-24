@@ -24,6 +24,20 @@ end
 
 abstract type AbstractStateSpace{TE<:TimeEvolution} <: LTISystem{TE} end
 
+"""
+    StateSpace{TE, T} <: AbstractStateSpace{TE}
+
+An object representing a standard state space system.
+
+See the function [`ss`](@ref) for a user facing constructor as well as the documentation page [creating systems](https://juliacontrol.github.io/ControlSystems.jl/stable/man/creating_systems/).
+
+# Fields:
+- `A::Matrix{T}`
+- `B::Matrix{T}`
+- `C::Matrix{T}`
+- `D::Matrix{T}`
+- `timeevol::TE`
+"""
 struct StateSpace{TE, T} <: AbstractStateSpace{TE}
     A::Matrix{T}
     B::Matrix{T}
@@ -203,7 +217,7 @@ HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
 
 A destructor that outputs the statespace matrices.
 """
-ssdata(sys::AbstractStateSpace) = sys.A, sys.B, sys.C, sys.D
+ssdata(sys) = sys.A, sys.B, sys.C, sys.D
 
 # Funtions for number of intputs, outputs and states
 ninputs(sys::AbstractStateSpace) = size(sys.D, 2)
