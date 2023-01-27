@@ -1,4 +1,10 @@
 # Creating Systems
+This page illustrates how to create system models such as transfer functions and statespace models. This topic is also treated in the introductory video below:
+
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/ksrEyMNX_BY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
+
 ## Transfer Functions
 ```@meta
 DocTestSetup = quote
