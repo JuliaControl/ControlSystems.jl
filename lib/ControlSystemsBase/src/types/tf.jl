@@ -12,6 +12,8 @@ or an array of vectors to create MIMO system.
 or an array of vectors to create MIMO system.
 - `Ts`: Sample time if discrete time system.
 
+The polynomial coefficients are ordered starting from the highest order term. 
+
 Other uses:
 - `tf(sys)`: Convert `sys` to `tf` form.
 - `tf("s")`, `tf("z")`: Create the continuous transferfunction `s`.
