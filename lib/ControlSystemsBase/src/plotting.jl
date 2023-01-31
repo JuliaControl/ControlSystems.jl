@@ -271,7 +271,7 @@ end
     seriestype := :path
     primary --> false
     grid   --> true
-    yscale --> :log10
+    yscale --> _PlotScaleFunc
     xscale --> :log10
     yguide --> "Magnitude"
     x := w
@@ -656,6 +656,7 @@ A frequency vector `w` can be optionally provided.
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0
+                    @. bmag = 20*log10(bmag)
                 else
                     mag = 1 ./ gm
                     oneLine = 1
