@@ -301,7 +301,7 @@ end
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`. See also [`bodeplot`](@ref)
 
-`mag` and `phase` has size `(length(w), ny, nu)`.
+`mag` and `phase` has size `(ny, nu, length(w))`.
 If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
 
 For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
@@ -345,7 +345,7 @@ end
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`. See also [`nyquistplot`](@ref)
 
-`re` and `im` has size `(length(w), ny, nu)`""" 
+`re` and `im` has size `(ny, nu, length(w))`""" 
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
@@ -358,7 +358,7 @@ end
 Compute the singular values `sv` of the frequency response of system `sys` at
 frequencies `w`. See also [`sigmaplot`](@ref)
 
-`sv` has size `(length(w), max(ny, nu))`""" 
+`sv` has size `(max(ny, nu), length(w))`""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     sv = dropdims(mapslices(svdvals, resp, dims=(1,2)),dims=2)
