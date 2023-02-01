@@ -36,7 +36,12 @@ function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts
     else
         pid_tf(param_p, param_i, param_d; form, Tf)
     end
-    Ts === nothing ? C : c2d(C, Ts, :tustin)
+    if Ts === nothing
+        return C
+    else
+        param_d != 0 && Tf === nothing && throw(ArgumentError("Discretizing a continuous time PID controller without a filter is not supported. Supply a filter time constant `Tf`"))
+        c2d(C, Ts, :tustin)
+    end
 end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
