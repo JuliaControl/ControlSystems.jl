@@ -19,6 +19,7 @@ and `N` is commonly in the range 2 to 20.
 The state space will be returned on controllable canonical form.
 
 For a discrete controller a positive `Ts` can be supplied.
+In this case, the continuous-time controller is discretized using the Tustin method.
 
 ## Examples
 ```
