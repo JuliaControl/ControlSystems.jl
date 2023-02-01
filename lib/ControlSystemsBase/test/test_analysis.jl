@@ -227,6 +227,8 @@ dm = delaymargin(P)[]
 @test dm ≈ 0.03743336128009814 atol=1e-6
 @test minimum(abs, R .- (-1)) ≈ 0 atol=1e-3
 
+@test delaymargin(tf(0.1, [1, 1])) == Inf
+
 # RGA
 a = 10
 P = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)

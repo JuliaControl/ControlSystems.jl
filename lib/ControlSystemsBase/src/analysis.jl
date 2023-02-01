@@ -535,6 +535,7 @@ function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     issiso(G) || error("delaymargin only supports SISO systems")
     m     = margin(G,allMargins=true)
+    isempty(m[4][1]) && return Inf
     ϕₘ, i = findmin(m[4][1])
     ϕₘ   *= π/180
     ωϕₘ   = m[3][1][i]
