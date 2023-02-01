@@ -252,6 +252,7 @@ function convert(::Type{TransferFunction{TE,SisoRational{T}}}, sys::AbstractStat
     matrix = Matrix{SisoRational{T}}(undef, size(sys))
 
     A, B, C, D = ssdata(sys)
+    T <: AbstractFloat && size(A, 1) > 20 && eps(T) >= eps(Float64) && @warn "High-order transfer functions are highly sensitive to numerical errors. The result may be inaccurate." maxlog=1
 
     # The following follows from the matrix inversion lemma:
     # det(X + uᵀv) = det(X)(1 + vᵀX⁻¹u), or

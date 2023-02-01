@@ -9,6 +9,7 @@ struct SisoRational{T} <: SisoTf{T}
             # The numerator is zero, make the denominator 1
             den = one(den)
         end
+        T <: AbstractFloat && length(den) > 20 && eps(T) >= eps(Float64) && @warn "High-order transfer functions are highly sensitive to numerical errors. The result may be inaccurate. Consider making use of statespace systems instead" maxlog=1
         new{T}(num, den)
     end
 end
