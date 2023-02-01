@@ -701,15 +701,11 @@ A frequency vector `w` can be optionally provided.
                 @series begin
                     color --> :gray
                     linestyle --> :dash
-                    [w[1],w[end]], [oneLine,oneLine]
+                    seriestype := :hline
+                    ((fullPhase .- pm) .* ones(1, 2))'
                 end
                 @series begin
                     [wpm wpm]', [fullPhase fullPhase-pm]'
-                end
-                @series begin
-                    color --> :gray
-                    linestyle --> :dash
-                    [w[1] w[end]]', ((fullPhase .- pm) .* ones(1, 2))'
                 end
             end
         end
