@@ -1,7 +1,8 @@
 # Introduction
 ## Installation
+ControlSystems.jl is written in the Julia programming language and is available through the Julia package manager. To install Julia, follow the instructions at [julialang.org](https://julialang.org/downloads/).
 
-To install the full set of features, simply run
+To install the full set of features of ControlSystems.jl, simply run the following command in the Julia REPL:
 ```julia
 using Pkg; Pkg.add("ControlSystems")
 ```
