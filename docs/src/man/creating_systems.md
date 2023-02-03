@@ -114,6 +114,8 @@ L = 1.2 # Delay time
 tf(1, [1, 1]) * exp(-L*s)
 ```
 
+Padé approximations of delays can be created using [`pade`](@ref).
+
 ## Nonlinear Systems
 See [Nonlinear functionality](@ref).
 
