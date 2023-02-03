@@ -1,6 +1,7 @@
 import OrdinaryDiffEq
 using OrdinaryDiffEq: solve
 using ControlSystems
+using Plots
 
 A = [0 1; 0 0]
 B = [0;1]
