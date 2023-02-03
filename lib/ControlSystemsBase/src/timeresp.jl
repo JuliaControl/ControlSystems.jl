@@ -405,7 +405,7 @@ function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
         else
             tfinal = 200dt
         end
-    else
+    elseif iscontinuous(sys)
         dt = min(dt, tfinal/200)
     end
     return 0:dt:tfinal
