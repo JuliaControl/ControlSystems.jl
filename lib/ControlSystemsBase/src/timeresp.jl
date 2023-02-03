@@ -478,6 +478,14 @@ Compute the step response characteristics for a simulation result. The following
 - `yf`: The final value, if not provided, the last value of the response is used. The simulation must have reached steady-state for an automatically computed value to make sense. If the simulation has not reached steady state, you may provide the final value manually.
 - `settling_th`: The threshold for computing the settling time. The settling time is the time at which the response settles within `settling_th` of the final value.
 - `risetime_th`: The lower and upper threshold for computing the rise time. The rise time is the time at which the response rises from `risetime_th[1]` to `risetime_th[2]` of the final value.
+
+# Example:
+```julia
+G = tf([1], [1, 1, 1])
+res = step(G, 15)
+si = stepinfo(res)
+plot(si)
+```
 """
 function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02, risetime_th = (0.1, 0.9))
     issiso(res) || throw(ArgumentError("stepinfo only supports SISO systems"))
