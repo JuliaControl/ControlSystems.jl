@@ -418,3 +418,97 @@ function _default_dt(sys::LTISystem)
         return dt
     end
 end
+
+"""
+    StepInfo
+
+Computed using [`stepinfo`](@ref)
+
+# Fields:
+- `y0`: The initial value of the step response.
+- `yf`: The final value of the step response.
+- `stepsize`: The size of the step.
+- `peak`: The peak value of the step response.
+- `peaktime`: The time at which the peak occurs.
+- `overshoot`: The overshoot of the step response.
+- `settlingtime`: The time at which the step response has settled to within `settling_th` of the final value.
+- `settlingtimeind::Int`: The index at which the step response has settled to within `settling_th` of the final value.
+- `risetime`: The time at which the response rises from `risetime_th[1]` to `risetime_th[2]` of the final value 
+- `i10::Int`: The index at which the response reaches `risetime_th[1]`
+- `i90::Int`: The index at which the response reaches `risetime_th[2]`
+- `res::SimResult{SR}`: The simulation result used to compute the step response characteristics.
+- `settling_th`: The threshold used to compute `settlingtime` and `settlingtimeind`.
+- `risetime_th`: The thresholds used to compute `risetime`, `i10`, and `i90`.
+"""
+struct StepInfo{SR}
+    y0
+    yf
+    stepsize
+    peak
+    peaktime
+    overshoot
+    settlingtime
+    settlingtimeind::Int
+    risetime
+    i10::Int
+    i90::Int
+    res::SimResult{SR}
+    settling_th
+    risetime_th
+end
+
+"""
+    stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02, risetime_th = (0.1, 0.9))
+
+Compute the step response characteristics for a simulation result. The following information is computed and stored in a [`StepInfo`](@ref) struct:
+- `y0`: The initial value of the response
+- `yf`: The final value of the response
+- `stepsize`: The size of the step
+- `peak`: The peak value of the response
+- `peaktime`: The time at which the peak occurs
+- `overshoot`: The percentage overshoot of the response
+- `settlingtime`: The time at which the response settles within `settling_th` of the final value
+- `settlingtimeind`: The index at which the response settles within `settling_th` of the final value
+- `risetime`: The time at which the response rises from `risetime_th[1]` to `risetime_th[2]` of the final value
+
+
+# Arguments:
+- `res`: The result from a simulation using [`step`](@ref) (or [`lsim`](@ref))
+- `y0`: The initial value, if not provided, the first value of the response is used.
+- `yf`: The final value, if not provided, the last value of the response is used. The simulation must have reached steady-state for an automatically computed value to make sense. If the simulation has not reached steady state, you may provide the final value manually.
+- `settling_th`: The threshold for computing the settling time. The settling time is the time at which the response settles within `settling_th` of the final value.
+- `risetime_th`: The lower and upper threshold for computing the rise time. The rise time is the time at which the response rises from `risetime_th[1]` to `risetime_th[2]` of the final value.
+"""
+function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02, risetime_th = (0.1, 0.9))
+    issiso(res) || throw(ArgumentError("stepinfo only supports SISO systems"))
+    y = res.y[1, :]
+    y0 === nothing && (y0 = y[1])
+    yf === nothing && (yf = y[end])
+    Ts = res.t[2] - res.t[1]
+    direction = sign(yf - y0)
+    stepsize = abs(yf - y0)
+    peak, peakind = direction == 1 ? findmax(y) : findmin(y)
+    peaktime = res.t[peakind]
+    overshoot = 100 * (peak - yf) / stepsize
+    settlingtimeind = findlast(abs(y-yf) > settling_th * stepsize for y in y)
+    settlingtimeind == length(res.t) && @warn "System might not have settled within the simulation time"
+    settlingtime = res.t[settlingtimeind] + Ts
+    op = direction == 1 ? (>) : (<)
+    i10 = findfirst(op.(y, y0 + risetime_th[1] * stepsize * direction))
+    i90 = findfirst(op.(y, y0 + risetime_th[2] * stepsize * direction))
+    risetime = res.t[i90] - res.t[i10]
+    StepInfo(y0, yf, stepsize, peak, peaktime, overshoot, settlingtime, settlingtimeind, risetime, i10, i90, res, settling_th, risetime_th)
+end
+
+function Base.show(io::IO, info::StepInfo)
+    println(io, "StepInfo:")
+    @printf(io, "%-15s %8.3f\n", "Initial value:", info.y0)
+    @printf(io, "%-15s %8.3f\n", "Final value:", info.yf)
+    @printf(io, "%-15s %8.3f\n", "Step size:", info.stepsize)
+    @printf(io, "%-15s %8.3f\n", "Peak:", info.peak)
+    @printf(io, "%-15s %8.3f s\n", "Peak time:", info.peaktime)
+    @printf(io, "%-15s %8.2f %%\n", "Overshoot:", info.overshoot)
+    @printf(io, "%-15s %8.3f s\n", "Settling time:", info.settlingtime)
+    @printf(io, "%-15s %8.3f s\n", "Rise time:", info.risetime)
+end
+

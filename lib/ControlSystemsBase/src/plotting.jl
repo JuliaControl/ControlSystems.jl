@@ -163,6 +163,44 @@ end
     end
 end
 
+@recipe function stepinfoplot(si::StepInfo)
+    @series begin
+        si.res
+    end
+    linestyle --> :dash
+    @series begin
+        label := @sprintf("Peak: %.3f Overshoot: %.1f%%", si.peak, si.overshoot)
+        markershape --> [:none, :circle]
+        si.peaktime*ones(2), [si.y0, si.peak]
+    end
+    @series begin
+        seriestype := :hline
+        label := @sprintf("Settling threshold: %.1f%%", 100si.settling_th)
+        [si.yf-si.stepsize*si.settling_th, si.yf+si.stepsize*si.settling_th]
+    end
+    @series begin
+        markershape --> [:none, :circle]
+        label := @sprintf("Settling time: %.3f", si.settlingtime)
+        si.settlingtime*ones(2), [si.y0, si.res.y[1, si.settlingtimeind]]
+    end
+    @series begin
+        seriestype := :vline
+        label := @sprintf("Rise time threshold: %.1f%%-%.1f%%", 100si.risetime_th[1], 100si.risetime_th[2])
+        [si.res.t[si.i10], si.res.t[si.i90]]
+    end
+    @series begin
+        linestyle := :solid
+        linewidth --> 2
+        label := @sprintf("Rise time: %.3f", si.risetime)
+        si.res.t[si.i10:si.i90], si.res.y[1, si.i10:si.i90]
+    end
+    @series begin
+        seriestype := :hline
+        label := @sprintf("Final value: %.3f", si.yf)
+        [si.yf]
+    end
+end
+
 """
     _processfreqplot(plottype, system::LTISystem, [w])
     _processfreqplot(plottype, system::AbstractVector{<:LTISystem}, [w])
@@ -638,7 +676,7 @@ A frequency vector `w` can be optionally provided.
         bmag, bphase = bode(s, w)
         for j=1:nu
             for i=1:ny
-                wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)
+                wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)  
                 # Let's be reasonable, only plot 5 smallest gain margins
                 if length(gm) > 5
                     @warn "Only showing smallest 5 out of $(length(gm)) gain margins"

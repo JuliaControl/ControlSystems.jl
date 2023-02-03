@@ -85,6 +85,7 @@ export  LTISystem,
         lsim,
         lsim!,
         LsimWorkspace,
+        stepinfo,
         # Frequency Response
         freqresp, freqrespv, freqresp!,
         evalfr,
@@ -125,6 +126,7 @@ import LinearAlgebra: BlasFloat
 
 export lyap # Make sure LinearAlgebra.lyap is available
 import Printf
+import Printf: @printf, @sprintf
 import DSP: conv
 using ForwardDiff
 import MatrixPencils

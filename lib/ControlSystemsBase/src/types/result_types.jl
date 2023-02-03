@@ -42,6 +42,8 @@ function Base.getindex(r::SimResult, v::AbstractVector)
     return getfield.((r,), v) 
 end
 
+issiso(r::SimResult) = issiso(r.sys)
+
 # to allow destructuring, e.g., y,t,x = lsim(sys, u)
 # This performs explicit iteration in the type domain to ensure inferability
 Base.iterate(r::SimResult)              = (r.y, Val(:t))
