@@ -42,6 +42,8 @@ vector `t` is not provided, one is calculated based on the system pole
 locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`
+
+See also [`stepinfo`](@ref) and [`lsim`](@ref).
 """
 function Base.step(sys::AbstractStateSpace, t::AbstractVector; method=:zoh, kwargs...)
     T = promote_type(eltype(sys.A), Float64)
@@ -403,6 +405,8 @@ function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
         else
             tfinal = 200dt
         end
+    else
+        dt = min(dt, tfinal/200)
     end
     return 0:dt:tfinal
 end
