@@ -38,6 +38,17 @@ G = tf(1, [1, 1, 1])
 res = step(G, 20) # Simulate 20 seconds step response
 plot(res)
 ```
+Using the function [`stepinfo`](@ref), we can compute characteristics of a step response:
+```@example TIMERESP
+si = stepinfo(res)
+```
+
+We can also plot the [`StepInfo`](@ref) object
+```@example TIMERESP
+plot(si)
+```
+
+
 
 ## Docstrings
 

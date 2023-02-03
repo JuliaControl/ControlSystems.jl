@@ -1,6 +1,7 @@
 import OrdinaryDiffEq
 using OrdinaryDiffEq: solve
 using ControlSystems
+using Plots
 
 A = [0 1; 0 0]
 B = [0;1]
@@ -129,3 +130,35 @@ for balanced in [true, false]
     res2 = step(sys2, t ./ a)
     @test res1.y ≈ res2.y rtol=1e-2 atol=1e-2
 end
+
+
+## stepinfo
+G = tf(1, [1, 1, 1])
+res = step(G, 20)
+si = stepinfo(res)
+@test si.settlingtime ≈ 8.134 rtol=0.01
+@test si.peak ≈ 1.163 rtol=0.01
+@test si.peaktime ≈ 3.652 rtol=0.01
+@test si.overshoot ≈ 16.295 rtol=0.01
+@test si.risetime ≈ 1.660 rtol=0.01
+@test si.yf ≈ 1.0 rtol=0.01
+@test_nowarn plot(si)
+
+# test reverse direction
+G = tf(-1, [1, 1, 1])
+res = step(G, 20)
+si2 = stepinfo(res)
+@test si2.settlingtime ≈ si.settlingtime rtol=0.01
+@test si2.peak ≈ -si.peak rtol=0.01
+@test si2.peaktime ≈ si.peaktime rtol=0.01
+@test si2.overshoot ≈ -si.overshoot rtol=0.01
+@test si2.risetime ≈ si.risetime rtol=0.01
+@test si2.yf ≈ -si.yf rtol=0.01
+@test_nowarn plot(si2)
+
+# very poorly damped
+G = tf(1, [1, 0.01, 1])
+res = step(G, 200)
+@test_logs (:warn, "System might not have settled within the simulation time") stepinfo(res, yf=1)
+si = stepinfo(res, yf=1) # Provide final value manually
+@test_nowarn plot(si)
