@@ -206,6 +206,15 @@ end
         label := @sprintf("Settling threshold: %.1f%%", 100si.settling_th)
         [si.yf-si.stepsize*si.settling_th, si.yf+si.stepsize*si.settling_th]
     end
+    if si.undershoot != 0
+        @series begin
+            color --> 5
+            label := @sprintf("Undershoot: %.1f%%", si.undershoot)
+            markershape --> [:none, :circle]
+            t = si.res.t[si.lowerpeakind]
+            t*ones(2), [si.y0, si.lowerpeak]
+        end
+    end
 
 end
 

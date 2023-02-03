@@ -447,6 +447,9 @@ struct StepInfo{SR}
     peak
     peaktime
     overshoot
+    lowerpeak
+    lowerpeakind
+    undershoot
     settlingtime
     settlingtimeind::Int
     risetime
@@ -467,6 +470,7 @@ Compute the step response characteristics for a simulation result. The following
 - `peak`: The peak value of the response
 - `peaktime`: The time at which the peak occurs
 - `overshoot`: The percentage overshoot of the response
+- `undershoot`: The percentage undershoot of the response. If the step response never reaches below the initial value, the undershoot is zero.
 - `settlingtime`: The time at which the response settles within `settling_th` of the final value
 - `settlingtimeind`: The index at which the response settles within `settling_th` of the final value
 - `risetime`: The time at which the response rises from `risetime_th[1]` to `risetime_th[2]` of the final value
@@ -496,8 +500,11 @@ function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02
     direction = sign(yf - y0)
     stepsize = abs(yf - y0)
     peak, peakind = direction == 1 ? findmax(y) : findmin(y)
+    lowerpeak, lowerpeakind = direction == 1 ? findmin(y) : findmax(y)
     peaktime = res.t[peakind]
-    overshoot = 100 * (peak - yf) / stepsize
+    overshoot = direction * 100 * (peak - yf) / stepsize
+    undershoot = direction * 100 * (y0 - lowerpeak) / stepsize
+    undershoot > 0 ? undershoot : zero(undershoot)
     settlingtimeind = findlast(abs(y-yf) > settling_th * stepsize for y in y)
     settlingtimeind == length(res.t) && @warn "System might not have settled within the simulation time"
     settlingtime = res.t[settlingtimeind] + Ts
@@ -505,7 +512,7 @@ function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02
     i10 = findfirst(op.(y, y0 + risetime_th[1] * stepsize * direction))
     i90 = findfirst(op.(y, y0 + risetime_th[2] * stepsize * direction))
     risetime = res.t[i90] - res.t[i10]
-    StepInfo(y0, yf, stepsize, peak, peaktime, overshoot, settlingtime, settlingtimeind, risetime, i10, i90, res, settling_th, risetime_th)
+    StepInfo(y0, yf, stepsize, peak, peaktime, overshoot, lowerpeak, lowerpeakind, undershoot, settlingtime, settlingtimeind, risetime, i10, i90, res, settling_th, risetime_th)
 end
 
 function Base.show(io::IO, info::StepInfo)
@@ -516,6 +523,7 @@ function Base.show(io::IO, info::StepInfo)
     @printf(io, "%-15s %8.3f\n", "Peak:", info.peak)
     @printf(io, "%-15s %8.3f s\n", "Peak time:", info.peaktime)
     @printf(io, "%-15s %8.2f %%\n", "Overshoot:", info.overshoot)
+    @printf(io, "%-15s %8.2f %%\n", "Undershoot:", info.undershoot)
     @printf(io, "%-15s %8.3f s\n", "Settling time:", info.settlingtime)
     @printf(io, "%-15s %8.3f s\n", "Rise time:", info.risetime)
 end
