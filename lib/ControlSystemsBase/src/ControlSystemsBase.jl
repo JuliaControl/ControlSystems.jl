@@ -86,6 +86,7 @@ export  LTISystem,
         lsim!,
         LsimWorkspace,
         stepinfo,
+        StepInfo,
         # Frequency Response
         freqresp, freqrespv, freqresp!,
         evalfr,
