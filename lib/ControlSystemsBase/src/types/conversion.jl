@@ -271,7 +271,7 @@ function convert(::Type{TransferFunction{TE1,SisoRational}}, sys::StateSpace{TE2
 end
 
 
-function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::StateSpace) where {TE,T<:Number, TR <: Number}
+function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::AbstractStateSpace) where {TE,T<:Number, TR <: Number}
     matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
 
     for i=1:noutputs(sys), j=1:ninputs(sys)
@@ -280,7 +280,8 @@ function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::StateSpace) wh
     end
     TransferFunction{TE,SisoZpk{T,TR}}(matrix, TE(sys.timeevol))
 end
-function convert(::Type{TransferFunction{TE1,SisoZpk}}, sys::StateSpace{TE2,T0}) where {TE1,TE2,T0<:Number}
+function convert(::Type{TransferFunction{TE1,SisoZpk}}, sys::AbstractStateSpace{TE2}) where {TE1,TE2}
+    T0 = numeric_type(sys)
     T = typeof(one(T0)/one(T0))
     convert(TransferFunction{TE1,SisoZpk{T,complex(T)}}, sys)
 end
@@ -298,17 +299,42 @@ function siso_ss_to_zpk(sys, i, j)
     return z, eigvals(A), k
 end
 
+"""
+Implements: "An accurate and efficient algorithm for the computation of thecharacteristic polynomial of a general square matrix."
+"""
+function charpoly(A::AbstractMatrix{T}) where {T}
+    N = size(A, 1)
+    poly_factors = vec(ones(T, N+1))
+    if N <= 0
+        return poly_factors
+    end
 
-# TODO: Could perhaps be made more accurate. See: An accurate and efficient
-# algorithm for the computation of the # characteristic polynomial of a general square matrix.
-function charpoly(A::AbstractMatrix{T}) where T
-    Λ::Vector{T} = eigvalsnosort(A)
-    return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
+    t = zeros(T, N, N) # Preallocation
+    P, H = hessenberg(A)
+    for j=N:-1:1
+        for i=1:j
+            for k=N-j:-1:1
+                t[k+1, i] = H[i, j]*t[k, j+1]-H[j+1, j]*t[k, i]
+            end
+            t[1, i] = H[i, j]
+        end
+        for k=1:N-j
+            t[k, j] += t[k, j+1]
+        end
+    end
+    i = N-1:-1:0
+    @. poly_factors[2:N+1, 1] = (-1)^(N-i)*t[N-i, 1]
+    return poly_factors
 end
-function charpoly(A::AbstractMatrix{<:Real})
-    Λ = eigvalsnosort(A)
-    return prod(roots2real_poly_factors(Λ))
-end
+
+# function charpoly(A::AbstractMatrix{T}) where T
+#     Λ::Vector{T} = eigvalsnosort(A)
+#     return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
+# end
+# function charpoly(A::AbstractMatrix{<:Real})
+#     Λ = eigvalsnosort(A)
+#     return prod(roots2real_poly_factors(Λ))
+# end
 
 
 # function charpoly(A)
