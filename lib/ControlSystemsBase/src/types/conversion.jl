@@ -271,7 +271,7 @@ function convert(::Type{TransferFunction{TE1,SisoRational}}, sys::StateSpace{TE2
 end
 
 
-function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::StateSpace) where {TE,T<:Number, TR <: Number}
+function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::AbstractStateSpace) where {TE,T<:Number, TR <: Number}
     matrix = Matrix{SisoZpk{T,TR}}(undef, size(sys))
 
     for i=1:noutputs(sys), j=1:ninputs(sys)
@@ -280,7 +280,8 @@ function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::StateSpace) wh
     end
     TransferFunction{TE,SisoZpk{T,TR}}(matrix, TE(sys.timeevol))
 end
-function convert(::Type{TransferFunction{TE1,SisoZpk}}, sys::StateSpace{TE2,T0}) where {TE1,TE2,T0<:Number}
+function convert(::Type{TransferFunction{TE1,SisoZpk}}, sys::AbstractStateSpace{TE2}) where {TE1,TE2}
+    T0 = numeric_type(sys)
     T = typeof(one(T0)/one(T0))
     convert(TransferFunction{TE1,SisoZpk{T,complex(T)}}, sys)
 end
