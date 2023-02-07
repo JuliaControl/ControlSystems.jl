@@ -16,6 +16,20 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 # ss
 @test tf(pid(1.0, 1, 0; state_space=true)) == tf(1) + tf(1,[1,0])
 
+# Discrete
+@test_throws ArgumentError pid(1.0, 1, 1, Ts=0.1)
+@test_nowarn pid(1.0, 1, 0, Ts=0.1) # Without D term it's okay
+
+Cd = pid(1.0, 1, 1, Ts=0.1, Tf=0.1)
+@test isdiscrete(Cd)
+@test Cd.Ts == 0.1
+
+Cd2 = pid(1.0, 1, 1, Ts=0.01, Tf=0.1, state_space=true)
+@test isdiscrete(Cd2)
+@test Cd2 isa StateSpace
+@test Cd2.Ts == 0.01
+@test tzeros(Cd2) != tzeros(Cd) # Different sample rates
+
 # Zero integral action
 Tf = 0.01
 @test tf(pid(2.0, 0; state_space=true, Tf)) ≈ minreal(pid(2.0, 0; state_space=false, Tf))
