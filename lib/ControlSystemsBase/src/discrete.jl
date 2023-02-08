@@ -1,4 +1,5 @@
 export rstd, rstc, dab, c2d_roots2poly, c2d_poly2poly, zpconv#, lsima, indirect_str
+using LinearAlgebra: exp!
 
 
 """
@@ -33,7 +34,7 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
     ny, nu = size(sys)
     nx = nstates(sys)
     if method === :zoh
-        M = exp([A*Ts  B*Ts;
+        M = exp!([A*Ts  B*Ts;
             zeros(nu, nx + nu)])
         Ad = M[1:nx, 1:nx]
         Bd = M[1:nx, nx+1:nx+nu]
@@ -41,7 +42,7 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
         Dd = D
         x0map = [Matrix{T}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
     elseif method === :foh
-        M = exp([A*Ts B*Ts zeros(nx, nu);
+        M = exp!([A*Ts B*Ts zeros(nx, nu);
             zeros(nu, nx + nu) Matrix{T}(I, nu, nu);
             zeros(nu, nx + 2*nu)])
         M1 = M[1:nx, nx+1:nx+nu]
