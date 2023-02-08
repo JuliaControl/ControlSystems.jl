@@ -59,6 +59,10 @@ To design an LQG controller (LQR with a Kalman filter), see the functions
 - [`observer_controller`](@ref)
 - [`LQGProblem` type](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.LQGProblem) in RobustAndOptimalControl.
 
+See also the following tutorial video on LQR and LQG design
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/NuAxN1mGCPs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
 
 ## PID design functions
 A basic PID controller can be constructed using the constructor [`pid`](@ref).
@@ -69,6 +73,11 @@ In ControlSystems.jl, we often refer to three different formulations of the PID 
 * Parallel form: ``K_p + \frac{K_i}{s} + K_d s``
 
 Most functions that construct PID controllers allow the user to select which form to use.
+
+A tutorial on PID design is available here:
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/BolNmqYYIEg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
 
 The following examples show basic workflows for designing PI/PID controllers. 
 
@@ -139,7 +148,13 @@ C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt, doplot=true, F)
 
 
 ## Advanced pole-zero placement
-This example illustrates how we can perform advanced pole-zero placement using the function [`rstc`](@ref) ([`rstd`](@ref) in discrete time). The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
+
+A video tutorial on pole placement is available here:
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/etOzqXNmzp0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
+
+The following example illustrates how we can perform advanced pole-zero placement using the function [`rstc`](@ref) ([`rstd`](@ref) in discrete time). The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
 
 
 Define the process

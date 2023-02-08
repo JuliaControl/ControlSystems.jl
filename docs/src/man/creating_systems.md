@@ -116,6 +116,12 @@ tf(1, [1, 1]) * exp(-L*s)
 
 Padé approximations of delays can be created using [`pade`](@ref).
 
+A tutorial on delay systems is available here:
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/ER8_oHU2vZs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
+
+
 ## Nonlinear Systems
 See [Nonlinear functionality](@ref).
 

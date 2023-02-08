@@ -48,7 +48,10 @@ We can also plot the [`StepInfo`](@ref) object
 plot(si)
 ```
 
-
+A video demonstrating time-domain simulation in ControlSystems.jl is available below.
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/ii86sg_8xGw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
 
 ## Docstrings
 
