@@ -175,7 +175,7 @@ function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMat
     try
         return _balance_statespace(A,B,C, perm)
     catch
-        @warn "Unable to balance state-space, returning original system"
+        @warn "Unable to balance state-space, returning original system" maxlog=10
         return A,B,C,convert(typeof(A), I(size(A, 1)))
     end
 end

@@ -92,7 +92,7 @@ function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
     else
         throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
     end
-    return ss(A, B, C, D)
+    return first(balance_statespace(ss(A, B, C, D)))
 end
 
 """
