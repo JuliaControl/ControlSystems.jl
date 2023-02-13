@@ -40,7 +40,7 @@ The system we will control is a double-mass system, in which two masses (or iner
 
 We start by defining the system model and an initial guess for the PID controller parameters
 ```@example autodiff
-using ControlSystemsBase, Plots
+using ControlSystemsBase, ForwardDiff, Plots
 
 P = DemoSystems.double_mass_model()
 
