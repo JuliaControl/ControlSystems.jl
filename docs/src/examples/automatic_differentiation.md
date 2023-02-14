@@ -16,15 +16,16 @@ is easily linearized in the point ``x_0, u_0`` using ForwardDiff.jl:
 ```@example autodiff
 using ControlSystemsBase, ForwardDiff
 
-"An example of a nonlinear dynamics"
+"An example of nonlinear dynamics"
 function f(x, u)
     x1, x2 = x
     u1, u2 = u
     [x2; u1*x1 + u2*x2]
 end
 
-x0 = [1.0, 0.0]
+x0 = [1.0, 0.0] # Operating point to linearize around
 u0 = [0.0, 1.0]
+
 A = ForwardDiff.jacobian(x -> f(x, u0), x0)
 B = ForwardDiff.jacobian(u -> f(x0, u), u0)
 
@@ -70,10 +71,10 @@ nyquistplot!(P*C, Ω, sp=3, ylims=(-2.1,1.1), xlims=(-2.1,1.2), size=(1200,400))
 ```
 The initial controller ``C`` achieves a maximum peak of the sensitivity function of ``M_S = 1.3`` which implies a rather robust tuning, but the step response is sluggish. We will now try to optimize the controller parameters to achieve a better performance.
 
-We start by defining a helper function `plot_optimized` that will evaluate the performance of the tuned controller. We then define a function `systems` that constructs the gang-of-four transfer functions and performs time-domain simulations of the transfer functions ``S(s)`` and ``P(s)S(s)``, i.e., the transfer functions from reference ``r`` to control error ``e``, and the transfer function from an input load disturbance ``d`` to the control error ``e``. By optimizing these step responses with respect to the PID parameters, we will get a controller that achieves good performance. To promote robustness of the closed loop as well as to limit the amplification of measurement noise in the control signal, we penalize the peak of the sensitivity function ``S`` as well as the (approximate) ``H_2`` norm of the transfer function ``CS(s)``.
+We start by defining a helper function `plot_optimized` that will evaluate the performance of the tuned controller. We then define a function `systems` that constructs the gang-of-four transfer functions ([`extended_gangoffour`](@ref)) and performs time-domain simulations of the transfer functions ``S(s)`` and ``P(s)S(s)``, i.e., the transfer functions from reference ``r`` to control error ``e``, and the transfer function from an input load disturbance ``d`` to the control error ``e``. By optimizing these step responses with respect to the PID parameters, we will get a controller that achieves good performance. To promote robustness of the closed loop as well as to limit the amplification of measurement noise in the control signal, we penalize the peak of the sensitivity function ``S`` as well as the (approximate) frequency-weighted ``H_2`` norm of the transfer function ``CS(s)``.
 
 
-The cost function `cost` encodes the constraint on the peak of the sensitivity function as a penalty function (this could be enforced explicitly by using a constrained optimizer) and weighs the different objective terms together using user-defined weights `Sweight` and `CSweight`. Finally, we use [Optimizaiton.jl](https://github.com/SciML/Optimization.jl) to optimize the cost function and tell it to use ForwardDiff.jl to compute the gradient of the cost function. The optimizer we use in this example, `GCMAESOpt`, is the "Gradient-based Covariance Matrix Adaptation Evolutionary Strategy", which can be thought of as a blend between a derivative-free global optimizer and a gradient-based local optimizer.
+The cost function `cost` encodes the constraint on the peak of the sensitivity function as a penalty function (this could be enforced explicitly by using a constrained optimizer) and weighs the different objective terms together using user-defined weights `Sweight` and `CSweight`. Finally, we use [Optimization.jl](https://github.com/SciML/Optimization.jl) to optimize the cost function and tell it to use ForwardDiff.jl to compute the gradient of the cost function. The optimizer we use in this example, `GCMAESOpt`, is the "Gradient-based Covariance Matrix Adaptation Evolutionary Strategy", which can be thought of as a blend between a derivative-free global optimizer and a gradient-based local optimizer.
 
 To make the automatic gradient computation through the matrix exponential used in the function [`c2d`](@ref) work, we load the package `ChainRules` that contains a rule for `exp!`, and `ForwardDiffChainRules` that makes ForwardDiff understand the rules in `ChainRules`. Lastly, we need to tell ForwardDiff to use the `exp!` rule for the matrix exponential, which we do by defining an appropriate `@ForwardDiff_frule` for `exp!` that uses the rule in `ChainRules`. All other functions we used work out of the box with ForwardDiff.
 
@@ -87,16 +88,16 @@ function plot_optimized(P, params, res)
     fig = plot(layout=(1,3), size=(1200,400), bottommargin=2Plots.mm)
     for (i,params) = enumerate((params, res))
         ls = (i == 1 ? :dash : :solid)
+        lab = (i==1 ? "Initial" : "Optimized")
         C, G, r1, r2 = systems(P, params)
         mag = reshape(bode(G, Ω)[1], 4, :)'[:, [1, 2, 4]]
         plot!([r1, r2]; title="Time response", subplot=1,
-            lab= (i==1 ? "Initial" : "Optimized") .* [" \$r → e\$" " \$d → e\$"], legend=:bottomright, ls,
+            lab = lab .* [" \$r → e\$" " \$d → e\$"], legend=:bottomright, ls,
             fillalpha=0.05, linealpha=0.8, seriestype=:path, c=[1 3])
         plot!(Ω, mag; title="Sensitivity functions \$S(s), CS(s), T(s)\$",
-            xscale=:log10, yscale=:log10, subplot=2,
-            lab= i==1 ? "Initial" : "Optimized", ls,
+            xscale=:log10, yscale=:log10, subplot=2, lab, ls,
             legend=:bottomright, fillalpha=0.05, linealpha=0.8, c=[1 2 3], linewidth=i)
-        nyquistplot!(P*C, Ω, Ms_circles=Msc, sp=3, ylims=(-2.1,1.1), xlims=(-2.1,1.2), lab= (i==1 ? "Initial" : "Optimized"), points=true, seriescolor=i)
+        nyquistplot!(P*C, Ω; Ms_circles=Msc, sp=3, ylims=(-2.1,1.1), xlims=(-2.1,1.2), lab, seriescolor=i, ls)
     end
     hline!([Msc], l=:dashdot, c=1, subplot=2, lab="Constraint", ylims=(9e-2, Inf))
     fig
@@ -127,7 +128,7 @@ Msc = 1.3        # Constraint on Ms
 Sweight  = 10    # Sensitivity violation penalty
 CSweight = 0.001 # Noise amplification penalty
 
-params  = [kp, ki, kd, 0.01] # Initial guess for parameters (log space)
+params  = [kp, ki, kd, 0.01] # Initial guess for parameters
 using Optimization
 using OptimizationGCMAES
 
