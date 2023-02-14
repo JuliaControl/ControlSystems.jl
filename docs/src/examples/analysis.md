@@ -66,3 +66,12 @@ We can also obtain individual sensitivity function using the low-level function 
 A modern robustness measure is the [`diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Diskmargin-example), that analyses the robustness of a SISO or MIMO system to simultaneous gain and phase variations.
 
 In the presence of structured uncertainty, such as parameter uncertainty or other explicitly modeled uncertainty, the structured singular value (often referred to as $\mu$), provides a way to analyze robustness with respect to the modeled uncertainty. See the [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/) package for more details.
+
+Basic usage of robustness analysis with JuliaControl are demonstrated in the two videos below:
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/zTW4mlWNumo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
+and 
+```@raw html
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/gIsa93GvPbg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+```
