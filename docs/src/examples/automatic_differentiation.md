@@ -4,12 +4,20 @@ In Julia, it is often possible to automatically compute derivatives, gradients, 
 Two general methods for automatic differentiation are available: forward and reverse mode. Forward mode is algorithmically more favorable for functions with few inputs but many outputs, while reverse mode is more efficient for functions with many parameters but few outputs (like in deep learning). In Julia, forward-mode AD is provided by the package [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl), while reverse-mode AD is provided by several different packages, such as Zygote.jl and ReverseDiff.jl. Forward-mode AD generally has a lower overhead than reverse-mode AD, so for functions of a small number of parameters, say, less than about 10 or 100, forward-mode is usually most efficient. ForwardDiff.jl also has support for differentiating most of the Julia language, making the probability of success higher than for other packages, why we generally recommend trying ForwardDiff.jl first.
 
 ## Linearizing nonlinear dynamics
-Nonlinear dynamics on the form ``\dot x = f(x, u)`` is easily linearized in the point ``x_0, u_0`` using ForwardDiff.jl:
+Nonlinear dynamics on the form
+```math
+\begin{aligned}
+\dot x &= f(x, u) \\
+y &= g(x, u)
+\end{aligned}
+```
+
+is easily linearized in the point ``x_0, u_0`` using ForwardDiff.jl:
 ```@example autodiff
 using ControlSystemsBase, ForwardDiff
 
 "An example of a nonlinear dynamics"
-function nonlinear_dynamics(x, u)
+function f(x, u)
     x1, x2 = x
     u1, u2 = u
     [x2; u1*x1 + u2*x2]
@@ -17,20 +25,20 @@ end
 
 x0 = [1.0, 0.0]
 u0 = [0.0, 1.0]
-A = ForwardDiff.jacobian(x -> nonlinear_dynamics(x, u0), x0)
-B = ForwardDiff.jacobian(u -> nonlinear_dynamics(x0, u), u0)
+A = ForwardDiff.jacobian(x -> f(x, u0), x0)
+B = ForwardDiff.jacobian(u -> f(x0, u), u0)
 
 "An example of a nonlinear output (measurement) function"
-function output_function(x, u)
+function g(x, u)
     y = [x[1] + 0.1x[1]*u[2]; x[2]]
 end
 
-C = ForwardDiff.jacobian(x -> output_function(x, u0), x0)
-D = ForwardDiff.jacobian(u -> output_function(x0, u), u0)
+C = ForwardDiff.jacobian(x -> g(x, u0), x0)
+D = ForwardDiff.jacobian(u -> g(x0, u), u0)
 
 linear_sys = ss(A, B, C, D)
 ```
-The example above linearizes `nonlinear_dynamics` in the point ``x_0, u_0`` to obtain the linear statespace matrices ``A`` and ``B``, and linearizes `output_function` to obtain the linear output matrices ``C`` and ``D``.
+The example above linearizes `f` in the point ``x_0, u_0`` to obtain the linear statespace matrices ``A`` and ``B``, and linearizes `g` to obtain the linear output matrices ``C`` and ``D``.
 
 ## Optimization-based tuning
 
