@@ -242,7 +242,7 @@ end
 returns the polynomial coefficients in discrete time given a vector of roots in continuous time
 """
 function c2d_roots2poly(ro, Ts)
-    return real((Polynomials.poly(exp(ro .* Ts))).coeffs[end:-1:1])
+    return reverse(Polynomials.fromroots(exp.(ro .* Ts)).coeffs)
 end
 
 """
@@ -251,8 +251,8 @@ end
 returns the polynomial coefficients in discrete time given polynomial coefficients in continuous time
 """
 function c2d_poly2poly(p, Ts)
-    ro = Polynomials.roots(Polynomials.Polynomial(p[end:-1:1]))
-    return real(Polynomials.poly(exp(ro .* Ts)).coeffs[end:-1:1])
+    ro = Polynomials.roots(Polynomials.Polynomial(reverse(p)))
+    return c2d_roots2poly(ro, Ts)
 end
 
 function c2d(G::TransferFunction{<:Continuous, <:SisoRational}, Ts, args...; kwargs...)
