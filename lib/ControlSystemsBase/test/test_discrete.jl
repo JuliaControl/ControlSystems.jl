@@ -143,4 +143,7 @@ p = poles(Gcl)
 @test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 
 
+pd = c2d_poly2poly(A, 0.1)
+@test pd ≈ denvec(c2d(P, 0.1))[]
+
 end
