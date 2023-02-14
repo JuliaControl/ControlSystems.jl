@@ -131,8 +131,8 @@ params  = [kp, ki, kd, 0.01] # Initial guess for parameters (log space)
 using Optimization
 using OptimizationGCMAES
 
-f = OptimizationFunction((x, _)->cost(P, x), Optimization.AutoForwardDiff())
-prob = OptimizationProblem(f, params, lb=zeros(length(params)), ub = 10ones(length(params)))
+fopt = OptimizationFunction((x, _)->cost(P, x), Optimization.AutoForwardDiff())
+prob = OptimizationProblem(fopt, params, lb=zeros(length(params)), ub = 10ones(length(params)))
 solver = GCMAESOpt()
 res = solve(prob, solver; maxiters=1000); res.objective
 plot_optimized(P, params, res.u)
