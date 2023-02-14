@@ -11,22 +11,6 @@ default(show=false, size=(800,450))
 dir = joinpath(dirname(pathof(ControlSystems)), "..")
 cd(dir)
 
-# Copied from Documenter/src/Document.jl, modified to remove # hide lines
-Markdown = Documenter.Documents.Markdown
-function Documenter.Documents.doctest_replace!(block::Markdown.Code)
-    startswith(block.language, "jldoctest") || return false
-    # suppress output for `#output`-style doctests with `output=false` kwarg
-    if occursin(r"^# output$"m, block.code) && occursin(r";.*output\h*=\h*false", block.language)
-        input = first(split(block.code, "# output\n", limit = 2))
-        block.code = rstrip(input)
-    end
-    # Remove # hide lines
-    block.code = Documenter.Expanders.droplines(block.code)
-    # correct the language field
-    block.language = occursin(r"^julia> "m, block.code) ? "julia-repl" : "julia"
-    return false
-end
-
 const libpath = haskey(ENV, "CI") ? dirname(pathof(ControlSystemsBase)) : "lib/ControlSystemsBase/src"
 dirname(pathof(ControlSystemsBase))
 
@@ -36,6 +20,7 @@ println("Making docs")
 makedocs(modules=[ControlSystems, ControlSystemsBase],
     format = Documenter.HTML(prettyurls = haskey(ENV, "CI")),
     sitename="ControlSystems.jl",
+    pagesonly = true,
     strict=[
         :doctest, 
         :linkcheck, 
@@ -58,6 +43,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
             "Smith predictor" => "examples/smith_predictor.md",
             "Iterative Learning Control (ILC)" => "examples/ilc.md",
             "Properties of delay systems" => "examples/delay_systems.md",
+            "Automatic differentiation" => "examples/automatic_differentiation.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",
