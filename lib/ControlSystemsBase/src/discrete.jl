@@ -119,7 +119,9 @@ function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
     ae      = conv(a,ar)
     be      = conv(bminus,as)
     aoam    = conv(am,ao)
-    r1,s1   = dab(ae,be,aoam)
+    ret   = dab(ae,be,aoam)
+    ret === nothing && error("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
+    r1,s1 = ret
 
     r       = conv(conv(r1,ar),bplus)
     s       = conv(s1,as)
@@ -130,6 +132,8 @@ function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
     s       = s/r[1]
     t       = t/r[1]
     r       = r/r[1]
+
+    length(s) > length(r) && @warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
 
     r,s,t
 end
@@ -219,7 +223,6 @@ function dab(a,b,c)
     rs = (c'/(m'))'
     r = rs[1:nr]
     s = rs[nr+1:nc]
-    length(s) > length(r) && @warn("Controller not casual, deg(S) > deg(R), consider increasing degree of observer polynomial")
     r,s
 end
 
