@@ -299,17 +299,42 @@ function siso_ss_to_zpk(sys, i, j)
     return z, eigvals(A), k
 end
 
+"""
+Implements: "An accurate and efficient algorithm for the computation of thecharacteristic polynomial of a general square matrix."
+"""
+function charpoly(A::AbstractMatrix{T}) where {T}
+    N = size(A, 1)
+    poly_factors = vec(ones(T, N+1))
+    if N <= 0
+        return poly_factors
+    end
 
-# TODO: Could perhaps be made more accurate. See: An accurate and efficient
-# algorithm for the computation of the # characteristic polynomial of a general square matrix.
-function charpoly(A::AbstractMatrix{T}) where T
-    Λ::Vector{T} = eigvalsnosort(A)
-    return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
+    t = zeros(T, N, N) # Preallocation
+    P, H = hessenberg(A)
+    for j=N:-1:1
+        for i=1:j
+            for k=N-j:-1:1
+                t[k+1, i] = H[i, j]*t[k, j+1]-H[j+1, j]*t[k, i]
+            end
+            t[1, i] = H[i, j]
+        end
+        for k=1:N-j
+            t[k, j] += t[k, j+1]
+        end
+    end
+    i = N-1:-1:0
+    @. poly_factors[2:N+1, 1] = (-1)^(N-i)*t[N-i, 1]
+    return poly_factors
 end
-function charpoly(A::AbstractMatrix{<:Real})
-    Λ = eigvalsnosort(A)
-    return prod(roots2real_poly_factors(Λ))
-end
+
+# function charpoly(A::AbstractMatrix{T}) where T
+#     Λ::Vector{T} = eigvalsnosort(A)
+#     return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
+# end
+# function charpoly(A::AbstractMatrix{<:Real})
+#     Λ = eigvalsnosort(A)
+#     return prod(roots2real_poly_factors(Λ))
+# end
 
 
 # function charpoly(A)

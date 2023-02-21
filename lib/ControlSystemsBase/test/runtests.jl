@@ -19,7 +19,7 @@ my_tests = [
             "test_timeevol",
             "test_statespace",
             "test_staticsystems",
-            "test_transferfunction",            
+            "test_transferfunction",          
             "test_zpk",
             "test_promotion",
             "test_connections",
