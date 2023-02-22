@@ -302,7 +302,7 @@ end
 """
 Implements: "An accurate and efficient algorithm for the computation of thecharacteristic polynomial of a general square matrix."
 """
-function charpoly(A::AbstractMatrix{T}) where {T}
+function charpoly(A::AbstractMatrix{T}) where {T <: LinearAlgebra.BlasFloat}
     N = size(A, 1)
     poly_factors = vec(ones(T, N+1))
     if N <= 0
@@ -327,14 +327,14 @@ function charpoly(A::AbstractMatrix{T}) where {T}
     return poly_factors
 end
 
-# function charpoly(A::AbstractMatrix{T}) where T
-#     Λ::Vector{T} = eigvalsnosort(A)
-#     return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
-# end
-# function charpoly(A::AbstractMatrix{<:Real})
-#     Λ = eigvalsnosort(A)
-#     return prod(roots2real_poly_factors(Λ))
-# end
+function charpoly(A::AbstractMatrix{T}) where T
+    Λ::Vector{T} = eigvalsnosort(A)
+    return prod(roots2poly_factors(Λ))::Polynomial{T,:x} # Compute the polynomial factors directly?
+end
+function charpoly(A::AbstractMatrix{<:Real})
+    Λ = eigvalsnosort(A)
+    return prod(roots2real_poly_factors(Λ))
+end
 
 
 # function charpoly(A)
