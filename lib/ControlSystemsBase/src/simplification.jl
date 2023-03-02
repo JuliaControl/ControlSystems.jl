@@ -13,7 +13,10 @@ trunc_zero!(A) = A[abs.(A) .< 10eps(maximum(abs, A))] .= 0
 trunc_zero!(sys.A); trunc_zero!(sys.B); trunc_zero!(sys.C)
 sminreal(sys)
 ```
-See also [`minreal`](@ref)
+
+In contrast to [`minreal`](@ref), which performs pole-zero cancellation using linear-algebra operations, has an 𝑂(nₓ^3) complexity and is subject to numerical tolerances, `sminreal` is computationally very cheap and numerically exact (operates on integers). However, the ability of `sminreal` to reduce the order of the model is much less powerful.
+
+See also [`minreal`](@ref).
 """
 function sminreal(sys::AbstractStateSpace)
     A, B, C, inds = struct_ctrb_obsv(sys)
