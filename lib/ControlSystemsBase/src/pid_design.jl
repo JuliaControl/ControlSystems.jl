@@ -409,7 +409,7 @@ The gain of the resulting controller is generally increasing with increasing `ω
 - `P`: A SISO plant.
 - `ω`: The specification frequency.
 - `Mt`: The magnitude of the complementary sensitivity function at the specification frequency, ``|T(iω)|``.
-- `ϕt`: The 
+- `ϕt`: The positive angle in degrees between the real axis and the tangent point.
 - `doplot`: If true, gang of four and Nyquist plots will be returned in `fig`.
 - `lb`: log10 of lower bound for `kd`.
 - `ub`: log10 of upper bound for `kd`.

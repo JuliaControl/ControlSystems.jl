@@ -784,14 +784,16 @@ _default_time_data(sys::LTISystem) = _default_time_data(LTISystem[sys])
 
 @userplot Pzmap
 """
-    fig = pzmap(fig, system, args...; kwargs...)
+    fig = pzmap(fig, system, args...; hz = false, kwargs...)
 
 Create a pole-zero map of the `LTISystem`(s) in figure `fig`, `args` and `kwargs` will be sent to the `scatter` plot command.
 
 To customize the unit-circle drawn for discrete systems, modify the line attributes, e.g., `linecolor=:red`.
+
+If `hz` is true, all poles and zeros are scaled by 1/2π.
 """
 pzmap
-@recipe function pzmap(p::Pzmap)
+@recipe function pzmap(p::Pzmap; hz=false)
     systems = p.args[1]
     seriestype := :scatter
     framestyle --> :zerolines
@@ -800,6 +802,10 @@ pzmap
     for (i, system) in enumerate(systems)
         p = poles(system)
         z = tzeros(system)
+        if hz
+            p ./= 2π
+            z ./= 2π
+        end
         if !isempty(z)
             @series begin
                 group --> i
