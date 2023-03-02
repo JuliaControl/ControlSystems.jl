@@ -10,36 +10,36 @@ using ControlSystemsBase
 # Local definition to make sure we get warnings if we use eye
 eye_(n) = Matrix{Int64}(I, n, n)
 
-# Length not defined for StateSpace, so use custom function
-function Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
-    fields = [:timeevol, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
-    for field in fields
-        if getfield(va, field) != getfield(vb, field)
-            return false
-        end
-    end
-    diff = 0.0
-    valfields = [:A, :B, :C, :D]
-    for field in valfields
-        mata = getfield(va, field)
-        matb = getfield(vb, field)
-        diff = max(diff, maximum(abs.(mata - matb)))
-    end
-    if !isnan(Eps) && !(diff <= Eps)
-        sdiff = string("|", astr, " - ", bstr, "| <= ", Eps)
-        return false
-    end
-    return true
-end
+# # Length not defined for StateSpace, so use custom function
+# function Test.test_approx_eq(va::StateSpace, vb::StateSpace, Eps, astr, bstr)
+#     fields = [:timeevol, :nx, :ny, :nu, :inputnames, :outputnames, :statenames]
+#     for field in fields
+#         if getfield(va, field) != getfield(vb, field)
+#             return false
+#         end
+#     end
+#     diff = 0.0
+#     valfields = [:A, :B, :C, :D]
+#     for field in valfields
+#         mata = getfield(va, field)
+#         matb = getfield(vb, field)
+#         diff = max(diff, maximum(abs.(mata - matb)))
+#     end
+#     if !isnan(Eps) && !(diff <= Eps)
+#         sdiff = string("|", astr, " - ", bstr, "| <= ", Eps)
+#         return false
+#     end
+#     return true
+# end
 
-Test.test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
-    Test.test_approx_eq(va, vb, 1E4*length(va.A)*max(Test.array_eps(va.A),
-    Test.array_eps(vb.A)), astr, bstr)
+# Test.test_approx_eq(va::StateSpace, vb::StateSpace, astr, bstr) =
+#     Test.test_approx_eq(va, vb, 1E4*length(va.A)*max(Test.array_eps(va.A),
+#     Test.array_eps(vb.A)), astr, bstr)
 
-# Length not defined for TransferFunction, so use custom function
-Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
+# # Length not defined for TransferFunction, so use custom function
+# Test.test_approx_eq(a::TransferFunction, b::TransferFunction, meps, astr, bstr) = isapprox(a, b, rtol=meps)
 
-Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
+# Test.test_approx_eq(a::TransferFunction, b::TransferFunction, astr, bstr) = (a ≈ b)
 
 #Base.isapprox{T<:Number,N}(x::Array{T,N}, y::Array{T,N}; atol=sqrt(eps())) = all(abs.(x.-y) .< atol)
 
