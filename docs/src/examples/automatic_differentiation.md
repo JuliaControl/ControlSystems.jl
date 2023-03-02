@@ -53,6 +53,10 @@ using ControlSystemsBase, ForwardDiff, Plots
 
 P = DemoSystems.double_mass_model()
 
+bodeplot(P, title="Bode plot of Double-mass system \$P(s)\$")
+```
+
+```@example autodiff
 Ω = exp10.(-2:0.04:3)
 kp,ki,kd,Tf =  1, 0.1, 0.1, 0.01 # controller parameters
 
