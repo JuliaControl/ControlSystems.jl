@@ -114,15 +114,18 @@ for (i,w) in enumerate(ws)
     resp[:,:,i] = f(im*w)
 end
 
-@test bode(sys, ws)[1:2] == (abs.(resp), rad2deg.(angle.(resp)))
+# A little test helper
+Base.isapprox(t1::Tuple, t2::Tuple) = t1[1] ≈ t2[1] && t1[2] ≈ t2[2]
+
+@test bode(sys, ws)[1:2] ≈ (abs.(resp), rad2deg.(angle.(resp)))
 workspace = BodemagWorkspace(sys, ws)
 @test bode(sys, ws)[1] == bodemag!(workspace, sys, ws)
-@test nyquist(sys, ws)[1:2] == (real(resp), imag(resp))
+@test nyquist(sys, ws)[1:2] ≈ (real(resp), imag(resp))
 sigs = Array{Float64}(undef, 2, 50)
 for i in eachindex(ws)
     sigs[:, i] =  svdvals(resp[:,:,i])
 end
-@test sigma(sys, ws)[1] == sigs
+@test sigma(sys, ws)[1] ≈ sigs
 
 
 # test unwrap
