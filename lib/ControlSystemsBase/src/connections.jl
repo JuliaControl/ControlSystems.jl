@@ -308,6 +308,8 @@ Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for posi
 
 See also `lft`, `starprod`, `sensitivity`, `input_sensitivity`, `output_sensitivity`, `comp_sensitivity`, `input_comp_sensitivity`, `output_comp_sensitivity`, `G_PS`, `G_CS`.
 
+The manual section [From block diagrams to code](https://juliacontrol.github.io/ControlSystems.jl/stable/man/creating_systems/#From-block-diagrams-to-code) contains higher-level instructions on how to use this function.
+
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
 function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
