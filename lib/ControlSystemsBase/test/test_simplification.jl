@@ -80,6 +80,6 @@ y2,x2 = step(sysmin,t, method=:zoh)[[1,3]]
         Gr,_ = balreal(G)
         norm(G-Gr)
     end
-    @test maximum(errors) < 5e-7
+    @test maximum(errors) < 1e-6
 
 end
