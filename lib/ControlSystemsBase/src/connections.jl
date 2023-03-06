@@ -270,7 +270,7 @@ end
              U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
              Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
-*Basic use* `feedback(sys1, sys2)` forms the feedback interconnection
+*Basic use* `feedback(sys1, sys2)` forms the (negative) feedback interconnection
 ```julia
            ┌──────────────┐
 ◄──────────┤     sys1     │◄──── Σ ◄──────
@@ -282,6 +282,8 @@ end
            │              │
            └──────────────┘
 ```
+If no second system `sys2` is given, negative identity feedback (`sys2 = 1`) is assumed.
+
 *Advanced use*
 `feedback` also supports more flexible use according to the figure below
 ```julia
