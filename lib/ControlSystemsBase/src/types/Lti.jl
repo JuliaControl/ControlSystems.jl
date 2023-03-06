@@ -92,6 +92,14 @@ Base.size(sys::LTISystem, i::Integer) = size(sys)[i]
 
 
 ## Names =======================================================================
+
+"""
+    system_name(nothing::LTISystem)
+
+Return the name of the system. If the system does not have a name, an empty string is returned.
+"""
+system_name(::LTISystem) = ""
+
 """
     input_names(P)
     input_names(P, i)
