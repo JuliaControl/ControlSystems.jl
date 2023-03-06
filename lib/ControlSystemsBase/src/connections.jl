@@ -222,15 +222,16 @@ For a general LTI-system, `feedback` forms the negative feedback interconnection
 If no second system is given, negative identity feedback is assumed
 """
 feedback(L::TransferFunction) = L/(1+L)
-feedback(P1::TransferFunction, P2::TransferFunction) = P1/(1+P1*P2)
+feedback(P1::TransferFunction, P2::TransferFunction; pos_feedback::Bool = false) = P1/(1+P1*(pos_feedback ? -P2 : P2))
 
-function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::TransferFunction{<:TimeEvolution,<:SisoRational})
+function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::TransferFunction{<:TimeEvolution,<:SisoRational}; pos_feedback::Bool = false)
     if !issiso(G1) || !issiso(G2)
         error("MIMO TransferFunction feedback isn't implemented.")
     end
     G1num = numpoly(G1)[]
     G1den = denpoly(G1)[]
     G2num = numpoly(G2)[]
+    pos_feedback && (G2num = -G2num)
     G2den = denpoly(G2)[]
     
     timeevol = common_timeevol(G1, G2)
