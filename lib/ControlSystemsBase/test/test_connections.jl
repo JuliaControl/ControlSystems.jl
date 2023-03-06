@@ -392,4 +392,13 @@ G = extended_gangoffour(P, K, true)
 @test tf(G[1,2]) ≈ tf(-G_PS(P, K))
 @test tf(G[2,2]) ≈ tf(-input_comp_sensitivity(P, K))
 
+
+# https://github.com/JuliaControl/ControlSystems.jl/issues/815
+function feedback_ctrl(G, K)
+    ny,nu = size(G)
+    Zperm = [(1:ny).+nu; 1:nu] # To make output come before control
+    feedback(K, G; Z2 = :, Zperm)
+end
+@test_throws ErrorException feedback_ctrl(tf([1], [0.1, 1]), delay(0.1))
+
 end

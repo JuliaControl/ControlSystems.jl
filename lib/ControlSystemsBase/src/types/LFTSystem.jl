@@ -63,7 +63,8 @@ function *(sys1::LFTSystem{TE, T1}, sys2::LFTSystem{TE, T2}) where {TE, T1, T2}
 end
 
 
-function feedback(sys1::LFTSystem, sys2::LFTSystem)
+function feedback(sys1::LFTSystem, sys2::LFTSystem; kwargs...)
+    isempty(kwargs) || error("The advanced interface to the function `feedback` (with connection keyword arguments) is currently not supported for LFT systems (such as nonlinear and time-delay systems)")
     psys_new = feedback(sys1.P, sys2.P)
     Tau_new = [feedback_channel(sys1); feedback_channel(sys2)]
 
