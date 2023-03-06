@@ -257,6 +257,22 @@ If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency ve
 """
 bodeplot
 
+function _get_plotlabel(s)
+    sys_name = system_name(s)
+    if !isempty(sys_name)
+        sys_name = sys_name * ": "
+    end
+    u_names = input_names(s)
+    y_names = output_names(s)
+    default_names = all(match(r"^u\(?\d*\)?$", name) !== nothing for name in u_names) &&
+        all(match(r"^y\(?\d*\)?$", name) !== nothing for name in y_names)
+    if default_names && isempty(sys_name)
+        nothing
+    else # It's enough that the system has either a system name or signal names
+        "$(sys_name)$(u_names[j]) → $(y_names[i])"
+    end
+end
+
 @recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
@@ -274,7 +290,6 @@ bodeplot
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
-
 
         xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
         group_ind = 0
@@ -296,8 +311,10 @@ bodeplot
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
                     subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
-                    # title     --> "Bode plot from: u($j)"
-                    # label     --> "\$G_{$(si)}\$"
+                    lab = _get_plotlabel(s)
+                    if lab !== nothing
+                        label --> lab
+                    end
                     group     --> group_ind
                     ws, magdata
                 end
@@ -310,7 +327,7 @@ bodeplot
                     yguide    --> "Phase (deg)"
                     subplot   --> s2i(2i,j)
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
-                    # label     --> "\$G_{$(si)}\$"
+                    label     --> ""
                     group     --> group_ind
                     ws, unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                 end
@@ -387,7 +404,10 @@ nyquistplot
                 xlims --> (min(minimum(redata[mask]),-1.05), max(maximum(redata[mask]),1.05))
                 @series begin
                     subplot --> s2i(i,j)
-                    label --> "\$G_{$(si)}\$"
+                    lab = _get_plotlabel(s)
+                    if lab !== nothing
+                        label --> lab
+                    end
                     hover --> [hz ? Printf.@sprintf("f = %.3f", w/2π) : Printf.@sprintf("ω = %.3f", w) for w in w]
                     (redata, imdata)
                 end                
@@ -726,6 +746,10 @@ A frequency vector `w` can be optionally provided.
                     title := (titles[j,i,1,1]*" "*titles[j,i,1,2])
                 end
                 @series begin
+                    lab = _get_plotlabel(s)
+                    if lab !== nothing
+                        label --> lab
+                    end
                     primary := true
                     seriestype := :bodemag
                     w, bmag[i, j, :]
