@@ -257,7 +257,7 @@ If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency ve
 """
 bodeplot
 
-function _get_plotlabel(s)
+function _get_plotlabel(s, i, j)
     sys_name = system_name(s)
     if !isempty(sys_name)
         sys_name = sys_name * ": "
@@ -311,7 +311,7 @@ end
                     xguide    --> xlab
                     yguide    --> "Magnitude $_PlotScaleStr"
                     subplot   --> min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
-                    lab = _get_plotlabel(s)
+                    lab = _get_plotlabel(s, i, j)
                     if lab !== nothing
                         label --> lab
                     end
@@ -404,7 +404,7 @@ nyquistplot
                 xlims --> (min(minimum(redata[mask]),-1.05), max(maximum(redata[mask]),1.05))
                 @series begin
                     subplot --> s2i(i,j)
-                    lab = _get_plotlabel(s)
+                    lab = _get_plotlabel(s, i, j)
                     if lab !== nothing
                         label --> lab
                     end
@@ -746,7 +746,7 @@ A frequency vector `w` can be optionally provided.
                     title := (titles[j,i,1,1]*" "*titles[j,i,1,2])
                 end
                 @series begin
-                    lab = _get_plotlabel(s)
+                    lab = _get_plotlabel(s, i, j)
                     if lab !== nothing
                         label --> lab
                     end
