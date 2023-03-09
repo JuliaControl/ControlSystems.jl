@@ -80,7 +80,9 @@ We start by defining a helper function `plot_optimized` that will evaluate the p
 
 The cost function `cost` encodes the constraint on the peak of the sensitivity function as a penalty function (this could be enforced explicitly by using a constrained optimizer) and weighs the different objective terms together using user-defined weights `Sweight` and `CSweight`. Finally, we use [Optimization.jl](https://github.com/SciML/Optimization.jl) to optimize the cost function and tell it to use ForwardDiff.jl to compute the gradient of the cost function. The optimizer we use in this example, `GCMAESOpt`, is the "Gradient-based Covariance Matrix Adaptation Evolutionary Strategy", which can be thought of as a blend between a derivative-free global optimizer and a gradient-based local optimizer.
 
-To make the automatic gradient computation through the matrix exponential used in the function [`c2d`](@ref) work, we load the package `ChainRules` that contains a rule for `exp!`, and `ForwardDiffChainRules` that makes ForwardDiff understand the rules in `ChainRules`. Lastly, we need to tell ForwardDiff to use the `exp!` rule for the matrix exponential, which we do by defining an appropriate `@ForwardDiff_frule` for `exp!` that uses the rule in `ChainRules`. All other functions we used work out of the box with ForwardDiff.
+To make the automatic gradient computation through the matrix exponential used in the function [`c2d`](@ref)[^zoh] work, we load the package `ChainRules` that contains a rule for `exp!`, and `ForwardDiffChainRules` that makes ForwardDiff understand the rules in `ChainRules`. Lastly, we need to tell ForwardDiff to use the `exp!` rule for the matrix exponential, which we do by defining an appropriate `@ForwardDiff_frule` for `exp!` that uses the rule in `ChainRules`. All other functions we used work out of the box with ForwardDiff.
+
+[^zoh]: Only applies for the methods that rely on matrix exponential, such as zero and first-order hold, if `c2d(P, Ts, :tustin)` is used instead, `ChainRules` and `ForwardDiffChainRules` are not required.
 
 ```@example autodiff
 using Optimization, Statistics, LinearAlgebra

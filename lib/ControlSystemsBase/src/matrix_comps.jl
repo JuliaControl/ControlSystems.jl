@@ -1,3 +1,11 @@
+const _scaling_notice = """
+Note: Gramian computations are sensitive to input-output scaling. For the result of a numerical balancing, gramian computation or truncation of MIMO systems to be meaningful, the inputs and outputs of the system must thusbe scaled in a meaningful way. A common (but not the only) approach is:
+- The outputs are scaled such that the maximum allowed control error, the maximum expected reference variation, or the maximum expected variation, is unity.
+- The input variables are scaled to have magnitude one. This is done by dividing each variable by its maximum expected or allowed change, i.e., ``u_{scaled} = u / u_{max}``
+
+Without such scaling, the result of balancing will depend on the units used to measure the input and output signals, e.g., a change of unit for one output from meter to millimeter will make this output 1000x more important.
+"""
+
 """
     are(::Continuous, A, B, Q, R)
 
@@ -92,6 +100,9 @@ grammian.
 
 See also [`grampd`](@ref)
 For keyword arguments, see [`grampd`](@ref).
+
+# Extended help
+$(_scaling_notice)
 """
 function gram(sys::AbstractStateSpace, opt::Symbol; kwargs...)
     U = grampd(sys, opt; kwargs...)
@@ -124,14 +135,17 @@ function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
 end
 obsv(sys::AbstractStateSpace, n::Int = sys.nx) = obsv(sys.A, sys.C, n)
 
-"""`ctrb(A, B)` or `ctrb(sys)`
+"""
+    ctrb(A, B)
+    ctrb(sys)
 
 Compute the controllability matrix for the system described by `(A, B)` or
 `sys`.
 
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
-checking if `gram(sys, :c)` is positive definite."""
+checking if `gram(sys, :c)` is positive definite.
+"""
 function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     T = promote_type(eltype(A), eltype(B))
     n = size(A, 1)
@@ -501,7 +515,7 @@ end
 
 Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
 
-See also `gram`, `baltrunc`
+See also [`gram`](@ref), [`baltrunc`](@ref).
 
 Reference: Varga A., Balancing-free square-root algorithm for computing singular perturbation approximations.
 """
@@ -555,6 +569,9 @@ See also `gram`, `balreal`
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder.
 
 For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduction](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Model-reduction).
+
+# Extended help
+$(_scaling_notice)
 """
 function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
