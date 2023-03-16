@@ -1,4 +1,6 @@
+import OrdinaryDiffEq: ODEProblem, SavedValues, SavingCallback, Tsit5, DiffEqBase, solve, BS3
 import ControlSystemsBase: lsim, step, impulse, HammersteinWienerSystem, DelayLtiSystem, PartitionedStateSpace, SimResult
+import DelayDiffEq: MethodOfSteps
 # Function for DifferentialEquations lsim
 """
     f_lsim(dx, x, p, t)
@@ -193,7 +195,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
 
     # The states are x(t), Y(t), D(t), where Y, D are integrals of y(t), d(t)
     u0 = [x0;zeros(T,ny);zeros(T,nd)]
-    prob = DDEProblem{true}(dde_param, u0, h!,
+    prob = DelayDiffEq.DDEProblem{true}(dde_param, u0, h!,
                 (T(t[1]), T(t[end])),
                 p,
                 constant_lags=sort(Tau),# Not sure if sort needed
