@@ -61,3 +61,13 @@ A video tutorial on delay systems is available here:
 ```@raw html
 <iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/ER8_oHU2vZs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 ```
+
+## Additional design methods for delay systems
+Many standard control-design methods fail for delay systems, or any system not represented as a rational function. In addition to using the Smith predictor outlined above, there are however several common tricks that can be applied to make use of these methods.
+- Approximate the delay using a [`pade`](@ref) approximation, this will result in a standard rational model. The drawbacks include zeros in the right half plane and a failure to capture the extreme phase loss of the delay for high frequencies.
+- Discretize the system with a sample time that fits an integer multiple in the delay time. A delay can be represented exactly in discrete time, but if the sample time is chosen small in relation to the delay time, a large number of extra states will be introduced.
+- Neglect the delay and design the controller with large phase and delay margins. This is perhaps not a terribly sophisticated method, but nevertheless useful in practice.
+- Neglect the delay, but model it as uncertainty. See [Modeling uncertain time delays](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/uncertainty/#Uncertain-time-delays) in the RobustAndOptimalControl.jl extension package. This can help you get a feeling for the margin with which you must design your controller when you have neglected to model the delay.
+- Frequency-domain methods such as manual loop shaping, and some forms of optimization-based tuning, handle time delays natively. 
+
+Whatever method is used to design in the presence of delays, the robustness and performance of the design should preferably be verified using a model of the plant where the delay is included, uncertain or not.
