@@ -1,3 +1,4 @@
+import OrdinaryDiffEq: ODESolution, ODEProblem
 abstract type AbstractSimulator end
 
 # ============================================================================================
@@ -52,4 +53,4 @@ Simulate the system represented by `s` from initial state `x0` over time span `t
 
 See also `Simulator` `lsim`
 """
-DiffEqBase.solve(s::AbstractSimulator, x0, tspan, solver=Tsit5(), args...; kwargs...) = solve(ODEProblem(s.f,x0,tspan), solver, args...; kwargs...)
+DiffEqBase.solve(s::AbstractSimulator, x0, tspan, solver=Tsit5(), args...; kwargs...) = DiffEqBase.solve(ODEProblem(s.f,x0,tspan), solver, args...; kwargs...)
