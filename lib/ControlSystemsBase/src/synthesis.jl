@@ -107,7 +107,7 @@ Calculate the observer gain matrix `L` such that `A - LC` has eigenvalues `p`.
 Uses Ackermann's formula.
 
 **Currently handles only SISO systems**, but a trick is possible to make it work for MIMO systems:
-The code below introduces a random projection matrix `P` that projects the inuput space to one dimension, and then shifts the application of `P` from `B` to `K`. 
+The code below introduces a random projection matrix `P` that projects the input space to one dimension, and then shifts the application of `P` from `B` to `K`. 
 ```julia
 nx = 5
 nu = 2

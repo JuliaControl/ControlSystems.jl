@@ -124,7 +124,7 @@ StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
 
 
 # StateSpace(sys) converts to StateSpace
-StateSpace(sys::LTISystem) = convert(StateSpace, sys)
+StateSpace(sys::LTISystem; kwargs...) = convert(StateSpace, sys; kwargs...)
 
 """
     sys = ss(A, B, C, D)      # Continuous

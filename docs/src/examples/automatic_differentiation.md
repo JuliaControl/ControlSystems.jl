@@ -43,7 +43,9 @@ The example above linearizes `f` in the point ``x_0, u_0`` to obtain the linear 
 
 ## Optimization-based tuning
 
-This example will demonstrate simple usage of AD using ForwardDiff.jl for optimization-based autotuning of a PID controller.
+### PID controller
+
+This example will demonstrate simple usage of AD using ForwardDiff.jl for optimization-based auto tuning of a PID controller.
 
 The system we will control is a double-mass system, in which two masses (or inertias) are connected by a flexible transmission. 
 
@@ -57,7 +59,7 @@ bodeplot(P, title="Bode plot of Double-mass system \$P(s)\$")
 ```
 
 ```@example autodiff
-Ω = exp10.(-2:0.04:3)
+Ω = exp10.(-2:0.03:3)
 kp,ki,kd,Tf =  1, 0.1, 0.1, 0.01 # controller parameters
 
 C  = pid(kp, ki, kd; Tf, form=:parallel, state_space=true) # Construct a PID controller with filter
@@ -86,8 +88,7 @@ To make the automatic gradient computation through the matrix exponential used i
 
 ```@example autodiff
 using Optimization, Statistics, LinearAlgebra
-using OptimizationGCMAES
-using ChainRules, ForwardDiffChainRules
+using OptimizationGCMAES, ChainRules, ForwardDiffChainRules
 @ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual})
 
 function plot_optimized(P, params, res)
@@ -146,3 +147,50 @@ plot_optimized(P, params, res.u)
 ```
 
 The optimized controller achieves more or less the same low peak in the sensitivity function, but does this while *both* making the step responses significantly faster *and* using much less controller gain for large frequencies (the orange sensitivity function), an altogether better tuning. The only potentially negative effect of this tuning is that the overshoot in response to a reference step increased slightly, indicated also by the slightly higher peak in the complimentary sensitivity function (green). However, the response to reference steps can (and most often should) be additionally shaped by reference pre-filtering (sometimes referred to as "feedforward" or "reference shaping"), by introducing an additional filter appearing in the feedforward path only, thus allowing elimination of the overshoot without affecting the closed-loop properties.
+
+### LQG controller
+We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. Since this is a SISO system, we do not need to tune the control-input matrix or the measurement covariance matrix, since any non-unit weight assigned to those can be associated with the state matrices instead. Since these matrices are supposed to be positive semi-definite, we optimize Cholesky factors rather than the full matrices.
+```@example autodiff
+function triangular(x)
+    m = length(x)
+    n = round(Int, sqrt(2m-1))
+    T = zeros(eltype(x), n, n)
+    k = 1
+    for i = 1:n, j = i:n
+        T[i,j] = x[k]
+        k += 1
+    end
+    T
+end
+invtriangular(T) = [T[i,j] for i = 1:size(T,1) for j = i:size(T,1)]
+
+function systems(P, params)
+    Qchol = triangular(params[1:10])
+    Q    = Qchol'Qchol
+    Rchol = triangular(params[11:20])
+    R    = Rchol'Rchol
+    L    = lqr(P, Q, I(1))
+    K    = kalman(P, R, I(1))
+    C    = observer_controller(P, L, K)
+    G    = extended_gangoffour(P, C) # [S PS; CS T]
+    Gd   = c2d(G, 0.1)   # Discretize the system
+    res1 = step(Gd[1,1], 0:0.1:15) # Simulate S
+    res2 = step(Gd[1,2], 0:0.1:15) # Simulate PS
+    C, G, res1, res2
+end
+
+Q0 = diagm([1,1,1,1]) # Initial guess LQR state penalty
+R0 = diagm([1,1,1,1]) # Initial guess Kalman state covariance
+params = [invtriangular(cholesky(Q0).U); invtriangular(cholesky(R0).U)]
+
+fopt = OptimizationFunction((x, _)->cost(P, x))
+prob = OptimizationProblem(fopt, params, lb=fill(-10, length(params)), ub = fill(10, length(params)))
+solver = GCMAESOpt()
+res = solve(prob, solver; maxiters=1000); res.objective
+plot_optimized(P, params, res.u)
+```
+
+This controller should perform better than the PID controller, which is known to be incapable of properly damping the resonance in a double-mass system. 
+
+!!! note "No automatic differentiation"
+    This example did not use automatic differentiation like we did when optimizing the PID controller. The problematic functions are the ones that solve the Riccati equations, these make use of the Schur factorization which does not have differentiation rules defined.
