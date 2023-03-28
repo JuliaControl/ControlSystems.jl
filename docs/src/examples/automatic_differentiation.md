@@ -126,7 +126,7 @@ end
     C, G, res1, res2 = systems(P, params)
     R,_ = bode(G, Ω, unwrap=false)
     S = sum(σ.(100 .* (R[1, 1, :] .- Msc))) # max sensitivity
-    CS = sum(Ω .* R[2, 1, :])               # max noise sensitivity
+    CS = sum(Ω .* R[2, 1, :])               # frequency-weighted noise sensitivity
     perf = mean(abs2, res1.y .* res1.t) + mean(abs2, res2.y .* res2.t)
     return perf + Sweight*S + CSweight*CS # Blend all objectives together
 end
@@ -166,8 +166,8 @@ invtriangular(T) = [T[i,j] for i = 1:size(T,1) for j = i:size(T,1)]
 
 function systems(P, params)
     Qchol = triangular(params[1:10])
-    Q    = Qchol'Qchol
     Rchol = triangular(params[11:20])
+    Q    = Qchol'Qchol
     R    = Rchol'Rchol
     L    = lqr(P, Q, I(1))
     K    = kalman(P, R, I(1))
@@ -194,3 +194,26 @@ This controller should perform better than the PID controller, which is known to
 
 !!! note "No automatic differentiation"
     This example did not use automatic differentiation like we did when optimizing the PID controller. The problematic functions are the ones that solve the Riccati equations, these make use of the Schur factorization which does not have differentiation rules defined.
+
+#### Robustness analysis
+To check the robustness of the designed LQG controller w.r.t. parametric uncertainty in the plant, we load the package [`MonteCarloMeasurements`](https://github.com/baggepinnen/MonteCarloMeasurements.jl) and recreate the plant model with 20% uncertainty in the spring coefficient.
+```@example autodiff
+using MonteCarloMeasurements
+Pu = DemoSystems.double_mass_model(k = Particles(32, Uniform(80, 120))) # Create a model with uncertainty in spring stiffness k ~ U(80, 120)
+unsafe_comparisons(true) # For the Bode plot to work
+
+C,_ = systems(P, res.u)             # Get the controller assuming P without uncertainty
+Gu = extended_gangoffour(Pu, C)     # Form the gang-of-four with uncertainty
+w = exp10.(LinRange(-1.5, 2, 500))
+bodeplot(Gu, w, plotphase=false, ri=false, N=32, ylims=(1e-1, 30), layout=1, sp=1, c=[1 2 4 3], lab=["S" "CS" "PS" "T"])
+hline!([Msc], l=:dashdot, c=1, lab="Constraint", ylims=(9e-2, Inf))
+```
+The uncertainty in the spring stiffness caused an uncertainty in the resonant peak in the sensitivity functions, it's a good thing that we designed a controller that was conservative with a large margin (small ``M_S``) so that all the plausible variations of the plant are expected to behave reasonably well:
+```@example autodiff
+Gd   = c2d(Gu, 0.05)   # Discretize the system
+r1 = step(Gd[1,1], 0:0.05:15) # Simulate S
+r2 = step(Gd[1,2], 0:0.05:15) # Simulate PS
+plot([r1, r2]; title="Time response",
+            lab = [" \$r → e\$" " \$d → e\$"], legend=:bottomright,
+            fillalpha=0.05, linealpha=0.8, seriestype=:path, c=[1 3], ri=false, N=32)
+```
