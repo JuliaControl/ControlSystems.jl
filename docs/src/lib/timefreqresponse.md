@@ -30,7 +30,7 @@ The function [`lsim`](@ref) can take an input vector `u` containing a sampled in
 
 For more extensive nonlinear simulation capabilities, see the notes on ModelingToolkit and DifferentialEquations under [The wider Julia ecosystem for control](@ref).
 
-#### Example:
+#### Example step response:
 The following simulates a step response of a second-order system and plots the result.
 ```@example TIMERESP
 using ControlSystemsBase, Plots
@@ -46,6 +46,33 @@ si = stepinfo(res)
 We can also plot the [`StepInfo`](@ref) object
 ```@example TIMERESP
 plot(si)
+```
+
+#### Example `lsim`:
+
+The function [`lsim`](@ref) can take the control input as either
+1. An array of equidistantly sampled values, in this case the argument `u` is expected to have the shape `nu × n_time`
+2. A function of the state and time `u(x,t)`. This form allows simulation of state feedback, a step response at time ``t_0``: `u(x, t) = amplitude * (t > t0)`, or a ramp response: `u(x, t) = t` etc.
+
+The example below simulates state feedback with a step disturbance at ``t=4`` by providing the function `u(x,t) = -L*x .+ (t > 4)` to `lsim`:
+```@example TIMERESP
+using ControlSystems
+using LinearAlgebra: I
+using Plots
+
+A = [0 1; 0 0]
+B = [0;1]
+C = [1 0]
+sys = ss(A,B,C,0)
+Q = I
+R = I
+L = lqr(sys,Q,R)
+
+u(x,t) = -L*x .+ (t > 4) # State feedback + step disturbance
+t  = 0:0.1:12
+x0 = [1,0]
+y, t, x, uout = lsim(sys,u,t,x0=x0)
+plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]"); vline!([4], lab="Step disturbance", l=(:black, :dash, 0.5))
 ```
 
 A video demonstrating time-domain simulation in ControlSystems.jl is available below.
