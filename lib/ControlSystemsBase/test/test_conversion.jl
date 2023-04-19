@@ -176,4 +176,9 @@ s3,s4 = promote(s1,s2)
 @test s3 == s4 == s2
 @test typeof(s3) == typeof(s4) == typeof(s2)
 
+# https://github.com/JuliaControl/ControlSystems.jl/issues/828
+mytf = [tf(1,[1,1]) tf(0); tf(0) tf(1,[1,1])]
+myss = ss(mytf)
+@test myss == ss([-1 0; 0 -1],[1 0; 0 1],[1 0; 0 1],[0 0; 0 0])
+
 end

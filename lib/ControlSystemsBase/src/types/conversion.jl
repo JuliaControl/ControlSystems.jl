@@ -137,7 +137,7 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
     N = length(den) - 1 # The order of the rational function f
 
     # Get numerator coefficient of the same order as the denominator
-    bN = length(num) == N+1 ? num[1] : zero(num[1])
+    bN = length(num) == N+1 ? num[1] : zero(eltype(num))
 
     @views if N == 0 #|| num == zero(Polynomial{T})
         A = zeros(T, 0, 0)
