@@ -59,6 +59,10 @@ function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: Abstr
 end
 
 function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::TransferFunction{TE}) where {T,S,TE}
+    if issiso(sys) && length(numvec(sys.matrix[1,1])) > length(denvec(sys.matrix[1,1]))
+        error("The transfer function is not proper and can not be converted to a DelayLtiSystem type. If you tried to form the system `exp(sL) * B / A` where `B / A` is proper, add parenthesis to make it `exp(sL) * (B / A)`.")
+    end
+       
     DelayLtiSystem{T,S}(convert(StateSpace{TE, T}, sys))
 end
 # Catch convertsion between T

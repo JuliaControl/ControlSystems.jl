@@ -62,6 +62,9 @@ H3 = zpk([(-1+im*sqrt(79))/8, (-1-im*sqrt(79))/8], [-3/2], 2)
 @test zpk(G3) ≈ H3 rtol=1e-15
 @test zpk(H3) == H3
 
+@test_throws ErrorException delay(5)*((s+1))/((s+2)*(s+0.5))
+@test_throws ErrorException delay(5)*zpk((s+1))/zpk((s+2)*(s+0.5))
+
 # Test complex 1
 A = [1.0 + im 1; 0 -2-3im]
 B = [0;2]
