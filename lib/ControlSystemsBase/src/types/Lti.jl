@@ -106,10 +106,10 @@ system_name(::LTISystem) = ""
 
 Get a vector of strings with the names of the inputs of `P`, or the `i`:th name if and index is given.
 """
-input_names(P::LTISystem) = [input_names(P, i) for i in 1:ninputs(P)]
-function input_names(P::LTISystem, i)
+input_names(P::LTISystem; kwargs...) = [input_names(P, i; kwargs...) for i in 1:ninputs(P)]
+function input_names(P::LTISystem, i; default = "u")
     i <= ninputs(P) || throw(BoundsError(P, i))
-    ninputs(P) == 1 && (return "u")
+    ninputs(P) == 1 && (return default)
     "u($i)"
 end
 
@@ -119,10 +119,10 @@ end
 
 Get a vector of strings with the names of the outputs of `P`, or the `i`:th name if and index is given.
 """
-output_names(P::LTISystem) = [output_names(P, i) for i in 1:noutputs(P)]
-function output_names(P::LTISystem, i)
+output_names(P::LTISystem; kwargs...) = [output_names(P, i; kwargs...) for i in 1:noutputs(P)]
+function output_names(P::LTISystem, i; default = "y")
     i <= noutputs(P) || throw(BoundsError(P, i))
-    noutputs(P) == 1 && (return "y")
+    noutputs(P) == 1 && (return default)
     "y($i)"
 end
 
@@ -132,9 +132,9 @@ end
 
 Get a vector of strings with the names of the states of `P`, or the `i`:th name if and index is given.
 """
-state_names(P::LTISystem) = [state_names(P, i) for i in 1:nstates(P)]
-function state_names(P::LTISystem, i)
+state_names(P::LTISystem; kwargs...) = [state_names(P, i; kwargs...) for i in 1:nstates(P)]
+function state_names(P::LTISystem, i; default = "x")
     i <= nstates(P) || throw(BoundsError(P, i))
-    nstates(P) == 1 && (return "x")
+    nstates(P) == 1 && (return default)
     "x($i)"
 end
