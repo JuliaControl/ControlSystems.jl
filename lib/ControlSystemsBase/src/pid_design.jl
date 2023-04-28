@@ -196,7 +196,7 @@ KN \\dfrac{s + b}{s + bN} = K \\dfrac{1 + s/b}{1 + s/(bN)}
 
 See also `leadlinkat` `laglink`
 """
-function leadlink(b, N, K=1; h=nothing, Ts=nothing)
+function leadlink(b, N, K=1; Ts=nothing)
     Ts !== nothing && (Ts ≥ 0 || throw(ArgumentError("Negative `Ts` is not supported.")))
     N > 1 || @warn "N should be ≥ 1 for the link to be phase advancing."
     numerator = [1/b, 1]
@@ -204,7 +204,6 @@ function leadlink(b, N, K=1; h=nothing, Ts=nothing)
     gain = K
     G = tf(gain*numerator,denominator)
     return  isnothing(Ts) ? G : c2d(G,Ts)
-
 end
 
 """
