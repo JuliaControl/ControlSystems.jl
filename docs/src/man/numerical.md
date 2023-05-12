@@ -20,6 +20,38 @@ scatter(poles(G1)); scatter!(poles(G2))
 ![Noisy poles](https://user-images.githubusercontent.com/3797491/215962177-38447944-6cca-4070-95ea-7f3829efee2e.png))
 
 
+#### State-space balancing
+
+The function [`balance_statespace`](@ref) can be used to compute a balancing transformation ``T`` that attempts to scale the system so that the row and column norms of
+```math
+\begin{bmatrix}
+TAT^{-1} & TB\\
+CT^{-1} & 0
+\end{bmatrix}
+```
+are approximately equal. This typically improves the numerical performance of several algorithms, including frequency-response calculations and continuous-time simulations. When frequency-responses are plotted using any of the built-in functions, such as [`bodeplot`](@ref) or [`nyquistplot`](@ref), this balancing is performed automatically. However, when calling [`bode`](@ref) and [`nyquist`](@ref) directly, the user is responsible for performing the balancing. The balancing is a relatively cheap operation, but it
+1. Changes the state representations of the system
+2. Allocates some memory
+
+Balancing is also automatically performed when a transfer function is converted to a statespace system using `ss(G)`, to convert without balancing, call `convert(StateSpace, G, balance=false)`.
+
+Intuitively (and simplified), balancing may be beneficial when the magnitude of the elements of the ``B`` matrix are vastly different from the magnitudes of the element of the ``C`` matrix, or when the ``A`` matrix contains very large coefficients. An example that exhibits all of these traits is the following
+```@example BALANCE
+using ControlSystemsBase, LinearAlgebra
+A = [-6.537773175952662 0.0 0.0 0.0 -9.892378564622923e-9 0.0; 0.0 -6.537773175952662 0.0 0.0 0.0 -9.892378564622923e-9; 2.0163803998106024e8 2.0163803998106024e8 -0.006223894167415392 -1.551620418759878e8 0.002358202548321148 0.002358202548321148; 0.0 0.0 5.063545034365582e-9 -0.4479539754649166 0.0 0.0; -2.824060629317756e8 2.0198389074625736e8 -0.006234569427701143 -1.5542817673286995e8 -0.7305736722226711 0.0023622473513548576; 2.0198389074625736e8 -2.824060629317756e8 -0.006234569427701143 -1.5542817673286995e8 0.0023622473513548576 -0.7305736722226711]
+B = [0.004019511633336128; 0.004019511633336128; 0.0; 0.0; 297809.51426114445; 297809.51426114445]
+C = [0.0 0.0 0.0 1.0 0.0 0.0]
+D = [0.0]
+linsys = ss(A,B,C,D)
+norm(linsys.A, Inf), norm(linsys.B, Inf), norm(linsys.C, Inf)
+```
+which after balancing becomes
+```@example BALANCE
+bsys, T = balance_statespace(linsys)
+norm(bsys.A, Inf), norm(bsys.B, Inf), norm(bsys.C, Inf)
+```
+If you plot the frequency-response of the two systems using [`bodeplot`](@ref), you'll see that they differ significantly (the balanced one is correct).
+
 ## Frequency-response calculation
 For small systems (small number of inputs, outputs and states), evaluating the frequency-response of a transfer function is reasonably accurate and very fast.
 
