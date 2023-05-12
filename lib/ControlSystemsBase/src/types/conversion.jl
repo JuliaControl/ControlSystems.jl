@@ -190,7 +190,7 @@ end
 function balance_statespace(sys::AbstractStateSpace, perm::Bool=false)
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
 
-    return basetype(sys)(A,B,C,sys.D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...), T
+    return basetype(sys)(A,B,C,sys.D, ntuple(i->getfield(sys, i+4), fieldcount(sys)-4)...), T
 end
 
 # Method that might fail for some exotic types, such as TrackedArrays

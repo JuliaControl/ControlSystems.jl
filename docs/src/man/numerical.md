@@ -114,3 +114,5 @@ Linear systems with zero-order-hold inputs can be exactly simulated in discrete 
 
 For discrete-time systems, the function [`lsim!`](@ref) accepts a pre-allocated workspace objects that can be used to avoid allocations for repeated simulations.
 
+### Numerical balancing
+If you are only interested in the simulated outputs, not the state trajectories, you may consider applying balancing to the statespace model using [`balance_statespace`](@ref) before simulating, see the section on [State-space balancing](@ref) above. If the state trajectories are of interest, balancing can still be performed before simulation, and the inverse transformation applied to the state trajectories after simulation.
