@@ -212,6 +212,8 @@ function _balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMa
     return A, B, C, T
 end
 
+balance_statespace(sys, args...) = sys, I # For system types that do not have an implementation
+
 """
 `T = balance_transform{R}(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)`
 
