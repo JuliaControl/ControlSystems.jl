@@ -246,12 +246,13 @@ end
 ## FREQUENCY PLOTS ##
 """
     fig = bodeplot(sys, args...)
-    bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, kwargs...)
+    bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, balance = true, kwargs...)
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided. To change the Magnitude scale see `setPlotScale(str)`
                                             
-If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
@@ -273,7 +274,7 @@ function _get_plotlabel(s, i, j)
     end
 end
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
@@ -286,6 +287,9 @@ end
     link --> :x
 
     for (si,s) = enumerate(systems)
+        if balance
+            s = balance_statespace(s)[1]
+        end
         mag, phase = bode(s, w)[1:2]
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
@@ -378,13 +382,13 @@ optionally provided.
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
 - `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
 - `critical_point`: point on real axis to mark as critical for encirclements
-
-If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, balance=true)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -394,6 +398,9 @@ nyquistplot
     θ = range(0, stop=2π, length=100)
     S, C = sin.(θ), cos.(θ)
     for (si,s) = enumerate(systems)
+        if balance
+            s = balance_statespace(s)[1]
+        end
         re_resp, im_resp = nyquist(s, w)[1:2]
         for j=1:nu
             for i=1:ny
@@ -645,17 +652,18 @@ end
 @userplot Sigmaplot
 """
     sigmaplot(sys, args...; hz=false)
-    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false)
+    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false, balance=true)
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
-If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 
 `kwargs` is sent as argument to Plots.plot.
 """
 sigmaplot
-@recipe function sigmaplot(p::Sigmaplot; hz=false)
+@recipe function sigmaplot(p::Sigmaplot; hz=false, balance=true)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
@@ -664,6 +672,9 @@ sigmaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
+        if balance
+            s = balance_statespace(s)[1]
+        end
         sv = sigma(s, w)[1]'
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
@@ -689,15 +700,17 @@ _to1series(y) = _to1series(1:size(y,3),y)
 
 @userplot Marginplot
 """
-    fig = marginplot(sys::LTISystem [,w::AbstractVector];  kwargs...)
-    marginplot(sys::Vector{LTISystem}, w::AbstractVector;  kwargs...)
+    fig = marginplot(sys::LTISystem [,w::AbstractVector];  balance=true, kwargs...)
+    marginplot(sys::Vector{LTISystem}, w::AbstractVector;  balance=true, kwargs...)
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
-A frequency vector `w` can be optionally provided.
+
+- A frequency vector `w` can be optionally provided.
+- `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
-@recipe function marginplot(p::Marginplot; plotphase=true)
+@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -710,6 +723,9 @@ A frequency vector `w` can be optionally provided.
     layout --> (2ny, nu)
     label --> ""
     for (si, s) in enumerate(systems)
+        if balance
+            s = balance_statespace(s)[1]
+        end
         bmag, bphase = bode(s, w)
         for j=1:nu
             for i=1:ny
@@ -909,17 +925,18 @@ end
 @userplot Rgaplot
 """
     rgaplot(sys, args...; hz=false)
-    rgaplot(LTISystem[sys1, sys2...], args...; hz=false)
+    rgaplot(LTISystem[sys1, sys2...], args...; hz=false, balance=true)
 
 Plot the relative-gain array entries of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
-If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
+- `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 
 `kwargs` is sent as argument to Plots.plot.
 """
 rgaplot
-@recipe function rgaplot(p::Rgaplot; hz=false)
+@recipe function rgaplot(p::Rgaplot; hz=false, balance=true)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
@@ -928,6 +945,9 @@ rgaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Element magnitudes"
     for (si, s) in enumerate(systems)
+        if balance
+            s = balance_statespace(s)[1]
+        end
         sv = abs.(relative_gain_array(s, w))
         for j in 1:size(sv, 1)
             for i in 1:size(sv, 2)

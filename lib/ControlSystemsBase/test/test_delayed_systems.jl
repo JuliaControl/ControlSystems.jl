@@ -30,7 +30,7 @@ using ControlSystemsBase
 # Stritcly proper system
 P1 = DelayLtiSystem(ss(-1.0, 1, 1, 0))
 P1_fr = 1 ./ (im*ω .+ 1)
-@test freqresp(P1, ω)[:] == P1_fr
+@test freqresp(P1, ω)[:] ≈ P1_fr
 
 # Not stritcly proper system
 P2 = DelayLtiSystem(ss(-2.0, -1, 1, 1)) # (s+1)/(s+2)
