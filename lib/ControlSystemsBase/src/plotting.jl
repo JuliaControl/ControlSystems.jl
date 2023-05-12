@@ -710,7 +710,7 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
-@recipe function marginplot(p::Marginplot; plotphase=true)
+@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]

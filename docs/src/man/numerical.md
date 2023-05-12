@@ -30,8 +30,8 @@ CT^{-1} & 0
 \end{bmatrix}
 ```
 are approximately equal. This typically improves the numerical performance of several algorithms, including frequency-response calculations and continuous-time simulations. When frequency-responses are plotted using any of the built-in functions, such as [`bodeplot`](@ref) or [`nyquistplot`](@ref), this balancing is performed automatically. However, when calling [`bode`](@ref) and [`nyquist`](@ref) directly, the user is responsible for performing the balancing. The balancing is a relatively cheap operation, but it
-1. Changes the state representations of the system
-2. Allocates some memory
+1. Changes the state representations of the system (but not the input-output mapping). If balancing is performed before simulation, the output will correspond to the output of the original system, but the state trajectory will not.
+2. Allocates some memory.
 
 Balancing is also automatically performed when a transfer function is converted to a statespace system using `ss(G)`, to convert without balancing, call `convert(StateSpace, G, balance=false)`.
 
