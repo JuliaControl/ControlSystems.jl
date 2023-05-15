@@ -10,7 +10,7 @@ _PlotScaleStr = ""
     setPlotScale(str)
 
 Set the default scale of magnitude in `bodeplot` and `sigmaplot`.
-`str` should be either `"dB"` or `"log10"`.
+`str` should be either `"dB"` or `"log10"`. The default scale if none is chosen is `"log10"`.
 """
 function setPlotScale(str::AbstractString)
     if str == "dB"
@@ -249,7 +249,7 @@ end
     bodeplot(LTISystem[sys1, sys2...], args...; plotphase=true, balance = true, kwargs...)
 
 Create a Bode plot of the `LTISystem`(s). A frequency vector `w` can be
-optionally provided. To change the Magnitude scale see `setPlotScale(str)`
+optionally provided. To change the Magnitude scale see [`setPlotScale`](@ref). The default magnitude scale is "log10" (absolute scale).
                                             
 - If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
