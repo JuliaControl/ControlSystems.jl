@@ -233,4 +233,6 @@ function __init__()
     end
 end
 
+include("precompilation.jl")
+
 end
