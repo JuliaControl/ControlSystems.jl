@@ -128,6 +128,24 @@ end
 @test sigma(sys, ws)[1] ≈ sigs
 
 
+## Test sigma when either ny = 1 or nu = 1
+sys = ssrand(1,2,1)
+resp = freqresp(sys, ws)
+sigs = Array{Float64}(undef, 1, 50)
+for i in eachindex(ws)
+    sigs[:, i] =  svdvals(resp[:,:,i])
+end
+@test sigma(sys, ws)[1] ≈ sigs
+
+sys = ssrand(2,1,1)
+resp = freqresp(sys, ws)
+sigs = Array{Float64}(undef, 1, 50)
+for i in eachindex(ws)
+    sigs[:, i] =  svdvals(resp[:,:,i])
+end
+@test sigma(sys, ws)[1] ≈ sigs
+
+
 # test unwrap
 P = tf(1, [1, 1, 0]) * tf(1, [1, 1])
 w = exp10.(LinRange(-2, 4, 200))

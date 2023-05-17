@@ -358,10 +358,18 @@ end
 Compute the singular values `sv` of the frequency response of system `sys` at
 frequencies `w`. See also [`sigmaplot`](@ref)
 
-`sv` has size `(max(ny, nu), length(w))`""" 
+`sv` has size `(min(ny, nu), length(w))`""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
-    sv = dropdims(mapslices(svdvals, resp, dims=(1,2)),dims=2)
+    ny, nu = size(sys)
+    if ny == 1 || nu == 1 # Shortcut available
+        sv = Matrix{real(eltype(resp))}(undef, 1, length(w))
+        for i = eachindex(w)
+            @views sv[1, i] = norm(resp[:,:,i])
+        end
+    else
+        sv = dropdims(mapslices(svdvals, resp, dims=(1,2)),dims=2)::Matrix{real(eltype(resp))}
+    end
     return sv, w
 end
 @autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
