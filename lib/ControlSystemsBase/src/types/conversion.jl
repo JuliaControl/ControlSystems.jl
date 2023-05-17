@@ -187,10 +187,13 @@ end
 #     balance_statespace(A2, B2, C2, perm)
 # end
 
-function balance_statespace(sys::AbstractStateSpace, perm::Bool=false)
+function balance_statespace(sys::S, perm::Bool=false) where S <: AbstractStateSpace
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
-
-    return basetype(sys)(A,B,C,sys.D, ntuple(i->getfield(sys, i+4), fieldcount(typeof(sys))-4)...), T
+    if hasfield(S, :sys)
+        basetype(S)(ss(A,B,C,D), ntuple(i->getfield(sys, i+1), fieldcount(S)-1)...), T
+    else
+        basetype(S)(A,B,C,sys.D, ntuple(i->getfield(sys, i+4), fieldcount(S)-4)...), T
+    end
 end
 
 # Method that might fail for some exotic types, such as TrackedArrays

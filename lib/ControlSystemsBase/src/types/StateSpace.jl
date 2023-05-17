@@ -486,7 +486,11 @@ function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <
         atol = tol
     end
     Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
-    basetype(T)(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
+    if hasfield(T, :sys)
+        basetype(T)(ss(Ar,Br,Cr,D), ntuple(i->getfield(sys, i+1), fieldcount(T)-1)...)
+    else
+        basetype(T)(Ar,Br,Cr,D, ntuple(i->getfield(sys, i+4), fieldcount(T)-4)...)
+    end
 end
 
 
