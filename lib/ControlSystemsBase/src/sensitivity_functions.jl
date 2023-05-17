@@ -148,9 +148,9 @@ T  = G[2, 2]
 
 # For MIMO P
 S  = G[1:P.ny,     1:P.nu]
-PS = G[1:P.ny,     P.nu+1:end]
-CS = G[P.ny+1:end, 1:P.nu]
-T  = G[P.ny+1:end, P.nu+1:end]
+PS = G[1:P.ny,     P.ny+1:end]
+CS = G[P.ny+1:end, 1:P.ny]
+T  = G[P.ny+1:end, P.ny+1:end] # Input complimentary sensitivity function
 ```
 
 The gang of four can be plotted like so

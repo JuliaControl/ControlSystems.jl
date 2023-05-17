@@ -393,6 +393,21 @@ G = extended_gangoffour(P, K, true)
 @test tf(G[2,2]) ≈ tf(-input_comp_sensitivity(P, K))
 
 
+## MIMO
+P = ssrand(3,2,1,proper=false)
+K = ssrand(2,3,1,proper=false)
+G = extended_gangoffour(P, K, false)
+S  = G[1:P.ny,     1:P.nu]
+PS = G[1:P.ny,     P.ny+1:end]
+CS = G[P.ny+1:end, 1:P.ny]
+T  = G[P.ny+1:end, P.ny+1:end]
+
+@test tf(S) ≈ tf(sensitivity(P, K))
+@test tf(CS) ≈ tf(G_CS(P, K))
+@test tf(PS) ≈ tf(G_PS(P, K))
+@test tf(T) ≈ tf(input_comp_sensitivity(P, K))
+
+
 # https://github.com/JuliaControl/ControlSystems.jl/issues/815
 function feedback_ctrl(G, K)
     ny,nu = size(G)
