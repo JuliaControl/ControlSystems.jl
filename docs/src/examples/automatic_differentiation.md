@@ -96,7 +96,7 @@ function plot_optimized(P, params, res)
     for (i,params) = enumerate((params, res))
         ls = (i == 1 ? :dash : :solid)
         lab = (i==1 ? "Initial" : "Optimized")
-        C, G, r1, r2 = systems(P, params)
+        C, G, r1, r2 = systems(params, P)
         mag = reshape(bode(G, Ω)[1], 4, :)'[:, [1, 2, 4]]
         plot!([r1, r2]; title="Time response", subplot=1,
             lab = lab .* [" \$r → e\$" " \$d → e\$"], legend=:bottomright, ls,
@@ -110,7 +110,7 @@ function plot_optimized(P, params, res)
     fig
 end
 
-function systems(P, params)
+function systems(params, P)
     kp,ki,kd,Tf = params # We optimize parameters in 
     C    = pid(kp, ki, kd; form=:parallel, Tf, state_space=true)
     G    = extended_gangoffour(P, C) # [S PS; CS T]
@@ -122,12 +122,12 @@ end
 
 σ(x) = 1/(1 + exp(-x)) # Sigmoid function used to obtain a smooth constraint on the peak of the sensitivity function
 
-@views function cost(P, params::AbstractVector{T}) where T
-    C, G, res1, res2 = systems(P, params)
+@views function cost(params::AbstractVector{T}, P) where T
+    C, G, res1, res2 = systems(params, P)
     R,_ = bode(G, Ω, unwrap=false)
     S = sum(σ.(100 .* (R[1, 1, :] .- Msc))) # max sensitivity
     CS = sum(Ω .* R[2, 1, :])               # frequency-weighted noise sensitivity
-    perf = mean(abs2, res1.y .* res1.t) + mean(abs2, res2.y .* res2.t)
+    perf = mean(abs2, res1.y .* res1.t') + mean(abs2, res2.y .* res2.t')
     return perf + Sweight*S + CSweight*CS # Blend all objectives together
 end
 
@@ -139,18 +139,62 @@ params  = [kp, ki, kd, 0.01] # Initial guess for parameters
 using Optimization
 using OptimizationGCMAES
 
-fopt = OptimizationFunction((x, _)->cost(P, x), Optimization.AutoForwardDiff())
-prob = OptimizationProblem(fopt, params, lb=zeros(length(params)), ub = 10ones(length(params)))
+fopt = OptimizationFunction(cost, Optimization.AutoForwardDiff())
+prob = OptimizationProblem(fopt, params, P, lb=zeros(length(params)), ub = 10ones(length(params)))
 solver = GCMAESOpt()
-res = solve(prob, solver; maxiters=1000); res.objective
+res = solve(prob, solver; maxiters=1000)
 plot_optimized(P, params, res.u)
 ```
 
 The optimized controller achieves more or less the same low peak in the sensitivity function, but does this while *both* making the step responses significantly faster *and* using much less controller gain for large frequencies (the orange sensitivity function), an altogether better tuning. The only potentially negative effect of this tuning is that the overshoot in response to a reference step increased slightly, indicated also by the slightly higher peak in the complimentary sensitivity function (green). However, the response to reference steps can (and most often should) be additionally shaped by reference pre-filtering (sometimes referred to as "feedforward" or "reference shaping"), by introducing an additional filter appearing in the feedforward path only, thus allowing elimination of the overshoot without affecting the closed-loop properties.
 
 ### LQG controller
-We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. Since this is a SISO system, we do not need to tune the control-input matrix or the measurement covariance matrix, since any non-unit weight assigned to those can be associated with the state matrices instead. Since these matrices are supposed to be positive semi-definite, we optimize Cholesky factors rather than the full matrices.
+We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. The synthesis of an LQR controller involves the solution of a Ricatti equation, which in turn involves performing a Schur decomposition. These steps hard hard to differentiate through in a conventional way, but we can make use of implicit differentiation using the implicit function theorem. To do so, we load the package `ImplicitDifferentiation`, and defines the conditions that hold at the solution of the Ricatti equaiton:
+```math
+A^TX + XA - XBR^{-1}B^T X + Q = 0
+```
+
+We then define differentiable versions of [`lqr`](@ref) and [`kalman`](@ref) that make use of the "implicit function".
+
 ```@example autodiff
+using ImplicitDifferentiation
+
+function forward_are(Q0; A,B,R)
+    Q = reshape(Q0, size(A))
+    ControlSystemsBase.are(Continuous, A, B, Q, R), 0
+end
+
+function conditions_are(Q, X, noneed; A,B,R)
+    XB = X*B
+    T = promote_type(eltype(Q), eltype(X))
+    C = T.(Q)
+    mul!(C,A',X,1,1)
+    mul!(C,X,A,1,1)
+    mul!(C, XB, R\XB', -1, 1)
+end
+
+const implicit_are = ImplicitFunction(forward_are, conditions_are)
+
+function lqrdiff(P::AbstractStateSpace{Continuous}, Q, R)
+    (; A, B) = P
+    X0, _ = implicit_are(Q; A, B, R)
+    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
+    R\(B'X)
+end
+
+function kalmandiff(P::AbstractStateSpace{Continuous}, Q, R)
+    A = P.A
+    B = P.C'
+    X0, _ = implicit_are(Q; A, B, R)
+    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
+    (R\(B'X))'
+end
+```
+
+Since this is a SISO system, we do not need to tune the control-input matrix or the measurement covariance matrix, any non-unit weight assigned to those can be associated with the state matrices instead. Since these matrices are supposed to be positive semi-definite, we optimize Cholesky factors rather than the full matrices. We will also reformulate the problem slightly and use proper constraints to limit the sensitivity peak.
+```@example autodiff
+using Ipopt, OptimizationMOI
+MOI = OptimizationMOI.MOI
 function triangular(x)
     m = length(x)
     n = round(Int, sqrt(2m-1))
@@ -164,36 +208,74 @@ function triangular(x)
 end
 invtriangular(T) = [T[i,j] for i = 1:size(T,1) for j = i:size(T,1)]
 
-function systems(P, params)
-    Qchol = triangular(params[1:10])
-    Rchol = triangular(params[11:20])
-    Q    = Qchol'Qchol
-    R    = Rchol'Rchol
-    L    = lqr(P, Q, I(1))
-    K    = kalman(P, R, I(1))
-    C    = observer_controller(P, L, K)
-    G    = extended_gangoffour(P, C) # [S PS; CS T]
-    Gd   = c2d(G, 0.1)   # Discretize the system
-    res1 = step(Gd[1,1], 0:0.1:15) # Simulate S
-    res2 = step(Gd[1,2], 0:0.1:15) # Simulate PS
-    C, G, res1, res2
+function systemslqr(params, P)
+    n2 = length(params) ÷ 2
+    Qchol = triangular(params[1:n2])
+    Rchol = triangular(params[n2+1:2n2])
+    Q = Qchol'Qchol
+    R = Rchol'Rchol
+    L = lqrdiff(P, Q, I(1))
+    K = kalmandiff(P, R, I(1))
+    C = observer_controller(P, L, K)
+    G = extended_gangoffour(P, C) # [S PS; CS T]
+    C, G
 end
 
-Q0 = diagm([1,1,1,1]) # Initial guess LQR state penalty
-R0 = diagm([1,1,1,1]) # Initial guess Kalman state covariance
+function systems(params, P)
+    C, G = systemslqr(params, P)
+    C, G, sim(G)...
+end
+
+function sim(G)
+    Gd = c2d(G, 0.1, :zoh)   # Discretize the system
+    res1 = step(Gd[1, 1], 0:0.1:15) # Simulate S
+    res2 = step(Gd[1, 2], 0:0.1:15) # Simulate PS
+    res1, res2
+end
+
+@views function cost(params::AbstractVector{T}, P) where T
+    CSweight = 0.001 # Noise amplification penalty
+    C, G = systemslqr(params, P)
+    res1, res2 = sim(G)
+    R, _ = bodev(G[2, 1], Ω; unwrap=false)
+    CS = sum(R .*= Ω)               # frequency-weighted noise sensitivity
+    perf = mean(abs2, res1.y .*= res1.t') + mean(abs2, res2.y .*= res2.t')
+    return perf + CSweight * CS # Blend all objectives together
+end
+
+@views function constraints(res, params::AbstractVector{T}, P) where T
+    C, G = systemslqr(params, P)
+    S, _ = bodev(G[1, 1], Ω; unwrap=false)
+    res .= maximum(S) # max sensitivity
+    nothing
+end
+
+Msc = 1.3   # Constraint on Ms
+
+Q0 = diagm([1.0, 1, 1, 1]) # Initial guess LQR state penalty
+R0 = diagm([1.0, 1, 1, 1]) # Initial guess Kalman state covariance
 params = [invtriangular(cholesky(Q0).U); invtriangular(cholesky(R0).U)]
 
-fopt = OptimizationFunction((x, _)->cost(P, x))
-prob = OptimizationProblem(fopt, params, lb=fill(-10, length(params)), ub = fill(10, length(params)))
-solver = GCMAESOpt()
-res = solve(prob, solver; maxiters=1000); res.objective
+fopt = OptimizationFunction(cost, Optimization.AutoForwardDiff(); cons=constraints)
+prob = OptimizationProblem(fopt, params, P;
+    lb    = fill(-10.0, length(params)),
+    ub    = fill(10.0, length(params)),
+    ucons = fill(Msc, 1),
+    lcons = fill(-Inf, 1),
+)
+solver = Ipopt.Optimizer()
+MOI.set(solver, MOI.RawOptimizerAttribute("print_level"), 0)
+MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_tol"), 1e-1)
+MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_constr_viol_tol"), 1e-2)
+MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_iter"), 5)
+MOI.set(solver, MOI.RawOptimizerAttribute("hessian_approximation"), "limited-memory")
+
+res = solve(prob, solver)
 plot_optimized(P, params, res.u)
 ```
 
-This controller should perform better than the PID controller, which is known to be incapable of properly damping the resonance in a double-mass system. 
+This controller should perform better than the PID controller, which is known to be incapable of properly damping the resonance in a double-mass system. However, we did not include any integral action in the LQG controller, which has implication for the disturbance response, as indicated by the green step response in the simulation above.
 
-!!! note "No automatic differentiation"
-    This example did not use automatic differentiation like we did when optimizing the PID controller. The problematic functions are the ones that solve the Riccati equations, these make use of the Schur factorization which does not have differentiation rules defined.
 
 #### Robustness analysis
 To check the robustness of the designed LQG controller w.r.t. parametric uncertainty in the plant, we load the package [`MonteCarloMeasurements`](https://github.com/baggepinnen/MonteCarloMeasurements.jl) and recreate the plant model with 20% uncertainty in the spring coefficient.
@@ -202,7 +284,7 @@ using MonteCarloMeasurements
 Pu = DemoSystems.double_mass_model(k = Particles(32, Uniform(80, 120))) # Create a model with uncertainty in spring stiffness k ~ U(80, 120)
 unsafe_comparisons(true) # For the Bode plot to work
 
-C,_ = systems(P, res.u)             # Get the controller assuming P without uncertainty
+C,_ = systemslqr(res.u, P)             # Get the controller assuming P without uncertainty
 Gu = extended_gangoffour(Pu, C)     # Form the gang-of-four with uncertainty
 w = exp10.(LinRange(-1.5, 2, 500))
 bodeplot(Gu, w, plotphase=false, ri=false, N=32, ylims=(1e-1, 30), layout=1, sp=1, c=[1 2 4 3], lab=["S" "CS" "PS" "T"])
