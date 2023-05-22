@@ -9,7 +9,7 @@
     Gds = DSP.SecondOrderSections(Gd)
 
     u = randn(100)
-    uf = filt(Gds, u, zeros(2,2))
+    uf = DSP.filt(Gds, u, zeros(2,2))
     uls = lsim(Gd, u').y'
     @test uf[1:end-1] ≈ uls[2:end]
 
@@ -23,7 +23,7 @@
     @test fcs.matrix[1].k ≈ k
 
     u = randn(10)
-    uf = filt(f, u)
+    uf = DSP.filt(f, u)
     uls = lsim(fcs, u').y'
     @test uf ≈ uls
     

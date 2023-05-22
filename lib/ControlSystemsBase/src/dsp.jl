@@ -1,5 +1,8 @@
-tf(p::DSP.PolynomialRatio, h::Real = 1) = tf(DSP.coefb(p), DSP.coefa(p), h)
-tf(p::DSP.ZeroPoleGain, h::Real = 1) = tf(DSP.PolynomialRatio(p), h)
+
+tf(p::DSP.PolynomialRatio{:z}, h::Real = 1) = tf(DSP.coefb(p), DSP.coefa(p), h)
+tf(p::DSP.PolynomialRatio{:s}) = tf(DSP.coefb(p), DSP.coefa(p))
+tf(p::DSP.ZeroPoleGain{:z}, h::Real = 1) = tf(DSP.PolynomialRatio(p), h)
+tf(p::DSP.ZeroPoleGain{:s}) = tf(DSP.PolynomialRatio(p))
 
 function DSP.PolynomialRatio(G::TransferFunction{<:Discrete})
     DSP.PolynomialRatio(
@@ -32,8 +35,5 @@ end
 
 function zpk(p::DSP.ZeroPoleGain, h::Real)
     z,p,k = p.z, p.p, p.k
-    @show z
-    @show p
-    @show k
     zpk(z, p, k, h)
 end
