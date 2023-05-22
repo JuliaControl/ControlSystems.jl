@@ -434,3 +434,18 @@ uF  │       │ │  │       ├──────►         │ yC │  uP
 ```
 
 See code example [complicated_feedback.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl/blob/master/examples/complicated_feedback.jl).
+
+## Filter design
+Filters can be designed using [DSP.jl](https://docs.juliadsp.org/stable/filters/). This results in filter objects with types from the DSP package, which can be converted to transfer functions using [`tf`](@ref) from ControlSystemsBase.
+
+```@example FilterDesign
+using DSP, ControlSystemsBase, Plots
+
+fs = 100
+df = digitalfilter(Bandpass(5, 10; fs), Butterworth(2))
+G = tf(df, 1/fs) # Sample time must be provided in the conversion to get the correct frequency scale in the Bode plot
+bodeplot(G, xscale=:identity, yscale=:identity, hz=true)
+```
+
+See also
+- [`ControlSystemsBase.seriesform`](@ref)

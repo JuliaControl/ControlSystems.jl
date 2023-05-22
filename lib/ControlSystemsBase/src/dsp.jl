@@ -18,7 +18,7 @@ end
 
 
 """
-    Gs, k = seriesform(G::TransferFunction)
+    Gs, k = seriesform(G::TransferFunction{Discrete})
 
 Convert a transfer function `G` to a vector of second-order transfer functions and a scalar gain `k`, the product of which equals `G`.
 """
