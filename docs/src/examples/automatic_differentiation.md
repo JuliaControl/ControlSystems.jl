@@ -183,7 +183,7 @@ function lqrdiff(P::AbstractStateSpace{Continuous}, Q, R)
 end
 
 function kalmandiff(P::AbstractStateSpace{Continuous}, Q, R)
-    A = P.A
+    A = P.A'
     B = P.C'
     X0, _ = implicit_are(Q; A, B, R)
     X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
