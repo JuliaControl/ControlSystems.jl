@@ -8,6 +8,7 @@ using Aqua
     Aqua.test_all(ControlSystemsBase;
         ambiguities = false, # casues 100s of hits in all dependencies
         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
+        project_toml_formatting = false, # https://github.com/JuliaTesting/Aqua.jl/issues/105
     )
 end
 
