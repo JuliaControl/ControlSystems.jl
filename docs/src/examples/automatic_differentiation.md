@@ -1,3 +1,30 @@
+```@setup autodiff
+using ChainRules, ForwardDiff, ChainRulesCore, LinearAlgebra
+# @ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual})
+
+# Replace by ForwardDiffChainRules when https://github.com/ThummeTo/ForwardDiffChainRules.jl/pull/16 is merged
+function LinearAlgebra.exp!(A::AbstractMatrix{<:ForwardDiff.Dual})
+    Av = ForwardDiff.value.(A)
+    J = reduce(vcat, transpose.(ForwardDiff.partials.(A)))
+    CS = length(ForwardDiff.partials(A[1,1]))
+    dself = NoTangent();
+    cAv = copy(Av)
+    eA, newJ1 = ChainRules.frule((dself, reshape(J[:,1], size(A))), LinearAlgebra.exp!, cAv)
+
+    newJt = ntuple(Val(CS - 1)) do i
+        xpartialsi = reshape(J[:, i+1], size(A))
+        cAv .= Av
+        _, ypartialsi = ChainRulesCore.frule((dself, xpartialsi), LinearAlgebra.exp!, cAv)
+        ypartialsi
+    end
+    newJ = hcat(vec(newJ1), vec.(newJt)...)
+    T = ForwardDiff.tagtype(eltype(A))
+    flaty = ForwardDiff.Dual{T}.(
+        eA, reshape(ForwardDiff.Partials.(NTuple{CS}.(eachrow(newJ))), size(A)),
+    )
+end
+```
+
 # Automatic Differentiation
 In Julia, it is often possible to automatically compute derivatives, gradients, Jacobians and Hessians of arbitrary Julia functions with precision matching the machine precision, that is, without the numerical inaccuracies incurred by finite-difference approximations.
 
@@ -41,9 +68,7 @@ linear_sys = ss(A, B, C, D)
 ```
 The example above linearizes `f` in the point ``x_0, u_0`` to obtain the linear statespace matrices ``A`` and ``B``, and linearizes `g` to obtain the linear output matrices ``C`` and ``D``.
 
-## Optimization-based tuning
-
-### PID controller
+## Optimization-based tuning--PID controller
 
 This example will demonstrate simple usage of AD using ForwardDiff.jl for optimization-based auto tuning of a PID controller.
 
@@ -89,7 +114,7 @@ To make the automatic gradient computation through the matrix exponential used i
 ```@example autodiff
 using Optimization, Statistics, LinearAlgebra
 using OptimizationGCMAES, ChainRules, ForwardDiffChainRules
-@ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual})
+# @ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual}) # https://github.com/ThummeTo/ForwardDiffChainRules.jl/pull/16
 
 function plot_optimized(P, params, res)
     fig = plot(layout=(1,3), size=(1200,400), bottommargin=2Plots.mm)
@@ -148,47 +173,16 @@ plot_optimized(P, params, res.u)
 
 The optimized controller achieves more or less the same low peak in the sensitivity function, but does this while *both* making the step responses significantly faster *and* using much less controller gain for large frequencies (the orange sensitivity function), an altogether better tuning. The only potentially negative effect of this tuning is that the overshoot in response to a reference step increased slightly, indicated also by the slightly higher peak in the complimentary sensitivity function (green). However, the response to reference steps can (and most often should) be additionally shaped by reference pre-filtering (sometimes referred to as "feedforward" or "reference shaping"), by introducing an additional filter appearing in the feedforward path only, thus allowing elimination of the overshoot without affecting the closed-loop properties.
 
-### LQG controller
-We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. The synthesis of an LQR controller involves the solution of a Ricatti equation, which in turn involves performing a Schur decomposition. These steps hard hard to differentiate through in a conventional way, but we can make use of implicit differentiation using the implicit function theorem. To do so, we load the package `ImplicitDifferentiation`, and defines the conditions that hold at the solution of the Ricatti equaiton:
+## Optimization-based tuning--LQG controller
+We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. The synthesis of an LQR controller involves the solution of a Ricatti equation, which in turn involves performing a Schur decomposition. These steps hard hard to differentiate through in a conventional way, but we can make use of implicit differentiation using the implicit function theorem. To do so, we load the package `ImplicitDifferentiation`, and define the conditions that hold at the solution of the Ricatti equaiton:
 ```math
 A^TX + XA - XBR^{-1}B^T X + Q = 0
 ```
 
-We then define differentiable versions of [`lqr`](@ref) and [`kalman`](@ref) that make use of the "implicit function".
+When `ImplicitDifferentiation` is loaded, differentiable versions of [`lqr`](@ref) and [`kalman`](@ref) that make use of the "implicit function" are automatically loaded.
 
 ```@example autodiff
-using ImplicitDifferentiation
-
-function forward_are(Q0; A,B,R)
-    Q = reshape(Q0, size(A))
-    ControlSystemsBase.are(Continuous, A, B, Q, R), 0
-end
-
-function conditions_are(Q, X, noneed; A,B,R)
-    XB = X*B
-    T = promote_type(eltype(Q), eltype(X))
-    C = T.(Q)
-    mul!(C,A',X,1,1)
-    mul!(C,X,A,1,1)
-    mul!(C, XB, R\XB', -1, 1)
-end
-
-const implicit_are = ImplicitFunction(forward_are, conditions_are)
-
-function lqrdiff(P::AbstractStateSpace{Continuous}, Q, R)
-    (; A, B) = P
-    X0, _ = implicit_are(Q; A, B, R)
-    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
-    R\(B'X)
-end
-
-function kalmandiff(P::AbstractStateSpace{Continuous}, Q, R)
-    A = P.A'
-    B = P.C'
-    X0, _ = implicit_are(Q; A, B, R)
-    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
-    (R\(B'X))'
-end
+using ImplicitDifferentiation, ComponentArrays # Both these packages are required to load the implicit differentiation rules
 ```
 
 Since this is a SISO system, we do not need to tune the control-input matrix or the measurement covariance matrix, any non-unit weight assigned to those can be associated with the state matrices instead. Since these matrices are supposed to be positive semi-definite, we optimize Cholesky factors rather than the full matrices. We will also reformulate the problem slightly and use proper constraints to limit the sensitivity peak.
@@ -208,14 +202,14 @@ function triangular(x)
 end
 invtriangular(T) = [T[i,j] for i = 1:size(T,1) for j = i:size(T,1)]
 
-function systemslqr(params, P)
+function systemslqr(params::AbstractVector{T}, P) where T
     n2 = length(params) ÷ 2
     Qchol = triangular(params[1:n2])
     Rchol = triangular(params[n2+1:2n2])
     Q = Qchol'Qchol
     R = Rchol'Rchol
-    L = lqrdiff(P, Q, I(1))
-    K = kalmandiff(P, R, I(1))
+    L = lqr(P, Q, one(T)*I(1))        # The last matrix must have the correct type
+    K = kalman(P, R, one(T)*I(1))     # The last matrix must have the correct type
     C = observer_controller(P, L, K)
     G = extended_gangoffour(P, C) # [S PS; CS T]
     C, G
@@ -227,7 +221,7 @@ function systems(params, P)
 end
 
 function sim(G)
-    Gd = c2d(G, 0.1, :zoh)   # Discretize the system
+    Gd = c2d(G, 0.1, :zoh)          # Discretize the system
     res1 = step(Gd[1, 1], 0:0.1:15) # Simulate S
     res2 = step(Gd[1, 2], 0:0.1:15) # Simulate PS
     res1, res2
@@ -277,7 +271,7 @@ plot_optimized(P, params, res.u)
 This controller should perform better than the PID controller, which is known to be incapable of properly damping the resonance in a double-mass system. However, we did not include any integral action in the LQG controller, which has implication for the disturbance response, as indicated by the green step response in the simulation above.
 
 
-#### Robustness analysis
+### Robustness analysis
 To check the robustness of the designed LQG controller w.r.t. parametric uncertainty in the plant, we load the package [`MonteCarloMeasurements`](https://github.com/baggepinnen/MonteCarloMeasurements.jl) and recreate the plant model with 20% uncertainty in the spring coefficient.
 ```@example autodiff
 using MonteCarloMeasurements
@@ -299,3 +293,18 @@ plot([r1, r2]; title="Time response",
             lab = [" \$r → e\$" " \$d → e\$"], legend=:bottomright,
             fillalpha=0.05, linealpha=0.8, seriestype=:path, c=[1 3], ri=false, N=32)
 ```
+
+## Known limitations
+The following issues are currently known to exist when using AD through ControlSystems.jl:
+
+### ForwardDiff
+[ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) works for a lot of workflows without any intervention required from the user. The following known limitations exist:
+- The function `svdvals` does not have a forward rule defined. This means that the functions [`sigma`](@ref) and `opnorm` will not work for MIMO systems with ForwardDiff. SISO, MISO and SIMO systems will, however, work.
+- [`hinfnorm`](@ref) requires ImplicitDifferentiation.jl and ComponentArrays.jl to be manually loaded by the user, after which there are implicit differentiation rules defined for [`hinfnorm`](@ref). The implicit rule calls `opnorm`, and is thus affected by the first limitation above for MIMO systems. [`hinfnorm`](@ref) has a reverse rule defined in RobustAndOptimalControl.jl, which is not affected by this limitation.
+- [`are`](@ref), [`lqr`](@ref) and [`kalman`](@ref) all require ImplicitDifferentiation.jl and ComponentArrays.jl to be manually loaded by the user, after which there are implicit differentiation rules defined. To invoke the correct method of these functions, it is important that the second matrix (corresponding to input or measurement) has the `Dual` number type, i.e., the `R` matrix in `lqr(P, Q, R)` or `lqr(Continuous, A, B, Q, R)`
+- The `schur` factorization is not amenable to differentiation using ForwardDiff. This is the fundamental reason for requireing ImplicitDifferentiation.jl to differentiate through the Ricatti equation solver. `schur` is called in several additional places, including [`balreal`](@ref) and all [`lyap`](@ref) solvers. To make `schur` differentiable, an implicit differentiation rule would be required.
+
+### Reverse-mode AD
+- Zygote does not work very well at all, due to
+    - Frequent use of mutation for performance
+    - Try catch blocks
