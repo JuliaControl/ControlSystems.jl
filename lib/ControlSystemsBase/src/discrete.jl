@@ -73,6 +73,28 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
     return StateSpace{typeof(timeevol), eltype(Ad)}(Ad, Bd, Cd, Dd, timeevol), x0map
 end
 
+# Replace by ForwardDiffChainRules when https://github.com/ThummeTo/ForwardDiffChainRules.jl/pull/16 is merged
+function LinearAlgebra.exp!(A::AbstractMatrix{<:ForwardDiff.Dual})
+    Av = ForwardDiff.value.(A)
+    J = reduce(vcat, transpose.(ForwardDiff.partials.(A)))
+    CS = length(ForwardDiff.partials(A[1,1]))
+    dself = NoTangent();
+    cAv = copy(Av)
+    eA, newJ1 = ChainRules.frule((dself, reshape(J[:,1], size(A))), LinearAlgebra.exp!, cAv)
+
+    newJt = ntuple(Val(CS - 1)) do i
+        xpartialsi = reshape(J[:, i+1], size(A))
+        cAv .= Av
+        _, ypartialsi = ChainRulesCore.frule((dself, xpartialsi), LinearAlgebra.exp!, cAv)
+        ypartialsi
+    end
+    newJ = hcat(vec(newJ1), vec.(newJt)...)
+    T = ForwardDiff.tagtype(eltype(A))
+    flaty = ForwardDiff.Dual{T}.(
+        eA, reshape(ForwardDiff.Partials.(NTuple{CS}.(eachrow(newJ))), size(A)),
+    )
+end
+
 """
     d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol = :zoh; w_prewarp=0)
 
