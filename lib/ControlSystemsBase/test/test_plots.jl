@@ -53,4 +53,7 @@ end
     @test funcs[i]() isa Plots.Plot
   end
 
+  sys = ssrand(3,3,3)
+  sigmaplot(sys, extrema=true)
+
 end

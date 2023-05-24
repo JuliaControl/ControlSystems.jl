@@ -651,19 +651,20 @@ end
 
 @userplot Sigmaplot
 """
-    sigmaplot(sys, args...; hz=false)
-    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false, balance=true)
+    sigmaplot(sys, args...; hz=false balance=true, extrema)
+    sigmaplot(LTISystem[sys1, sys2...], args...; hz=false, balance=true, extrema)
 
 Plot the singular values of the frequency response of the `LTISystem`(s). A
 frequency vector `w` can be optionally provided.
 
 - If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
+- `extrema`: Only plot the largest and smallest singular values.
 
 `kwargs` is sent as argument to Plots.plot.
 """
 sigmaplot
-@recipe function sigmaplot(p::Sigmaplot; hz=false, balance=true)
+@recipe function sigmaplot(p::Sigmaplot; hz=false, balance=true, extrema=false)
     systems, w = _processfreqplot(Val{:sigma}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
@@ -676,6 +677,9 @@ sigmaplot
             s = balance_statespace(s)[1]
         end
         sv = sigma(s, w)[1]'
+        if extrema && size(sv, 2) > 2
+            sv = sv[:, [1, end]]
+        end
         if _PlotScale == "dB"
             sv = 20*log10.(sv)
         end
