@@ -310,12 +310,12 @@ Implements: "An accurate and efficient algorithm for the computation of thechara
 """
 function charpoly(A::AbstractMatrix{T}) where {T}
     N = size(A, 1)
-    poly_factors = vec(ones(T, N+1))
+    TT = typeof(one(T)/one(T))
+    poly_factors = vec(ones(TT, N+1))
     if N <= 0
         return poly_factors
     end
-
-    t = zeros(T, N, N) # Preallocation
+    t = zeros(TT, N, N) # Preallocation
     P, H = hessenberg(A)
     for j=N:-1:1
         for i=1:j
