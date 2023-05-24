@@ -10,14 +10,14 @@ R = [1.0;;]
 r = [1.0;]
 q = [1.0;]
 
-gr(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
+fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
 
 function difffun(r)
     R = reshape(r, 1, 1)
     sum(lqr(P, Q, R))
 end
 J1 = ForwardDiff.gradient(difffun, r)
-J2 = gr(difffun, r)
+J2 = fdgrad(difffun, r)
 @test J1 ≈ J2 rtol = 1e-6
 
 function difffun(r)
@@ -25,7 +25,7 @@ function difffun(r)
     sum(kalman(P, Q, R))
 end
 J1 = ForwardDiff.gradient(difffun, r)
-J2 = gr(difffun, r)
+J2 = fdgrad(difffun, r)
 @test J1 ≈ J2 rtol = 1e-6
 
 
@@ -35,7 +35,7 @@ function difffun(q)
     sum(lqr(P, Q, Rd))
 end
 J1 = ForwardDiff.gradient(difffun, q)
-J2 = gr(difffun, q)
+J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
@@ -45,7 +45,7 @@ function difffun(r)
     sum(lqr(P, Q, R))
 end
 J1 = ForwardDiff.gradient(difffun, r)
-J2 = gr(difffun, r)
+J2 = fdgrad(difffun, r)
 @test J1 ≈ J2 rtol = 1e-6
 
 function difffun(r)
@@ -53,7 +53,7 @@ function difffun(r)
     sum(kalman(P, Q, R))
 end
 J1 = ForwardDiff.gradient(difffun, r)
-J2 = gr(difffun, r)
+J2 = fdgrad(difffun, r)
 @test J1 ≈ J2 rtol = 1e-6
 
 
@@ -63,7 +63,7 @@ function difffun(q)
     sum(lqr(P, Q, Rd))
 end
 J1 = ForwardDiff.gradient(difffun, q)
-J2 = gr(difffun, q)
+J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
@@ -90,7 +90,7 @@ end
 
 pars = ComponentVector(; A,B,C,D)
 J1 = ForwardDiff.gradient(difffun, pars)
-J2 = gr(difffun, pars)
+J2 = fdgrad(difffun, pars)
 @test J1 ≈ J2 rtol = 1e-6
 
 
@@ -106,7 +106,7 @@ implicit_hinfnorm(pars)
 
 fun = p->implicit_hinfnorm(p; tol=1e-8)[1]
 g1 = ForwardDiff.jacobian(fun, pars)
-g2 = gr(fun, pars)[:]'
+g2 = fdgrad(fun, pars)[:]'
 
 @test g1 ≈ g2 rtol = 1e-5
 
