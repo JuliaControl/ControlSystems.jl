@@ -185,4 +185,7 @@ mytf = [tf(1,[1,1]) tf(0); tf(0) tf(1,[1,1])]
 myss = ss(mytf)
 @test myss == ss([-1 0; 0 -1],[1 0; 0 1],[1 0; 0 1],[0 0; 0 0])
 
+test = ss([-1 2 3; 0 -2 3; 0 0 -3],[1;2;3],[1 2 3], [0])
+@test tf(test) isa TransferFunction
+
 end
