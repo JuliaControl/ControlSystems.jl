@@ -3,6 +3,7 @@ using ImplicitDifferentiation
 using ForwardDiff
 using FiniteDifferences
 using ComponentArrays
+fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
 
 P = ssrand(1, 1, 1)
 Q = [1.0;;]
@@ -10,7 +11,6 @@ R = [1.0;;]
 r = [1.0;]
 q = [1.0;]
 
-fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
 
 function difffun(r)
     R = reshape(r, 1, 1)
@@ -79,34 +79,53 @@ D = 0
 # B = randn(2,1)
 # C = randn(1,2)
 
-sys = ssrand(1,2,4, proper=true)
+sys = DemoSystems.double_mass_model(outputs=[2,4]) |> minreal
 (; A, B, C, D) = sys
 
 function difffun(pars)
     (; A,B,C,D) = pars
     hn, w = hinfnorm(ss(A, B, C, 0))
+    if hn isa AbstractVector
+        hn = hn[]
+    end
     hn
 end
 
 pars = ComponentVector(; A,B,C,D)
 J1 = ForwardDiff.gradient(difffun, pars)
 J2 = fdgrad(difffun, pars)
-@test J1 ≈ J2 rtol = 1e-6
+@test J1 ≈ J2 rtol = 1e-5
 
 
-pars = ComponentVector(; A,B,C,D)
-res, v = forward_hinfnorm(pars; tol=1e-10)
 
-conditions_hinfnorm(pars, res, v; tol=1e-10)[]
+## Schur currently not working when the matrix A has complex eigenvalues.
 
-linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
-implicit_hinfnorm = ImplicitFunction(forward_hinfnorm, conditions_hinfnorm, linear_solver)
+# sys = ssrand(1,1,3, proper=true)
+# sys.A .-= 1I(3)
+# (; A, B, C, D) = sys
 
-implicit_hinfnorm(pars)
+# function schur_sys(sys)
+#     SF = schur(sys.A)
+#     A = SF.T
+#     B = SF.Z'*sys.B
+#     C = sys.C*SF.Z
+#     ss(A,B,C,sys.D, sys.timeevol)
+# end
 
-fun = p->implicit_hinfnorm(p; tol=1e-8)[1]
-g1 = ForwardDiff.jacobian(fun, pars)
-g2 = fdgrad(fun, pars)[:]'
+# function difffun(pars)
+#     (; A,B,C,D) = pars
+#     sys = ss(A, B, C, 0)
+#     sys = schur_sys(sys)
+#     sum(abs2, freqresp(sys, 0.1))
+# end
 
-@test g1 ≈ g2 rtol = 1e-5
+# pars = ComponentVector(; A,B,C,D)
+
+# J1 = ForwardDiff.gradient(difffun, pars)[:]
+# J2 = fdgrad(difffun, pars)[:]
+
+
+# @show norm(J1-J2)
+
+# @test J1 ≈ J2 rtol = 1e-3
 

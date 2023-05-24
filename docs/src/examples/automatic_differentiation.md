@@ -68,9 +68,7 @@ linear_sys = ss(A, B, C, D)
 ```
 The example above linearizes `f` in the point ``x_0, u_0`` to obtain the linear statespace matrices ``A`` and ``B``, and linearizes `g` to obtain the linear output matrices ``C`` and ``D``.
 
-## Optimization-based tuning
-
-### PID controller
+## Optimization-based tuning--PID controller
 
 This example will demonstrate simple usage of AD using ForwardDiff.jl for optimization-based auto tuning of a PID controller.
 
@@ -175,7 +173,7 @@ plot_optimized(P, params, res.u)
 
 The optimized controller achieves more or less the same low peak in the sensitivity function, but does this while *both* making the step responses significantly faster *and* using much less controller gain for large frequencies (the orange sensitivity function), an altogether better tuning. The only potentially negative effect of this tuning is that the overshoot in response to a reference step increased slightly, indicated also by the slightly higher peak in the complimentary sensitivity function (green). However, the response to reference steps can (and most often should) be additionally shaped by reference pre-filtering (sometimes referred to as "feedforward" or "reference shaping"), by introducing an additional filter appearing in the feedforward path only, thus allowing elimination of the overshoot without affecting the closed-loop properties.
 
-### LQG controller
+## Optimization-based tuning--LQG controller
 We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. The synthesis of an LQR controller involves the solution of a Ricatti equation, which in turn involves performing a Schur decomposition. These steps hard hard to differentiate through in a conventional way, but we can make use of implicit differentiation using the implicit function theorem. To do so, we load the package `ImplicitDifferentiation`, and define the conditions that hold at the solution of the Ricatti equaiton:
 ```math
 A^TX + XA - XBR^{-1}B^T X + Q = 0
@@ -273,7 +271,7 @@ plot_optimized(P, params, res.u)
 This controller should perform better than the PID controller, which is known to be incapable of properly damping the resonance in a double-mass system. However, we did not include any integral action in the LQG controller, which has implication for the disturbance response, as indicated by the green step response in the simulation above.
 
 
-#### Robustness analysis
+### Robustness analysis
 To check the robustness of the designed LQG controller w.r.t. parametric uncertainty in the plant, we load the package [`MonteCarloMeasurements`](https://github.com/baggepinnen/MonteCarloMeasurements.jl) and recreate the plant model with 20% uncertainty in the spring coefficient.
 ```@example autodiff
 using MonteCarloMeasurements
