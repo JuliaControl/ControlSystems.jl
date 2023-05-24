@@ -41,6 +41,7 @@ my_tests = [
             "test_autovec",
             "test_plots",
             "test_dsp",
+            "test_implicit_diff",
             ]
 
 @testset "All Tests" begin
