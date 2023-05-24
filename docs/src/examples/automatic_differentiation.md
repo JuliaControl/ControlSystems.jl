@@ -1,3 +1,30 @@
+```@setup autodiff
+using ChainRules, ForwardDiff, ChainRulesCore, LinearAlgebra
+# @ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual})
+
+# Replace by ForwardDiffChainRules when https://github.com/ThummeTo/ForwardDiffChainRules.jl/pull/16 is merged
+function LinearAlgebra.exp!(A::AbstractMatrix{<:ForwardDiff.Dual})
+    Av = ForwardDiff.value.(A)
+    J = reduce(vcat, transpose.(ForwardDiff.partials.(A)))
+    CS = length(ForwardDiff.partials(A[1,1]))
+    dself = NoTangent();
+    cAv = copy(Av)
+    eA, newJ1 = ChainRules.frule((dself, reshape(J[:,1], size(A))), LinearAlgebra.exp!, cAv)
+
+    newJt = ntuple(Val(CS - 1)) do i
+        xpartialsi = reshape(J[:, i+1], size(A))
+        cAv .= Av
+        _, ypartialsi = ChainRulesCore.frule((dself, xpartialsi), LinearAlgebra.exp!, cAv)
+        ypartialsi
+    end
+    newJ = hcat(vec(newJ1), vec.(newJt)...)
+    T = ForwardDiff.tagtype(eltype(A))
+    flaty = ForwardDiff.Dual{T}.(
+        eA, reshape(ForwardDiff.Partials.(NTuple{CS}.(eachrow(newJ))), size(A)),
+    )
+end
+```
+
 # Automatic Differentiation
 In Julia, it is often possible to automatically compute derivatives, gradients, Jacobians and Hessians of arbitrary Julia functions with precision matching the machine precision, that is, without the numerical inaccuracies incurred by finite-difference approximations.
 
@@ -89,7 +116,7 @@ To make the automatic gradient computation through the matrix exponential used i
 ```@example autodiff
 using Optimization, Statistics, LinearAlgebra
 using OptimizationGCMAES, ChainRules, ForwardDiffChainRules
-# @ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual})
+# @ForwardDiff_frule LinearAlgebra.exp!(x1::AbstractMatrix{<:ForwardDiff.Dual}) # https://github.com/ThummeTo/ForwardDiffChainRules.jl/pull/16
 
 function plot_optimized(P, params, res)
     fig = plot(layout=(1,3), size=(1200,400), bottommargin=2Plots.mm)
