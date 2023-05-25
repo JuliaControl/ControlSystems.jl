@@ -67,6 +67,22 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
+## Lyap
+P = ssrand(1, 1, 2)
+function difffun(q)
+    Q = reshape(q, 2, 2)
+    sum(ControlSystemsBase.lyap(P, Q))
+end
+
+q = [2.0 1; 1 2] |> vec
+J1 = ForwardDiff.gradient(difffun, q)
+
+J1 = reshape(J1, 2,2)
+J1 = vec((J1 + J1') ./ 2)
+J2 = fdgrad(difffun, q)
+@test J1 ≈ J2 rtol = 1e-6
+
+
 
 ## hinfnorm
 
