@@ -172,7 +172,7 @@ params  = [kp, ki, kd, 0.01] # Initial guess for parameters
 
 solver = Ipopt.Optimizer()
 MOI.set(solver, MOI.RawOptimizerAttribute("print_level"), 0)
-MOI.set(solver, MOI.RawOptimizerAttribute("max_iter"), 50)
+MOI.set(solver, MOI.RawOptimizerAttribute("max_iter"), 200)
 MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_tol"), 1e-1)
 MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_constr_viol_tol"), 1e-2)
 MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_iter"), 5)
@@ -273,6 +273,35 @@ plot([r1, r2]; title="Time response",
             lab = [" \$r → e\$" " \$d → e\$"], legend=:bottomright,
             fillalpha=0.05, linealpha=0.8, seriestype=:path, c=[1 3], ri=false, N=32)
 ```
+
+
+### Parameterizing the controller using feedback gains
+
+For completeness, lets also parameterize the observer-based state-feedback controller using the gain matrices directly, that is, we search directly over ``L`` and ``K``. This is typically a harder problem since the search space contains non-stabilizing controllers, and the set of stabilizing gains is non-convex. (For state feedback, a nice theoretical result exists that says that there are no local minima, but the space of stabilizing gains is still non-convex.)
+
+```@example autodiff
+function systems_sf(params::AbstractVector{T}, P) where T
+    n2 = length(params) ÷ 2
+    L = params[1:n2]'
+    K = params[n2+1:2n2, 1:1]
+    C = observer_controller(P, L, K)
+    G = extended_gangoffour(P, C) # [S PS; CS T]
+    C, G
+end
+
+L0 = lqr(P, Q0, I) # Initial guess
+K0 = kalman(P, R0, I)
+params3 = [vec(L0); vec(K0)]
+prob3 = OptimizationProblem(fopt, params3, (P, systems_sf);
+    lb    = fill(-15.0, length(params3)),
+    ub    = fill(15.0, length(params3)),
+    ucons = fill(Msc, 1),
+    lcons = fill(-Inf, 1),
+)
+res3 = solve(prob3, solver)
+plot_optimized(P, params3, res3.u, systems_sf)
+```
+
 
 ## Known limitations
 The following issues are currently known to exist when using AD through ControlSystems.jl:
