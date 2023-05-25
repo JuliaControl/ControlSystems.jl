@@ -67,6 +67,22 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
+# Diff w.r.t. plant
+P = ssrand(1, 1, 2)
+Q = I(P.nx)
+R = [1.0;;]
+r = [1.0;]
+
+function difffun(a)
+    A = reshape(a, 2, 2)
+    Rd = eltype(a).(R)
+    sum(lqr(Continuous, A, P.B, Q, Rd))
+end
+a = P.A[:]
+J1 = ForwardDiff.gradient(difffun, a)
+J2 = fdgrad(difffun, a)
+@test J1 ≈ J2 rtol = 1e-6
+
 
 ## hinfnorm
 
