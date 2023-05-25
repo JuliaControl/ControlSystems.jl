@@ -83,6 +83,19 @@ J1 = ForwardDiff.gradient(difffun, a)
 J2 = fdgrad(difffun, a)
 @test J1 ≈ J2 rtol = 1e-6
 
+## are directly
+Q = [2.0 0.1; 0.1 2]
+q = vec(Q)
+function difffun(q)
+    Q = reshape(q, 2, 2)
+    Q = (Q .+ Q') ./ 2 # Needed for finite diff
+    Rd = eltype(Q).(R)
+    sum(are(P, Q, Rd))
+end
+J1 = ForwardDiff.gradient(difffun, q)
+J2 = fdgrad(difffun, q)
+@test J1 ≈ J2 rtol = 1e-6
+
 
 ## hinfnorm
 

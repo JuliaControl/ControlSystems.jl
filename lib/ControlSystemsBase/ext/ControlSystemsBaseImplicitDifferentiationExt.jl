@@ -10,7 +10,6 @@ using LinearAlgebra
 
 function forward_arec(pars)
     (; A,B,Q,R) = pars
-    # Q = reshape(Q0, size(A))
     ControlSystemsBase.are(Continuous, A, B, Q, R), 0
 end
 
@@ -21,6 +20,7 @@ function conditions_arec(pars, X, noneed)
     C .+= Q
     XB = X*B
     mul!(C, XB, R\XB', -1, 1)
+    # C .+ X .- X' # Does not seem to be needed
 end
 
 const implicit_arec = ImplicitFunction(forward_arec, conditions_arec)
@@ -75,9 +75,10 @@ function conditions_ared(pars, X, noneed)
     (; A,B,Q,R) = pars
     AX = A'X
     C = AX*A
-    C .+= Q .- X
+    C .+= Q .- X'
     AXB = AX*B
     C .-= AXB*(((B'X*B) .+= R)\AXB')
+    # C .+= X .- X'
     C
 end
 
