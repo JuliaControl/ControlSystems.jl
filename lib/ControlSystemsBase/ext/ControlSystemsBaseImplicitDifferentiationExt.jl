@@ -215,7 +215,7 @@ const implicit_hinfnorm = ImplicitFunction(forward_hinfnorm, conditions_hinfnorm
 """
     hinfnorm(sys::StateSpace{Continuous, <:Dual}; kwargs)
 
-The H∞ norm can be differentiated through using ForwardDiff.jl, but at the time of writing, is limited to systems with *either* a signel input *or* a signle output. 
+The H∞ norm can be differentiated through using ForwardDiff.jl, but at the time of writing, is limited to systems with *either* a signel input *or* a single output. 
 
 A reverse-differention rule is defined in RobustAndOptimalControl.jl, which means that hinfnorm is differentiable using, e.g., Zygote in reverse mode.
 """
