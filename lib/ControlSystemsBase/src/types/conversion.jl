@@ -197,6 +197,7 @@ function balance_statespace(sys::S, perm::Bool=false) where S <: AbstractStateSp
 end
 
 # Method that might fail for some exotic types, such as TrackedArrays
+using LinearAlgebra: BlasFloat
 function _balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
     nx = size(A, 1)
     nu = size(B, 2)
@@ -209,11 +210,45 @@ function _balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMa
     T = balance_transform(mag_A, mag_B, mag_C, perm)
 
     # Perform the transformation
-    A = T*A/T
-    B = T*B
-    C = C/T
+    if perm
+        iT = inv(T) # Always invertible by construction
+    else
+        iT = zeros(eltype(T), size(T))
+        for i = 1:nx # In this case T is diagonal
+            iT[i, i] = 1 / T[i, i]
+        end
+    end
+    if eltype(mag_A) === eltype(A) === eltype(B) === eltype(C) === eltype(iT)
+        mul!(mag_B, T, B)  # T*B reuse memory allocated before
+        mul!(mag_C, C, iT) # C/T
+        mul!(mag_A, A, iT) # T*A/T
+        mul!(iT, T, mag_A) # reuse iT allocated memory
+        return iT, mag_B, mag_C, T
+    else # Handle complex case
+        A = T*A/T
+        B = T*B
+        C = C/T
+        return A, B, C, T
+    end
+end
 
-    return A, B, C, T
+
+function _balance_statespace(A::AbstractMatrix{<:ForwardDiff.Dual}, B::AbstractMatrix{<:ForwardDiff.Dual}, C::AbstractMatrix{<:ForwardDiff.Dual}, perm::Bool=false)
+    # This method performs balancing without propagating gradients, which is probably okay since this function does not change the IO map
+    nx = size(A, 1)
+    Av,Bv,Cv = ForwardDiff.value.(A), ForwardDiff.value.(B), ForwardDiff.value.(C)
+    mag_A = abs.(Av)
+    mag_B = max.(abs.(Bv), false) # false is 0 of lowest type
+    mag_C = max.(abs.(Cv), false)
+    perm = false # Force perm false for Duals to simplify code
+    T = balance_transform(mag_A, mag_B, mag_C, perm)
+    DT = Diagonal(T)
+    # T will always be diagonal when perm=false
+    A = A/DT
+    mul!(A, DT, A)
+    B = DT*B
+    C = C/DT
+    A, B, C, T
 end
 
 balance_statespace(sys, args...) = sys, I # For system types that do not have an implementation
@@ -242,10 +277,10 @@ function balance_transform(A::AbstractArray, B::AbstractArray, C::AbstractArray,
     Sx = S[1:nx]
     Sio = S[nx+1]
     # Compute permutation of x (if requested)
-    pvec = perm ? balance(A, true)[2] * [1:nx;] : [1:nx;]
+    pvec = perm ? balance(A, true)[2] * (1:nx) : [1:nx;]
     # Compute the transformation matrix
     T = zeros(R, nx, nx)
-    T[pvec, :] = Sio * diagm(0 => R(1)./Sx)
+    @views mul!(T[pvec, :],  Sio, Diagonal(R(1)./Sx))
     return T
 end
 
