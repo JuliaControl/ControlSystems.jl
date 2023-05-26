@@ -144,19 +144,16 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 # covar w.r.t. plant
-@test_skip begin
-    # This test passes, but it the call to isstable(sys) in covar fails due to eigvals on dual matrix, if the isstable check is commented out, the test passes
-    function difffun(a)
-        A = reshape(a, 2, 2)
-        sys2 = ss(A, P.B, P.C, P.D)
-        sum(ControlSystemsBase.covar(sys2, Q))
-    end
-
-    a = P.A |> vec
-    J1 = ForwardDiff.gradient(difffun, a)
-    J2 = fdgrad(difffun, a)
-    @test J1 ≈ J2 rtol = 1e-6
+function difffun(a)
+    A = reshape(a, 2, 2)
+    sys2 = ss(A, P.B, P.C, P.D)
+    sum(ControlSystemsBase.covar(sys2, Q))
 end
+
+a = P.A |> vec
+J1 = ForwardDiff.gradient(difffun, a)
+J2 = fdgrad(difffun, a)
+@test J1 ≈ J2 rtol = 1e-6
 
 
 ## hinfnorm
