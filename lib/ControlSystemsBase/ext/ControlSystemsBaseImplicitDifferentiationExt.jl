@@ -183,7 +183,7 @@ function conditions_plyapc(pars, Xc, noneed)
     X = Xc*Xc'
     AX = A*X
     O = AX .+ AX' .+ Q
-    vec(O) + vec(X - X')
+    vec(O) + vec(Xc - UpperTriangular(Xc))
 end
 
 # linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))

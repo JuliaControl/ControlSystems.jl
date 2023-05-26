@@ -116,15 +116,12 @@ J2 = fdgrad(difffun, q)
 ## positive definite Lyap
 Ql = [1 0; 0.1 1]
 function difffun(q)
-    Ql = reshape(q, 2, 2)
+    Ql = LowerTriangular(copy(reshape(q, 2, 2)))
     sum(ControlSystemsBase.plyap(P, Ql))
 end
 
 q = Ql |> vec
 J1 = ForwardDiff.gradient(difffun, q)
-
-J1 = reshape(J1, 2,2)
-J1 = vec((J1 + J1') ./ 2)
 J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
@@ -145,7 +142,7 @@ J2 = fdgrad(difffun, q)
 
 # covar w.r.t. plant
 function difffun(a)
-    A = reshape(a, 2, 2)
+    A = copy(reshape(a, 2, 2))
     sys2 = ss(A, P.B, P.C, P.D)
     sum(ControlSystemsBase.covar(sys2, Q))
 end
