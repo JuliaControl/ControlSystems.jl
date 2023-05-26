@@ -120,6 +120,58 @@ function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual})
 end
 
 
+## Lyap
+function forward_lyapc(pars)
+    (; A,Q) = pars
+    # Q = reshape(Q0, size(A))
+    ControlSystemsBase.lyapc(A, Q), 0
+end
+
+function conditions_lyapc(pars, X, noneed)
+    (; A,Q) = pars
+    AX = A*X
+    O = AX .+ AX' .+ Q
+    vec(O) + vec(X - X')
+end
+
+# linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
+const implicit_lyapc = ImplicitFunction(forward_lyapc, conditions_lyapc)
+
+"""
+    ControlSystemsBase.lyap(nothing::ContinuousType, A::AbstractMatrix, Q::AbstractMatrix{<:Dual}; kwargs)
+
+To make the Lyapunov solver work with dual numbers, make sure that the `Q` matrix has the dual number element type.
+
+The returned gradient may not be symmetric, but the trick `(X + X') ./ 2` results in the correct symmetric gradient.
+
+# Example:
+```julia
+using ControlSystemsBase, ImplicitDifferentiation, ForwardDiff, FiniteDifferences, ComponentArrays, Test
+fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
+
+P = ssrand(1, 1, 2)
+function difffun(q)
+    Q = reshape(q, 2, 2)
+    sum(ControlSystemsBase.lyap(P, Q))
+end
+
+q = [2.0 1; 1 2] |> vec
+J1 = ForwardDiff.gradient(difffun, q) # Non-symmetric gradient
+
+J1 = reshape(J1, 2,2)
+J1 = vec((J1 + J1') ./ 2) # Symmetric gradient
+J2 = fdgrad(difffun, q)
+@test J1 ≈ J2 rtol = 1e-6
+```
+"""
+function ControlSystemsBase.lyap(::ContinuousType, A::AbstractMatrix, Q::AbstractMatrix{<:Dual}; kwargs...)
+    pars = ComponentVector(; A,Q)
+    X0, _ = implicit_lyapc(pars)
+    X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
+end
+
+
+
 ## Hinf norm
 import ControlSystemsBase: hinfnorm
 function forward_hinfnorm(pars; kwargs...)
