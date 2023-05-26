@@ -60,6 +60,12 @@ LinearAlgebra.lyap(::ContinuousType, args...; kwargs...) = lyapc(args...; kwargs
 LinearAlgebra.lyap(::DiscreteType, args...; kwargs...) = lyapd(args...; kwargs...)
 LinearAlgebra.lyap(sys::AbstractStateSpace, args...; kwargs...) = lyap(timeevol(sys), sys.A, args...; kwargs...)
 
+"""
+    Xc = plyap(sys::AbstractStateSpace, Ql; kwargs...)
+
+Lyapunov solver that takes the `L` Cholesky factor of `Q` and returns a triangular matrix `Xc` such that `Xc*Xc' = X`.
+"""
+plyap(sys::AbstractStateSpace, args...; kwargs...) = plyap(timeevol(sys), sys.A, args...; kwargs...)
 plyap(::ContinuousType, args...; kwargs...) = MatrixEquations.plyapc(args...; kwargs...)
 plyap(::DiscreteType, args...; kwargs...) = MatrixEquations.plyapd(args...; kwargs...)
 

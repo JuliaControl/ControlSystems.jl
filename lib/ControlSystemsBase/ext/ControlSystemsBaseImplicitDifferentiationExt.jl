@@ -171,6 +171,30 @@ function ControlSystemsBase.lyap(::ContinuousType, A::AbstractMatrix, Q::Abstrac
 end
 
 
+# plyap
+function forward_plyapc(pars)
+    (; A,Q) = pars
+    ControlSystemsBase.plyapc(A, Q), 0
+end
+
+function conditions_plyapc(pars, Xc, noneed)
+    (; A,Q) = pars
+    Q = Q*Q'
+    X = Xc*Xc'
+    AX = A*X
+    O = AX .+ AX' .+ Q
+    vec(O) + vec(Xc - UpperTriangular(Xc))
+end
+
+# linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
+const implicit_plyapc = ImplicitFunction(forward_plyapc, conditions_plyapc)
+
+function ControlSystemsBase.plyap(::ContinuousType, A::AbstractMatrix, Q::AbstractMatrix{<:Dual}; kwargs...)
+    pars = ComponentVector(; A,Q)
+    X0, _ = implicit_plyapc(pars)
+    X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
+end
+
 
 ## Hinf norm
 import ControlSystemsBase: hinfnorm

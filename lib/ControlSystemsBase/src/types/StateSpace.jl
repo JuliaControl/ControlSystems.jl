@@ -226,6 +226,15 @@ nstates(sys::AbstractStateSpace) = size(sys.A, 1)
 
 isproper(sys::AbstractStateSpace) = iszero(sys.D)
 
+function isstable(sys::StateSpace{Continuous, <:ForwardDiff.Dual})
+    # Drop duals for this check since it's not differentiable anyway
+    all(real.(eigvals(ForwardDiff.value.(sys.A))) .< 0)
+end
+function isstable(sys::StateSpace{<:Discrete, <:ForwardDiff.Dual})
+    all(abs.(ForwardDiff.value.(sys.A)) .< 1)
+end
+
+
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################
