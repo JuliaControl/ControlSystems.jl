@@ -5,11 +5,11 @@ using FiniteDifferences
 using ComponentArrays
 fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
 
-P = ssrand(1, 1, 1)
-Q = [1.0;;]
+P = ssrand(1, 1, 2)
+Q = [1.0 0.1; 0.1 0.5]
 R = [1.0;;]
 r = [1.0;]
-q = [1.0;]
+q = vec(Q)
 
 
 function difffun(r)
@@ -30,7 +30,8 @@ J2 = fdgrad(difffun, r)
 
 
 function difffun(q)
-    Q = reshape(q, 1, 1)
+    Q = reshape(q, 2, 2)
+    Q = (Q .+ Q') ./ 2 # Needed for finite diff
     Rd = eltype(Q).(R)
     sum(lqr(P, Q, Rd))
 end
@@ -39,7 +40,7 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
-P = ssrand(1, 1, 1, Ts=0.01)
+P = ssrand(1, 1, 2, Ts=0.01)
 function difffun(r)
     R = reshape(r, 1, 1)
     sum(lqr(P, Q, R))
@@ -58,7 +59,8 @@ J2 = fdgrad(difffun, r)
 
 
 function difffun(q)
-    Q = reshape(q, 1, 1)
+    Q = reshape(q, 2, 2)
+    Q = (Q .+ Q') ./ 2 # Needed for finite diff
     Rd = eltype(Q).(R)
     sum(lqr(P, Q, Rd))
 end
@@ -67,6 +69,35 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
+# Diff w.r.t. plant
+P = ssrand(1, 1, 2)
+Q = I(P.nx)
+R = [1.0;;]
+r = [1.0;]
+
+function difffun(a)
+    A = reshape(a, 2, 2)
+    Rd = eltype(a).(R)
+    sum(lqr(Continuous, A, P.B, Q, Rd))
+end
+a = P.A[:]
+J1 = ForwardDiff.gradient(difffun, a)
+J2 = fdgrad(difffun, a)
+@test J1 ≈ J2 rtol = 1e-6
+
+## are directly
+Q = [2.0 0.1; 0.1 2]
+q = vec(Q)
+function difffun(q)
+    Q = reshape(q, 2, 2)
+    Q = (Q .+ Q') ./ 2 # Needed for finite diff
+    Rd = eltype(Q).(R)
+    sum(are(P, Q, Rd))
+end
+J1 = ForwardDiff.gradient(difffun, q)
+J2 = fdgrad(difffun, q)
+@test J1 ≈ J2 rtol = 1e-6
+                
 ## Lyap
 P = ssrand(1, 1, 2)
 function difffun(q)
@@ -81,7 +112,6 @@ J1 = reshape(J1, 2,2)
 J1 = vec((J1 + J1') ./ 2)
 J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
-
 
 
 ## hinfnorm
@@ -101,7 +131,7 @@ sys = DemoSystems.double_mass_model(outputs=[2,4]) |> minreal
 function difffun(pars)
     (; A,B,C,D) = pars
     hn, w = hinfnorm(ss(A, B, C, 0))
-    if hn isa AbstractVector
+    if hn isa AbstractArray
         hn = hn[]
     end
     hn
