@@ -216,7 +216,7 @@ covar(sys::TransferFunction, W) = covar(ss(sys), W)
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
 `norm(sys, Inf)` computes the H∞ norm of the LTI system `sys`.
-The H∞ norm is the same as the H∞ for stable systems, and Inf for unstable systems.
+The H∞ norm is the same as the L∞ for stable systems, and Inf for unstable systems.
 If the peak gain frequency is required as well, use the function `hinfnorm` instead.
 See [`hinfnorm`](@ref) for further documentation.
 
