@@ -121,7 +121,7 @@ eigvals(A-B*K2)
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
 """
-function place(A, B, p, opt=:c)
+function place(A, B, p, opt=:c; kwargs...)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as states")
     if opt === :c
@@ -129,7 +129,7 @@ function place(A, B, p, opt=:c)
         if size(B,2) == 1
             acker(A, B, p)
         else
-            place_knvd(A, B, p)
+            place_knvd(A, B, p; kwargs...)
         end
     elseif opt === :o
         C = B # B is really the "C matrix"
@@ -137,7 +137,7 @@ function place(A, B, p, opt=:c)
         if size(C,1) == 1
             acker(A', C', p)'
         else
-            place_knvd(A', C', p)'
+            place_knvd(A', C', p; kwargs...)'
         end
     else
         error("fourth argument must be :c or :o")
@@ -173,7 +173,7 @@ end
 
 
 """
-    place_knvd(A::AbstractMatrix, B, λ; verbose = false, init = :id)
+    place_knvd(A::AbstractMatrix, B, λ; verbose = false, init = :s)
 
 Robust pole placement using the algorithm from
 > "Robust Pole Assignment in Linear State Feedback", Kautsky, Nichols, Van Dooren
@@ -185,10 +185,11 @@ This function will be called automatically when [`place`](@ref) is called with a
 # Arguments:
 - `init`: Determines the initialization strategy for the iterations for find the `X` matrix. Possible choices are `:id` (default), `:rand`, `:s`. 
 """
-function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:rand)
+function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0)
     n, m = size(B)
     T = float(promote_type(eltype(A), eltype(B)))
     CT = Complex{real(T)}
+    λ = sort(λ, by=LinearAlgebra.eigsortby)
     length(λ) == size(A, 1) == n || error("Must specify as many poles as states")
     Λ = diagm(λ)
     QRB = qr(B)
@@ -196,17 +197,16 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:rand)
     Z = QRB.R
     R = svdvals(B)
     m = count(>(100*eps()*R[1]), R) # Rank of B
-    sλ = sort(λ, by=real)
     if m == n # Easy case, B is full rank
         r = count(e->imag(e) == 0, λ)
-        ABF = diagm(real(sλ))
+        ABF = diagm(real(λ))
         j = r+1
         while j <= n-1
-            ABF[j, j+1] = imag(sλ[j])
-            ABF[j+1, j] = - imag(sλ[j])
+            ABF[j, j+1] = imag(λ[j])
+            ABF[j+1, j] = - imag(λ[j])
             j += 2
         end;
-        return B\(A - ABF)
+        return B\(A - ABF) # Solve for F in (A - BF) = Λ
     end
 
 
@@ -214,6 +214,7 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:rand)
     for j = 1:n
         qj = qr((U1'*(A- λ[j]*I))')
         # @assert nr == m
+        # Ŝj = qj.Q[:, 1:n-m] # Needed for method 2
         Sj = qj.Q[:, n-m+1:n]
         # nr = size(qj.R, 1)
         # Sj = qj.Q[:, nr+1:n]
@@ -235,33 +236,69 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:rand)
         X = randn(CT, n, n)
     elseif init === :s
         X = zeros(CT, n, n)
-        for j = 1:n
+        @views for j = 1:n
             X[:,j] = sum(S[j], dims=2)
-            X[:,j] = X[:,j]/norm(X[:,j])
+            X[:,j] ./= norm(X[:,j])
         end
+    elseif init === :acker
+        P = randn(m,1) # Random projection matrix
+        K = place(A,B*P,λ)
+        L = P*K
+        M = A - B*L
+        X = complex.(eigen(M).vectors)
     else
         error("Unknown init method")
     end
 
     cond_old = float(T)(Inf)
-    for i = 1:200
-        verbose && @info "Iteration $i"
-        for j = 1:n
-            Xj = qr(X[:, setdiff(1:n, j)])
-            ỹ = Xj.Q[:, end]
-            STy = S[j]'ỹ
-            xj = S[j]*(STy ./ norm(STy))
-            any(!isfinite, xj) && error("Not finite")
-            X[:, j] = xj
+    if method == 0
+        for i = 1:200
+            verbose && @info "Iteration $i"
+            for j = 1:n
+                Xj = qr(X[:, setdiff(1:n, j)])
+                ỹ = Xj.Q[:, end]
+                STy = S[j]'ỹ
+                xj = S[j]*(STy ./ norm(STy))
+                any(!isfinite, xj) && error("Not finite")
+                X[:, j] = xj
+            end
+            c = cond(X)
+            verbose && @info "cond(X) = $c"
+            if cond_old - c < 1e-14
+                break
+            end
+            cond_old = c
+            i == 200 && @warn "Max iterations reached"
         end
-        c = cond(X)
-        verbose && @info "cond(X) = $c"
-        if cond_old - c < 1e-14
-            break
-        end
-        cond_old = c
-        i == 200 && @warn "Max iterations reached"
+    # elseif method == 1
+    #     for i = 1:200
+    #         verbose && @info "Iteration $i"
+    #         for j = 1:n
+    #             Xj = qr(X[:, setdiff(1:n, j)])
+    #             Rj = Xj.R
+    #             Qj = Xj.Q[:, 1:end-1]
+    #             qj = Xj.Q[:, end]
+    #             σpt = qj'S[j]
+    #             σ = norm(σpt)
+    #             p = vec(σpt) ./ σ
+    #             ρ = sqrt(σ^(-2)*(w̃'w̃ + 1))
+    #             xj = inv(ρ*σ)*S[j]
+
+    #             any(!isfinite, xj) && error("Not finite")
+    #             X[:, j] = xj
+    #         end
+    #         c = cond(X)
+    #         verbose && @info "cond(X) = $c"
+    #         if cond_old - c < 1e-14
+    #             break
+    #         end
+    #         cond_old = c
+    #         i == 200 && @warn "Max iterations reached"
+    #     end
+    else
+        error("Only method 0 is implemented")
     end
+    verbose && @info "norm X = $(norm(X))"
     M = X*Λ/X
     F = real((Z\U0')*(M-A))
     -F # Paper assumes positive feedback

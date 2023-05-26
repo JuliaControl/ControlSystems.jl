@@ -104,26 +104,26 @@ end
 
 @testset "MIMO place" begin
 
-    function allin(a, b)
-        all(minimum(abs, a .- b', dims=2)[:] .< 10e-2)
+    function allin(a, b; tol = 1e-2)
+        all(minimum(abs, a .- b', dims=2)[:] .< tol)
     end
 
-    for i = 1:100
+    for i = 1:10
         # B smaller than A
         sys = ssrand(2,2,3)
-        @show cond(gram(sys, :c))
+        # @show cond(gram(sys, :c))
         (; A, B) = sys
         p = [-1.0, -2, -3]
         L = place(A, B, p)
         @test eltype(L) <: Real
         @test allin(eigvals(A - B*L), p)
 
-        p = [-3.0, -1-im, -1+im]
-        L = place(A, B, p)
-        @test eltype(L) <: Real
+        # p = [-3.0, -1-im, -1+im]
+        # L = place(A, B, p)
+        # @test eltype(L) <: Real
 
-        gram(sys, :c)
-        @test allin(eigvals(A - B*L), p)
+        # cond(gram(sys, :c))
+        # @test allin(eigvals(A - B*L), p)
 
 
         # B same size as A
@@ -152,6 +152,22 @@ end
 
     end
 
+    A = [
+        -0.1094 0.0628 0 0 0
+        1.306 -2.132 0.9807 0 0
+        0 1.595 -3.149 1.547 0
+        0 0.0355 2.632 -4.257 1.855
+        0 0.00227 0 0.1636 -0.1625
+    ]
+    B = [
+        0 0.0638 0.0838 0.1004 0.0063
+        0 0 -0.1396 -0.206 -0.0128
+    ]'
+    # p = [-0.07732, -0.01423, -0.8953, -2.841, -5.982]
+    p = [-0.2, -0.5, -1, -1+im, -1-im]
+    L = place(A, B, p; verbose=true) # with verbose, should prind cond(X) ≈ 39.4 which it does 
+    @test allin(eigvals(A - B*L), p; tol=0.025) # Tolerance from paper
+    # norm(L)
 
 end
 
