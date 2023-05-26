@@ -129,7 +129,7 @@ function place(A, B, p, opt=:c)
         if size(B,2) == 1
             acker(A, B, p)
         else
-            error("place only implemented for SISO systems")
+            place_knvd(A, B, p)
         end
     elseif opt === :o
         C = B # B is really the "C matrix"
@@ -137,7 +137,7 @@ function place(A, B, p, opt=:c)
         if size(C,1) == 1
             acker(A', C', p)'
         else
-            error("place only implemented for SISO systems")
+            place_knvd(A', C', p)'
         end
     else
         error("fourth argument must be :c or :o")
@@ -169,4 +169,100 @@ function acker(A,B,P)
         S[:,i+1] = A^i*B
     end
     return [zeros(1,n-1) 1]*(S\q)
+end
+
+
+"""
+    place_knvd(A::AbstractMatrix, B, λ; verbose = false, init = :id)
+
+Robust pole placement using the algorithm from
+> "Robust Pole Assignment in Linear State Feedback", Kautsky, Nichols, Van Dooren
+
+This implementation uses "method 0" for the X-step and the QR factorization for all factorizations.
+
+This function will be called automatically when [`place`](@ref) is called with a MIMO system.
+
+# Arguments:
+- `init`: Determines the initialization strategy for the iterations for find the `X` matrix. Possible choices are `:id` (default), `:rand`, `:s`. 
+"""
+function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:rand)
+    n, m = size(B)
+    T = float(promote_type(eltype(A), eltype(B)))
+    CT = Complex{real(T)}
+    length(λ) == size(A, 1) == n || error("Must specify as many poles as states")
+    Λ = diagm(λ)
+    QRB = qr(B)
+    U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
+    Z = QRB.R
+    R = svdvals(B)
+    m = count(>(100*eps()*R[1]), R) # Rank of B
+    sλ = sort(λ, by=real)
+    if m == n # Easy case, B is full rank
+        r = count(e->imag(e) == 0, λ)
+        ABF = diagm(real(sλ))
+        j = r+1
+        while j <= n-1
+            ABF[j, j+1] = imag(sλ[j])
+            ABF[j+1, j] = - imag(sλ[j])
+            j += 2
+        end;
+        return B\(A - ABF)
+    end
+
+
+    S = Matrix{CT}[]
+    for j = 1:n
+        qj = qr((U1'*(A- λ[j]*I))')
+        # @assert nr == m
+        Sj = qj.Q[:, n-m+1:n]
+        # nr = size(qj.R, 1)
+        # Sj = qj.Q[:, nr+1:n]
+        
+        push!(S, Sj)
+    end
+    if m == 1 # Shortcut
+        verbose && @info "Shortcut"
+        X = S
+        M = real(X*Λ/X)
+        F = real((Z\U0')*(M-A))
+        return -F
+    end
+
+    # Init
+    if init === :id
+        X = Matrix(one(CT)*I(n))
+    elseif init === :rand
+        X = randn(CT, n, n)
+    elseif init === :s
+        X = zeros(CT, n, n)
+        for j = 1:n
+            X[:,j] = sum(S[j], dims=2)
+            X[:,j] = X[:,j]/norm(X[:,j])
+        end
+    else
+        error("Unknown init method")
+    end
+
+    cond_old = float(T)(Inf)
+    for i = 1:200
+        verbose && @info "Iteration $i"
+        for j = 1:n
+            Xj = qr(X[:, setdiff(1:n, j)])
+            ỹ = Xj.Q[:, end]
+            STy = S[j]'ỹ
+            xj = S[j]*(STy ./ norm(STy))
+            any(!isfinite, xj) && error("Not finite")
+            X[:, j] = xj
+        end
+        c = cond(X)
+        verbose && @info "cond(X) = $c"
+        if cond_old - c < 1e-14
+            break
+        end
+        cond_old = c
+        i == 200 && @warn "Max iterations reached"
+    end
+    M = X*Λ/X
+    F = real((Z\U0')*(M-A))
+    -F # Paper assumes positive feedback
 end
