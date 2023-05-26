@@ -104,9 +104,9 @@ Calculate the gain matrix `K` such that `A - BK` has eigenvalues `p`.
 
 Calculate the observer gain matrix `L` such that `A - LC` has eigenvalues `p`.
 
-Uses Ackermann's formula.
+Uses Ackermann's formula for SISO systems and `place_knvd`for MIMO systems. 
 
-**Currently handles only SISO systems**, but a trick is possible to make it work for MIMO systems:
+A trick is possible to make Ackermann work for MIMO systems:
 The code below introduces a random projection matrix `P` that projects the input space to one dimension, and then shifts the application of `P` from `B` to `K`. 
 ```julia
 nx = 5
@@ -120,7 +120,6 @@ eigvals(A-B*K2)
 ```
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
-"""
 function place(A, B, p, opt=:c; kwargs...)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as states")
