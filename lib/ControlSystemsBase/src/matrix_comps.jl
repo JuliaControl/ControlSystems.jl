@@ -486,7 +486,7 @@ function balance(A, perm::Bool=true)
     job = perm ? 'B' : 'S'
     ilo, ihi, scaling = LAPACK.gebal!(job, B)
 
-    S = diagm(0 => scaling)
+    S = Diagonal(scaling)
     for j = 1:(ilo-1)   S[j,j] = 1 end
     for j = (ihi+1):n   S[j,j] = 1 end
 
