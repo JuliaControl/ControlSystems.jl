@@ -113,6 +113,51 @@ J1 = vec((J1 + J1') ./ 2)
 J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
+## positive definite Lyap
+Ql = [1 0; 0.1 1]
+function difffun(q)
+    Ql = reshape(q, 2, 2)
+    sum(ControlSystemsBase.plyap(P, Ql))
+end
+
+q = Ql |> vec
+J1 = ForwardDiff.gradient(difffun, q)
+
+J1 = reshape(J1, 2,2)
+J1 = vec((J1 + J1') ./ 2)
+J2 = fdgrad(difffun, q)
+@test J1 ≈ J2 rtol = 1e-6
+
+
+
+## covar (tests plyap)
+P = ssrand(1, 2, 2, proper=true)
+function difffun(q)
+    Q = reshape(q, 2, 2)
+    Q = (Q .+ Q') ./ 2 # Needed for finite diff
+    sum(ControlSystemsBase.covar(P, Q))
+end
+
+q = Q |> vec
+J1 = ForwardDiff.gradient(difffun, q)
+J2 = fdgrad(difffun, q)
+@test J1 ≈ J2 rtol = 1e-6
+
+# covar w.r.t. plant
+@test_skip begin
+    # This test passes, but it the call to isstable(sys) in covar fails due to eigvals on dual matrix, if the isstable check is commented out, the test passes
+    function difffun(a)
+        A = reshape(a, 2, 2)
+        sys2 = ss(A, P.B, P.C, P.D)
+        sum(ControlSystemsBase.covar(sys2, Q))
+    end
+
+    a = P.A |> vec
+    J1 = ForwardDiff.gradient(difffun, a)
+    J2 = fdgrad(difffun, a)
+    @test J1 ≈ J2 rtol = 1e-6
+end
+
 
 ## hinfnorm
 
