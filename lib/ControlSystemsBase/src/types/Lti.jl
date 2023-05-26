@@ -86,12 +86,6 @@ common_timeevol(systems::LTISystem...) = common_timeevol(timeevol(sys) for sys i
 Returns `true` if `sys` is stable, else returns `false`."""
 isstable(sys::LTISystem{Continuous}) = all(real.(poles(sys)) .< 0)
 isstable(sys::LTISystem{<:Discrete}) = all(abs.(poles(sys)) .< 1)
-function isstable(sys::StateSpace{Continuous, <:ForwardDiff.Dual})
-    all(real.(eigvals(ForwardDiff.value.(sys.A))) .< 0)
-end
-function isstable(sys::StateSpace{<:Discrete, <:ForwardDiff.Dual})
-    all(abs.(ForwardDiff.value.(sys.A)) .< 1)
-end
 
 # Fallback since LTISystem not AbstractArray
 Base.size(sys::LTISystem, i::Integer) = size(sys)[i]
