@@ -244,11 +244,11 @@ function _balance_statespace(A::AbstractMatrix{<:ForwardDiff.Dual}, B::AbstractM
     T = balance_transform(mag_A, mag_B, mag_C, perm)
     DT = Diagonal(T)
     # T will always be diagonal when perm=false
-    A,B,C = ssdata(sys)
     A = A/DT
     mul!(A, DT, A)
     B = DT*B
     C = C/DT
+    A, B, C, T
 end
 
 balance_statespace(sys, args...) = sys, I # For system types that do not have an implementation

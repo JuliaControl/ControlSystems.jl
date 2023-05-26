@@ -202,8 +202,6 @@ allpoles = [
 @test sort(pcl, by=LinearAlgebra.eigsortby) ≈ sort(allpoles, by=LinearAlgebra.eigsortby) 
 @test cont.B == K
 
-end 
-
 ## Test time scaling
 for balanced in [true, false]
     sys = ssrand(1,1,5);
@@ -214,3 +212,19 @@ for balanced in [true, false]
     Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
     @test Gms == tf(1, [1, 1])
 end
+
+
+
+## Test balancing with Duals
+using ForwardDiff: Dual
+A = Dual.([-0.21 0.2; 0.2 -0.21])
+B = Dual.(0.01*[1 0; 0 1])
+C = Dual.([1 0; 0 1])
+D = Dual.(0)
+sys = ss(A,B,C,D)
+
+sysb,T = ControlSystemsBase.balance_statespace(sys)
+@test T != I
+@test similarity_transform(sysb, T) ≈ sys
+
+end 
