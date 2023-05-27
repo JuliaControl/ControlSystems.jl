@@ -106,20 +106,10 @@ Calculate the observer gain matrix `L` such that `A - LC` has eigenvalues `p`.
 
 Uses Ackermann's formula for SISO systems and `place_knvd`for MIMO systems. 
 
-A trick is possible to make Ackermann work for MIMO systems:
-The code below introduces a random projection matrix `P` that projects the input space to one dimension, and then shifts the application of `P` from `B` to `K`. 
-```julia
-nx = 5
-nu = 2
-A = randn(nx,nx)
-B = randn(nx,nu)
-P = randn(nu,1)
-K = place(A,B*P,zeros(nx))
-K2 = P*K
-eigvals(A-B*K2)
-```
+
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
+"""
 function place(A, B, p, opt=:c; kwargs...)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as states")
@@ -153,8 +143,25 @@ function place(sys::AbstractStateSpace, p, opt=:c)
 end
 
 
+"""
+    acker(A,B,P)
 
-#Implements Ackermann's formula for placing poles of (A-BK) in p
+Implements Ackermann's formula for placing poles of (A-BK) in p
+
+A trick is possible to make Ackermann work for MIMO systems:
+The code below introduces a random projection matrix `P` that projects the input space to one dimension, and then shifts the application of `P` from `B` to `K`. 
+
+```julia
+nx = 5
+nu = 2
+A = randn(nx,nx)
+B = randn(nx,nu)
+P = randn(nu,1)
+K = place(A,B*P,zeros(nx))
+K2 = P*K
+eigvals(A-B*K2)
+```
+"""
 function acker(A,B,P)
     n = length(P)
     #Calculate characteristic polynomial
