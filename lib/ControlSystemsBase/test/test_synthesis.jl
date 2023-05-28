@@ -150,6 +150,14 @@ end
         @test eltype(L) <: Real
         @test allin(eigvals(sysd.A - sysd.B*L), p)
 
+        # B of size 1
+        sys = ssrand(1,1,3)
+        (; A, B) = sys
+        p = [-1.0, -2, -3]
+        L = ControlSystemsBase.place_knvd(A, B, p)
+        @test eltype(L) <: Real
+        @test allin(eigvals(A - B*L), p)
+
     end
 
     A = [

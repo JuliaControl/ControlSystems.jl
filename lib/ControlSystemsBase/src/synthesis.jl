@@ -104,9 +104,7 @@ Calculate the gain matrix `K` such that `A - BK` has eigenvalues `p`.
 
 Calculate the observer gain matrix `L` such that `A - LC` has eigenvalues `p`.
 
-Uses Ackermann's formula for SISO systems and `place_knvd`for MIMO systems. 
-
-
+Uses Ackermann's formula for SISO systems and [`place_knvd`](@ref) for MIMO systems. 
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
 """
@@ -148,7 +146,7 @@ end
 
 Implements Ackermann's formula for placing poles of (A-BK) in p
 
-A trick is possible to make Ackermann work for MIMO systems:
+Ackermann's formula works for SISO systems only, but a trick is possible to make Ackermann work for MIMO systems:
 The code below introduces a random projection matrix `P` that projects the input space to one dimension, and then shifts the application of `P` from `B` to `K`. 
 
 ```julia
@@ -161,6 +159,8 @@ K = place(A,B*P,zeros(nx))
 K2 = P*K
 eigvals(A-B*K2)
 ```
+
+See also [`place_knvd`](@ref) which naturally handles MIMO systems.
 """
 function acker(A,B,P)
     n = length(P)
@@ -215,22 +215,17 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
         return B\(A - ABF) # Solve for F in (A - BF) = Λ
     end
 
-
     S = Matrix{CT}[]
     for j = 1:n
         qj = qr((U1'*(A- λ[j]*I))')
-        # @assert nr == m
         # Ŝj = qj.Q[:, 1:n-m] # Needed for method 2
         Sj = qj.Q[:, n-m+1:n]
-        # nr = size(qj.R, 1)
-        # Sj = qj.Q[:, nr+1:n]
-        
         push!(S, Sj)
     end
     if m == 1 # Shortcut
         verbose && @info "Shortcut"
-        X = S
-        M = real(X*Λ/X)
+        X = reduce(hcat, S)
+        M = X*Λ/X
         F = real((Z\U0')*(M-A))
         return -F
     end
@@ -246,12 +241,6 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
             X[:,j] = sum(S[j], dims=2)
             X[:,j] ./= norm(X[:,j])
         end
-    elseif init === :acker
-        P = randn(m,1) # Random projection matrix
-        K = place(A,B*P,λ)
-        L = P*K
-        M = A - B*L
-        X = complex.(eigen(M).vectors)
     else
         error("Unknown init method")
     end
