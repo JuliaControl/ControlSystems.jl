@@ -18,7 +18,7 @@ function getexamples()
       setPlotScale("dB")
       bodeplot(sys,ws)
     end
-    nyquistgen() = nyquistplot(sysss,ws, Ms_circles=1.2, Mt_circles=1.2)
+    nyquistgen() = nyquistplot(sysss,ws, Ms_circles=1.2, Mt_circles=1.2, M_circles=1.2)
     sigmagen() = sigmaplot(sysss,ws)
     #Only siso for now
     nicholsgen() = nicholsplot(tf1,ws)

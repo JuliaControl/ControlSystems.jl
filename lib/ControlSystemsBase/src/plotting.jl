@@ -388,7 +388,7 @@ optionally provided.
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, balance=true)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], M_circles=[], unit_circle=false, hz=false, critical_point=-1, balance=true)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -445,7 +445,21 @@ nyquistplot
                             rt = Mt/(Mt^2-1)    # Mt radius
                             ct.+rt.*C, rt.*S
                         end
-                    end                
+                    end  
+                    for M in M_circles
+                        @series begin
+                            subplot --> s2i(i,j)
+                            primary := false
+                            linestyle := :dash
+                            linecolor := :gray
+                            seriestype := :path
+                            markershape := :none
+                            label := "M = $(round(M, digits=2))"
+                            ct = -(2M^2 - 2M + 1)/(2M*(M-1)) # M center
+                            rt = (2M - 1)/(2M*(M-1)) # M radius
+                            ct.+rt.*C, rt.*S
+                        end
+                    end        
                     if unit_circle 
                         @series begin
                             subplot --> s2i(i,j)
