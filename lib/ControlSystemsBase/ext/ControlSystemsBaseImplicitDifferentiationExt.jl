@@ -227,35 +227,40 @@ function hinfnorm(sys::StateSpace{Continuous, <:Dual}; kwargs...)
 end
 
 
-# ## Schur, currently not working when the matrix A has complex eigenvalues.
-# Sec 4.2 in "A PROCEDURE FOR DIFFERENTIATING PERFECT-FORESIGHT-MODEL REDUCED-FORM  OEFFICIENTS", Gary ANDERSON  has a formula for the derivative, but it looks rather expensive to compute, involving the factorization of a rather large Kronecker matrix. THis factorization only has to be done once, though, since it does not depend on the partials.
-# function forward_schur(A)
-#     F = schur(A)
-#     ComponentVector(; F.Z, F.T), F
-# end
+# ## Schur
+function forward_schur(A)
+    F = schur(A)
+    ComponentVector(; F.Z, F.T), F
+end
 
-# function conditions_schur(A, F, noneed)
-#     (; Z, T) = F
-#     [
-#         vec(Z' * A * Z - T);
-#         vec(Z' * Z - I + LowerTriangular(T) - Diagonal(T))
-#     ]
-# end
+function conditions_schur(A, F, s)
+    (; Z, T) = F
+    if all(isreal, s.values)
+        [
+            vec(Z' * A * Z - T);
+            vec(Z' * Z - I + LowerTriangular(T) - Diagonal(T))
+        ]
+    else
+        [
+            vec(Z' * A * Z - T);
+            vec(Z' * Z - I + UpperTriangular(T) - Diagonal(T))
+        ]
+    end
+end
 
-# linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
-# const implicit_schur = ImplicitFunction(forward_schur, conditions_schur, linear_solver)
+const implicit_schur = ImplicitFunction(forward_schur, conditions_schur)
 
-# # vectors = Z
-# # Schur = T
-# # A = F.vectors * F.Schur * F.vectors'
-# # A = Z * T * Z'
-# function LinearAlgebra.schur(A::AbstractMatrix{<:Dual})
-#     ZT, F = implicit_schur(A)
-#     n = length(A)
-#     Z = reshape(ZT[1:n], size(A))
-#     T = reshape(ZT[n+1:end], size(A))
-#     Schur(T, Z, F.values)
-# end
+# vectors = Z
+# Schur = T
+# A = F.vectors * F.Schur * F.vectors'
+# A = Z * T * Z'
+function LinearAlgebra.schur(A::AbstractMatrix{<:Dual})
+    ZT, F = implicit_schur(A)
+    n = length(A)
+    Z = reshape(ZT[1:n], size(A))
+    T = reshape(ZT[n+1:end], size(A))
+    Schur(T, Z, F.values)
+end
 
 
 end # module
