@@ -3,7 +3,7 @@
 C_1 = zpk([], [-1+im], 1.0+1im)
 C_2 = zpk([-1+im], [], 1.0+1im)
 
-# Basic arittmetic
+# Basic arithmetic
 @test C_1 + C_1 == zpk([], [-1+im], 2+2im)
 @test (1.0+im)*C_1 == zpk([], [-1+im], 2.0im)
 @test C_2 + C_2 == zpk([-1+im], [], 2+2im)

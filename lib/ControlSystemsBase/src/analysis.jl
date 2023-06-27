@@ -327,7 +327,7 @@ end
 Calculate the relative gain array of `G` at frequencies `w`. 
 G(iω) .* pinv(tranpose(G(iω)))
 
-The RGA can be used to find input-output pairings for MIMO control using individially tuned loops. Pair the inputs and outputs such that the RGA(ωc) at the crossover frequency becomes as close to diagonal as possible. Avoid pairings such that RGA(0) contains negative diagonal elements. 
+The RGA can be used to find input-output pairings for MIMO control using individually tuned loops. Pair the inputs and outputs such that the RGA(ωc) at the crossover frequency becomes as close to diagonal as possible. Avoid pairings such that RGA(0) contains negative diagonal elements. 
 
 - The sum of the absolute values of the entries in the RGA is a good measure of the "true condition number" of G, the best condition number that can be achieved by input/output scaling of `G`, -Glad, Ljung.
 - The RGA is invariant to input/output scaling of `G`.

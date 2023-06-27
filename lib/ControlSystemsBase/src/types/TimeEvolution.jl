@@ -18,7 +18,7 @@ struct Continuous <: TimeEvolution end
 # Basic Constructors
 Discrete(x::T) where T<:Number = Discrete{T}(x)
 Continuous(x::Continuous) = x
-# Simple converseion
+# Simple conversion
 Discrete{T}(x::Discrete) where T = Discrete{T}(x.Ts)
 
 

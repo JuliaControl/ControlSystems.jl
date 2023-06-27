@@ -13,7 +13,7 @@ relative to the time constants of the system.
 
 `method = :tustin` performs a bilinear transform with prewarp frequency `w_prewarp`.
 
-- `w_prewarp`: Frequency (rad/s) for pre-warping when usingthe Tustin method, has no effect for other methods.
+- `w_prewarp`: Frequency (rad/s) for pre-warping when using the Tustin method, has no effect for other methods.
 
 See also `c2d_x0map`
 """
@@ -40,7 +40,7 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
         Bd = M[1:nx, nx+1:nx+nu]
         Cd = C
         Dd = D
-        x0map = [Matrix{T}(I, nx, nx) zeros(nx, nu)] # Cant use I if nx==0
+        x0map = [Matrix{T}(I, nx, nx) zeros(nx, nu)] # Can't use I if nx==0
     elseif method === :foh
         M = exp!([A*Ts B*Ts zeros(nx, nu);
             zeros(nu, nx + nu) Matrix{T}(I, nu, nu);
@@ -78,7 +78,7 @@ end
 
 Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
 
-- `w_prewarp`: Frequency for pre-warping when usingthe Tustin method, has no effect for other methods.
+- `w_prewarp`: Frequency for pre-warping when using the Tustin method, has no effect for other methods.
 """
 function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp=0)
     A, B, C, D = ssdata(sys)

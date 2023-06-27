@@ -152,7 +152,7 @@ include("types/Lti.jl")
 
 include("types/SisoTf.jl")
 
-# Transfer functions and tranfer function elemements
+# Transfer functions and transfer function elements
 include("types/TransferFunction.jl")
 include("types/SisoTfTypes/SisoZpk.jl")
 include("types/SisoTfTypes/SisoRational.jl")

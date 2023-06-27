@@ -48,7 +48,7 @@ printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printp
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
-# Allocate for maxiumum possible length of polynomial vector?
+# Allocate for maximum possible length of polynomial vector?
 #
 # This function rely on that the every complex roots is followed by its exact conjugate,
 # and that the first complex root in each pair has positive imaginary part. This format is always
@@ -77,7 +77,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 
     return poly_factors
 end
-# This function should hande both Complex as well as symbolic types
+# This function should handle both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
     return Polynomial{T,:x}[Polynomial{T,:x}([-r, 1]) for r in roots]
 end

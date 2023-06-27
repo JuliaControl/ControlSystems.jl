@@ -176,7 +176,7 @@ y, t2, x = step(G, 10)
 @test y ≈ [zeros(1, 3) ones(1, 8)] atol=1e-5
 @test t2 == 0:1:10 # isapprox is broken for ranges (julia 1.3.1)
 
-#Impulse response of discrete system to final time that is not mulitple of the sample time
+#Impulse response of discrete system to final time that is not multiple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)
 y, t2, x = step(G, 2)
 @test y ≈ [zeros(1, 3) ones(1, 4)] atol=1e-5

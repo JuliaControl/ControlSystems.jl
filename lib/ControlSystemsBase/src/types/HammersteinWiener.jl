@@ -72,7 +72,7 @@ end
 function Base.convert(::Type{HammersteinWienerSystem{T}}, sys::TransferFunction{TE}) where {T,TE}
     HammersteinWienerSystem{T}(convert(StateSpace{TE, T}, sys))
 end
-# Catch convertsion between T
+# Catch conversion between T
 Base.convert(::Type{V}, sys::HammersteinWienerSystem)  where {T, V<:HammersteinWienerSystem{T}} =
     sys isa V ? sys : V(StateSpace{Continuous,T}(sys.P.P), sys.f)
 

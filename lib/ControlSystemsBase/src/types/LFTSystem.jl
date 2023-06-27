@@ -95,7 +95,7 @@ Base.getindex(sys::LFTSystem, i, j) =
 
 function Base.getindex(sys::LFTSystem, i::AbstractArray, j::AbstractArray)
     ny, nu = size(sys)
-    # Cant use "boundscheck" since not AbstractArray
+    # Can't use "boundscheck" since not AbstractArray
     imin, imax = extrema(i)
     jmin, jmax = extrema(j)
     if imax > ny || imin < 1 || jmax > nu || jmin < 1

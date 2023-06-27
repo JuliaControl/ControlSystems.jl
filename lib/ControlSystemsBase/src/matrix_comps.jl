@@ -1,5 +1,5 @@
 const _scaling_notice = """
-Note: Gramian computations are sensitive to input-output scaling. For the result of a numerical balancing, gramian computation or truncation of MIMO systems to be meaningful, the inputs and outputs of the system must thusbe scaled in a meaningful way. A common (but not the only) approach is:
+Note: Gramian computations are sensitive to input-output scaling. For the result of a numerical balancing, gramian computation or truncation of MIMO systems to be meaningful, the inputs and outputs of the system must thus be scaled in a meaningful way. A common (but not the only) approach is:
 - The outputs are scaled such that the maximum allowed control error, the maximum expected reference variation, or the maximum expected variation, is unity.
 - The input variables are scaled to have magnitude one. This is done by dividing each variable by its maximum expected or allowed change, i.e., ``u_{scaled} = u / u_{max}``
 
@@ -311,7 +311,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
-    # outputs: An approximatation of the L∞ norm and the frequency ω_peak at which it is achieved
+    # outputs: An approximation of the L∞ norm and the frequency ω_peak at which it is achieved
     # QUESTION: The tolerance for determining if there are poles on the imaginary axis
     # would not be very appropriate for systems with slow dynamics?
     T = promote_type(real(numeric_type(sys)), Float64)
@@ -392,7 +392,7 @@ end
 
 function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
     # Discrete-time version of linfnorm_two_steps_ct above
-    # Compuations are done in normalized frequency θ
+    # Computations are done in normalized frequency θ
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 

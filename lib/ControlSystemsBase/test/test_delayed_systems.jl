@@ -27,7 +27,7 @@ using ControlSystemsBase
 @test evalfr(1 - delay(1.0), 0)[] ≈ 0
 @test evalfr([2 -delay(1.0)], 0) ≈ [2 -1]
 
-# Stritcly proper system
+# Strictly proper system
 P1 = DelayLtiSystem(ss(-1.0, 1, 1, 0))
 P1_fr = 1 ./ (im*ω .+ 1)
 @test freqresp(P1, ω)[:] ≈ P1_fr
@@ -42,7 +42,7 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(1 + delay(1), ω)[:] ≈ 1 .+ exp.(-im*ω)
 @test freqresp(P1 + delay(1), ω)[:] ≈ P1_fr .+ exp.(-im*ω)
 
-# Substraction
+# Subtraction
 @test freqresp(P1 - delay(1), ω)[:] ≈ P1_fr .- exp.(-im*ω)
 
 ## Multiplication by scalar

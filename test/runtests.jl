@@ -3,7 +3,7 @@ using Test, LinearAlgebra, Random
 using Aqua
 # @testset "Aqua" begin
 #     Aqua.test_all(ControlSystems;
-#         ambiguities = false, # casues 100s of hits in all dependencies
+#         ambiguities = false, # causes 100s of hits in all dependencies
 #         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
 #     )
 # end
