@@ -215,7 +215,7 @@ Ninf, ω_peak = hinfnorm( ss([0 1; im -1+2im], [0; 1], [1 0], 0))
 @test abs(ω_peak-1) ≈ 1/sqrt(2) rtol=1e-3
 
 
-# System with mutiple resonance peaks
+# System with multiple resonance peaks
 A = [-0.1*I        -Diagonal(1:10)
      Diagonal(1:10) zeros(10,10)]
 

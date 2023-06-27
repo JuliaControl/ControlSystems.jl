@@ -14,7 +14,7 @@ end
     BodemagWorkspace(R::Array{Complex{T}, 3}, mag::Array{T, 3})
     BodemagWorkspace{T}(ny, nu, N)
 
-Genereate a workspace object for use with the in-place function [`bodemag!`](@ref).
+Generate a workspace object for use with the in-place function [`bodemag!`](@ref).
 `N` is the number of frequency points, alternatively, the input `ω` can be provided instead of `N`.
 Note: for threaded applications, create one workspace object per thread. 
 

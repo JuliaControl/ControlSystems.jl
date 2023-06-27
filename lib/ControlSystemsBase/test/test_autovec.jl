@@ -55,7 +55,7 @@ fsv = freqrespv(sys, w)
 
 
 
-# Test that we can define varous kinds of methods with autovec
+# Test that we can define various kinds of methods with autovec
 
 # Test arguments for single output
 ControlSystemsBase.@autovec () function t0(b::Int, c::Float64=1.0)

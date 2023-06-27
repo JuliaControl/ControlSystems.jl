@@ -73,7 +73,7 @@ denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 """
     minreal(tf::TransferFunction, eps=sqrt(eps()))
 
-Create a minimial representation of each transfer function in `tf` by cancelling poles and zeros
+Create a minimal representation of each transfer function in `tf` by cancelling poles and zeros
 will promote system to an appropriate numeric type
 """
 function minreal(G::TransferFunction, eps::Real=sqrt(eps()))
@@ -224,7 +224,7 @@ function /(n::Number, G::TransferFunction)
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
 /(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
-Base.:(/)(sys1::LTISystem, sys2::TransferFunction) = *(promote(sys1, ss(1/sys2))...) # This spcial case is needed to properly handle improper inverse transfer function (1/s)
+Base.:(/)(sys1::LTISystem, sys2::TransferFunction) = *(promote(sys1, ss(1/sys2))...) # This special case is needed to properly handle improper inverse transfer function (1/s)
 
 
 #####################################################################

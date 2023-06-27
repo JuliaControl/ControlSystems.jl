@@ -76,7 +76,7 @@ function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
     return [min(ws[1], floor(extreme[1]-0.2)), max(ws[2], ceil(extreme[2]+0.2))], pz
 end
 
-# Againm we have to do something for default vectors, more or less a copy from timeresp.jl
+# Again we have to do something for default vectors, more or less a copy from timeresp.jl
 function _default_dt(sys::DelayLtiSystem)
     if !isstable(sys.P.P)
         return 0.05   # Something small
@@ -111,7 +111,7 @@ function _linscale(p::Polynomial, a)
     return Polynomial(coeffs_scaled)
 end
 
-# Coefficeints for Padé approximations
+# Coefficients for Padé approximations
 # PADE_Q_COEFFS = [Polynomial([binomial(N,i)*prod(N+1:2*N-i) for i=0:N]) for N=1:10]
 const PADE_Q_COEFFS =  [[2, 1],
  [12, 6, 1],

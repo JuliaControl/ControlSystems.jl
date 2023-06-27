@@ -424,7 +424,7 @@ mutable(x::StaticArray, ::Type{T}) where T = Matrix{T}(x)
     feedback2dof(P,R,S,T)
     feedback2dof(B,A,R,S,T)
 
-- Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+- Return `BT/(AR+ST)` where B and A are the numerator and denominator polynomials of `P` respectively
 - Return `BT/(AR+ST)`
 """
 function feedback2dof(P::TransferFunction,R,S,T)

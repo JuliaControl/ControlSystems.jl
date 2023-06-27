@@ -8,7 +8,7 @@ function state_space_validation(A,B,C,D)
     ny = size(C, 1)
 
     if size(A, 2) != nx && nx != 0
-        error("A has dimentions $(size(A)), but must be square")
+        error("A has dimensions $(size(A)), but must be square")
     elseif size(B, 1) != nx
         error("The number of rows of A ($(size(A,1))) and B ($(size(B,1))) are not equal")
     elseif size(C, 2) != nx
@@ -219,7 +219,7 @@ A destructor that outputs the statespace matrices.
 """
 ssdata(sys) = sys.A, sys.B, sys.C, sys.D
 
-# Funtions for number of intputs, outputs and states
+# Functions for number of inputs, outputs and states
 ninputs(sys::AbstractStateSpace) = size(sys.D, 2)
 noutputs(sys::AbstractStateSpace) = size(sys.D, 1)
 nstates(sys::AbstractStateSpace) = size(sys.A, 1)

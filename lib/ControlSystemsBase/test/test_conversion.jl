@@ -135,7 +135,7 @@ fb = BigFloat(1.0)*f
 # @test fb isa RationalBigFloat # Do we want this? We get TransferFunction{ControlSystemsBase.SisoZpk{BigFloat,Complex{Float64}}}
 @test ss(fb) isa SSBigFloat
 @test tf(fb) isa RationalBigFloat
-# Cant compute poles:
+# Can't compute poles:
 # @test zpk(tf(fb)) isa SSBigFloat
 
 @test convert(SSBigFloat, fb) isa SSBigFloat

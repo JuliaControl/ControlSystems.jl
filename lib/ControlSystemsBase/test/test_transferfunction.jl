@@ -50,7 +50,7 @@ z = @inferred tf("z", 0.005)
 @test tf([1.0], [1.0,0.0]) != tf([1.0], [2.0,0.0])
 @test tf([1.0+2.0im], [2.0+im,3.0]) != tf([1+2.0im], [1.0+im,3.0])
 
-# Test approximate equlity
+# Test approximate equality
 # rtol should just be on the order of ϵ, no particular reason that exactly ϵ
 # would work, but apparently it does
 ϵ = 1e-14
@@ -208,7 +208,7 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException D_111 + D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 - D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 * D_diffTs          # Sampling time mismatch
-@test_throws ErrorException tf([1], [2], -0.1)        # Negative samping time
+@test_throws ErrorException tf([1], [2], -0.1)        # Negative sampling time
 @test_throws ErrorException tf("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous

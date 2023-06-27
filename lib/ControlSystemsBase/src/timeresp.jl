@@ -19,7 +19,7 @@ end
     LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix)
     LsimWorkspace{T}(ny, nu, nx, N)
 
-Genereate a workspace object for use with the in-place function [`lsim!`](@ref).
+Generate a workspace object for use with the in-place function [`lsim!`](@ref).
 `sys` is the discrete-time system to be simulated and `N` is the number of time steps, alternatively, the input `u` can be provided instead of `N`.
 Note: for threaded applications, create one workspace object per thread. 
 """
@@ -112,7 +112,7 @@ impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys), 
     result = lsim(sys, u[, t]; x0, method])
     result = lsim(sys, u::Function, t; x0, method)
 
-Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
+Calculate the time response of system `sys` to input `u`. If `x0` is omitted,
 a zero vector is used.
 
 The result structure contains the fields `y, t, x, u` and can be destructured automatically by iteration, e.g.,
@@ -125,10 +125,10 @@ plot(result, plotu=true, plotx=false)
 ```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
+Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level interface, see `?Simulator` and `?solve`
 
 `u` can be a function or a *matrix* of precalculated control signals and must have dimensions `(nu, length(t))`.
-If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuos ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
+If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuous ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
 To simulate a unit step at `t=t₀`, use `(x,t)-> t ≥ t₀`, for a ramp, use `(x,t)-> t`, for a step at `t=5`, use `(x,t)-> (t >= 5)` etc.
 
 *Note:* The function `u` will be called once before simulating to verify that it returns an array of the correct dimensions. This can cause problems if `u` is stateful. You can disable this check by passing `check_u = false`.
@@ -299,7 +299,7 @@ Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
 The type of `x0` determines the matrix structure of the returned result,
-e.g, `x0` should prefereably not be a sparse vector.
+e.g, `x0` should preferably not be a sparse vector.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
@@ -368,7 +368,7 @@ function lsim!(ws::LsimWorkspace{T}, sys::AbstractStateSpace{<:Discrete}, u, t::
         x0::AbstractVecOrMat=zeros(eltype(T), nstates(sys))) where T
 
     x, y = ws.x, ws.y
-    size(x, 2) == length(t) || throw(ArgumentError("Inconsitent lengths of workspace cache and t"))
+    size(x, 2) == length(t) || throw(ArgumentError("Inconsistent lengths of workspace cache and t"))
     arr = u isa AbstractArray
     if arr
         copyto!(ws.u, u)

@@ -17,7 +17,7 @@ function getpoles(G, K::Number)
     f = function (_,_,k)
         if k == 0 && length(P) > length(Q)
             # More zeros than poles, make sure the vector of roots is of correct length when k = 0
-            # When this happens, there are fewer poles for k = 0, these poles can be seen as beeing located somewhere at Inf
+            # When this happens, there are fewer poles for k = 0, these poles can be seen as being located somewhere at Inf
             # We get around the problem by not allowing k = 0 for non-proper systems.
             k = ϵ
         end
@@ -75,7 +75,7 @@ end
 
 Compute the root locus of the SISO LTISystem `P` with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
 
-`roots` is a complex matrix containig the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
+`roots` is a complex matrix containing the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 """
 function rlocus(P, K)
     Z = tzeros(P)

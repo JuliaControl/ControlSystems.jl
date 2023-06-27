@@ -111,7 +111,7 @@ function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T
         for i=1:ny
             k = (j-1)*ny + i
 
-            # states correpsonding to the transfer function element (i,j)
+            # states corresponding to the transfer function element (i,j)
             inds = (inds.stop+1):(inds.stop+nvec[k])
 
             A[inds,inds], B[inds,j:j], C[i:i,inds], D[i:i,j:j] = abcd_vec[k]
@@ -341,7 +341,7 @@ function siso_ss_to_zpk(sys, i, j)
 end
 
 """
-Implements: "An accurate and efficient algorithm for the computation of thecharacteristic polynomial of a general square matrix."
+Implements: "An accurate and efficient algorithm for the computation of the characteristic polynomial of a general square matrix."
 """
 function charpoly(A::AbstractMatrix{T}) where {T}
     N = size(A, 1)

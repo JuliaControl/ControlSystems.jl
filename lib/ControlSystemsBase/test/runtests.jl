@@ -6,7 +6,7 @@ import DSP: conv            # In test_conversion and test_synthesis
 using Aqua
 @testset "Aqua" begin
     Aqua.test_all(ControlSystemsBase;
-        ambiguities = false, # casues 100s of hits in all dependencies
+        ambiguities = false, # causes 100s of hits in all dependencies
         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
         project_toml_formatting = false, # https://github.com/JuliaTesting/Aqua.jl/issues/105
     )

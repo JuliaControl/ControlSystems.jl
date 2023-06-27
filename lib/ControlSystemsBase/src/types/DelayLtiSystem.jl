@@ -15,7 +15,7 @@ feedback_channel(sys::DelayLtiSystem) = sys.Tau
 """
     DelayLtiSystem{T, S}(sys::StateSpace, Tau::AbstractVector{S}=Float64[]) where {T <: Number, S <: Real}
 
-Create a delayed system by speciying both the system and time-delay vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
+Create a delayed system by specifying both the system and time-delay vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
 """
 function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]) where {T<:Number,S<:Real}
     nu = ninputs(sys) - length(Tau)
@@ -65,7 +65,7 @@ function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::TransferFunction{TE}) wh
        
     DelayLtiSystem{T,S}(convert(StateSpace{TE, T}, sys))
 end
-# Catch convertsion between T
+# Catch conversion between T
 Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
     sys isa V ? sys : V(StateSpace{Continuous,T}(sys.P.P), sys.Tau)
 
@@ -150,7 +150,7 @@ delay(T::Type{<:Number}, τ::Number, Ts::Number) = c2d(delay(T, τ), Ts)
 
 Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ` > 0.
 
-See also: [`delay`](@ref) which is arguably more conenient than this function.
+See also: [`delay`](@ref) which is arguably more convenient than this function.
 """
 function Base.exp(G::TransferFunction{Continuous,<:SisoRational})
     if size(G.matrix) != (1,1) && iscontinuous(G)

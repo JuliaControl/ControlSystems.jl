@@ -224,7 +224,7 @@ end
 
 
 """ Concatenate systems horizontally with
-    same first ouput y1 being the sum
+    same first output y1 being the sum
     second output y2 = [y2_1; y2_2, ...]
     and inputs  u1 = [u1_1; u1_2, ...]
     u2 = [u2_1; u2_2, ...]
@@ -236,7 +236,7 @@ function hcat_1(systems::PartitionedStateSpace...)
 
     ny1 = systems[1].ny1
     if !all(s.ny1 == ny1 for s in systems)
-        error("All systems must have same first ouput dimension")
+        error("All systems must have same first output dimension")
     end
 
     A = blockdiag([s.A for s in systems]...)

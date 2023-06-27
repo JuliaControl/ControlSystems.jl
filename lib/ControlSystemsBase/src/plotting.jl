@@ -25,7 +25,7 @@ function setPlotScale(str::AbstractString)
 end
 
 # """
-# Get atributes from xlims or ylims
+# Get attributes from xlims or ylims
 # default to extrema(wmag) if xlims/ylims not defined or empty
 # """
 # function getlims(xylims, plotattributes, wmag)
@@ -231,7 +231,7 @@ _processfreqplot(plottype, system::LTISystem, args...) =
     _processfreqplot(plottype, [system], args...)
 # Catch when system is not vector, with and without frequency input
 
-# Cantch correct form
+# Catch correct form
 function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem},
             w = _default_freq_vector(systems, plottype))
 
@@ -378,7 +378,7 @@ end
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-- `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain corssover frequency.
+- `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
 - `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
 - `critical_point`: point on real axis to mark as critical for encirclements

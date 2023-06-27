@@ -36,7 +36,7 @@ function _bounds_and_features(sys::HammersteinWienerSystem, plot::Val)
     _bounds_and_features(sys.P.P, plot)
 end
 
-# Againm we have to do something for default vectors, more or less a copy from timeresp.jl
+# Again we have to do something for default vectors, more or less a copy from timeresp.jl
 function _default_dt(sys::HammersteinWienerSystem)
     _default_dt(sys.P.P)
 end

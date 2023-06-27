@@ -132,7 +132,7 @@ k = 0.3
 @test minreal(zpk([-5.0], [-5.0, -5.0], 1.0)) == zpk(Float64[], [-5.0], 1.0)
 @test minreal(zpk([-1.0, -2.0], [-2.0, -2.0], 1.0)) == zpk([-1.0], [-2.0], 1.0)
 
-# Tests of minreal (roudning and cancelling complex roots with real roots)
+# Tests of minreal (rounding and cancelling complex roots with real roots)
 @test minreal(zpk([-2.0+1e-10im,-2.0-1e-10im], [-2.0], 1.0)) == zpk([-2.0], Float64[], 1.0)
 @test minreal(zpk([-2.0], [-2.0+1e-10im,-2.0-1e-10im], 1.0)) == zpk(Float64[], [-2.0], 1.0)
 @test minreal(zpk([-1.0, -2.0, -2.0+1e-10im,-2.0-1e-10im], [-2.0, -2.0], 1.0)) == zpk([-1.0, -2.0], Float64[], 1.0)
@@ -169,7 +169,7 @@ D_diffTs = zpk(tf([1], [2], 0.1))
 @test_throws ErrorException D_111 + D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 - D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 * D_diffTs          # Sampling time mismatch
-@test_throws ErrorException zpk([1], [2], 1, -0.1)        # Negative samping time
+@test_throws ErrorException zpk([1], [2], 1, -0.1)        # Negative sampling time
 @test_throws ErrorException zpk("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException zpk("z", 0)                # z creation can't be continuous
 @test_throws ErrorException zpk("z")                   # z creation can't be continuous

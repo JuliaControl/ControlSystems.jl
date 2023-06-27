@@ -32,7 +32,7 @@ The functions `pid_tf` and `pid_ss` are also exported. They take the same parame
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
 function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
-    C = if state_space # Type unstability? Can it be fixed easily, does it matter?
+    C = if state_space # Type instability? Can it be fixed easily, does it matter?
         pid_ss(param_p, param_i, param_d; form, Tf)
     else
         pid_tf(param_p, param_i, param_d; form, Tf)

@@ -115,7 +115,7 @@ known_poles = [-3.383889568918823 + 0.000000000000000im
                             -0.083309192664918 - 0.487701968391972im]
 approxin2(el,col) = any(el.≈col)
 # Compares the computed poles with the expected poles
-# TODO: Improve the test for testing equalifity of sets of complex numbers
+# TODO: Improve the test for testing equality of sets of complex numbers
 # i.e. simplify and handle doubles.
 @test all(approxin(p,known_poles) for p in poles(ex_8)) && all(approxin2(p,poles(ex_8)) for p in known_poles)
 

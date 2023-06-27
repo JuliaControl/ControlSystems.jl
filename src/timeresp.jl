@@ -73,7 +73,7 @@ Arguments:
 - `u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
     - A constant `Number` or `Vector`, interpreted as a constant input.
     - Function `u(x, t)` that takes the internal state and time, note, the state representation for delay systems is not the same as for rational systems.
-    - In-place function `u(uₜ, x, t)`. (Slightly more effienct)
+    - In-place function `u(uₜ, x, t)`. (Slightly more efficient)
 
 `alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
 
@@ -312,7 +312,7 @@ Simulate system `sys`, over time `t`, using input signal `u`, with initial state
 - `u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
     Can be a constant `Number` or `Vector`, interpreted as `uₜ .= u` , or
     Function `uₜ .= u(x, t)`, or
-    In-place function `u(uₜ, x, t)`. (Slightly more effienct)
+    In-place function `u(uₜ, x, t)`. (Slightly more efficient)
 - `alg, abstol, reltol` and `kwargs...`: are sent to `OrdinaryDiffEq.solve`.
 
 Returns an instance of [`SimResult`](@ref).
