@@ -747,8 +747,8 @@ function innovation_form(sys::ST, K) where ST <: AbstractStateSpace
 end
 
 """
-    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1)
-    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12])
+    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1, output_state = false)
+    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12]; output_state = false)
 
 If `sys` is continuous, return the observer predictor system
 ```math
@@ -763,20 +763,22 @@ If `sys` is discrete, the prediction horizon `h` may be specified, in which case
 
 If covariance matrices `R1, R2` are given, the kalman gain `K` is calculated using [`kalman`](@ref).
 
-See also [`innovation_form`](@ref) and [`observer_controller`](@ref).
+If `output_state` is true, the output is the state estimate `x̂` instead of the output estimate `ŷ`.
+
+See also [`innovation_form`](@ref), [`observer_controller`](@ref) and [`observer_filter`](@ref).
 """
 function observer_predictor(sys::AbstractStateSpace, R1, R2::Union{AbstractArray, UniformScaling}, args...; kwargs...)
     K = kalman(sys, R1, R2, args...)
     observer_predictor(sys, K; kwargs...)
 end
 
-function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1)
+function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1, output_state = false)
     h >= 1 || throw(ArgumentError("h must be positive."))
     ny = noutputs(sys)
     size(K, 1) == sys.nx && size(K,2) == ny || throw(ArgumentError("K has the wrong size, expected $((sys.nx, ny))"))
     A,B,C,D = ssdata(sys)
     if h == 1
-        ss(A-K*C, [B-K*D K], C, [D zeros(ny, ny)], sys.timeevol)
+        ss(A-K*C, [B-K*D K], output_state ? I : C, output_state ? 0 : [D zeros(ny, ny)], sys.timeevol)
     else
         isdiscrete(sys) || throw(ArgumentError("A prediction horizon is only supported for discrete systems. "))
         # The impulse response of the innovation form calculates the influence of a measurement at time t on the prediction at time t+h
@@ -812,4 +814,31 @@ See also [`observer_predictor`](@ref) and [`innovation_form`](@ref).
 function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
     A,B,C,D = ssdata(sys)
     ss(A - B*L - K*C + K*D*L, K, L, 0, sys.timeevol)
+end
+
+
+"""
+    observer_filter(sys, K; output_state = false)
+
+Return the observer filter 
+```math
+\\begin{aligned}
+x̂(k|k) &= (I - KC)Ax̂(k-1|k-1) + (I - KC)Bu(k-1) + Ky(k) \\\\
+\\end{aligned}
+```
+with the input equation `[(I - KC)B K] * [u(k-1); y(k)]`.
+
+Note the time indices in the equations, the filter assumes that the user passes the *current* ``y(k)``, but the *past* ``u(k-1)``, that is, this filter is used to estimate the state *before* the current control input has been applied.
+
+This is similar to [`observer_predictor`](@ref), but in contrast to the predictor, the filter output depends on the current measurement, whereas the predictor output only depend on past measurements.
+
+The observer filter is only applicable to discrete-time systems.
+
+Ref: CCS Eq 4.32
+"""
+function observer_filter(sys::AbstractStateSpace{<:Discrete}, K::AbstractMatrix; output_state = false)
+    A,B,C,D = ssdata(sys)
+    iszero(D) || throw(ArgumentError("D must be zero in `observer_filter`, consider using `observer_predictor` if you have a non-zero `D`."))
+    IKC = (I-K*C)
+    ss(IKC*A, [IKC*B K], output_state ? I : C, 0, sys.timeevol)
 end
