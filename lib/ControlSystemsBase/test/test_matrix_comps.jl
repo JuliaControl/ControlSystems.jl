@@ -234,28 +234,6 @@ cont = observer_controller(sys, L, K, direct=true)
 syscl = feedback(sys, cont)
 @test isstable(syscl)
 
-pcl = poles(syscl)
-A,B,C,D = ssdata(sys)
-allpoles = [
-    eigvals(A-B*L)
-    eigvals(A-K*C)
-]
-@test sort(pcl, by=LinearAlgebra.eigsortby) ≈ sort(allpoles, by=LinearAlgebra.eigsortby) 
-@test cont.B == K
-
-## Test time scaling
-for balanced in [true, false]
-    sys = ssrand(1,1,5);
-    t = 0:0.1:50
-    a = 10
-
-    Gs = tf(1, [1e-6, 1]) # micro-second time scale modeled in seconds
-    Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
-    @test Gms == tf(1, [1, 1])
-end
-
-
-
 # Test observer_controller discrete with pole placement
 Ts = 0.01
 sys = ssrand(2,3,4; Ts, proper=true)
@@ -291,6 +269,17 @@ allpoles = [
     p; p2
 ]
 @test sort(pcl, by=real) ≈ sort(allpoles, by=real) rtol=1e-3
+
+## Test time scaling
+for balanced in [true, false]
+    sys = ssrand(1,1,5);
+    t = 0:0.1:50
+    a = 10
+
+    Gs = tf(1, [1e-6, 1]) # micro-second time scale modeled in seconds
+    Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
+    @test Gms == tf(1, [1, 1])
+end
 
 
 
