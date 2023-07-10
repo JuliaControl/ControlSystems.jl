@@ -122,3 +122,6 @@ nl = saturation(0.5)
 G = ss(1)
 
 
+A, B = ControlSystemsBase.linearize((x,u)->x.^2 + sin.(u), [1.0], [2.0])
+@test A ≈ [2.0;;]
+@test B ≈ [cos(2);;]

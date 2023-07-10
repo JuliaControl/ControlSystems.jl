@@ -32,6 +32,18 @@ function linearize(sys::HammersteinWienerSystem, Δy)
     lft(sys.P.P, ss(diagm(f), timeevol(sys)))
 end
 
+"""
+    A, B = linearize(f, x, u, args...)
+
+Linearize dynamics ``ẋ = f(x, u, args...)`` around operating point ``(x,u,args...)`` using ForwardDiff. `args` can be empty, or contain, e.g., parameters and time `(p, t)` like in the SciML interface.
+This function can also be used to linearize an output equation `C, D = linearize(h, x, u, args...)`.
+"""
+function linearize(f, xi::AbstractVector, ui::AbstractVector, args...)
+    A = ForwardDiff.jacobian(x -> f(x, ui, args...), xi)
+    B = ForwardDiff.jacobian(u -> f(xi, u, args...), ui)
+    A, B
+end
+
 function _bounds_and_features(sys::HammersteinWienerSystem, plot::Val)
     _bounds_and_features(sys.P.P, plot)
 end
