@@ -417,8 +417,8 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         w1 = 0.0
         w2 = 2.0
     end
-    if isdiscrete(sys) # Do not draw above Nyquist freq for disc. systems
-        w2 = min(w2, log10(π/sys.Ts))
+    if isdiscrete(sys)
+        w2 = log10(π/sys.Ts) # Draw up to Nyquist frequency for discrete systems
     end
     return [w1, w2], zp
 end
