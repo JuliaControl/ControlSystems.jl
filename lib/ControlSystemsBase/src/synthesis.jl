@@ -73,29 +73,37 @@ end
 
 """
     kalman(Continuous, A, C, R1, R2)
-    kalman(Discrete, A, C, R1, R2)
-    kalman(sys, R1, R2)
+    kalman(Discrete, A, C, R1, R2; direct = false)
+    kalman(sys, R1, R2; direct = false)
 
-Calculate the optimal Kalman gain
+Calculate the optimal Kalman gain.
+
+If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: CCS pp 140.
 
 The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec/ared` for more help.
 """
-kalman(te, A, C, R1,R2, args...; kwargs...) = Matrix(lqr(te, A',C',R1,R2, args...; kwargs...)')
+function kalman(te, A, C, R1,R2, args...; direct = false, kwargs...)
+    if direct
+        te isa ContinuousType && error("direct = true only applies to discrete-time systems")
+        C = C*A
+    end
+    Matrix(lqr(te, A',C',R1,R2, args...; kwargs...)')
+end
 
 function lqr(sys::AbstractStateSpace, Q, R, args...; kwargs...)
     return lqr(sys.timeevol, sys.A, sys.B, Q, R, args...; kwargs...)
 end
 
 function kalman(sys::AbstractStateSpace, R1, R2, args...; kwargs...)
-    return Matrix(lqr(sys.timeevol, sys.A', sys.C', R1,R2, args...; kwargs...)')
+    return kalman(sys.timeevol, sys.A, sys.C, R1,R2, args...; kwargs...)
 end
 
 @deprecate kalman(A::AbstractMatrix, args...; kwargs...)  kalman(Continuous, A, args...; kwargs...)
 @deprecate dkalman(args...; kwargs...)  kalman(Discrete, args...; kwargs...)
 
 """
-    place(A, B, p, opt=:c)
-    place(sys::StateSpace, p, opt=:c)
+    place(A, B, p, opt=:c; direct = false)
+    place(sys::StateSpace, p, opt=:c; direct = false)
 
 Calculate the gain matrix `K` such that `A - BK` has eigenvalues `p`.
 
@@ -104,14 +112,21 @@ Calculate the gain matrix `K` such that `A - BK` has eigenvalues `p`.
 
 Calculate the observer gain matrix `L` such that `A - LC` has eigenvalues `p`.
 
+If `direct = true` and `opt = :o`, the the observer gain `K` is calculated such that `A - KCA` has eigenvalues `p`, this option is to be used together with `direct = true` in [`observer_controller`](@ref). 
+
+Note: only apply `direct = true` to discrete-time systems.
+
+Ref: CCS pp 140.
+
 Uses Ackermann's formula for SISO systems and [`place_knvd`](@ref) for MIMO systems. 
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
 """
-function place(A, B, p, opt=:c; kwargs...)
+function place(A, B, p, opt=:c; direct = false, kwargs...)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as states")
     if opt === :c
+        direct && error("direct = true only applies to observer design")
         n != size(B,1) && error("A and B must have same number of rows")
         if size(B,2) == 1
             acker(A, B, p)
@@ -120,6 +135,9 @@ function place(A, B, p, opt=:c; kwargs...)
         end
     elseif opt === :o
         C = B # B is really the "C matrix"
+        if direct
+            C = C*A
+        end
         n != size(C,2) && error("A and C must have same number of columns")
         if size(C,1) == 1
             acker(A', C', p)'
@@ -130,11 +148,12 @@ function place(A, B, p, opt=:c; kwargs...)
         error("fourth argument must be :c or :o")
     end
 end
-function place(sys::AbstractStateSpace, p, opt=:c)
+function place(sys::AbstractStateSpace, p, opt=:c; direct = false, kwargs...)
     if opt === :c
-        return place(sys.A, sys.B, p, opt)
+        return place(sys.A, sys.B, p, opt; kwargs...)
     elseif opt === :o
-        return place(sys.A, sys.C, p, opt)
+        iscontinuous(sys) && error("direct = true only applies to discrete-time systems")
+        return place(sys.A, sys.C, p, opt; direct, kwargs...)
     else
         error("third argument must be :c or :o")
     end
