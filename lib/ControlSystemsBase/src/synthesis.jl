@@ -152,7 +152,7 @@ function place(sys::AbstractStateSpace, p, opt=:c; direct = false, kwargs...)
     if opt === :c
         return place(sys.A, sys.B, p, opt; kwargs...)
     elseif opt === :o
-        iscontinuous(sys) && error("direct = true only applies to discrete-time systems")
+        iscontinuous(sys) && direct && error("direct = true only applies to discrete-time systems")
         return place(sys.A, sys.C, p, opt; direct, kwargs...)
     else
         error("third argument must be :c or :o")
