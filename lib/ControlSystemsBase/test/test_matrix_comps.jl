@@ -118,6 +118,8 @@ K = kalman(sys, I(2), I(1))
 @test sysp.A == sys.A-K*sys.C
 @test sysp.B == [sys.B-K*sys.D K]
 
+@test sysp == observer_filter(sys, K) # Equivalent for continuous-time systems
+
 # test longer prediction horizons
 
 # With K=0, y should have no influence
@@ -191,6 +193,7 @@ R2 = I(2)
 L = lqr(sys, Q1, Q2)
 K = kalman(sys, R1, R2)
 cont = observer_controller(sys, L, K)
+@test iszero(cont.D)
 syscl = feedback(sys, cont)
 
 pcl = poles(syscl)
@@ -201,6 +204,71 @@ allpoles = [
 ]
 @test sort(pcl, by=LinearAlgebra.eigsortby) ≈ sort(allpoles, by=LinearAlgebra.eigsortby) 
 @test cont.B == K
+
+## Test time scaling
+for balanced in [true, false]
+    sys = ssrand(1,1,5);
+    t = 0:0.1:50
+    a = 10
+
+    Gs = tf(1, [1e-6, 1]) # micro-second time scale modeled in seconds
+    Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
+    @test Gms == tf(1, [1, 1])
+end
+
+
+
+# Test observer_controller discrete with LQG
+Ts = 0.01
+sys = ssrand(2,3,4; Ts, proper=true)
+Q1 = I(4)
+Q2 = I(3)
+R1 = I(4)
+R2 = I(2)
+@test are(sys, Q1, Q2) == are(Discrete, sys.A, sys.B, Q1, Q2)
+@test lyap(sys, Q1) == lyap(Discrete, sys.A, Q1)
+L = lqr(sys, Q1, Q2)
+K = kalman(sys, R1, R2; direct = true)
+cont = observer_controller(sys, L, K, direct=true)
+@test !iszero(cont.D)
+syscl = feedback(sys, cont)
+@test isstable(syscl)
+
+# Test observer_controller discrete with pole placement
+Ts = 0.01
+sys = ssrand(2,3,4; Ts, proper=true)
+p = exp.(Ts .* [-10, -20, -30, -40])
+p2 = exp.(2*Ts .* [-10, -20, -30, -40])
+L = place(sys, p, :c)
+K = place(sys, p2, :o)
+cont = observer_controller(sys, L, K)
+@test iszero(cont.D)
+syscl = feedback(sys, cont)
+
+pcl = poles(syscl)
+A,B,C,D = ssdata(sys)
+allpoles = [
+    eigvals(A-B*L)
+    eigvals(A-K*C)
+]
+@test sort(pcl, by=real) ≈ (sort(allpoles, by=real)) rtol=1e-3
+@test cont.B == K
+
+
+Kd = place(sys, p2, :o; direct = true) 
+@test Kd == place(sys.A', (sys.C*sys.A)', p2)'
+cont_direct = observer_controller(sys, L, Kd, direct=true)
+@test !iszero(cont_direct.D)
+
+syscld = feedback(sys, cont_direct)
+@test isstable(syscld)
+
+pcl = poles(syscld)
+A,B,C,D = ssdata(sys)
+allpoles = [
+    p; p2
+]
+@test sort(pcl, by=real) ≈ sort(allpoles, by=real) rtol=1e-3
 
 ## Test time scaling
 for balanced in [true, false]
@@ -228,3 +296,4 @@ sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test similarity_transform(sysb, T) ≈ sys
 
 end 
+

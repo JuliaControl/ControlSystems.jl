@@ -747,8 +747,8 @@ function innovation_form(sys::ST, K) where ST <: AbstractStateSpace
 end
 
 """
-    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1)
-    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12])
+    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1, output_state = false)
+    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12]; output_state = false)
 
 If `sys` is continuous, return the observer predictor system
 ```math
@@ -763,22 +763,25 @@ If `sys` is discrete, the prediction horizon `h` may be specified, in which case
 
 If covariance matrices `R1, R2` are given, the kalman gain `K` is calculated using [`kalman`](@ref).
 
-See also [`innovation_form`](@ref) and [`observer_controller`](@ref).
+If `output_state` is true, the output is the state estimate `x̂` instead of the output estimate `ŷ`.
+
+See also [`innovation_form`](@ref), [`observer_controller`](@ref) and [`observer_filter`](@ref).
 """
 function observer_predictor(sys::AbstractStateSpace, R1, R2::Union{AbstractArray, UniformScaling}, args...; kwargs...)
     K = kalman(sys, R1, R2, args...)
     observer_predictor(sys, K; kwargs...)
 end
 
-function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1)
+function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1, output_state = false)
     h >= 1 || throw(ArgumentError("h must be positive."))
     ny = noutputs(sys)
     size(K, 1) == sys.nx && size(K,2) == ny || throw(ArgumentError("K has the wrong size, expected $((sys.nx, ny))"))
     A,B,C,D = ssdata(sys)
     if h == 1
-        ss(A-K*C, [B-K*D K], C, [D zeros(ny, ny)], sys.timeevol)
+        ss(A-K*C, [B-K*D K], output_state ? I : C, output_state ? 0 : [D zeros(ny, ny)], sys.timeevol)
     else
         isdiscrete(sys) || throw(ArgumentError("A prediction horizon is only supported for discrete systems. "))
+        output_state && throw(ArgumentError("output_state is not supported for h > 1."))
         # The impulse response of the innovation form calculates the influence of a measurement at time t on the prediction at time t+h
         # Below, we form a system del (delay) that convolves the input (y) with the impulse response
         # We then add the output again to account for the fact that we propagated error and not measurement
@@ -795,12 +798,28 @@ function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integ
 end
 
 """
-    cont = observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+    cont = observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix; direct=false)
 
+
+# If `direct = false`
 Return the observer_controller `cont` that is given by
 `ss(A - B*L - K*C + K*D*L, K, L, 0)`
+such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
 
-Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
+This controller does not have a direct term, and corresponds to state feedback operating on state estimated by [`observer_predictor`](@ref). Use this form if the computed control signal is applied at the next sampling instant, or with an otherwise large delay in relation to the measurement fed into the controller.
+
+Ref: "Computer-Controlled Systems" Eq 4.37
+
+# If `direct = true`
+Return the observer_controller `cont` that is given by
+`ss((I-KC)(A-BL), (I-KC)(A-BL)K, L, LK)`
+such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-BL` and `A-BL-KC`.
+This controller has a direct term, and corresponds to state feedback operating on state estimated by [`observer_filter`](@ref). Use this form if the computed control signal is applied immediately after receiveing a measurement. This version typically has better performance than the one without a direct term.
+
+!!! note
+    To use this formulation, the observer gain `K` should have been designed for the pair `(A, CA)` rather than `(A, C)`. To do this, pass `direct = true` when calling [`place`](@ref) or [`kalman`](@ref).
+
+Ref: Ref: "Computer-Controlled Systems" pp 140 and "Computer-Controlled Systems" pp 162 prob 4.7
 
 # Arguments:
 - `sys`: Model of system
@@ -809,7 +828,48 @@ Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues g
 
 See also [`observer_predictor`](@ref) and [`innovation_form`](@ref).
 """
-function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix; direct=false)
     A,B,C,D = ssdata(sys)
-    ss(A - B*L - K*C + K*D*L, K, L, 0, sys.timeevol)
+    if direct && isdiscrete(sys)
+        iszero(D) || throw(ArgumentError("D must be zero when using direct formulation of `observer_controller`"))
+        IKC = (I - K*C)
+        ABL = (A - B*L)
+        ss(IKC*ABL,       IKC*ABL*K, L, L*K, sys.timeevol)
+    else
+        ss(A - B*L - K*C + K*D*L, K, L, 0,   sys.timeevol)
+    end
+end
+
+
+"""
+    observer_filter(sys, K; output_state = false)
+
+Return the observer filter 
+```math
+\\begin{aligned}
+x̂(k|k) &= (I - KC)Ax̂(k-1|k-1) + (I - KC)Bu(k-1) + Ky(k) \\\\
+\\end{aligned}
+```
+with the input equation `[(I - KC)B K] * [u(k-1); y(k)]`.
+
+Note the time indices in the equations, the filter assumes that the user passes the *current* ``y(k)``, but the *past* ``u(k-1)``, that is, this filter is used to estimate the state *before* the current control input has been applied. This causes a state-feedback controller acting on the estimate produced by this observer to have a direct term.
+
+This is similar to [`observer_predictor`](@ref), but in contrast to the predictor, the filter output depends on the current measurement, whereas the predictor output only depend on past measurements.
+
+The observer filter is equivalent to the [`observer_predictor`](@ref) for continuous-time systems.
+
+!!! note
+    To use this formulation, the observer gain `K` should have been designed for the pair `(A, CA)` rather than `(A, C)`. To do this, pass `direct = true` when calling [`place`](@ref) or [`kalman`](@ref).
+
+Ref: "Computer-Controlled Systems" Eq 4.32
+"""
+function observer_filter(sys::AbstractStateSpace{<:Discrete}, K::AbstractMatrix; output_state = false)
+    A,B,C,D = ssdata(sys)
+    iszero(D) || throw(ArgumentError("D must be zero in `observer_filter`, consider using `observer_predictor` if you have a non-zero `D`."))
+    IKC = (I-K*C)
+    ss(IKC*A, [IKC*B K], output_state ? I : C, 0, sys.timeevol)
+end
+
+function observer_filter(sys::AbstractStateSpace{Continuous}, K::AbstractMatrix; kwargs...)
+    observer_predictor(sys, K; kwargs...)
 end

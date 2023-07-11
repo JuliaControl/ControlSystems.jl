@@ -116,7 +116,7 @@ To make the Kalman solver work with dual numbers, make sure that the `R` matrix 
 function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual})
     X = are(Discrete, A', C', Q, R)
     CX = C*X
-    (R+CX*B)\(CX*A)
+    (R+CX*C')\(CX*A')
 end
 
 

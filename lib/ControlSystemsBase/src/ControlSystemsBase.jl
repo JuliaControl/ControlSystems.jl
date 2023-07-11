@@ -45,6 +45,7 @@ export  LTISystem,
         time_scale,
         innovation_form,
         observer_predictor,
+        observer_filter,
         observer_controller,
         # Stability Analysis
         isstable,

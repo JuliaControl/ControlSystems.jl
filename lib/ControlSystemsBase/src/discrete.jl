@@ -152,7 +152,7 @@ rstc(args...)=rst(args..., ;cont=true)
 
 Polynomial synthesis in discrete time.
 
-Polynomial synthesis according to CCS ch 10 to
+Polynomial synthesis according to "Computer-Controlled Systems" ch 10 to
 design a controller ``R(q) u(k) = T(q) r(k) - S(q) y(k)``
 
 Inputs:
