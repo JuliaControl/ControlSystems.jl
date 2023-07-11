@@ -78,7 +78,7 @@ end
 
 Calculate the optimal Kalman gain.
 
-If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: CCS pp 140.
+If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: "Computer-Controlled Systems" pp 140.
 
 The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec/ared` for more help.
 """
@@ -116,7 +116,7 @@ If `direct = true` and `opt = :o`, the the observer gain `K` is calculated such 
 
 Note: only apply `direct = true` to discrete-time systems.
 
-Ref: CCS pp 140.
+Ref: "Computer-Controlled Systems" pp 140.
 
 Uses Ackermann's formula for SISO systems and [`place_knvd`](@ref) for MIMO systems. 
 
