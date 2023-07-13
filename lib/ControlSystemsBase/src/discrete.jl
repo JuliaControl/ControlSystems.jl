@@ -113,6 +113,164 @@ end
 
 d2c(sys::TransferFunction{<:Discrete}, args...) = tf(d2c(ss(sys), args...))
 
+# c2d and d2c for covariance and cost matrices =================================
+"""
+    Qd     = c2d(sys::StateSpace{Continuous}, Qc::Matrix, Ts;             opt=:o)
+    Qd, Rd = c2d(sys::StateSpace{Continuous}, Qc::Matrix, Rc::Matrix, Ts; opt=:o)
+    Qd     = c2d(sys::StateSpace{Discrete},   Qc::Matrix;                 opt=:o)
+    Qd, Rd = c2d(sys::StateSpace{Discrete},   Qc::Matrix, Rc::Matrix;     opt=:o)
+
+Sample a continuous-time covariance or LQR cost matrix to fit the provided discrete-time system.
+
+If `opt = :o` (default), the matrix is assumed to be a covariance matrix. The measurement covariance `R` may also be provided.
+If `opt = :c`, the matrix is instead assumed to be a cost matrix for an LQR problem.
+
+!!! note
+    Measurement covariance (here called `Rc`) is usually estimated in discrete time, and is in this case not dependent on the sample rate. Discretization of the measurement covariance only makes sense when a continuous-time controller has been designed and the closest corresponding discrete-time controller is desired.
+
+The method used comes from theorem 5 in the reference below.
+
+Ref: "Discrete-time Solutions to the Continuous-time
+Differential Lyapunov Equation With Applications to Kalman Filtering", 
+Patrik Axelsson and Fredrik Gustafsson
+
+On singular covariance matrices: The traditional double integrator with covariance matrix `Q = diagm([0,σ²])` can not be sampled with this method. Instead, the input matrix ("Cholesky factor") of `Q` must be manually kept track of, e.g., the noise of variance `σ²` enters like `N = [0, 1]` which is sampled using ZoH and becomes `Nd = [1/2 Ts^2; Ts]` which results in the covariance matrix `σ² * Nd * Nd'`. 
+
+# Example:
+The following example designs a continuous-time LQR controller for a resonant system. This is simulated with OrdinaryDiffEq to allow the ODE integrator to also integrate the continuous-time LQR cost (the cost is added as an additional state variable). We then discretize both the system and the cost matrices and simulate the same thing. The discretization of an LQR contorller in this way is sometimes refered to as `lqrd`.
+```julia
+using ControlSystemsBase, LinearAlgebra, OrdinaryDiffEq, Test
+sysc = DemoSystems.resonant()
+x0 = ones(sysc.nx)
+Qc = [1 0.01; 0.01 2] # Continuous-time cost matrix for the state
+Rc = I(1)             # Continuous-time cost matrix for the input
+
+L = lqr(sysc, Qc, Rc)
+dynamics = function (xc, p, t)
+    x = xc[1:sysc.nx]
+    u = -L*x
+    dx = sysc.A*x + sysc.B*u
+    dc = dot(x, Qc, x) + dot(u, Rc, u)
+    return [dx; dc]
+end
+prob = ODEProblem(dynamics, [x0; 0], (0.0, 10.0))
+sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+cc = sol.u[end][end] # Continuous-time cost
+
+# Discrete-time version
+Ts = 0.01 
+sysd = c2d(sysc, Ts)
+Ld = lqr(sysd, Qd, Rd)
+sold = lsim(sysd, (x, t) -> -Ld*x, 0:Ts:10, x0 = x0)
+function cost(x, u, Q, R)
+    dot(x, Q, x) + dot(u, R, u)
+end
+cd = cost(sold.x, sold.u, Qd, Rd) # Discrete-time cost
+@test cc ≈ cd rtol=0.01           # These should be similar
+```
+"""
+function c2d(sys::AbstractStateSpace{<:Continuous}, Qc::AbstractMatrix, Ts::Real; opt=:o)
+    n = sys.nx
+    Ac  = sys.A
+    if opt === :c
+        # Ref: Charles Van Loan: Computing integrals involving the matrix exponential, IEEE Transactions on Automatic Control. 23 (3): 395–404, 1978
+        F = [-Ac' Qc; zeros(size(Qc)) Ac]
+        G = exp(F*Ts)
+        Ad = G[n+1:end, n+1:end]'
+        AdiQd = G[1:n, n+1:end]
+        Qd = Ad*AdiQd
+    elseif opt === :o
+        # Ref: Discrete-time Solutions to the Continuous-time Differential Lyapunov Equation With Applications to Kalman Filtering
+        F = [Ac Qc; zeros(size(Qc)) -Ac']
+        M = exp(F*Ts)
+        M1 = M[1:n, 1:n]
+        M2 = M[1:n, n+1:end]
+        Qd = M2*M1'
+    else
+        error("Unknown option opt=$opt")
+    end
+    
+    (Qd .+ Qd') ./ 2
+end
+
+
+function c2d(sys::AbstractStateSpace{<:Discrete}, Qc::AbstractMatrix, R::Union{AbstractMatrix, Nothing}=nothing; opt=:o)
+    Ad  = sys.A
+    Ac  = real(log(Ad)./sys.Ts)
+    if opt === :c
+        Ac = Ac'
+        Ad = Ad'
+    elseif opt !== :o
+        error("Unknown option opt=$opt")
+    end
+    C   = Symmetric(Qc - Ad*Qc*Ad')
+    Qd  = MatrixEquations.lyapc(Ac, C)
+    # The method below also works, but no need to use quadgk when MatrixEquations is available.
+    # function integrand(t)
+    #     Ad = exp(t*Ac)
+    #     Ad*Qc*Ad'
+    # end
+    # Qd = quadgk(integrand, 0, h)[1]
+    if R === nothing
+        return Qd
+    else
+        if opt === :c
+            Qd, R .* sys.Ts
+        else
+            Qd, R ./ sys.Ts
+        end
+    end
+end
+
+
+function c2d(sys::AbstractStateSpace, Qc::AbstractMatrix, R::AbstractMatrix, Ts::Real; opt=:o)
+    Qd = c2d(sys, Qc, Ts; opt)
+    if opt === :c
+        return Qd, R .* Ts
+    else
+        return Qd, R ./ Ts
+    end
+end
+
+
+
+"""
+    Qc = d2c(sys::AbstractStateSpace{<:Discrete}, Qd::AbstractMatrix; opt=:o)
+
+Resample discrete-time covariance matrix belonging to `sys` to the equivalent continuous-time matrix.
+
+The method used comes from theorem 5 in the reference below.
+
+If `opt = :c`, the matrix is instead assumed to be a cost matrix for an LQR problem.
+
+Ref: Discrete-time Solutions to the Continuous-time
+Differential Lyapunov Equation With
+Applications to Kalman Filtering
+Patrik Axelsson and Fredrik Gustafsson
+"""
+function d2c(sys::AbstractStateSpace{<:Discrete}, Qd::AbstractMatrix, Rd::Union{AbstractMatrix, Nothing}=nothing; opt=:o)
+    Ad = sys.A
+    Ac = real(log(Ad)./sys.Ts)
+    if opt === :c
+        Ac = Ac'
+        Ad = Ad'
+    elseif opt !== :o
+        error("Unknown option opt=$opt")
+    end
+    C = Symmetric(Ac*Qd + Qd*Ac')
+    Qc = MatrixEquations.lyapd(Ad, -C)
+    isposdef(Qc) || @error("Calculated covariance matrix not positive definite")
+    if Rd === nothing
+        return Qc
+    else
+        if opt === :c
+            return Qc, Rd ./ sys.Ts
+        else
+            return Qc, Rd .* sys.Ts
+        end
+    end
+end
+
 
 function rst(bplus,bminus,a,bm1,am,ao,ar=[1],as=[1] ;cont=true)
 

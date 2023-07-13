@@ -147,3 +147,89 @@ pd = c2d_poly2poly(A, 0.1)
 @test pd ≈ denvec(c2d(P, 0.1))[]
 
 end
+
+
+## Sampling of covariance and cost matrices
+
+# Covariance matrices (opt = :o)
+sysc = DemoSystems.resonant()
+Ts = 0.5
+sysd = c2d(sysc, Ts)
+Qd = [1 0.1; 0.1 2]
+Qc = d2c(sysd, Qd)
+
+Qd2 = c2d(sysc, Qc, Ts) # Continuous system as input
+@test Qd2 ≈ Qd
+
+Qd3 = c2d(sysd, Qc) # Discrete system as input
+@test Qd3 ≈ Qd
+
+
+# Test sampling of cost matrix (opt = :c)
+sysc = DemoSystems.resonant()
+x0 = ones(sysc.nx)
+Ts = 0.01 # cost approximation becomes more crude as Ts increases
+Qc = [1 0.01; 0.01 2]
+Rc = I(1)
+sysd = c2d(sysc, Ts)
+
+Qd, Rd = c2d(sysc, Qc, Rc, Ts, opt=:c) # Continuous system as input
+Qc2, Rc2 = d2c(sysd, Qd, Rd; opt=:c) # Test round trip
+@test Qc2 ≈ Qc
+@test Rc2 ≈ Rc
+
+Qd3, Rd3 = c2d(sysd, Qc, Rc; opt=:c) # Discrete system as input
+@test Qd3 ≈ Qd
+@test Rd3 ≈ Rd
+
+
+# NOTE: these tests are not run due to OrdinaryDiffEq latency, they should pass
+# using OrdinaryDiffEq
+# L = lqr(sysc, Qc, Rc)
+# dynamics = function (xc, p, t)
+#     x = xc[1:sysc.nx]
+#     u = -L*x
+#     dx = sysc.A*x + sysc.B*u
+#     dc = dot(x, Qc, x) + dot(u, Rc, u)
+#     return [dx; dc]
+# end
+# prob = ODEProblem(dynamics, [x0; 0], (0.0, 10.0))
+# sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+# cc = sol.u[end][end]
+# Ld = lqr(sysd, Qd, Rd)
+# sold = lsim(sysd, (x, t) -> -Ld*x, 0:Ts:10, x0 = x0)
+# function cost(x, u, Q, R)
+#     dot(x, Q, x) + dot(u, R, u)
+# end
+# cd = cost(sold.x, sold.u, Qd, Rd)
+# @test cc ≈ cd rtol=0.01
+# @test abs(cc-cd) < 1.0001*0.005531389319983315
+
+
+# test case from paper
+A = [
+    2 -8 -6
+    10 -19 -12
+    -10 15 8
+]
+B = [
+    5 1
+    1 4
+    3 2
+]
+Qc = [
+    4 1 2
+    1 3 1
+    2 1 5
+]
+
+Qd = c2d(ss(A,B,I,0), Qc, 1, opt=:c)
+Qd_van_load = [
+    9.934877720 -11.08568953 -9.123023900
+    -11.08568953 13.66870748 11.50451512
+    -9.123023900 11.50451512 10.29179555 
+]
+
+@test norm(Qd - Qd_van_load) < 1e-6
+
+
