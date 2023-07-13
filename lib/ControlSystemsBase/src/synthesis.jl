@@ -16,6 +16,8 @@ The `args...; kwargs...` are sent to the Riccati solver, allowing specification 
 
 To obtain also the solution to the Riccati equation and the eigenvalues of the closed-loop system as well, call `ControlSystemsBase.MatrixEquations.arec / ared` instead (note the different order of the arguments to these functions).
 
+To obtain a discrete-time approximation to a continuous-time LQR problem, the function [`c2d`](@ref) can be used to obtain corresponding discrete-time cost matrices.
+
 # Examples
 Continuous time
 ```julia
@@ -79,6 +81,8 @@ end
 Calculate the optimal Kalman gain.
 
 If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: "Computer-Controlled Systems" pp 140.
+
+To obtain a discrete-time approximation to a continuous-time LQG problem, the function [`c2d`](@ref) can be used to obtain corresponding discrete-time covariance matrices.
 
 The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec/ared` for more help.
 """
