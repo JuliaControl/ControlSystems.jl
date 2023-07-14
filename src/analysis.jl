@@ -617,7 +617,7 @@ If a controller `C` is provided as the second argument, a check of the gain-cros
 
 Ref: "Loop Shaping", Bo Bernhardsson and Karl Johan Åström 2016
 """
-function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=true)
+function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=true, Ms = nothing)
 
     ωgc_l = 0.0
     ωgc_u = Inf
@@ -642,6 +642,11 @@ function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=tr
     elseif length(rhpp) == 1
         verbose && @info "ωgc lower bounded by RHP pole to 2*p = $(2p) rad/s"
         ωgc_l = 2p
+        if Ms isa Number
+            ωgc_l2 = p*√((Ms+1)/(Ms-1)) # https://www.control.lth.se/fileadmin/control/staff/KJ/200113FeedbackFundamentals.pdf slide 51
+            verbose && @info "ωgc lower bounded by RHP pole and Ms to p*√((Ms+1)/(Ms-1)) = $(p*√((Ms+1)/(Ms-1))) rad/s"
+            ωgc_l = max(ωgc_l, ωgc_l2)
+        end
     end
 
     z = maximum(abs, rhpz)
@@ -651,10 +656,18 @@ function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=tr
     elseif length(rhpz) == 1
         verbose && @info "ωgc upper bounded by RHP zero to z/2 = $(z/2) rad/s"
         ωgc_u = z/2
+
+        if Ms isa Number
+            ωgc_u2 = z*√((Ms-1)/(Ms+1)) # https://www.control.lth.se/fileadmin/control/staff/KJ/200113FeedbackFundamentals.pdf slide 51
+            verbose && @info "ωgc lower bounded by RHP pole and Ms to z*√((Ms-1)/(Ms+1)) = $(z*√((Ms-1)/(Ms+1))) rad/s"
+            ωgc_u = min(ωgc_u, ωgc_u2)
+        end
+
     end
 
     if length(rhpp) > 1 && length(rhpz) > 1
         verbose && @info "RHP pole and zero requires z > 4p which is $(z > 4p)"
+        verbose && @info "Ms and Mt are always larger than |(p+z) / (p-z)| = $(abs((p+z) / (p-z))) due to RHP pole and zero pair"
     end
 
     if C !== nothing
