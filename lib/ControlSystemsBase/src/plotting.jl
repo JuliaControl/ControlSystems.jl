@@ -288,9 +288,11 @@ end
 
     for (si,s) = enumerate(systems)
         if balance
-            s = balance_statespace(s)[1]
+            sbal = balance_statespace(s)[1]
+        else
+            sbal = s
         end
-        mag, phase = bode(s, w)[1:2]
+        mag, phase = bode(sbal, w)[1:2]
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
