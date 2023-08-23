@@ -2,7 +2,7 @@ name = "ControlSystemsBase"
 uuid = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
 authors = ["Dept. Automatic Control, Lund University"]
 repo = "https://github.com/JuliaControl/ControlSystemsBase.jl.git"
-version = "1.8.0"
+version = "1.8.1"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
