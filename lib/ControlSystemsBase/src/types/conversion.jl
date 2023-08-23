@@ -189,11 +189,7 @@ end
 
 function balance_statespace(sys::S, perm::Bool=false) where S <: AbstractStateSpace
     A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
-    if hasfield(S, :sys)
-        basetype(S)(ss(A,B,C,sys.D), ntuple(i->getfield(sys, i+1), fieldcount(S)-1)...), T
-    else
-        basetype(S)(A,B,C,sys.D, ntuple(i->getfield(sys, i+4), fieldcount(S)-4)...), T
-    end
+    ss(A,B,C,sys.D,sys.timeevol), T
 end
 
 # Method that might fail for some exotic types, such as TrackedArrays
