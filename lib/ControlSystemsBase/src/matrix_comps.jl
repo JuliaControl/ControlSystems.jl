@@ -562,7 +562,7 @@ end
 
 Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
 
-`T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
+`T` is the projection matrix between the old state `x` and the newstate `z` such that `z = Tx`. `T` will in general be a non-square matrix.
 
 If `residual = true`, matched static gain is achieved through "residualization", i.e., setting
 ```math
@@ -589,6 +589,7 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
         S = S[1:n]
     end
     i1 = 1:n
+    T = T[i1, :]
     if residual
         A,B,C,D = ssdata(sysbal)
         i2 = n+1:size(A, 1)
