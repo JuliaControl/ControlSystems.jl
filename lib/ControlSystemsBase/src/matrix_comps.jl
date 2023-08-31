@@ -124,7 +124,8 @@ Compute the observability matrix with `n` rows for the system described by `(A, 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method for stable A is checking if
 `gram(sys, :o)` is positive definite. Another method is the Popov-Belevitch-Hautus 
-(PBH) test: `all(map(λ->rank([λ * I - A; C]) == size(A, 1), eigvals(A)))`.
+(PBH) test: `all(map(λ->rank([λ * I - A; C]; rtol) == size(A, 1), eigvals(A)))` and
+`rtol=size(A, 1)*eps(promote_type(eltype.((A, C))...))` as an appropriate tolerance.
 """
 function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
     T = promote_type(eltype(A), eltype(C))
@@ -153,7 +154,9 @@ Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method for
 stable A is checking if `gram(sys, :c)` is positive definite. Another 
 method is the Popov-Belevitch-Hautus (PBH) test: 
-`all(map(λ->rank([λ*I - A; B]) == size(A, 1), eigvals(A)))`.
+`all(map(λ->rank([λ*I - A; B]) == size(A, 1), eigvals(A)))` and
+`rtol=size(A, 1)*eps(promote_type(eltype.((A, C))...))` as an appropriate 
+tolerance.
 """
 function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     T = promote_type(eltype(A), eltype(B))
