@@ -123,7 +123,7 @@ Compute the observability matrix with `n` rows for the system described by `(A, 
 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
-`gram(sys, :o)` is positive definite.
+`gram(sys, :o)` is positive definite or to call the function [`observability`](@ref).
 """
 function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
     T = promote_type(eltype(A), eltype(C))
@@ -150,7 +150,7 @@ Compute the controllability matrix for the system described by `(A, B)` or
 
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
-checking if `gram(sys, :c)` is positive definite.
+checking if `gram(sys, :c)` is positive definite or to call the function [`controllability`](@ref).
 """
 function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     T = promote_type(eltype(A), eltype(B))
@@ -167,6 +167,53 @@ function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     return res
 end
 ctrb(sys::AbstractStateSpace) = ctrb(sys.A, sys.B)
+
+"""
+    controllability(A, B; atol, rtol)
+    controllability(sys; atol, rtol)
+
+Check for controllability of the pair `(A, B)` or `sys` using the PHB test.
+
+The return value contains the field `iscontrollable` which is `true` if the rank condition is met at all eigenvalues of `A`, and `false` otherwise. The returned structure also contains the rank and smallest singular value at each individual eigenvalue of `A` in the fields `ranks` and `sigma_min`.
+"""
+function controllability(A::AbstractMatrix{T}, B; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(T)) where T
+    p = eigvals(A)
+    n = LinearAlgebra.checksquare(A)
+    ranks = zeros(Int, n)
+    sigma_min = similar(A, n)
+    for i = 1:n
+        sigmas = svdvals([(p[i]*I - A) B])
+        r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
+        ranks[i] = r
+        sigma_min[i] = sigmas[end]
+    end
+    (; iscontrollable = all(==(n), ranks), ranks, sigma_min)
+end
+controllability(sys::AbstractStateSpace; kwargs...) = controllability(sys.A, sys.B; kwargs...)
+
+
+"""
+    observability(A, C; atol, rtol)
+
+
+Check for observability of the pair `(A, C)` or `sys` using the PHB test.
+
+The return value contains the field `isobservable` which is `true` if the rank condition is met at all eigenvalues of `A`, and `false` otherwise. The returned structure also contains the rank and smallest singular value at each individual eigenvalue of `A` in the fields `ranks` and `sigma_min`.
+"""
+function observability(A::AbstractMatrix{T}, C; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(T)) where T
+    p = eigvals(A)
+    n = LinearAlgebra.checksquare(A)
+    ranks = zeros(Int, n)
+    sigma_min = similar(A, n)
+    for i = 1:n
+        sigmas = svdvals([(p[i]*I - A); C])
+        r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
+        ranks[i] = r
+        sigma_min[i] = sigmas[end]
+    end
+    (; isobservable = all(==(n), ranks), ranks, sigma_min)
+end
+observability(sys::AbstractStateSpace; kwargs...) = observability(sys.A, sys.C; kwargs...)
 
 """
     P = covar(sys, W)
