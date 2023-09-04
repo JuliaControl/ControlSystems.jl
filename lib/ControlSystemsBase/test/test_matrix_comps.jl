@@ -301,5 +301,33 @@ sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test T != I
 @test similarity_transform(sysb, T) ≈ sys
 
+
+# controllability
+
+sys = ssrand(1,1,2,proper=true)
+sys = [sys; 2sys] # 1 uncontrollable mode
+
+res = controllability(sys)
+@test !res.iscontrollable
+@test all(==(3), res.ranks)
+@test all(<(sqrt(eps())), res.sigma_min)
+
+
+sys = [sys; 2sys] # 3 uncontrollable modes
+res = controllability(sys)
+@test !res.iscontrollable
+@test all(==(5), res.ranks) # Three uncontrollable modes 8 - 3 = 5
+@test all(<(sqrt(eps())), res.sigma_min)
+
+
+
+sys = ssrand(1,1,2,proper=true)
+sys = [sys 2sys]
+
+res = observability(sys)
+@test !res.isobservable
+@test all(==(3), res.ranks)
+@test all(<(sqrt(eps())), res.sigma_min)
+
 end 
 

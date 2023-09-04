@@ -33,6 +33,8 @@ export  LTISystem,
         grampd,
         ctrb,
         obsv,
+        controllability,
+        observability,
         place,
         place_knvd,
         # Model Simplification
