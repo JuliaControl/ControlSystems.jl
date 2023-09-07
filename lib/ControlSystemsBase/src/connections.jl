@@ -143,8 +143,10 @@ Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:N
 
 Add inputs to `sys` by forming
 ```math
-x' = Ax + [B \\; B_2]u
-y  = Cx + [D \\; D_2]u
+\\begin{aligned}
+x' &= Ax + [B \\; B_2]u \\\\
+y  &= Cx + [D \\; D_2]u \\\\
+\\end{aligned}
 ```
 If `B2` is an integer it will be interpreted as an index and an input matrix containing a single 1 at the specified index will be used.
 
@@ -175,8 +177,10 @@ end
 
 Add outputs to `sys` by forming
 ```math
-x' = Ax + Bu
-y  = [C; C_2]x + [D; D_2]u
+\\begin{aligned}
+x' &= Ax + Bu \\\\
+y  &= [C; C_2]x + [D; D_2]u \\\\
+\\end{aligned}
 ```
 If `C2` is an integer it will be interpreted as an index and an output matrix containing a single 1 at the specified index will be used.
 """
