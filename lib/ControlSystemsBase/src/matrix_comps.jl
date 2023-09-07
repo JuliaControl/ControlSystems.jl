@@ -861,7 +861,7 @@ This controller does not have a direct term, and corresponds to state feedback o
 Ref: "Computer-Controlled Systems" Eq 4.37
 
 # If `direct = true`
-Return the observer_controller `cont` that is given by
+Return the observer controller `cont` that is given by
 `ss((I-KC)(A-BL), (I-KC)(A-BL)K, L, LK)`
 such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-BL` and `A-BL-KC`.
 This controller has a direct term, and corresponds to state feedback operating on state estimated by [`observer_filter`](@ref). Use this form if the computed control signal is applied immediately after receiveing a measurement. This version typically has better performance than the one without a direct term.
