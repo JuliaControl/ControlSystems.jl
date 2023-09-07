@@ -30,3 +30,6 @@ For a more advanced example using time delays, see the [Smith predictor](@ref) t
 
 ## Simulation of time-delay systems
 Time-delay systems are numerically challenging to simulate, if you run into problems, please open an issue with a reproducing example. The [`lsim`](@ref), [`step`](@ref) and [`impulse`](@ref) functions accept keyword arguments that are passed along to the ODE integrator, this can be used to both select integration method and to tweak the integrator options. The documentation for solving delay-differential equations is available [here](https://diffeq.sciml.ai/latest/types/dde_types/) and [here](https://diffeq.sciml.ai/latest/tutorials/dde_example/).
+
+## Estimation of delay
+See the companion tutorial in ControlSystemIdentification.jl on [Delay estimation](file:///home/fredrikb/.julia/dev/ControlSystemIdentification/docs/build/examples/delayest.html). This tutorial covers the both the detection of the presence of a delay, and estimation of models for systems with delays.
