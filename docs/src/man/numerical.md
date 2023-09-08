@@ -1,7 +1,7 @@
 # Performance considerations
 
 ## Numerical accuracy
-Transfer functions, and indeed polynomials in general, are infamous for having poor numerical properties. Consider the simple polynomial $ax^n - 1$ which, due to rounding of the polynomial coefficients, is represented as $(a+\epsilon)x^n - 1$ where $\epsilon$ is on the order of `eps(a)`. The roots of this polynomial have a much larger $\epsilon$, due to the n:th root in the expression $\dfrac{1}{\sqrt[n]{(a + \epsilon)}}$. For this reason, it's ill-advised to use high-order transfer functions. Orders as low as 6 may already be considered high. When a transfer function is converted to a state-space representation using `ss(G)`, balancing is automatically performed in an attempt at making the numerical properties of the model better.
+Transfer functions, and indeed polynomials in general, are infamous for having poor numerical properties and for this reason, it's ill-advised to use high-order transfer functions. Orders as low as 6 may already be considered high. When a transfer function is converted to a state-space representation using `ss(G)`, balancing is automatically performed in an attempt at making the numerical properties of the model better.
 
 This problem is illustrated below, where we first create a statespace system ``G`` and convert this to a transfer function ``G_1``. We then perturb a *single element* of the dynamics matrix ``A`` by adding the machine epsilon for `Float64` (`eps() = 2.22044e-16`), and convert this perturbed statespace system to a transfer function ``G_2``. The difference between the two transfer functions is enormous, the norm of the difference in their denominator coefficient vectors is on the order of ``10^{96}``.
 
@@ -17,8 +17,9 @@ If we plot the poles of the two systems, they are also very different
 ```julia
 scatter(poles(G1)); scatter!(poles(G2))
 ```
-![Noisy poles](https://user-images.githubusercontent.com/3797491/215962177-38447944-6cca-4070-95ea-7f3829efee2e.png))
+![Noisy poles](https://user-images.githubusercontent.com/3797491/215962177-38447944-6cca-4070-95ea-7f3829efee2e.png)
 
+If we instead compute the poles of the statespace model before and after the perturbation, they are almost indistinguishable.
 
 #### State-space balancing
 
