@@ -188,4 +188,12 @@ myss = ss(mytf)
 test = ss([-1 2 3; 0 -2 3; 0 0 -3],[1;2;3],[1 2 3], [0])
 @test tf(test) isa TransferFunction
 
+
+# Issue https://github.com/JuliaControl/ControlSystems.jl/issues/869
+
+sys = tf(ssrand(2,2,2))
+sys.matrix[1,1] = 0
+syszpk = zpk(sys)
+@test syszpk isa TransferFunction{Continuous, ControlSystemsBase.SisoZpk{Float64, ComplexF64}}
+
 end
