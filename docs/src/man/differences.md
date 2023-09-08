@@ -28,12 +28,12 @@ In order to make it faster to load the ControlSystems.jl package, you may make u
 !!! warning "For developers"
     If you intend to develop ControlSystem.jl, i.e., modify the source code, it's not recommended to build the package into the system image. We then recommend to build OrdinaryDiffEq into the system image since this package contributes the largest part of the loading time.
 
-Building a custom system image can dramatically reduce the time to get started in a new Julia session, as an example:
+Building a custom system image can reduce the time to get started in a new Julia session, as an example:
 
 - Without system image:
 ```julia
 julia> @time using ControlSystems
-  5.725526 seconds (17.91 M allocations: 1.363 GiB, 8.31% gc time, 14.86% compilation time)
+  1.646961 seconds (2.70 M allocations: 173.558 MiB, 1.08% gc time, 2.06% compilation time)
 ```
 
 - With OrdinaryDiffEq and Plots in the system image:
