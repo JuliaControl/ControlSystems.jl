@@ -257,4 +257,5 @@ ControlSystemsBase.offset
 ControlSystemsBase.saturation
 ControlSystemsBase.ratelimit
 ControlSystemsBase.deadzone
+ControlSystemsBase.linearize
 ```

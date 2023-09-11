@@ -66,7 +66,7 @@ D = ForwardDiff.jacobian(u -> g(x0, u), u0)
 
 linear_sys = ss(A, B, C, D)
 ```
-The example above linearizes `f` in the point ``x_0, u_0`` to obtain the linear statespace matrices ``A`` and ``B``, and linearizes `g` to obtain the linear output matrices ``C`` and ``D``.
+The example above linearizes `f` in the point ``x_0, u_0`` to obtain the linear statespace matrices ``A`` and ``B``, and linearizes `g` to obtain the linear output matrices ``C`` and ``D``. Instead of manually calling ForwardDiff.jl to linearize the dynamics, the user may call the function [`ControlSystemsBase.linearize`](@ref) which includes the necessary calls to ForwardDiff.jl.
 
 ## Optimization-based tuning--PID controller
 
