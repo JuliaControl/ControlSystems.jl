@@ -55,7 +55,11 @@ function Base.getindex(G::TransferFunction{TE,S}, inds...) where {TE,S<:SisoTf}
         error("Must specify 2 indices to index TransferFunction model")
     end
     rows, cols = index2range(inds...)
-    mat = Matrix{S}(undef, length(rows), length(cols))
+    mat = Matrix{S}(
+        undef,
+        rows isa Colon ? noutputs(G) : length(rows),
+        cols isa Colon ? ninputs(G) : length(cols)
+    )
     mat[:, :] = G.matrix[rows, cols]
     return TransferFunction(mat, G.timeevol)
 end
