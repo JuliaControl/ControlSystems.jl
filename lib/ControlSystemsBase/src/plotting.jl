@@ -292,7 +292,7 @@ end
         else
             sbal = s
         end
-        mag, phase = bode(sbal, w)[1:2]
+        mag, phase = bode(sbal, w; unwrap=false)[1:2]
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
