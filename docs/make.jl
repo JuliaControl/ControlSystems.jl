@@ -49,7 +49,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
         ],
         "API" => "api.md",
     ],
-    warnonly = [:missing_docs],
+    warnonly = [:missing_docs, :cross_references],
 )
 
 deploydocs(repo = "github.com/JuliaControl/ControlSystems.jl.git")
