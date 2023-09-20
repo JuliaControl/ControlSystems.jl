@@ -159,7 +159,7 @@ Gcl = extended_gangoffour(G, C) # Form closed-loop system
 bodeplot(Gcl, lab=["S" "CS" "PS" "T"], plotphase=false) |> display # Plot gang of four
 ```
 Note, the last input of Gcl is the negative of the `PS` and `T` transfer functions from `gangoffour2`. To get a transfer matrix with the same sign as [`G_PS`](@ref) and [`input_comp_sensitivity`](@ref), call `extended_gangoffour(P, C, pos=false)`.
-See [`glover_mcfarlane`](@ref) from RobustAndOptimalControl.jl for an extended example. See also [`ncfmargin`](@ref) and [`feedback_control`](@ref) from RobustAndOptimalControl.jl.
+See `glover_mcfarlane` from RobustAndOptimalControl.jl for an extended example. See also `ncfmargin` and `feedback_control` from RobustAndOptimalControl.jl.
 """
 function extended_gangoffour(P, C, pos=true)
     ny,nu = size(P)

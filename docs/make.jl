@@ -2,7 +2,8 @@
 ENV["PLOTS_TEST"] = "true"
 ENV["GKSwstype"] = "nul"
 
-using Documenter, ControlSystems, ControlSystemsBase, Plots, LinearAlgebra, DSP
+using Documenter, ControlSystems, ControlSystemsBase, Plots, LinearAlgebra
+import DSP
 # ENV["JULIA_DEBUG"]=Documenter # Enable this for debugging
 #import GR # Bug with world age in Plots.jl, see https://github.com/JuliaPlots/Plots.jl/issues/1047
 gr()
@@ -21,14 +22,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
     format = Documenter.HTML(prettyurls = haskey(ENV, "CI")),
     sitename="ControlSystems.jl",
     pagesonly = true,
-    strict=[
-        :doctest, 
-        :linkcheck, 
-        :parse_error,
-        :example_block,
-        # Other available options are
-        # :autodocs_block, :cross_references, :docs_block, :eval_block, :example_block, :footnote, :meta_block, :missing_docs, :setup_block
-    ],
+    draft = false,
     pages=[
         "Home" => "index.md",
         "Introductory guide" => Any[
@@ -54,7 +48,8 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
             "Nonlinear" => "lib/nonlinear.md",
         ],
         "API" => "api.md",
-    ]
+    ],
+    warnonly = [:missing_docs],
 )
 
 deploydocs(repo = "github.com/JuliaControl/ControlSystems.jl.git")

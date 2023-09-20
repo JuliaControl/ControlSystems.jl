@@ -59,7 +59,7 @@ We can also obtain individual sensitivity function using the low-level function 
 - [`G_CS`](@ref)
 - [`gangoffour`](@ref)
 - [`extended_gangoffour`](@ref)
-- [`feedback_control`](@ref)
+- `RobustAndOptimalControl.feedback_control`
 
 
 ## Further reading
