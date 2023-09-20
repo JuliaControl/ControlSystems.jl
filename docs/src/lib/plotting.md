@@ -6,7 +6,7 @@ Pages = ["plotting.md"]
     All plotting requires the user to manually load the Plots.jl library, e.g., by calling `using Plots`.
 
 !!! note "Time-domain responses"
-    There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure ([`ControlSystemsBase.SimResult`](@ref)) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
+    There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure (`ControlSystemsBase.SimResult`) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
 
 # Plotting functions
 

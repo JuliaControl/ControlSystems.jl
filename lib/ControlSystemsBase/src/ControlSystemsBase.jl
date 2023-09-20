@@ -131,6 +131,7 @@ import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 
 export lyap # Make sure LinearAlgebra.lyap is available
+export plyap
 import Printf
 import Printf: @printf, @sprintf
 import DSP

@@ -292,7 +292,7 @@ end
         else
             sbal = s
         end
-        mag, phase = bode(sbal, w)[1:2]
+        mag, phase = bode(sbal, w; unwrap=false)[1:2]
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         end
@@ -716,6 +716,7 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
+marginplot
 @recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
