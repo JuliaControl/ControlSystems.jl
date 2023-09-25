@@ -130,3 +130,12 @@ for balanced in [true, false]
     res2 = step(sys2, t ./ a)
     @test res1.y ≈ res2.y rtol=1e-2 atol=1e-2
 end
+
+
+
+# Discontinuous u function
+s = tf('s')
+sys = 0.0002/s^2;
+t = 0:0.01:10
+u1(x,t) = [25(5.0 <= t < 5.1)]
+@test lsim(sys, u1, t; ).y[end] ≈ lsim(sys, u1, t; method=:zoh).y[end] rtol=0.1

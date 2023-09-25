@@ -22,7 +22,7 @@ end
 
 # This method is more specific than the lsim in ControlSystemsBase that does not specify Continuous timeevol for sys, hence, if ControlSystems is loaded, ControlSystems.lsim will take precedence over ControlSystemsBase.lsim for Continuous systems
 function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, alg = Tsit5(), kwargs...)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, dtmax = t[2]-t[1], alg = Tsit5(), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,t[1])
@@ -42,7 +42,7 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
         x,uout = ControlSystemsBase.ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; saveat=t, kwargs...)
+        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; dtmax, saveat=t, kwargs...)
         x = reduce(hcat, sol.u)::Matrix{T}
         uout = Matrix{T}(undef, nu, length(t))
         for i = eachindex(t)
