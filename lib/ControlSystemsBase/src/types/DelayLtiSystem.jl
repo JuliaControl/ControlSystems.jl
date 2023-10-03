@@ -24,8 +24,8 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
     if nu < 0  || ny < 0
         throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
-
-    psys = PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys, nu, ny)
+    csys = convert(StateSpace{Continuous,T}, sys)
+    psys = PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(csys, nu, ny)
     DelayLtiSystem{T,S}(psys, Tau)
 end
 # For converting DelayLtiSystem{T,S} to different T
@@ -49,7 +49,7 @@ Base.promote_rule(::Type{<:TransferFunction{<:Any, ST}}, ::Type{DelayLtiSystem{T
 #Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
 
 function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::StateSpace) where {T,S}
-    DelayLtiSystem{T,S}(sys)
+    DelayLtiSystem{T,S}(convert(StateSpace{Continuous,T}, sys))
 end
 function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: Number,S}
     DelayLtiSystem{T1,S}(StateSpace(T1(d)))

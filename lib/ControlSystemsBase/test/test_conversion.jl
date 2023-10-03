@@ -66,6 +66,11 @@ s = tf("s")
 @test_throws ErrorException delay(5)*((s+1))/((s+2)*(s+0.5))
 @test_throws ErrorException delay(5)*zpk((s+1))/zpk((s+2)*(s+0.5))
 
+P = ss(-1, 1, 1, 0)
+Pd = P * delay(big(1))
+@test Pd.P.P ≈ (tf(P) * delay(big(1))).P.P
+@test Pd.Tau == [1]
+
 # Test complex 1
 A = [1.0 + im 1; 0 -2-3im]
 B = [0;2]
