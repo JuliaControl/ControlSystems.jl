@@ -12,7 +12,7 @@ DocTestSetup = quote
 end
 ```
 
-### Using the `tf()` function
+### tf - Rational Representation
 The basic syntax for creating a transfer function is [`tf`](@ref)
 ```julia
 tf(num, den)     # Continuous-time system
