@@ -37,9 +37,13 @@ LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix) = LsimWorkspace(sys, s
     y, t, x = step(sys[, tfinal])
     y, t, x = step(sys[, t])
 
-Calculate the step response of system `sys`. If the final time `tfinal` or time
-vector `t` is not provided, one is calculated based on the system pole
-locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
+Calculate the response of the system `sys` to a unit step at time `t = 0`. 
+If the final time `tfinal` or time vector `t` is not provided, 
+one is calculated based on the system pole locations. 
+
+The return value is a structure of type `SimResult`. 
+A `SimResul` can be plotted by `plot(result)`, 
+or destructured as `y, t, x = result`. 
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`
 
@@ -73,11 +77,20 @@ Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t
     y, t, x = impulse(sys[, tfinal])
     y, t, x = impulse(sys[, t])
 
-Calculate the impulse response of system `sys`. If the final time `tfinal` or time
-vector `t` is not provided, one is calculated based on the system pole
-locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
+Calculate the response of the system `sys` to an impulse at time `t = 0`. 
+For continous-time systems, the impulse is a unit Dirac impulse. 
+For discrete-time systems, the impulse lasts one sample and has magnitude `1/Ts`. 
+If the final time `tfinal` or time vector `t` is not provided, 
+one is calculated based on the system pole locations. 
 
-`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
+The return value is a structure of type `SimResult`. 
+A `SimResul` can be plotted by `plot(result)`, 
+or destructured as `y, t, x = result`.
+
+`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`
+
+See also [`lsim`](@ref).
+"""
 function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)

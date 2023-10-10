@@ -12,8 +12,8 @@ DocTestSetup = quote
 end
 ```
 
-### tf - Rational Representation
-The syntax for creating a transfer function is [`tf`](@ref)
+### Using the `tf()` function
+The basic syntax for creating a transfer function is [`tf`](@ref)
 ```julia
 tf(num, den)     # Continuous-time system
 tf(num, den, Ts) # Discrete-time system
@@ -34,8 +34,32 @@ Continuous-time transfer function model
 ```
 
 The transfer functions created using this method will be of type `TransferFunction{SisoRational}`.
+For more general expressions, it is often more convenient to define `s = tf("s")`:
+#### Example:
+```julia
+julia> s = tf("s")
 
-### zpk - Pole-Zero-Gain Representation
+TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}
+s
+-
+1
+
+Continuous-time transfer function model
+```
+
+This allows us to use `s` to define transfer-functions:
+```julia
+julia> (s-1)*(s^2 + s + 1)/(s^2 + 3s + 2)/(s+1)
+
+TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}
+       s^3 - 1
+---------------------
+s^3 + 4*s^2 + 5*s + 2
+
+Continuous-time transfer function model
+```
+
+## Using the `zpk()` function - Pole-Zero-Gain Representation
 Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using the function [`zpk`](@ref)
 ```julia
 zpk(zeros, poles, gain)     # Continuous-time system
@@ -84,7 +108,7 @@ To associate **names** with states, inputs and outputs, see [`named_ss`](https:/
 
 
 ## Converting between types
-It is sometime useful to convert one representation to another, this is possible using the constructors `tf, zpk, ss`, for example
+It is sometime useful to convert one representation to another. This is possible using the constructors `tf, zpk, ss`, for example
 ```jldoctest
 tf(zpk([-1], [1], 2, 0.1))
 
