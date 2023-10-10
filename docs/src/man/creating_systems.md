@@ -59,7 +59,7 @@ s^3 + 4*s^2 + 5*s + 2
 Continuous-time transfer function model
 ```
 
-## Using the `zpk()` function - Pole-Zero-Gain Representation
+### zpk - Pole-Zero-Gain Representation
 Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using the function [`zpk`](@ref)
 ```julia
 zpk(zeros, poles, gain)     # Continuous-time system
