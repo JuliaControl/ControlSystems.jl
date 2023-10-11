@@ -42,7 +42,7 @@ We could take multiple different approaches to tuning the PID controller, a few 
 Here, we will attempt a manual loop-shaping approach using the function [`loopshapingPID`](@ref), and then then compare the result to a pole-placement controller.
 
 ### Manual loop shaping
-The function [`loopshapingPID`](@ref) takes a model and selects the parameters of a PID-controller such that the Nyquist curve of the loop-transfer function ``L = PC`` at the frequency `ω` is tangent to the circle where the magnitude of the complimentary sensitivity function ``T = PC / (1+PC)`` equals `M_T`. This allows us to explicitly solve for the PID parameters that achieves a desired target value of ``M_T`` at a desired frequency `ω`. The function can optionally produce a plot which draws the design characteristics and the resulting Nyquist curve, which we will make use of here. A Youtube video tutorial that goes into more details on how this function works is [available here](https://youtu.be/BolNmqYYIEg?si=hF-xvsPL_wBngpft&t=775).
+The function [`loopshapingPID`](@ref) takes a model and selects the parameters of a PID-controller such that the Nyquist curve of the loop-transfer function ``L = PC`` at the frequency `ω` is tangent to the circle where the magnitude of the complimentary sensitivity function ``T = PC / (1+PC)`` equals ``M_T``. This allows us to explicitly solve for the PID parameters that achieves a desired target value of ``M_T`` at a desired frequency `ω`. The function can optionally produce a plot which draws the design characteristics and the resulting Nyquist curve, which we will make use of here. A Youtube video tutorial that goes into more details on how this function works is [available here](https://youtu.be/BolNmqYYIEg?si=hF-xvsPL_wBngpft&t=775).
 
 Since the process contains two sharp resonance peaks, visible in the Bode diagram above, the requirements for our velocity controller have to be rather modest. We therefore tell [`loopshapingPID`](@ref) that we want to include a lowpass filter in the controller to suppress any frequencies above ``ω_f = 1/T_f`` so that the resonances do not cause excessive robustness problems. We choose the design frequency to be ``ω = 5`` and the target value of ``M_T = 1.35`` achieved at an angle of ``ϕ_t = 35`` degrees from the negative real axis. The function returns the controller, the PID parameters, the resulting Nyquist curve, and the lowpass-filter controlled `CF`. 
 
@@ -76,6 +76,28 @@ plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black)
 ```
 
 The result now looks much better, with some small amount of overshoot. The performance is not terrific, taking about 2 seconds to realize the step. However, attempting to make the response faster using feedback alone will further exacerbate the robustness problems due to the resonance peaks highlighted above.
+
+A more conservative and robust tuning, that does not let the resonance peaks cause large peaks in the sensitivity functions, can be realized by manual loop shaping with the help of a [`marginplot`](@ref)
+```@example PID_TUNING
+Tf = 0.4
+Ti = 4
+Td = 0.1
+CF = pid(10, Ti, Td; Tf)
+marginplot(P*CF)
+```
+
+This tuning shows good gain and phase margins, but the price we pay for this is of course performance:
+```@example PID_TUNING
+ẍM = 0.008 # Acceleration limit
+limiter = TrajectoryLimiter(d.Ts, ẋM, ẍM)
+inputstep, vel, acc = limiter([0; ones(5000)])
+timevec = 0:d.Ts:50
+G = feedback(P*CF)
+plot(step(G, 50), label="Step response")
+plot!(lsim(G, inputstep', timevec), label="Smooth step response")
+plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
+```
+The closed-loop system now responds significantly slower. 
 
 Below, we attempt a pole-placement design for comparison. Contrary to the PID controller, a pole-placement controller _can_ place all poles of this system arbitrarily (the system is _controllable_, which can be verified using the function [`controllability`](@ref)).
 

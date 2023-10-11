@@ -17,6 +17,7 @@ The polynomial coefficients are ordered starting from the highest order term.
 Other uses:
 - `tf(sys)`: Convert `sys` to `tf` form.
 - `tf("s")`, `tf("z")`: Create the continuous transferfunction `s`.
+- `numpoly(sys)`, `denpoly(sys)`: Get the numerator and denominator polynomials of `sys` as a matrix of vectors, where the outer matrix is of size `n_output × n_inputs`.
 
 See also: [`zpk`](@ref), [`ss`](@ref).
 """
