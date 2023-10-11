@@ -54,6 +54,8 @@ fig
 ```
 The PID parameters are by default returned on "standard form", but the parameter convention to use can be selected using the `form` keyword.
 
+The result above satisfies the design in the design point, but the sharp resonances peak well above the desired maximum of the complementary sensitivity function. The problem here is that a PID controller is fundamentally incapable at damping the resonances in this high-order system. Indeed, we have a closed-loop system with a 8-dimensional state, but only 3-4 parameters in the PID controller (depending on whether or not we count the filter parameter), so there is no hope for us to arbitrarily place the poles using the PID controller. This can result in poor robustness properties, as we will see below.
+
 Next, we form the closed-loop system ``G`` from reference to output an plot a step response
 ```@example PID_TUNING
 G = feedback(P*CF)
@@ -73,9 +75,9 @@ plot!(lsim(G, inputstep', timevec), label="Smooth step response")
 plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
 ```
 
-The result now looks much better, with some small amount of overshoot. The performance is not terrific, taking about 2 seconds to realize the step. The problem here is that a PID controller is fundamentally incapable at damping the resonances in this high-order system. Indeed, we have a closed-loop system with a 8-dimensional state, but only 3-4 parameters in the PID controller (depending on whether or not we count the filter parameter), so there is no hope for us to arbitrarily place the poles using the PID controller.
+The result now looks much better, with some small amount of overshoot. The performance is not terrific, taking about 2 seconds to realize the step. However, attempting to make the response faster using feedback alone will further exacerbate the robustness problems due to the resonance peaks highlighted above.
 
-Below, we attempt a pole-placement design for comparison.
+Below, we attempt a pole-placement design for comparison. Contrary to the PID controller, a pole-placement controller _can_ place all poles of this system arbitrarily (the system is _controllable_, which can be verified using the function [`controllability`](@ref)).
 
 
 ## Pole placement
