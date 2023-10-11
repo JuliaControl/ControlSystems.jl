@@ -89,13 +89,13 @@ marginplot(P*CF)
 This tuning shows good gain and phase margins, but the price we pay for this is of course performance:
 ```@example PID_TUNING
 ẍM = 0.008 # Acceleration limit
-limiter = TrajectoryLimiter(d.Ts, ẋM, ẍM)
-inputstep, vel, acc = limiter([0; ones(5000)])
+limiter2 = TrajectoryLimiter(d.Ts, ẋM, ẍM)
+inputstep2, vel, acc = limiter2([0; ones(5000)])
 timevec = 0:d.Ts:50
 G = feedback(P*CF)
 plot(step(G, 50), label="Step response")
-plot!(lsim(G, inputstep', timevec), label="Smooth step response")
-plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
+plot!(lsim(G, inputstep2', timevec), label="Smooth step response")
+plot!(timevec, inputstep2, label="Smooth reference trajectory", l=(:dash, :black))
 ```
 The closed-loop system now responds significantly slower. 
 
