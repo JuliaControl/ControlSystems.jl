@@ -432,7 +432,7 @@ C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt = 75, doplot=true)
 ```
 """
 function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω, verbose=true, F=nothing)
-
+    iscontinuous(P0) || throw(ArgumentError("Discrete-time system models are not supported, convert to continuous time with d2c(P)"))
     if F === nothing
         F = tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
     end

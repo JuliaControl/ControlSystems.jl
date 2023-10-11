@@ -38,6 +38,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
             "Iterative Learning Control (ILC)" => "examples/ilc.md",
             "Properties of delay systems" => "examples/delay_systems.md",
             "Automatic differentiation" => "examples/automatic_differentiation.md",
+            "Tune a controller using experimental data" => "examples/tuning_from_data.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",
