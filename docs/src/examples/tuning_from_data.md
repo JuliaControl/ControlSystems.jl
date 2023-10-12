@@ -78,7 +78,7 @@ Td = 0.1
 CF = pid(K, Ti, Td; Tf)
 marginplot(P*CF)
 ```
-Here, we have selected the proportional gain ``K``large enough to give a crossover bandwidth of about 1rad/s, being careful not to let the resonance peaks reach too close to unit gain, destroying our robustness. The integral time constant ``Ti`` is selected as low as possible without destroying the phase margin, and the derivative time constant ``Td`` is increased slowly to improve the phase margin while not letting the resonance peaks become too large.
+Here, we have selected the proportional gain ``K``large enough to give a crossover bandwidth of about 1rad/s, being careful not to let the resonance peaks reach too close to unit gain, destroying our robustness. The integral time constant ``T_i`` is selected as low as possible without destroying the phase margin, and the derivative time constant ``T_d`` is increased slowly to improve the phase margin while not letting the resonance peaks become too large.
 
 The [`pid`](@ref) function returns the PI controller with the second-order lowpass filter already applied.
 
@@ -122,14 +122,14 @@ pzmap(P)
 ```
 As expected, we have 2 resonant pole pairs.
 
-When dampening fast resonant poles, it is often a good idea to _only_ dampen them, not to change the bandwidth of them. Trying to increase the bandwidth of these fast poles requires very large controller gain, and making the poles slower often causes severe robustness problems. We thus place the resonant poles with the same magnitude, but with perfect damping.
+When dampening fast resonant poles, it is often a good idea to _only_ dampen them, not to change the bandwidth of them. Trying to increase the bandwidth of these fast poles requires very large controller gain, and making the poles slower often causes severe robustness problems. We thus try to place the resonant poles with the same magnitude, but with perfect damping.
 ```@example PID_TUNING
 current_poles = poles(P)
 ```
 
 The integrator pole can be placed to achieve a desired bandwidth. Here, we place it in -30rad/s to achieve a faster response than the PID controller achieved.
 ```@example PID_TUNING
-desired_poles = -[80, 80, 37, 37, 30]
+desired_poles = -[80, 80, 37, 37, 30];
 ```
 
 We compute the state-feedback gain ``L`` using the function [`place`](@ref), and also compute an observer gain ``K`` using the rule of thumb that the observer poles should be approximately twice as fast as the system poles.
@@ -143,7 +143,7 @@ The resulting observer-based state-feedback controller can be constructed using 
 Cpp = observer_controller(P, L, K)
 Gpp = feedback(P*Cpp)
 plot(lsim(Gpp, inputstep', timevec), label="Smooth step response")
-plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
+plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black), legend=:bottomright)
 ```
 The pole-placement controller achieves a very nice result, but this comes at a cost of using very large controller gain. The gang-of-four plot below indicates that we have a controller with a very large noise-amplification transfer function, ``CS`` has a large gain for high frequencies, implying that this controller requires a very good sensor to be practical! We also have significant gain in ``T`` well above the frequency ``ω = 130``rad/s above which we couldn't trust the model.
 ```@example PID_TUNING
@@ -151,12 +151,13 @@ gangoffourplot(P, Cpp)
 vline!(fill(130, 1, 4), label="\$ω = 130\$", l=(:dash, :black))
 ```
 
-We thus redo the design, this time only dampening the resonant poles slightly
+
+Due to the high gain of the controller we got, we redo the design, this time only dampening the resonant poles slightly. We also lower the bandwidth of the integrator pole to make the controller less aggressive
 ```@example PID_TUNING
 p1 = current_poles[2]
 p2 = current_poles[4]
 
-p1_new = abs(p1) * cis(-pi + deg2rad(65))
+p1_new = abs(p1) * cis(-pi + deg2rad(65)) # Place the pole with the same magnitude, but with an angle of -pi + 65 degrees
 p2_new = abs(p2) * cis(-pi + deg2rad(65))
 desired_poles = [-20, p1_new, conj(p1_new), p2_new, conj(p2_new)]
 L = place(P, desired_poles, :c) |> real
@@ -170,13 +171,13 @@ f2 = gangoffourplot(P, Cpp)
 vline!(fill(130, 1, 4), label="\$ω = 130\$", l=(:dash, :black))
 plot(f1, f2, size=(800, 600))
 ```
-We still have a nice step response, but this time, we have a rolloff in ``T`` that starts around the frequency ``ω = 130``rad/s.
+We still have a nice step response using this controller, but this time, we have a rolloff in ``T`` that starts around the frequency ``ω = 130``rad/s.
 
 ## C-Code generation
 With the PID controller, we can transform the PID parameters to the desired form and enter those into an already existing PID-controller implementation. Care must be taken to incorporate also the measurement filter designed, this filter is important for robustness analysis to be valid. If no existing PID controller implementation is available, we may either make use of the package [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl), or generate C-code for the controller. Below, we generate some C code.
 
 
-Using the pole-placement controller derived above, we discretize the controller using the Tustin (bilinear) method of the function [`c2d`](@ref), and then call [`SymbolicControlSystems.ccode`](https://github.com/JuliaControl/SymbolicControlSystems.jl#code-generation).
+Using the pole-placement controller derived above, we discretize the controller using the Tustin (bilinear) method with the function [`c2d`](@ref), and then call [`SymbolicControlSystems.ccode`](https://github.com/JuliaControl/SymbolicControlSystems.jl#code-generation) to generate the code.
 ```julia
 using SymbolicControlSystems
 Cdiscrete = c2d(Cpp, d.Ts, :tustin)
@@ -215,6 +216,6 @@ This tutorial has shown how to follow a workflow that consists of
 1. Estimate a process model using experimental data.
 2. Design a controller based on the estimated model. We designed a PID controller and one pole-placement controller which was able to cancel the resonances in the system which the PID controllers could not do.
 3. Simulate the closed-loop system and analyze its robustness properties. Model uncertainty was considered using the coherence function.
-4. Generate C-code for the pole-placement controller.
+4. Generate C-code for one of the controllers.
 
 Each of these steps is covered in additional detail in the videos available in the playlist [Control systems in Julia](https://youtube.com/playlist?list=PLC0QOsNQS8hZtOQPHdtul3kpQwMOBL8Qc&si=yUrXz5cH4QqTPlR_). See also the tutorial [Control design for a quadruple-tank system](https://help.juliahub.com/juliasimcontrol/dev/examples/quadtank/).
