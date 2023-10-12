@@ -494,7 +494,7 @@ function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, dopl
     kp, ki, kd = ControlSystemsBase.convert_pidparams_from_to(kp, ki, kd, :parallel, form)
     CF = C*F
     fig = if doplot
-        w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 500))
+        w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 1000))
         f1 = gangoffourplot(P0,CF, w, Mt_lines=[Mt])
         f2 = nyquistplot([P0 * CF, P0], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, Mt_circles=[Mt], show=false, lab=["PC" "P"])
         RecipesBase.plot!([ct, real(specpoint)], [0, imag(specpoint)], lab="ϕt = $(ϕt)°", l=:dash)

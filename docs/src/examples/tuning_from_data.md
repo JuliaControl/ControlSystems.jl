@@ -4,7 +4,9 @@ In this example, we will consider a very commonly occurring workflow: using proc
 
 The two main steps involved in this workflow are:
 1. Estimate a process model from data
-2. Design a controller based on the estimated model
+2. Characterize the uncertainty in the estimated model
+3. Design a controller based on the estimated model
+4. Verify that the controller is robust with respect to the estimated model uncertainty
 
 
 ## Estimation of a model
@@ -34,6 +36,22 @@ P = 1/s * d2c(-Pacc.sys)
 bodeplot(P)
 ```
 
+
+
+## Dealing with model uncertainty
+When using a model for control design, we always have to consider how robust we are with respect to errors in the model. Classical margins like the gain and phase margins are simple measures of robustness, applicable to simple measures of uncertainty. Here, we will attempt to characterize the uncertainty in the model slightly more accurately.
+
+When we estimate linear black-box models from data, like we did above using `subspaceid`, we can get a rough estimate of how well a linear model describes the input-output data by looking at the magnitude-squared coherence function ``\gamma(i\omega)``:
+```@example PID_TUNING
+coherenceplot(d)
+```
+For frequencies where ``\gamma`` is close to one, a linear model is expected to fit well, whereas for frequencies where ``\gamma`` is close to zero, we cannot trust the model. How does this rough estimate of model certainty translate to our control analysis? In the video [The benefit and Cost of Feedback](https://youtu.be/uQx192FyA5g?si=kubWnq__ohWOaICw), we show that for frequencies where the uncertainty in the model is large, we must have a small sensitivity. In the video, we analyzed the effects of additive uncertainty, in which case we need to make sure that the sensitivity function ``CS = C/(1+PC)`` is sufficiently small. When using the rough estimate of model uncertainty provided by the coherence function, it may be more reasonable to consider a multiplicative (relative) uncertainty model, in which case we need to verify that the sensitivity function ``T = PC/(1+PC)`` is small for frequencies where ``\gamma`` is small.
+
+Since our coherence drops significantly above ``\omega = 130``rad/s, we will try to design a controller that yields a complementary sensitivity function ``T`` that has low gain above this frequency.
+
+
+In the [documentation of RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/uncertainty/#Multiplicative-uncertainty), we list a number of common uncertainty models together with the criteria for robust stability. A good resource on the gang of four is available in [these slides](https://www.control.lth.se/fileadmin/control/staff/KJ/FeedbackFundamentals.pdf).
+
 ## Controller tuning
 We could take multiple different approaches to tuning the PID controller, a few alternatives are listed here
 - Trial and error in simulation or experiment.
@@ -44,67 +62,55 @@ We could take multiple different approaches to tuning the PID controller, a few 
 Here, we will attempt a manual loop-shaping approach using the function [`loopshapingPID`](@ref), and then then compare the result to a pole-placement controller.
 
 ### Manual loop shaping
-The function [`loopshapingPID`](@ref) takes a model and selects the parameters of a PID-controller such that the Nyquist curve of the loop-transfer function ``L = PC`` at the frequency `ω` is tangent to the circle where the magnitude of the complimentary sensitivity function ``T = PC / (1+PC)`` equals ``M_T``. This allows us to explicitly solve for the PID parameters that achieves a desired target value of ``M_T`` at a desired frequency `ω`. The function can optionally produce a plot which draws the design characteristics and the resulting Nyquist curve, which we will make use of here. A Youtube video tutorial that goes into more details on how this function works is [available here](https://youtu.be/BolNmqYYIEg?si=hF-xvsPL_wBngpft&t=775).
 
-Since the process contains two sharp resonance peaks, visible in the Bode diagram above, the requirements for our velocity controller have to be rather modest. We therefore tell [`loopshapingPID`](@ref) that we want to include a lowpass filter in the controller to suppress any frequencies above ``ω_f = 1/T_f`` so that the resonances do not cause excessive robustness problems. We choose the design frequency to be ``ω = 5`` and the target value of ``M_T = 1.35`` achieved at an angle of ``ϕ_t = 35`` degrees from the negative real axis. The function returns the controller, the PID parameters, the resulting Nyquist curve, and the lowpass-filter controlled `CF`. 
 
+Since the process contains two sharp resonance peaks, visible in the Bode diagram above, we want to include a lowpass filter in the controller to suppress any frequencies above the first resonance so that the resonances do not cause excessive robustness problems. Here, we will use a second-order lowpass filer.
+
+A PID controller is fundamentally incapable at damping the resonances in this high-order system. Indeed, for a plant model of order 4, we have a closed-loop system with a 7-dimensional state (one pole for the integrator and two for the low-pass filter), but only 3-4 parameters in the PID controller (depending on whether or not we count the filter parameter), so there is no hope for us to arbitrarily place the poles using the PID controller. Trying to use a gain high enough to dampen the resonant poles can result in poor robustness properties, as we will see below.
+
+
+The function [`pid`](@ref) takes the PID parameters "standard form", but the parameter convention to use can be selected using the `form` keyword. We use the function [`marginplot`](@ref) to guide our tuning, the following parameters were found to give a good result
 ```@example PID_TUNING
-ω = 5
-Tf = 1/10
-C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt = 1.35, ϕt=35, doplot=true, Tf)
-fig
+K = 10
+Tf = 0.4
+Ti = 4
+Td = 0.1
+CF = pid(K, Ti, Td; Tf)
+marginplot(P*CF)
 ```
-The PID parameters are by default returned on "standard form", but the parameter convention to use can be selected using the `form` keyword.
+Here, we have selected the proportional gain ``K``large enough to give a crossover bandwidth of about 1rad/s, being careful not to let the resonance peaks reach too close to unit gain, destroying our robustness. The integral time constant ``T_i`` is selected as low as possible without destroying the phase margin, and the derivative time constant ``T_d`` is increased slowly to improve the phase margin while not letting the resonance peaks become too large.
 
-The result above satisfies the design in the design point, but the sharp resonances peak well above the desired maximum of the complementary sensitivity function. The problem here is that a PID controller is fundamentally incapable at damping the resonances in this high-order system. Indeed, we have a closed-loop system with a 8-dimensional state, but only 3-4 parameters in the PID controller (depending on whether or not we count the filter parameter), so there is no hope for us to arbitrarily place the poles using the PID controller. This can result in poor robustness properties, as we will see below.
+The [`pid`](@ref) function returns the PI controller with the second-order lowpass filter already applied.
 
 Next, we form the closed-loop system ``G`` from reference to output an plot a step response
 ```@example PID_TUNING
 G = feedback(P*CF)
-plot(step(G, 10), label="Step response")
+plot(step(G, 50), label="Step response")
 ```
-This looks extremely aggressive and with clear resonances visible. The problem here is that no mechanical system can follow a perfect step in the reference, and it is thus common to generate some form of physically realizable smooth step as input reference. Below, we use the package [TrajectoryLimiters.jl](https://github.com/baggepinnen/TrajectoryLimiters.jl) to filter the reference step such that it has bounded acceleration and velocity
+This looks rather aggressive and with a large overshoot visible. The problem here is that no mechanical system can follow a perfect step in the reference, and it is thus common to generate some form of physically realizable smooth step as input reference. Below, we use the package [TrajectoryLimiters.jl](https://github.com/baggepinnen/TrajectoryLimiters.jl) to filter the reference step such that it has bounded acceleration and velocity
 
 ```@example PID_TUNING
 using TrajectoryLimiters
-ẋM = 2 # Velocity limit
-ẍM = 1 # Acceleration limit
+ẋM = 1 # Velocity limit
+ẍM = 0.01 # Acceleration limit
 limiter = TrajectoryLimiter(d.Ts, ẋM, ẍM)
-inputstep, vel, acc = limiter([0; ones(1000)])
-timevec = 0:d.Ts:10
-plot(step(G, 10), label="Step response")
+inputstep, vel, acc = limiter([0; ones(5000)])
+timevec = 0:d.Ts:50
+plot(step(G, 50), label="Step response")
 plot!(lsim(G, inputstep', timevec), label="Smooth step response")
 plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
 ```
 
-The result now looks much better, with some small amount of overshoot. The performance is not terrific, taking about 2 seconds to realize the step. However, attempting to make the response faster using feedback alone will further exacerbate the robustness problems due to the resonance peaks highlighted above.
+The result now looks much better, with some small amount of overshoot. The performance is not terrific, taking about 20 seconds to realize the step. However, attempting to make the response faster using feedback alone will further exacerbate the robustness problems due to the resonance peaks highlighted above.
 
-A more conservative and robust tuning, that does not let the resonance peaks cause large peaks in the sensitivity functions, can be realized by manual loop shaping with the help of a [`marginplot`](@ref)
-```@example PID_TUNING
-Tf = 0.4
-Ti = 4
-Td = 0.1
-CF = pid(10, Ti, Td; Tf)
-marginplot(P*CF)
-```
 
-This tuning shows good gain and phase margins, but the price we pay for this is of course performance:
-```@example PID_TUNING
-ẍM = 0.008 # Acceleration limit
-limiter2 = TrajectoryLimiter(d.Ts, ẋM, ẍM)
-inputstep2, vel, acc = limiter2([0; ones(5000)])
-timevec2 = 0:d.Ts:50
-G = feedback(P*CF)
-plot(step(G, 50), label="Step response")
-plot!(lsim(G, inputstep2', timevec2), label="Smooth step response")
-plot!(timevec2, inputstep2, label="Smooth reference trajectory", l=(:dash, :black))
-```
-The closed-loop system now responds significantly slower. 
 
-The improved robustness of this controller is visible in the transfer function ``T = PC/(1+PC)`` where we have a much smaller gain for the frequencies around and above the resonance peaks.
+To analyze the robustness of this controller, we can inspect the sensitivity functions in the [gang of four](https://www.control.lth.se/fileadmin/control/staff/KJ/FeedbackFundamentals.pdf). In particular, we are interested in the complementary sensitivity function ``T = PC/(1+PC)`` 
 ```@example PID_TUNING
 gangoffourplot(P, CF)
 ```
+
+The gang of four indicates that we have a robust tuning, no uncomfortably large peaks appears in either ``T`` or ``S``.
 
 Below, we attempt a pole-placement design for comparison. Contrary to the PID controller, a pole-placement controller _can_ place all poles of this system arbitrarily (the system is _controllable_, which can be verified using the function [`controllability`](@ref)).
 
@@ -116,14 +122,14 @@ pzmap(P)
 ```
 As expected, we have 2 resonant pole pairs.
 
-When dampening fast resonant poles, it is often a good idea to _only_ dampen them, not to change the bandwidth of them. Trying to increase the bandwidth of these fast poles requires very large controller gain, and making the poles slower often causes severe robustness problems. We thus place the resonant poles with the same magnitude, but with perfect damping.
+When dampening fast resonant poles, it is often a good idea to _only_ dampen them, not to change the bandwidth of them. Trying to increase the bandwidth of these fast poles requires very large controller gain, and making the poles slower often causes severe robustness problems. We thus try to place the resonant poles with the same magnitude, but with perfect damping.
 ```@example PID_TUNING
-current_pole_magnitudes = abs.(poles(P))
+current_poles = poles(P)
 ```
 
 The integrator pole can be placed to achieve a desired bandwidth. Here, we place it in -30rad/s to achieve a faster response than the PID controller achieved.
 ```@example PID_TUNING
-desired_poles = -[80, 80, 37, 37, 30]
+desired_poles = -[80, 80, 37, 37, 30];
 ```
 
 We compute the state-feedback gain ``L`` using the function [`place`](@ref), and also compute an observer gain ``K`` using the rule of thumb that the observer poles should be approximately twice as fast as the system poles.
@@ -137,18 +143,41 @@ The resulting observer-based state-feedback controller can be constructed using 
 Cpp = observer_controller(P, L, K)
 Gpp = feedback(P*Cpp)
 plot(lsim(Gpp, inputstep', timevec), label="Smooth step response")
-plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
+plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black), legend=:bottomright)
 ```
-The pole-placement controller achieves a very nice result, but this comes at a cost of using very large controller gain. The gang-of-four plot below indicates that we have a controller with reasonable robustness properties if we inspect the sensitivity and complimentary sensitivity functions, but the noise-amplification transfer function ``CS`` has a large gain for high frequencies, implying that this controller requires a very good sensor to be practical!
+The pole-placement controller achieves a very nice result, but this comes at a cost of using very large controller gain. The gang-of-four plot below indicates that we have a controller with a very large noise-amplification transfer function, ``CS`` has a large gain for high frequencies, implying that this controller requires a very good sensor to be practical! We also have significant gain in ``T`` well above the frequency ``ω = 130``rad/s above which we couldn't trust the model.
 ```@example PID_TUNING
 gangoffourplot(P, Cpp)
+vline!(fill(130, 1, 4), label="\$ω = 130\$", l=(:dash, :black))
 ```
 
-With the PID controller, we can transform the PID parameters to the desired form and enter those into an already existing PID-controller implementation. Care must be taken to incorporate also the measurement filter designed by [`loopshapingPID`](@ref), this filter is important for robustness analysis to be valid. If no existing PID controller implementation is available, we may either make use of the package [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl), or generate C-code for the controller. Below, we generate some C code.
 
+Due to the high gain of the controller we got, we redo the design, this time only dampening the resonant poles slightly. We also lower the bandwidth of the integrator pole to make the controller less aggressive
+```@example PID_TUNING
+p1 = current_poles[2]
+p2 = current_poles[4]
+
+p1_new = abs(p1) * cis(-pi + deg2rad(65)) # Place the pole with the same magnitude, but with an angle of -pi + 65 degrees
+p2_new = abs(p2) * cis(-pi + deg2rad(65))
+desired_poles = [-20, p1_new, conj(p1_new), p2_new, conj(p2_new)]
+L = place(P, desired_poles, :c) |> real
+K = place(P, 2*desired_poles, :o) |> real
+Cpp = observer_controller(P, L, K)
+Gpp = feedback(P*Cpp)
+f1 = plot(lsim(Gpp, inputstep', timevec), label="Smooth step response")
+plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black), legend=:bottomright)
+
+f2 = gangoffourplot(P, Cpp)
+vline!(fill(130, 1, 4), label="\$ω = 130\$", l=(:dash, :black))
+plot(f1, f2, size=(800, 600))
+```
+We still have a nice step response using this controller, but this time, we have a rolloff in ``T`` that starts around the frequency ``ω = 130``rad/s.
 
 ## C-Code generation
-Using the pole-placement controller derived above, we discretize the controller using the Tustin (bilinear) method of the function [`c2d`](@ref), and then call [`SymbolicControlSystems.ccode`](https://github.com/JuliaControl/SymbolicControlSystems.jl#code-generation).
+With the PID controller, we can transform the PID parameters to the desired form and enter those into an already existing PID-controller implementation. Care must be taken to incorporate also the measurement filter designed, this filter is important for robustness analysis to be valid. If no existing PID controller implementation is available, we may either make use of the package [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl), or generate C-code for the controller. Below, we generate some C code.
+
+
+Using the pole-placement controller derived above, we discretize the controller using the Tustin (bilinear) method with the function [`c2d`](@ref), and then call [`SymbolicControlSystems.ccode`](https://github.com/JuliaControl/SymbolicControlSystems.jl#code-generation) to generate the code.
 ```julia
 using SymbolicControlSystems
 Cdiscrete = c2d(Cpp, d.Ts, :tustin)
@@ -158,50 +187,35 @@ SymbolicControlSystems.ccode(Cdiscrete)
 This produces the following C-code for filtering the error signal through the controller transfer function
 ```c
 #include <stdio.h>
-
 #include <math.h>
 
 void transfer_function(double *y, double u) {
     static double x[5] = {0};  // Current state
-
     double xp[5] = {0};        // Next state
     int i;
 
     // Advance the state xp = Ax + Bu
-    xp[0] = (1.323555302697655*u - 0.39039743126198218*x[0] - 0.0016921457205018749*x[1] - 0.0012917116898466163*x[2] + 0.001714187010327197*x[3] + 0.0016847122113737578*x[4]);
-    xp[1] = (96.429820608571958*u - 95.054670090613683*x[0] + 0.13062589956122247*x[1] + 0.78522537641468981*x[2] - 0.21646419099004577*x[3] - 0.081049292550184435*x[4]);
-    xp[2] = (13.742733359914924*u - 15.008953114410946*x[0] - 0.89468526010523608*x[1] + 0.717920592086567*x[2] + 0.025588437849127441*x[3] + 0.021322717715438085*x[4]);
-    xp[3] = (303.50179259195619*u - 268.71085904944562*x[0] + 1.251906632298234*x[1] + 0.62490471615521814*x[2] + 0.15988074336172073*x[3] - 0.4891888301891486*x[4]);
-    xp[4] = (-27.542490469297601*u + 37.631007484177218*x[0] + 1.2366332766644277*x[1] + 0.11855488877285068*x[2] - 0.29543727245267387*x[3] + 0.76660106988104448*x[4]);
+    xp[0] = (1.2608412916795442*u - 0.35051915762703334*x[0] + 0.0018847792079810998*x[1] - 0.0035104037080211504*x[2] + 0.0022503125347378308*x[3] + 0.00019318421187795658*x[4]);
+    xp[1] = (45.346976964169166*u - 49.856146529754966*x[0] + 0.19058339536496746*x[1] + 0.58214123400704609*x[2] - 0.068048140252114517*x[3] - 0.03667586076286556*x[4]);
+    xp[2] = (18.14135831274827*u - 19.16237014106056*x[0] - 0.84117137404200237*x[1] + 0.7024229589860792*x[2] + 0.018736385625077446*x[3] - 0.008392059099094502*x[4]);
+    xp[3] = (190.59457176680613*u - 161.57645282794124*x[0] - 0.23872534677018914*x[1] + 1.0884789050298469*x[2] + 0.32394494701618637*x[3] + 0.32518305451736074*x[4]);
+    xp[4] = (18.392870361917002*u - 0.43306059549357445*x[0] + 0.60377162139631557*x[1] + 0.62662564832184231*x[2] - 0.48738482327867771*x[3] + 0.98218650191968704*x[4]);
 
     // Accumulate the output y = C*x + D*u
-    y[0] = (912.01950044640216*u - 742.76679702406477*x[0] + 10.364451210258789*x[1] + 2.7824392013821053*x[2] - 2.3907024395896719*x[3] - 3.734615363051947*x[4]);
+    y[0] = (182.81664929547824*u - 63.477219815374006*x[0] + 3.5715419988427302*x[1] + 4.1831558072019464*x[2] - 1.0447833362501759*x[3] + 0.27420732436215378*x[4]);
 
     // Make the predicted state the current state
     for (i=0; i < 5; ++i) {
         x[i] = xp[i];
     }
-
 }
 ```
-
-
-## Dealing with model uncertainty
-When using a model for control design, we always have to consider how robust we are with respect to errors in the model. In he control design above, we considered classical margins like the gain and phase margins, but also analyzed the sensitivity functions in the [gang of four](https://www.control.lth.se/fileadmin/control/staff/KJ/FeedbackFundamentals.pdf). 
-
-When we estimate linear black-box models from data, like we did above using `subspaceid`, we can get a rough estimate of how well a linear model describes the input-output data by looking at the magnitude-squared coherence function ``\gamma(i\omega)``:
-```@example PID_TUNING
-coherenceplot(d)
-```
-For frequencies where ``\gamma`` is close to one, a linear model is expected to fit well, whereas for frequencies where ``\gamma`` is close to zero, we cannot trust the model. How does this rough estimate of model certainty translate to our control analysis? In the video [The benefit and Cost of Feedback](https://youtu.be/uQx192FyA5g?si=kubWnq__ohWOaICw), we show that for frequencies where the uncertainty in the model is large, we must have a small sensitivity. In the video, we analyzed the effects of additive uncertainty, in which case we need to make sure that the sensitivity function ``CS`` is sufficiently small. When using the rough estimate of model uncertainty provided by the coherence function, it may be more reasonable to consider a multiplicative (relative) uncertainty model, in which case we need to verify that the sensitivity function ``T = PC/(1+PC)`` is small for frequencies where ``\gamma`` is small. The pole-placement controller has a rather large gain in ``T`` for high frequencies, well above those where ``\gamma`` starts to drop. The only controller that abides by the principle of "use low gain where the model uncertainty is large" is the conservatively tuned PID controller. 
-
-In the [documentation of RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/uncertainty/#Multiplicative-uncertainty), we list a number of common uncertainty models together with the criteria for robust stability. 
 
 ## Summary
 This tutorial has shown how to follow a workflow that consists of
 1. Estimate a process model using experimental data.
-2. Design a controller based on the estimated model. We designed two PID controllers, one aggressive and one conservative. We also designed a pole-placement controller which was able to cancel the resonances in the system which the PID controllers could not do.
-3. Simulate the closed-loop system and analyze its robustness properties. Model uncertainty was considered using the coherence function. Only the conservatively tuned PID controller truly respected the model uncertainty.
-4. Generate C-code for the pole-placement controller.
+2. Design a controller based on the estimated model. We designed a PID controller and one pole-placement controller which was able to cancel the resonances in the system which the PID controllers could not do.
+3. Simulate the closed-loop system and analyze its robustness properties. Model uncertainty was considered using the coherence function.
+4. Generate C-code for one of the controllers.
 
 Each of these steps is covered in additional detail in the videos available in the playlist [Control systems in Julia](https://youtube.com/playlist?list=PLC0QOsNQS8hZtOQPHdtul3kpQwMOBL8Qc&si=yUrXz5cH4QqTPlR_). See also the tutorial [Control design for a quadruple-tank system](https://help.juliahub.com/juliasimcontrol/dev/examples/quadtank/).
