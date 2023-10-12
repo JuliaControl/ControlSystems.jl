@@ -91,11 +91,11 @@ This tuning shows good gain and phase margins, but the price we pay for this is 
 ẍM = 0.008 # Acceleration limit
 limiter2 = TrajectoryLimiter(d.Ts, ẋM, ẍM)
 inputstep2, vel, acc = limiter2([0; ones(5000)])
-timevec = 0:d.Ts:50
+timevec2 = 0:d.Ts:50
 G = feedback(P*CF)
 plot(step(G, 50), label="Step response")
-plot!(lsim(G, inputstep2', timevec), label="Smooth step response")
-plot!(timevec, inputstep2, label="Smooth reference trajectory", l=(:dash, :black))
+plot!(lsim(G, inputstep2', timevec2), label="Smooth step response")
+plot!(timevec2, inputstep2, label="Smooth reference trajectory", l=(:dash, :black))
 ```
 The closed-loop system now responds significantly slower. 
 
@@ -130,7 +130,7 @@ The resulting observer-based state-feedback controller can be constructed using 
 Cpp = observer_controller(P, L, K)
 Gpp = feedback(P*Cpp)
 plot(lsim(Gpp, inputstep', timevec), label="Smooth step response")
-plot!(timevec, inputstep, label="Smooth reference trajectory")
+plot!(timevec, inputstep, label="Smooth reference trajectory", l=(:dash, :black))
 ```
 The pole-placement controller achieves a very nice result, but this comes at a cost of using very large controller gain. The gang-of-four plot below indicates that we have a controller with reasonable robustness properties if we inspect the sensitivity and complimentary sensitivity functions, but the noise-amplification transfer function ``CS`` has a large gain for high frequencies, implying that this controller requires a very good sensor to be practical!
 ```@example PID_TUNING
