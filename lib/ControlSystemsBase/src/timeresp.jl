@@ -415,6 +415,7 @@ function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
             ω0_min = minimum(w for w in ws if w > 1e-6; init=dt)
             dt_slow = round(1/(2ω0_min), sigdigits=2)
             tfinal = max(200dt, dt_slow)
+            tfinal = min(tfinal, 100_000*dt)
         else
             tfinal = 200dt
         end

@@ -139,3 +139,22 @@ sys = 0.0002/s^2;
 t = 0:0.01:10
 u1(x,t) = [25(5.0 <= t < 5.1)]
 @test lsim(sys, u1, t; ).y[end] ≈ lsim(sys, u1, t; method=:zoh).y[end] rtol=0.1
+
+
+## Slow and fast time constants make reasonable length time vector (https://github.com/JuliaControl/ControlSystems.jl/issues/880)
+A =
+[ -6538.4         -40.38          0.0                  0.0;
+   409.6               0.0                 0.0                  0.0;
+     0.0               0.9164            -28.28       -20.0;
+     0.0               0.0                20.0                  0.0]
+B =
+[ 3846.15    0.0;
+    0.0             -288.0;
+    0.0                0.0;
+    0.0                0.0]
+C =[ 0.0  0.0  0.0  1.0]
+D =[ 0.0  0.0]
+
+sys = ss(A,B,C,D)
+@test length(ControlSystemsBase._default_time_vector(sys)) <= 1e5+1
+@test step(sys) isa ControlSystemsBase.SimResult
