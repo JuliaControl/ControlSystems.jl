@@ -421,7 +421,7 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
 end
 
 mutable(x::AbstractArray, ::Type{T}) where T = convert(Matrix{T}, x)
-mutable(x::StaticArray, ::Type{T}) where T = Matrix{T}(x)
+mutable(x::StaticArraysCore.StaticArray, ::Type{T}) where T = Matrix{T}(x)
 
 
 """

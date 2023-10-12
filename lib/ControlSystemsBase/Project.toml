@@ -20,7 +20,7 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
@@ -44,7 +44,7 @@ Polyester = "0.6, 0.7"
 Polynomials = "1.1.10, 2.0, 3.0"
 PrecompileTools = "1"
 RecipesBase = "1"
-StaticArrays = "1"
+StaticArraysCore = "1"
 julia = "1.6"
 
 [extras]
@@ -55,7 +55,8 @@ FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
 ImplicitDifferentiation = "57b37032-215b-411a-8a7c-41a003a55207"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Aqua", "ComponentArrays", "Documenter", "FiniteDifferences", "ImplicitDifferentiation", "GR", "Plots"]
+test = ["Test", "Aqua", "ComponentArrays", "Documenter", "FiniteDifferences", "ImplicitDifferentiation", "GR", "Plots", "StaticArrays"]

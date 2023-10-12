@@ -180,7 +180,8 @@ function *(sys1::StaticStateSpace, sys2::StaticStateSpace)
     timeevol = common_timeevol(sys1,sys2)
     T = promote_type(numeric_type(sys1), numeric_type(sys2))
 
-    O = @SMatrix zeros(size(sys2.A, 1), size(sys1.A, 2))
+    n2 = size(sys2.A, 1)*size(sys1.A, 2)
+    O = zero(SMatrix{size(sys2.A, 1), size(sys1.A, 2), T, n2})
     A = [[sys1.A    sys1.B*sys2.C];
          [O  sys2.A]]
     B = [sys1.B*sys2.D ; sys2.B]
