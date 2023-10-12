@@ -6,6 +6,8 @@ The two main steps involved in this workflow are:
 1. Estimate a process model from data
 2. Design a controller based on the estimated model
 
+
+## Estimation of a model
 In this example, which is split into two parts, we will consider tuning a velocity controller for a **flexible robot arm**. Part 1 is available here: [Flexible Robot Arm Part 1: Estimation of a model.](https://baggepinnen.github.io/ControlSystemIdentification.jl/dev/examples/flexible_robot/). The system identification uses the package [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl).
 
 The rest of this example makes up part 2, tuning of the controller. We simply replicate the relevant code from part 1 to get the estimated model, and then use the estimated model to tune controllers.
@@ -99,6 +101,11 @@ plot!(timevec2, inputstep2, label="Smooth reference trajectory", l=(:dash, :blac
 ```
 The closed-loop system now responds significantly slower. 
 
+The improved robustness of this controller is visible in the transfer function ``T = PC/(1+PC)`` where we have a much smaller gain for the frequencies around and above the resonance peaks.
+```@example PID_TUNING
+gangoffourplot(P, CF)
+```
+
 Below, we attempt a pole-placement design for comparison. Contrary to the PID controller, a pole-placement controller _can_ place all poles of this system arbitrarily (the system is _controllable_, which can be verified using the function [`controllability`](@ref)).
 
 
@@ -114,9 +121,9 @@ When dampening fast resonant poles, it is often a good idea to _only_ dampen the
 current_pole_magnitudes = abs.(poles(P))
 ```
 
-The integrator pole can be placed to achieve a desired bandwidth. Here, we place it in -25rad/s to achieve a faster response than the PID controller achieved.
+The integrator pole can be placed to achieve a desired bandwidth. Here, we place it in -30rad/s to achieve a faster response than the PID controller achieved.
 ```@example PID_TUNING
-desired_poles = -[80, 80, 37, 37, 25]
+desired_poles = -[80, 80, 37, 37, 30]
 ```
 
 We compute the state-feedback gain ``L`` using the function [`place`](@ref), and also compute an observer gain ``K`` using the rule of thumb that the observer poles should be approximately twice as fast as the system poles.
@@ -177,6 +184,18 @@ void transfer_function(double *y, double u) {
 
 }
 ```
+
+
+## Dealing with model uncertainty
+When using a model for control design, we always have to consider how robust we are with respect to errors in the model. In he control design above, we considered classical margins like the gain and phase margins, but also analyzed the sensitivity functions in the [gang of four](https://www.control.lth.se/fileadmin/control/staff/KJ/FeedbackFundamentals.pdf). 
+
+When we estimate linear black-box models from data, like we did above using `subspaceid`, we can get a rough estimate of how well a linear model describes the input-output data by looking at the magnitude-squared coherence function ``\gamma(i\omega)``:
+```@example PID_TUNING
+coherenceplot(d)
+```
+For frequencies where ``\gamma`` is close to one, a linear model is expected to fit well, whereas for frequencies where ``\gamma`` is close to zero, we cannot trust the model. How does this rough estimate of model certainty translate to our control analysis? In the video [The benefit and Cost of Feedback](https://youtu.be/uQx192FyA5g?si=kubWnq__ohWOaICw), we show that for frequencies where the uncertainty in the model is large, we must have a small sensitivity. In the video, we analyzed the effects of additive uncertainty, in which case we need to make sure that the sensitivity function ``CS`` is sufficiently small. When using the rough estimate of model uncertainty provided by the coherence function, it may be more reasonable to consider a multiplicative (relative) uncertainty model, in which case we need to verify that the sensitivity function ``T = PC/(1+PC)`` is small for frequencies where ``\gamma`` is small. The pole-placement controller has a rather large gain in ``T`` for high frequencies, well above those where ``\gamma`` starts to drop. The only controller that abides by the principle of "use low gain where the model uncertainty is large" is the conservatively tuned PID controller. 
+
+In the [documentation of RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/uncertainty/#Multiplicative-uncertainty), we list a number of common uncertainty models together with the criteria for robust stability. 
 
 ## Summary
 This tutorial has shown how to follow a workflow that consists of
