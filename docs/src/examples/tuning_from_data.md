@@ -200,8 +200,8 @@ In the [documentation of RobustAndOptimalControl.jl](https://juliacontrol.github
 ## Summary
 This tutorial has shown how to follow a workflow that consists of
 1. Estimate a process model using experimental data.
-2. Design a controller based on the estimated model.
-3. Simulate the closed-loop system and analyze its robustness properties.
-4. Generate C-code for the controller.
+2. Design a controller based on the estimated model. We designed two PID controllers, one aggressive and one conservative. We also designed a pole-placement controller which was able to cancel the resonances in the system which the PID controllers could not do.
+3. Simulate the closed-loop system and analyze its robustness properties. Model uncertainty was considered using the coherence function. Only the conservatively tuned PID controller truly respected the model uncertainty.
+4. Generate C-code for the pole-placement controller.
 
 Each of these steps is covered in additional detail in the videos available in the playlist [Control systems in Julia](https://youtube.com/playlist?list=PLC0QOsNQS8hZtOQPHdtul3kpQwMOBL8Qc&si=yUrXz5cH4QqTPlR_). See also the tutorial [Control design for a quadruple-tank system](https://help.juliahub.com/juliasimcontrol/dev/examples/quadtank/).
