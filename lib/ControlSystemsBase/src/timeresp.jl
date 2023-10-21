@@ -225,10 +225,10 @@ function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs..
     if size(u, 1) != nu
         if u isa AbstractVector && sys.nu == 1
             # The isa Array is a safeguard against type instability due to the copy(u')
-            @warn("u should be a row-vector of size (1, $nu): got size $(size(u)). The transpose of u will be used. To silence this warning, use the correct input dimension.")
+            @warn("u should be a row-vector of size (1, $(length(u))): got a regular vector of size $(size(u)). The transpose of u will be used. To silence this warning, use the correct input dimension.")
             u = copy(transpose(u))
         else
-            error("u must be a matrix of size (nu, length(t)) where nu=$nu, got size u = $(size(u))")
+            error("u must be a matrix of size (nu, length(t)) where the number of inputs nu=$nu, got size u = $(size(u))")
         end
     end
     t = range(0, length=size(u, 2), step=sys.Ts)
