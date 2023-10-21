@@ -1,6 +1,7 @@
 using ControlSystemsBase
 using ControlSystemsBase: HammersteinWienerSystem
 using SparseArrays
+using Test
 
 
 # @testset "test_nonlinearity_system" begin
