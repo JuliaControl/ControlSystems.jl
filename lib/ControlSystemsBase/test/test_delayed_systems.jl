@@ -56,6 +56,22 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(P2 * delay(1), ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
+## append
+P12 = append(P1, P2)
+G12 = [P1 tf(0); tf(0) P2]
+
+F = freqresp(P12, ω)
+
+@test freqrespv(P1, ω) ≈ F[1,1,:]
+@test freqrespv(P2, ω) ≈ F[2,2,:]
+@test all(iszero, F[1,2,:])
+@test all(iszero, F[2,1,:])
+
+F = freqresp(G12, ω)
+@test freqrespv(P1, ω) ≈ F[1,1,:]
+@test freqrespv(P2, ω) ≈ F[2,2,:]
+@test all(iszero, F[1,2,:])
+@test all(iszero, F[2,1,:])
 
 # Equality
 @test P1 == deepcopy(P1)
