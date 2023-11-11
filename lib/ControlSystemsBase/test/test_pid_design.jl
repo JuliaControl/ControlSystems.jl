@@ -13,6 +13,8 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 # tf
 @test pid(1.0, 1, 1) == tf(1) + tf(1,[1,0]) + tf([1,0],[1])
 @test pid(1.0, Inf, 1) == tf(1) + tf([1, 0], [1])
+@test pid(1.0, 0, 1) == tf(1) + tf([1, 0], [1])
+@test pid(0.0, 1, 1; form=:parallel) == tf(0) + tf(1,[1,0]) + tf([1,0],[1])
 # ss
 @test tf(pid(1.0, 1, 0; state_space=true)) == tf(1) + tf(1,[1,0])
 
@@ -72,13 +74,13 @@ C, Kp, Ti = placePI(P, 2, 0.7; form=:standard)
 @test [Kp, Ti] ≈ [9/5, 9/20]
 
 # Test internal functions convert_pidparams*
-params = (2, 3, 0.5)
-parallel_params = ControlSystemsBase.convert_pidparams_from_standard(params..., :parallel)
-@test parallel_params == (2, 2/3, 1)
-@test ControlSystemsBase.convert_pidparams_to_standard(parallel_params..., :parallel) == params
-series_params = ControlSystemsBase.convert_pidparams_from_standard(params..., :series)
-@test series_params == ((3-sqrt(3))/3, (3-sqrt(3))/2, (3+sqrt(3))/2)
-@test ControlSystemsBase.convert_pidparams_to_standard(series_params..., :series) == params
+params = (4, 3, 0.5)
+standard_params = ControlSystemsBase.convert_pidparams_from_parallel(params..., :standard)
+@test standard_params == (4, 4/3, 0.5/4)
+@test ControlSystemsBase.convert_pidparams_to_parallel(standard_params..., :standard) == params
+series_params = ControlSystemsBase.convert_pidparams_from_parallel(params..., :series)
+@test series_params == ((4-sqrt(10))/2, (4-sqrt(10))/6, (4+sqrt(10))/6)
+@test all(ControlSystemsBase.convert_pidparams_to_parallel(series_params..., :series) .≈ params)
 
 # lead lag link
 a = 1
