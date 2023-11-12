@@ -548,11 +548,12 @@ function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
         return Kp, Ti, Td
     elseif form === :series
-        return @. (
-            (Ti - sqrt(Ti * (Ti - 4 * Td))) / 2 * Kp / Ti,
-            (Ti - sqrt(Ti * (Ti - 4 * Td))) / 2,
-            (Ti + sqrt(Ti * (Ti - 4 * Td))) / 2,
-        )
+        Δ = Ti * (Ti - 4 * Td)
+        Δ < 0 && throw(DomainError("The condition Ti^2 ≥ 4Td*Ti is not satisfied: the PID parameters cannot be converted to series form"))
+        sqrtΔ = sqrt(Δ)
+        return @. ((Ti - sqrtΔ) / 2 * Kp / Ti,
+                   (Ti - sqrtΔ) / 2,
+                   (Ti + sqrtΔ) / 2)
     elseif form === :parallel
         return @. (Kp, Kp/Ti, Td*Kp)
     else
@@ -578,11 +579,11 @@ function convert_pidparams_from_parallel(param_p, param_i, param_d, to::Symbol)
         param_i == 0 && return @. (param_p * (1, 0, param_d))
         Δ = param_p^2-4param_i*param_d
         Δ < 0 &&
-            error("The condition KP^2-4KI*KD ≥ 0 is not satisfied: the parameters cannot be converted")
+            throw(DomainError("The condition KP^2 ≥ 4KI*KD is not satisfied: the PID parameters cannot be converted to series form"))
         sqrtΔ = sqrt(Δ)
         return @. ((param_p - sqrtΔ)/2, (param_p - sqrtΔ)/(2param_i), (param_p + sqrtΔ)/(2param_i))
     elseif to === :standard
-        param_p == 0 && error("Cannot convert to standard form when Kp=0")
+        param_p == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
         param_i == 0 && return @. (param_p, Inf, param_d / param_p)
         return @. (param_p, param_p / param_i, param_d / param_p)
     else

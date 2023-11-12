@@ -1,5 +1,7 @@
 @testset "test_pid_design" begin
 
+CSB = ControlSystemsBase
+
 # Test gof plot and loopshaping
 P = tf(1,[1,1])^4
 gangoffourplot(P,tf(1))
@@ -15,6 +17,9 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 @test pid(1.0, Inf, 1) == tf(1) + tf([1, 0], [1])
 @test pid(1.0, 0, 1) == tf(1) + tf([1, 0], [1])
 @test pid(0.0, 1, 1; form=:parallel) == tf(0) + tf(1,[1,0]) + tf([1,0],[1])
+@test_throws DomainError CSB.convert_pidparams_from_parallel(2, 3, 0.5, :series)
+@test_throws DomainError CSB.convert_pidparams_from_parallel(0, 3, 0.5, :standard)
+@test_throws DomainError CSB.convert_pidparams_from_standard(2, 1, 0.5, :series)
 # ss
 @test tf(pid(1.0, 1, 0; state_space=true)) == tf(1) + tf(1,[1,0])
 
