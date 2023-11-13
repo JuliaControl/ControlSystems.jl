@@ -10,7 +10,7 @@ The `form` can be chosen as one of the following
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
 
-If `state_space` is set to `true`, either `kd` has to be zero 
+If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
 the input to allow for a state space realization. 
 The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` can typically 
@@ -47,7 +47,7 @@ end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
 
-function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing)
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     if isnothing(Tf)
         if Ki != 0
@@ -64,7 +64,7 @@ function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing)
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     TE = Continuous()
     if !isnothing(Tf)
@@ -298,7 +298,7 @@ Selects the parameters of a PI-controller (on parallel form) such that the Nyqui
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 
@@ -509,21 +509,47 @@ function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, dopl
 end
 
 """
-    Kp, Ti, Td = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
 
-Convert parameters from form `form` to `:parallel` form. 
+Convert parameters from form `form` to `:standard` form. 
 
 The `form` can be chosen as one of the following
 * `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 """
+function convert_pidparams_to_standard(param_p, param_i, param_d, form::Symbol)
+    if form === :standard
+        return (param_p, param_i, param_d)
+    elseif form === :series
+        return @. (
+            param_p * (param_i + param_d) / param_i,
+            param_i + param_d,
+            param_i * param_d / (param_i + param_d)
+        )
+    elseif form === :parallel
+        return @. (param_p, param_p / param_i, param_d / param_p)
+    else
+        throw(ArgumentError("form $(form) not supported."))
+    end
+end
+
+"""
+    Kp, Ti, Td = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+
+Convert parameters from form `form` to `:parallel` form.
+
+The `form` can be chosen as one of the following
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
+"""
 function convert_pidparams_to_parallel(param_p, param_i, param_d, form::Symbol)
     if form === :parallel
-        return param_p, param_i, param_d
+        return (param_p, param_i, param_d)
     elseif form === :series
         # param_i = 0 would result in division by zero, but typically indicates that the user wants no integral action
-        param_i == 0 && return @. (param_p * (1, 0, param_d))
+        param_i == 0 && return @. param_p * (1, 0, param_d)
         return @. (param_p *
             ((param_i + param_d) / param_i, 1 / param_i, param_d))
     elseif form === :standard
@@ -540,7 +566,7 @@ end
 Convert parameters to form `form` from `:standard` form. 
 
 The `form` can be chosen as one of the following
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 """
@@ -563,29 +589,29 @@ end
 
 
 """
-    Kp, Ti, Td = convert_pidparams_from_parallel(param_p, param_i, param_d, to_form)
+    Kp, Ti, Td = convert_pidparams_from_parallel(Kp, Ki, Kd, to_form)
 
 Convert parameters from form `:parallel` to form `to_form`.
 
 The `form` can be chosen as one of the following
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 """
-function convert_pidparams_from_parallel(param_p, param_i, param_d, to::Symbol)
+function convert_pidparams_from_parallel(Kp, Ki, Kd, to::Symbol)
     if to === :parallel
-        return param_p, param_i, param_d
+        return (Kp, Ki, Kd)
     elseif to === :series
-        param_i == 0 && return @. (param_p * (1, 0, param_d))
-        Δ = param_p^2-4param_i*param_d
+        Ki == 0 && return @. Kp * (1, 0, Kd)
+        Δ = Kp^2-4Ki*Kd
         Δ < 0 &&
-            throw(DomainError("The condition KP^2 ≥ 4KI*KD is not satisfied: the PID parameters cannot be converted to series form"))
+            throw(DomainError("The condition Kp^2 ≥ 4Ki*Kd is not satisfied: the PID parameters cannot be converted to series form"))
         sqrtΔ = sqrt(Δ)
-        return @. ((param_p - sqrtΔ)/2, (param_p - sqrtΔ)/(2param_i), (param_p + sqrtΔ)/(2param_i))
+        return @. ((Kp - sqrtΔ)/2, (Kp - sqrtΔ)/(2Ki), (Kp + sqrtΔ)/(2Ki))
     elseif to === :standard
-        param_p == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
-        param_i == 0 && return @. (param_p, Inf, param_d / param_p)
-        return @. (param_p, param_p / param_i, param_d / param_p)
+        Kp == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
+        Ki == 0 && return (Kp, Inf, Kd / Kp)
+        return (Kp, Kp / Ki, Kd / Kp)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
@@ -596,6 +622,6 @@ end
     convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
 """
 function convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
-    kp, ki, kd = convert_pidparams_to_parallel(kp, ki, kd, from)
-    convert_pidparams_from_parallel(kp, ki, kd, to)
+    Kp, Ki, Kd = convert_pidparams_to_parallel(kp, ki, kd, from)
+    convert_pidparams_from_parallel(Kp, Ki, Kd, to)
 end

@@ -17,11 +17,16 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 @test pid(1.0, Inf, 1) == tf(1) + tf([1, 0], [1])
 @test pid(1.0, 0, 1) == tf(1) + tf([1, 0], [1])
 @test pid(0.0, 1, 1; form=:parallel) == tf(0) + tf(1,[1,0]) + tf([1,0],[1])
+@test pid(1.0, 2, 3; Tf=2) == tf([3,1,0.5], [2,2,1,0])
+@test all(CSB.convert_pidparams_from_standard(CSB.convert_pidparams_from_parallel(1, 2, 3, :standard)...,
+                                                  :parallel) .≈ (1,2,3))
 @test_throws DomainError CSB.convert_pidparams_from_parallel(2, 3, 0.5, :series)
 @test_throws DomainError CSB.convert_pidparams_from_parallel(0, 3, 0.5, :standard)
 @test_throws DomainError CSB.convert_pidparams_from_standard(2, 1, 0.5, :series)
 # ss
 @test tf(pid(1.0, 1, 0; state_space=true)) == tf(1) + tf(1,[1,0])
+@test tf(pid(0.0, 2, 3; form=:parallel, state_space=true, Tf=2)) == tf([3,0,2], [2, 2, 1, 0])
+@test tf(pid(1.0, 2, 3; state_space=true, Tf=2)) == tf([3, 1, 0.5], [2, 2, 1, 0])
 
 # Discrete
 @test_throws ArgumentError pid(1.0, 1, 1, Ts=0.1)
