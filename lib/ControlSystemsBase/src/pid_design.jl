@@ -265,7 +265,8 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=
     phi = angle.(Pv)
     kp  = @. -cos(phi)/r
     ki  = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    K   = convert_pidparams_from_parallel.(kp, ki, kd, form)
+    kp, ki = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
         RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
@@ -281,7 +282,8 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    K       = convert_pidparams_from_parallel.(kp, ki, kd, form)
+    kp, ki  = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
         RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
@@ -348,7 +350,7 @@ function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standa
     else
         nothing
     end
-    kp, ki = convert_pidparams_from_to(kp, ki, 0, :parallel, form)
+    kp, ki = convert_pidparams_from_parallel(kp, ki, 0, form)
     (; C, kp, ki, fig, CF)
 end
 
@@ -489,7 +491,7 @@ function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, dopl
     verbose && ki < 0 && @warn "Calculated ki is negative, inspect the Nyquist plot generated with doplot = true and try adjusting ω or the angle ϕt"
     C = pid(kp, ki, kd, form=:parallel)
     any(real(p) > 0 for p in poles(C)) && @error "Calculated controller is unstable."
-    kp, ki, kd = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    kp, ki, kd = convert_pidparams_from_parallel(kp, ki, kd, form)
     CF = C*F
     fig = if doplot
         w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 1000))
@@ -520,15 +522,15 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_to_standard(param_p, param_i, param_d, form::Symbol)
     if form === :standard
-        return @. (param_p, param_i, param_d)
+        return (param_p, param_i, param_d)
     elseif form === :series
-        return @. (
+        return (
             param_p * (param_i + param_d) / param_i,
             param_i + param_d,
             param_i * param_d / (param_i + param_d)
         )
     elseif form === :parallel
-        return @. (param_p, param_p / param_i, param_d / param_p)
+        return (param_p, param_p / param_i, param_d / param_p)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
@@ -546,15 +548,16 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_to_parallel(param_p, param_i, param_d, form::Symbol)
     if form === :parallel
-        return @. (param_p, param_i, param_d)
+        return (param_p, param_i, param_d)
     elseif form === :series
         # param_i = 0 would result in division by zero, but typically indicates that the user wants no integral action
-        param_i == 0 && return @. param_p * (1, 0, param_d)
-        return @. (param_p *
-            ((param_i + param_d) / param_i, 1 / param_i, param_d))
+        param_i == 0 && return (param_p, 0, param_p * param_d)
+        return (param_p * (param_i + param_d) / param_i,
+                param_p / param_i,
+                param_p * param_d)
     elseif form === :standard
-        param_i == 0 && return @. param_p * (1, 0, param_d)
-        return @. param_p * (1, 1 / param_i, param_d)
+        param_i == 0 && return (param_p, 0, param_p * param_d)
+        return (param_p, param_p / param_i, param_p * param_d)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
@@ -572,16 +575,16 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
-        return @. (Kp, Ti, Td)
+        return (Kp, Ti, Td)
     elseif form === :series
         Δ = Ti * (Ti - 4 * Td)
         Δ < 0 && throw(DomainError("The condition Ti^2 ≥ 4Td*Ti is not satisfied: the PID parameters cannot be converted to series form"))
         sqrtΔ = sqrt(Δ)
-        return @. ((Ti - sqrtΔ) / 2 * Kp / Ti,
-                   (Ti - sqrtΔ) / 2,
-                   (Ti + sqrtΔ) / 2)
+        return ((Ti - sqrtΔ) / 2 * Kp / Ti,
+                (Ti - sqrtΔ) / 2,
+                (Ti + sqrtΔ) / 2)
     elseif form === :parallel
-        return @. (Kp, Kp/Ti, Td*Kp)
+        return (Kp, Kp/Ti, Td*Kp)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
@@ -600,18 +603,18 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_from_parallel(Kp, Ki, Kd, to::Symbol)
     if to === :parallel
-        return @. (Kp, Ki, Kd)
+        return (Kp, Ki, Kd)
     elseif to === :series
-        Ki == 0 && return @. Kp * (1, 0, Kd)
+        Ki == 0 && return (Kp, 0, Kp*Kd)
         Δ = Kp^2-4Ki*Kd
         Δ < 0 &&
             throw(DomainError("The condition Kp^2 ≥ 4Ki*Kd is not satisfied: the PID parameters cannot be converted to series form"))
         sqrtΔ = sqrt(Δ)
-        return @. ((Kp - sqrtΔ)/2, (Kp - sqrtΔ)/(2Ki), (Kp + sqrtΔ)/(2Ki))
+        return ((Kp - sqrtΔ)/2, (Kp - sqrtΔ)/(2Ki), (Kp + sqrtΔ)/(2Ki))
     elseif to === :standard
         Kp == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
-        Ki == 0 && return @. (Kp, Inf, Kd / Kp)
-        return @. (Kp, Kp / Ki, Kd / Kp)
+        Ki == 0 && return (Kp, Inf, Kd / Kp)
+        return (Kp, Kp / Ki, Kd / Kp)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
