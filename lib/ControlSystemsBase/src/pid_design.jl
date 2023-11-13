@@ -520,7 +520,7 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_to_standard(param_p, param_i, param_d, form::Symbol)
     if form === :standard
-        return (param_p, param_i, param_d)
+        return @. (param_p, param_i, param_d)
     elseif form === :series
         return @. (
             param_p * (param_i + param_d) / param_i,
@@ -546,7 +546,7 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_to_parallel(param_p, param_i, param_d, form::Symbol)
     if form === :parallel
-        return (param_p, param_i, param_d)
+        return @. (param_p, param_i, param_d)
     elseif form === :series
         # param_i = 0 would result in division by zero, but typically indicates that the user wants no integral action
         param_i == 0 && return @. param_p * (1, 0, param_d)
@@ -572,7 +572,7 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
-        return Kp, Ti, Td
+        return @. (Kp, Ti, Td)
     elseif form === :series
         Δ = Ti * (Ti - 4 * Td)
         Δ < 0 && throw(DomainError("The condition Ti^2 ≥ 4Td*Ti is not satisfied: the PID parameters cannot be converted to series form"))
@@ -600,7 +600,7 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_from_parallel(Kp, Ki, Kd, to::Symbol)
     if to === :parallel
-        return (Kp, Ki, Kd)
+        return @. (Kp, Ki, Kd)
     elseif to === :series
         Ki == 0 && return @. Kp * (1, 0, Kd)
         Δ = Kp^2-4Ki*Kd
@@ -610,8 +610,8 @@ function convert_pidparams_from_parallel(Kp, Ki, Kd, to::Symbol)
         return @. ((Kp - sqrtΔ)/2, (Kp - sqrtΔ)/(2Ki), (Kp + sqrtΔ)/(2Ki))
     elseif to === :standard
         Kp == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
-        Ki == 0 && return (Kp, Inf, Kd / Kp)
-        return (Kp, Kp / Ki, Kd / Kp)
+        Ki == 0 && return @. (Kp, Inf, Kd / Kp)
+        return @. (Kp, Kp / Ki, Kd / Kp)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
