@@ -572,7 +572,7 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
-        return @. (Kp, Ti, Td)
+        return Kp, Ti, Td
     elseif form === :series
         Δ = Ti * (Ti - 4 * Td)
         Δ < 0 && throw(DomainError("The condition Ti^2 ≥ 4Td*Ti is not satisfied: the PID parameters cannot be converted to series form"))
