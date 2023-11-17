@@ -84,6 +84,16 @@ C, Kp, Ti = placePI(P, 2, 0.7; form=:standard)
 @test [Kp, Ti] ≈ [9/5, 9/20]
 
 # Test internal functions convert_pidparams*
+# Standard
+params = (2, 3, 0.5)
+parallel_params = ControlSystemsBase.convert_pidparams_from_standard(params..., :parallel)
+@test parallel_params == (2, 2/3, 1)
+@test ControlSystemsBase.convert_pidparams_to_standard(parallel_params..., :parallel) == params
+series_params = ControlSystemsBase.convert_pidparams_from_standard(params..., :series)
+@test series_params == ((3-sqrt(3))/3, (3-sqrt(3))/2, (3+sqrt(3))/2)
+@test ControlSystemsBase.convert_pidparams_to_standard(series_params..., :series) == params
+
+# Parallel
 params = (4, 3, 0.5)
 standard_params = ControlSystemsBase.convert_pidparams_from_parallel(params..., :standard)
 @test standard_params == (4, 4/3, 0.5/4)
