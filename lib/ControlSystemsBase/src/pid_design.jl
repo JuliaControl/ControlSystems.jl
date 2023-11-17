@@ -10,7 +10,7 @@ The `form` can be chosen as one of the following
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
 
-If `state_space` is set to `true`, either `kd` has to be zero 
+If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
 the input to allow for a state space realization. 
 The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` can typically 
@@ -47,44 +47,42 @@ end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
 
-function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
-    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
-    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing)
+    Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     if isnothing(Tf)
-        if ia
-            return tf([Kp * Td, Kp, Kp / Ti], [1, 0])
+        if Ki != 0
+            return tf([Kd, Kp, Ki], [1, 0])
         else
-            return tf([Kp * Td, Kp], [1])
+            return tf([Kd, Kp], [1])
         end
     else
-        if ia
-            return tf([Kp * Td, Kp, Kp / Ti], [Tf^2/2, Tf, 1, 0])
+        if Ki != 0
+            return tf([Kd, Kp, Ki], [Tf^2/2, Tf, 1, 0])
         else
-            return tf([Kp * Td, Kp], [Tf^2/2, Tf, 1])
+            return tf([Kd, Kp], [Tf^2/2, Tf, 1])
         end
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
-    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing)
+    Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     TE = Continuous()
-    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
     if !isnothing(Tf)
-        if ia
+        if Ki != 0
             A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
             B = [0; 0; 1]
-            C = 2 * Kp / Tf^2 * [1/Ti 1 Td]
+            C = 2 / Tf^2 * [Ki Kp Kd]
         else
             A = [0 1; -2/Tf^2 -2/Tf]
             B = [0; 1]
-            C = 2 * Kp / Tf^2 * [1 Td]
+            C = 2 / Tf^2 * [Kp Kd]
         end
         D = 0
-    elseif Td == 0
-        if ia
+    elseif Kd == 0
+        if Ki != 0
             A = 0
             B = 1
-            C = Kp / Ti # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            C = Ki # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
             D = Kp
         else
             return ss([Kp])
@@ -98,7 +96,7 @@ end
 """
     pidplots(P, args...; params_p, params_i, params_d=0, form=:standard, ω=0, grid=false, kwargs...)
 
-Plots interesting figures related to closing the loop around process `P` with a PID controller supplied in `params`
+Display the relevant plots related to closing the loop around process `P` with a PID controller supplied in `params`
 on one of the following forms:
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
@@ -267,7 +265,8 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=
     phi = angle.(Pv)
     kp  = @. -cos(phi)/r
     ki  = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    K   = convert_pidparams_from_parallel.(kp, ki, kd, form)
+    kp, ki = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
         RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
@@ -283,7 +282,8 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    K       = convert_pidparams_from_parallel.(kp, ki, kd, form)
+    kp, ki  = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
         RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
@@ -300,7 +300,7 @@ Selects the parameters of a PI-controller (on parallel form) such that the Nyqui
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 
@@ -350,7 +350,7 @@ function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standa
     else
         nothing
     end
-    kp, ki = convert_pidparams_from_to(kp, ki, 0, :parallel, form)
+    kp, ki = convert_pidparams_from_parallel(kp, ki, 0, form)
     (; C, kp, ki, fig, CF)
 end
 
@@ -491,7 +491,7 @@ function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, dopl
     verbose && ki < 0 && @warn "Calculated ki is negative, inspect the Nyquist plot generated with doplot = true and try adjusting ω or the angle ϕt"
     C = pid(kp, ki, kd, form=:parallel)
     any(real(p) > 0 for p in poles(C)) && @error "Calculated controller is unstable."
-    kp, ki, kd = ControlSystemsBase.convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    kp, ki, kd = convert_pidparams_from_parallel(kp, ki, kd, form)
     CF = C*F
     fig = if doplot
         w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 1000))
@@ -522,15 +522,42 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_to_standard(param_p, param_i, param_d, form::Symbol)
     if form === :standard
-        return param_p, param_i, param_d
+        return (param_p, param_i, param_d)
     elseif form === :series
-        return @. (
+        return (
             param_p * (param_i + param_d) / param_i,
             param_i + param_d,
             param_i * param_d / (param_i + param_d)
         )
     elseif form === :parallel
-        return @. (param_p, param_p / param_i, param_d / param_p)
+        return (param_p, param_p / param_i, param_d / param_p)
+    else
+        throw(ArgumentError("form $(form) not supported."))
+    end
+end
+
+"""
+    Kp, Ti, Td = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+
+Convert parameters from form `form` to `:parallel` form.
+
+The `form` can be chosen as one of the following
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
+"""
+function convert_pidparams_to_parallel(param_p, param_i, param_d, form::Symbol)
+    if form === :parallel
+        return (param_p, param_i, param_d)
+    elseif form === :series
+        # param_i = 0 would result in division by zero, but typically indicates that the user wants no integral action
+        param_i == 0 && return (param_p, 0, param_p * param_d)
+        return (param_p * (param_i + param_d) / param_i,
+                param_p / param_i,
+                param_p * param_d)
+    elseif form === :standard
+        param_i == 0 && return (param_p, 0, param_p * param_d)
+        return (param_p, param_p / param_i, param_p * param_d)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
@@ -542,30 +569,62 @@ end
 Convert parameters to form `form` from `:standard` form. 
 
 The `form` can be chosen as one of the following
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 """
 function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
-        return Kp, Ti, Td
+        return (Kp, Ti, Td)
     elseif form === :series
-        return @. (
-            (Ti - sqrt(Ti * (Ti - 4 * Td))) / 2 * Kp / Ti,
-            (Ti - sqrt(Ti * (Ti - 4 * Td))) / 2,
-            (Ti + sqrt(Ti * (Ti - 4 * Td))) / 2,
-        )
+        Δ = Ti * (Ti - 4 * Td)
+        Δ < 0 && throw(DomainError("The condition Ti^2 ≥ 4Td*Ti is not satisfied: the PID parameters cannot be converted to series form"))
+        sqrtΔ = sqrt(Δ)
+        return ((Ti - sqrtΔ) / 2 * Kp / Ti,
+                (Ti - sqrtΔ) / 2,
+                (Ti + sqrtΔ) / 2)
     elseif form === :parallel
-        return @. (Kp, Kp/Ti, Td*Kp)
+        return (Kp, Kp/Ti, Td*Kp)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
 end
 
+
+"""
+    Kp, Ti, Td = convert_pidparams_from_parallel(Kp, Ki, Kd, to_form)
+
+Convert parameters from form `:parallel` to form `to_form`.
+
+The `form` can be chosen as one of the following
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
+"""
+function convert_pidparams_from_parallel(Kp, Ki, Kd, to::Symbol)
+    if to === :parallel
+        return (Kp, Ki, Kd)
+    elseif to === :series
+        Ki == 0 && return (Kp, 0, Kp*Kd)
+        Δ = Kp^2-4Ki*Kd
+        Δ < 0 &&
+            throw(DomainError("The condition Kp^2 ≥ 4Ki*Kd is not satisfied: the PID parameters cannot be converted to series form"))
+        sqrtΔ = sqrt(Δ)
+        return ((Kp - sqrtΔ)/2, (Kp - sqrtΔ)/(2Ki), (Kp + sqrtΔ)/(2Ki))
+    elseif to === :standard
+        Kp == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
+        Ki == 0 && return (Kp, Inf, Kd / Kp)
+        return (Kp, Kp / Ki, Kd / Kp)
+    else
+        throw(ArgumentError("form $(form) not supported."))
+    end
+end
+
+
 """
     convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
 """
 function convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
-    kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, from)
-    convert_pidparams_from_standard(kp, ki, kd, to)
+    Kp, Ki, Kd = convert_pidparams_to_parallel(kp, ki, kd, from)
+    convert_pidparams_from_parallel(Kp, Ki, Kd, to)
 end
