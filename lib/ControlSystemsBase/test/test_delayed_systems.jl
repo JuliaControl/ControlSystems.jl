@@ -186,9 +186,10 @@ w = 10 .^ (-2:0.1:2)
 
 @test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny)
 
-@test_throws ErrorException 1/f2
-@test_throws ErrorException randn(2,2)/f2
-@test_throws ErrorException f2/f2
+@test_throws SingularException 1/f2
+@test_throws SingularException randn(2,2)/f2
+@test_throws SingularException f2/f2
+@test 1/(I(2)+f2) == feedback(I(2), f2)
 
 #FIXME: A lot more tests, including MIMO systems in particular
 

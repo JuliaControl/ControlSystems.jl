@@ -94,13 +94,16 @@ function +(sys::DelayLtiSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
 end
 
 
+"""
+    /(G1, G2::DelayLtiSystem)
+
+Compute ``G_1 * G_2^{-1} where ``G_2`` is a DelayLtiSystem.
+Throws a SingularException if ``G_2`` is not invertible.
+"""
 function /(anything, sys::DelayLtiSystem)
-    if !all(iszero, sys.Tau)
-        ny,nu = size(sys)
-        ny == nu || error("The denominator system must be square")
-        return anything * feedback(I(nu), sys - I(nu))
-    end
-    /(anything, sys.P.P) # If all delays are zero, invert the inner system
+    ny,nu = size(sys)
+    ny == nu || error("The denominator system must be square")
+    return anything * feedback(I(nu), sys - I(nu))
 end
 
 for other_type in [:Number, :AbstractMatrix, :LTISystem]
