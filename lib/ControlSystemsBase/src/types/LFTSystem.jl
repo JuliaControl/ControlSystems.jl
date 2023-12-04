@@ -1,6 +1,10 @@
 abstract type LFTSystem{TE, T} <: LTISystem{TE} end
 timeevol(sys::LFTSystem) = timeevol(sys.P)
 
+Base.zero(sys::LFTSystem) = basetype(sys)(zero(sys.D), sys.timeevol)
+Base.zero(::Type{<:LFTSystem{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
+
+
 function *(n::Number, sys::LFTSystem)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]

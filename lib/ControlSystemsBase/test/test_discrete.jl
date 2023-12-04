@@ -146,6 +146,16 @@ p = poles(Gcl)
 pd = c2d_poly2poly(A, 0.1)
 @test pd ≈ denvec(c2d(P, 0.1))[]
 
+
+@testset "d2c_exact" begin
+    @info "Testing d2c_exact"
+    sys = ssrand(2, 3, 2, Ts = 1)
+    sysc = d2c_exact(sys)
+
+    # bodeplot(sys, w, lab="Discrete SS")
+    # bodeplot!(sysc, w, lab="Continuous SS with delays", l=:dash, size=(800, 800))
+    w = exp10.(LinRange(-2, 2, 200))
+    @test freqresp(sys, w) ≈ freqresp(sysc, w) atol = 1e-8
 end
 
 
@@ -233,3 +243,4 @@ Qd_van_load = [
 @test norm(Qd - Qd_van_load) < 1e-6
 
 
+end

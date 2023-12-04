@@ -91,6 +91,8 @@ end
 Convert discrete-time system to a continuous time system, assuming that the discrete-time system was discretized using `method`. Available methods are `:zoh, :fwdeuler´.
 
 - `w_prewarp`: Frequency for pre-warping when using the Tustin method, has no effect for other methods.
+
+See also [`d2c_exact`](@ref).
 """
 function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp=0)
     A, B, C, D = ssdata(sys)
@@ -124,6 +126,28 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp
 end
 
 d2c(sys::TransferFunction{<:Discrete}, args...) = tf(d2c(ss(sys), args...))
+
+
+"""
+    d2c_exact(sys::AbstractStateSpace{<:Discrete})
+
+Translate a discrete-time system to a continuous-time system by the substitution ``z = e^{sT_s}``.
+The translation is exact in the frequency domain, i.e.,
+the frequency response of the resulting continuous-time system is identical to
+the frequency response of the discrete-time system.
+
+This method is useful when analyzing hybrid continuous/discrete systems in the frequency domain and high accuracy is required.
+
+The resulting system will be be a static system in feedback with pure negative delays,
+i.e., this system cannot be simulated in the time domain.
+"""
+function d2c_exact(sys::AbstractStateSpace{<:Discrete})
+    T = sys.Ts
+    A,B,C,D = ssdata(sys)
+    z = delay(-T)
+    LR = append([z for _ in 1:sys.nx]...) - ss(A + I)
+    C*feedback(I(sys.nx), LR)*B + D
+end
 
 # c2d and d2c for covariance and cost matrices =================================
 """
