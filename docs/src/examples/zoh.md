@@ -81,7 +81,7 @@ bodeplot!(Pdc, wd, lab="\$P_d(s)\$ (exact translation)", l=:dash)
 bodeplot!(Pc, wd, lab="\$P_d(s)\$ (inverse ZoH sampling)")
 vline!([0.5 0.5], l=(:black, :dash), lab="Nyquist freq.", legend=:bottomleft)
 ```
-We see that the translation of the discrete-time system to continuous time using the standard inverse ZoH sampling (``d2c(Pd)``) is not accurate for frequencies close to and above the Nyquist frequency. The translation using exact method (``d2c_exact(Pd)``) matches the frequency response of the discrete-time system exactly over the entire frequency axis.
+We see that the translation of the discrete-time system to continuous time using the standard inverse ZoH sampling (`d2c(Pd)`) is not accurate for frequencies close to and above the Nyquist frequency. The translation using exact method (`d2c_exact(Pd)`) matches the frequency response of the discrete-time system exactly over the entire frequency axis.
 
 ## Time-domain simulation
 
@@ -134,19 +134,17 @@ If we form the closed-loop system from an input disturbance to the output
 ```math
 PS = \dfrac{P(s)}{1 + P(s)C(s)}
 ```
-we can simulate the response to a continuous-time input disturbance that contains frequencies higher than the Nyquist frequency of the discrete-time system:
+we can simulate the response to a continuous-time input disturbance that contains frequencies higher than the Nyquist frequency of the discrete-time system, we do this below. We also try doing this with the discretized plant, which yields a very poor result
 ```@example zoh
-PS = feedback(P, Cc) # Use the continuous-time plant and continuous translation of the controller
-fd = 10 # Frequency of input disturbance (Hz) (Nyquist frequency is 0.5Hz)
-disturbance(x, t) = sin(2pi*fd*t) + 0.02*(t >= 5) # Continuous input disturbance
-plot(lsim(PS, disturbance, 0:1e-3:10), title="Continuous disturbance response")
-```
-If we had tried doing this with the discretized plant, we would have gotten a very poor result
-```@example zoh
+PS = feedback(P, Cc)  # Use the continuous-time plant and continuous translation of the controller
 PSd = feedback(Pd, C) # Use the discretized plant and discrete controller
-plot(lsim(PSd, disturbance, 10), ylims=(0.0, 0.005), title="Discrete disturbance response")
+ω = 5.53 # Frequency of input disturbance (rad/s) (Nyquist frequency is π rad/s)
+disturbance(x, t) = sin(ω*t) # Continuous input disturbance
+plot(lsim(PS, disturbance, 0:0.22:3500), lab="Continuous disturbance response")
+plot!(lsim(PSd, disturbance, 3500), lab="Discrete disturbance response")
+hline!([abs(freqresp(PS, ω)[])], l=(:black, :dash), lab="Predicted freq. response amplitude", legend=:bottomleft, fmt=:png)
 ```
-The output in this case is zero before the step in the disturbance at ``t = 5``, since the frequency of the input disturbance is at an integer multiple of the Nyquist frequency.
+The continuous-time analysis eventually settles at a periodic output that matches the amplitude predicted by the continuous-time frequency response. However, the discrete-time simulation yields, as expected, a very poor result.
 
-
-## Summary
+### Caveats
+The exact output of the system that was translated from discrete to continuous time is not going to be accurate, so transient properties of the hybrid system cannot be accurately assessed using this kind of analysis. 
