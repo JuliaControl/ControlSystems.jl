@@ -1,7 +1,7 @@
 abstract type LFTSystem{TE, T} <: LTISystem{TE} end
 timeevol(sys::LFTSystem) = timeevol(sys.P)
 
-Base.zero(sys::LFTSystem) = basetype(sys)(zero(sys.D), sys.timeevol)
+Base.zero(sys::LFTSystem) = ss(zero(sys.P.D), sys.P.timeevol)
 Base.zero(::Type{<:LFTSystem{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
 
 

@@ -56,10 +56,12 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(P2 * delay(1), ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
-
-# Division / feedback
+## Division / feedback
 @test freqresp(1/(1+P1), ω) ≈ freqresp(feedback(I(size(P1, 1)), P1), ω) rtol=1e-15
 
+## Zero
+@test zero(typeof(P1)) == ss(0.0)
+@test zero(P1) == ss(0.0)
 
 ## append
 P12 = append(P1, P2)
