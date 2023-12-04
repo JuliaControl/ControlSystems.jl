@@ -84,6 +84,7 @@ export  LTISystem,
         c2d,
         c2d_x0map,
         d2c,
+        d2c_exact,
         # Time Response
         step,
         impulse,

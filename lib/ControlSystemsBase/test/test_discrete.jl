@@ -146,6 +146,24 @@ p = poles(Gcl)
 pd = c2d_poly2poly(A, 0.1)
 @test pd ≈ denvec(c2d(P, 0.1))[]
 
+
+@testset "d2c_exact" begin
+    @info "Testing d2c_exact"
+    sys = ssrand(2, 3, 2, Ts = 1)
+    sysc_causal = d2c_exact(sys, :causal)
+    sysc_acausal = d2c_exact(sys, :acausal)
+    @test_throws ErrorException d2c_exact(sys, :KentMorgan)
+    # bodeplot(sys, w, lab="Discrete SS")
+    # bodeplot!(sysc_causal, w, lab="Continuous SS with causal delays", l=:dash, size=(800, 800))
+    # bodeplot!(sysc_acausal, w, lab="Continuous SS with acausal (negative) delays", l=:dash, size=(800, 800))
+    w = exp10.(LinRange(-2, 2, 200))
+    @test freqresp(sys, w) ≈ freqresp(sysc_causal, w) atol = 1e-8
+    @test freqresp(sys, w) ≈ freqresp(sysc_acausal, w) atol = 1e-8
+
+    # Requires full ControlSystems but does pass
+    # rd = step(sys, 0:10)
+    # rc = step(sysc_causal, 0:10)
+    # @test rd.y ≈ rc.y atol = 1e-8
 end
 
 
@@ -233,3 +251,4 @@ Qd_van_load = [
 @test norm(Qd - Qd_van_load) < 1e-6
 
 
+end
