@@ -95,7 +95,11 @@ end
 
 
 function /(anything, sys::DelayLtiSystem)
-    all(iszero, sys.Tau) || error("A delayed system can not be inverted. Consider use of the function `feedback`.")
+    if !all(iszero, sys.Tau)
+        ny,nu = size(sys)
+        ny == nu || error("The denominator system must be square")
+        return anything * feedback(I(nu), sys - I(nu))
+    end
     /(anything, sys.P.P) # If all delays are zero, invert the inner system
 end
 
