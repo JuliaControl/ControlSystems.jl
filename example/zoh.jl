@@ -49,3 +49,24 @@ resP = lsim(P, ufun, Tf)
 resPz = lsim(Pz, ufun, 0:0.01:Tf)
 resPd = lsim(Pd, ufun, Tf)
 plot([resP, resPz, resPd], lab=["P" "Pz" "Pd"])
+
+
+##
+# Discrete-time systems can be converted to continuous-time systems with delays in such a way that the frequency-response of the two systems match exactly.
+# To this end, the function `d2d_exact` is used. The resulting system is useful for frrequency-domain simulations only and cannot be used for time-domain simulations.
+# This is useful when analyzing hybrid systems with both continuous-time and
+# discrete-time components and accurate frequency-domain calculations are required over the entire frequency range up to the Nyquist frequency.
+# Below, we compare the frequency response of a discrete-time system with delays to
+# two continuous-tiem systems, one translated using the exact method and one using the standard `d2c` method with inverse ZOH sampling.
+
+w = exp10.(LinRange(-2, 1, 200))
+Pdc = d2c_exact(ss(Pd))
+Pc = d2c(Pd)
+
+bodeplot(Pd, w, lab="Discrete")
+bodeplot!(Pdc, w, lab="Continuous with delays", l=:dash)
+bodeplot!(Pc, w, lab="Continuous d2c-ZoH")
+vline!([0.5 0.5], l=(:black, :dash), lab="Nyquist freq.", legend=:bottomleft)
+
+
+
