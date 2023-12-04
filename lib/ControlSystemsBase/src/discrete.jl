@@ -129,24 +129,34 @@ d2c(sys::TransferFunction{<:Discrete}, args...) = tf(d2c(ss(sys), args...))
 
 
 """
-    d2c_exact(sys::AbstractStateSpace{<:Discrete})
+    d2c_exact(sys::AbstractStateSpace{<:Discrete}, method = :causal)
 
-Translate a discrete-time system to a continuous-time system by the substitution ``z = e^{sT_s}``.
+Translate a discrete-time system to a continuous-time system by one of the substitutions
+- ``z^{-1} = e^{-sT_s}`` if `method = :causal` (default)
+- ``z = e^{sT_s}``  if `method = :acausal`
 The translation is exact in the frequency domain, i.e.,
 the frequency response of the resulting continuous-time system is identical to
 the frequency response of the discrete-time system.
 
-This method is useful when analyzing hybrid continuous/discrete systems in the frequency domain and high accuracy is required.
+This method of translation is useful when analyzing hybrid continuous/discrete systems in the frequency domain and high accuracy is required.
 
-The resulting system will be be a static system in feedback with pure negative delays,
-i.e., this system cannot be simulated in the time domain.
+The resulting system will be be a static system in feedback with pure delays. When `method = :causal`, the delays will be positive, resulting in a causal system that can be simulated in the time domain. When `method = :acausal`, the delays will be negative, resulting in an acausal system that **can not** be simulated in the time domain. The acausal translation results in a smaller system with half as many delay elements in the feedback path.
 """
-function d2c_exact(sys::AbstractStateSpace{<:Discrete})
+function d2c_exact(sys::AbstractStateSpace{<:Discrete}, method=:causal)
     T = sys.Ts
     A,B,C,D = ssdata(sys)
-    z = delay(-T)
-    LR = append([z for _ in 1:sys.nx]...) - ss(A + I)
-    C*feedback(I(sys.nx), LR)*B + D
+    if method === :acausal
+        z = delay(-T)
+        LR = append([z for _ in 1:sys.nx]...) - ss(A + I)
+        C*feedback(I(sys.nx), LR)*B + D
+    elseif method === :causal
+        z1 = delay(T)
+        ZI1 = append([z1 for _ in 1:sys.nx]...)
+        LR = ZI1 * ss(-A)
+        C*ZI1*feedback(I(sys.nx), LR)*B + D
+    else
+        error("Unknown method: $method. Choose method = :acausal or :causal")
+    end
 end
 
 # c2d and d2c for covariance and cost matrices =================================
