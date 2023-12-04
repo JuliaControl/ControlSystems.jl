@@ -39,6 +39,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
             "Properties of delay systems" => "examples/delay_systems.md",
             "Automatic differentiation" => "examples/automatic_differentiation.md",
             "Tune a controller using experimental data" => "examples/tuning_from_data.md",
+            "Analysis of hybrid continuous/discrete systems" => "examples/zoh.md",
         ],
         "Functions" => Any[
             "Constructors" => "lib/constructors.md",
