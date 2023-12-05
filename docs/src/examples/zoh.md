@@ -1,5 +1,7 @@
-# Analysis of hybrid continuous-discrete systems
-In this example, we analyze the effect of ZoH sampling in continuous time and compare it to the equivalent discrete-time system
+# Analysis of sampled-data systems
+A sampled-data system contains both continuous-tiem and discrete-time components, such as a continuous-time plant and a discrete-time controller. In this example, we will look at how to analyze such systems using the ControlSystems.jl package. To learn more about the theory of sampled-data systems, consult the reference mentioned at the end of this page.
+
+First, we analyze the effect of ZoH sampling in continuous time and compare it to the equivalent discrete-time system
 
 We will consider a simple second-order system ``P``, which we define in continuous time:
 ```@example zoh
@@ -10,7 +12,7 @@ P = tf(0.1, [1, 0.1, 0.1])
 
 ## Continuous to discrete
 
-Next, we discretize this system using the standard [`c2d`](@ref) function, which uses ZoH sampling by default. We compare the frequency response of the discretized system with the frequency response of the original continuous-time system multiplied by the transfer function of the ZoH operator
+Next, we discretize this system using the standard [`c2d`](@ref) function, which uses ZoH sampling by default. We compare the frequency response of the discretized system with the frequency response of the original continuous-time system multiplied by the transfer function of the ZoH operator [^CCS]
 ```math
 Z(s) = \dfrac{1 - e^{-T_s s}}{s}
 ```
@@ -56,7 +58,7 @@ With a _continuous_ input signal, the result is different,
 after the initial transient, the output of `Pz` matches that of `Pd` exactly
 (try plotting with the plotly() backend and zoom in at the end)
 ```@example zoh
-Tf = 150
+Tf = 100
 ufun = (x,t)->[sin(2pi*t/5)]
 resP = lsim(P, ufun, Tf)
 resPz = lsim(Pz, ufun, 0:0.01:Tf)
@@ -67,7 +69,7 @@ plot([resP, resPz, resPd], lab=["P" "Pz" "Pd"]); lens!([Tf-10, Tf], [-0.1, 0.1],
 
 ## Discrete to continuous
 
-Discrete-time systems can be converted to continuous-time systems formulated with delay terms in such a way that the frequency-response of the two systems match exactly, using the substiturion ``z^{-1} = e^{-sT_s}``. To this end, the function [`d2d_exact`](@ref) is used. This is useful when analyzing hybrid systems with both continuous-time and discrete-time components and accurate frequency-domain calculations are required over the entire frequency range up to the Nyquist frequency.
+Discrete-time systems can be converted to continuous-time systems formulated with delay terms in such a way that the frequency-response of the two systems match exactly, using the substitution ``z^{-1} = e^{-sT_s}``. To this end, the function [`d2c_exact`](@ref) is used. This is useful when analyzing hybrid systems with both continuous-time and discrete-time components and accurate frequency-domain calculations are required over the entire frequency range up to the Nyquist frequency.
 
 Below, we compare the frequency response of a discrete-time system with delays to
 two continuous-time systems, one translated using the exact method and one using the standard `d2c` method with inverse ZoH sampling.
@@ -121,10 +123,10 @@ bodeplot!(Pd, wd, lab="\$P(z)\$ ZoH")
 bodeplot!(Ld, wd, lab="\$P(z)C(z)\$", legend=:bottomleft)
 ```
 
-If we instead make use of the second method above, exactly translating the discrete-time controller to continuous time, we can more easily determine that the closed-loop system will be stable by inspecting the Bode plot
+If we instead make use of the second method above, exactly translating the discrete-time controller to continuous time, we can more easily determine that the closed-loop system will be stable by inspecting the Bode plot. Here, we show the Bode plot of ``P`` and that of the loop-transfer function, including the ZoH operator, ``P(s)Z(s)C(s)``.
 ```@example zoh
 Cc = d2c_exact(C)
-Lc = P*Cc
+Lc = P*Z*Cc
 
 bodeplot(P, wd, lab="\$P(s)\$")
 bodeplot!(Lc, wd, lab="\$P(s)C(s)\$", legend=:bottomleft, c=3)
@@ -136,7 +138,7 @@ PS = \dfrac{P(s)}{1 + P(s)C(s)}
 ```
 we can simulate the response to a continuous-time input disturbance that contains frequencies higher than the Nyquist frequency of the discrete-time system, we do this below. We also try doing this with the discretized plant, which yields a very poor result
 ```@example zoh
-PS = feedback(P, Cc)  # Use the continuous-time plant and continuous translation of the controller
+PS = feedback(P, Z*Cc)  # Use the continuous-time plant and continuous translation of the controller + ZoH operator
 PSd = feedback(Pd, C) # Use the discretized plant and discrete controller
 ω = 5.53 # Frequency of input disturbance (rad/s) (Nyquist frequency is π rad/s)
 disturbance(x, t) = sin(ω*t) # Continuous input disturbance
@@ -144,7 +146,13 @@ plot(lsim(PS, disturbance, 0:0.22:3500), lab="Continuous disturbance response")
 plot!(lsim(PSd, disturbance, 3500), lab="Discrete disturbance response")
 hline!([abs(freqresp(PS, ω)[])], l=(:black, :dash), lab="Predicted freq. response amplitude", legend=:bottomleft, fmt=:png)
 ```
-The continuous-time analysis eventually settles at a periodic output that matches the amplitude predicted by the continuous-time frequency response. However, the discrete-time simulation yields, as expected, a very poor result.
+The continuous-time analysis eventually settles at a periodic output that matches the amplitude predicted by the continuous-time frequency response. However, the discrete-time simulation yields, as expected, a very poor result. Noticeable in the simulation is the appearance of a beat frequency, which is expected due to the modulation introduced by sampling.[^CCS]
 
-### Caveats
-The exact output of the system that was translated from discrete to continuous time is not going to be accurate, so transient properties of the hybrid system cannot be accurately assessed using this kind of analysis. 
+## Caveats
+- The exact output of the system that was translated from discrete to continuous time is not going to be accurate, so transient properties of the hybrid system cannot be accurately assessed using this kind of analysis. 
+- Interpretation of frequency-responses for sampled-data systems must be done with care. The modulation introduced by sampling implies the creating of additional frequencies in the output. For an input with frequency ``\omega``, the output will contain all frequencies ``\omega ± \omega_s k`` where ``\omega_s`` is the sampling frequency and ``k`` is an integer.[^CCS]
+
+## References
+Learn more about sampled-data systems and zero-order hold sampling in chapter 7 of the reference below.
+[^CCS]: Åström, K. J., & Wittenmark, B. (1997). Computer-Controlled Systems: Theory and Design.
+
