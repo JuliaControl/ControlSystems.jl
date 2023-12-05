@@ -104,6 +104,7 @@ export  LTISystem,
         # delay systems
         delay,
         pade,
+        thiran,
         nonlinearity,
         # demo systems
         ssrand,
