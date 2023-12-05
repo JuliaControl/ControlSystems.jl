@@ -16,6 +16,7 @@ Next, we discretize this system using the standard [`c2d`](@ref) function, which
 ```math
 Z(s) = \dfrac{1 - e^{-T_s s}}{s}
 ```
+[^CCS]: Åström, K. J., & Wittenmark, B. (1997). Computer-Controlled Systems: Theory and Design.
 
 ```@example zoh
 Ts = 1 # Sample interval
@@ -146,13 +147,11 @@ plot(lsim(PS, disturbance, 0:0.22:3500), lab="Continuous disturbance response")
 plot!(lsim(PSd, disturbance, 3500), lab="Discrete disturbance response")
 hline!([abs(freqresp(PS, ω)[])], l=(:black, :dash), lab="Predicted freq. response amplitude", legend=:bottomleft, fmt=:png)
 ```
-The continuous-time analysis eventually settles at a periodic output that matches the amplitude predicted by the continuous-time frequency response. However, the discrete-time simulation yields, as expected, a very poor result. Noticeable in the simulation is the appearance of a beat frequency, which is expected due to the modulation introduced by sampling. [CCS]
+The continuous-time analysis eventually settles at a periodic output that matches the amplitude predicted by the continuous-time frequency response. However, the discrete-time simulation yields, as expected, a very poor result. Noticeable in the simulation is the appearance of a beat frequency, which is expected due to the modulation introduced by sampling. [^CCS]
 
 ## Caveats
 - The exact output of the system that was translated from discrete to continuous time is not going to be accurate, so transient properties of the hybrid system cannot be accurately assessed using this kind of analysis. 
-- Interpretation of frequency-responses for sampled-data systems must be done with care. The modulation introduced by sampling implies the creating of additional frequencies in the output. For an input with frequency ``\omega``, the output will contain all frequencies ``\omega ± \omega_s k`` where ``\omega_s`` is the sampling frequency and ``k`` is an integer. [CCS]
+- Interpretation of frequency-responses for sampled-data systems must be done with care. The modulation introduced by sampling implies the creating of additional frequencies in the output. For an input with frequency ``\omega``, the output will contain all frequencies ``\omega ± \omega_s k`` where ``\omega_s`` is the sampling frequency and ``k`` is an integer. [^CCS]
 
 ## References
 Learn more about sampled-data systems and zero-order hold sampling in chapter 7 of the reference below.
-[^CCS]: Åström, K. J., & Wittenmark, B. (1997). Computer-Controlled Systems: Theory and Design.
-
