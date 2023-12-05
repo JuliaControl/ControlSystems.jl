@@ -22,7 +22,7 @@ makedocs(modules=[ControlSystems, ControlSystemsBase],
     format = Documenter.HTML(prettyurls = haskey(ENV, "CI")),
     sitename="ControlSystems.jl",
     pagesonly = true,
-    draft = true,
+    draft = false,
     pages=[
         "Home" => "index.md",
         "Introductory guide" => Any[
