@@ -123,6 +123,12 @@ Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
 ```
 
+
+## Converting between continuous and discrete time
+A continuous-time system represents differential equations or a transfer function in the [Laplace domain](https://en.wikipedia.org/wiki/Laplace_transform), while a discrete-time system represents difference equations or a transfer function in the [Z-domain](https://en.wikipedia.org/wiki/Z-transform).
+
+The functions [`c2d`](@ref) and [`d2c`](@ref) implement sampling/discretization of continuous-time systems and the inverse mapping from discrete-time to continuous-time systems. 
+
 ## Delay Systems
 The constructor [`delay`](@ref) creates a pure delay, which may be connected to a system by multiplication:
 ```julia
@@ -138,7 +144,7 @@ L = 1.2 # Delay time
 tf(1, [1, 1]) * exp(-L*s)
 ```
 
-Padé approximations of delays can be created using [`pade`](@ref).
+Padé approximations of delays can be created using [`pade`](@ref). Models with delays can be discretized using [`c2d`](@ref), currently, only delays that are integer multiples of the sample time are supported. Pure fractional delays can be approximately discretized using the function [`thiran`](@ref).
 
 A tutorial on delay systems is available here:
 ```@raw html

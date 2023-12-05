@@ -33,3 +33,6 @@ Time-delay systems are numerically challenging to simulate, if you run into prob
 
 ## Estimation of delay
 See the companion tutorial in ControlSystemIdentification.jl on [Delay estimation](file:///home/fredrikb/.julia/dev/ControlSystemIdentification/docs/build/examples/delayest.html). This tutorial covers the both the detection of the presence of a delay, and estimation of models for systems with delays.
+
+## Approximation and discretization of delays
+Delay systems may be approximated as rational functions by means of [Padé approximation](https://en.wikipedia.org/wiki/Pad%C3%A9_approximant) using the function [`pade`](@ref). Pure continuous-time delays can also be discretized using the function [`thiran`](@ref). Continuous-time models with internal delays can be discretized using [`c2d`](@ref), provided that the delay is an integer multiple of the sampling time (fractional delays are not yet supported by [`c2d`](@ref)).

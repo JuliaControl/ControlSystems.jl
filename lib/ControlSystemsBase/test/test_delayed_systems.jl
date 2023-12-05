@@ -229,6 +229,14 @@ P_wb = DemoSystems.woodberry()
 
 @test freqresp(pade(feedback(eye_(2), P_wb), 3), Ω) ≈ freqresp(feedback(eye_(2), P_wb), Ω) atol=1e-4
 
+# test thiran
+for Ts = [1, 1.1]
+    z = tf('z', Ts)
+    @test thiran(2Ts, Ts) == 1/z^2
+end
+
+@test thiran(pi, 1) ≈ tf([-0.00031815668236122736, 0.0042438423976339556, -0.03424682772398137, 0.8290601401044773, 1.0], [1.0, 0.8290601401044773, -0.03424682772398137, 0.0042438423976339556, -0.00031815668236122736], 1)
+
 
 # test automatic frequency selection
 mag, phase, w = bode(DemoSystems.lag()*delay(1))

@@ -38,15 +38,16 @@ end
 
 """
     delayd_ss(τ, Ts)
-Discrete-time statespace realization of a delay τ sampled with period Ts,
-i.e. of z^-N where N = τ / Ts.
 
-τ must be a multiple of Ts.
+Discrete-time statespace realization of a delay ``τ`` sampled with period ``T_s``,
+i.e. of ``z^{-N}`` where ``N = τ / T_s.``
+
+``τ`` must be a multiple of ``T_s``. See [`thiran`](@ref) for approximate discretization of fractional delays.
 """
 function delayd_ss(τ::Number, Ts::Number)
     n = round(Int, τ / Ts)
     if !(τ - n*Ts ≈ 0)
-        error("The delay τ must be a multiple of the sample time Ts")
+        error("The delay τ must be a multiple of the sample time Ts, use the function `thiran` to approximately discretize fractional delays.")
     end
     ss(diagm(1 => ones(n-1)), [zeros(n-1,1); 1], [1 zeros(1,n-1)], 0, Ts)
 end
@@ -128,6 +129,8 @@ const PADE_Q_COEFFS =  [[2, 1],
     pade(τ::Real, N::Int)
 
 Compute the `N`th order Padé approximation of a time-delay of length `τ`.
+
+See also [`thiran`](@ref) for discretization of delays.
 """
 function pade(τ::Real, N::Int)
     if !(1 <= N <= 10); error("Order of Padé approximation must be between 1 and 10. Got $N."); end
@@ -148,4 +151,26 @@ function pade(G::DelayLtiSystem, N)
     nTau = length(G.Tau)
     X = append(ss(pade(τ,N)) for τ in G.Tau) # Perhaps append should be renamed blockdiag
     return lft(G.P.P, X)
+end
+
+"""
+    thiran(τ::Real, Ts)
+
+Discretize a potentially fractional delay ``τ`` as a Thiran all-pass filter with sample time `Ts`. 
+
+The Thiran all-pass filter gives an a maximally flat group delay.
+
+If ``τ`` is an integer multiple of ``Ts``, the Thiran all-pass filter reduces to ``z^{-τ/Ts}``.
+
+Ref: T. I. Laakso, V. Valimaki, M. Karjalainen and U. K. Laine, "Splitting the unit delay [FIR/all pass filters design]," in IEEE Signal Processing Magazine, vol. 13, no. 1, 1996.
+"""
+function thiran(τ::Real, Ts)
+    D = τ/Ts
+    N = ceil(Int, D)
+    a = ones(N+1)
+    for k = 1:N
+        P = prod((D-N+n) / (D-N+n+k) for n in 0:N)
+        a[k+1] = (-1)^k * binomial(N, k) * P # Eq 86 in reference
+    end
+    tf(reverse(a), a, Ts)
 end
