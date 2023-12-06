@@ -431,10 +431,11 @@ end
 function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     # Ensure s.D is invertible
     A, B, C, D = ssdata(sys)
+    size(D, 1) == size(D, 2) || error("The inverted system must have the same number of inputs and outputs")
     Dinv = try
         inv(D)
     catch
-        error("D isn't invertible")
+        error("D isn't invertible. If you are trying to form a quotient between two systems `N(s) / D(s)` where the quotient is proper but the inverse of `D(s)` isn't, consider calling `N / D` instead of `N * inv(D)")
     end
     return basetype(ST)(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.timeevol)
 end

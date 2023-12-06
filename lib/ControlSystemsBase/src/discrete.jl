@@ -21,7 +21,7 @@ ZoH sampling is exact for linear systems with piece-wise constant inputs (step i
 
 FoH sampling is exact for linear systems with piece-wise linear inputs (ramp invariant), this is a good choice for simulation of systems with smooth continuous inputs.
 
-To approximate the behavior of a continuous-time system well in the frequency domain, the `:tustin` (trapezoidal / bilinear) method may be most appropriate. In this case, the pre-warping argument can be used to ensure that the frequency response of the discrete-time system matches the continuous-time system at a given frequency. The tustin transformation alters the meaning of the state components, while ZoH and FoH preserve the meaning of the state components. The Tustin method is commonly used to discretize a continuous-tiem controller.
+To approximate the behavior of a continuous-time system well in the frequency domain, the `:tustin` (trapezoidal / bilinear) method may be most appropriate. In this case, the pre-warping argument can be used to ensure that the frequency response of the discrete-time system matches the continuous-time system at a given frequency. The tustin transformation alters the meaning of the state components, while ZoH and FoH preserve the meaning of the state components. The Tustin method is commonly used to discretize a continuous-time controller.
 
 The forward-Euler method generally requires the sample time to be very small
 relative to the time constants of the system, and its use is generally discouraged.
@@ -99,8 +99,8 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp
     ny, nu = size(sys)
     nx = nstates(sys)
     if method === :zoh
-        M = log([A  B;
-            zeros(nu, nx) I])./sys.Ts
+        M = log(Matrix([A  B;
+            zeros(nu, nx) I]))./sys.Ts
         Ac = M[1:nx, 1:nx]
         Bc = M[1:nx, nx+1:nx+nu]
         if eltype(A) <: Real
