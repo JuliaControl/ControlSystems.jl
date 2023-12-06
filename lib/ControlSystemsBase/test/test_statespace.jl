@@ -159,10 +159,17 @@
 
         # Division
         @test 1/C_222_d == SS([-6 -3; 2 -11],[1 0; 0 2],[-1 0; -0 -1],[1 -0; 0 1])
-        @test C_221/C_222_d == SS([-5 -3 -1 0; 2 -9 -0 -2; 0 0 -6 -3;
-        0 0 2 -11],[1 0; 0 2; 1 0; 0 2],[1 0 0 0],[0 0])
+        @test hinfnorm((C_221/C_222_d) - SS([-5 -3 -1 0; 2 -9 -0 -2; 0 0 -6 -3;
+        0 0 2 -11],[1 0; 0 2; 1 0; 0 2],[1 0 0 0],[0 0]))[1] < 1e-10
         @test 1/D_222_d == SS([-0.8 -0.8; -0.8 -1.93],[1 0; 0 2],[-1 0; -0 -1],
         [1 -0; 0 1],0.005)
+
+        # Division when denominator inverse is non-proper but quotient is proper
+        G1 = tf([1], [1, 1])
+        G2 = tf([1], [1, 1, 1])
+        G1s = ss(G1)
+        G2s = ss(G2)
+        @test tf(G2s / G1s) ≈ G2 / G1
 
         fsys = ss(1,1,1,0)/3 # Int becomes FLoat after division
         @test fsys.B[]*fsys.C[] == 1/3
