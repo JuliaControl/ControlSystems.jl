@@ -378,7 +378,55 @@ end
 
 
 ## DIVISION ##
-/(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = sys1*inv(sys2)
+
+
+"""
+    /(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE}; atol::Real = 0, atol1::Real = atol, atol2::Real = atol, rtol::Real = max(size(sys1.A, 1), size(sys2.A, 1)) * eps(real(float(one(numeric_type(sys1))))) * iszero(min(atol1, atol2)))
+
+Compute `sys1 / sys2 = sys1 * inv(sys2)` in a way that tries to handle situations in which the inverse `sys2` is non-proper, but the resulting system `sys1 / sys2` is proper.
+
+See `ControlSystemsBase.MatrixPencils.isregular` for keyword arguments `atol`, `atol1`, `atol2`, and `rtol`.
+"""
+function Base.:(/)(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE}; 
+    atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = max(size(sys1.A,1),size(sys2.A,1))*eps(real(float(one(numeric_type(sys1)))))*iszero(min(atol1,atol2))) where {TE<:ControlSystemsBase.TimeEvolution}
+    T1 = float(numeric_type(sys1))
+    T2 = float(numeric_type(sys2))
+    T = promote_type(T1,T2)
+    timeevol = common_timeevol(sys1, sys2)
+    ny2, nu2 = sys2.ny, sys2.nu
+    nu2 == ny2  || error("The system sys2 must be square")
+    ny1, nu1 = sys1.ny, sys1.nu
+    nu1 == nu2  || error("The systems sys1 and sys2 must have the same number of inputs")
+    nx1 = sys1.nx
+    nx2 = sys2.nx
+    if nx2 > 0
+        A, B, C, D = ssdata([sys2; sys1])
+        Ai = [A B; C[1:ny2,:] D[1:ny2,:]]
+        Ei = [I zeros(T,nx1+nx2,ny2); zeros(T,ny2,nx1+nx2+ny2)] |> Matrix # TODO: rm call to Matrix when type piracy in https://github.com/JuliaLinearAlgebra/LinearMaps.jl/issues/219 is fixed
+        MatrixPencils.isregular(Ai, Ei; atol1, atol2, rtol) || 
+            error("The system sys2 is not invertible")
+        Ci = [C[ny2+1:ny1+ny2,:] D[ny2+1:ny1+ny2,:]]
+        Bi = [zeros(T,nx1+nx2,nu1); -I] |> Matrix # TODO: rm call to Matrix when type piracy in https://github.com/JuliaLinearAlgebra/LinearMaps.jl/issues/219 is fixed
+        Di = zeros(T,ny1,nu1)
+        Ai, Ei, Bi, Ci, Di = MatrixPencils.lsminreal(Ai, Ei, Bi, Ci, Di; fast = true, atol1 = 0, atol2, rtol, contr = true, obs = true, noseig = true)
+        if Ei != I
+            luE = lu!(Ei, check=false)
+            issuccess(luE) || throw(ArgumentError("The system sys2 is not invertible"))
+            Ai = luE\Ai
+            Bi = luE\Bi
+        end
+    else
+        D2 = T.(sys2.D)
+        LUD = lu(D2)
+        (norm(D2,Inf) <= atol1 || rcond(LUD.U) <= 10*nu1*eps(real(float(one(T))))) && 
+                error("The system sys2 is not invertible")
+        Ai, Bi, Ci, Di = ssdata(sys1)
+        rdiv!(Bi,LUD); rdiv!(Di,LUD)
+    end
+
+    return StateSpace{TE, T}(Ai, Bi, Ci, Di, timeevol) 
+end
 
 function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     # Ensure s.D is invertible
