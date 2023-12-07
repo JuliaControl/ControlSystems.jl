@@ -1,5 +1,5 @@
 # Analysis of sampled-data systems
-A sampled-data system contains both continuous-tiem and discrete-time components, such as a continuous-time plant and a discrete-time controller. In this example, we will look at how to analyze such systems using the ControlSystems.jl package. To learn more about the theory of sampled-data systems, consult the reference mentioned at the end of this page.
+A sampled-data system contains both continuous-time and discrete-time components, such as a continuous-time plant and a discrete-time controller. In this example, we will look at how to analyze such systems using the ControlSystems.jl package. To learn more about the theory of sampled-data systems, consult the reference mentioned at the end of this page.
 
 First, we analyze the effect of ZoH sampling in continuous time and compare it to the equivalent discrete-time system
 

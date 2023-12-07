@@ -19,6 +19,7 @@ tf
 zpk
 delay
 pade
+thiran
 ssdata
 ControlSystemsBase.seriesform
 ```
