@@ -49,8 +49,8 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src,lib/ControlSystemsBase/src
-        if: ${{ matrix.version == '1' && matrix.group == ControlSystemsBase }}
+        if: ${{ matrix.version == '1' && matrix.group == 'ControlSystemsBase' }}
       - uses: codecov/codecov-action@v3
-        if: ${{ matrix.version == '1' && matrix.group == ControlSystemsBase }}
+        if: ${{ matrix.version == '1' && matrix.group == 'ControlSystemsBase' }}
         with:
           file: lcov.info
