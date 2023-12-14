@@ -164,6 +164,13 @@ pd = c2d_poly2poly(A, 0.1)
     # rd = step(sys, 0:10)
     # rc = step(sysc_causal, 0:10)
     # @test rd.y ≈ rc.y atol = 1e-8
+
+    sys = ss(1,1)
+    sysc = d2c_exact(sys)
+    sysc2 = DelayLtiSystem(ss(1))
+    @test sysc.P.P ≈ sysc2.P.P
+    @test sysc.P.ny ≈ sysc2.P.ny
+    @test sysc.Tau ≈ sysc2.Tau
 end
 
 
