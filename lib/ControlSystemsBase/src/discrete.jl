@@ -143,6 +143,9 @@ This method of translation is useful when analyzing hybrid continuous/discrete s
 The resulting system will be be a static system in feedback with pure delays. When `method = :causal`, the delays will be positive, resulting in a causal system that can be simulated in the time domain. When `method = :acausal`, the delays will be negative, resulting in an acausal system that **can not** be simulated in the time domain. The acausal translation results in a smaller system with half as many delay elements in the feedback path.
 """
 function d2c_exact(sys::AbstractStateSpace{<:Discrete}, method=:causal)
+    if sys.nx == 0
+        return DelayLtiSystem(d2c(sys))
+    end
     T = sys.Ts
     A,B,C,D = ssdata(sys)
     if method === :acausal
