@@ -292,9 +292,11 @@ end
         else
             sbal = s
         end
-        mag, phase = bode(sbal, w; unwrap=false)[1:2]
+        mag, phase = bode(sbal, w; unwrap=false)
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
+        elseif 0 ∈ mag
+            replace!(mag, 0 => -Inf) # To prevent plot crashing when some magnitude is exactly zero
         end
 
         xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
