@@ -98,7 +98,7 @@
         @test C_111 .* C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
         @test Ref(ss(1)) .* [C_111, C_111] == [C_111, C_111]
 
-        if version >= v"1.10.0-rc2"
+        if VERSION >= v"1.10.0-rc1"
             @inferred C_111 * C_221
         else
             @test_broken @inferred C_111 * C_221
