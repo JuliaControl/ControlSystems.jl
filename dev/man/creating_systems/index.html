@@ -166,56 +166,56 @@ mimo = ssrand(2,2,2)
 @test_throws DimensionMismatch siso * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Test Passed</span></span>
       Thrown: DimensionMismatch</code></pre><p>To multiply <code>siso</code> with each output channel of <code>mimo</code> in the example above, use broadcasting:</p><pre><code class="language-julia hljs">siso .* mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -1.0   0.0   1.023887311050044   -0.17381095525291038
-  0.0  -1.0   0.9964686635964394   0.022742965032668365
-  0.0   0.0  -2.3912741182633117  -1.4860909001059914
-  0.0   0.0  -1.1978442476911275  -0.9694005813446871
+ -1.0   0.0   1.1906727379629172    -0.8571480154100088
+  0.0  -1.0   1.4029030343112414     0.08385698700795008
+  0.0   0.0  -0.046810640564475925   0.24897402470323954
+  0.0   0.0  -0.37527941873078363   -2.318248314951761
 B = 
- -0.9500751161221147    0.48258794633958063
- -0.20079378655561772  -0.41263924864751417
- -1.7558733182457336    1.2529567361875926
- -0.4807323968108343   -0.04014535630454371
+  0.48918961327761445  -0.7804071977998428
+  0.6093118272036083    2.0801948830680432
+ -0.08517829122425476  -0.2761962093841564
+  0.6662220880358811    0.8351299915157936
 C = 
  1.0  0.0  0.0  0.0
  0.0  1.0  0.0  0.0
 D = 
- -0.0  0.0
- -0.0  0.0
+ 0.0  0.0
+ 0.0  0.0
 
 Continuous-time state-space model</code></pre><p>This is equivalent to first expanding the SISO system into a diagonal system</p><pre><code class="language-julia hljs">using LinearAlgebra
 (siso .* I(2)) * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -1.0   0.0   1.023887311050044   -0.17381095525291038
-  0.0  -1.0   0.9964686635964394   0.022742965032668365
-  0.0   0.0  -2.3912741182633117  -1.4860909001059914
-  0.0   0.0  -1.1978442476911275  -0.9694005813446871
+ -1.0   0.0   1.1906727379629172    -0.8571480154100088
+  0.0  -1.0   1.4029030343112414     0.08385698700795008
+  0.0   0.0  -0.046810640564475925   0.24897402470323954
+  0.0   0.0  -0.37527941873078363   -2.318248314951761
 B = 
- -0.9500751161221147    0.48258794633958063
- -0.20079378655561772  -0.41263924864751417
- -1.7558733182457336    1.2529567361875926
- -0.4807323968108343   -0.04014535630454371
+  0.48918961327761445  -0.7804071977998428
+  0.6093118272036083    2.0801948830680432
+ -0.08517829122425476  -0.2761962093841564
+  0.6662220880358811    0.8351299915157936
 C = 
  1.0  0.0  0.0  0.0
  0.0  1.0  0.0  0.0
 D = 
- -0.0  0.0
- -0.0  0.0
+ 0.0  0.0
+ 0.0  0.0
 
 Continuous-time state-space model</code></pre><h3 id="Converting-an-array-of-systems-to-a-MIMO-system"><a class="docs-heading-anchor" href="#Converting-an-array-of-systems-to-a-MIMO-system">Converting an array of systems to a MIMO system</a><a id="Converting-an-array-of-systems-to-a-MIMO-system-1"></a><a class="docs-heading-anchor-permalink" href="#Converting-an-array-of-systems-to-a-MIMO-system" title="Permalink"></a></h3><p>Diagonal MIMO systems can be created from a vector of systems using <a href="../../lib/constructors/#ControlSystemsBase.append"><code>append</code></a></p><pre><code class="language-julia hljs">P1 = ssrand(1,1,1)
 P2 = ssrand(1,1,1)
 append(P1, P2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -2.324906641455228   0.0
-  0.0                -0.06185039531412839
+ -0.8147602679071297   0.0
+  0.0                 -0.11185006909554907
 B = 
- 0.19591669322949481  0.0
- 0.0                  2.2977014393299493
+ -0.7505545562985628  0.0
+  0.0                 0.5304249713269977
 C = 
- 0.6411621965980875  0.0
- 0.0                 0.366687593454803
+ 0.24459257368033657  0.0
+ 0.0                  1.2454615349865865
 D = 
- -0.25378643390608285   0.0
-  0.0                  -0.8679168835392513
+ -1.7410763056591356  0.0
+  0.0                 0.47499716881415094
 
 Continuous-time state-space model</code></pre><p>More general arrays of systems can be converted to a MIMO system using <a href="../../lib/synthesis/#ControlSystemsBase.array2mimo-Tuple{AbstractArray{&lt;:LTISystem}}"><code>array2mimo</code></a>.</p><pre><code class="language-julia hljs">sys_array = fill(P, 2, 2) # Creates an array of systems
 mimo_sys = array2mimo(sys_array)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
@@ -240,44 +240,44 @@ Continuous-time state-space model</code></pre><h3 id="Converting-MIMO-system-to-
 sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)&#39;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2×3 Matrix{StateSpace{Continuous, Float64}}:
  StateSpace{Continuous, Float64}
 A = 
- -0.6934482464539093
+ -0.23667447520699625
 B = 
- -1.6288011190815523
+ 0.3814270075271488
 C = 
- 1.4462732244255594
+ -0.31039033071226035
 D = 
- 0.6238728382014006
+ 0.9915916152944542
 
-Continuous-time state-space model    …  StateSpace{Continuous, Float64}
+Continuous-time state-space model  …  StateSpace{Continuous, Float64}
 A = 
- -0.6934482464539093
+ -0.23667447520699625
 B = 
- -2.198523612480974
+ -0.8114552358250637
 C = 
- 1.4462732244255594
+ -0.31039033071226035
 D = 
- -2.0763365123579005
+ 1.1272553559269654
 
 Continuous-time state-space model
  StateSpace{Continuous, Float64}
 A = 
- -0.6934482464539093
+ -0.23667447520699625
 B = 
- -1.6288011190815523
+ 0.3814270075271488
 C = 
- -0.26006712136965954
+ -1.2110864792268807
 D = 
- 0.5809230368960511
+ -0.4986118785401285
 
 Continuous-time state-space model     StateSpace{Continuous, Float64}
 A = 
- -0.6934482464539093
+ -0.23667447520699625
 B = 
- -2.198523612480974
+ -0.8114552358250637
 C = 
- -0.26006712136965954
+ -1.2110864792268807
 D = 
- 0.14081255825449215
+ 0.40522827753919793
 
 Continuous-time state-space model</code></pre><h3 id="Creating-arrays-with-different-types-of-systems"><a class="docs-heading-anchor" href="#Creating-arrays-with-different-types-of-systems">Creating arrays with different types of systems</a><a id="Creating-arrays-with-different-types-of-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-arrays-with-different-types-of-systems" title="Permalink"></a></h3><p>When calling <code>hcat/vcat</code>, Julia automatically tries to promote the types to the smallest common supertype, this means that creating an array with one continuous and one discrete-time system fails</p><pre><code class="language-julia hljs">P_cont = ssrand(2,3,1)
 P_disc = ssrand(2,3,1, Ts=1)
@@ -285,28 +285,28 @@ P_disc = ssrand(2,3,1, Ts=1)
       Thrown: ErrorException</code></pre><p>You can explicitly tell Julia that you want a particular supertype, e.g,</p><pre><code class="language-julia hljs">StateSpace[P_cont, P_disc]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{StateSpace}:
  StateSpace{Continuous, Float64}
 A = 
- -0.09176488142478945
+ -3.2074461800575857
 B = 
- -0.300308697631732  0.30553765414504264  1.6049979228350395
+ 0.6491261193436881  0.030250530253816653  1.5814689898821748
 C = 
- 1.2409001449303363
- 0.2933956391153748
+ 0.7627867022260938
+ 0.21234198594679876
 D = 
- -1.1296550261743714  1.056025356591106  0.7996233772395958
-  1.3291121178713914  1.375574960739042  1.15409593243561
+ 0.5087185210032407   0.42020529229792997   0.5228943969541068
+ 0.7750372799474621  -0.06753484532098207  -0.5315184304685202
 
 Continuous-time state-space model
  StateSpace{Discrete{Int64}, Float64}
 A = 
- 0.9
+ -0.9000000000000001
 B = 
- 1.7559844277199848  1.0003866582431618  -1.1183325906940542
+ 0.11703704201272565  0.806171623094463  0.4885876249995744
 C = 
-  1.0406774075398533
- -0.04705482136943548
+  0.150162031465215
+ -0.005102619833020032
 D = 
-  0.08761981645428606  1.7947276348518835  -0.5381925274175802
- -0.43176417428248     1.0155009579387528  -0.5385656218896775
+ 1.013312717626159   1.80355110150155      -0.3688987957768488
+ 1.0153253000282139  0.054383868426144295   0.008926664482481137
 
 Sample Time: 1 (seconds)
 Discrete-time state-space model</code></pre><p>The type <code>StateSpace</code> is abstract, since the type parameters are not specified.</p><h2 id="Demo-systems"><a class="docs-heading-anchor" href="#Demo-systems">Demo systems</a><a id="Demo-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Demo-systems" title="Permalink"></a></h2><p>The module <code>ControlSystemsBase.DemoSystems</code> contains a number of demo systems demonstrating different kinds of dynamics.</p><h2 id="From-block-diagrams-to-code"><a class="docs-heading-anchor" href="#From-block-diagrams-to-code">From block diagrams to code</a><a id="From-block-diagrams-to-code-1"></a><a class="docs-heading-anchor-permalink" href="#From-block-diagrams-to-code" title="Permalink"></a></h2><p>This section lists a number of block diagrams, and indicates the corresponding transfer functions and how they are built in code.</p><p>The function <code>feedback(G1, G2)</code> can be thought of like this: the first argument <code>G1</code> is the system that appears directly between the input and the output (the <em>forward path</em>), while the second argument <code>G2</code> (defaults to 1 if omitted) contains all other systems that appear in the closed loop (the <em>feedback path</em>). The feedback is assumed to be negative, unless the argument <code>pos_feedback = true</code> is passed (<code>lft</code> is an exception, which due to convention defaults to positive feedback). This means that <code>feedback(G, 1)</code> results in unit negative feedback, while <code>feedback(G, -1)</code> or <code>feedback(G, 1, pos_feedback = true)</code> results in unit positive feedback.</p><hr/><p>Closed-loop system from reference to output</p><pre><code class="nohighlight hljs">r   ┌─────┐     ┌─────┐
@@ -401,4 +401,4 @@ uF  │       │ │  │       ├──────►         │ yC │  uP
 fs = 100
 df = digitalfilter(Bandpass(5, 10; fs), Butterworth(2))
 G = tf(df, 1/fs) # Sample time must be provided in the conversion to get the correct frequency scale in the Bode plot
-bodeplot(G, xscale=:identity, yscale=:identity, hz=true)</code></pre><img src="5c5b5c4d.svg" alt="Example block output"/><p>See also</p><ul><li><a href="../../lib/constructors/#ControlSystemsBase.seriesform"><code>ControlSystemsBase.seriesform</code></a></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../numerical/">Performance considerations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Friday 15 December 2023 06:44">Friday 15 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+bodeplot(G, xscale=:identity, yscale=:identity, hz=true)</code></pre><img src="7e2f4e65.svg" alt="Example block output"/><p>See also</p><ul><li><a href="../../lib/constructors/#ControlSystemsBase.seriesform"><code>ControlSystemsBase.seriesform</code></a></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../numerical/">Performance considerations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Friday 15 December 2023 07:00">Friday 15 December 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
