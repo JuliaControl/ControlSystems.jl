@@ -103,7 +103,11 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test minreal(C_111.*C_222 - C_222.*C_111, 1e-3) == tf(ss(0*I(2))) # scalar times MIMO
 @test C_111 .* C_222 == (C_111 .* I(2)) * C_222
 
-@test_broken @inferred C_111 .* I(2)
+if version >= v"1.10.0-rc2"
+  @inferred C_111 .* I(2)
+else
+  @test_broken @inferred C_111 .* I(2)
+end
 
 C_111_d = tf(ssrand(1,1,2))
 M = ones(2,2)
