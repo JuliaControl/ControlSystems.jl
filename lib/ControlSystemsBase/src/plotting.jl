@@ -274,7 +274,7 @@ function _get_plotlabel(s, i, j)
     end
 end
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true, parallel=false)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
@@ -292,7 +292,7 @@ end
         else
             sbal = s
         end
-        mag, phase = bode(sbal, w; unwrap=false)
+        mag, phase = bode(sbal, w; unwrap=false, parallel)
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         elseif 0 ∈ mag

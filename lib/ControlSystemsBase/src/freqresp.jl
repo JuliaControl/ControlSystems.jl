@@ -16,7 +16,7 @@ end
 
 Generate a workspace object for use with the in-place function [`bodemag!`](@ref).
 `N` is the number of frequency points, alternatively, the input `ω` can be provided instead of `N`.
-Note: for threaded applications, create one workspace object per thread. 
+Note: for threaded applications, create one workspace object per thread.
 
 # Arguments:
 - `mag`: The output array ∈ 𝐑(ny, nu, nω)
@@ -31,67 +31,110 @@ end
 
 BodemagWorkspace(sys::LTISystem, ω::AbstractVector) = BodemagWorkspace(sys, length(ω))
 
-function freqresp(sys::LTISystem, w::Real)
-    # Create imaginary freq vector s
-    if iscontinuous(sys)
-        s = im*w
-    else
-        s = cis(w*sys.Ts)
-    end
-    evalfr(sys, s)
-end
-
-freqresp(G::Union{UniformScaling, AbstractMatrix, Number}, w::Real) = G
-
 """
-    sys_fr = freqresp(sys, w)
+    freqresp(sys, ω)
+    freqresp(sys, ωs)
+    freqresp(sys::LTISystem, ωs::AbstractVector; parallel::Bool=false)
 
 Evaluate the frequency response of a linear system
 
 `w -> C*((iw*im*I - A)^-1)*B + D`
 
-of system `sys` over the frequency vector `w`.
+of system `sys` over the frequency `ω` or the frequency vector `ωs`.
+
+If `sys` is a [`LTISystem`](@ref) and `parallel` is true, the evaluation is done in parallel over
+`Threads.nthreads()` threads. This is useful for large ωs vectors and/or large systems.
 """
-@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{W}) where W <: Real
-    te = timeevol(sys)
-    ny,nu = noutputs(sys), ninputs(sys)
-    T = promote_type(Complex{real(numeric_type(sys))}, Complex{W})
-    R = Array{T, 3}(undef, ny, nu, length(w_vec))
-    freqresp!(R, sys, w_vec)
+freqresp(G::Union{UniformScaling,AbstractMatrix,Number}, _::Real) = G
+
+@autovec () freqresp(G::AbstractMatrix, ωs::AbstractVector{<:Real}) = repeat(G, 1, 1, length(ωs))
+
+@autovec () freqresp(G::Number, ωs::AbstractVector{<:Real}) = fill(G, 1, 1, length(ωs))
+
+function freqresp(sys::LTISystem, ω::Real)
+    # Create imaginary freq vector s
+    if iscontinuous(sys)
+        s = im * ω
+    else
+        s = cis(ω * sys.Ts)
+    end
+    evalfr(sys, s)
 end
 
+@autovec () function freqresp(sys::LTISystem, ωs::AbstractVector{W}; parallel::Bool=false) where {W<:Real}
+    ny, nu = noutputs(sys), ninputs(sys)
+    T = promote_type(Complex{real(numeric_type(sys))}, Complex{W})
+    R = Array{T,3}(undef, ny, nu, length(ωs))
+
+    if parallel
+        freqresp_parall!(R, sys, ωs)
+    else
+        freqresp!(R, sys, ωs)
+    end
+end
+
+
 """
-    freqresp!(R::Array{T, 3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
+    freqresp!(R::Array{T,3}, sys::LTISystem, ωs::AbstractVector{<:Real})
+    freqresp!(R::Array{T,3}, sys::TransferFunction, ωs::AbstractVector{<:Real})
 
 In-place version of [`freqresp`](@ref) that takes a pre-allocated array `R` of size (ny, nu, nw)`
+
+See also [`freqresp_parall!`](@ref) for a parallel version.
 """
-function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real}) where T
+function freqresp!(R::Array{T,3}, sys::LTISystem, ωs::AbstractVector{<:Real}) where {T}
     te = sys.timeevol
-    ny,nu = noutputs(sys), ninputs(sys)
-    @boundscheck size(R) == (ny,nu,length(w_vec))
-    @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
-        R[yi,ui,wi] = evalfr(sys[yi,ui], _freq(w_vec[wi], te))[]
+    ny, nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny, nu, length(ωs))
+    @inbounds for wi = eachindex(ωs), ui = 1:nu, yi = 1:ny
+        R[yi, ui, wi] = evalfr(sys[yi, ui], _freq(ωs[wi], te))[]
     end
     R
 end
 
-function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<:Real}) where T
+function freqresp!(R::Array{T,3}, sys::TransferFunction, ωs::AbstractVector{<:Real}) where {T}
     te = sys.timeevol
-    ny,nu = noutputs(sys), ninputs(sys)
-    @boundscheck size(R) == (ny,nu,length(w_vec))
-    @inbounds for wi = eachindex(w_vec), ui = 1:nu, yi = 1:ny
-        R[yi,ui,wi] = evalfr(sys.matrix[yi,ui], _freq(w_vec[wi], te))
+    ny, nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny, nu, length(ωs))
+    @inbounds for wi = eachindex(ωs), ui = 1:nu, yi = 1:ny
+        R[yi, ui, wi] = evalfr(sys.matrix[yi, ui], _freq(ωs[wi], te))
     end
     R
 end
 
-@autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
-    repeat(G, 1, 1, length(w_vec))
+"""
+    freqresp_parall!(R::Array{T,3}, sys::LTISystem, ωs::AbstractVector{<:Real})
+    freqresp_parall!(R::Array{T,3}, sys::TransferFunction, ωs::AbstractVector{<:Real})
+
+Parallel version of [`freqresp!`](@ref). Runs in parallel over the frequency vector `ωs`
+using [`Threads.@threads`](@ref).
+
+See also [`freqresp!`](@ref) for a non-parallel version.
+"""
+function freqresp_parall!(R::Array{T,3}, sys::LTISystem, ωs::AbstractVector{<:Real}) where {T}
+    te = sys.timeevol
+    ny, nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny, nu, length(ωs))
+    Threads.@threads for wi = eachindex(ωs)
+        @inbounds for ui = 1:nu, yi = 1:ny
+            R[yi, ui, wi] = evalfr(sys[yi, ui], _freq(ωs[wi], te))[]
+        end
+    end
+    R
 end
 
-@autovec () function freqresp(G::Number, w_vec::AbstractVector{<:Real})
-    fill(G, 1, 1, length(w_vec))
+function freqresp_parall!(R::Array{T,3}, sys::TransferFunction, ωs::AbstractVector{<:Real}) where {T}
+    te = sys.timeevol
+    ny, nu = noutputs(sys), ninputs(sys)
+    @boundscheck size(R) == (ny, nu, length(ωs))
+    Threads.@threads for wi = eachindex(ωs)
+        @inbounds for ui = 1:nu, yi = 1:ny
+            R[yi, ui, wi] = evalfr(sys.matrix[yi, ui], _freq(ωs[wi], te))
+        end
+    end
+    R
 end
+
 
 _freq(w, ::Continuous) = complex(0, w)
 _freq(w, te::Discrete) = cis(w*te.Ts)
@@ -117,7 +160,7 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
     end
     A = F.H
     C = complex.(sys.C*Q) # We make C complex in order to not incur allocations in mul! below
-    B = Q\sys.B 
+    B = Q\sys.B
     D = sys.D
 
     te = sys.timeevol
@@ -139,16 +182,16 @@ end
 
 #=
 Custom implementation of hessenberg ldiv to allow reuse of u and cs
-With this method, the following benchmark goes from 
+With this method, the following benchmark goes from
 (100017 allocations: 11.48 MiB) # before
-to 
+to
 (17 allocations: 35.45 KiB)     # after
 
 w = exp10.(LinRange(-2, 2, 50000))
 G = ssrand(2,2,3)
 R = freqresp(G, w);
 @btime ControlSystemsBase.freqresp!($R, $G, $w);
-=# 
+=#
 function ldiv2!(u, cs, F::UpperHessenberg, B::AbstractVecOrMat; shift::Number=false)
     LinearAlgebra.checksquare(F)
     m = size(F,1)
@@ -243,11 +286,11 @@ end
 
 """
     evalfr(sys, x)
-    
-Evaluate the transfer function of the LTI system sys
-at the complex number s=x (continuous-time) or z=x (discrete-time).
 
-For many values of `x`, use `freqresp` instead.
+Evaluate the transfer function of the LTI system sys
+at the complex number ``s=x`` (continuous-time) or ``z=x`` (discrete-time).
+
+See also [`freqresp`](@ref) for evaluating the frequency response at multiple points.
 """
 function evalfr(sys::AbstractStateSpace, s::Number)
     T = _evalfr_return_type(sys, s)
@@ -264,7 +307,7 @@ function evalfr(G::TransferFunction{<:TimeEvolution,<:SisoTf}, s::Number)
     map(m -> evalfr(m,s), G.matrix)
 end
 
-evalfr(G::Union{UniformScaling, AbstractMatrix, Number}, s) = G
+evalfr(G::Union{UniformScaling, AbstractMatrix, Number}, _) = G
 
 """
 `F(s)`, `F(omega, true)`, `F(z, false)`
@@ -296,20 +339,27 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
 end
 
 """
-    mag, phase, w = bode(sys[, w]; unwrap=true)
+    mag, phase, w = bode(sys[, w]; unwrap=true; parallel=false)
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`. See also [`bodeplot`](@ref)
 
 `mag` and `phase` has size `(ny, nu, length(w))`.
-If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
+
+## Arguments
+- `sys`: the system to evaluate
+- `w`: the frequency vector.
+If not provided, a default vector is generated based on the system poles and zeros.
+- `unwrap::Bool`: if true (default), the phase angles will be unwrapped.
+This procedure is costly and can be avoided if the unwrapping is not required.
+- `parallel::Bool`: if true, the evaluation is done in parallel over `Threads.nthreads()` threads.
 
 For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
-""" 
-@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
-    resp = freqresp(sys, w)
+"""
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true, parallel::Bool=false)
+    resp = freqresp(sys, w; parallel=parallel)
     angles = angle.(resp)
-    unwrap && unwrap!(angles,3)
+    unwrap && unwrap!(angles, 3)
     @. angles = rad2deg(angles)
     return abs.(resp), angles, w
 end
@@ -345,7 +395,7 @@ end
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`. See also [`nyquistplot`](@ref)
 
-`re` and `im` has size `(ny, nu, length(w))`""" 
+`re` and `im` has size `(ny, nu, length(w))`"""
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
@@ -358,7 +408,7 @@ end
 Compute the singular values `sv` of the frequency response of system `sys` at
 frequencies `w`. See also [`sigmaplot`](@ref)
 
-`sv` has size `(min(ny, nu), length(w))`""" 
+`sv` has size `(min(ny, nu), length(w))`"""
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     ny, nu = size(sys)
@@ -384,8 +434,7 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
     return exp10.(range(w1, stop=w2, length=nw))
 end
-_default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
-        [sys], plot)
+_default_freq_vector(sys::LTISystem, plot) = _default_freq_vector([sys], plot)
 
 
 function _bounds_and_features(sys::LTISystem, plot::Val)
