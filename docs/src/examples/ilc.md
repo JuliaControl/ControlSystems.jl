@@ -134,7 +134,8 @@ The next step is to implement the ILC scheme and run it:
 ```@example ilc
 function ilc(Gc, Q, L)
     a = zero(r) # ILC adjustment signal starts at 0
-    fig = plot(t, vec(r), sp=1, layout=(3,1), l=(:black, 3), lab="Ref")
+    fig1 = plot(t, vec(r), sp=1, layout=(3,1), l=(:black, 3), lab="Ref")
+    fig2 = plot(title="Sum of squared error", xlabel="Iteration", legend=false, titlefontsize=10, framestyle=:zerolines, ylims=(0, 7.1))
     for iter = 1:5
         ra = r .+ a
         res = lsim(Gc, ra, t) # Simulate system, replaced by an actual experiment if running on real process
@@ -143,10 +144,12 @@ function ilc(Gc, Q, L)
         Le = lsim_noncausal(L, e, t)
         a  = lsim_zerophase(Q, a + Le, t) # Update ILC adjustment
 
-        plot!(res, plotu=true, sp=[1 2], title=["Output \$y(t)\$" "Adjusted reference \$r + a\$"], lab="Iter $iter", c=iter)
-        plot!(e[:], sp=3, title="Tracking error \$e(t)\$", lab="err: $(round(sum(abs2, e), digits=2))", c=iter)
+        err = sum(abs2, e)
+        plot!(fig1, res, plotu=true, sp=[1 2], title=["Output \$y(t)\$" "Adjusted reference \$r + a\$"], lab="Iter $iter", c=iter)
+        plot!(fig1, e[:], sp=3, title="Tracking error \$e(t)\$", lab="err: $(round(err, digits=2))", c=iter)
+        scatter!(fig2, [iter], [err])
     end
-    fig
+    plot(fig1, fig2, layout=@layout([a{0.7w} b{0.3w}]))
 end
 ilc(Gc, Q, L)
 ```
