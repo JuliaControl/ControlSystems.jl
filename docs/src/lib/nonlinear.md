@@ -113,7 +113,7 @@ yr    = G.C*xr  # Reference output
 Gop   = offset(yr) * G * offset(-ur) # Make the plant operate in Δ-coordinates 
 C_sat = saturation(umin, umax) * C   # while the controller and the saturation operate in the original coordinates
 ```
-We now simulate the closed-loop system, the initial state of the plant is adjusted with the operating point `x0-xr` since the plant operates in Δ-coordinates 
+We now simulate the closed-loop system, the initial state of the plant is adjusted with the operating point `x0-xr` since the plant operates in Δ-coordinates
 ```@example nonlinear
 x0 = [2, 1, 8, 3] # Initial tank levels
 plot(
@@ -122,6 +122,8 @@ plot(
 )
 hline!([yr[1]], label="Reference", l=:dash, sp=1, c=1)
 ```
+
+The state vector resulting from the call to `feedback` is comprised of the concatenated states of the first and second arguments, i.e., `feedback(C_sat, Gop)` has the state vector `[C_sat.x; Gop.x]` while `feedback(Gop*C_sat)` has the state vector of `Gop*C_sat` which is starting with the first operand, `[Gop.x; C_sat.x]`.
 
 
 ### Duffing oscillator

@@ -180,6 +180,9 @@ P1 = ss(-1,1,1,0)
 P2 = ss(-2,1,1,0)
 P2*P1
 ```
+
+The state of the resulting system is the concatenation of the states of the two systems, starting with the left/first operand (`P2` above).
+
 If the input dimension of `P2` does not match the output dimension of `P1`, an error is thrown. If one of the systems is SISO and the other is MIMO, broadcasted multiplication will expand the SISO system to match the input or output dimension of the MIMO system, e.g.,
 ```@example MIMO
 Pmimo = ssrand(2,2,1)
@@ -194,6 +197,12 @@ using LinearAlgebra
 Psiso .* I(2)
 ```
 
+## Adding systems
+Two systems can be connected in parallel by addition
+```@example MIMO
+P12 = P1 + P2
+```
+The state of the resulting system is the concatenation of the states of the two systems, starting with the left/first operand (`P1` above).
 
 ## MIMO systems and arrays of systems
 Concatenation of systems creates MIMO systems, which is different from an array of systems. For example
@@ -266,6 +275,8 @@ The module `ControlSystemsBase.DemoSystems` contains a number of demo systems de
 This section lists a number of block diagrams, and indicates the corresponding transfer functions and how they are built in code.
 
 The function `feedback(G1, G2)` can be thought of like this: the first argument `G1` is the system that appears directly between the input and the output (the *forward path*), while the second argument `G2` (defaults to 1 if omitted) contains all other systems that appear in the closed loop (the *feedback path*). The feedback is assumed to be negative, unless the argument `pos_feedback = true` is passed (`lft` is an exception, which due to convention defaults to positive feedback). This means that `feedback(G, 1)` results in unit negative feedback, while `feedback(G, -1)` or `feedback(G, 1, pos_feedback = true)` results in unit positive feedback.
+
+The returned closed-loop system will have a state vector comprised of the state of `G1` followed by the state of `G2`.
 
 ---
 Closed-loop system from reference to output

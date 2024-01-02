@@ -1,5 +1,5 @@
 # Iterative-Learning Control
-In this example, we will design an [Iterative-Learning Control (ILC)](https://en.wikipedia.org/wiki/Iterative_learning_control) iteration scheme. ILC can be though of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
+In this example, we will design an [Iterative-Learning Control (ILC)](https://en.wikipedia.org/wiki/Iterative_learning_control) iteration scheme. ILC can be thought of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
 
 ## Algorithm
 
@@ -102,7 +102,7 @@ nothing # hide
 ```
 
 ## Choosing filters
-The next step is to define the ILC filters ``Q(x)`` and ``L(z)``.
+The next step is to define the ILC filters ``Q(q)`` and ``L(q)``.
 
 The filter $L(q)$ acts as a frequency-dependent step size. To make the procedure take smaller steps, simply scale $L$ by a constant < 1. Scaling down $L$ makes the learning process slower but more robust. A heuristic choice of $L$ is some form of scaled lookahead, such as $0.5z^l$ where $l \geq 0$ is the number of samples lookahead. A model-based approach may use some form of inverse of the system model, which is what we will use here. [^nonlinear]
 

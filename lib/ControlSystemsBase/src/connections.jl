@@ -288,6 +288,7 @@ end
            └──────────────┘
 ```
 If no second system `sys2` is given, negative identity feedback (`sys2 = 1`) is assumed.
+The returned closed-loop system will have a state vector comprised of the state of `sys1` followed by the state of `sys2`.
 
 *Advanced use*
 `feedback` also supports more flexible use according to the figure below
