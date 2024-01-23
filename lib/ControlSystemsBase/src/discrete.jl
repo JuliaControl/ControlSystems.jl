@@ -209,6 +209,7 @@ cc = sol.u[end][end] # Continuous-time cost
 # Discrete-time version
 Ts = 0.01 
 sysd = c2d(sysc, Ts)
+Qd, Rd = c2d(sysd, Qc, Rc, opt=:c)
 Ld = lqr(sysd, Qd, Rd)
 sold = lsim(sysd, (x, t) -> -Ld*x, 0:Ts:10, x0 = x0)
 function cost(x, u, Q, R)
