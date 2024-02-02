@@ -231,6 +231,11 @@ _processfreqplot(plottype, system::LTISystem, args...) =
     _processfreqplot(plottype, [system], args...)
 # Catch when system is not vector, with and without frequency input
 
+_processfreqplot(plottype, systems::AbstractVector{<:LTISystem},
+    t::Tuple{Real,Real}, freq::Real) =
+    _processfreqplot(plottype, systems, _tuple_to_vec(t, freq))
+
+
 # Catch correct form
 function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem},
             w = _default_freq_vector(systems, plottype))

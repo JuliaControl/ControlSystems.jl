@@ -296,13 +296,27 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
 end
 
 """
-    mag, phase, w = bode(sys[, w]; unwrap=true)
+    mag, phase, w = bode(sys; unwrap=true)
+    mag, phase, w = bode(sys, w; unwrap=true)
+    mag, phase, w = bode(sys, (w1, w2); freq=100, unwrap=true)
 
-Compute the magnitude and phase parts of the frequency response of system `sys`
-at frequencies `w`. See also [`bodeplot`](@ref)
+Compute the magnitude and phase parts of the frequency response of system `sys`. 
 
-`mag` and `phase` has size `(ny, nu, length(w))`.
-If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
+If the frequency vector is not provided, it is automatically generated based on 
+the poles and zeros of the system.
+
+If a frequency vector is provided, the magnitude and phase are computed at the
+frequencies in the vector.
+
+If a frequency range is provided, the magnitude and phase are computed at `freq`
+logarithmically spaced points per decade between `w1` and `w2`.
+
+If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. 
+This procedure is costly and can be avoided if the unwrapping is not required.
+
+`mag` and `phase` have size `(ny, nu, length(w))`.
+
+To plot a Bode diagram, see [`bodeplot`](@ref).
 
 For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
 """ 
@@ -313,8 +327,10 @@ For higher performance, see the function [`bodemag!`](@ref) that computes the ma
     @. angles = rad2deg(angles)
     return abs.(resp), angles, w
 end
-@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem, w::Tuple{<:Real,<:Real}, freq=100; unwrap=true) =
+    bode(sys, _tuple_to_vec(w, freq), unwrap=unwrap)
 
+@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
 # Performance difference between bode and bodemag for tf. Note how expensive the phase unwrapping is.
 # using ControlSystemsBase
 # G = tf(ssrand(2,2,5))
