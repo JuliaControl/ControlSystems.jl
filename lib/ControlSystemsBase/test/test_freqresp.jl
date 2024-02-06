@@ -173,6 +173,9 @@ mag, mag, ws2 = bode(sys2)
 @test maximum(ws2) >= 5max(p,z)
 @test minimum(ws2) <= 0.2min(p,z)
 @test length(ws2) > 100
+
+@test margin(tf(1, [1, -1], 0.01)).gm == [2;;]
+
 end
 
 
@@ -205,3 +208,4 @@ end
 # f2 = plot(sizes, last.(times1), scale=:log10, lab="Allocations freqresp", m=:o)
 # plot!(sizes, last.(times2), scale=:log10, lab="Allocations freqresp_large", xlabel="Model order", m=:o)
 # plot(f1, f2)
+

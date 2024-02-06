@@ -382,7 +382,11 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     w2 = maximum(maximum, bounds)
 
     nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
-    return exp10.(range(w1, stop=w2, length=nw))
+    w = exp10.(range(w1, stop=w2, length=nw))
+    if length(systems) == 1 && isdiscrete(systems[1])
+        w[end] = π/systems[1].Ts # To account for numerical rounding problems from exp(log())
+    end
+    w
 end
 _default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
         [sys], plot)
