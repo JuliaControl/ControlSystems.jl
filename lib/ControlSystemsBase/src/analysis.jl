@@ -410,18 +410,19 @@ See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https:
 function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
     ny, nu = size(sys)
 
+    T = float(numeric_type(sys))
     if allMargins
-        wgm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        gm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        wpm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        pm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        fullPhase   = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        wgm         = Array{Array{T,1}}(undef, ny,nu)
+        gm          = Array{Array{T,1}}(undef, ny,nu)
+        wpm         = Array{Array{T,1}}(undef, ny,nu)
+        pm          = Array{Array{T,1}}(undef, ny,nu)
+        fullPhase   = Array{Array{T,1}}(undef, ny,nu)
     else
-        wgm         = Array{numeric_type(sys),2}(undef, ny, nu)
-        gm          = Array{numeric_type(sys),2}(undef, ny, nu)
-        wpm         = Array{numeric_type(sys),2}(undef, ny, nu)
-        pm          = Array{numeric_type(sys),2}(undef, ny, nu)
-        fullPhase   = Array{numeric_type(sys),2}(undef, ny, nu)
+        wgm         = Array{T,2}(undef, ny, nu)
+        gm          = Array{T,2}(undef, ny, nu)
+        wpm         = Array{T,2}(undef, ny, nu)
+        pm          = Array{T,2}(undef, ny, nu)
+        fullPhase   = Array{T,2}(undef, ny, nu)
     end
     for j=1:nu
         for i=1:ny
