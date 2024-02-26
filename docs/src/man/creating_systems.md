@@ -84,7 +84,21 @@ The transfer functions created using this method will be of type `TransferFuncti
 
 
 ## State-Space Systems
-A state-space system is created using
+A state-space system
+```math
+\begin{aligned}
+\dot{x} &= Ax + Bu \\
+y &= Cx + Du
+\end{aligned}
+```
+in continuous time, or
+```math
+\begin{aligned}
+x_{t+T_s} &= Ax_t + Bu_t \\
+y_t &= Cx_t + Du_t
+\end{aligned}
+```
+in discrete time, is created using
 ```julia
 ss(A,B,C,D)    # Continuous-time system
 ss(A,B,C,D,Ts) # Discrete-time system
