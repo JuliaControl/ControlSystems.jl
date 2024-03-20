@@ -124,13 +124,11 @@ export  LTISystem,
 
 
 # QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using RecipesBase, LaTeXStrings, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
-import LinearAlgebra: BlasFloat
 
 export lyap # Make sure LinearAlgebra.lyap is available
 export plyap
@@ -138,12 +136,25 @@ import Printf
 import Printf: @printf, @sprintf
 import DSP
 import DSP: conv
-using ForwardDiff
 import MatrixPencils
-using MacroTools
-using MatrixEquations
-using UUIDs # to load Plots in gangoffourplot
-using StaticArraysCore, Polyester
+
+## Explicit Imports
+# ExplicitImports.print_explicit_imports(ControlSystemsBase; show_locations=false)
+using ForwardDiff: ForwardDiff
+using LaTeXStrings: LaTeXStrings, @L_str, latexstring
+using LinearAlgebra: LinearAlgebra, Adjoint, Diagonal, I, LAPACK, Symmetric,
+                     UniformScaling, UpperHessenberg, cholesky, cond, diag,
+                     diagind, diagm, eigen, eigvals, factorize, hessenberg,
+                     ishermitian, isposdef, issuccess, lmul!, lu, lu!, lyap,
+                     mul!, norm, opnorm, pinv, qr, rank, rdiv!, schur, svd!,
+                     svdvals, tr
+using MacroTools: MacroTools
+using MatrixEquations: MatrixEquations, arec, ared, lyapc, lyapd
+using Polyester: Polyester
+using PrecompileTools: PrecompileTools
+using RecipesBase: RecipesBase, @recipe, @series, @userplot
+using StaticArraysCore: StaticArraysCore, SArray, SMatrix, SVector, SizedArray
+using UUIDs: UUIDs # to load Plots in gangoffourplot
 
 abstract type AbstractSystem end
 
