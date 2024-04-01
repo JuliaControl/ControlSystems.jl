@@ -2,7 +2,7 @@ name = "ControlSystems"
 uuid = "a6e380b2-a6ca-5380-bf3e-84a91bcd477e"
 authors = ["Dept. Automatic Control, Lund University"]
 repo = "https://github.com/JuliaControl/ControlSystems.jl.git"
-version = "1.10.1"
+version = "1.10.2"
 
 [deps]
 ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
@@ -26,7 +26,7 @@ DelayDiffEq = "5.31"
 DiffEqCallbacks = "2.16"
 ForwardDiff = "0.10"
 Hungarian = "0.6, 0.7"
-OrdinaryDiffEq = "~6.60"
+OrdinaryDiffEq = "6.60"
 RecipesBase = "1"
 Reexport = "1"
 StaticArrays = "1"
