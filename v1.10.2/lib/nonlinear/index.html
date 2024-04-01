@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Nonlinear · ControlSystems.jl</title><meta name="title" content="Nonlinear · ControlSystems.jl"/><meta property="og:title" content="Nonlinear · ControlSystems.jl"/><meta property="twitter:title" content="Nonlinear · ControlSystems.jl"/><meta name="description" content="Documentation for ControlSystems.jl."/><meta property="og:description" content="Documentation for ControlSystems.jl."/><meta property="twitter:description" content="Documentation for ControlSystems.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="ControlSystems.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">ControlSystems.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Introductory guide</span><ul><li><a class="tocitem" href="../../man/introduction/">Introduction</a></li><li><a class="tocitem" href="../../man/creating_systems/">Creating Systems</a></li><li><a class="tocitem" href="../../man/numerical/">Performance considerations</a></li><li><a class="tocitem" href="../../man/differences/">Noteworthy differences from other languages</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../examples/example/">Design</a></li><li><a class="tocitem" href="../../examples/analysis/">Analysis</a></li><li><a class="tocitem" href="../../examples/smith_predictor/">Smith predictor</a></li><li><a class="tocitem" href="../../examples/ilc/">Iterative Learning Control (ILC)</a></li><li><a class="tocitem" href="../../examples/delay_systems/">Properties of delay systems</a></li><li><a class="tocitem" href="../../examples/automatic_differentiation/">Automatic differentiation</a></li><li><a class="tocitem" href="../../examples/tuning_from_data/">Tune a controller using experimental data</a></li><li><a class="tocitem" href="../../examples/zoh/">Analysis of sampled-data (continuous/discrete) systems</a></li></ul></li><li><span class="tocitem">Functions</span><ul><li><a class="tocitem" href="../constructors/">Constructors</a></li><li><a class="tocitem" href="../analysis/">Analysis</a></li><li><a class="tocitem" href="../synthesis/">Synthesis</a></li><li><a class="tocitem" href="../timefreqresponse/">Time and Frequency response</a></li><li><a class="tocitem" href="../plotting/">Plotting</a></li><li class="is-active"><a class="tocitem" href>Nonlinear</a><ul class="internal"><li><a class="tocitem" href="#Examples"><span>Examples</span></a></li><li><a class="tocitem" href="#Limitations"><span>Limitations</span></a></li><li><a class="tocitem" href="#Possible-future-work"><span>Possible future work</span></a></li><li><a class="tocitem" href="#See-also"><span>See also</span></a></li><li><a class="tocitem" href="#Docstrings"><span>Docstrings</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Functions</a></li><li class="is-active"><a href>Nonlinear</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Nonlinear</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaControl/ControlSystems.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaControl/ControlSystems.jl/blob/master/docs/src/lib/nonlinear.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Nonlinear-functionality"><a class="docs-heading-anchor" href="#Nonlinear-functionality">Nonlinear functionality</a><a id="Nonlinear-functionality-1"></a><a class="docs-heading-anchor-permalink" href="#Nonlinear-functionality" title="Permalink"></a></h1><div class="admonition is-danger"><header class="admonition-header">Experimental</header><div class="admonition-body"><p>The nonlinear interface is currently experimental and at any time subject to breaking changes not respecting semantic versioning. </p></div></div><p>ControlSystems.jl can represent nonlinear feedback systems that can be written on the form</p><pre><code class="nohighlight hljs">      ┌─────────┐
+ y◄───┤         │◄────u
+      │    P    │
+Δy┌───┤         │◄───┐Δu
+  │   └─────────┘    │
+  │                  │
+  │      ┌───┐       │
+  └─────►│ f ├───────┘
+         └───┘</code></pre><p>i.e., as a linear-fractional transform (LFT) between a linear system <span>$P$</span> and a diagonal matrix with scalar non-linear functions <span>$f$</span>. This representation is identical to that used for delay systems, and is exposed to the user in a similar way as well. The main entry point is the function <a href="#ControlSystemsBase.nonlinearity"><code>nonlinearity</code></a> which takes a nonlinear function <span>$f$</span> like so, <code>nonlinearity(f)</code>. This creates a primitive system containing only the nonlinearity, but which behaves like a standard <code>LTISystem</code> during algebraic operations. We illustrate its usage through a number of examples.</p><h2 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h2><h3 id="Control-signal-saturation"><a class="docs-heading-anchor" href="#Control-signal-saturation">Control-signal saturation</a><a id="Control-signal-saturation-1"></a><a class="docs-heading-anchor-permalink" href="#Control-signal-saturation" title="Permalink"></a></h3><p>To create a controller that saturates the output at <span>$\pm 0.7$</span>, we call</p><pre><code class="language-julia hljs">using ControlSystems, Plots
+using ControlSystemsBase: nonlinearity # This functionality is not exported due to the beta status
+
+C    = pid(1, 0.1, form=:parallel)                  # A standard PI controller
+nl   = nonlinearity(x-&gt;clamp(x, -0.7, 0.7)) # a saturating nonlinearity
+satC = nl*C # Connect the saturation at the output of C</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ControlSystemsBase.HammersteinWienerSystem{Float64}
+
+P: StateSpace{Continuous, Float64}
+A = 
+ 0.0
+B = 
+ 0.25  0.0
+C = 
+ 0.0
+ 0.4
+D = 
+ 0.0  1.0
+ 1.0  0.0
+
+Continuous-time state-space model
+
+Nonlinearities: Function[Main.var&quot;#1#2&quot;()]</code></pre><p>we may now use this controller like we would normally do in ControlSystems, e.g.,</p><pre><code class="language-julia hljs">P   = tf(1, [1, 1])    # a plant
+G   = feedback(P*C)    # closed loop without nonlinearity
+Gnl = feedback(P*satC) # closed loop with saturation
+
+Gu   = feedback(C, P)    # closed loop from reference to control signal without nonlinearity
+Gunl = feedback(satC, P) # closed loop from reference to control signal with saturation
+
+plot(step([G; Gu], 5), lab = [&quot;Linear y&quot; &quot;Linear u&quot;])
+plot!(step([Gnl; Gunl], 5), lab = [&quot;Nonlinear y&quot; &quot;Nonlinear u&quot;])</code></pre><img src="c933c2e9.svg" alt="Example block output"/><p>Since the saturating nonlinearity is common, we provide the constructor <a href="#ControlSystemsBase.saturation"><code>ControlSystemsBase.saturation</code></a> that automatically forms the equivalent to <code>nonlinearity(x-&gt;clamp(x, -0.7, 0.7))</code> while at the same time making sure the function has a recognizable name when the system is printed</p><pre><code class="language-julia hljs">using ControlSystemsBase: saturation
+saturation(0.7)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ControlSystemsBase.HammersteinWienerSystem{Float64}
+
+P: StateSpace{Continuous, Float64}
+D = 
+ 0.0  1.0
+ 1.0  0.0
+
+Continuous-time state-space model
+
+Nonlinearities: Function[saturation(0.7)]</code></pre><p>See also <a href="#ControlSystemsBase.ratelimit"><code>ControlSystemsBase.ratelimit</code></a> that saturates the derivative of a signal.</p><h3 id="Non-zero-operating-point"><a class="docs-heading-anchor" href="#Non-zero-operating-point">Non-zero operating point</a><a id="Non-zero-operating-point-1"></a><a class="docs-heading-anchor-permalink" href="#Non-zero-operating-point" title="Permalink"></a></h3><p>It&#39;s common to linearize nonlinear systems around some operating point. We may make use of the helper constructor <a href="#ControlSystemsBase.offset"><code>ControlSystemsBase.offset</code></a> to create affine functions at the inputs and outputs of the linearized system to, e.g.,</p><ol><li>Make sure that simulations result are given in the original coordinates rather than in the coordinates of the linearization point.</li><li>Allow nonlinearities that are added back after the linearization (such as saturations) to operate with their original parameters.</li></ol><p>We will demonstrate a composite usage of <code>offset</code> and <code>saturation</code> below. The system we&#39;ll consider is a linearized model of a quadruple-tank process;</p><p>The system is linearized around the operating point</p><pre><code class="language-julia hljs">xr = [10, 10, 4.9, 4.9] # reference state
+ur = [0.263, 0.263]     # control input at the operating point</code></pre><p>and is given by</p><pre><code class="language-julia hljs">using LinearAlgebra
+kc, k1, k2, g = 0.5, 1.6, 1.6, 9.81
+A1 = A3 = A2 = A4 = 4.9
+a1, a3, a2, a4 = 0.03, 0.03, 0.03, 0.03
+h01, h02, h03, h04 = xr
+T1, T2 = (A1/a1)sqrt(2*h01/g), (A2/a2)sqrt(2*h02/g)
+T3, T4 = (A3/a3)sqrt(2*h03/g), (A4/a4)sqrt(2*h04/g)
+c1, c2 = (T1*k1*kc/A1), (T2*k2*kc/A2)
+γ1, γ2 = 0.3, 0.3
+
+# Define the process dynamics
+A = [-1/T1     0 A3/(A1*T3)          0
+        0     -1/T2          0 A4/(A2*T4)
+        0         0      -1/T3          0
+        0         0          0      -1/T4]
+B = [γ1*k1/A1     0
+        0                γ2*k2/A2
+        0                (1-γ2)k2/A3
+        (1-γ1)k1/A4 0              ]
+
+C = kc*[I(2) 0*I(2)] # Measure the first two tank levels
+D = 0
+G = ss(A,B,C,D)</code></pre><p>A PID controller with a filter is given by</p><pre><code class="language-julia hljs">F = tf(1, [0.63, 1.12, 1])
+Cpid = pid(0.26, 0.001, 15.9, form=:parallel)*F |&gt; ss</code></pre><p>and to make the controller MIMO, we add a static pre-compensator that decouples the system at the the zero frequency.</p><pre><code class="language-julia hljs">iG0 = dcgain(G)
+iG0 ./= maximum(abs, iG0)
+C = (Cpid .* I(2)) * iG0</code></pre><p>The pumps (there are two of them) that service the tanks can only add liquid to the tanks, not remove liquid. The pump is thus saturated from below at 0, and from above at the maximum pump capacity 0.4. </p><pre><code class="language-julia hljs">using ControlSystemsBase: offset
+umin = [0.0, 0.0]
+umax = [0.4, 0.4]
+
+yr    = G.C*xr  # Reference output
+Gop   = offset(yr) * G * offset(-ur) # Make the plant operate in Δ-coordinates
+C_sat = saturation(umin, umax) * C   # while the controller and the saturation operate in the original coordinates</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">ControlSystemsBase.HammersteinWienerSystem{Float64}
+
+P: StateSpace{Continuous, Float64}
+A = 
+ 0.0   0.015625             0.0                0.0   0.0                  0.0
+ 0.0   0.0                  1.0                0.0   0.0                  0.0
+ 0.0  -1.5873015873015872  -1.777777777777778  0.0   0.0                  0.0
+ 0.0   0.0                  0.0                0.0   0.015625             0.0
+ 0.0   0.0                  0.0                0.0   0.0                  1.0
+ 0.0   0.0                  0.0                0.0  -1.5873015873015872  -1.777777777777778
+B = 
+ 0.0                 0.0                 0.0  0.0
+ 0.0                 0.0                 0.0  0.0
+ 1.7142857142857144  4.0                 0.0  0.0
+ 0.0                 0.0                 0.0  0.0
+ 0.0                 0.0                 0.0  0.0
+ 4.0                 1.7142857142857144  0.0  0.0
+C = 
+ 0.0                   0.0                  0.0                0.0                   0.0                  0.0
+ 0.0                   0.0                  0.0                0.0                   0.0                  0.0
+ 0.025396825396825397  0.10317460317460318  6.309523809523809  0.0                   0.0                  0.0
+ 0.0                   0.0                  0.0                0.025396825396825397  0.10317460317460318  6.309523809523809
+D = 
+ 0.0  0.0  1.0  0.0
+ 0.0  0.0  0.0  1.0
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+
+Continuous-time state-space model
+
+Nonlinearities: Function[saturation(0.0, 0.4), saturation(0.0, 0.4)]</code></pre><p>We now simulate the closed-loop system, the initial state of the plant is adjusted with the operating point <code>x0-xr</code> since the plant operates in Δ-coordinates</p><pre><code class="language-julia hljs">x0 = [2, 1, 8, 3] # Initial tank levels
+plot(
+    plot(lsim(feedback(Gop*C_sat), yr, 0:1:3000, x0=[x0-xr; zeros(C.nx)]), layout=1, sp=1, title=&quot;Outputs&quot;, ylabel=&quot;&quot;),
+    plot(lsim(feedback(C_sat, Gop), yr, 0:1:3000, x0=[zeros(C.nx); x0-xr]), layout=1, sp=1, title=&quot;Control signals&quot;, ylabel=&quot;&quot;)
+)
+hline!([yr[1]], label=&quot;Reference&quot;, l=:dash, sp=1, c=1)</code></pre><img src="c593565d.svg" alt="Example block output"/><p>The state vector resulting from the call to <code>feedback</code> is comprised of the concatenated states of the first and second arguments, i.e., <code>feedback(C_sat, Gop)</code> has the state vector <code>[C_sat.x; Gop.x]</code> while <code>feedback(Gop*C_sat)</code> has the state vector of <code>Gop*C_sat</code> which is starting with the first operand, <code>[Gop.x; C_sat.x]</code>.</p><h3 id="Duffing-oscillator"><a class="docs-heading-anchor" href="#Duffing-oscillator">Duffing oscillator</a><a id="Duffing-oscillator-1"></a><a class="docs-heading-anchor-permalink" href="#Duffing-oscillator" title="Permalink"></a></h3><p>In this example, we&#39;ll model and control the nonlinear system</p><p class="math-container">\[\ddot x = -kx - k_3 x^3 - c \dot{x} + 10u\]</p><p>To do this, we first draw the block diagram</p><pre><code class="nohighlight hljs">10u    ┌───┐
+──────►│+  │   ┌───┐   ┌───┐
+ ┌────►│-  │ ẍ │ 1 │ ẋ │ 1 │ x
+ │ ┌──►│-  ├──►│ - ├┬─►│ - ├─┬──►
+ │ │ ┌►│-  │   │ s ││  │ s │ │
+ │ │ │ └───┘   └───┘│  └───┘ │
+ │ │ │              │        │
+ │ │ │   ┌───┐      │        │
+ │ │ └───┤ c │◄─────┘        │
+ │ │     └───┘               │
+ │ │                         │
+ │ │     ┌───┐               │
+ │ └─────┤ k │◄──────────────┤
+ │       └───┘               │
+ │                           │
+ │       ┌───┐   ┌───┐       │
+ └───────┤ k³│◄──┤ x³│◄──────┘
+         └───┘   └───┘</code></pre><p>We see that the input <span>$u$</span> passes through the inner velocity loop before reaching the output <span>$x$</span>, we can form this inner closed-loop transfer function using <code>feedback(1/s, c)</code>, i.e., close the loop over an integrator by <span>$-c$</span>. This inner loop is then connected in series with another integrator an feedback loop is closed with <span>$k_3 x^3 + kx =$</span> <code>pos_loop_feedback</code> in the feedback path. Notice how we multiply the final system with 10 from the right to get the input gain correct, for nonlinear systems, <code>10*sys</code> and <code>sys*10</code> are not always equivalent!</p><pre><code class="language-julia hljs">using ControlSystems, Plots
+using ControlSystemsBase: nonlinearity
+k  = 10
+k3 = 2
+c  = 1
+
+s = tf(&quot;s&quot;)
+
+cube = nonlinearity(x-&gt;x^3)
+vel_loop = feedback(1/s, c)
+pos_loop_feedback = (k3*cube + k)
+duffing = feedback(vel_loop/s, pos_loop_feedback)*10
+
+plot(step(duffing, 20), title=&quot;Duffing oscillator open-loop step response&quot;)</code></pre><img src="6c5b0087.svg" alt="Example block output"/><p>We now show how we can make use of the circle criterion to prove stability of the closed loop. The function <code>circle_criterion</code> below plots the Nyquist curve of the loop-transfer function and figures out the circle to avoid by finding sector bounds for the static nonlinearity <span>$f(x) = x^3$</span>. We then choose a controller and check that it stays outside of the circle. To find the sector bounds, we choose a domain to evaluate the nonlinearity over. The function <span>$f(x) = x^3$</span> goes to infinity faster than any linear function, and the upper sector bound is thus ∞, but if we restrict the nonlinearity to a smaller domain, we get a finite sector bound:</p><pre><code class="language-julia hljs">function circle_criterion(L::ControlSystemsBase.HammersteinWienerSystem, domain::Tuple; N=10000)
+    fun = x-&gt;L.f[](x)/x
+    x = range(domain[1], stop=domain[2], length=N)
+    0 ∈ x &amp;&amp; (x = filter(!=(0), x)) # We cannot divide by zero
+    k1, k2 = extrema(fun, x)
+
+    f1 = plot(L.f[], domain[1], domain[2], title=&quot;Nonlinearity&quot;, lab=&quot;f(x)&quot;, xlab=&quot;x&quot;)
+    plot!(x, [k1.*x k2.*x], lab=[&quot;k1 = $(round(k1, sigdigits=2))&quot; &quot;k2 = $(round(k2, sigdigits=2))&quot;], l=(:dash), legend=:bottomright)
+
+    p1 = -1/k2 # Close to origin
+    p2 = -1/k1 # Far from origin
+
+    c = (p1 + p2)/2
+    r = (p2 - p1)/2
+
+    Lnominal = sminreal(ss(L.A, L.B1, L.C1, L.D11, L.P.timeevol))
+    f2 = nyquistplot(Lnominal)
+    if p2 &lt; -1000 # Due to bug in plots
+        vspan!([-1000, p1], fillalpha=0.7, c=:red, primary=false)
+    else
+        th = 0:0.01:2pi
+        Cs,Ss = cos.(th), sin.(th)
+        plot!(r.*Cs .+ c, r.*Ss, fill=true, fillalpha=0.7, c=:red, primary=false)
+    end
+
+    plot(f1,f2)
+end
+
+
+C = pid(2, 0, 1, form=:parallel)*tf(1, [0.01,1])
+f1 = circle_criterion(duffing*C, (-1, 1))
+plot!(sp=2, ylims=(-10, 3), xlims=(-5, 11))
+f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title=&quot;Controlled oscillator disturbance step response&quot;, layout=4)
+plot(f1,f2, size=(1300,800))</code></pre><img src="4ba8e14a.svg" alt="Example block output"/><p>Since we evaluated the nonlinearity over a small domain, we should convince ourselves that we indeed never risk leaving this domain. </p><p>In the example above, the circle turns into a half plane since the lower sector bound is 0. The example below chooses another nonlinearity</p><p class="math-container">\[f(x) = x + \sin(x)\]</p><p>to get an actual circle in the Nyquist plane.</p><pre><code class="language-julia hljs">wiggly = nonlinearity(x-&gt;x+sin(x)) # This function is a bit wiggly
+vel_loop = feedback(1/s, c)
+pos_loop_feedback = (k3*wiggly + k)
+duffing = feedback(vel_loop/s, pos_loop_feedback)*10
+
+C = pid(2, 5, 1, form=:parallel)*tf(1,[0.1, 1])
+f1 = circle_criterion(duffing*C, (-2pi, 2pi))
+plot!(sp=2, ylims=(-5, 2), xlims=(-2.1, 0.1))
+f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title=&quot;Controlled wiggly oscillator disturbance step response&quot;, layout=5)
+plot(f1,f2, size=(1300,800))</code></pre><img src="289d5a99.svg" alt="Example block output"/><h2 id="Limitations"><a class="docs-heading-anchor" href="#Limitations">Limitations</a><a id="Limitations-1"></a><a class="docs-heading-anchor-permalink" href="#Limitations" title="Permalink"></a></h2><ul><li>Remember, this functionality is experimental and subject to breakage.</li><li>Currently only <code>Continuous</code> systems supported.</li><li>No nonlinear root-finding is performed during simulation. This limits the kinds of systems that can be simulated somewhat, in particular, no algebraic loops are allowed. </li><li>A lot of functions that expect linear systems will not work for nonlinear systems (naturally).</li></ul><h2 id="Possible-future-work"><a class="docs-heading-anchor" href="#Possible-future-work">Possible future work</a><a id="Possible-future-work-1"></a><a class="docs-heading-anchor-permalink" href="#Possible-future-work" title="Permalink"></a></h2><ul><li>Discrete-time support.</li><li>Basic support for nonlinear analysis such as stability proof through the circle criterion etc. In particular, predefined nonlinear functions may specify sector bounds for the gain, required by the circle-criterion calculations.</li><li>Additional nonlinear components, such as <ul><li>Integrator anti-windup</li><li>Friction models</li></ul></li></ul><h2 id="See-also"><a class="docs-heading-anchor" href="#See-also">See also</a><a id="See-also-1"></a><a class="docs-heading-anchor-permalink" href="#See-also" title="Permalink"></a></h2><p>More advanced nonlinear modeling is facilitated by <a href="https://github.com/SciML/ModelingToolkit.jl/">ModelingToolkit.jl</a> (MTK) and <a href="https://docs.sciml.ai/ModelingToolkitStandardLibrary/stable/">ModelingToolkitStandardLibrary.jl</a>. The tutorials </p><ul><li><a href="https://help.juliahub.com/juliasimcontrol/dev/examples/mtk_control/">Modeling for control using ModelingToolkit</a></li><li><a href="https://help.juliahub.com/juliasimcontrol/dev/examples/mtk_disturbance_modeling/">Disturbance modeling in ModelingToolkit</a></li><li><a href="https://help.juliahub.com/juliasimcontrol/dev/linear_analysis/#Example:-Modal-analysis-of-a-series-of-masses-and-springs">Modal analysis of a series of masses and springs using MTK</a></li></ul><p>show how to use these packages to model and simulate control systems.</p><h2 id="Docstrings"><a class="docs-heading-anchor" href="#Docstrings">Docstrings</a><a id="Docstrings-1"></a><a class="docs-heading-anchor-permalink" href="#Docstrings" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ControlSystemsBase.nonlinearity" href="#ControlSystemsBase.nonlinearity"><code>ControlSystemsBase.nonlinearity</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">nonlinearity(f)
+nonlinearity(T, f)</code></pre><p>Create a pure nonlinearity. <code>f</code> is assumed to be a static (no memory) nonlinear function from <span>$f : R -&gt; R$</span>.</p><p>The type <code>T</code> defaults to <code>Float64</code>.</p><p>NOTE: The nonlinear functionality in ControlSystemsBase.jl is currently experimental and subject to breaking changes not respecting semantic versioning. Use at your own risk.</p><p><strong>Example:</strong></p><p>Create a LTI system with a static input nonlinearity that saturates the input to [-1,1].</p><pre><code class="language-julia hljs">tf(1, [1, 1])*nonlinearity(x-&gt;clamp(x, -1, 1))</code></pre><p>See also predefined nonlinearities <a href="#ControlSystemsBase.saturation"><code>saturation</code></a>, <a href="#ControlSystemsBase.offset"><code>offset</code></a>.</p><p>Note: when composing linear systems with nonlinearities, it&#39;s often important to handle operating points correctly. See <a href="#ControlSystemsBase.offset"><code>ControlSystemsBase.offset</code></a> for handling operating points.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/types/HammersteinWiener.jl#L96-L117">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ControlSystemsBase.offset" href="#ControlSystemsBase.offset"><code>ControlSystemsBase.offset</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">offset(val)</code></pre><p>Create a constant-offset nonlinearity <code>x -&gt; x + val</code>.</p><p>NOTE: The nonlinear functionality in ControlSystemsBase.jl is currently experimental and subject to breaking changes not respecting semantic versioning. Use at your own risk.</p><p><strong>Example:</strong></p><p>To create a linear system that operates around operating point <code>y₀, u₀</code>, use</p><pre><code class="language-julia hljs">offset_sys = offset(y₀) * sys * offset(-u₀)</code></pre><p>note the sign on the offset <code>u₀</code>. This ensures that <code>sys</code> operates in the coordinates <code>Δu = u-u₀, Δy = y-y₀</code> and the inputs and outputs to the offset system are in their non-offset coordinate system. If the system is linearized around <code>x₀</code>, <code>y₀</code> is given by <code>C*x₀</code>. Additional information and an example is available here https://juliacontrol.github.io/ControlSystemsBase.jl/latest/lib/nonlinear/#Non-zero-operating-point</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/nonlinear_components.jl#L47-L61">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ControlSystemsBase.saturation" href="#ControlSystemsBase.saturation"><code>ControlSystemsBase.saturation</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">saturation(val)
+saturation(lower, upper)</code></pre><p>Create a saturating nonlinearity. Connect it to the output of a controller <code>C</code> using</p><pre><code class="nohighlight hljs">Csat = saturation(val) * C</code></pre><pre><code class="nohighlight hljs">           y▲   ────── upper
+            │  /
+            │ /
+            │/
+  ──────────┼────────► u
+           /│   
+          / │
+         /  │
+lower──── </code></pre><p>NOTE: The nonlinear functionality in ControlSystemsBase.jl is currently experimental and subject to breaking changes not respecting semantic versioning. Use at your own risk.</p><p>Note: when composing linear systems with nonlinearities, it&#39;s often important to handle operating points correctly. See <a href="#ControlSystemsBase.offset"><code>ControlSystemsBase.offset</code></a> for handling operating points.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/nonlinear_components.jl#L9-L34">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ControlSystemsBase.ratelimit" href="#ControlSystemsBase.ratelimit"><code>ControlSystemsBase.ratelimit</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">ratelimit(val; Tf)
+ratelimit(lower, upper; Tf)</code></pre><p>Create a nonlinearity that limits the rate of change of a signal, roughly equivalent to <span>$1/s ∘ sat ∘ s$</span>. <code>Tf</code> controls the filter time constant on the derivative used to calculate the rate.  NOTE: The nonlinear functionality in ControlSystemsBase.jl is currently experimental and subject to breaking changes not respecting semantic versioning. Use at your own risk.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/nonlinear_components.jl#L71-L77">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ControlSystemsBase.deadzone" href="#ControlSystemsBase.deadzone"><code>ControlSystemsBase.deadzone</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">deadzone(val)
+deadzone(lower, upper)</code></pre><p>Create a dead-zone nonlinearity.</p><pre><code class="nohighlight hljs">       y▲
+        │     /
+        │    /
+  lower │   /
+─────|──┼──|───────► u
+    /   │   upper
+   /    │
+  /     │</code></pre><p>NOTE: The nonlinear functionality in ControlSystemsBase.jl is currently experimental and subject to breaking changes not respecting semantic versioning. Use at your own risk.</p><p>Note: when composing linear systems with nonlinearities, it&#39;s often important to handle operating points correctly. See <a href="#ControlSystemsBase.offset"><code>ControlSystemsBase.offset</code></a> for handling operating points.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/nonlinear_components.jl#L110-L131">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ControlSystemsBase.linearize" href="#ControlSystemsBase.linearize"><code>ControlSystemsBase.linearize</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">linearize(sys::HammersteinWienerSystem, Δy)</code></pre><p>Linearize the nonlinear system <code>sys</code> around the operating point implied by the specified Δy</p><pre><code class="nohighlight hljs">      ┌─────────┐
+ y◄───┤         │◄────u
+      │    P    │
+Δy┌───┤         │◄───┐Δu
+  │   └─────────┘    │
+  │                  │
+  │      ┌───┐       │
+  │      │   │       │
+  └─────►│ f ├───────┘
+         │   │
+         └───┘</code></pre><p>NOTE: The nonlinear functionality in ControlSystemsBase.jl is currently experimental and subject to breaking changes not respecting semantic versioning. Use at your own risk.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/hammerstein_weiner.jl#L11-L29">source</a></section><section><div><pre><code class="language-julia hljs">A, B = linearize(f, x, u, args...)</code></pre><p>Linearize dynamics <span>$ẋ = f(x, u, args...)$</span> around operating point <span>$(x,u,args...)$</span> using ForwardDiff. <code>args</code> can be empty, or contain, e.g., parameters and time <code>(p, t)</code> like in the SciML interface. This function can also be used to linearize an output equation <code>C, D = linearize(h, x, u, args...)</code>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaControl/ControlSystems.jl/blob/475758a12f2d85340410e683d92060bc1f0bb060/lib/ControlSystemsBase/src/hammerstein_weiner.jl#L35-L40">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../plotting/">« Plotting</a><a class="docs-footer-nextpage" href="../../api/">API »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.3.0 on <span class="colophon-date" title="Monday 1 April 2024 11:55">Monday 1 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
