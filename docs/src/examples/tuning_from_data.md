@@ -112,7 +112,7 @@ gangoffourplot(P, CF)
 
 The gang of four indicates that we have a robust tuning, no uncomfortably large peaks appears in either ``T`` or ``S``.
 
-Below, we attempt a pole-placement design for comparison. Contrary to the PID controller, a pole-placement controller _can_ place all poles of this system arbitrarily (the system is _controllable_, which can be verified using the function [`controllability`](@ref)).
+Below, we attempt a pole-placement design for comparison. Contrary to the PID controller, a state-feedback controller designed using pole placement _can_ place all poles of this system arbitrarily (the system is _controllable_, which can be verified using the function [`controllability`](@ref)).
 
 
 ## Pole placement

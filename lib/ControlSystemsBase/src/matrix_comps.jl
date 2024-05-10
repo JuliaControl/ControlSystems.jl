@@ -635,6 +635,11 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
         S = S[S .>= S[1]*rtol]
         n = length(S)
     else
+        n > sys.nx && error("n too large. A state dimension of n = $n was requested, but the original system has a $(sys.nx)-dimensional state.")
+        if length(S) < n
+            @error("n too large. A state dimension of n = $n was requested, but after a balanced realization was computed only $(length(S)) dimensions remain. Try either calling `minreal` before calling `baltrunc`, or try balancing the model using `balance_statespace`. Returning a system with n = $(length(S))")
+            n = length(S)
+        end
         S = S[1:n]
     end
     i1 = 1:n
