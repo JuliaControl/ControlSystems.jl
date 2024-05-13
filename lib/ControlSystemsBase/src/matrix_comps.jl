@@ -592,7 +592,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
     U,Σ,V = SV
 
     # Determine the order of a minimal realization to √ϵ tolerance
-    rmin = count(Σ .> sqrt(eps())*Σ[1])
+    rmin = count(Σ .> sqrt(eps(eltype(Σ)))*Σ[1])
     i1 = 1:rmin
     Σ = Σ[i1]
 
