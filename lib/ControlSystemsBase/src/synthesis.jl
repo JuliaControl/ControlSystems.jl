@@ -78,7 +78,7 @@ end
     kalman(Discrete, A, C, R1, R2; direct = false)
     kalman(sys, R1, R2; direct = false)
 
-Calculate the optimal Kalman gain.
+Calculate the optimal asymptotic Kalman gain.
 
 If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: "Computer-Controlled Systems" pp 140. `direct = false` is sometimes referred to as a "delayed" estimator, while `direct = true` is a "current" estimator.
 
