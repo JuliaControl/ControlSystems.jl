@@ -491,15 +491,14 @@ function Base.adjoint(sys::ST) where ST <: AbstractStateSpace{Continuous}
 end
 
 function Base.adjoint(sys::ST) where ST <: AbstractStateSpace{<:Discrete}
-       nx, ny, nu = sys.nx, sys.ny, sys.nu
-       T = numeric_type(sys)
-       return basetype(ST)(
-            [sys.A' sys.C'; zeros(T,ny,nx+ny)], 
-            [zeros(T,nx,ny) ; -I], 
-            [sys.B' zeros(T,nu,ny)], copy(sys.D'),
-            sys.timeevol
-        ) 
-    end
+    nx, ny, nu = sys.nx, sys.ny, sys.nu
+    T = numeric_type(sys)
+    return basetype(ST)(
+        [sys.A' sys.C'; zeros(T,ny,nx+ny)], 
+        [zeros(T,nx,ny) ; -I], 
+        [sys.B' zeros(T,nu,ny)], copy(sys.D'),
+        sys.timeevol
+    ) 
  end
 
 
