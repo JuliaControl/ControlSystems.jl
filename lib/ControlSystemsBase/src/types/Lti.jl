@@ -8,11 +8,11 @@ function *(sys1::LTISystem, sys2::LTISystem)
     catch e
         e isa ImproperException || rethrow()
         if sys1 isa AbstractStateSpace && sys2 isa TransferFunction
-            issiso(sys2) || rethrow() # Can't invert MINO tf
+            issiso(sys2) || rethrow() # Can't invert MIMO tf
             zeroexcess(sys2) <= sys1.nx || rethrow() # Quotient can't be proper
             Q = sys1 / ss(inv(sys2))
         elseif sys1 isa TransferFunction && sys2 isa AbstractStateSpace
-            issiso(sys1) || rethrow() # Can't invert MINO tf
+            issiso(sys1) || rethrow() # Can't invert MIMO tf
             zeroexcess(sys1) <= sys2.nx || rethrow() # Quotient can't be proper
             Q = ss(inv(sys1)) \ sys2
         else
