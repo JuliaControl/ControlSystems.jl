@@ -177,7 +177,7 @@ Hd = zpk([], [1, 0.5], 1.0, h)
 
 
 # Error, not proper
-@test_throws ErrorException ss(tf([1,0],[1]))
+@test_throws ControlSystemsBase.ImproperException ss(tf([1,0],[1]))
 
 s1 = HeteroStateSpace(zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1))
 s2 = HeteroStateSpace(zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1))
