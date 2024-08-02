@@ -1,7 +1,30 @@
 abstract type LTISystem{TE<:TimeEvolution} <: AbstractSystem end
 +(sys1::LTISystem, sys2::LTISystem) = +(promote(sys1, sys2)...)
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
-*(sys1::LTISystem, sys2::LTISystem) = *(promote(sys1, sys2)...)
+function *(sys1::LTISystem, sys2::LTISystem)
+    zeroexcess(sys) = length(numvec(sys)[]) - length(denvec(sys)[])
+    try
+        *(promote(sys1, sys2)...)
+    catch e
+        e isa ImproperException || rethrow()
+        if sys1 isa AbstractStateSpace && sys2 isa TransferFunction
+            issiso(sys2) || rethrow() # Can't invert MINO tf
+            zeroexcess(sys2) <= sys1.nx || rethrow() # Quotient can't be proper
+            Q = sys1 / ss(inv(sys2))
+        elseif sys1 isa TransferFunction && sys2 isa AbstractStateSpace
+            issiso(sys1) || rethrow() # Can't invert MINO tf
+            zeroexcess(sys1) <= sys2.nx || rethrow() # Quotient can't be proper
+            Q = ss(inv(sys1)) \ sys2
+        else
+            rethrow()
+        end
+        Q = balance_statespace(Q)[1]
+        if max(maximum(abs, Q.A), maximum(abs, Q.B), maximum(abs, Q.C), maximum(abs, Q.D)) > 1e7
+            @warn "Possible numerical instability detected: Multiplication of a statespace system and a non-proper transfer function may result in numerical inaccuracy. Verify result carefully, and consider making use of DescriptorSystems.jl to represent this product as a DescriptorSystem with non-unit descriptor matrix if result is inaccurate."
+        end
+        return Q
+    end
+end
 /(sys1::LTISystem, sys2::LTISystem) = /(promote(sys1, sys2)...)
 
 # Fallback number
