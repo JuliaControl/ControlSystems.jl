@@ -175,6 +175,8 @@
         G2s = ss(G2)
         @test tf(G2s / G1s) ≈ G2 / G1
 
+        @test tf(G1s \ G2s) ≈ G2 / G1
+
         fsys = ss(1,1,1,0)/3 # Int becomes FLoat after division
         @test fsys.B[]*fsys.C[] == 1/3
 

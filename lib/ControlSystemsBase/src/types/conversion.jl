@@ -86,10 +86,14 @@ function Base.convert(::Type{StateSpace}, G::TransferFunction{TE,<:SisoTf{T0}}; 
     convert(StateSpace{TE,T}, G; kwargs...)
 end
 
+struct ImproperException <: Exception end
+
+Base.showerror(io::IO, e::ImproperException) = print(io, "System is improper, a state-space representation is impossible")
+
 # Note: balancing is only applied by default for floating point types, integer systems are not balanced since that would change the type. 
 function Base.convert(::Type{StateSpace{TE,T}}, G::TransferFunction; balance=!(T <: Union{Integer, Rational, ForwardDiff.Dual})) where {TE,T<:Number}
     if !isproper(G)
-        error("System is improper, a state-space representation is impossible")
+        throw(ImproperException())
     end
 
     ny, nu = size(G)

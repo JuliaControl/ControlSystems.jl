@@ -428,6 +428,47 @@ function Base.:(/)(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE};
     return StateSpace{TE, T}(Ai, Bi, Ci, Di, timeevol) 
 end
 
+function Base.:(\)(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE}; 
+    atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = max(size(sys1.A,1),size(sys2.A,1))*eps(real(float(one(numeric_type(sys1)))))*iszero(min(atol1,atol2))) where {TE<:ControlSystemsBase.TimeEvolution}
+    T1 = float(numeric_type(sys1))
+    T2 = float(numeric_type(sys2))
+    T = promote_type(T1,T2)
+    timeevol = common_timeevol(sys1, sys2)
+    ny2, nu2 = sys2.ny, sys2.nu
+    nu2 == ny2  || error("The system sys2 must be square")
+    ny1, nu1 = sys1.ny, sys1.nu
+    nu1 == nu2  || error("The systems sys1 and sys2 must have the same number of inputs")
+    nx1 = sys1.nx
+    nx2 = sys2.nx
+    if nx2 > 0
+        A, B, C, D = ssdata([sys1 sys2])
+        Ai = [A B[:,1:nu1]; C D[:,1:nu1]]
+        Ei = [I zeros(T,nx1+nx2,nu1); zeros(T,nu1,nx1+nx2+nu1)] |> Matrix # TODO: rm call to Matrix when type piracy in https://github.com/JuliaLinearAlgebra/LinearMaps.jl/issues/219 is fixed
+        MatrixPencils.isregular(Ai, Ei; atol1, atol2, rtol) || 
+            error("The system sys1 is not invertible")
+        Bi = [B[:,nu1+1:nu1+nu2]; D[:,nu1+1:nu1+nu2]]
+        Ci = [zeros(T,ny1,nx1+nx2) -I] 
+        Di = zeros(T,ny1,nu2)
+        Ai, Ei, Bi, Ci, Di = MatrixPencils.lsminreal(Ai, Ei, Bi, Ci, Di; fast = true, atol1 = 0, atol2, rtol, contr = true, obs = true, noseig = true)
+        if Ei != I
+            luE = lu!(Ei, check=false)
+            issuccess(luE) || throw(ArgumentError("The system sys1 is not invertible"))
+            Ai = luE\Ai
+            Bi = luE\Bi
+        end
+    else
+        D1 = T.(sys1.D)
+        LUD = lu(D1)
+        (norm(D1,Inf) <= atol1 || rcond(LUD.U) <= 10*nu1*eps(real(float(one(T))))) && 
+                error("The system sys1 is not invertible")
+        Ai, Bi, Ci, Di = ssdata(sys2)
+        ldiv!(LUD, Ci); ldiv!(LUD, Di)
+    end
+
+    return StateSpace{TE, T}(Ai, Bi, Ci, Di, timeevol) 
+end
+
 function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     # Ensure s.D is invertible
     A, B, C, D = ssdata(sys)
@@ -443,6 +484,22 @@ end
 Base.inv(sys::AbstractStateSpace) = 1/sys
 /(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B/n, sys.C, sys.D/n, sys.timeevol)
 Base.:\(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
+
+
+function Base.adjoint(sys::ST) where ST <: AbstractStateSpace{Continuous}
+    return basetype(ST)(-sys.A', -sys.C', sys.B', sys.D') 
+end
+
+function Base.adjoint(sys::ST) where ST <: AbstractStateSpace{<:Discrete}
+    nx, ny, nu = sys.nx, sys.ny, sys.nu
+    T = numeric_type(sys)
+    return basetype(ST)(
+        [sys.A' sys.C'; zeros(T,ny,nx+ny)], 
+        [zeros(T,nx,ny) ; -I], 
+        [sys.B' zeros(T,nu,ny)], copy(sys.D'),
+        sys.timeevol
+    ) 
+ end
 
 
 #####################################################################
