@@ -57,6 +57,12 @@ x0 = [1,0]
 y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
+
+# FAQ
+This function requires
+- `Q` must be positive semi-definite
+- `R` must be positive definite
+- The pair `(Q,A)` must not have any unobservable modes on the imaginary axis (cont) / unit circle (disc), e.g., there must not be any integrating modes that are not penalized by `Q`. if this condition does not hold, you may get the error "The Hamiltonian matrix is not dichotomic".
 """
 function lqr(::ContinuousType, A, B, Q, R, args...; kwargs...)
     S, _, K = arec(A, B, R, Q, args...; kwargs...)
@@ -87,6 +93,12 @@ To obtain a discrete-time approximation to a continuous-time LQG problem, the fu
 To obtain an LTISystem that represents the Kalman filter, pass the obtained Kalman feedback gain into [`observer_filter`](@ref). To obtain an LQG controller, pass the obtained Kalman feedback gain as well as a state-feedback gain computed using [`lqr`](@ref) into [`observer_controller`](@ref).
 
 The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec/ared` for more help.
+
+# FAQ
+This function requires
+- `R1` must be positive semi-definite
+- `R2` must be positive definite
+- The pair `(A,R1)` must not have any uncontrollable modes on the imaginary axis (cont) / unit circle (disc), e.g., there must not be any integrating modes that are not affected through `R1`. if this condition does not hold, you may get the error "The Hamiltonian matrix is not dichotomic".
 """
 function kalman(te, A, C, R1,R2, args...; direct = false, kwargs...)
     if direct
