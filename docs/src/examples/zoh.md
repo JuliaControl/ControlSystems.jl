@@ -14,13 +14,13 @@ P = tf(0.1, [1, 0.1, 0.1])
 
 Next, we discretize this system using the standard [`c2d`](@ref) function, which uses ZoH sampling by default. We compare the frequency response of the discretized system with the frequency response of the original continuous-time system multiplied by the transfer function of the ZoH operator [^CCS]
 ```math
-Z(s) = \dfrac{1 - e^{-T_s s}}{s}
+Z(s) = \dfrac{1 - e^{-T_s s}}{T_s s}
 ```
 [^CCS]: Åström, K. J., & Wittenmark, B. (1997). Computer-Controlled Systems: Theory and Design.
 
 ```@example zoh
 Ts = 1 # Sample interval
-Z = (1 - delay(Ts))/s # The transfer function of the ZoH operator
+Z = (1 - delay(Ts))/(Ts*s) # The transfer function of the ZoH operator
 Pd = c2d(P, Ts) # Discrete-time system obtained by ZoH sampling
 Pz = P*Z # The continuous-time version of the discrete-time system
 
