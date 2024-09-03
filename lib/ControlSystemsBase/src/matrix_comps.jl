@@ -232,7 +232,7 @@ function covar(sys::AbstractStateSpace, W)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
-    isa(W, UniformScaling) && (W = I(size(B, 2)))
+    isa(W, UniformScaling) && (W = W(size(B, 2)))
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
