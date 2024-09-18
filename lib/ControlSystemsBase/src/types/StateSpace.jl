@@ -586,7 +586,7 @@ end
 
 
 """
-    minreal(sys::T; fast=false, kwargs...)
+    minreal(sys::StateSpace; fast=false, kwargs...)
 
 Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
 
