@@ -56,4 +56,6 @@ end
   sys = ssrand(3,3,3)
   sigmaplot(sys, extrema=true)
 
+  @test_nowarn plot(step(ssrand(2,2,2,Ts=1)), plotx=true)
+
 end
