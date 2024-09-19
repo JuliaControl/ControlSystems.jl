@@ -148,7 +148,7 @@ end
                 yguide  --> xtext
                 subplot --> plotind
                 label --> ""
-                t,  r.x[i, :]
+                t,  (n_series > 1 ? r.x[i, :, :] : r.x[i, :])
             end
             plotind += 1
         end
