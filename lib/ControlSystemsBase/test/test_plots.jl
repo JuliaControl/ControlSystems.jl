@@ -56,6 +56,8 @@ end
   sys = ssrand(3,3,3)
   sigmaplot(sys, extrema=true)
 
-  @test_nowarn plot(step(ssrand(2,2,2,Ts=1)), plotx=true)
+  Gmimo = ssrand(2,2,2,Ts=1)
+  @test_nowarn plot(step(Gmimo, 10), plotx=true)
+  # plot!(step(Gmimo[:, 1], 10), plotx=true) # Verify that this plots the same as the "from u(1)" series above
 
 end
