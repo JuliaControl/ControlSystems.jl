@@ -80,6 +80,8 @@ export  LTISystem,
         output_comp_sensitivity,
         G_PS,
         G_CS,
+        resolvent,
+        input_resolvent,
         # Discrete
         c2d,
         c2d_x0map,
