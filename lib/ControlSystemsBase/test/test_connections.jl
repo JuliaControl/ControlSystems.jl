@@ -416,4 +416,16 @@ function feedback_ctrl(G, K)
 end
 @test_throws ErrorException feedback_ctrl(tf([1], [0.1, 1]), delay(0.1))
 
+Pr = resolvent(P)
+@test Pr.A == P.A
+@test Pr.B == I
+@test Pr.C == I
+@test iszero(Pr.D)
+
+Pr = input_resolvent(P)
+@test Pr.A == P.A
+@test Pr.B == P.B
+@test Pr.C == I
+@test iszero(Pr.D)
+
 end

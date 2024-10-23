@@ -173,3 +173,32 @@ function extended_gangoffour(P, C, pos=true)
     end
 end
 
+"""
+    input_resolvent(sys::AbstractStateSpace)
+
+Return the input-mapped resolvent of `sys`
+```math
+(sI - A)^{-1}B
+```
+i.e., the system `ss(A, B, I, 0)`.
+"""
+function input_resolvent(sys::AbstractStateSpace)
+    A,B,C,D = ssdata(sys)
+    ss(A, B, I, 0, timeevol(sys))
+end
+
+"""
+    resolvent(sys::AbstractStateSpace)
+
+Return the resolvent of `sys`
+```math
+(sI - A)^{-1}
+```
+i.e., the system `ss(A, I, I, 0)`.
+
+See also [`input_resolvent`](@ref).
+"""
+function resolvent(sys::AbstractStateSpace)
+    A,B,C,D = ssdata(sys)
+    ss(A, I(sys.nx), I, 0, timeevol(sys))
+end
