@@ -628,7 +628,7 @@ For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduc
 # Extended help
 $(_scaling_notice)
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = sqrt(eps(numeric_type(sys))), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
     if n === nothing
         S = S[S .>= atol]
