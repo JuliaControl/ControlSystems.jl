@@ -229,6 +229,17 @@ dm = delaymargin(P)[]
 
 @test delaymargin(tf(0.1, [1, 1])) == Inf
 
+# https://github.com/JuliaControl/ControlSystems.jl/issues/941
+C = 0.6 + 30 * tf([1, 0], [1])
+G = tf([0.04, 0.0001, 1.1], [1, 0.03, 254.9])
+H = tf([0.25], [1, 1, 0.25])
+L = C * G * H * delay(1)
+m = margin(L)
+Lw = freqresp(L, m[1][])[]
+@test imag(Lw) ≈ 0 atol = 1e-6 # Test definition of gain margin
+@test inv(-real(Lw)) ≈ m[2][] atol = 1e-6 # Test definition of gain margin
+
+
 # RGA
 a = 10
 P = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)
