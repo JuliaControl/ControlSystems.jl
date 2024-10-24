@@ -3,6 +3,7 @@ using ImplicitDifferentiation
 using ForwardDiff
 using FiniteDifferences
 using ComponentArrays
+using Test, LinearAlgebra
 fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
 
 P = ssrand(1, 1, 2)
