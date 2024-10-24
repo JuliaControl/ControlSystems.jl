@@ -460,8 +460,8 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     if !allMargins #Only output the smallest margins
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
-        fi = [fi;NaN][idx]
         pm, idx = findmin([abs.(pm);Inf])
+        fi = [fi;NaN][idx]
         wpm = [wpm;NaN][idx]
         if full
             if !isnan(fi) #fi may be NaN, fullPhase is a scalar
@@ -509,19 +509,19 @@ function _findCrossings(w, n, res)
     tcross = Vector{eltype(w)}()
     for i in 1:(length(w)-1)
         if res[i] == 0
-            wcross = [wcross; w[i]]
-            tcross = [tcross; i]
+            push!(wcross, w[i])
+            push!(tcross, i)
         elseif n[i] != n[i+1]
             #Interpolate to approximate crossing
             t = res[i]/(res[i]-res[i+1])
-            tcross = [tcross; i+t]
+            push!(tcross, i+t)
             wt = w[i]+t*(w[i+1]-w[i])
-            wcross = [wcross; wt]
+            push!(wcross, wt)
         end
     end
     if res[end] == 0 #Special case if multiple points
-        wcross = [wcross; w[end]]
-        tcross = [tcross; length(w)]
+        push!(wcross, w[end])
+        push!(tcross, length(w))
     end
     wcross, tcross
 end
