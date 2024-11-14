@@ -50,7 +50,8 @@ jobs:
         with:
           directories: src,lib/ControlSystemsBase/src,lib/ControlSystemsBase/ext
         if: ${{ matrix.version == '1' }}
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         if: ${{ matrix.version == '1' }}
         with:
           file: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
