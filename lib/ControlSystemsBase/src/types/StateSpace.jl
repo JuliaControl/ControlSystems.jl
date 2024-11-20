@@ -624,3 +624,34 @@ function diagonalize(s::AbstractStateSpace)
         error("System not diagonalizable", e)
     end
 end
+
+@doc raw"""
+    augstate(sys)
+
+Appends state vector to output vector.
+
+This command prepares the plant so that you can use the [`feedback`](@ref) command to close the loop on a full-state feedback `u = −Kx`.
+
+```math
+\begin{array}{rcl}
+& \dot{x} = Ax + Bu \\
+&\begin{bmatrix}
+y\\
+x
+\end{bmatrix} =
+\begin{bmatrix}
+C\\
+I
+\end{bmatrix}x + \begin{bmatrix}
+D\\
+0\end{bmatrix}u \\
+\end{array}
+```
+"""
+function augstate(sys::AbstractStateSpace)
+    A_aug = sys.A
+    B_aug = sys.B
+    C_aug = vcat(sys.C, I(nstates(sys)))
+    D_aug = vcat(sys.D, zeros(noutputs(sys), noutputs(sys)))
+    return ss(A_aug, B_aug, C_aug, D_aug)
+end
