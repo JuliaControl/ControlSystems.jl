@@ -144,7 +144,7 @@ Continuous-time systems are simulated using an ODE solver if `u` is a function (
 If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuous ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
 To simulate a unit step at `t=t₀`, use `(x,t)-> t ≥ t₀`, for a ramp, use `(x,t)-> t`, for a step at `t=5`, use `(x,t)-> (t >= 5)` etc.
 
-*Note:* The function `u` will be called once before simulating to verify that it returns an array of the correct dimensions. This can cause problems if `u` is stateful. You can disable this check by passing `check_u = false`.
+*Note:* The function `u` will be called once before simulating to verify that it returns an array of the correct dimensions. This can cause problems if `u` is stateful or has other side effects. You can disable this check by passing `check_u = false`.
 
 For maximum performance, see function [`lsim!`](@ref), available for discrete-time systems only.
 
@@ -206,7 +206,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
             error("Unsupported discretization method: $method")
         end
     else
-        if sys.Ts != dt
+        if !(sys.Ts ≈ dt)
             error("Time vector must match the sample time of the discrete-time system, $(sys.Ts): got $dt")
         end
         dsys = sys
@@ -284,8 +284,8 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
         if iscontinuous(sys)
             simsys = c2d(sys, dt, :zoh)
         else
-            if sys.Ts != dt
-                error("Time vector must match sample time for discrete system")
+            if !(sys.Ts ≈ dt)
+                error("Time vector interval ($dt) must match sample time for discrete system ($(sys.Ts))")
             end
             simsys = sys
         end

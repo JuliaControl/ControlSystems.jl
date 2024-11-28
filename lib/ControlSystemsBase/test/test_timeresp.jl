@@ -255,4 +255,24 @@ si = stepinfo(res)
 @test si.undershoot ≈ 27.98 rtol=0.01
 plot(si)
 
+# Test concatenation of SimResults
+u = ones(1, 100)
+sysd = c2d(sys,0.1)
+res1 = lsim(sysd,u)
+res2 = lsim(sysd,u; x0 = res1.x[:, end])
+@test_logs (:warn, r"Concatenated SimResults do not appear to be continuous in time") [res1 res2]
+
+res2 = lsim(sysd,u,res1.t[end]:0.1:res1.t[end]+9.9; x0 = res1.x[:, end])
+res12 = [res1 res2]
+@test length(res12.t) == length(res1.t) + length(res2.t) - 1 # -1 since we do not include the initial time point from the second result which overlaps with the first
+
+res2 = lsim(sysd,u)
+@test_logs (:warn, r"Concatenated SimResults do not appear to be continuous in time") [res1 res2]
+res12 = [res1 res2]
+@test length(res12.t) == length(res1.t) + length(res2.t) # not -1 since we do include the initial time point from the second result if they do not appear to be continuous in time
+
+res2 = lsim(sysd,u, res1.t[end]+0.1:0.1:res1.t[end]+10)
+@test_nowarn res12 = [res1 res2]
+@test length(res12.t) == length(res1.t) + length(res2.t) # not -1 since we do do include the initial time point from the second result if they do not appear to be continuous in time
+
 end
