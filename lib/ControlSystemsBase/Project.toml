@@ -2,7 +2,7 @@ name = "ControlSystemsBase"
 uuid = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
 authors = ["Dept. Automatic Control, Lund University"]
 repo = "https://github.com/JuliaControl/ControlSystems.jl.git"
-version = "1.11.2"
+version = "1.11.3"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
@@ -32,7 +32,7 @@ ControlSystemsBaseImplicitDifferentiationExt = ["ImplicitDifferentiation", "Comp
 
 [compat]
 Aqua = "0.5"
-DSP = "0.6.1, 0.7"
+DSP = "0.6.1, 0.7, 0.8"
 ForwardDiff = "0.10"
 ImplicitDifferentiation = "0.4.2"
 IterTools = "1.0"

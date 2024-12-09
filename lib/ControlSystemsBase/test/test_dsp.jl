@@ -9,7 +9,7 @@
     Gds = DSP.SecondOrderSections(Gd)
 
     u = randn(100)
-    uf = DSP.filt(Gds, u, zeros(2,2))
+    uf = DSP.filt(DSP.DF2TFilter(Gds, zeros(2,2)), u)
     uls = lsim(Gd, u').y'
     @test uf[1:end-1] ≈ uls[2:end]
 
