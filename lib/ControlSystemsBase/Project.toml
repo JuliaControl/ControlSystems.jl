@@ -32,7 +32,7 @@ ControlSystemsBaseImplicitDifferentiationExt = ["ImplicitDifferentiation", "Comp
 
 [compat]
 Aqua = "0.5"
-DSP = "0.6.1, 0.7"
+DSP = "0.6.1, 0.7, 0.8"
 ForwardDiff = "0.10"
 ImplicitDifferentiation = "0.4.2"
 IterTools = "1.0"
