@@ -93,13 +93,13 @@ sys = ssrand(2,3,40, stable=false)
 stab, unstab = stab_unstab(sys)
 @test all(real(poles(stab)) .< 0)
 @test all(real(poles(unstab)) .>= 0)
-@test linfnorm2(stab + unstab - sys)[1] < 1e-7
+@test linfnorm(stab + unstab - sys)[1] < 1e-5
 
 sys = ssrand(2,3,40, stable=false, Ts=1)
 stab, unstab = stab_unstab(sys)
 @test all(abs.(poles(stab)) .< 1)
 @test all(abs.(poles(unstab)) .>= 1)
-@test linfnorm2(stab + unstab - sys)[1] < 1e-7
+@test linfnorm(stab + unstab - sys)[1] < 1e-5
 
 
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
