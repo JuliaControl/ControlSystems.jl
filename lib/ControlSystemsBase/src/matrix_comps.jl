@@ -688,7 +688,7 @@ function stab_unstab(sys::AbstractStateSpace; kwargs...)
     n1 = blkdims[1];
     i1 = 1:n1; i2 = n1+1:sys.nx 
     return (; stab=ss(A[i1,i1], B[i1,:], C[:,i1], sys.D, timeevol(sys)), 
-            unstab=ss(A[i2,i2], B[i2,:], C[:,i2], zeros(T,sys.ny,sys.nu), timeevol(sys)),
+            unstab=ss(A[i2,i2], B[i2,:], C[:,i2], 0, timeevol(sys)),
             sep)
 end
 
