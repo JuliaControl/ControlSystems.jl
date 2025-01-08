@@ -672,6 +672,27 @@ function baltrunc(sys::ST; atol = sqrt(eps(numeric_type(sys))), rtol = 1e-3, n =
 end
 
 """
+    stab, unstab, sep = stab_unstab(sys; kwargs...)
+
+Decompose `sys` into `sys = stab + unstab` where `stab` contains all stable poles and `unstab` contains unstable poles. 
+
+`0 ≤ sep ≤ 1` is the estimated separation between the stable and unstable spectra.
+
+The docstring of `MatrixPencils.ssblkdiag`, reproduced below, provides more information on the keyword arguments:
+$(@doc(MatrixPencils.ssblkdiag))
+"""
+function stab_unstab(sys::AbstractStateSpace; kwargs...)
+    stable_unstable = true
+    disc = isdiscrete(sys)
+    A, B, C, _, _, blkdims, sep = MatrixPencils.ssblkdiag(sys.A, sys.B, sys.C; disc, stable_unstable, withQ = false, withZ = false, kwargs...)
+    n1 = blkdims[1];
+    i1 = 1:n1; i2 = n1+1:sys.nx 
+    return (; stab=ss(A[i1,i1], B[i1,:], C[:,i1], sys.D, timeevol(sys)), 
+            unstab=ss(A[i2,i2], B[i2,:], C[:,i2], zeros(T,sys.ny,sys.nu), timeevol(sys)),
+            sep)
+end
+
+"""
     syst = similarity_transform(sys, T; unitary=false)
 Perform a similarity transform `T : Tx̃ = x` on `sys` such that
 ```

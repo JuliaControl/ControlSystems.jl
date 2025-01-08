@@ -22,6 +22,7 @@ export  LTISystem,
         # Linear Algebra
         balance,
         balance_statespace,
+        stab_unstab,
         are,
         lqr,
         kalman,
