@@ -146,7 +146,7 @@ import MatrixPencils
 using MacroTools
 using MatrixEquations
 using UUIDs # to load Plots in gangoffourplot
-using StaticArraysCore, Polyester
+using StaticArraysCore
 
 abstract type AbstractSystem end
 
