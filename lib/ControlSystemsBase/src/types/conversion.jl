@@ -337,7 +337,13 @@ function siso_ss_to_zpk(sys, i, j)
     nx = size(A, 1)
     nz = length(z)
     k = nz == nx ? D[1] : (C*(A^(nx - nz - 1))*B)[1]
-    return z, eigvals(A), k
+    if A isa SMatrix
+        # Only hermitian matrices are diagonalizable by *StaticArrays*. Non-Hermitian matrices should be converted to `Array` first.
+        p = eigvals(Matrix(A))
+    else
+        p = eigvals(A)
+    end
+    return z, p, k
 end
 
 """

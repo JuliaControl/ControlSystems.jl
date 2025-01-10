@@ -253,6 +253,7 @@ optionally provided. To change the Magnitude scale see [`setPlotScale`](@ref). T
                                             
 - If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
+- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
@@ -274,7 +275,7 @@ function _get_plotlabel(s, i, j)
     end
 end
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true)
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true, adjust_phase_start=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
@@ -327,6 +328,15 @@ end
                     ws, magdata
                 end
                 plotphase || continue
+
+                if adjust_phase_start == true
+                    intexcess = integrator_excess(sbal)
+                    if intexcess != 0
+                        # Snap phase so that it starts at -90*intexcess
+                        nineties = round(Int, phasedata[1] / 90)
+                        phasedata .+= ((90*(-intexcess-nineties)) ÷ 360) * 360
+                    end
+                end
 
                 @series begin
                     xscale    --> :log10
