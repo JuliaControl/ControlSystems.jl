@@ -148,7 +148,8 @@ syss = StaticStateSpace(ssrand(1,1,5,proper=false))
 sys = ss(syss)
 
 freqresp_nohess!(R, syss, w) # precompile
-@test @allocated(freqresp_nohess!(R, syss, w)) == 0
+# @test @allocated(freqresp_nohess!(R, syss, w)) == 0 # This used to hold with Polyester.@batch, but Polyester sometimes segfaulted when used with ForwardDiff
+@test @allocated(freqresp_nohess!(R, syss, w)) < 20000
 
 @test freqresp_nohess!(R, syss, w) ≈ freqresp(ss(syss), w)
 

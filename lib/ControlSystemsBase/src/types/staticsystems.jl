@@ -216,7 +216,7 @@ end
     te = sys.timeevol
     
     let R=R, A=A, B=B, C=C, D=D, te=te
-        @inbounds Polyester.@batch for i in eachindex(w_vec)
+        @inbounds Threads.@threads :static for i in eachindex(w_vec)
             Ri = @views R[:,:,i]
             copyto!(Ri,D) # start with the D-matrix
             isinf(w_vec[i]) && continue
