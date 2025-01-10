@@ -601,20 +601,15 @@ end
 
 """
     lower, upper = fundamental_limitations(P::LTISystem{Continuous},[ C]; verbose=true)
-
 Check the following list of rules-of-thumb for fundamental limitations on the gain-crossover frequency ωgc imposed by RHP poles and zeros and time delays. 
-
 - A RHP zero z: gives an upper bound to bandwidth: ωgc / z < 0.5
 - A double RHP zero: ωgc / z < 0.25
 - A time delay L gives an upper bound to bandwidth: ωgc * L < 1
 - A RHP pole p gives a lower bound to bandwidth: ωgc / p > 2
 - A double RHP pole: ωgc / p > 4
 - A RHP pole zero pair requires: z / p > 4
-
 These rules, give sensitivities Mₛ and Mₜ around 2 and phase lags of the nonminimum phase factor around 90°.
-
 If a controller `C` is provided as the second argument, a check of the gain-crossover frequency of `P*C` is performed.
-
 Ref: "Loop Shaping", Bo Bernhardsson and Karl Johan Åström 2016
 """
 function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=true, Ms = nothing)
@@ -624,7 +619,7 @@ function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=tr
 
     if P isa DelayLtiSystem
         τ = maximum(P.Tau)
-        verbose && @info "ωgc upper bounded by a time delay to 1/τ = $(1/τ) rad/s"
+        verbose && @info "ωgc upper bounded by a time delay to ωgc < 1/τ = $(1/τ) rad/s"
         ωgc_u = min(ωgc_u, 1/τ)
         return (; ωgc_l, ωgc_u)
     end
@@ -636,30 +631,30 @@ function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=tr
 
     p = maximum(abs, rhpp)
     if length(rhpp) >= 2
-        verbose && @info "ωgc lower bounded by double RHP pole to 4*p = $(4p) rad/s"
+        verbose && @info "ωgc lower bounded by double RHP pole to ωgc > 4*p = $(4p) rad/s"
         ωgc_l = 4p
 
     elseif length(rhpp) == 1
-        verbose && @info "ωgc lower bounded by RHP pole to 2*p = $(2p) rad/s"
+        verbose && @info "ωgc lower bounded by RHP pole to ωgc > 2*p = $(2p) rad/s"
         ωgc_l = 2p
         if Ms isa Number
             ωgc_l2 = p*√((Ms+1)/(Ms-1)) # https://www.control.lth.se/fileadmin/control/staff/KJ/200113FeedbackFundamentals.pdf slide 51
-            verbose && @info "ωgc lower bounded by RHP pole and Ms to p*√((Ms+1)/(Ms-1)) = $(p*√((Ms+1)/(Ms-1))) rad/s"
+            verbose && @info "ωgc lower bounded by RHP pole and Ms to ωgc > p*√((Ms+1)/(Ms-1)) = $(p*√((Ms+1)/(Ms-1))) rad/s"
             ωgc_l = max(ωgc_l, ωgc_l2)
         end
     end
 
     z = maximum(abs, rhpz)
     if length(rhpz) >= 2
-        verbose && @info "ωgc upper bounded by double RHP zero to z/4 = $(z/4) rad/s"
+        verbose && @info "ωgc upper bounded by double RHP zero to ωgc < z/4 = $(z/4) rad/s"
         ωgc_u = z/4
     elseif length(rhpz) == 1
-        verbose && @info "ωgc upper bounded by RHP zero to z/2 = $(z/2) rad/s"
+        verbose && @info "ωgc upper bounded by RHP zero to ωgc < z/2 = $(z/2) rad/s"
         ωgc_u = z/2
 
         if Ms isa Number
             ωgc_u2 = z*√((Ms-1)/(Ms+1)) # https://www.control.lth.se/fileadmin/control/staff/KJ/200113FeedbackFundamentals.pdf slide 51
-            verbose && @info "ωgc lower bounded by RHP pole and Ms to z*√((Ms-1)/(Ms+1)) = $(z*√((Ms-1)/(Ms+1))) rad/s"
+            verbose && @info "ωgc upper bounded by RHP zero and Ms to ωgc < z*√((Ms-1)/(Ms+1)) = $(z*√((Ms-1)/(Ms+1))) rad/s"
             ωgc_u = min(ωgc_u, ωgc_u2)
         end
 
@@ -674,7 +669,11 @@ function fundamental_limitations(P::LTISystem{Continuous}, C=nothing; verbose=tr
         wgm, gm, wpm, pm = margin(P*C)
         # ωgc = wpm
         if isfinite(pm[]) # No gain crossover if phase margin is not finite
-            (ωgc_l ≤ maximum(wpm) ≤ ωgc_u) || error("Failed to meet rules-of-thumb with the given controller, ωgc = $wpm")
+            if (ωgc_l ≤ maximum(wpm) ≤ ωgc_u)
+                verbose && @info("Controller satisifes rules of thumb, ωgc = $wpm")
+            else
+                @error("Failed to meet rules-of-thumb with the given controller, ωgc = $wpm")
+            end
         end
     end
 
