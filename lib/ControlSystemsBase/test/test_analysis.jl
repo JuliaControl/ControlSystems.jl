@@ -16,6 +16,7 @@ D = [1 0;
      1 0]
 
 ex_3 = ss(A, B, C, D)
+@test ControlSystemsBase.count_integrators(ex_3) == 6
 @test tzeros(ex_3) ≈ [0.3411639019140099 + 1.161541399997252im,
                              0.3411639019140099 - 1.161541399997252im,
                              0.9999999999999999 + 0.0im,
@@ -36,12 +37,14 @@ C = [1 0 0 0 0;
 D = zeros(2, 2)
 ex_4 = ss(A, B, C, D)
 @test tzeros(ex_4) ≈ [-0.06467751189940692,-0.3680512036036696]
+@test ControlSystemsBase.count_integrators(ex_4) == 1
 
 # Example 5
 s = tf("s")
 ex_5 = 1/s^15
 @test tzeros(ex_5) == Float64[]
 @test tzeros(ss(ex_5)) == Float64[]
+@test ControlSystemsBase.count_integrators(ex_5) == 15
 
 # Example 6
 A = [2 -1 0;
@@ -52,6 +55,7 @@ C = [0 -1 0]
 D = [0]
 ex_6 = ss(A, B, C, D)
 @test tzeros(ex_6) == Float64[]
+@test ControlSystemsBase.count_integrators(ex_6) == 2
 
 @test ss(A, [0 0 1]', C, D) == ex_6
 
@@ -72,6 +76,7 @@ D = [0]
 ex_8 = ss(A, B, C, D)
 # TODO : there may be a way to improve the precision of this example.
 @test tzeros(ex_8) ≈ [-1.0, -1.0] atol=1e-7
+@test ControlSystemsBase.count_integrators(ex_8) == 0
 
 # Example 9
 ex_9 = (s - 20)/s^15
@@ -121,6 +126,7 @@ approxin2(el,col) = any(el.≈col)
 
 ex_12 = ss(-3, 2, 1, 2)
 @test poles(ex_12) ≈ [-3]
+@test ControlSystemsBase.count_integrators(ex_12) == 0
 
 ex_13 = ss([-1 1; 0 -1], [0; 1], [1 0], 0)
 @test poles(ex_13) ≈ [-1, -1]
@@ -306,5 +312,23 @@ gof = gangoffour(P,C)
 
 F = ssrand(2,2,2,proper=true)
 @test_nowarn gangofseven(P, C, F)
+
+
+## Approximate double integrator
+P = let
+     tempA = [
+          0.0 0.0 1.0 0.0 0.0 0.0
+          0.0 0.0 0.0 0.0 1.0 0.0
+          -400.0 400.0 -0.4 -0.0 0.4 -0.0
+          0.0 0.0 0.0 0.0 0.0 1.0
+          10.0 -11.0 0.01 1.0 -0.011 0.001
+          0.0 10.0 0.0 -10.0 0.01 -0.01
+     ]
+     tempB = [0.0 0.0; 0.0 0.0; 100.80166347371734 0.0; 0.0 0.0; 0.0 -0.001; 0.0 0.01]
+     tempC = [0.0 0.0 0.0 1.0 0.0 0.0]
+     tempD = [0.0 0.0]
+     ss(tempA, tempB, tempC, tempD)
+end
+@test ControlSystemsBase.count_integrators(P) == 2
 
 end

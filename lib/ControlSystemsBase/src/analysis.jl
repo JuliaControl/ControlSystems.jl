@@ -37,6 +37,47 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
     return lcmpoles
 end
 
+
+function count_eigval_multiplicity(p, location)
+    T = float(real(eltype(p)))
+    n = length(p)
+    n == 0 && return 0
+    maximum(1:n) do i
+        # if we count i poles within the circle assuming i integrators, we return i
+        if count(p->abs(p-location) < (i+1)*(eps(T)^(1/i)), p) >= i
+            i
+        else
+            0
+        end
+    end
+end
+
+"""
+    count_integrators(P)
+
+Count the number of poles in the origin by finding the maximum value of `n` for which the number of poles within a circle of radius `(n+1)*eps(numeric_type(sys))^(1/n)` arount the origin (1 in discrete time) equals `n`.
+"""
+function count_integrators(P::LTISystem)
+    p = poles(P)
+    location = iscontinuous(P) ? 0 : 1
+    count_eigval_multiplicity(p, location)
+end
+
+"""
+    integrator_excess(P)
+
+Count the number of integrators in the system by finding the difference between the number of poles in the origin and the number of zeros in the origin. If the number of zeros in the origin is greater than the number of poles in the origin, the count is negative.
+
+For discrete-tiem systems, the origin ``s = 0`` is replaced by the point ``z = 1``.
+"""
+function integrator_excess(P::LTISystem)
+    p = poles(P)
+    z = tzeros(P)
+    location = iscontinuous(P) ? 0 : 1
+    count_eigval_multiplicity(p, location) - count_eigval_multiplicity(z, location)
+end
+
+
 # TODO: Improve implementation, should be more efficient ways.
 # Calculates the same minors several times in some cases.
 """

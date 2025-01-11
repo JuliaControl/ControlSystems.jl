@@ -98,6 +98,8 @@ function isproper(G::TransferFunction)
     return all(isproper(f) for f in G.matrix)
 end
 
+isrational(::TransferFunction) = true
+
 #####################################################################
 ##                         Math Operators                          ##
 #####################################################################
