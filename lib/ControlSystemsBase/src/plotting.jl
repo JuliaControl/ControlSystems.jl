@@ -329,7 +329,7 @@ end
                 end
                 plotphase || continue
 
-                if adjust_phase_start == true
+                if adjust_phase_start == true && isrational(sbal)
                     intexcess = integrator_excess(sbal)
                     if intexcess != 0
                         # Snap phase so that it starts at -90*intexcess

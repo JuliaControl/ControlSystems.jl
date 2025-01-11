@@ -234,6 +234,7 @@ function isstable(sys::StateSpace{<:Discrete, <:ForwardDiff.Dual})
     all(abs.(ForwardDiff.value.(sys.A)) .< 1)
 end
 
+isrational(::AbstractStateSpace) = true
 
 #####################################################################
 ##                         Math Operators                          ##

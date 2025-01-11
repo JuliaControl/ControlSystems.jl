@@ -1,4 +1,5 @@
 abstract type LTISystem{TE<:TimeEvolution} <: AbstractSystem end
+isrational(sys::LTISystem) = false
 +(sys1::LTISystem, sys2::LTISystem) = +(promote(sys1, sys2)...)
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
 function *(sys1::LTISystem, sys2::LTISystem)
