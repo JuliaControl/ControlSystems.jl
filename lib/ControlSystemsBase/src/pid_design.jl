@@ -1,22 +1,23 @@
-export pid, pid_tf, pid_ss, pidplots, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
+export pid, pid_tf, pid_ss, pid_2dof, pid_ss_2dof, pidplots, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
 
 """
     C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts])
 
 Calculates and returns a PID controller. 
 
-The `form` can be chosen as one of the following
+The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
 * `:parallel` - `Kp + Ki/s + Kd*s`
 
 If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
-the input to allow for a state space realization. 
+the input to allow for a state-space realization. 
 The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` can typically 
 be chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
 and `N` is commonly in the range 2 to 20. 
-The state space will be returned on controllable canonical form.
+A balanced state-space realization is returned, unless `balance = false`
+in which case a controllable canonical form is used.
 
 For a discrete controller a positive `Ts` can be supplied.
 In this case, the continuous-time controller is discretized using the Tustin method.
@@ -25,15 +26,15 @@ In this case, the continuous-time controller is discretized using the Tustin met
 ```
 C1 = pid(3.3, 1, 2)                             # Kd≠0 works without filter in tf form
 C2 = pid(3.3, 1, 2; Tf=0.3, state_space=true)   # In statespace a filter is needed
-C3 = pid(2., 3, 0; Ts=0.4, state_space=true)    # Discrete
+C3 = pid(2.,  3, 0; Ts=0.4, state_space=true)   # Discrete
 ```
 
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
-function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
+function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true)
     C = if state_space # Type instability? Can it be fixed easily, does it matter?
-        pid_ss(param_p, param_i, param_d; form, Tf)
+        pid_ss(param_p, param_i, param_d; form, Tf, balance)
     else
         pid_tf(param_p, param_i, param_d; form, Tf)
     end
@@ -64,9 +65,8 @@ function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, balance=true)
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
-    TE = Continuous()
     if !isnothing(Tf)
         if Ki != 0
             A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
@@ -88,10 +88,83 @@ function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
             return ss([Kp])
         end
     else
-        throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
+        throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(params..., state_space=false), or supply keyword argument Tf to add a filter."))
     end
-    return first(balance_statespace(ss(A, B, C, D)))
+    K = ss(A, B, C, D)
+    balance ? first(balance_statespace(K)) : K
 end
+
+"""
+    C = pid_2dof(param_p, param_i, [param_d]; form=:standard, state_space=true, N = 10, [Ts], b=1, c=0, disc=:tustin)
+
+Calculates and returns a PID controller on 2DOF form with inputs `[r; y]` and outputs `u` where `r` is the reference signal, `y` is the measured output and `u` is the control signal.
+
+Belowm we show two different depections of the contorller, one as a 2-input system (left) and one where the tw internal SISO systems of the controller are shown (right).
+```
+                                ┌──────┐                      
+                             r  │      │                      
+                            ───►│  Cr  ├────┐                 
+r  ┌─────┐     ┌─────┐          │      │    │    ┌─────┐      
+──►│     │  u  │     │ y        └──────┘    │    │     │ y    
+   │  C  ├────►│  P  ├─┬─►                  +───►│  P  ├─┬───►
+ ┌►│     │     │     │ │        ┌──────┐    │    │     │ │    
+ │ └─────┘     └─────┘ │      y │      │    │    └─────┘ │    
+ │                     │     ┌─►│  Cy  ├────┘            │    
+ └─────────────────────┘     │  │      │                 │    
+                             │  └──────┘                 │    
+                             │                           │    
+                             └───────────────────────────┘     
+```
+
+The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
+* `:standard` - `Kp*(b*r-y + (r-y)/(Ti*s) + Td*s*(c*r-y)/(Tf*s + 1))`
+* `:parallel` - `Kp*(b*r-y) + Ki*(r-y)/s + Kd*s*(c*r-y)/(Tf*s + 1)`
+
+- `b` is a set-point weighting for the proportional term
+- `c` is a set-point weighting for the derivative term, this defaults to 0.
+- If both `b` and `c` are set to zero, the feedforward path of the controller will be strictly proper.
+- `Tf` is a time constant for a filter on the derivative term, this defaults to `Td/N` where `N` is set to 10. Instead of passing `Tf` one can also pass `N` directly. The proportional term is not affected by this filter. **Please note**: this derivative filter is not the same as the one used in the `pid` function, where the filter is of second order and applied in series with the contorller, i.e., it affects all three PID terms.
+- A PD controller is constructed by setting `param_i` to zero. 
+- A balanced state-space realization is returned, unless `balance = false`
+- If `Ts` is supplied, the controller is discretized using the method `disc` (defaults to `:tustin`).
+
+This controller has negative feedback built in, and the closed-loop system from `r` to `y` is thus formed as
+```
+Cr, Cy = C[1, 1], C[1, 2]
+feedback(P, Cy, pos_feedback=true)*Cr # Alternative 1
+feedback(P, -Cy)*Cr                   # Alternative 2
+```
+"""
+function pid_2dof(args...; state_space = true, Ts = nothing, disc = :tustin, kwargs...)
+    C = pid_ss_2dof(args...; kwargs...)
+    Ccd = Ts === nothing ? C : c2d(C, Ts, disc)
+    state_space ? Ccd : tf(Ccd)
+end
+
+function pid_ss_2dof(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, b = 1, c = 0, Tf=nothing, N=nothing, balance=true)
+    # On standard form we use N
+    Tf !== nothing && N !== nothing && throw(ArgumentError("Cannot supply both Tf and N"))
+    if Tf === nothing && N === nothing
+        N = 10 # Default value
+    end
+    kp, ki, kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+    Tf = @something(Tf, kd / N)
+    Tf <= 0 && throw(ArgumentError("Tf must be strictly positive"))
+    if ki == 0
+        A = [-(1 / Tf);;]
+        B = [-kd*c/(Tf^2) kd/(Tf^2)]
+        C = [1.0]
+        D = [kd*c/Tf+kp*b -(kd/Tf + kp)]
+    else
+        A = [0 0; 0 -(1 / Tf)]
+        B = [ki -ki; -kd*c/Tf^2 kd/Tf^2]
+        C = [1.0 1]
+        D = [kd*c/Tf+kp*b -(kd/Tf + kp)]            
+    end
+    K = ss(A, B, C, D)
+    balance ? first(balance_statespace(K)) : K
+end
+
 
 """
     pidplots(P, args...; params_p, params_i, params_d=0, form=:standard, ω=0, grid=false, kwargs...)
