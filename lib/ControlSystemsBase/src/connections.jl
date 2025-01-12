@@ -442,7 +442,7 @@ end
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 
 """
-    feedback2dof(P::TransferFunction, C::TransferFunction, F::TransferFunction)
+    feedback2dof(P, C, F)
 
 Return the transfer function
 `P(F+C)/(1+PC)`
@@ -463,7 +463,7 @@ r  |  -  |       |    |    |       |    y
 ```
 """
 function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
-    !issiso(P) && error("Feedback not implemented for MIMO systems")
+    !issiso(P) || return tf(feedback2dof(ss(P), ss(C), ss(F)))
     timeevol = common_timeevol(P, C, F)
     
     Pn,Pd = numpoly(P)[], denpoly(P)[]
@@ -471,6 +471,10 @@ function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::Trans
     Fn,Fd = numpoly(F)[], denpoly(F)[]
     den = (Cd*Pd + Pn*Cn)*Fd
     tf(Cd*Pn*Fn + Pn*Cn*Fd, den, timeevol)
+end
+
+function feedback2dof(P,C,F)
+    feedback(P,C)*(F+C)
 end
 
 """
