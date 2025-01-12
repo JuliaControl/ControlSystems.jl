@@ -65,7 +65,7 @@ See also the following tutorial video on LQR and LQG design
 ```
 
 ## PID design functions
-A basic PID controller can be constructed using the constructor [`pid`](@ref).
+A basic PID controller can be constructed using the constructors [`pid`](@ref), [`pid_2dof`](@ref).
 In ControlSystems.jl, we often refer to three different formulations of the PID controller, which are defined as
 
 * Standard form: ``K_p(1 + \frac{1}{T_i s} + T_ds)``

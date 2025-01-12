@@ -48,6 +48,33 @@ Tf = 0.01
 
 @test tf(pid(2.0, 0, 1; state_space=true, Tf)) ≈ minreal(pid(2.0, 0, 1; state_space=false, Tf))
 
+# pid 2 DOF
+
+# PID controller on 2DOF form constructed with transfer functions for comparison
+s = tf('s')
+kp, ki, kd, b, c, Tf = rand(6)
+ki = 0
+Ktf = [(kp*b + kd*s*c/(Tf*s + 1)) -(kp + kd*s/(Tf*s + 1))]
+Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; Tf, b, c, form=:parallel)
+@test norm(freqresp(Kss-Ktf, exp10.(LinRange(-3, 3, 10)))) < 1e-10
+
+kp, ki, kd, b, c, Tf = rand(6)
+Ktf = [(kp*b + ki/s + kd*s*c/(Tf*s + 1)) -(kp + ki/s + kd*s/(Tf*s + 1))]
+Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; Tf, b, c, form=:parallel)
+@test norm(freqresp(Kss-Ktf, exp10.(LinRange(-3, 3, 10)))) < 1e-10
+
+kp, ki, kd, b, c, N = rand(6)
+Tf = kd/N
+Ktf = [(kp*b + ki/s + kd*s*c/(Tf*s + 1)) -(kp + ki/s + kd*s/(Tf*s + 1))]
+Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; N, b, c, form=:parallel)
+@test norm(freqresp(Kss-Ktf, exp10.(LinRange(-3, 3, 10)))) < 1e-10
+
+
+kp, ki, kd, b, c, Tf = rand(6)
+Ktf = c2d(ss([(kp*b + ki/s + kd*s*c/(Tf*s + 1)) -(kp + ki/s + kd*s/(Tf*s + 1))]), 0.01, :tustin)
+Kss = pid_2dof(kp, ki, kd; Tf, b, c, form=:parallel, Ts=0.01, state_space = false)
+@test norm(freqresp(Kss-Ktf, exp10.(LinRange(-3, 3, 10)))) < 1e-5
+
 # Test pidplots
 C = pid(1.0, 1, 1) 
 pidplots(C, :nyquist, :gof, :pz, :controller; params_p=[1.0, 2], params_i=[2, 3], grid=true) # Simply test that the functions runs and not errors
