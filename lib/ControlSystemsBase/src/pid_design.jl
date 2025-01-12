@@ -131,8 +131,9 @@ The `form` can be chosen as one of the following (determines how the arguments `
 This controller has negative feedback built in, and the closed-loop system from `r` to `y` is thus formed as
 ```
 Cr, Cy = C[1, 1], C[1, 2]
-feedback(P, Cy, pos_feedback=true)*Cr # Alternative 1
-feedback(P, -Cy)*Cr                   # Alternative 2
+feedback(P, Cy, pos_feedback=true)*Cr                    # Alternative 1
+feedback(P, -Cy)*Cr                                      # Alternative 2
+feedback(P, C, U2=2, W2=1, W1=[], pos_feedback=true) # Alternative 3, less pretty but more efficient, returns smaller realization
 ```
 """
 function pid_2dof(args...; state_space = true, Ts = nothing, disc = :tustin, kwargs...)

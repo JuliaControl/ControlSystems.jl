@@ -156,7 +156,7 @@ T  = G[P.ny+1:end, P.ny+1:end] # Input complimentary sensitivity function
 The gang of four can be plotted like so
 ```julia
 Gcl = extended_gangoffour(G, C) # Form closed-loop system
-bodeplot(Gcl, lab=["S" "CS" "PS" "T"], plotphase=false) |> display # Plot gang of four
+bodeplot(Gcl, lab=["S" "PS" "CS" "T"], plotphase=false) |> display # Plot gang of four
 ```
 Note, the last input of Gcl is the negative of the `PS` and `T` transfer functions from `gangoffour2`. To get a transfer matrix with the same sign as [`G_PS`](@ref) and [`input_comp_sensitivity`](@ref), call `extended_gangoffour(P, C, pos=false)`.
 See `glover_mcfarlane` from RobustAndOptimalControl.jl for an extended example. See also `ncfmargin` and `feedback_control` from RobustAndOptimalControl.jl.

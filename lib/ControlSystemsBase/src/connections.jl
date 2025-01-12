@@ -331,6 +331,14 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     if !(isa(Y2, Colon) || allunique(Y2)); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
     if !(isa(U1, Colon) || allunique(U1)); @warn "Connecting multiple outputs to a single input U1=$U1"; end
     if !(isa(U2, Colon) || allunique(U2)); @warn "Connecting a single output to multiple inputs U2=$U2"; end
+    U1 isa Number && (U1 = [U1])
+    Y1 isa Number && (Y1 = [Y1])
+    U2 isa Number && (U2 = [U2])
+    Y2 isa Number && (Y2 = [Y2])
+    W1 isa Number && (W1 = [W1])
+    Z1 isa Number && (Z1 = [Z1])
+    W2 isa Number && (W2 = [W2])
+    Z2 isa Number && (Z2 = [Z2])
 
     if (U1 isa Colon ? size(sys1, 2) : length(U1)) != (Y2 isa Colon ? size(sys2, 1) : length(Y2))
         error("Lengths of U1 ($U1) and Y2 ($Y2) must be equal")
@@ -394,13 +402,13 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
         R1 = try
             inv(α*I - s2_D22*s1_D22) # slightly faster than α*inv(I - α*s2_D22*s1_D22)
         catch
-            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 not invertible")
         end
 
         R2 = try
             inv(I - α*s1_D22*s2_D22)
         catch
-            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+            error("Ill-posed feedback interconnection,  I - α*s1_D22*s2_D22 not invertible")
         end
 
         s2_B2R2 = s2_B2*R2
@@ -442,7 +450,7 @@ end
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 
 """
-    feedback2dof(P::TransferFunction, C::TransferFunction, F::TransferFunction)
+    feedback2dof(P, C, F)
 
 Return the transfer function
 `P(F+C)/(1+PC)`
@@ -463,7 +471,7 @@ r  |  -  |       |    |    |       |    y
 ```
 """
 function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
-    !issiso(P) && error("Feedback not implemented for MIMO systems")
+    issiso(P) || return tf(feedback2dof(ss(P), ss(C), ss(F)))
     timeevol = common_timeevol(P, C, F)
     
     Pn,Pd = numpoly(P)[], denpoly(P)[]
@@ -471,6 +479,10 @@ function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::Trans
     Fn,Fd = numpoly(F)[], denpoly(F)[]
     den = (Cd*Pd + Pn*Cn)*Fd
     tf(Cd*Pn*Fn + Pn*Cn*Fd, den, timeevol)
+end
+
+function feedback2dof(P,C,F)
+    feedback(P,C)*(F+C)
 end
 
 """

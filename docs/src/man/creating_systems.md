@@ -34,7 +34,7 @@ Continuous-time transfer function model
 ```
 
 The transfer functions created using this method will be of type `TransferFunction{SisoRational}`.
-For more general expressions, it is often more convenient to define `s = tf("s")`:
+For more general expressions, it is sometimes more convenient to define `s = tf("s")` (only use this approach for low-order systems).:
 #### Example:
 ```julia
 julia> s = tf("s")
@@ -295,10 +295,10 @@ The returned closed-loop system will have a state vector comprised of the state 
 ---
 Closed-loop system from reference to output
 ```
-r   ┌─────┐     ┌─────┐
-───►│     │  u  │     │ y
-    │  C  ├────►│  P  ├─┬─►
- -┌►│     │     │     │ │
+    ┌─────┐     ┌─────┐
+r   │     │  u  │     │ y
+──+►│  C  ├────►│  P  ├─┬─►
+ -▲ │     │     │     │ │
   │ └─────┘     └─────┘ │
   │                     │
   └─────────────────────┘
@@ -396,6 +396,32 @@ Here, we have reversed the order of `P` and `C` to get the correct sign of the c
 
 ---
 
+Two degree of freedom control system with feedforward ``F`` and feedback controller ``C``
+
+```
+         +-------+
+         |       |
+   +----->   F   +----+
+   |     |       |    |
+   |     +-------+    |
+   |     +-------+    |    +-------+
+r  |  -  |       |    |    |       |    y
++--+----->   C   +----+---->   P   +---+-->
+      |  |       |         |       |   |
+      |  +-------+         +-------+   |
+      |                                |
+      +--------------------------------+
+```
+
+```math
+Y = (F+C)\dfrac{P}{I + PC}R
+```
+
+Code: `feedback(P,C)*(F+C)` or `feedback2dof(P, C, F)`
+- [`feedback2dof`](@ref)
+
+---
+
 Linear fractional transformation
 
 ```
@@ -445,9 +471,9 @@ I & P
 w_1 \\ w_2
 \end{bmatrix}
 ```
-Code: This function requires the package [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/).
+Code: 
 ```julia
-RobustAndOptimalControl.extended_gangoffour(P, C, pos=true)
+extended_gangoffour(P, C, pos=true)
 # For SISO P
 S  = G[1, 1]
 PS = G[1, 2]

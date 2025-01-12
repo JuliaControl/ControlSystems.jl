@@ -294,6 +294,8 @@ F = tf(1.0, [1,1])
 @test feedback2dof(P0, C, 0*F) == feedback(P0*C)
 @test_nowarn feedback2dof(P0, C, F)
 
+C = pid(1, 0, 1, form=:parallel)
+hinfnorm(minreal(feedback2dof(ss(P0), ss(C*F), ss(F)) - feedback2dof(P0, C*F, F)))[1] < 1e-8
 
 
 G1 = tf([1, 0],[1, 2, 2])
