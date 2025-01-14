@@ -1,7 +1,6 @@
 using Test
-@testset "test_pid_design" begin
-
 freqresptest(A,B) = norm(freqresp(A-B, exp10.(LinRange(-3, 3, 10))))
+@testset "test_pid_design" begin
 
 CSB = ControlSystemsBase
 
@@ -20,7 +19,7 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 @test pid(1.0, Inf, 1) == tf(1) + tf([1, 0], [1])
 @test pid(1.0, 0, 1) == tf(1) + tf([1, 0], [1])
 @test pid(0.0, 1, 1; form=:parallel) == tf(0) + tf(1,[1,0]) + tf([1,0],[1])
-@test pid(1.0, 2, 3; Tf=2) == tf([3,1,0.5], [2,2,1,0])
+@test pid(1.0, 2, 3; Tf=2) ≈ tf([3,1,0.5], [2,2,1,0])
 @test all(CSB.convert_pidparams_from_standard(CSB.convert_pidparams_from_parallel(1, 2, 3, :standard)...,
                                                   :parallel) .≈ (1,2,3))
 @test_throws DomainError CSB.convert_pidparams_from_parallel(2, 3, 0.5, :series)
@@ -28,8 +27,8 @@ C, kp, ki = loopshapingPI(P, ωp, phasemargin=60, form=:parallel, doplot=true)
 @test_throws DomainError CSB.convert_pidparams_from_standard(2, 1, 0.5, :series)
 # ss
 @test tf(pid(1.0, 1, 0; state_space=true)) == tf(1) + tf(1,[1,0])
-@test tf(pid(0.0, 2, 3; form=:parallel, state_space=true, Tf=2)) == tf([3,0,2], [2, 2, 1, 0])
-@test tf(pid(1.0, 2, 3; state_space=true, Tf=2)) == tf([3, 1, 0.5], [2, 2, 1, 0])
+@test tf(pid(0.0, 2, 3; form=:parallel, state_space=true, Tf=2)) ≈ tf([3,0,2], [2, 2, 1, 0])
+@test tf(pid(1.0, 2, 3; state_space=true, Tf=2)) ≈ tf([3, 1, 0.5], [2, 2, 1, 0])
 
 # Discrete
 @test_throws ArgumentError pid(1.0, 1, 1, Ts=0.1)
@@ -50,6 +49,17 @@ Tf = 0.01
 @test tf(pid(2.0, 0; state_space=true, Tf)) ≈ minreal(pid(2.0, 0; state_space=false, Tf))
 
 @test tf(pid(2.0, 0, 1; state_space=true, Tf)) ≈ minreal(pid(2.0, 0, 1; state_space=false, Tf))
+
+# Different damping
+Ctf = pid(1,1,1, Tf=0.1, d = 1)
+@test all(p->imag(p) == 0, poles(Ctf))
+Css = pid(1,1,1, Tf=0.1, d = 1, state_space=true)
+@test all(p->imag(p) == 0, poles(Css))
+@test tf(Css) ≈ Ctf
+
+Ctf = pid(1,0,1, Tf=0.1, d = 0.9)
+Css = pid(1,0,1, Tf=0.1, d = 0.9, state_space=true)
+@test tf(Css) ≈ Ctf
 
 # test filter order 1
 # All params

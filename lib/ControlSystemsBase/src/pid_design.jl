@@ -1,25 +1,26 @@
 export pid, pid_tf, pid_ss, pid_2dof, pid_ss_2dof, pidplots, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
 
 """
-    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts], filter_order=2)
+    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts], filter_order=2, d=1/√(2))
 
 Calculates and returns a PID controller. 
 
 The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
 
 If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
 the input to allow for a state-space realization. 
 
 The filter used is either
-- `filter_order = 2` (default): `1 / (1 + s*Tf + (s*Tf)^2/2)` in series with the controller
-- `filter_order = 1`: `1 / (1 + s*Tf)` applied to the derivative term only
+- `filter_order = 2` (default): ``1 / ((sT_f)^2/(4d^2) + sT_f + 1)`` in series with the controller
+- `filter_order = 1`: ``1 / (1 + sT_f)`` applied to the derivative term only
 
-`Tf` can typically be chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
-and `N` is commonly in the range 2 to 20. 
+``T_f`` can typically be chosen as ``T_i/N`` for a PI controller and ``T_d/N`` for a PID controller,
+and `N` is commonly in the range 2 to 20. With a second-order filter, `d` controls the damping. `d = 1/√(2)` gives a Butterworth configuration of the poles, and `d=1` gives a critically damped filter (no overshoot).
+
 A balanced state-space realization is returned, unless `balance = false`.
 
 For a discrete controller a positive `Ts` can be supplied.
@@ -35,11 +36,11 @@ C3 = pid(2.,  3, 0; Ts=0.4, state_space=true)   # Discrete
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
-function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true, filter_order=2)
+function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true, kwargs...)
     C = if state_space # Type instability? Can it be fixed easily, does it matter?
-        pid_ss(param_p, param_i, param_d; form, Tf, filter_order, balance)
+        pid_ss(param_p, param_i, param_d; form, Tf, balance, kwargs...)
     else
-        pid_tf(param_p, param_i, param_d; form, Tf, filter_order)
+        pid_tf(param_p, param_i, param_d; form, Tf, kwargs...)
     end
     if Ts === nothing
         return C
@@ -51,7 +52,7 @@ end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
 
-function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, filter_order=2)
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, filter_order=2, d=1/√(2))
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     filter_order ∈ (1,2) || throw(ArgumentError("Filter order must be 1 or 2"))
     if isnothing(Tf) || (Kd == 0 && filter_order == 1)
@@ -65,21 +66,22 @@ function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
             if filter_order == 1
                 tf([Kd*Tf + Kd, Kd], [Tf, 1])
             else
-                return tf([Kd, Kp], [Tf^2/2, Tf, 1])
+                return tf([Kd, Kp], [Tf^2/(4d^2), Tf, 1])
             end
         else
             if filter_order == 1
                 return tf([Kd + Kp*Tf, Ki*Tf + Kp, Ki], [Tf, 1, 0])
             else
-                return tf([Kd, Kp, Ki], [Tf^2/2, Tf, 1, 0])
+                return tf([Kd, Kp, Ki], [Tf^2/(4d^2), Tf, 1, 0])
             end
         end
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, balance=true, filter_order)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, balance=true, filter_order=2, d=nothing)
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     if !isnothing(Tf)
+        d42 = d === nothing ? 2.0 : 4d^2 # To avoid d = 1/sqrt(2) not yielding exactly 2
         if Ki == 0
             if filter_order == 1
                 A = [-1 / Tf;;]
@@ -87,9 +89,9 @@ function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
                 C = [1.0;;]
                 D = [Kd/Tf + Kp;;]
             else # 2
-                A = [0 1; -2/Tf^2 -2/Tf]
+                A = [0 1; -d42/Tf^2 -d42/Tf]
                 B = [0; 1]
-                C = 2 / Tf^2 * [Kp Kd]
+                C = d42 / Tf^2 * [Kp Kd]
                 D = [0.0;;]
             end
         else
@@ -99,9 +101,9 @@ function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
                 C = [1.0 1]
                 D = [Kd/Tf + Kp;;]
             else # 2
-                A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
+                A = [0 1 0; 0 0 1; 0 -d42/Tf^2 -d42/Tf]
                 B = [0; 0; 1]
-                C = 2 / Tf^2 * [Ki Kp Kd]
+                C = d42 / Tf^2 * [Ki Kp Kd]
                 D = [0.0;;]
             end
         end
@@ -144,8 +146,8 @@ r  ┌─────┐     ┌─────┐          │      │    │ 
 ```
 
 The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
-* `:standard` - `Kp*(b*r-y + (r-y)/(Ti*s) + Td*s*(c*r-y)/(Tf*s + 1))`
-* `:parallel` - `Kp*(b*r-y) + Ki*(r-y)/s + Kd*s*(c*r-y)/(Tf*s + 1)`
+* `:standard` - ``K_p*(br-y + (r-y)/(T_i s) + T_d s (cr-y)/(T_f s + 1))``
+* `:parallel` - ``K_p*(br-y) + K_i (r-y)/s + K_d s (cr-y)/(Tf s + 1)``
 
 - `b` is a set-point weighting for the proportional term
 - `c` is a set-point weighting for the derivative term, this defaults to 0.
