@@ -255,7 +255,7 @@ function pidplots(P::LTISystem, args...;
         pzmap(Ts; title="Pole-zero map", kwargs...) |> display
     end
     if :controller ∈ args
-        bodeplot(Cs, ω; lab=labels, title="Controller bode plot", kwargs...) |> display
+        bodeplot(Cs, ω; lab=repeat(labels, inner=(1,2)), title="Controller bode plot", kwargs...) |> display
     end
 end
 
