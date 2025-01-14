@@ -13,15 +13,18 @@ The `form` can be chosen as one of the following (determines how the arguments `
 If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
 the input to allow for a state-space realization. 
+A balanced state-space realization is returned, unless `balance = false`.
 
-The filter used is either
-- `filter_order = 2` (default): ``1 / ((sT_f)^2/(4d^2) + sT_f + 1)`` in series with the controller
+## Filter
+If `Tf` is supplied, a filter is added, the filter used is either
+- `filter_order = 2` (default): ``1 / ((sT_f)^2/(4d^2) + sT_f + 1)`` in series with the controller. Note: this parametrization of the filter differs in behavior from the common parameterizaiton ``1/(s^2 + 2dws + w^2)`` as the parameters vary, the former maintains an almost fixed _bandwidth_ while `d` varies, while the latter maintains a fixed distance of the poles from the origin.
 - `filter_order = 1`: ``1 / (1 + sT_f)`` applied to the derivative term only
 
 ``T_f`` can typically be chosen as ``T_i/N`` for a PI controller and ``T_d/N`` for a PID controller,
-and `N` is commonly in the range 2 to 20. With a second-order filter, `d` controls the damping. `d = 1/√(2)` gives a Butterworth configuration of the poles, and `d=1` gives a critically damped filter (no overshoot).
+and `N` is commonly in the range 2 to 20. With a second-order filter, `d` controls the damping. `d = 1/√(2)` gives a Butterworth configuration of the poles, and `d=1` gives a critically damped filter (no overshoot). `d` above one may be used, although `d > 1` yields an increasingly over-damped filter (this parametrization does not send one pole to the origin ``d → ∞`` like the ``(ω,ζ)`` parametrization does).
 
-A balanced state-space realization is returned, unless `balance = false`.
+
+## Discrete-time
 
 For a discrete controller a positive `Ts` can be supplied.
 In this case, the continuous-time controller is discretized using the Tustin method.
