@@ -391,7 +391,6 @@ end
 _default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
         [sys], plot)
 
-
 function _bounds_and_features(sys::LTISystem, plot::Val)
     # Get zeros and poles for each channel
     if !isa(plot, Val{:sigma})

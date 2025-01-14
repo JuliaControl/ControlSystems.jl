@@ -1,7 +1,7 @@
 export pid, pid_tf, pid_ss, pid_2dof, pid_ss_2dof, pidplots, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
 
 """
-    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts])
+    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts], filter_order=2)
 
 Calculates and returns a PID controller. 
 
@@ -13,11 +13,14 @@ The `form` can be chosen as one of the following (determines how the arguments `
 If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
 the input to allow for a state-space realization. 
-The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` can typically 
-be chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
+
+The filter used is either
+- `filter_order = 2` (default): `1 / (1 + s*Tf + (s*Tf)^2/2)` in series with the controller
+- `filter_order = 1`: `1 / (1 + s*Tf)` applied to the derivative term only
+
+`Tf` can typically be chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
 and `N` is commonly in the range 2 to 20. 
-A balanced state-space realization is returned, unless `balance = false`
-in which case a controllable canonical form is used.
+A balanced state-space realization is returned, unless `balance = false`.
 
 For a discrete controller a positive `Ts` can be supplied.
 In this case, the continuous-time controller is discretized using the Tustin method.
@@ -32,11 +35,11 @@ C3 = pid(2.,  3, 0; Ts=0.4, state_space=true)   # Discrete
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
 and is what is actually called in `pid` based on the `state_space` parameter.
 """
-function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true)
+function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true, filter_order=2)
     C = if state_space # Type instability? Can it be fixed easily, does it matter?
-        pid_ss(param_p, param_i, param_d; form, Tf, balance)
+        pid_ss(param_p, param_i, param_d; form, Tf, filter_order, balance)
     else
-        pid_tf(param_p, param_i, param_d; form, Tf)
+        pid_tf(param_p, param_i, param_d; form, Tf, filter_order)
     end
     if Ts === nothing
         return C
@@ -48,42 +51,66 @@ end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
 
-function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing)
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, filter_order=2)
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
-    if isnothing(Tf)
-        if Ki != 0
-            return tf([Kd, Kp, Ki], [1, 0])
-        else
+    filter_order ∈ (1,2) || throw(ArgumentError("Filter order must be 1 or 2"))
+    if isnothing(Tf) || (Kd == 0 && filter_order == 1)
+        if Ki == 0
             return tf([Kd, Kp], [1])
+        else
+            return tf([Kd, Kp, Ki], [1, 0])
         end
     else
-        if Ki != 0
-            return tf([Kd, Kp, Ki], [Tf^2/2, Tf, 1, 0])
+        if Ki == 0
+            if filter_order == 1
+                tf([Kd*Tf + Kd, Kd], [Tf, 1])
+            else
+                return tf([Kd, Kp], [Tf^2/2, Tf, 1])
+            end
         else
-            return tf([Kd, Kp], [Tf^2/2, Tf, 1])
+            if filter_order == 1
+                return tf([Kd + Kp*Tf, Ki*Tf + Kp, Ki], [Tf, 1, 0])
+            else
+                return tf([Kd, Kp, Ki], [Tf^2/2, Tf, 1, 0])
+            end
         end
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, balance=true)
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, balance=true, filter_order)
     Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     if !isnothing(Tf)
-        if Ki != 0
-            A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
-            B = [0; 0; 1]
-            C = 2 / Tf^2 * [Ki Kp Kd]
+        if Ki == 0
+            if filter_order == 1
+                A = [-1 / Tf;;]
+                B = [-Kd/Tf^2]
+                C = [1.0;;]
+                D = [Kd/Tf + Kp;;]
+            else # 2
+                A = [0 1; -2/Tf^2 -2/Tf]
+                B = [0; 1]
+                C = 2 / Tf^2 * [Kp Kd]
+                D = [0.0;;]
+            end
         else
-            A = [0 1; -2/Tf^2 -2/Tf]
-            B = [0; 1]
-            C = 2 / Tf^2 * [Kp Kd]
+            if filter_order == 1
+                A = [0 0; 0 -1/Tf]
+                B = [Ki; -Kd/Tf^2]
+                C = [1.0 1]
+                D = [Kd/Tf + Kp;;]
+            else # 2
+                A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
+                B = [0; 0; 1]
+                C = 2 / Tf^2 * [Ki Kp Kd]
+                D = [0.0;;]
+            end
         end
-        D = 0
     elseif Kd == 0
         if Ki != 0
-            A = 0
-            B = 1
-            C = Ki # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
-            D = Kp
+            A = [0.0;;]
+            B = [1.0;;]
+            C = [Ki;;] # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            D = [Kp;;]
         else
             return ss([Kp])
         end
@@ -155,13 +182,12 @@ function pid_ss_2dof(param_p, param_i, param_d=zero(typeof(param_p)); form=:stan
         A = [-(1 / Tf);;]
         B = [-kd*c/(Tf^2) kd/(Tf^2)]
         C = [1.0]
-        D = [kd*c/Tf+kp*b -(kd/Tf + kp)]
     else
         A = [0 0; 0 -(1 / Tf)]
         B = [ki -ki; -kd*c/Tf^2 kd/Tf^2]
         C = [1.0 1]
-        D = [kd*c/Tf+kp*b -(kd/Tf + kp)]            
     end
+    D = [kd*c/Tf+kp*b -(kd/Tf + kp)]
     K = ss(A, B, C, D)
     balance ? first(balance_statespace(K)) : K
 end
@@ -229,7 +255,7 @@ function pidplots(P::LTISystem, args...;
         pzmap(Ts; title="Pole-zero map", kwargs...) |> display
     end
     if :controller ∈ args
-        bodeplot(Cs, ω; lab=labels, title="Controller bode plot", kwargs...) |> display
+        bodeplot(Cs, ω; lab=repeat(labels, inner=(1,2)), title="Controller bode plot", kwargs...) |> display
     end
 end
 
