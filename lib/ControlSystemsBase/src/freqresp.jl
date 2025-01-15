@@ -339,6 +339,12 @@ function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
     ws.mag
 end
 
+function bodemag_nohess!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+    freqresp_nohess!(ws.R, sys, w)
+    @. ws.mag = abs(ws.R)
+    ws.mag
+end
+
 """
     re, im, w = nyquist(sys[, w])
 

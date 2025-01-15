@@ -120,6 +120,7 @@ Base.isapprox(t1::Tuple, t2::Tuple) = t1[1] ≈ t2[1] && t1[2] ≈ t2[2]
 @test bode(sys, ws)[1:2] ≈ (abs.(resp), rad2deg.(angle.(resp)))
 workspace = BodemagWorkspace(sys, ws)
 @test bode(sys, ws)[1] == bodemag!(workspace, sys, ws)
+@test bode(sys, ws)[1] ≈ ControlSystemsBase.bodemag_nohess!(workspace, ss(sys), ws)
 @test nyquist(sys, ws)[1:2] ≈ (real(resp), imag(resp))
 sigs = Array{Float64}(undef, 2, 50)
 for i in eachindex(ws)

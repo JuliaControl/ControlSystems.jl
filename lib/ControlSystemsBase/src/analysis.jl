@@ -56,6 +56,8 @@ end
     count_integrators(P)
 
 Count the number of poles in the origin by finding the maximum value of `n` for which the number of poles within a circle of radius `(n+1)*eps(numeric_type(sys))^(1/n)` arount the origin (1 in discrete time) equals `n`.
+
+See also [`integrator_excess`](@ref).
 """
 function count_integrators(P::LTISystem)
     p = poles(P)
