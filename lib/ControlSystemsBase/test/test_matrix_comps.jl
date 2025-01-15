@@ -1,3 +1,4 @@
+using Test, LinearAlgebra
 @testset "test_matrix_comps" begin
 A = [-0.21 0.2; 0.2 -0.21]
 B = 0.01*[1 0; 0 1]
@@ -8,7 +9,7 @@ sysr, G = balreal(sys)
 
 @test gram(sysr, :c) ≈ diagm(G)
 @test gram(sysr, :o) ≈ diagm(G)
-@test sort(poles(sysr)) ≈ sort(poles(sys))
+@test sort(poles(sysr), by=real) ≈ sort(poles(sys), by=real)
 
 sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test similarity_transform(sysb, T) ≈ sys

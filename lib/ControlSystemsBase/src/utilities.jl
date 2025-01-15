@@ -34,7 +34,7 @@ to_abstract_matrix(A::AbstractVector) = reshape(A, length(A), 1)
 to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
-eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
+eigvalsnosort(A, args...; kwargs...)::Vector{Complex{real(float(eltype(A)))}} = eigvals(A, args...; sortby=nothing, kwargs...)
 eigvalsnosort(A::StaticArraysCore.StaticMatrix; kwargs...) =  eigvalsnosort(Matrix(A); kwargs...)
 roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 
