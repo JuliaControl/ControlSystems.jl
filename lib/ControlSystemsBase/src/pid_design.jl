@@ -175,12 +175,23 @@ function pid_2dof(args...; state_space = true, Ts = nothing, disc = :tustin, kwa
 end
 
 function pid_ss_2dof(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, b = 1, c = 0, Tf=nothing, N=nothing, balance=true)
+    kp, ki, kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+    if kd == 0
+        if ki == 0
+            return ss([kp -kp])
+        else
+            A = [0.0;;]
+            B = [ki -ki]
+            C = [1.0;;] # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            D = [b*kp -kp]
+            return ss(A, B, C, D)
+        end
+    end
     # On standard form we use N
     Tf !== nothing && N !== nothing && throw(ArgumentError("Cannot supply both Tf and N"))
     if Tf === nothing && N === nothing
         N = 10 # Default value
     end
-    kp, ki, kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     Tf = @something(Tf, kd / N)
     Tf <= 0 && throw(ArgumentError("Tf must be strictly positive"))
     if ki == 0
