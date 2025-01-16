@@ -91,6 +91,12 @@ Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; Tf, b, c, form=:parallel)
 @test freqresptest(Kss, Ktf) < 1e-10
 
 kp, ki, kd, b, c, Tf = rand(6)
+kd = 0
+Ktf = [(kp*b + ki/s + kd*s*c/(Tf*s + 1)) -(kp + ki/s + kd*s/(Tf*s + 1))]
+Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; Tf, b, c, form=:parallel)
+@test freqresptest(Kss, Ktf) < 1e-10
+
+kp, ki, kd, b, c, Tf = rand(6)
 Ktf = [(kp*b + ki/s + kd*s*c/(Tf*s + 1)) -(kp + ki/s + kd*s/(Tf*s + 1))]
 Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; Tf, b, c, form=:parallel)
 @test freqresptest(Kss, Ktf) < 1e-10
