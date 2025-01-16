@@ -113,14 +113,13 @@ function StateSpace(D::AbstractArray{T}, timeevol::TimeEvolution) where {T<:Numb
     A = zeros(T, 0, 0)
     B = zeros(T, 0, nu)
     C = zeros(T, ny, 0)
-    D = reshape(D, (ny,nu))
     return StateSpace(A, B, C, D, timeevol)
 end
 StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))
 StateSpace(D::AbstractArray) = StateSpace(D, Continuous())
 
-StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d], Discrete(Ts))
-StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
+StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d;;], Discrete(Ts))
+StateSpace(d::Number; kwargs...) = StateSpace([d;;], Continuous())
 
 
 # StateSpace(sys) converts to StateSpace
