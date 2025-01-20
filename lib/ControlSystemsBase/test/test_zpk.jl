@@ -153,7 +153,7 @@ k = 0.3
 @test eltype(fill(zpk(1,0.005)/zpk(2, 0.005),2)) <: TransferFunction
 @test eltype(fill(zpk(1)+1,2)) <: TransferFunction
 
-@test eltype([tf(1,1), zpk(1,1)]) <: TransferFunction
+@test eltype([tf(1,1), zpk(1,1)]) <: LTISystem
 
 zpk(tf([1 2; 3 4])) == zpk([1 2; 3 4])
 

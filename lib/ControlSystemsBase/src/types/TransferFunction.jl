@@ -105,7 +105,7 @@ isrational(::TransferFunction) = true
 #####################################################################
 
 ## EQUALITY ##
-function ==(G1::TransferFunction, G2::TransferFunction)
+function ==(G1::T, G2::T) where T<:TransferFunction
     fields = (:timeevol, :ny, :nu, :matrix)
     for field in fields
         if getproperty(G1, field) != getproperty(G2, field)
@@ -114,6 +114,8 @@ function ==(G1::TransferFunction, G2::TransferFunction)
     end
     return true
 end
+
+==(G1::TransferFunction, G2::TransferFunction) = ==(promote(G1,G2)...)
 
 ## Approximate ##
 function isapprox(G1::TransferFunction, G2::TransferFunction; kwargs...)
