@@ -138,6 +138,13 @@ end
 Base.typed_hcat(::Type{S}, X::Number...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:Number,2}}...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 
+## Mixed-type array creation
+# When creating an array of systems, an error may be thrown if the default Base.vect is called that tries to promote all systems to a common type. E.g., when using non-proper transfer functions and statespace systems. We thus opt out of the conversion with the method below
+function Base.vect(X::LTISystem...)
+    LTISystem[X...]
+end
+
+
 """
     add_input(sys::AbstractStateSpace, B2::AbstractArray, D2 = 0)
 
