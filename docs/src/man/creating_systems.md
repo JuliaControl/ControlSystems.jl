@@ -268,19 +268,6 @@ P = ssrand(2,3,1) # A random 2×3 MIMO system
 sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)')
 ```
 
-### Creating arrays with different types of systems
-When calling `hcat/vcat`, Julia automatically tries to promote the types to the smallest common supertype, this means that creating an array with one continuous and one discrete-time system fails
-```@example MIMO
-P_cont = ssrand(2,3,1) 
-P_disc = ssrand(2,3,1, Ts=1)
-@test_throws ErrorException [P_cont, P_disc] # ERROR: Sampling time mismatch
-```
-You can explicitly tell Julia that you want a particular supertype, e.g,
-```@example MIMO
-StateSpace[P_cont, P_disc]
-```
-The type `StateSpace` is abstract, since the type parameters are not specified.
-
 ## Demo systems
 The module `ControlSystemsBase.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.
 
