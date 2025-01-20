@@ -248,7 +248,13 @@ end
 ## Approximate ##
 function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
     fieldnames(ST1) == fieldnames(ST2) || (return false)
-    return all(isapprox(getfield(sys1, f), getfield(sys2, f); kwargs...) for f in fieldnames(ST1))
+    return all(fieldnames(ST1)) do f
+        if fieldtype(ST1, f) <: Union{Number, AbstractArray{<:Number}, LTISystem}
+            isapprox(getfield(sys1, f), getfield(sys2, f); kwargs...)
+        else
+            getfield(sys1, f) == getfield(sys2, f)
+        end
+    end
 end
 
 ## ADDITION ##

@@ -154,6 +154,10 @@ v = [ssrand(1,1,1), tf(1)]
 @test v[1] isa StateSpace{Continuous, Float64}
 @test v[2] isa TransferFunction{Continuous, ControlSystemsBase.SisoRational{Int64}}
 
+# Test vector creation
+v = [tf(1), tf(1)]
+@test v isa Vector{TransferFunction{Continuous, ControlSystemsBase.SisoRational{Int64}}}
+
 # Combination tfRational and sisoZpk
 Czpk_111 = zpk([-2],[-5],1)
 Czpk_211 = zpk([-1+sqrt(2)im,-1-sqrt(2)im], [-5,-3],1)

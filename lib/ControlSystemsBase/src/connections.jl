@@ -144,6 +144,9 @@ function Base.vect(X::LTISystem...)
     LTISystem[X...]
 end
 
+function Base.vect(X::T...) where T <: LTISystem
+    T[X...]
+end
 
 """
     add_input(sys::AbstractStateSpace, B2::AbstractArray, D2 = 0)
