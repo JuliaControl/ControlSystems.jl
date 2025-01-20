@@ -37,7 +37,7 @@ C3 = pid(2.,  3, 0; Ts=0.4, state_space=true)   # Discrete
 ```
 
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
-and is what is actually called in `pid` based on the `state_space` parameter.
+and is what is actually called in `pid` based on the `state_space` parameter. See also [`pid_2dof`](@ref) for a 2DOF controller with inputs `[r; y]` and outputs `u`.
 """
 function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true, kwargs...)
     C = if state_space # Type instability? Can it be fixed easily, does it matter?

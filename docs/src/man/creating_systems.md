@@ -37,7 +37,7 @@ The transfer functions created using this method will be of type `TransferFuncti
 For more general expressions, it is sometimes more convenient to define `s = tf("s")` (only use this approach for low-order systems).:
 #### Example:
 ```julia
-julia> s = tf("s")
+julia> s = tf("s") # or s = zpk("s"), z = tf("z", Ts), z = zpk("z", Ts)
 
 TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}
 s

@@ -61,7 +61,8 @@ Depth = 1
 
 The JuliaControl and surrounding ecosystem contains a few additional packages that may be of interest
 - [RobustAndOptimalControl.jl](https://github.com/JuliaControl/RobustAndOptimalControl.jl) contains more advanced features for LQG design, robust analysis and synthesis, uncertainty modeling, named systems and an interface to [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl).
-- [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl) contains basic C-code generation for linear systems.
+- [ModelPredictiveControl.jl](https://github.com/JuliaControl/ModelPredictiveControl.jl) is a package for solving both linear and nonlinear MPC problems. 
+- [SymbolicControlSystems.jl](https://github.com/JuliaControl/SymbolicControlSystems.jl) contains basic C-code generation for linear systems as well as symbolic manipulation of transfer functions using SymPy.
 - [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is a system-identification toolbox for identification of LTI systems using either time or frequency-domain data. This package can use data to estimate statespace models, transfer-function models and Kalman filters that can be used for control design.
 - [ControlSystemsMTK.jl](https://juliacontrol.github.io/ControlSystemsMTK.jl/dev/) is an interface between ControlSystems.jl and [ModelingToolkit.jl](https://mtk.sciml.ai/stable/).
 - [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl) contains a reference implementation in Julia of a discrete-time PID controller including set-point weighting, integrator anti-windup, derivative filtering and bumpless transfer.
@@ -80,7 +81,6 @@ and the introductory Youtube video below, as well as the following [Youtube play
 The following is a list of packages from the wider Julia ecosystem that may be of interest.
 
 - [DescriptorSystems.jl](https://github.com/andreasvarga/DescriptorSystems.jl) contains types that represent statespace systems on descriptor form, i.e., with a mass matrix. These systems can represent linear DAE systems and non-proper systems.
-- [TrajectoryOptimization.jl](http://roboticexplorationlab.org/TrajectoryOptimization.jl/stable/) is one of the more developed packages for open-loop **optimal control** and trajectory optimization in Julia.
 - [LowLevelParticleFilters.jl](https://github.com/baggepinnen/LowLevelParticleFilters.jl) is a library for state estimation using particle filters and Kalman filters of different flavors.
 - [ModelingToolkit.jl](https://mtk.sciml.ai/stable/) is an acausal modeling tool, similar in spirit to Modelica. A video showing ControlSystems and ModelingToolkit together is [available here](https://youtu.be/favQKOyyx4o). [ControlSystemsMTK.jl](https://juliacontrol.github.io/ControlSystemsMTK.jl/dev/) exists to ease the use of these two packages together.
 - [JuliaSimControl.jl](https://help.juliahub.com/juliasimcontrol/dev/) is a product that builds upon the JuliaControl ecosystem and ModelingToolkit, providing additional nonlinear and robust control methods.
@@ -89,9 +89,9 @@ The following is a list of packages from the wider Julia ecosystem that may be o
 - [MatrixEquations.jl](https://github.com/andreasvarga/MatrixEquations.jl) contains solvers for many different matrix equations common in control. ControlSystems.jl makes use of this package for solving Riccati and Lyapunov equations.
 - [JuMP.jl](https://jump.dev/JuMP.jl/stable/) is a modeling language for optimization, similar to YALMIP. JuMP is suitable for solving LMI/SDP problems as well as advanced linear MPC problems. 
 - [SumOfSquares.jl](https://jump.dev/SumOfSquares.jl/stable/) is a package for sum-of-squares programming that builds on top of JuMP. Their documentation contains examples of Lyapunov-function search and nonlinear synthesis.
+- [InfiniteOpt.jl](https://github.com/infiniteopt/InfiniteOpt.jl) is a tool for solving numerical optimal-control problems built on top of JuMP.
 - [MonteCarloMeasurements.jl](https://baggepinnen.github.io/MonteCarloMeasurements.jl/stable/) is a library for working with parametric uncertainty. An example using ControlSystems is available [here](https://github.com/baggepinnen/MonteCarloMeasurements.jl/blob/master/examples/controlsystems.jl).
 - [DifferentialEquations.jl](https://diffeq.sciml.ai/stable/) is the home of the SciML ecosystem that provides solvers for scientific problems. ControlSystems.jl uses these solvers for continuous-time simulations.
-- [Dojo.jl](https://github.com/dojo-sim/Dojo.jl) is a differentiable robot simulator.
 - [StaticCompiler.jl](https://github.com/tshort/StaticCompiler.jl) contains tools for compiling small binaries of Julia programs.
 - [JuliaPOMDP](https://github.com/JuliaPOMDP) is a Julia ecosystem for reinforcement learning. 
 - [JuliaReinforcementLearning](https://github.com/JuliaReinforcementLearning) is another Julia ecosystem for reinforcement learning. 
