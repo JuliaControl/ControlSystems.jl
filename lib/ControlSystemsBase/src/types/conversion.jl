@@ -136,8 +136,8 @@ function siso_tf_to_ss(T::Type, f::SisoRational)
     num0, den0 = numvec(f), denvec(f)
     # Normalize the numerator and denominator to allow realization of transfer functions
     # that are proper, but not strictly proper
-    num = num0 / den0[1]
-    den = den0 / den0[1]
+    num = num0 ./ den0[1]
+    den = den0 ./ den0[1]
 
     N = length(den) - 1 # The order of the rational function f
 
