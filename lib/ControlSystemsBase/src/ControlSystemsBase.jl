@@ -139,8 +139,7 @@ export lyap # Make sure LinearAlgebra.lyap is available
 export plyap
 import Printf
 import Printf: @printf, @sprintf
-import DSP
-import DSP: conv
+import Polynomials: conv # TODO: replace this internal function with something public
 using ForwardDiff
 import MatrixPencils
 using MacroTools
@@ -220,6 +219,8 @@ include("dsp.jl")
 @deprecate luenberger(sys, p) place(sys, p, :o)
 @deprecate luenberger(A, C, p) place(A, C, p, :o)
 # There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
+
+seriesform(a) = error(a isa TransferFunction{<:Discrete} ? "seriesform requires the user to load the package DSP" : "seriesform requires a discrete-time TransferFunction (and the package DSP.jl to be loaded)")
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
