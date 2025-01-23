@@ -219,6 +219,14 @@ include("plotting.jl")
 @deprecate luenberger(A, C, p) place(A, C, p, :o)
 # There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
 
+"""
+    Gs, k = seriesform(G::TransferFunction{Discrete})
+
+Convert a transfer function `G` to a vector of second-order transfer functions and a scalar gain `k`, the product of which equals `G`.
+
+!!! note
+    This function requires the user to load the package DSP.jl.
+"""
 seriesform(a) = error(a isa TransferFunction{<:Discrete} ? "seriesform requires the user to load the package DSP" : "seriesform requires a discrete-time TransferFunction (and the package DSP.jl to be loaded)")
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
