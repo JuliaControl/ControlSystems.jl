@@ -208,7 +208,6 @@ include("nonlinear_components.jl")
 include("types/staticsystems.jl")
 
 include("plotting.jl")
-include("dsp.jl")
 
 @deprecate pole poles
 @deprecate tzero tzeros
