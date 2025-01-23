@@ -126,8 +126,7 @@ export  LTISystem,
         add_output
 
 
-# QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using RecipesBase, LaTeXStrings, LinearAlgebra
+using RecipesBase, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op

@@ -90,7 +90,7 @@ end
 #         minor     = minor[ind]
 #         minorText = minorText[ind]
 #         if length(minor) > minor_text_limit
-#             minorText = [" " for t in minorText]#fill!(minorText, L" ")
+#             minorText = [" " for t in minorText]#fill!(minorText, " ")
 #         end
 #         perm = sortperm([major; minor])
 #         return [major; minor][perm], [majorText; minorText][perm]

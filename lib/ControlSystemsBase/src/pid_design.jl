@@ -251,7 +251,7 @@ function pidplots(P::LTISystem, args...;
         kp = kps[i]
         ki = kis[i]
         kd = kds[i]
-        label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
+        label = "\$k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))\$"
 
         C = pid(kp,ki,kd,form=form)
         T = robust_minreal(feedback(P*C, 1))
@@ -384,7 +384,7 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=
     K   = convert_pidparams_from_parallel.(kp, ki, kd, form)
     kp, ki = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
-        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
+        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
         nothing
     end
@@ -401,7 +401,7 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     K       = convert_pidparams_from_parallel.(kp, ki, kd, form)
     kp, ki  = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
-        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
+        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
         nothing
     end
