@@ -73,7 +73,7 @@ P = K/(s*((J*s + b)*(L*s + R) + K^2))
 #Continuous-time transfer function model
 
 # Create an array of closed loop systems for different values of Kp
-CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
+CLs = [kp*P/(1 + kp*P) for kp ∈ [1, 5, 15]];
 
 # Plot the step response of the controllers
 # Any keyword arguments supported in Plots.jl can be supplied
