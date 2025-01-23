@@ -1,3 +1,8 @@
+module ControlSystemsBaseDSPExt
+using ControlSystemsBase
+using ControlSystemsBase: issiso, numvec, denvec
+import ControlSystemsBase: TransferFunction, seriesform, zpk, tf
+import DSP
 
 tf(p::DSP.PolynomialRatio{:z}, h::Real = 1) = tf(DSP.coefb(p), DSP.coefa(p), h)
 tf(p::DSP.PolynomialRatio{:s}) = tf(DSP.coefb(p), DSP.coefa(p))
@@ -17,11 +22,6 @@ function TransferFunction(b::DSP.Biquad, h::Real = 1)
 end
 
 
-"""
-    Gs, k = seriesform(G::TransferFunction{Discrete})
-
-Convert a transfer function `G` to a vector of second-order transfer functions and a scalar gain `k`, the product of which equals `G`.
-"""
 function seriesform(G::TransferFunction{<:Discrete})
     Gs = DSP.SecondOrderSections(DSP.PolynomialRatio(G))
     bqs = TransferFunction.(Gs.biquads, G.Ts)
@@ -62,4 +62,7 @@ function DSP.filtfilt(P::ControlSystemsBase.TransferFunction, u, args...)
         b = [zeros(na - nb); b]
     end
     DSP.filtfilt(b, a, u, args...)
+end
+
+
 end
