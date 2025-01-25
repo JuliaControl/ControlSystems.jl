@@ -245,6 +245,10 @@ Lw = freqresp(L, m[1][])[]
 @test imag(Lw) ≈ 0 atol = 1e-6 # Test definition of gain margin
 @test inv(-real(Lw)) ≈ m[2][] atol = 1e-6 # Test definition of gain margin
 
+# https://github.com/JuliaControl/ControlSystems.jl/issues/961
+P = tf(1,[5, 10.25, 6.25, 1])
+w_180, gm, w_c, pm = margin(50P)
+@test pm[] ≈ -35.1 rtol=1e-2
 
 # RGA
 a = 10

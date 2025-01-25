@@ -506,7 +506,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     if !allMargins #Only output the smallest margins
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
-        pm, idx = findmin([abs.(pm);Inf])
+        pm, idx = findmin([pm;Inf])
         fi = [fi;NaN][idx]
         wpm = [wpm;NaN][idx]
         if full
