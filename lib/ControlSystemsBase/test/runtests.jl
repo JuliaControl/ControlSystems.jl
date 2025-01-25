@@ -4,13 +4,13 @@ import Base.isapprox        # In framework and test_synthesis
 import SparseArrays: sparse # In test_matrix_comps
 import Polynomials: conv            # In test_conversion and test_synthesis
 using Aqua
-# @testset "Aqua" begin
-#     Aqua.test_all(ControlSystemsBase;
-#         ambiguities = false, # causes 100s of hits in all dependencies
-#         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
-#         project_toml_formatting = false, # https://github.com/JuliaTesting/Aqua.jl/issues/105
-#     )
-# end
+@testset "Aqua" begin
+    Aqua.test_all(ControlSystemsBase;
+        ambiguities = false, # causes 100s of hits in all dependencies
+        stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
+        project_toml_formatting = false, # https://github.com/JuliaTesting/Aqua.jl/issues/105
+    )
+end
 
 
 include("framework.jl")
