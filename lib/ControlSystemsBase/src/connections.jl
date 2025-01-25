@@ -140,12 +140,12 @@ Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:N
 
 ## Mixed-type array creation
 # When creating an array of systems, an error may be thrown if the default Base.vect is called that tries to promote all systems to a common type. E.g., when using non-proper transfer functions and statespace systems. We thus opt out of the conversion with the method below
-function Base.vect(X::LTISystem...)
-    LTISystem[X...]
+function Base.vect(X0::LTISystem, X::LTISystem...)
+    LTISystem[X0, X...]
 end
 
-function Base.vect(X::T...) where T <: LTISystem
-    T[X...]
+function Base.vect(X0::T, X::T...) where T <: LTISystem
+    T[X0, X...]
 end
 
 """
