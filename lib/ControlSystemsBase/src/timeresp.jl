@@ -280,9 +280,9 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 
     dt = t[2] - t[1]
 
-    if !iscontinuous(sys) || method === :zoh
+    if !iscontinuous(sys) || method ∈ (:zoh, :tustin, :foh, :fwdeuler)
         if iscontinuous(sys)
-            simsys = c2d(sys, dt, :zoh)
+            simsys = c2d(sys, dt, method)
         else
             if !(sys.Ts ≈ dt)
                 error("Time vector interval ($dt) must match sample time for discrete system ($(sys.Ts))")
