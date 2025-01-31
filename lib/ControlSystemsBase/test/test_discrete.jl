@@ -77,9 +77,9 @@ sysd = c2d(sys, 1)
 @test d2c(sysd) ≈ sys
 
 
-# forward euler / tustin
+# forward euler / tustin / backward euler
 @test c2d(C_111, 1, :fwdeuler).A == I + C_111.A
-for method in (:fwdeuler, :tustin)
+for method in (:fwdeuler, :tustin, :bwdeuler)
     @test d2c(c2d(C_111, 0.01, method), method) ≈ C_111 atol = sqrt(eps())
     @test d2c(c2d(C_212, 0.01, method), method) ≈ C_212 atol = sqrt(eps())
     @test d2c(c2d(C_221, 0.01, method), method) ≈ C_221 atol = sqrt(eps())

@@ -67,6 +67,13 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
     elseif method === :fwdeuler
         Ad, Bd, Cd, Dd = (I+Ts*A), Ts*B, C, D
         x0map = I(nx)
+    elseif method === :bwdeuler
+        Ad = inv(I - Ts*A)
+        TsB = Ts*B
+        Bd = (Ad * TsB)
+        Cd = C*Ad
+        Dd = Cd * TsB + D
+        x0map = I(nx)
     elseif method === :tustin
         a = w_prewarp == 0 ? Ts/2 : tan(w_prewarp*Ts/2)/w_prewarp
         a > 0 || throw(DomainError("A positive w_prewarp must be provided for method Tustin"))
@@ -77,7 +84,7 @@ function c2d_x0map(sys::AbstractStateSpace{<:Continuous}, Ts::Real, method::Symb
         Dd = a*Cd*B + D
         x0map = Matrix{T}(I, nx, nx)
     elseif method === :matched
-        error("NotImplemented: Only `:zoh`, `:foh`, :tustin and `:fwdeuler` implemented so far")
+        error("NotImplemented: Only `:zoh`, `:foh`, :tustin, `:fwdeuler` and `bwdeuler` implemented so far")
     else
         error("Unsupported method: ", method)
     end
@@ -111,6 +118,11 @@ function d2c(sys::AbstractStateSpace{<:Discrete}, method::Symbol=:zoh; w_prewarp
         Ac = (A-I)./sys.Ts
         Bc = B./sys.Ts
         Cc, Dc = C, D
+    elseif method === :bwdeuler
+        Ac = (I - inv(A))/sys.Ts
+        Bc = (A\B) ./ sys.Ts
+        Cc = C/A
+        Dc = D - sys.Ts*C*Bc
     elseif method === :tustin
         a = w_prewarp == 0 ? sys.Ts/2 : tan(w_prewarp*sys.Ts/2)/w_prewarp
         a > 0 || throw(DomainError("A positive w_prewarp must be provided for method Tustin"))
