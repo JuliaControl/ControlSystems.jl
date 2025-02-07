@@ -140,16 +140,32 @@ function pade(τ::Real, N::Int)
     return tf(_linscale(Q, -τ), _linscale(Q, τ)) # return Q(-τs)/Q(τs)
 end
 
+# Pade approximation with different degree in numerator and denominator
+"""
+    pade(τ::Real, N_num::Int, N_den::Int)
+
+Compute the Padé approximation of a time-delay of length `τ` with `N_num` and `N_den` degrees in the numerator and denominator, respectively.
+"""
+function pade(τ::Real, m::Int, n::Int)
+    p = [(-1)^i * binomial(m, i) * factorial(m+n-i) / factorial(m+n)
+        for i in 0:m]  |> Polynomials.Polynomial
+
+    q = [binomial(n, i) * factorial(m+n-i) / factorial(m+n)
+        for i in 0:n]  |> Polynomials.Polynomial
+
+    return tf(_linscale(p, τ), _linscale(q, τ))
+end
+
 
 """
     pade(G::DelayLtiSystem, N)
 
 Approximate all time-delays in `G` by Padé approximations of degree `N`.
 """
-function pade(G::DelayLtiSystem, N)
+function pade(G::DelayLtiSystem, N, args...)
     ny, nu = size(G)
     nTau = length(G.Tau)
-    X = append(ss(pade(τ,N)) for τ in G.Tau) # Perhaps append should be renamed blockdiag
+    X = append(ss(pade(τ,N,args...)) for τ in G.Tau) # Perhaps append should be renamed blockdiag
     return lft(G.P.P, X)
 end
 

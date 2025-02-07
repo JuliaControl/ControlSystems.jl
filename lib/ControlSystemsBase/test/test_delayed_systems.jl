@@ -229,6 +229,20 @@ P_wb = DemoSystems.woodberry()
 
 @test freqresp(pade(feedback(eye_(2), P_wb), 3), Ω) ≈ freqresp(feedback(eye_(2), P_wb), Ω) atol=1e-4
 
+## Test pade(tau, m, n)
+t = 1.5
+P15 = pade(t, 1, 5)
+dv = denvec(P15)[]
+dv1 = dv[1]/t^5 # Rescale to compare with https://www2.humusoft.cz/www/papers/tcp09/035_hanta.pdf
+@test numvec(P15)[] ./ dv1 ≈ [-120*t, 720]
+@test dv ./ dv1 ≈ [t^5, 10*t^4, 60*t^3, 240*t^2, 600*t, 720]
+
+
+P15 = pade(t, 2, 5)
+# Test vectors computed using RobustPade.robustpade(s->exp(-t*s), 2, 5)
+@test numvec(P15)[] ≈ [0.05357142857142857, -0.42857142857142855, 1.0]
+@test denvec(P15)[] ≈ [0.0030133928571428573, 0.03013392857142857, 0.1607142857142857, 0.5357142857142857, 1.0714285714285714, 1.0]
+
 # test thiran
 for Ts = [1, 1.1]
     z = tf('z', Ts)
