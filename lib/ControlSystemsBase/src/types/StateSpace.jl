@@ -564,18 +564,18 @@ end
 Base.print(io::IO, sys::AbstractStateSpace) = show(io, sys)
 
 function Base.show(io::IO, sys::AbstractStateSpace)
-    # Compose the name vectors
-    #inputs = format_names(s.inputnames, "u", "?")
-    #outputs = format_names(s.outputnames, "y", "?")
-    #println(io, "StateSpace:")
     println(io, typeof(sys))
+    A, B, C, D = ssdata(sys)
     if nstates(sys) > 0
-        #states = format_names(s.statenames, "x", "?")
-        println(io, "A = \n", _string_mat_with_headers(sys.A))
-        println(io, "B = \n", _string_mat_with_headers(sys.B))
-        println(io, "C = \n", _string_mat_with_headers(sys.C))
+        length(A) < 200 ? println(io, "A = \n", _string_mat_with_headers(A)) :
+            println(io, "A = $(typeof(A))$(size(A))")
+        length(B) < 200 ? println(io, "B = \n", _string_mat_with_headers(B)) :
+            println(io, "B = $(typeof(B))$(size(B))")
+        length(C) < 200 ? println(io, "C = \n", _string_mat_with_headers(C)) :
+            println(io, "C = $(typeof(C))$(size(C))")
+        length(D) < 200 ? println(io, "D = \n", _string_mat_with_headers(D)) :
+            println(io, "D = ", iszero(D) ? "  0" : "$(typeof(D))$(size(D))")
     end
-    println(io, "D = \n", _string_mat_with_headers(sys.D), "\n")
     # Print sample time
     if isdiscrete(sys)
         println(io, "Sample Time: ", sys.Ts, " (seconds)")
