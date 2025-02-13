@@ -1,3 +1,4 @@
+using GenericLinearAlgebra # Required to compute eigvals of a matrix with exotic element types
 @testset "test_analysis" begin
 ## tzeros ##
 # Examples from the Emami-Naeini & Van Dooren Paper
