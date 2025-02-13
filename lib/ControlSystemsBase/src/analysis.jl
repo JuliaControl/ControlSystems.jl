@@ -53,7 +53,7 @@ end
 """
     count_integrators(P)
 
-Count the number of poles in the origin by finding the maximum value of `n` for which the number of poles within a circle of radius `eps(maximum(abs, p))^(1/n)` around the origin (1 in discrete time) equals `n`.
+Count the number of poles in the origin by finding the first value of `n` for which the number of poles within a circle of radius `eps(maximum(abs, p))^(1/n)` around the origin (1 in discrete time) equals `n`.
 
 See also [`integrator_excess`](@ref).
 """
