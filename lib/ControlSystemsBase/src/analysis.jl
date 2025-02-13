@@ -38,24 +38,22 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
 end
 
 
-function count_eigval_multiplicity(p, location)
-    T = float(real(eltype(p)))
+function count_eigval_multiplicity(p, location, e=eps(maximum(abs, p)))
     n = length(p)
     n == 0 && return 0
-    maximum(1:n) do i
+    for i = 1:n
         # if we count i poles within the circle assuming i integrators, we return i
-        if count(p->abs(p-location) < (i+1)*(eps(T)^(1/i)), p) >= i
-            i
-        else
-            0
+        if count(p->abs(p-location) < (e^(1/i)), p) == i
+            return i
         end
     end
+    0
 end
 
 """
     count_integrators(P)
 
-Count the number of poles in the origin by finding the maximum value of `n` for which the number of poles within a circle of radius `(n+1)*eps(numeric_type(sys))^(1/n)` arount the origin (1 in discrete time) equals `n`.
+Count the number of poles in the origin by finding the maximum value of `n` for which the number of poles within a circle of radius `eps(maximum(abs, p))^(1/n)` around the origin (1 in discrete time) equals `n`.
 
 See also [`integrator_excess`](@ref).
 """
