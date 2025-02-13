@@ -438,4 +438,6 @@ Pr = input_resolvent(P)
 @test Pr.C == I
 @test iszero(Pr.D)
 
+@test ss(1) / tf(1) == ss(1) # Test no method ambiguity
+
 end
