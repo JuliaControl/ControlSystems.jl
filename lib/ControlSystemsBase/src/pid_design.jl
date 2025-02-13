@@ -150,8 +150,8 @@ r  ┌─────┐     ┌─────┐          │      │    │ 
 ```
 
 The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
-* `:standard` - ``K_p*(br-y + (r-y)/(T_i s) + T_d s (cr-y)/(T_f s + 1))``
-* `:parallel` - ``K_p*(br-y) + K_i (r-y)/s + K_d s (cr-y)/(Tf s + 1)``
+* `:standard` - ``K_p(br-y + (r-y)/(T_i s) + T_d s (cr-y)/(T_f s + 1))``
+* `:parallel` - ``K_p(br-y) + K_i (r-y)/s + K_d s (cr-y)/(Tf s + 1)``
 
 - `b` is a set-point weighting for the proportional term
 - `c` is a set-point weighting for the derivative term, this defaults to 0.
