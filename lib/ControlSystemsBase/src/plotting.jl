@@ -431,7 +431,7 @@ nyquistplot
                     if lab !== nothing
                         label --> lab
                     end
-                    hover --> [hz ? Printf.@sprintf("f = %.3f", w/2π) : Printf.@sprintf("ω = %.3f", w) for w in w]
+                    hover --> [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
                     (redata, imdata)
                 end                
                 
