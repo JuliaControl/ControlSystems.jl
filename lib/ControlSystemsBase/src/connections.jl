@@ -215,6 +215,10 @@ function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
     sys1new, sys2new = promote(sys1, 1/sys2)
     return sys1new*sys2new
 end
+function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::TransferFunction) # This method is handling ambiguity between method above and one with explicit TF as second argument, hit by ss(1)/tf(1)
+    sys1new, sys2new = promote(sys1, 1/sys2)
+    return sys1new*sys2new
+end
 
 @static if VERSION >= v"1.8.0-beta1"
     blockdiag(anything...) = cat(anything..., dims=Val((1,2)))
