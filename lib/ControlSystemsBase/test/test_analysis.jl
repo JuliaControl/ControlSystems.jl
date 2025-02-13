@@ -277,6 +277,7 @@ nintbig = ControlSystemsBase.count_integrators(big(1.0)*pade(OL, 2))
 @test ControlSystemsBase.count_integrators(pade(OL, 4)) == nintbig
 @test ControlSystemsBase.count_integrators(pade(OL, 10)) == nintbig
 
+
 # RGA
 a = 10
 P = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)
