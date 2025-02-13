@@ -1,3 +1,5 @@
+@test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericLinearAlgebra
+using GenericLinearAlgebra # Required to compute eigvals of a matrix with exotic element types
 @testset "test_analysis" begin
 ## tzeros ##
 # Examples from the Emami-Naeini & Van Dooren Paper
@@ -268,6 +270,15 @@ wgm, gm, ωϕₘ, ϕₘ = margin(OL; full=true, allMargins=true)
 for wgm in wgm[]
      @test mod(rad2deg(angle(freqresp(OL, wgm)[])), 360)-180 ≈ 0 atol=1e-1
 end
+
+nint = ControlSystemsBase.count_integrators(pade(OL, 2))
+nintbig = ControlSystemsBase.count_integrators(big(1.0)*pade(OL, 2))
+@test nint == nintbig # This one is very tricky and tests the threshold value of the eigval counting
+
+@test ControlSystemsBase.count_integrators(pade(OL, 3)) == nintbig
+@test ControlSystemsBase.count_integrators(pade(OL, 4)) == nintbig
+@test ControlSystemsBase.count_integrators(pade(OL, 10)) == nintbig
+
 
 # RGA
 a = 10
