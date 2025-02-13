@@ -250,6 +250,25 @@ P = tf(1,[5, 10.25, 6.25, 1])
 w_180, gm, w_c, pm = margin(50P)
 @test pm[] ≈ -35.1 rtol=1e-2
 
+## Tricky case from https://www.reddit.com/r/ControlTheory/comments/1inhxsz/understanding_stability_in_highorder/
+s = tf("s")
+kpu = -10.593216768722073; kiu = -0.00063; t = 1000; tau = 180; a = 1/8.3738067325406132e-5;
+kpd = 15.92190277847431; kid = 0.000790960718241793;
+kpo = -10.39321676872207317; kio = -0.00063;
+kpb = kpd; kib = kid;
+
+C1 = (kpu + kiu/s)*(1/(t*s + 1))
+C2 = (kpu + kiu/s)*(1/(t*s + 1))
+C3 = (kpo + kio/s)*(1/(t*s + 1))
+Cb = (kpb + kib/s)*(1/(t*s + 1))
+OL = (ss(Cb)*ss(C1)*ss(C2)*ss(C3)*exp(-3*tau*s))/((C1 - a*s)*(C2 - a*s)*(C3 - a*s));
+
+wgm, gm, ωϕₘ, ϕₘ = margin(OL; full=true, allMargins=true)
+@test ϕₘ[][] ≈ -320 rtol=1e-2
+for wgm in wgm[]
+     @test mod(rad2deg(angle(freqresp(OL, wgm)[])), 360)-180 ≈ 0 atol=1e-1
+end
+
 # RGA
 a = 10
 P = ss([0 a; -a 0], I(2), [1 a; -a 1], 0)

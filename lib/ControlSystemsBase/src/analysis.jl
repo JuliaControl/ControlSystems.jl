@@ -496,12 +496,18 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
     for i = eachindex(wgm)
-        gm[i] = 1 ./ abs(freqresp(sys,[wgm[i]])[1][1])
+        gm[i] = 1 ./ abs(freqresp(sys,wgm[i])[1])
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
     for i = eachindex(wpm)
-        pm[i] = mod(rad2deg(angle(freqresp(sys,[wpm[i]])[1][1])),360)-180
+        # We have to access the actual phase value from the `phase` array to get unwrapped phase. This value is not fully accurate since it is computed at a grid point, so we compute the more accurate phase at the interpolated frequency. This accurate value is not unwrapped, so we add an integer multiple of 360 to get the closest unwrapped phase.
+        φ_nom = rad2deg(angle(freqresp(sys,wpm[i])[1]))
+        φ_rounded = phase[clamp(round(Int, fi[i]), 1, length(phase))] # fi is interpolated, so we round to the closest integer
+        φ_int = φ_nom - 360 * round( (φ_nom - φ_rounded) / 360 )
+
+        # Now compute phase margin relative to -180:
+        pm[i] = 180 + φ_int
     end
     if !allMargins #Only output the smallest margins
         gm, idx = findmin([gm;Inf])

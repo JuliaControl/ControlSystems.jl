@@ -771,10 +771,10 @@ marginplot
                     mag = 1 ./ gm
                     oneLine = 1
                 end
-                titles[j,i,1,1] *= "["*join([Printf.@sprintf("%2.2f",v) for v in gm],", ")*"] "
-                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
-                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
-                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+                titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",v) for v in gm],", ")*"] "
+                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wgm],", ")*"] "
+                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%3.2g",v) for v in pm],", ")*"] "
+                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%3.2g",v) for v in wpm],", ")*"] "
 
                 subplot := min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                 if si == length(systems)
