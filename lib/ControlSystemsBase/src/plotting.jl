@@ -293,6 +293,9 @@ end
         else
             sbal = s
         end
+        if plotphase && adjust_phase_start && isrational(sbal)
+            intexcess = integrator_excess(sbal)
+        end
         mag, phase = bode(sbal, w; unwrap=false)
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
@@ -330,7 +333,6 @@ end
                 plotphase || continue
 
                 if adjust_phase_start == true && isrational(sbal)
-                    intexcess = integrator_excess(sbal)
                     if intexcess != 0
                         # Snap phase so that it starts at -90*intexcess
                         nineties = round(Int, phasedata[1] / 90)
@@ -725,11 +727,12 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 
 - A frequency vector `w` can be optionally provided.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
+- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
 marginplot
-@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true)
+@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -746,6 +749,11 @@ marginplot
             s = balance_statespace(s)[1]
         end
         bmag, bphase = bode(s, w)
+
+        if plotphase && adjust_phase_start && isrational(s)
+            intexcess = integrator_excess(s)
+        end
+
         for j=1:nu
             for i=1:ny
                 wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)  
@@ -801,6 +809,15 @@ marginplot
                     [wgm wgm]', [ones(length(mag)) mag]'
                 end
                 plotphase || continue
+
+                phasedata = bphase[i, j, :]
+                if plotphase && adjust_phase_start && isrational(s)
+                    if intexcess != 0
+                        # Snap phase so that it starts at -90*intexcess
+                        nineties = round(Int, phasedata[1] / 90)
+                        phasedata .+= ((90*(-intexcess-nineties)) ÷ 360) * 360
+                    end
+                end
                 
                 # Phase margins
                 subplot := s2i(2i,j)
@@ -810,7 +827,7 @@ marginplot
                 @series begin
                     primary := true
                     seriestype := :bodephase
-                    w, bphase[i, j, :]
+                    w, phasedata
                 end
                 @series begin
                     color --> :gray
