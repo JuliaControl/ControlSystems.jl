@@ -1,3 +1,4 @@
+@test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericLinearAlgebra
 using GenericLinearAlgebra # Required to compute eigvals of a matrix with exotic element types
 @testset "test_analysis" begin
 ## tzeros ##
