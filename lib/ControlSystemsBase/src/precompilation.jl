@@ -22,8 +22,10 @@ PrecompileTools.@setup_workload begin
         end
         G = tf(1.0, [1.0, 1])
         ss(G)
+        ss(G, minimal=true)
         G = tf(1.0, [1.0, 1], 1)
         ss(G)
+        ss(G, minimal=true)
 
         # Pdel = P*delay(1.0)
         # pade(Pdel, 2)
