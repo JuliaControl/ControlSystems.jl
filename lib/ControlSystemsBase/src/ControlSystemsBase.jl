@@ -39,7 +39,6 @@ export  LTISystem,
         place,
         place_knvd,
         # Model Simplification
-        reduce_sys,
         sminreal,
         minreal,
         balreal,
