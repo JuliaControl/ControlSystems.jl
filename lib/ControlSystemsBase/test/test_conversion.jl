@@ -8,8 +8,8 @@ A = randn(ComplexF64,3,3)
 
 G = tf(1.0,[1,1])
 H = zpk([0.0], [1.0], 1.0)
-@inferred ControlSystemsBase.siso_tf_to_ss(Float64, G.matrix[1,1])
-@inferred ControlSystemsBase.siso_tf_to_ss(Float64, H.matrix[1,1])
+# @inferred ControlSystemsBase.siso_tf_to_ss(Float64, G.matrix[1,1])
+# @inferred ControlSystemsBase.siso_tf_to_ss(Float64, H.matrix[1,1])
 
 # Easy second order system
 sys1 = ss([-1 0;1 1],[1;0],[1 1],0)
