@@ -71,7 +71,7 @@ end
 
 Base.step(sys::LTISystem, tfinal::Real; kwargs...) = step(sys, _default_time_vector(sys, tfinal); kwargs...)
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
-Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys, balance=true, minimal=true), t::AbstractVector; kwargs...)
+Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys, minimal=numeric_type(sys) isa BlasFloat), t::AbstractVector; kwargs...)
 
 """
     y, t, x = impulse(sys[, tfinal])
@@ -119,7 +119,7 @@ end
 
 impulse(sys::LTISystem, tfinal::Real; kwargs...) = impulse(sys, _default_time_vector(sys, tfinal); kwargs...)
 impulse(sys::LTISystem; kwargs...) = impulse(sys, _default_time_vector(sys); kwargs...)
-impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys, balance=true, minimal=true), t; kwargs...)
+impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys, minimal=numeric_type(sys) isa BlasFloat), t; kwargs...)
 
 """
     result = lsim(sys, u[, t]; x0, method])
@@ -301,7 +301,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 end
 
 
-lsim(sys::TransferFunction, args...; kwargs...) = lsim(ss(sys, balance=true, minimal=true), args...; kwargs...)
+lsim(sys::TransferFunction, args...; kwargs...) = lsim(ss(sys, minimal=numeric_type(sys) isa BlasFloat), args...; kwargs...)
 
 
 """
