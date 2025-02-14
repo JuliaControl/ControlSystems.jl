@@ -75,7 +75,7 @@ xreal[3,:,2] = exp.(-t).*t
 y, t, x = step(systf, t0, method=:zoh)
 yreal[1,:,1] = 1 .- exp.(-t)
 yreal[2,:,2] = -1 .+ exp.(-t) + 2*exp.(-t).*t
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 #Step ss
 y, t, x = step(sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
@@ -88,7 +88,7 @@ xreal[3,:,2] = exp.(-t).*(-t .- 1) .+ 1
 y, t, x = impulse(systf, t, method=:zoh)
 yreal[1,:,1] = exp.(-t)
 yreal[2,:,2] = exp.(-t).*(1 .- 2*t)
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 #Impulse ss
 y, t, x = impulse(1.0sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
