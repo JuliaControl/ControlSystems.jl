@@ -102,6 +102,7 @@ in discrete time, is created using
 ```julia
 ss(A,B,C,D)    # Continuous-time system
 ss(A,B,C,D,Ts) # Discrete-time system
+ss(P; balance=true, minimal=false) # Convert transfer function P to state space
 ```
 and they behave similarly to transfer functions.
 
@@ -118,7 +119,7 @@ HeteroStateSpace(sys, to_static)
 ```
 Notice the different matrix types used.
 
-To associate **names** with states, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems) from RobustAndOptimalControl.jl.
+To associate **names** with state variables, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems) from RobustAndOptimalControl.jl.
 
 
 ## Converting between types
@@ -136,6 +137,8 @@ z - 1
 Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
 ```
+
+When a transfer function `P` is converted to a state-space model using `ss(P; balance=true, minimal=false)`, the user may choose whether to balance the state-space model (default=true) and/or to return a minimal realization (default=false).
 
 
 ## Converting between continuous and discrete time

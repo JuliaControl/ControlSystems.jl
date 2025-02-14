@@ -37,6 +37,6 @@ s = tf("s");
 @test tzeros(ss([-1.0-im 1-im; 2 0], [2; 0], [-1+1im -0.5-1.25im], 1)) ≈ [-1-2im, 2-im]
 
 @test tzeros(ss((s-2.0-1.5im)^3/(s+1+im)/(s+2)^3)) ≈ fill(2.0 + 1.5im, 3) rtol=1e-4
-@test tzeros(ss((s-2.0-1.5im)*(s-3.0)/(s+1+im)/(s+2)^2)) ≈ [3.0, 2.0 + 1.5im] rtol=1e-14
+@test tzeros(ss((s-2.0-1.5im)*(s-3.0)/(s+1+im)/(s+2)^2)) ≈ [2.0 + 1.5im, 3.0] rtol=1e-14
 
 end

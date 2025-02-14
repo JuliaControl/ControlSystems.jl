@@ -212,3 +212,17 @@ J2 = fdgrad(difffun, pars)[:]
 # @show norm(J1-J2)
 @test J1 ≈ J2 rtol = 1e-5
 
+## Test differentiation of tf 2 ss conversion
+
+function difffun(pars)
+    P = tf(1, pars)
+    sum(abs2, step(P, 0:0.1:10, method=:tustin).y + 
+        impulse(P, 0:0.1:10, method=:tustin).y
+    )
+end
+
+pars = [1.0, 2, 1]
+
+g1 = ForwardDiff.gradient(difffun, pars)
+g2 = fdgrad(difffun, pars)
+@test g1 ≈ g2 rtol = 1e-5
