@@ -1,6 +1,7 @@
 @test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericLinearAlgebra
 using GenericLinearAlgebra # Required to compute eigvals of a matrix with exotic element types
 @testset "test_analysis" begin
+es(x) = sort(x, by=LinearAlgebra.eigsortby)
 ## tzeros ##
 # Examples from the Emami-Naeini & Van Dooren Paper
 # Example 3
@@ -19,10 +20,10 @@ D = [1 0;
 
 ex_3 = ss(A, B, C, D)
 @test ControlSystemsBase.count_integrators(ex_3) == 6
-@test tzeros(ex_3) ≈ [0.3411639019140099 + 1.161541399997252im,
+@test es(tzeros(ex_3)) ≈ es([0.3411639019140099 + 1.161541399997252im,
                              0.3411639019140099 - 1.161541399997252im,
                              0.9999999999999999 + 0.0im,
-                             -0.6823278038280199 + 0.0im]
+                             -0.6823278038280199 + 0.0im])
 # Example 4
 A = [-0.129    0.0   0.396e-1  0.25e-1    0.191e-1;
      0.329e-2  0.0  -0.779e-4  0.122e-3  -0.621;
@@ -38,7 +39,7 @@ C = [1 0 0 0 0;
      0 1 0 0 0]
 D = zeros(2, 2)
 ex_4 = ss(A, B, C, D)
-@test tzeros(ex_4) ≈ [-0.06467751189940692,-0.3680512036036696]
+@test es(tzeros(ex_4)) ≈ es([-0.06467751189940692,-0.3680512036036696])
 @test ControlSystemsBase.count_integrators(ex_4) == 1
 
 # Example 5
@@ -56,7 +57,7 @@ B = [0; 0; 1]
 C = [0 -1 0]
 D = [0]
 ex_6 = ss(A, B, C, D)
-@test tzeros(ex_6) == Float64[]
+@test tzeros(ex_6) == [2] # From paper: "Our algorithm will extract the singular part of S(A) and will yield a regular pencil containing the single zero at 2."
 @test ControlSystemsBase.count_integrators(ex_6) == 2
 
 @test ss(A, [0 0 1]', C, D) == ex_6
@@ -194,9 +195,11 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 
 # Example 5.5 from https://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN10/2019/e05_both.pdf
 G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
-@test_broken length(poles(G)) == 1
-@test length(tzeros(G)) == 1
+@test_broken length(poles(G)) == 1 # The tf poles don't understand the cancellations
+@test length(poles(ss(G, minimal=true))) == 1 # The ss version with minimal realization does
+@test length(tzeros(G)) == 0 # tzeros converts to minimal ss relalization
 @test minreal(ss(G)).A ≈ [-2]
+@test ss(G, minimal=true).A ≈ [-2]
 
 
 ## MARGIN ##
