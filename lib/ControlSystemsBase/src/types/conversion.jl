@@ -159,11 +159,11 @@ The inverse of `sysb, T = balance_statespace(sys)` is given by `similarity_trans
 
 This is not the same as finding a balanced realization with equal and diagonal observability and reachability gramians, see [`balreal`](@ref)
 """
-function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false)
+function balance_statespace(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, perm::Bool=false; verbose=true)
     try
         return _balance_statespace(A,B,C, perm)
     catch
-        @warn "Unable to balance state-space, returning original system" maxlog=10
+        verbose && @warn "Unable to balance state-space, returning original system" maxlog=10
         return A,B,C,convert(typeof(A), I(size(A, 1)))
     end
 end
@@ -175,8 +175,8 @@ end
 #     balance_statespace(A2, B2, C2, perm)
 # end
 
-function balance_statespace(sys::S, perm::Bool=false) where S <: AbstractStateSpace
-    A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm)
+function balance_statespace(sys::S, perm::Bool=false; kwargs...) where S <: AbstractStateSpace
+    A, B, C, T = balance_statespace(sys.A,sys.B,sys.C, perm; kwargs...)
     ss(A,B,C,sys.D,sys.timeevol), T
 end
 

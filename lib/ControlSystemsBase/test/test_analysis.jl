@@ -1,5 +1,5 @@
-@test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericLinearAlgebra
-using GenericLinearAlgebra # Required to compute eigvals of a matrix with exotic element types
+@test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericSchur
+using GenericSchur # Required to compute eigvals (in tzeros and poles) of a matrix with exotic element types
 @testset "test_analysis" begin
 es(x) = sort(x, by=LinearAlgebra.eigsortby)
 ## tzeros ##
@@ -58,6 +58,7 @@ C = [0 -1 0]
 D = [0]
 ex_6 = ss(A, B, C, D)
 @test tzeros(ex_6) == [2] # From paper: "Our algorithm will extract the singular part of S(A) and will yield a regular pencil containing the single zero at 2."
+@test_broken tzeros(big(1.0)ex_6) == [2]
 @test ControlSystemsBase.count_integrators(ex_6) == 2
 
 @test ss(A, [0 0 1]', C, D) == ex_6
@@ -79,6 +80,7 @@ D = [0]
 ex_8 = ss(A, B, C, D)
 # TODO : there may be a way to improve the precision of this example.
 @test tzeros(ex_8) ≈ [-1.0, -1.0] atol=1e-7
+@test tzeros(big(1)ex_8) ≈ [-1.0, -1.0] atol=1e-7
 @test ControlSystemsBase.count_integrators(ex_8) == 0
 
 # Example 9
@@ -102,6 +104,7 @@ D = [0 0;
      0 0]
 ex_11 = ss(A, B, C, D)
 @test tzeros(ex_11) ≈ [4.0, -3.0]
+@test tzeros(big(1)ex_11) ≈ [4.0, -3.0]
 
 # Test for multiple zeros, siso tf
 s = tf("s")
@@ -367,5 +370,17 @@ P = let
      ss(tempA, tempB, tempC, tempD)
 end
 @test ControlSystemsBase.count_integrators(P) == 2
+
+## Difficult test case for zeros
+G = let
+     tempA = [-0.6841991610512457 -0.0840213470263692 -0.0004269818661494616 -2.7625001165862086e-18; 2.081491248616774 0.0 0.0 8.404160870560225e-18; 0.0 24.837541148074962 0.12622006230897712 0.0; -1.2211265763794115e-14 -2.778983834717109e8 -1.4122312296634873e6 -4.930380657631326e-32]
+     tempB = [-0.5316255605902501; 2.0811471051085637; -45.068824982602656; 5.042589978197361e8;;]
+     tempC = [0.0 0.0 0.954929658551372 0.0]
+     tempD = [0.0;;]
+     ss(tempA, tempB, tempC, tempD)
+end
+
+@test length(tzeros(G)) == 3
+@test es(tzeros(G)) ≈ es(tzeros(big(1)G))
 
 end

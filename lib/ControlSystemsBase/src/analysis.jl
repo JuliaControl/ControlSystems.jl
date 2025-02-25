@@ -4,6 +4,8 @@
 Compute the poles of system `sys`.
 
 Note: Poles with multiplicity `n > 1` may suffer numerical inaccuracies on the order `eps(numeric_type(sys))^(1/n)`, i.e., a double pole in a system with `Float64` coefficients may be computed with an error of about `√(eps(Float64)) ≈ 1.5e-8`.
+
+To compute the poles of a system with non-BLAS floats, such as `BigFloat`, install and load the package `GenericSchur.jl` before calling `poles`.
 """
 poles(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
 
@@ -243,6 +245,8 @@ Compute the invariant zeros of the system `sys`. If `sys` is a minimal
 realization, these are also the transmission zeros.
 
 If `sys` is a state-space system the function has additional keyword arguments, see [`?ControlSystemsBase.MatrixPencils.spzeros`](https://andreasvarga.github.io/MatrixPencils.jl/dev/sklfapps.html#MatrixPencils.spzeros) for more details. If `extra = Val(true)`, the function returns `z, iz, KRInfo` where `z` are the transmission zeros, information on the multiplicities of infinite zeros in `iz` and information on the Kronecker-structure in the KRInfo object. The number of infinite zeros is the sum of the components of iz.
+
+To compute zeros of a system with non-BLAS floats, such as `BigFloat`, install and load the package `GenericSchur.jl` before calling `tzeros`.
 """
 function tzeros(sys::TransferFunction)
     if issiso(sys)
@@ -260,13 +264,122 @@ function tzeros(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::Abst
     tzeros(A2, B2, C2, D2)
 end
 
-function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}; extra::Val{E} = Val{false}(), kwargs...) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}, E}
+function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}; extra::Val{E} = Val{false}(), balance=true, kwargs...) where {T <: BlasFloat, E}
+    if balance
+        A, B, C = balance_statespace(A, B, C)
+    end
+
     (z, iz, KRInfo) = MatrixPencils.spzeros(A, I, B, C, D; kwargs...)
     if E
         return (z, iz, KRInfo)
     else
         return filter(isfinite, z)
     end
+end
+
+function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}; extra::Val{E} = Val{false}(), kwargs...) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}, E}
+    isempty(A) && return complex(T)[]
+
+    # Balance the system
+    A, B, C = balance_statespace(A, B, C; verbose=false)
+
+    # Compute a good tolerance
+    meps = 10*eps(real(T))*norm([A B; C D])
+
+    # Step 1:
+    A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
+
+    # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
+    A_rc, B_rc, C_rc, D_rc = reduce_sys(copy(transpose(A_r)), copy(transpose(C_r)), copy(transpose(B_r)), copy(transpose(D_r)), meps)
+
+    # Step 3:
+    # Compress cols of [C D] to [0 Df]
+    mat = [C_rc D_rc]
+    Wr = qr(mat').Q * I
+    W = reverse(Wr, dims=2)
+    mat = mat*W
+    if fastrank(mat', meps) > 0
+        nf = size(A_rc, 1)
+        m = size(D_rc, 2)
+        Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
+        Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+        Z = schur(complex.(Af), complex.(Bf)) # Schur instead of eigvals to handle BigFloat
+        zs = Z.values
+        ControlSystemsBase._fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
+    else
+        zs = complex(T)[]
+    end
+    return zs
+end
+
+"""
+    reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
+Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
+A, B, C, D matrices. These are empty if there are no zeros.
+"""
+function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+    Cbar, Dbar = C, D
+    if isempty(A)
+        return A, B, C, D
+    end
+    while true
+        # Compress rows of D
+        U = qr(D).Q
+        D = U'D
+        C = U'C
+        sigma = fastrank(D, meps)
+        Cbar = C[1:sigma, :]
+        Dbar = D[1:sigma, :]
+        Ctilde = C[(1 + sigma):end, :]
+        if sigma == size(D, 1)
+            break
+        end
+
+        # Compress columns of Ctilde
+        V = reverse(qr(Ctilde').Q * I, dims=2)
+        Sj = Ctilde*V
+        rho = fastrank(Sj', meps)
+        nu = size(Sj, 2) - rho
+
+        if rho == 0
+            break
+        elseif nu == 0
+            # System has no zeros, return empty matrices
+            A = B = Cbar = Dbar = Matrix{T}(undef, 0,0)
+            break
+        end
+        # Update System
+        n, m = size(B)
+        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)] # I(m) is not used for type stability reasons (as of julia v1.7)
+        if sigma > 0
+            M = [A B; Cbar Dbar]
+            Vs = [copy(V') zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
+        else
+            M = [A B]
+            Vs = copy(V')
+        end
+        sigma, rho, nu
+        M = Vs * M * Vm
+        A = M[1:nu, 1:nu]
+        B = M[1:nu, (nu + rho + 1):end]
+        C = M[(nu + 1):end, 1:nu]
+        D = M[(nu + 1):end,  (nu + rho + 1):end]
+    end
+    return A, B, Cbar, Dbar
+end
+
+# Determine the number of non-zero rows, with meps as a tolerance. For an
+# upper-triangular matrix, this is a good proxy for determining the row-rank.
+function fastrank(A::AbstractMatrix, meps::Real)
+    n, m = size(A)
+    if n*m == 0     return 0    end
+    norms = Vector{real(eltype(A))}(undef, n)
+    for i = 1:n
+        norms[i] = norm(A[i, :])
+    end
+    mrank = sum(norms .> meps)
+    return mrank
 end
 
 """
