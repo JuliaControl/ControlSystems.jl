@@ -30,7 +30,7 @@ ControlSystemsBaseImplicitDifferentiationExt = ["ImplicitDifferentiation", "Comp
 [compat]
 Aqua = "0.5"
 DSP = "0.6.1, 0.7, 0.8"
-ForwardDiff = "0.10"
+ForwardDiff = "0.10, 1"
 ImplicitDifferentiation = "0.4.2"
 LinearAlgebra = "<0.0.1, 1"
 MacroTools = "0.5"
