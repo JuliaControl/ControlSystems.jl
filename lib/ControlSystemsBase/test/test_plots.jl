@@ -61,5 +61,5 @@ end
   # plot!(step(Gmimo[:, 1], 10), plotx=true) # Verify that this plots the same as the "from u(1)" series above
 
   setPlotScale("log10")
-  margingen()
+  funcs[8]() # test marginlpot with log10 scale
 end

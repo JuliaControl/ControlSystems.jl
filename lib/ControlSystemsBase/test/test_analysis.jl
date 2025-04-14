@@ -357,10 +357,10 @@ P = ssrand(2,3,2)
 C = ssrand(3,2,2)
 
 gof = gangoffour(P,C)
-@test gof[1] == sensitivity(P,C)
-@test gof[2] == G_PS(P,C)
-@test gof[3] == G_CS(P,C)
-@test gof[4] == comp_sensitivity(P,C)
+@test linfnorm(gof[1] - sensitivity(P,C))[1] < 1e-10
+@test linfnorm(gof[2] - G_PS(P,C))[1] < 1e-10
+@test linfnorm(gof[3] - G_CS(P,C))[1] < 1e-10
+@test linfnorm(gof[4] - comp_sensitivity(P,C))[1] < 1e-10
 @test_nowarn gangoffourplot(P, C)
 @test_nowarn gangoffourplot([P, P], C)
 @test_nowarn gangoffourplot(P, [C, C])
