@@ -460,16 +460,17 @@ function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
 end
 
 """
-    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true)
 
 returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
 
-If `!allMargins`, return only the smallest margin
+- If `!allMargins`, return only the smallest margin
+- If `full` return also `fullPhase`
+- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 
-If `full` return also `fullPhase`
 See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
-function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
+function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true)
     ny, nu = size(sys)
 
     T = float(numeric_type(sys))
@@ -488,7 +489,7 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
     end
     for j=1:nu
         for i=1:ny
-            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins)
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins, adjust_phase_start)
         end
     end
     if full
@@ -499,11 +500,11 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
 end
 
 """
-    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true))
 
 Return frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. If `allMargins=false`, only the smallest margins are returned.
 """
-function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
+function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true)
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
@@ -544,8 +545,19 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
             fullPhase = interpolate(fi, phase)
         end
     end
+    if adjust_phase_start && isrational(sys)
+        intexcess = integrator_excess(sys)
+        if intexcess != 0
+            # Snap phase so that it starts at -90*intexcess
+            nineties = round(Int, phase[1] / 90)
+            adjust = ((90*(-intexcess-nineties)) ÷ 360) * 360
+            pm = pm .+ adjust
+            phase .+= adjust
+            fullPhase = fullPhase .+ adjust
+        end
+    end
     if full
-        (; wgm, gm, wpm, pm, fullPhase)
+        (; wgm, gm, wpm, pm, fullPhase, phasedata = phase[:]) # phasedata is used by marginplot
     else
         (; wgm, gm, wpm, pm)
     end

@@ -60,4 +60,6 @@ end
   @test_nowarn plot(step(Gmimo, 10), plotx=true)
   # plot!(step(Gmimo[:, 1], 10), plotx=true) # Verify that this plots the same as the "from u(1)" series above
 
+  setPlotScale("log10")
+  margingen()
 end

@@ -6,7 +6,7 @@ using Plots
 gr()
 default(show=false)
 
-using ControlSystemsBase
+using ControlSystemsBase, LinearAlgebra, Test
 # Local definition to make sure we get warnings if we use eye
 eye_(n) = Matrix{Int64}(I, n, n)
 
