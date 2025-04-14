@@ -595,7 +595,7 @@ end
 
 
 """
-    minreal(sys::StateSpace; fast=false, kwargs...)
+    minreal(sys::StateSpace; fast=false, balance=true, kwargs...)
 
 Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
 
@@ -603,11 +603,14 @@ For information about the options, see `?ControlSystemsBase.MatrixPencils.lsminr
 
 See also [`sminreal`](@ref), which is both numerically exact and substantially faster than `minreal`, but with a much more limited potential in removing non-minimal dynamics.
 """
-function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <: AbstractStateSpace
+function minreal(sys::T, tol=nothing; fast=false, atol=0.0, balance=true, kwargs...) where T <: AbstractStateSpace
     A,B,C,D = ssdata(sys)
     if tol !== nothing
         atol == 0 || atol == tol || error("Both positional argument `tol` and keyword argument `atol` were set but were not equal. `tol` is provided for backwards compat and can not be set to another value than `atol`.")
         atol = tol
+    end
+    if balance
+        A,B,C,_ = balance_statespace(A,B,C)
     end
     Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
     if hasfield(T, :sys)
