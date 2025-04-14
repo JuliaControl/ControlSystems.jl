@@ -365,7 +365,7 @@ end
     grid   --> true
     yscale --> _PlotScaleFunc
     xscale --> :log10
-    yguide --> "Magnitude"
+    yguide --> "Magnitude $_PlotScaleStr"
     x := w
     y := magdata
     ()
@@ -738,7 +738,7 @@ marginplot
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
     titles = Array{AbstractString}(undef, nu,ny,2,2)
-    titles[:,:,1,1] .= "Gm: "
+    titles[:,:,1,1] .= _PlotScale == "dB" ? "Gm (dB): " : "Gm: "
     titles[:,:,2,1] .= "Pm: "
     titles[:,:,1,2] .= "ω gm: "
     titles[:,:,2,2] .= "ω pm: "
@@ -750,14 +750,9 @@ marginplot
         end
         bmag, bphase = bode(s, w)
 
-        if plotphase && adjust_phase_start && isrational(s)
-            intexcess = integrator_excess(s)
-        end
-
         for j=1:nu
             for i=1:ny
-                wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)  
-                # Let's be reasonable, only plot 5 smallest gain margins
+                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j],w; full=true, allMargins=true, adjust_phase_start)
                 if length(gm) > 5
                     @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
                     idx = sortperm(gm)
@@ -775,14 +770,14 @@ marginplot
                     mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0
                     @. bmag = 20*log10(bmag)
+                    titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",20log10(v)) for v in gm],", ")*"] "
                 else
                     mag = 1 ./ gm
                     oneLine = 1
+                    titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",v) for v in gm],", ")*"] "
                 end
-                titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",v) for v in gm],", ")*"] "
                 titles[j,i,1,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wgm],", ")*"] "
-                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%3.2g°",v) for v in pm],", ")*"] "
-                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%3.2g",v) for v in wpm],", ")*"] "
+
 
                 subplot := min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                 if si == length(systems)
@@ -799,25 +794,21 @@ marginplot
                 end
                 
                 #Plot gain margins
-                primary --> false
                 @series begin
+                    primary := false
                     color --> :gray
                     linestyle --> :dash
                     [w[1],w[end]], [oneLine,oneLine]
                 end
                 @series begin
+                    primary := false
                     [wgm wgm]', [ones(length(mag)) mag]'
                 end
                 plotphase || continue
 
-                phasedata = bphase[i, j, :]
-                if plotphase && adjust_phase_start && isrational(s)
-                    if intexcess != 0
-                        # Snap phase so that it starts at -90*intexcess
-                        nineties = round(Int, phasedata[1] / 90)
-                        phasedata .+= ((90*(-intexcess-nineties)) ÷ 360) * 360
-                    end
-                end
+
+                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%3.2g°",v) for v in pm],", ")*"] "
+                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%3.2g",v) for v in wpm],", ")*"] "
                 
                 # Phase margins
                 subplot := s2i(2i,j)
@@ -830,12 +821,14 @@ marginplot
                     w, phasedata
                 end
                 @series begin
+                    primary := false
                     color --> :gray
                     linestyle --> :dash
                     seriestype := :hline
                     ((fullPhase .- pm) .* ones(1, 2))'
                 end
                 @series begin
+                    primary := false
                     [wpm wpm]', [fullPhase fullPhase-pm]'
                 end
             end
