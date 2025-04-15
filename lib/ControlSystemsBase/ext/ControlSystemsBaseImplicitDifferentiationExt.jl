@@ -224,8 +224,8 @@ A reverse-differentiation rule is defined in RobustAndOptimalControl.jl, which m
 function hinfnorm(sys::StateSpace{Continuous, <:Dual}; kwargs...)
     A,B,C,D = ssdata(sys)
     pars = ComponentVector(; A,B,C,D)
-    γ, w = implicit_hinfnorm(pars)
-    γ, w
+    γ_vec, w = implicit_hinfnorm(pars)
+    only(γ_vec), w
 end
 
 
