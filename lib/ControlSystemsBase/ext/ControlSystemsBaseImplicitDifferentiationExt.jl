@@ -201,10 +201,12 @@ import ControlSystemsBase: hinfnorm
 function forward_hinfnorm(pars; kwargs...)
     (; A,B,C,D) = pars
     sys = ss(A,B,C,D)
-    hinfnorm(sys; kwargs...)
+    γ, w = hinfnorm(sys; kwargs...)
+    return [γ], w
 end
 
-function conditions_hinfnorm(pars, γ, w; tol=1e-10)
+function conditions_hinfnorm(pars, γ_vec, w; tol=1e-10)
+    γ = only(γ_vec)
     (; A,B,C,D) = pars
     sys = ss(A,B,C,D)
     [opnorm(freqresp(sys, w)) - γ]
@@ -264,4 +266,3 @@ end
 
 
 end # module
-
