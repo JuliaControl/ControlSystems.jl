@@ -521,3 +521,42 @@ vline!([5 10], l=(:black, :dash), label="Band-pass limits", sp=1)
 
 See also
 - [`ControlSystemsBase.seriesform`](@ref)
+
+## Open loop in terms of closed loop
+The following identities are useful when solving for open-loop transfer functions in terms of closed-loop transfer functions. This is relevant, e.g., when system identification has to be performed in closed-loop.
+```math
+\begin{aligned}
+L_o &= PC \\
+L_i &= CP \\
+L_x &= S_x^{-1} - I \\
+L_x &= T_x (I - T_x)^{-1} \\
+(I + L)^{-1} &= I - (I + L)^{-1}L = I - L(I + L)^{-1} \text{("push-through identity")} \Rightarrow\\
+\Rightarrow S &= I - T \qquad S + T = I\\
+G &= (I + PC)^{-1}P \Longrightarrow P = G(I - CG)^{-1} \\
+G &= (I + CP)^{-1}C \Longrightarrow C = G(I - PG)^{-1} \\
+\end{aligned}
+```
+Solving for ``P`` from ``S`` or ``T`` naively requires ``C`` to be invertible (and vice versa). Solving for ``P`` from ``SP = (I + PC)^{-1}P`` is thus recommended. See also [`DescriptorSystems.grsol`](https://andreasvarga.github.io/DescriptorSystems.jl/dev/advanced_operations.html#DescriptorSystems.grsol) (and the corresponding `glsol`) which can solve transfer-matrix equations like `PC = B` for ``C`` when ``P`` is not invertible. The solution is only unique if the largest transfer function between ``S_o`` and ``S_i``, or between ``T_o`` and ``T_i`` is used.
+
+As an example, below we solve for ``P`` using ``S_o \in \mathbb{C}^{2 \times 2}`` which produces the correct result
+```julia
+using ControlSystemsBase, DescriptorSystems, Plots, LinearAlgebra
+P = ssrand(2,1,2)
+C = ssrand(1,2,2)
+S = output_sensitivity(P, C)
+P′ = (inv(S)-I(2)) / C # Errors due to C not being invertible
+DescriptorSystems.dss(sys::ControlSystemsBase.StateSpace) = DescriptorSystems.dss(sys.A, sys.B, sys.C, sys.D; Ts = ControlSystemsBase.isdiscrete(sys) ? sys.Ts : 0)
+P′d, _ = DescriptorSystems.glsol(dss(C), dss(inv(S)-I(2)))
+P′s, _ = dss2ss(P′d)
+P′ = ss(P′s.A, P′s.B, P′s.C, P′s.D)
+bodeplot([P, P′])
+```
+
+Had we used ``S_i \in \mathbb{C}^{1 \times 1}`` instead, we would generally not have obtained the correct ``P`` since this system of equations is underdetermined
+```julia
+Si = input_sensitivity(P, C)
+P′d, _ = DescriptorSystems.grsol(dss(C), dss(inv(Si)-I(1)))
+P′s, _ = dss2ss(P′d)
+P′ = ss(P′s.A, P′s.B, P′s.C, P′s.D)
+bodeplot([P, P′])
+```
