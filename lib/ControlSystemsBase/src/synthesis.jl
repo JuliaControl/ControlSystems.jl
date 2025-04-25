@@ -84,7 +84,14 @@ end
     kalman(Discrete, A, C, R1, R2; direct = false)
     kalman(sys, R1, R2; direct = false)
 
-Calculate the optimal asymptotic Kalman gain.
+Calculate the optimal asymptotic Kalman gain for the linear-Gaussian model
+```math
+\\begin{aligned}
+dx &= Ax + Bu + w \\\\
+y &= Cx + v
+\\end{aligned}
+```
+where `w` is the dynamics noise with covariance `R1` and `v` is the measurement noise with covariance `R2`.
 
 If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: "Computer-Controlled Systems" pp 140. `direct = false` is sometimes referred to as a "delayed" estimator, while `direct = true` is a "current" estimator.
 
