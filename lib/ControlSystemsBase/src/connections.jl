@@ -134,6 +134,19 @@ end
 function Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem}
     hcat(convert.(T, X)...)
 end
+
+# This method is copied from Base on julia v1.11, it was changed in v1.12, but we rely on it to create a MIMO transfer function
+function Base.typed_hvcat(::Type{T}, rows::Tuple{Vararg{Int}}, as...) where {T<:LTISystem}
+    nbr = length(rows)  # number of block rows
+    rs = Vector{Any}(undef, nbr)
+    a = 1
+    for i = 1:nbr
+        rs[i] = Base.typed_hcat(T, as[a:a-1+rows[i]]...)
+        a += rows[i]
+    end
+    T[rs...;]
+end
+
 # Ambiguity
 Base.typed_hcat(::Type{S}, X::Number...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:Number,2}}...) where {S<:LTISystem} = hcat(convert.(S, X)...)
