@@ -52,7 +52,7 @@ Tf = 0.01
 
 # Different damping
 Ctf = pid(1,1,1, Tf=0.1, d = 1)
-@test all(p->imag(p) == 0, poles(Ctf))
+@test all(p->isapprox(imag(p), 0, atol=1e-6), poles(Ctf))
 Css = pid(1,1,1, Tf=0.1, d = 1, state_space=true)
 @test all(p->imag(p) == 0, poles(Css))
 @test tf(Css) ≈ Ctf

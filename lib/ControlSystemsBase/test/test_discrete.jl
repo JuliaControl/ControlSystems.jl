@@ -140,7 +140,8 @@ p = poles(Gcl)
 # Test that all desired poles are in the closed-loop system
 @test norm(minimum(abs.((poles(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 # Test that the observer poles are in the closed-loop system
-@test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+# @test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+@test sort(poles(tf(1,Ao)), by=LinearAlgebra.eigsortby)[2:end] ≈ sort(p, by=LinearAlgebra.eigsortby) # One pole is (correctly) cancelled in Gcl, causing the test above to fail
 
 
 pd = c2d_poly2poly(A, 0.1)

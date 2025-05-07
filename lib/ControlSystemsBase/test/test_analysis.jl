@@ -112,8 +112,10 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 @test tzeros(sys) ≈ [3.0, -1.0, im, -im, 0.0]
 
 ## POLE ##
-@test poles(sys) ≈ [4.0, -4.0, -1.0]
-@test poles([sys sys]) ≈ [4.0, -4.0, -1.0] # Issue #81
+@test es(poles(sys)) ≈ es([4.0, -4.0, -1.0])
+@test es(poles(sys, atol=1e-6)) ≈ es([4.0, -4.0]) # This cancels the -1 pole/zero
+@test es(poles([sys sys], atol=1e-6)) ≈ es([4.0, -4.0]) # Issue #81
+@test poles(zpk([sys sys])) ≈ [4.0, -4.0, -1.0] # This does not cancel the -1 pole/zero
 @test poles(ex_11) ≈ eigvals(ex_11.A)
 @test poles([2/(s+1) 3/(s+2); 1/(s+1) 1/(s+1)]) ≈ [-1, -1, -2]
 
@@ -198,7 +200,7 @@ sys = s*(s + 1)*(s^2 + 1)*(s - 3)/((s + 1)*(s + 4)*(s - 4))
 
 # Example 5.5 from https://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN10/2019/e05_both.pdf
 G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
-@test_broken length(poles(G)) == 1 # The tf poles don't understand the cancellations
+@test length(poles(G)) == 1 # The tf poles do understand the cancellations
 @test length(poles(ss(G, minimal=true))) == 1 # The ss version with minimal realization does
 @test length(tzeros(G)) == 0 # tzeros converts to minimal ss relalization
 @test minreal(ss(G)).A ≈ [-2]
@@ -399,3 +401,15 @@ end
 @test es(tzeros(G)) ≈ es(tzeros(big(1)G))
 
 end
+
+
+## large TF poles and zeros
+G = ssrand(2,3,4)
+Gtf = tf(G)
+
+pss  = poles(G)
+zss  = tzeros(G)
+ptf  = poles(Gtf)
+ztf  = tzeros(Gtf)
+pzpk = poles(zpk(G))
+zzpk = tzeros(zpk(G))
