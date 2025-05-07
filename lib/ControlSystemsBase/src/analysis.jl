@@ -11,7 +11,10 @@ poles(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
 # converting to zpk before works better in the cases I have tested.
-poles(sys::TransferFunction) = poles(zpk(sys))
+function poles(sys::TransferFunction{<:TimeEvolution,SisoRational{T}}; kwargs...) where {T}
+    n,d = numpoly(sys), denpoly(sys)
+    sort!(filter!(isfinite, MatrixPencils.rmpoles(n, d; kwargs...)[1]), by=abs)
+end
 
 function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
@@ -248,11 +251,20 @@ If `sys` is a state-space system the function has additional keyword arguments, 
 
 To compute zeros of a system with non-BLAS floats, such as `BigFloat`, install and load the package `GenericSchur.jl` before calling `tzeros`.
 """
-function tzeros(sys::TransferFunction)
+function tzeros(sys::TransferFunction{<:TimeEvolution,SisoRational{T}}; kwargs...) where {T}
     if issiso(sys)
         return tzeros(sys.matrix[1,1])
     else
-        return tzeros(ss(sys, minimal=true))
+        n,d = numpoly(sys), denpoly(sys)
+        filter!(isfinite, MatrixPencils.rmzeros(n, d; kwargs...)[1]) # This uses rm2ls -> rm2lspm internally
+    end
+end
+
+function tzeros(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
+    if issiso(sys)
+        return tzeros(sys.matrix[1,1])
+    else
+        return tzeros(ss(sys))  # Convert to ss since rmzeros does this anyways, so no reason to pass through tf{SisoRational}
     end
 end
 
