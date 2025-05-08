@@ -102,7 +102,7 @@ end
 
 
 # This will be called on plot(lsim(sys, args...))
-@recipe function simresultplot(r::SimResult; plotu=false, plotx=false, ploty=true)
+@recipe function simresultplot(r::SimResult; plotu=false, plotx=false, ploty=true, input_names=ControlSystemsBase.input_names(r.sys), output_names=ControlSystemsBase.output_names(r.sys), state_names=ControlSystemsBase.state_names(r.sys))
     ny, nu, nx, sys = r.ny, r.nu, r.nx, r.sys
     t = r.t
     n_series = size(r.y, 3) # step and impulse produce multiple results
@@ -115,11 +115,11 @@ end
     if ploty
         for ms in 1:n_series
             for i=1:ny
-                ytext = output_names(sys, i)
+                ytext = output_names[i]
                 @series begin
                     xguide  --> "Time (s)"
                     yguide  --> ytext
-                    label   --> (n_series > 1 ? "From $(input_names(sys, ms))" : "")
+                    label   --> (n_series > 1 ? "From $(input_names[ms])" : "")
                     subplot --> i
                     t,  r.y[i, :, ms]
                 end
@@ -129,7 +129,7 @@ end
     end 
     if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
-            utext = input_names(sys, i)
+            utext = input_names[i]
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> utext
@@ -142,7 +142,7 @@ end
     end
     if plotx
         for i=1:nx
-            xtext = state_names(sys, i)
+            xtext = state_names[i]
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> xtext
