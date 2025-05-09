@@ -95,3 +95,9 @@ The following is a list of packages from the wider Julia ecosystem that may be o
 - [StaticCompiler.jl](https://github.com/tshort/StaticCompiler.jl) contains tools for compiling small binaries of Julia programs.
 - [JuliaPOMDP](https://github.com/JuliaPOMDP) is a Julia ecosystem for reinforcement learning. 
 - [JuliaReinforcementLearning](https://github.com/JuliaReinforcementLearning) is another Julia ecosystem for reinforcement learning. 
+
+## Courses using ControlSystems.jl
+- [Carnegie Mellon University: Optimal-Control](https://github.com/Optimal-Control-16-745)
+- [Kasetsart University: Control Engineering with Julia](https://dewdotninja.github.io/julia/control/julia_control.html)
+- [Czech Technical University: Optimal and Robust Control](https://hurak.github.io/orr/). [github repo](https://github.com/hurak/orr/tree/main)
+- 
