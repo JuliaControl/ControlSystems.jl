@@ -227,13 +227,15 @@ Calculate default frequency vector and put system in array of not already array.
 for which `_default_freq_vector` is defined.
 Check that system dimensions are compatible.
 """
-_processfreqplot(plottype, system::LTISystem, args...) =
-    _processfreqplot(plottype, [system], args...)
+_processfreqplot(plottype, system::LTISystem, args...; kwargs...) =
+    _processfreqplot(plottype, [system], args...; kwargs...)
 # Catch when system is not vector, with and without frequency input
 
 # Catch correct form
-function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem},
-            w = _default_freq_vector(systems, plottype))
+_processfreqplot(plottype, systems::AbstractVector{<:LTISystem}; adaptive=false) =
+    _processfreqplot(plottype, systems, _default_freq_vector(systems, plottype; adaptive))
+
+function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem}, w; kwargs...)
 
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
@@ -254,6 +256,7 @@ optionally provided. To change the Magnitude scale see [`setPlotScale`](@ref). T
 - If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
+- `adaptive`: If true, an adaptive frequency grid is used in order to keep the number of plotted points low, while resolving features in the frequency response well. If a manually provided frequency vector is used, this may be downsampled before plotting.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
@@ -275,8 +278,10 @@ function _get_plotlabel(s, i, j)
     end
 end
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true, adjust_phase_start=true)
-    systems, w = _processfreqplot(Val{:bode}(), p.args...)
+_span(vec) = -(reverse(extrema(vec))...)
+
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -328,7 +333,13 @@ end
                         label --> lab
                     end
                     group     --> group_ind
-                    ws, magdata
+                    if adaptive
+                        lmag = _PlotScale == "dB" ? magdata : log.(magdata)
+                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/300)
+                        wsi, magdata[inds]
+                    else
+                        ws, magdata
+                    end
                 end
                 plotphase || continue
 
@@ -349,9 +360,15 @@ end
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
                     label     --> ""
                     group     --> group_ind
-                    ws, unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
-                end
+                    phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    # NOTE: we should only downsample if the user hasn't provided w themselves
+                    if adaptive
+                        downsample(ws, phasedata, _span(phasedata)/300)[1:2]
+                    else
+                        ws, phasedata
+                    end
 
+                end
             end
         end
     end
@@ -404,8 +421,8 @@ optionally provided.
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, balance=true)
-    systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, balance=true, adaptive=true)
+    systems, w = _processfreqplot(Val{:nyquist}(), p.args...; adaptive)
     ny, nu = size(systems[1])
     nw = length(w)
     layout --> (ny,nu)
@@ -432,7 +449,14 @@ nyquistplot
                         label --> lab
                     end
                     hover --> [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
-                    (redata, imdata)
+                    if adaptive
+                        indsre = downsample(w, redata, 1/500)[3]
+                        indsim = downsample(w, imdata, 1/500)[3]
+                        inds = sort!(union(indsre, indsim))
+                        redata[inds], imdata[inds]
+                    else
+                        redata, imdata
+                    end
                 end                
                 
                 if si == length(systems)
@@ -732,8 +756,8 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 `kwargs` is sent as argument to RecipesBase.plot.
 """
 marginplot
-@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true)
-    systems, w = _processfreqplot(Val{:bode}(), p.args...)
+@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
@@ -790,7 +814,14 @@ marginplot
                     end
                     primary := true
                     seriestype := :bodemag
-                    w, bmag[i, j, :]
+                    m = bmag[i, j, :]
+                    if adaptive
+                        lmag = _PlotScale == "dB" ? m : log.(m)
+                        wsi, _, inds = downsample(w, lmag, _span(lmag)/300)
+                        wsi, m[inds]
+                    else
+                        w, m
+                    end
                 end
                 
                 #Plot gain margins
@@ -818,7 +849,11 @@ marginplot
                 @series begin
                     primary := true
                     seriestype := :bodephase
-                    w, phasedata
+                    if adaptive
+                        downsample(w, phasedata, _span(phasedata)/300)[1:2]
+                    else
+                        w, phasedata
+                    end
                 end
                 @series begin
                     primary := false
@@ -917,7 +952,7 @@ Gang-of-Four plot.
 `sigma` determines whether a [`sigmaplot`](@ref) is used instead of a [`bodeplot`](@ref) for MIMO `S` and `T`.
 `kwargs` are sent as argument to RecipesBase.plot.
 """
-function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.25, 1.5], Mt_lines = [], sigma = true,  plotphase=false, kwargs...)    
+function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.25, 1.5], Mt_lines = [], sigma = true,  plotphase=false, adaptive=true, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
@@ -927,16 +962,16 @@ function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minim
 
     gofs = gangoffour.(P,C)
     S,D,N,T = ntuple(i->getindex.(gofs, i), 4)
-    bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, kwargs...)
+    bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, adaptive, kwargs...)
     f1 = bp(S, args...; show=false, title="S = 1/(1+PC)", kwargs...)
     if !isnothing(Ms_lines) && !isempty(Ms_lines)
         Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(1e-2,4))
     else
         Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-2,1.8))
     end
-    f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
+    f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, adaptive, kwargs...)
     Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
-    f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
+    f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, adaptive, kwargs...)
     f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-2,4), kwargs...)
     if !isnothing(Mt_lines) && !isempty(Mt_lines)
         Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(1e-2,4))
@@ -988,4 +1023,77 @@ rgaplot
             end
         end
     end
+end
+
+
+## Adaptive sampling
+# Code adapted from https://github.com/iuliancioarca/AdaptiveSampling.jl/blob/master/LICENSE
+
+function downsample(t,y,detail_th)
+    # Compress signal by removing redundant points.
+    # Adjust waveform detail/compression ratio with 'detail_th' (maximum allowed
+    # difference between original and approximated points from the signal)
+    yln           = length(y)
+    idx_l         = 1
+    idx_r         = yln
+    idx_d_max     = 1
+    cond_break    = true
+    d_max         = 0.0
+    M             = zeros(Int,yln) # hash table for relevant indices
+    idx2save      = zeros(Int,yln+2)
+    cnt           = 2
+    idx2save[1:2] = [1,yln]
+    while cond_break
+        # get maximum error(difference) and index, between original chunk of signal
+        # and linear approximation
+        d_max, idx_d_max = get_d_max(idx_l,idx_r,y)
+        # save all indices
+        M[idx_d_max] = idx_r
+        if d_max > detail_th
+            # if computed error is greater than maximum allowed error, save
+            # next point index and call get_d_max(idx_l,idx_r,y) at next
+            # iteration; keep going towards leftmost branches
+            cnt           = cnt + 1
+            idx_r         = idx_d_max
+            idx2save[cnt] = idx_d_max
+        else
+            # if computed error is smaller than maximum allowed error, stop, go
+            # right(to the next waveform segment) and call get_d_max(idx_l,idx_r,y)
+            # at the next iteration
+            idx_l     = idx_r;
+            if idx_l != yln
+                idx_r = M[idx_l]
+            else
+                cond_break = false
+            end
+        end
+    end
+    # sort all indexes corresponding to relevent points and generate resampled
+    # signal
+    idx2save = idx2save[1:cnt]
+    idx2save = sort(idx2save)
+    t_new    = @view t[idx2save]
+    y_new    = @view y[idx2save]
+    return t_new, y_new, idx2save
+end
+function get_d_max(idx_l,idx_r,y)
+    # cut segment to be resampled
+    yp = view(y,idx_l:idx_r)
+    # construct linear approximation
+    dr = LinRange(y[idx_l], y[idx_r], length(yp))
+    # compute distance(error) and get index of maximum error
+    # -> this will be used for further splitting the
+    # signal and will be part of the final resampled signal
+    d_max     = 0.0
+    idx_d_max = 1
+    err_val   = 0.0
+    for i = 1:length(yp)
+        err_val = abs(yp[i] - dr[i])
+        if err_val > d_max
+            d_max     = err_val
+            idx_d_max = i
+        end
+    end
+    idx_d_max = idx_d_max + idx_l - 1
+    return d_max, idx_d_max
 end

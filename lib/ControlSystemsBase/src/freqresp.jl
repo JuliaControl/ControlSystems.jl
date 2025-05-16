@@ -380,9 +380,14 @@ frequencies `w`. See also [`sigmaplot`](@ref)
 end
 @autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
-function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
-    min_pt_per_dec = 60
-    min_pt_total = 200
+function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false)
+    if adaptive
+        min_pt_per_dec = 100
+        min_pt_total = 1000
+    else
+        min_pt_per_dec = 60
+        min_pt_total = 200
+    end
     bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)
     w1 = minimum(minimum, bounds)
     w2 = maximum(maximum, bounds)
@@ -394,8 +399,8 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot)
     end
     w
 end
-_default_freq_vector(sys::LTISystem, plot) = _default_freq_vector(
-        [sys], plot)
+_default_freq_vector(sys::LTISystem, plot; kwargs...) = _default_freq_vector(
+        [sys], plot; kwargs...)
 
 function _bounds_and_features(sys::LTISystem, plot::Val)
     # Get zeros and poles for each channel
