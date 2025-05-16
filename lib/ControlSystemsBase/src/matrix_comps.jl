@@ -124,6 +124,8 @@ Compute the observability matrix with `n` rows for the system described by `(A, 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
 `gram(sys, :o)` is positive definite or to call the function [`observability`](@ref).
+
+The unobservable subspace is `nullspace(obsv(A, C))`, initial conditions in this subspace produce a zero response.
 """
 function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
     T = promote_type(eltype(A), eltype(C))
@@ -151,6 +153,8 @@ Compute the controllability matrix for the system described by `(A, B)` or
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
 checking if `gram(sys, :c)` is positive definite or to call the function [`controllability`](@ref).
+
+The controllable subspace is given by the range of this matrix, and the uncontrollable subspace is `nullspace(ctrb(A, B)') (note the transpose)`.
 """
 function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     T = promote_type(eltype(A), eltype(B))
@@ -226,7 +230,10 @@ Calculate the stationary covariance `P = E[y(t)y(t)']` of the output `y` of a
 
 Remark: If `sys` is unstable then the resulting covariance is a matrix of `Inf`s.
 Entries corresponding to direct feedthrough (D*W*D' .!= 0) will equal `Inf`
-for continuous-time systems."""
+for continuous-time systems.
+    
+See also [`innovation_form`](@ref).
+"""
 function covar(sys::AbstractStateSpace, W)
     (A, B, C, D) = ssdata(sys)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
