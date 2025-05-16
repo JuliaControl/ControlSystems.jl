@@ -55,6 +55,8 @@ end
 
   sys = ssrand(3,3,3)
   sigmaplot(sys, extrema=true)
+  bodeplot(sys, adaptive=false)
+  nyquistplot(sys, adaptive=false)
 
   Gmimo = ssrand(2,2,2,Ts=1)
   @test_nowarn plot(step(Gmimo, 10), plotx=true)
