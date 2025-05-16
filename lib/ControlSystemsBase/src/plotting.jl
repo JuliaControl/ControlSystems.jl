@@ -361,13 +361,11 @@ _span(vec) = -(reverse(extrema(vec))...)
                     label     --> ""
                     group     --> group_ind
                     phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
-                    # NOTE: we should only downsample if the user hasn't provided w themselves
                     if adaptive
                         downsample(ws, phasedata, _span(phasedata)/300)[1:2]
                     else
                         ws, phasedata
                     end
-
                 end
             end
         end
