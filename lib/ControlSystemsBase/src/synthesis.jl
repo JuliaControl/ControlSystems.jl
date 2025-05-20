@@ -1,7 +1,7 @@
 """
-    lqr(sys, Q, R)
-    lqr(Continuous, A, B, Q, R, args...; kwargs...)
-    lqr(Discrete, A, B, Q, R, args...; kwargs...)
+    lqr(sys,              Q, R;          extra = Val(false))
+    lqr(Continuous, A, B, Q, R, args...; extra = Val(false), kwargs...)
+    lqr(Discrete,   A, B, Q, R, args...; extra = Val(false), kwargs...)
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
@@ -17,6 +17,8 @@ The `args...; kwargs...` are sent to the Riccati solver, allowing specification 
 To obtain also the solution to the Riccati equation and the eigenvalues of the closed-loop system as well, call `ControlSystemsBase.MatrixEquations.arec / ared` instead (note the different order of the arguments to these functions).
 
 To obtain a discrete-time approximation to a continuous-time LQR problem, the function [`c2d`](@ref) can be used to obtain corresponding discrete-time cost matrices.
+
+If `extra = Val(true)`, the function returns `K, P, p`, where `P` is the solution to the Riccati equation (Lyapunov function `x'P*x`), and `p` are the eigenvalues of `A-BK`.
 
 # Examples
 Continuous time
@@ -64,14 +66,14 @@ This function requires
 - `R` must be positive definite
 - The pair `(Q,A)` must not have any unobservable modes on the imaginary axis (cont) / unit circle (disc), e.g., there must not be any integrating modes that are not penalized by `Q`. if this condition does not hold, you may get the error "The Hamiltonian matrix is not dichotomic".
 """
-function lqr(::ContinuousType, A, B, Q, R, args...; kwargs...)
-    S, _, K = arec(A, B, R, Q, args...; kwargs...)
-    return K
+function lqr(::ContinuousType, A, B, Q, R, args...; extra::Val{E} = Val(false), kwargs...) where E
+    S, p, K, args... = arec(A, B, R, Q, args...; kwargs...)
+    E ? (K, S, p, args...) : K
 end
 
-function lqr(::DiscreteType, A, B, Q, R, args...; kwargs...)
-    S, _, K = ared(A, B, R, Q, args...; kwargs...)
-    return K
+function lqr(::DiscreteType, A, B, Q, R, args...; extra::Val{E} = Val(false), kwargs...) where E
+    S, p, K, args... = ared(A, B, R, Q, args...; kwargs...)
+    E ? (K, S, p, args...) : K
 end
 
 @deprecate lqr(A::AbstractMatrix, args...; kwargs...)  lqr(Continuous, A, args...; kwargs...)
@@ -80,9 +82,9 @@ end
 
 
 """
-    kalman(Continuous, A, C, R1, R2)
-    kalman(Discrete, A, C, R1, R2; direct = false)
-    kalman(sys, R1, R2; direct = false)
+    kalman(Continuous, A, C, R1, R2; extra=Val(false))
+    kalman(Discrete,   A, C, R1, R2; extra=Val(false), direct = false)
+    kalman(sys,              R1, R2; extra=Val(false), direct = false)
 
 Calculate the optimal asymptotic Kalman gain for the linear-Gaussian model
 ```math
@@ -93,26 +95,42 @@ y &= Cx + v
 ```
 where `w` is the dynamics noise with covariance `R1` and `v` is the measurement noise with covariance `R2`.
 
-If `direct = true`, the observer gain is computed for the pair `(A, CA)` instead of `(A,C)`. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: "Computer-Controlled Systems" pp 140. `direct = false` is sometimes referred to as a "delayed" estimator, while `direct = true` is a "current" estimator.
+In discrete time, the returned Kalman gain `K` is designed to be used with (`direct = false`)
+```math
+x(t+1|t) = (A-KC)x(t|t-1) + Bu(t) + Ky(t)
+```
+and (`direct = true`)
+```math
+x(t+1|t+1) = (A-KC)x(t|t) + Bu(t) + Ky(t+1)
+```
+
+If `direct = true`, the observer gain is computed as ``K_d = R_∞C^T (R_2 + CR_∞ C^T)^{-1}`` instead of ``K = A K_d``. This option is intended to be used together with the option `direct = true` to [`observer_controller`](@ref). Ref: "Computer-Controlled Systems" pp 140. `direct = false` is sometimes referred to as a "delayed" estimator, while `direct = true` is a "current" estimator.
 
 To obtain a discrete-time approximation to a continuous-time LQG problem, the function [`c2d`](@ref) can be used to obtain corresponding discrete-time covariance matrices.
 
 To obtain an LTISystem that represents the Kalman filter, pass the obtained Kalman feedback gain into [`observer_filter`](@ref). To obtain an LQG controller, pass the obtained Kalman feedback gain as well as a state-feedback gain computed using [`lqr`](@ref) into [`observer_controller`](@ref).
 
-The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec/ared` for more help.
+If `extra = Val(true)`, the function returns `K, R∞, p`, where `R∞` is the solution to the Riccati equation (the stationary prediction-error covariance matrix, the covariance of ``x̃(t|t-1)``), and `p` are the eigenvalues of `A-KC`. In this case, the _filtering error_ covariance is given by ``(I-KC) R∞``, i.e., the covariance of ``x̃(t|t)``.
+
+The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?ControlSystemsBase.MatrixEquations.arec/ared` for more help.
 
 # FAQ
 This function requires
 - `R1` must be positive semi-definite
 - `R2` must be positive definite
 - The pair `(A,R1)` must not have any uncontrollable modes on the imaginary axis (cont) / unit circle (disc), e.g., there must not be any integrating modes that are not affected through `R1`. if this condition does not hold, you may get the error "The Hamiltonian matrix is not dichotomic".
+
+# Extended help
+`MatrixEquations.ared` solves the Riccati equation corresponding to the direct form, but returns the ``K`` matrix for the indirect form. The solution to the Riccati equation is the stationary prediction-error covariance matrix ``R_∞``, and the filtering error covariance is given by ``(I-A^{-1}KC) R_∞``. If using the direct form, the filter-error covariance is given by ``(I-K_d C) R_∞`` 
 """
-function kalman(te, A, C, R1,R2, args...; direct = false, kwargs...)
+function kalman(te, A, C, R1,R2, args...; direct = false, extra::Val{E} = Val(false), kwargs...) where E
+    Kt, p, R∞, args... = lqr(te, A',C',R1,R2, args...; extra=Val(true), kwargs...)
     if direct
         te isa ContinuousType && error("direct = true only applies to discrete-time systems")
-        C = C*A
+        K = (R∞*C')/(R2 + C*R∞*C') # ared returns K for the indirect form, which is A*Kdirect
+        return E ? (K, R∞, p, args...) : K
     end
-    Matrix(lqr(te, A',C',R1,R2, args...; kwargs...)')
+    E ? (Matrix(Kt'), R∞, p, args...) : Matrix(Kt')
 end
 
 function lqr(sys::AbstractStateSpace, Q, R, args...; kwargs...)
