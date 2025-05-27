@@ -188,6 +188,8 @@ end
     R = I
     L = lqr(Discrete, A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
+    L, S, p = lqr(Discrete, A,B,Q,R, extra=Val(true))
+    @test p ≈ eigvals(A-B*L)
     sys = ss(A,B,C,0,Ts)
     L = lqr(sys, Q, R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]

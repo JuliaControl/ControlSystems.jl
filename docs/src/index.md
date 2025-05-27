@@ -100,5 +100,4 @@ The following is a list of packages from the wider Julia ecosystem that may be o
 ## Courses using ControlSystems.jl
 - [Carnegie Mellon University: Optimal-Control](https://github.com/Optimal-Control-16-745)
 - [Kasetsart University: Control Engineering with Julia](https://dewdotninja.github.io/julia/control/julia_control.html)
-- [Czech Technical University: Optimal and Robust Control](https://hurak.github.io/orr/). [github repo](https://github.com/hurak/orr/tree/main)
-- 
+- [Czech Technical University: Optimal and Robust Control](https://hurak.github.io/orr/). See also [github repo](https://github.com/hurak/orr/tree/main).
