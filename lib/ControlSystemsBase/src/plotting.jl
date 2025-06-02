@@ -335,7 +335,7 @@ _span(vec) = -(reverse(extrema(vec))...)
                     group     --> group_ind
                     if adaptive
                         lmag = _PlotScale == "dB" ? magdata : log.(magdata)
-                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/300)
+                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/500)
                         wsi, magdata[inds]
                     else
                         ws, magdata
@@ -361,9 +361,8 @@ _span(vec) = -(reverse(extrema(vec))...)
                     label     --> ""
                     group     --> group_ind
                     phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
-                    # NOTE: we should only downsample if the user hasn't provided w themselves
                     if adaptive
-                        downsample(ws, phasedata, _span(phasedata)/300)[1:2]
+                        downsample(ws, phasedata, _span(phasedata)/500)[1:2]
                     else
                         ws, phasedata
                     end
@@ -817,7 +816,7 @@ marginplot
                     m = bmag[i, j, :]
                     if adaptive
                         lmag = _PlotScale == "dB" ? m : log.(m)
-                        wsi, _, inds = downsample(w, lmag, _span(lmag)/300)
+                        wsi, _, inds = downsample(w, lmag, _span(lmag)/500)
                         wsi, m[inds]
                     else
                         w, m
@@ -850,7 +849,7 @@ marginplot
                     primary := true
                     seriestype := :bodephase
                     if adaptive
-                        downsample(w, phasedata, _span(phasedata)/300)[1:2]
+                        downsample(w, phasedata, _span(phasedata)/500)[1:2]
                     else
                         w, phasedata
                     end
