@@ -147,7 +147,7 @@ Uses Ackermann's formula for SISO systems and [`place_knvd`](@ref) for MIMO syst
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
 """
-function place(A, B, p::AbstractVector, opt=:c; direct = false, kwargs...)
+function place(A, B, p, opt=:c; direct = false, kwargs...)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as the state dimension")
     if opt === :c
@@ -233,14 +233,14 @@ This implementation uses "method 0" for the X-step and the QR factorization for 
 This function will be called automatically when [`place`](@ref) is called with a MIMO system.
 
 # Arguments:
-- `init`: Determines the initialization strategy for the iterations for find the `X` matrix. Possible choices are `:id` (default), `:rand`, `:s`. 
+- `init`: Determines the initialization strategy for the iterations for find the `X` matrix. Possible choices are `:id`, `:rand`, `:s` (default). 
 """
 function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0)
     n, m = size(B)
     T = float(promote_type(eltype(A), eltype(B)))
     CT = Complex{real(T)}
-    λ = sort(λ, by=LinearAlgebra.eigsortby)
-    length(λ) == size(A, 1) == n || error("Must specify as many poles as states")
+    λ = sort(vec(λ), by=LinearAlgebra.eigsortby)
+    length(λ) == size(A, 1) == n || error("Must specify as many poles as the state dimension")
     Λ = diagm(λ)
     QRB = qr(B)
     U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
