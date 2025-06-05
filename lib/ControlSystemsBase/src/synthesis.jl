@@ -147,9 +147,9 @@ Uses Ackermann's formula for SISO systems and [`place_knvd`](@ref) for MIMO syst
 
 Please note that this function can be numerically sensitive, solving the placement problem in extended precision might be beneficial.
 """
-function place(A, B, p, opt=:c; direct = false, kwargs...)
+function place(A, B, p::AbstractVector, opt=:c; direct = false, kwargs...)
     n = length(p)
-    n != size(A,1) && error("Must specify as many poles as states")
+    n != size(A,1) && error("Must specify as many poles as the state dimension")
     if opt === :c
         direct && error("direct = true only applies to observer design")
         n != size(B,1) && error("A and B must have same number of rows")
