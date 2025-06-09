@@ -290,8 +290,6 @@ _span(vec) = -(reverse(extrema(vec))...)
     # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
 
-    link --> :x
-
     for (si,s) = enumerate(systems)
         if balance
             sbal = balance_statespace(s)[1]
@@ -319,6 +317,7 @@ _span(vec) = -(reverse(extrema(vec))...)
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
+                local inds
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
@@ -351,6 +350,10 @@ _span(vec) = -(reverse(extrema(vec))...)
                     end
                 end
 
+                if eltype(phasedata) <: AbstractFloat
+                    link --> :x # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
+                end
+
                 @series begin
                     xscale    --> :log10
                     # ylims      := ylimsphase
@@ -361,8 +364,10 @@ _span(vec) = -(reverse(extrema(vec))...)
                     label     --> ""
                     group     --> group_ind
                     phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
-                    if adaptive
+                    if adaptive && eltype(phasedata) <: AbstractFloat # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
                         downsample(ws, phasedata, _span(phasedata)/500)[1:2]
+                    elseif adaptive
+                        ws[inds], phasedata[inds]
                     else
                         ws, phasedata
                     end
