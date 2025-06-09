@@ -416,7 +416,7 @@ Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
 - `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
-- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
+- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`. See also [`margin_bounds`](@ref), [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref).
 - `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
 - `critical_point`: point on real axis to mark as critical for encirclements
 - If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
