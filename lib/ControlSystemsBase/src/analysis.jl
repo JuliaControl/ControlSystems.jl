@@ -623,6 +623,8 @@ end
 
 Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
 Only supports SISO systems.
+
+The delay margin is computed as the phase margin in radians divided by the cross-over frequency in rad/s. The delay margin is the maximum time delay that can be added to the system before it becomes unstable.
 """
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
