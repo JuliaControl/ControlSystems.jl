@@ -370,6 +370,11 @@ gof = gangoffour(P,C)
 F = ssrand(2,2,2,proper=true)
 @test_nowarn gangofseven(P, C, F)
 
+## Test bound functions
+M_S = 1.3
+g_m, ϕ_m = margin_bounds(M_S)
+@test Ms_from_gain_margin(g_m) ≈ M_S
+@test Ms_from_phase_margin(ϕ_m) ≈ M_S
 
 ## Approximate double integrator
 P = let

@@ -27,6 +27,7 @@ The output [sensitivity function](https://en.wikipedia.org/wiki/Sensitivity_(con
 ```math
 ϕ_m ≥ 2\\text{sin}^{-1}(\\frac{1}{2M_S}), g_m ≥ \\frac{M_S}{M_S-1}
 ```
+(see [`margin_bounds`](@ref) for a function that computes these bounds, and [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref) for the inverse functions.)
 Generally, bounding ``M_S`` is a better objective than looking at gain and phase margins due to the possibility of combined gain and pahse variations, which may lead to poor robustness despite large gain and pahse margins.
 
 $sensdoc
@@ -34,6 +35,39 @@ $sensdoc
 function sensitivity(args...)# Sensitivity function
     return output_sensitivity(args...)
 end
+
+
+"""
+    g_m, ϕ_m = margin_bounds(M_S)
+
+Compute the phase margin lower bound ϕ_m (in radians) and gain margin lower bound g_m given a maximum sensitivity peak ``M_S = ||S||_∞``. These bounds are derived from the fact that the inverse of the sensitivity function is the distance from the open-loop Nyquist curve to the critical point -1.
+
+See also [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref) for the inverse functions. The circle corresponding to the maximum sensitivity peak ``M_S`` can be plotted in [`nyquistplot`](@ref) by passing the keyword argument `Ms_circles = [Ms]`.
+"""
+function margin_bounds(M_S)
+    M_S < 1 && error("Maximum sensitivity peak M_S must be greater than or equal to 1, got $M_S")
+    ϕ_m = 2 * asin(1 / (2 * M_S))
+    g_m = M_S / (M_S - 1)
+    return (; g_m, ϕ_m, ϕ_m_deg = rad2deg(ϕ_m))
+end
+
+"""
+    Ms_from_phase_margin(ϕ_m)
+
+Compute the maximum sensitivity peak ``M_S = ||S||_∞`` such that if respected, gives a phase margin of at least ϕ_m (in radians).
+
+See also [`Ms_from_gain_margin`](@ref) and [`margin_bounds`](@ref).
+"""
+Ms_from_phase_margin(ϕ_m) = 1 / (2 * sin(ϕ_m / 2))
+
+"""
+    Ms_from_gain_margin(g_m)
+
+Compute the maximum sensitivity peak ``M_S = ||S||_∞`` such that if respected, gives a gain margin of at least g_m.
+
+See also [`Ms_from_phase_margin`](@ref) and [`margin_bounds`](@ref).
+"""
+Ms_from_gain_margin(g_m) = g_m / (g_m - 1)
 
 """
 See [`output_comp_sensitivity`](@ref)

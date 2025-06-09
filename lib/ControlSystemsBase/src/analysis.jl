@@ -73,7 +73,7 @@ end
 
 Count the number of integrators in the system by finding the difference between the number of poles in the origin and the number of zeros in the origin. If the number of zeros in the origin is greater than the number of poles in the origin, the count is negative.
 
-For discrete-tiem systems, the origin ``s = 0`` is replaced by the point ``z = 1``.
+For discrete-time systems, the origin ``s = 0`` is replaced by the point ``z = 1``.
 """
 function integrator_excess(P::LTISystem)
     p = poles(P)
