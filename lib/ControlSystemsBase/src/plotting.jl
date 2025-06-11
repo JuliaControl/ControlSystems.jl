@@ -452,13 +452,15 @@ nyquistplot
                     if lab !== nothing
                         label --> lab
                     end
-                    hover --> [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
+                    hover_data = [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
                     if adaptive
                         indsre = downsample(w, redata, 1/500)[3]
                         indsim = downsample(w, imdata, 1/500)[3]
                         inds = sort!(union(indsre, indsim))
+                        hover --> hover_data[inds]
                         redata[inds], imdata[inds]
                     else
+                        hover --> hover_data
                         redata, imdata
                     end
                 end                
