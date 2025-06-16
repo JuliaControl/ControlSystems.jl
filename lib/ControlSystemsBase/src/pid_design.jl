@@ -227,6 +227,40 @@ and should be supplied as additional arguments to the function.
 One can also supply a frequency vector `ω` to be used in Bode and Nyquist plots.
 
 See also `loopshapingPI`, `stabregionPID`
+
+## Example
+This example utilizes the function [`pidplots`](@ref), which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
+```julia
+using ControlSystemsBase, Plots
+P = tf([1.], [1., 1])
+
+ζ = 0.5 # Desired damping
+ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
+kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
+ki = ws.^2
+
+ω = exp10.(range(-3, stop = 2, length = 500))
+pidplots(
+    P,
+    :nyquist;
+    params_p = kp,
+    params_i = ki,
+    ω = ω,
+    ylims = (-2, 2),
+    xlims = (-3, 3),
+    form = :parallel,
+)
+pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false, form=:parallel, legendfontsize=6, size=(1000, 1000))
+```
+Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
+```julia
+kp = range(-1, stop=1, length=8) #
+ki = sqrt.(1 .- kp.^2)/10
+
+pidplots(P,:nyquist,;params_p=kp,params_i=ki,ylims=(-1,1),xlims=(-1.5,1.5), form=:parallel)
+pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20), form=:parallel, legendfontsize=6, size=(1000, 1000))
+```
+
 """
 function pidplots(P::LTISystem, args...; 
     params_p, params_i, params_d=0, 
@@ -375,6 +409,20 @@ arg(P) + arg(C) = -π
 ```
 If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
 See also [`loopshapingPI`](@ref), [`loopshapingPID`](@ref), [`pidplots`](@ref)
+
+## Example
+The stability boundary, i.e., the surface of PID parameters where the transfer function ``P(s)C(s)`` equals -1, can be plotted with the command [`stabregionPID`](@ref). The process can be given in function form or as a regular LTIsystem.
+
+```julia
+P1 = s -> exp(-sqrt(s))
+doplot = true
+form = :parallel
+kp, ki, f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)); doplot, form); f1
+P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
+kp, ki, f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)); doplot, form); f2
+P3 = tf(1,[1,1])^4
+kp, ki, f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)); doplot, form); f3
+```
 """
 function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=:standard, doplot=false)
     Pv  = freqrespv(P,ω)
