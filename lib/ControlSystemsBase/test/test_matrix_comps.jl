@@ -39,6 +39,19 @@ sysdb, _ = balance_statespace(sysd)
 
 @test ControlSystemsBase.balance_transform(A,B,C) ≈ ControlSystemsBase.balance_transform(sys)
 
+@testset "similarity transform" begin
+    @info "Testing similarity transform"
+    T = randn(3,3)
+    sys1 = ssrand(1,1,3)
+    sys2 = ControlSystemsBase.similarity_transform(sys1, T)
+    T2 = find_similarity_transform(sys1, sys2)
+    @test T2 ≈ T atol=1e-8
+
+    T3 = find_similarity_transform(sys1, sys2, :ctrb)
+    @test T3 ≈ T atol=1e-8
+
+end
+
 W = [1 0; 0 1]
 @test covar(sys, W) ≈ [0.002560975609756 0.002439024390244; 0.002439024390244 0.002560975609756]
 D2 = [1 0; 0 1]
