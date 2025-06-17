@@ -736,6 +736,8 @@ Ref: Minimal state-space realization in linear system theory: an overview, B. De
 If `method == :obsv`, the observability matrices of `sys1` and `sys2` are used to find `T`, whereas `method == :ctrb` uses the controllability matrices.
 
 ```jldoctest
+julia> using ControlSystemsBase
+
 julia> T = randn(3,3);
 
 julia> sys1 = ssrand(1,1,3);
