@@ -43,7 +43,7 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
 end
 
 
-function count_eigval_multiplicity(p, location, e=eps(maximum(abs, p)))
+function count_eigval_multiplicity(p, location, e=eps(maximum(abs, p, init=0.0))) # The init is to handle poor type inference with exotic number types
     n = length(p)
     n == 0 && return 0
     for i = 1:n
