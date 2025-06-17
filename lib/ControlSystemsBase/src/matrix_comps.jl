@@ -710,7 +710,7 @@ D̃ = D
 ```
 
 If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
-See also [`balance_statespace`](@ref).
+See also [`balance_statespace`](@ref), [`find_similarity_transform`](@ref).
 """
 function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
     if unitary
@@ -724,6 +724,42 @@ function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractSta
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
+end
+
+"""
+    find_similarity_transform(sys1, sys2, method = :obsv)
+
+Find T such that `ControlSystemsBase.similarity_transform(sys1, T) == sys2`
+
+Ref: Minimal state-space realization in linear system theory: an overview, B. De Schutter
+
+If `method == :obsv`, the observability matrices of `sys1` and `sys2` are used to find `T`, whereas `method == :ctrb` uses the controllability matrices.
+
+```jldoctest
+julia> T = randn(3,3);
+
+julia> sys1 = ssrand(1,1,3);
+
+julia> sys2 = ControlSystemsBase.similarity_transform(sys1, T);
+
+julia> T2 = find_similarity_transform(sys1, sys2);
+
+julia> T2 ≈ T
+true
+```
+"""
+function find_similarity_transform(sys1, sys2, method = :obsv)
+    if method === :obsv
+        O1 = obsv(sys1)
+        O2 = obsv(sys2)
+        return O1\O2
+    elseif method === :ctrb
+        C1 = ctrb(sys1)
+        C2 = ctrb(sys2)
+        return C1/C2
+    else
+        error("Unknown method $method")
+    end
 end
 
 """
