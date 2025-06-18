@@ -524,6 +524,7 @@ function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02
     undershoot = direction * 100 * (y0 - lowerpeak) / stepsize
     undershoot > 0 ? undershoot : zero(undershoot)
     settlingtimeind = findlast(abs(y-yf) > settling_th * stepsize for y in y)
+    settlingtimeind === nothing && (settlingtimeind = length(res.t))
     settlingtimeind == length(res.t) && @warn "System might not have settled within the simulation time"
     settlingtime = res.t[settlingtimeind] + Ts
     op = direction == 1 ? (>) : (<)
