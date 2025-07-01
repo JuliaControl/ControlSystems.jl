@@ -19,7 +19,7 @@ jobs:
     permissions: # needed for julia-actions/cache to delete old caches
       actions: write
       contents: read
-    continue-on-error: ${{ matrix.version == 'pre' }} # the CI badge will still pass if 'pre' fails
+    continue-on-error: ${{ matrix.version == 'pre' || matrix.version == 'nightly' }} # the CI badge will still pass if 'pre' or 'nightly' fails
     strategy:
       fail-fast: false
       matrix:
@@ -53,7 +53,6 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
         env:
           GROUP: ${{ matrix.group }}
-        # continue-on-error: ${{ matrix.version == 'nightly' }} # Allow nightly to fail and workflow still count as completed
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: src,lib/ControlSystemsBase/src,lib/ControlSystemsBase/ext
