@@ -124,7 +124,7 @@ This function requires
 `MatrixEquations.ared` solves the Riccati equation corresponding to the direct form, but returns the ``K`` matrix for the indirect form. The solution to the Riccati equation is the stationary prediction-error covariance matrix ``R_∞``, and the filtering error covariance is given by ``(I-A^{-1}KC) R_∞``. If using the direct form, the filter-error covariance is given by ``(I-K_d C) R_∞`` 
 """
 function kalman(te, A, C, R1,R2, args...; direct = false, extra::Val{E} = Val(false), kwargs...) where E
-    Kt, p, R∞, args... = lqr(te, A',C',R1,R2, args...; extra=Val(true), kwargs...)
+    Kt, R∞, p, args... = lqr(te, A',C',R1,R2, args...; extra=Val(true), kwargs...)
     if direct
         te isa ContinuousType && error("direct = true only applies to discrete-time systems")
         K = (R∞*C')/(R2 + C*R∞*C') # ared returns K for the indirect form, which is A*Kdirect
