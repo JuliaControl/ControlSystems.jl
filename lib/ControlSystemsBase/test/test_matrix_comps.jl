@@ -15,6 +15,11 @@ sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test similarity_transform(sysb, T) ≈ sys
 Ab,Bb,Cb,T = ControlSystemsBase.balance_statespace(A,B,C)
 
+sysbb,Tb = ControlSystemsBase.balance_statespace(big(1.0)*sys)
+@test Tb ≈ T
+@test sysbb ≈ sysb
+
+
 @test Ab*T ≈ T*A
 @test Bb ≈ T*B
 @test Cb*T ≈ C
