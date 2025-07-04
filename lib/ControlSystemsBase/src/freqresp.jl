@@ -346,12 +346,12 @@ function bodemag_nohess!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector
 end
 
 """
-    re, im, w = nyquist(sys[, w])
+    re, img, w = nyquist(sys[, w])
 
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`. See also [`nyquistplot`](@ref)
 
-`re` and `im` has size `(ny, nu, length(w))`""" 
+`re` and `img` has size `(ny, nu, length(w))`""" 
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
