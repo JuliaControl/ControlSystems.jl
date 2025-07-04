@@ -542,7 +542,7 @@ Compute a similarity transform `T = S*P` resulting in `B = T\\A*T` such that the
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`).
 """
-function balance(A, perm::Bool=true)
+function balance(A::AbstractMatrix{<:LinearAlgebra.BlasFloat}, perm::Bool=true)
     n = LinearAlgebra.checksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
@@ -568,6 +568,11 @@ function cswap!(i::Integer, j::Integer, X::StridedMatrix)
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end
+end
+
+function balance(A::AbstractMatrix, perm::Bool=true)
+    Ac = Float64.(A)
+    balance(Ac, perm)
 end
 
 
