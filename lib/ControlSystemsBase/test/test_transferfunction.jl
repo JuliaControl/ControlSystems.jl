@@ -271,4 +271,22 @@ if VERSION >= v"1.8.0-rc1"
     @test @test_logs (:warn, r"deprecated") tf(1).Ts == 0
 end
 
+# Test MIMO TransferFunction feedback behavior
+@test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222)
+@test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222, C_222)
+# Test that feedback returns state-space for MIMO
+fb_result = @test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222)
+@test fb_result isa TransferFunction
+fb_result2 = @test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222, C_222)
+@test fb_result2 isa TransferFunction
+
+# Test MIMO TransferFunction division behavior
+Ci_222 = tf(ssrand(2,2,2))
+# Test that division returns state-space for MIMO
+div_result = @test_logs (:warn, r"MIMO TransferFunction inversion isn't implemented yet") C_222 / Ci_222
+@test div_result isa TransferFunction
+
+# Test improved error messages in MIMO TransferFunction inversion
+@test_throws ErrorException("MIMO TransferFunction inversion isn't implemented yet, consider converting your transfer functions to state-space form using `ss`") 1 / Ci_222
+
 end

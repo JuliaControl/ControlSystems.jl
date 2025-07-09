@@ -227,12 +227,22 @@ function /(n::Number, G::TransferFunction)
         matrix = fill(entry, 1, 1)
         return TransferFunction(matrix, G.timeevol)
     else
-        error("MIMO TransferFunction inversion isn't implemented yet")
+        error("MIMO TransferFunction inversion isn't implemented yet, consider converting your transfer functions to state-space form using `ss`")
     end
 end
 /(G::TransferFunction, n::Number) = G*(1/n)
-/(G1::TransferFunction, G2::TransferFunction) = G1*(1/G2)
 Base.:(/)(sys1::LTISystem, sys2::TransferFunction) = *(promote(sys1, ss(1/sys2))...) # This special case is needed to properly handle improper inverse transfer function (1/s)
+function /(f1::TransferFunction, f2::TransferFunction)
+    if issiso(f2)
+        T = numeric_type(f2)
+        One = one(1/one(T)) # This gymatics is to ensure that we get floats out of integer system division. We will always get floats for ss division in the branch below, so this is required for type stability
+        f1*(One/f2)
+    else
+        @warn "MIMO TransferFunction inversion isn't implemented yet, converting to state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible."
+        tf(ss(f1) / ss(f2))
+    end
+end
+
 
 
 #####################################################################

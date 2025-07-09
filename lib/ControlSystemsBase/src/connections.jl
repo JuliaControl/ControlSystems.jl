@@ -259,7 +259,8 @@ feedback(P1::TransferFunction, P2::TransferFunction; pos_feedback::Bool = false)
 
 function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::TransferFunction{<:TimeEvolution,<:SisoRational}; pos_feedback::Bool = false)
     if !issiso(G1) || !issiso(G2)
-        error("MIMO TransferFunction feedback isn't implemented.")
+        @warn("MIMO TransferFunction feedback isn't implemented yet, converting to a state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible.")
+        return tf(feedback(ss(G1), ss(G2); pos_feedback))
     end
     G1num = numpoly(G1)[]
     G1den = denpoly(G1)[]
@@ -274,7 +275,8 @@ end
 #Efficient implementations
 function feedback(L::TransferFunction{<:TimeEvolution,T}) where T<:SisoRational
     if size(L) != (1,1)
-        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
+        @warn("MIMO TransferFunction feedback isn't implemented yet, converting to a state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible.")
+        return tf(feedback(ss(L)))
     end
     P = numpoly(L)
     Q = denpoly(L)
@@ -283,7 +285,8 @@ end
 
 function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZpk}
     if size(L) != (1,1)
-        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
+        @warn("MIMO TransferFunction feedback isn't implemented yet, converting to a state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible.")
+        return tf(feedback(ss(L)))
     end
     #Extract polynomials and create P/(P+Q)
     k = L.matrix[1].k
