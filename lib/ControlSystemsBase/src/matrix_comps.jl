@@ -18,8 +18,8 @@ See [`lqr`](@ref) for more details.
 Uses `MatrixEquations.arec`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.arec`,
 note that they define the input arguments in a different order.
 """
-function are(::ContinuousType, A::AbstractMatrix, B, Q, R; kwargs...)
-    arec(A, B, R, Q; kwargs...)[1]
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R, args...; kwargs...)
+    arec(A, B, R, Q, args...; kwargs...)[1]
 end
 
 """
@@ -34,8 +34,8 @@ See [`lqr`](@ref) for more details.
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.ared`,
 note that they define the input arguments in a different order.
 """
-function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
-    ared(A, B, R, Q; kwargs...)[1]
+function are(::DiscreteType, A::AbstractMatrix, B, Q, R, args...; kwargs...)
+    ared(A, B, R, Q, args...; kwargs...)[1]
 end
 
 are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
