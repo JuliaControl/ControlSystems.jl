@@ -74,33 +74,33 @@ using LinearAlgebra
 using Plots
 
 # Create system - same as LQR example
-Ts      = 0.1
-A       = [1 Ts; 0 1]
-B       = [0; 1]
-C       = I(2)
-P       = ss(A,B,C,0,Ts)
+Ts = 0.1
+A  = [1 Ts; 0 1]
+B  = [0; 1]
+C  = I(2)
+P  = ss(A,B,C,0,Ts)
 
 # Design controller using pole placement
 # Choose desired closed-loop poles (well-damped, faster than original system)
-desired_poles_cont = [-2+0.5im, -2-0.5im]  # Continuous-time poles
-desired_poles = exp.(Ts .* desired_poles_cont)  # Discrete-time poles inside unit circle
+desired_poles_cont = [-2+0.5im, -2-0.5im]       # Continuous-time poles
+desired_poles = exp.(Ts .* desired_poles_cont)  # Discrete-time poles
 
 # Design state feedback gain using pole placement
-L = place(P, desired_poles) |> real
+L = place(P, desired_poles)
 
-# Design observer with poles 5x faster (closer to origin for discrete time)
+# Design observer with poles 5x faster
 observer_poles = exp.(Ts*5 .* desired_poles_cont)
-K = place(P, observer_poles, :o) |> real # Note the :o for observer design
+K = place(P, observer_poles, :o) # Note the :o for observer design
 
-# Create observer-controller using the observer_controller function
+# Create controller system
 controller = observer_controller(P, L, K)
 
 # Form closed-loop system and analyze
 T_cl = feedback(P * controller)
 
 r(x,t)  = [1.5(t>=2.5); 0] # Form control law (r is a function of t and x), change reference to 1.5 at t≧2.5
-t = 0:Ts:5              # Time vector
-x0 = [1, 0, 0, 0]               # Initial condition
+t = 0:Ts:5          # Time vector
+x0 = [1.0, 0, 0, 0] # Initial condition (plant state followed by controller state)
 res = lsim(T_cl, r, t; x0)
 plot(res, lab=["Position" "Velocity"], layout=1, sp=1)
 ```
