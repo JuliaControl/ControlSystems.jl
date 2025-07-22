@@ -242,11 +242,11 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
     λ = sort(vec(λ), by=LinearAlgebra.eigsortby)
     length(λ) == size(A, 1) == n || error("Must specify as many poles as the state dimension")
     Λ = diagm(λ)
-    QRB = qr(B)
-    U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
-    Z = QRB.R
     R = svdvals(B)
     m = count(>(100*eps()*R[1]), R) # Rank of B
+    QRB = qr(B, ColumnNorm())
+    U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
+    Z = (QRB.R*QRB.P')[:, 1:m] 
     if m == n # Easy case, B is full rank
         r = count(e->imag(e) == 0, λ)
         ABF = diagm(real(λ))
@@ -259,9 +259,21 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
         return B\(A - ABF) # Solve for F in (A - BF) = Λ
     end
 
+    mB = size(B, 2)
+    if mB > m
+        # several inputs but not full column rank, this case must be handled separately
+        # when B does not have full column rank but that rank is not 1. In that case, find B2 and T from rank-revealing QR (qr(B, ColumnNorm())
+        verbose && @info "Projecting down to rank of B"
+        B2 = QRB.Q[:, 1:m]
+        T = QRB.P * QRB.R[1:m, :]'
+        F = place(A, B2, λ; verbose, init, method)
+        return pinv(T)'*F
+    end
+
     S = Matrix{CT}[]
     for j = 1:n
-        qj = qr((U1'*(A- λ[j]*I))')
+        H = (U1'*(A- λ[j]*I))
+        qj = qr(H')
         # Ŝj = qj.Q[:, 1:n-m] # Needed for method 2
         Sj = qj.Q[:, n-m+1:n]
         push!(S, Sj)
