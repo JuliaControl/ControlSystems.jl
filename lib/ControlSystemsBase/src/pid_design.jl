@@ -132,7 +132,7 @@ end
 
 Calculates and returns a PID controller on 2DOF form with inputs `[r; y]` and outputs `u` where `r` is the reference signal, `y` is the measured output and `u` is the control signal.
 
-Belowm we show two different depections of the contorller, one as a 2-input system (left) and one where the tw internal SISO systems of the controller are shown (right).
+Below we show two different depections of the controller, one as a 2-input system (left) and one where the tw internal SISO systems of the controller are shown (right).
 ```
                                 ┌──────┐                      
                              r  │      │                      

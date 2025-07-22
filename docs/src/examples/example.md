@@ -42,8 +42,8 @@ L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 u(x,t)  = -L*x .+ 1.5(t>=2.5) # Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
 t       = 0:Ts:5              # Time vector
 x0      = [1,0]               # Initial condition
-y, t, x, uout = lsim(sys,u,t,x0=x0)
-plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
+res = lsim(sys,u,t,x0=x0)
+plot(res, lab=["Position" "Velocity"], ploty=false, plotx=true, layout=1, sp=1)
 
 save_docs_plot("lqrplot.svg"); # hide
 
@@ -63,6 +63,56 @@ See also the following tutorial video on LQR and LQG design
 ```@raw html
 <iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/NuAxN1mGCPs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 ```
+
+## Pole Placement Design
+
+The example below demonstrates basic pole placement controller design using the same double integrator system from the LQR example. We design a state-feedback controller with desired closed-loop poles and an observer that is 5 times faster than the closed-loop response.
+
+```@example POLEPLACEMENT
+using ControlSystemsBase
+using LinearAlgebra
+using Plots
+
+# Create system - same as LQR example
+Ts      = 0.1
+A       = [1 Ts; 0 1]
+B       = [0; 1]
+C       = I(2)
+P       = ss(A,B,C,0,Ts)
+
+# Design controller using pole placement
+# Choose desired closed-loop poles (well-damped, faster than original system)
+desired_poles_cont = [-2+0.5im, -2-0.5im]  # Continuous-time poles
+desired_poles = exp.(Ts .* desired_poles_cont)  # Discrete-time poles inside unit circle
+
+# Design state feedback gain using pole placement
+L = place(P, desired_poles) |> real
+
+# Design observer with poles 5x faster (closer to origin for discrete time)
+observer_poles = exp.(Ts*5 .* desired_poles_cont)
+K = place(P, observer_poles, :o) |> real # Note the :o for observer design
+
+# Create observer-controller using the observer_controller function
+controller = observer_controller(P, L, K)
+
+# Form closed-loop system and analyze
+T_cl = feedback(P * controller)
+
+r(x,t)  = [1.5(t>=2.5); 0] # Form control law (r is a function of t and x), change reference to 1.5 at t≧2.5
+t = 0:Ts:5              # Time vector
+x0 = [1, 0, 0, 0]               # Initial condition
+res = lsim(T_cl, r, t; x0)
+plot(res, lab=["Position" "Velocity"], layout=1, sp=1)
+```
+
+Plot Gang of Four to analyze closed-loop properties
+```@example POLEPLACEMENT
+gangoffourplot(P, controller)
+```
+
+
+The pole placement design allows direct specification of closed-loop pole locations. The [`place`](@ref) function computes the required feedback gains, while [`observer_controller`](@ref) combines the state feedback and observer into a single controller.
+
 
 ## PID design functions
 A basic PID controller can be constructed using the constructors [`pid`](@ref), [`pid_2dof`](@ref).
