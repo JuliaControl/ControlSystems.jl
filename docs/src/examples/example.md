@@ -99,8 +99,8 @@ controller = observer_controller(P, L, K)
 T_cl = feedback(P * controller)
 
 r(x,t)  = [1.5(t>=2.5); 0] # Form control law (r is a function of t and x), change reference to 1.5 at t≧2.5
-t = 0:Ts:5              # Time vector
-x0 = [1, 0, 0, 0]               # Initial condition
+t = 0:Ts:5          # Time vector
+x0 = [1.0, 0, 0, 0] # Initial condition (plant state followed by controller state)
 res = lsim(T_cl, r, t; x0)
 plot(res, lab=["Position" "Velocity"], layout=1, sp=1)
 ```
