@@ -150,7 +150,7 @@ Please note that this function can be numerically sensitive, solving the placeme
 function place(A, B, p, opt=:c; direct = false, kwargs...)
     n = length(p)
     n != size(A,1) && error("Must specify as many poles as the state dimension")
-    if opt === :c
+    L = if opt === :c
         direct && error("direct = true only applies to observer design")
         n != size(B,1) && error("A and B must have same number of rows")
         if size(B,2) == 1
@@ -172,6 +172,11 @@ function place(A, B, p, opt=:c; direct = false, kwargs...)
     else
         error("fourth argument must be :c or :o")
     end
+    if isreal(A) && isreal(B) && is_self_conjugate(p)
+        @assert all(abs(imag(l)) .< 1e-6 for l in L) "Expected real coefficient in feedback gain, got complex: $L"
+        return real(L)
+    end
+    return L
 end
 function place(sys::AbstractStateSpace, p, opt=:c; direct = false, kwargs...)
     if opt === :c
