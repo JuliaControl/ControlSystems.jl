@@ -203,7 +203,7 @@ function extended_gangoffour(P, C, pos=true)
         return S + cat(0*I(ny), -I(nu), dims=(1,2))
     else
         Gtop = [I(ny); C] * [I(ny) P]
-        return feedback(Gtop, ss(I(nu)), U1=(1:nu).+ny, Y1=(1:nu).+ny, pos_feedback=false)
+        return feedback(Gtop, ss(I(nu), te), U1=(1:nu).+ny, Y1=(1:nu).+ny, pos_feedback=false)
     end
 end
 
