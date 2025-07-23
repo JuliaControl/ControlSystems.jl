@@ -69,52 +69,6 @@ function getpoles(G, K::AbstractVector{T}) where {T<:Number}
     copy(poleout'), K
 end
 
-# function getpoles(sys::StateSpace, K_matrix::AbstractMatrix; tol = 1e-6)
-#     # Ensure the system is StateSpace (already enforced by method signature)
-#     A, B = sys.A, sys.B
-#     nx = size(A, 1) # State dimension
-
-#     # Check for compatibility of K_matrix dimensions with B
-#     if size(K_matrix, 2) != nx
-#         error("The number of columns in K_matrix ($(size(K_matrix, 2))) must match the number of states ($(nx)).")
-#     end
-#     # The number of rows in K_matrix must match the number of inputs (columns of B)
-#     if size(K_matrix, 1) != size(B, 2)
-#         error("The number of rows in K_matrix ($(size(K_matrix, 1))) must match the number of inputs (columns of B, which is $(size(B, 2))).")
-#     end
-
-#     poleout = Matrix{ComplexF64}(undef, nx, length(k_values))
-#     D = zeros(nx, nx) # distance matrix for Hungarian algorithm
-#     temppoles = zeros(ComplexF64, nx) # temporary storage for sorted poles
-
-#     prevpoles = ComplexF64[] # Initialize prevpoles for the first iteration
-
-#     stepsize = 1e-6
-#     k_scalar = 0.0
-
-#     while k_scalar < 1
-#         A_cl = A - k_scalar * B * K_matrix
-#         current_poles = eigvals(A_cl)
-
-#         if i > 1 && length(current_poles) == length(prevpoles)
-#             for r in 1:nx
-#                 for c in 1:nx
-#                     D[r, c] = abs(current_poles[r] - prevpoles[c])
-#                 end
-#             end
-#             assignment, cost = Hungarian.hungarian(D)
-#             for j = 1:nx
-#                 temppoles[assignment[j]] = current_poles[j]
-#             end
-#             poleout[:, i] .= temppoles
-#         else
-#             poleout[:, i] .= current_poles # For the first iteration or mismatch, just assign
-#         end
-#         prevpoles = poleout[:, i] # Update prevpoles for the next iteration
-#     end
-#     return copy(poleout'), k_values .* Ref(K_matrix) # Return transposed pole matrix and k_values as a vector
-# end
-
 """
     getpoles(sys::StateSpace, K::AbstractMatrix; tol = 1e-2, initial_stepsize = 1e-3, output=false)
 
