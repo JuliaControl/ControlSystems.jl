@@ -213,6 +213,8 @@ include("types/staticsystems.jl")
 
 include("plotting.jl")
 
+include("root_locus.jl")
+
 @deprecate pole poles
 @deprecate tzero tzeros
 @deprecate num numvec
