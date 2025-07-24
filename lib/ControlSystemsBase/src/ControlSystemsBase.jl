@@ -112,6 +112,8 @@ export  LTISystem,
         pade,
         thiran,
         nonlinearity,
+        rlocus,
+        rlocusplot,
         # demo systems
         ssrand,
         DemoSystems, # A module containing some example systems

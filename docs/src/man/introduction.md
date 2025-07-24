@@ -10,14 +10,14 @@ For workflows that do not require continuous-time simulation, you may instead op
 ```julia
 using Pkg; Pkg.add("ControlSystemsBase")
 ```
-ControlSystemsBase contains all functionality of ControlSystems except continuous-time simulation and root locus, and is *considerably* faster to load and precompile. To enjoy the faster pre-compilation, do not even install ControlSystems since this will cause pre-compilation of OrdinaryDiffEq, which can take several minutes.
+ControlSystemsBase contains all functionality of ControlSystems except continuous-time simulation, and is *considerably* faster to load and precompile. To enjoy the faster pre-compilation, do not even install ControlSystems since this will cause pre-compilation of OrdinaryDiffEq, which can take several minutes.
 
 ## Basic functions
 ```@meta
 DocTestSetup = quote
     using ControlSystems
     P = tf([1],[1,1])
-    T = P/(1+P)
+    T = feedback(P)
     plotsDir = joinpath(dirname(pathof(ControlSystems)), "..", "docs", "build", "plots")
     mkpath(plotsDir)
     save_docs_plot(name) = Plots.savefig(joinpath(plotsDir,name))
@@ -29,7 +29,7 @@ State-space systems can be created using the function [`ss`](@ref) and transfer 
 Example:
 ```jldoctest INTRO
 P = tf([1.0],[1,1])
-T = P/(1+P)
+T = P/(1+P)         # Not recommended, see below
 
 # output
 
@@ -74,3 +74,8 @@ using Plots
 bodeplot(tf(1,[1,2,1]))
 ```
 
+
+Step, impulse and other simulation responses do not have their own plot functions, instead, call `plot` on the result of the simulation function:
+```@example INTRO
+plot(step(tf(1,[1,0.5,1]), 20))
+```

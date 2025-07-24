@@ -43,6 +43,8 @@ my_tests = [
             "test_plots",
             "test_dsp",
             "test_implicit_diff",
+            "test_rootlocus.jl",
+            "test_root_locus_matrix.jl",
             ]
 
 @testset "All Tests" begin
