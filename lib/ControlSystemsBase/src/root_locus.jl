@@ -2,6 +2,16 @@ const Polynomials = ControlSystemsBase.Polynomials
 import ControlSystemsBase.RootLocusResult
 @userplot Rlocusplot
 
+"""
+    rlocusplot(siso_sys)
+    rlocusplot(sys::StateSpace, K::Matrix; output=false)
+
+Plot the root locus of a system under feedback.
+
+If a SISO system is passed, the feedback gain `K` is a scalar that ranges from 0 to `K` (if provided). If a `StateSpace` system is passed, `K` is a matrix that defines the feedback gain, and the poles are computed as `K` ranges from `0*K` to `1*K`. In this case, `K` is assumed to be a state-feedback matrix of dimension `(nu, nx)`. To compute the poles for output feedback, pass `output = true` and `K` of dimension `(nu, ny)`.
+"""
+rlocusplot
+
 
 function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
