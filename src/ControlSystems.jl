@@ -8,7 +8,6 @@ using ControlSystemsBase: issiso, ninputs, noutputs, nstates, numeric_type
 using LinearAlgebra
 import OrdinaryDiffEq
 import LinearAlgebra: BlasFloat
-import Hungarian # For pole assignment in rlocusplot
 import DiffEqCallbacks: SavingCallback, SavedValues
 import DelayDiffEq
 using SparseArrays
