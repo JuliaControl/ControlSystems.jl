@@ -20,5 +20,6 @@ using ControlSystems
     @testset "rootlocus" begin
         @info "Testing rootlocus"
         include("test_rootlocus.jl")
+        include("test_root_locus_matrix.jl")
     end
 end
