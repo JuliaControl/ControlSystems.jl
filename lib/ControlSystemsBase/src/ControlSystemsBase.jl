@@ -138,6 +138,7 @@ import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
+import Hungarian
 
 export lyap # Make sure LinearAlgebra.lyap is available
 export plyap
