@@ -3,7 +3,7 @@ import ControlSystemsBase.RootLocusResult
 @userplot Rlocusplot
 
 
-function getpoles(G, K::Number)
+function getpoles(G, K::Number; kwargs...)
     issiso(G) || error("root locus only supports SISO systems")
     G isa TransferFunction || (G = tf(G))
     P = numpoly(G)[]
