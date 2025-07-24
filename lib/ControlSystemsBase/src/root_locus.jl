@@ -4,7 +4,7 @@ import ControlSystemsBase.RootLocusResult
 
 
 function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
-    issiso(G) || error("root locus only supports SISO systems")
+    issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
     G isa TransferFunction || (G = tf(G))
     P = numpoly(G)[]
     Q = denpoly(G)[]
@@ -102,7 +102,7 @@ end
 
 
 function getpoles(G, K::AbstractVector{T}) where {T<:Number}
-    issiso(G) || error("root locus only supports SISO systems")
+    issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
     G isa TransferFunction || (G = tf(G))
     P, Q = numpoly(G)[], denpoly(G)[]
     poleout = Matrix{ComplexF64}(undef, Polynomials.degree(Q), length(K))
