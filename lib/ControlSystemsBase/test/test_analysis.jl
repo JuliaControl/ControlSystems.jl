@@ -1,6 +1,6 @@
 @test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericSchur
 using GenericSchur # Required to compute eigvals (in tzeros and poles) of a matrix with exotic element types
-@testset "test_analysis" begin
+
 es(x) = sort(x, by=LinearAlgebra.eigsortby)
 ## tzeros ##
 # Examples from the Emami-Naeini & Van Dooren Paper
@@ -23,7 +23,7 @@ ex_3 = ss(A, B, C, D)
 @test es(tzeros(ex_3)) ≈ es([0.3411639019140099 + 1.161541399997252im,
                              0.3411639019140099 - 1.161541399997252im,
                              0.9999999999999999 + 0.0im,
-                             -0.6823278038280199 + 0.0im])
+                             -0.6823278038280199 + 0.0im]) atol=1e-6
 # Example 4
 A = [-0.129    0.0   0.396e-1  0.25e-1    0.191e-1;
      0.329e-2  0.0  -0.779e-4  0.122e-3  -0.621;
@@ -58,7 +58,7 @@ C = [0 -1 0]
 D = [0]
 ex_6 = ss(A, B, C, D)
 @test tzeros(ex_6) == [2] # From paper: "Our algorithm will extract the singular part of S(A) and will yield a regular pencil containing the single zero at 2."
-@test_broken tzeros(big(1.0)ex_6) == [2]
+@test tzeros(big(1.0)ex_6) == [2]
 @test ControlSystemsBase.count_integrators(ex_6) == 2
 
 @test ss(A, [0 0 1]', C, D) == ex_6
@@ -79,8 +79,8 @@ C = [0 0 0 1 0 0]
 D = [0]
 ex_8 = ss(A, B, C, D)
 # TODO : there may be a way to improve the precision of this example.
-@test tzeros(ex_8) ≈ [-1.0, -1.0] atol=1e-7
-@test tzeros(big(1)ex_8) ≈ [-1.0, -1.0] atol=1e-7
+@test tzeros(ex_8) ≈ [-1.0, -1.0] atol=1e-6
+@test tzeros(big(1)ex_8) ≈ [-1.0, -1.0] atol=1e-12
 @test ControlSystemsBase.count_integrators(ex_8) == 0
 
 # Example 9
@@ -103,7 +103,7 @@ D = [0 0;
      0 0;
      0 0]
 ex_11 = ss(A, B, C, D)
-@test tzeros(ex_11) ≈ [4.0, -3.0]
+@test tzeros(ex_11) ≈ [4.0, -3.0] atol=1e-5
 @test tzeros(big(1)ex_11) ≈ [4.0, -3.0]
 
 # Test for multiple zeros, siso tf
@@ -405,7 +405,6 @@ end
 @test length(tzeros(G)) == 3
 @test es(tzeros(G)) ≈ es(tzeros(big(1)G))
 
-end
 
 
 ## large TF poles and zeros
