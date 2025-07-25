@@ -1,5 +1,5 @@
-using ControlSystems
-using ControlSystems: getpoles
+using ControlSystemsBase
+using ControlSystemsBase: getpoles
 using Test
 using Plots
 
