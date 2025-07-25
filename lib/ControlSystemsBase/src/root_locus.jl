@@ -2,54 +2,117 @@ const Polynomials = ControlSystemsBase.Polynomials
 import ControlSystemsBase.RootLocusResult
 @userplot Rlocusplot
 
+"""
+    rlocusplot(siso_sys)
+    rlocusplot(sys::StateSpace, K::Matrix; output=false)
 
-function getpoles(G, K::Number; kwargs...)
-    issiso(G) || error("root locus only supports SISO systems")
+Plot the root locus of a system under feedback.
+
+If a SISO system is passed, the feedback gain `K` is a scalar that ranges from 0 to `K` (if provided). If a `StateSpace` system is passed, `K` is a matrix that defines the feedback gain, and the poles are computed as `K` ranges from `0*K` to `1*K`. In this case, `K` is assumed to be a state-feedback matrix of dimension `(nu, nx)`. To compute the poles for output feedback, pass `output = true` and `K` of dimension `(nu, ny)`.
+"""
+rlocusplot
+
+
+function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
+    issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
     G isa TransferFunction || (G = tf(G))
     P = numpoly(G)[]
     Q = denpoly(G)[]
     T = float(typeof(K))
     ϵ = eps(T)
     nx = length(Q)
-    D = zeros(nx-1, nx-1) # distance matrix
-    prevpoles = ComplexF64[]
+    
+    # Scale tolerance with system order
+    tol = tol * (nx - 1)
+    
+    poleout_list = Vector{Vector{ComplexF64}}() # To store pole sets at each accepted step
+    k_scalars_collected = Float64[] # To store accepted k_scalar values
+    
+    prevpoles = ComplexF64[] # Initialize prevpoles for the first iteration
     temppoles = zeros(ComplexF64, nx-1)
-    f = function (_,_,k)
+    D = zeros(nx-1, nx-1) # distance matrix
+    
+    stepsize = initial_stepsize
+    k_scalar = 0.0
+    
+    # Function to compute poles for a given k value
+    compute_poles = function(k)
         if k == 0 && length(P) > length(Q)
             # More zeros than poles, make sure the vector of roots is of correct length when k = 0
             # When this happens, there are fewer poles for k = 0, these poles can be seen as being located somewhere at Inf
             # We get around the problem by not allowing k = 0 for non-proper systems.
             k = ϵ
         end
-        newpoles = ComplexF64.(Polynomials.roots(k[1]*P+Q))
+        ComplexF64.(Polynomials.roots(k*P+Q))
+    end
+    
+    # Initial poles at k_scalar = 0.0
+    initial_poles = compute_poles(0.0)
+    push!(poleout_list, initial_poles)
+    push!(k_scalars_collected, 0.0)
+    prevpoles = initial_poles # Set prevpoles for the first actual step
+    
+    while k_scalar < K
+        # Propose a new k_scalar value
+        next_k_scalar = min(K, k_scalar + stepsize)
+        
+        # Calculate poles for the proposed next_k_scalar
+        current_poles_proposed = compute_poles(next_k_scalar)
+        
+        # Calculate cost using Hungarian algorithm
         if !isempty(prevpoles)
-            D .= abs.(newpoles .- transpose(prevpoles))
+            D .= abs.(current_poles_proposed .- transpose(prevpoles))
             assignment, cost = Hungarian.hungarian(D)
-            for i = 1:nx-1
-                temppoles[assignment[i]] = newpoles[i]
-            end
-            newpoles .= temppoles
+        else
+            cost = 0.0
+            assignment = collect(1:nx-1)
         end
-        prevpoles = newpoles
-        newpoles
+        
+        # Adaptive step size logic
+        if cost > 2 * tol # Cost is too high, reject step and reduce stepsize
+            stepsize /= 2.0
+            # Ensure stepsize doesn't become too small
+            if stepsize < 100*eps(T)
+                @warn "Step size became extremely small, potentially stuck. Breaking loop."
+                break
+            end
+            # Do not update k_scalar, try again with smaller stepsize
+        else # Step is acceptable
+            # Sort poles using the assignment from Hungarian algorithm
+            if !isempty(prevpoles)
+                for i = 1:nx-1
+                    temppoles[assignment[i]] = current_poles_proposed[i]
+                end
+                current_poles_sorted = copy(temppoles)
+            else
+                current_poles_sorted = current_poles_proposed
+            end
+            
+            # Accept the step
+            push!(poleout_list, current_poles_sorted)
+            push!(k_scalars_collected, next_k_scalar)
+            prevpoles = current_poles_sorted # Update prevpoles for the next iteration
+            k_scalar = next_k_scalar # Advance k_scalar
+            
+            if cost < tol # Cost is too low, increase stepsize
+                stepsize *= 1.1
+            end
+            # Cap stepsize to prevent overshooting K significantly in a single step
+            stepsize = min(stepsize, K/10)
+        end
+        
+        # Break if k_scalar has reached or exceeded K
+        if k_scalar >= K
+            break
+        end
     end
-    prob       = OrdinaryDiffEq.ODEProblem(f,f(0.,0.,0),(0,K[end]))
-    integrator = OrdinaryDiffEq.init(prob,OrdinaryDiffEq.Tsit5(),reltol=1e-8,abstol=1e-8)
-    ts         = Vector{Float64}()
-    poleout    = Vector{Vector{ComplexF64}}()
-    push!(poleout,integrator.k[1])
-    push!(ts,0)
-    for i in integrator
-        push!(poleout,integrator.k[end])
-        push!(ts,integrator.t[1])
-    end
-    poleout = copy(hcat(poleout...)')
-    poleout, ts
+    
+    return hcat(poleout_list...)' |> copy, k_scalars_collected
 end
 
 
 function getpoles(G, K::AbstractVector{T}) where {T<:Number}
-    issiso(G) || error("root locus only supports SISO systems")
+    issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
     G isa TransferFunction || (G = tf(G))
     P, Q = numpoly(G)[], denpoly(G)[]
     poleout = Matrix{ComplexF64}(undef, Polynomials.degree(Q), length(K))
@@ -169,7 +232,7 @@ end
 """
     roots, Z, K = rlocus(P::LTISystem, K = 500)
 
-Compute the root locus of the SISO LTISystem `P` with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
+Compute the root locus of the LTISystem `P` with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
 
 `roots` is a complex matrix containing the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 
@@ -236,8 +299,9 @@ end
 
 """
     rlocusplot(P::LTISystem; K)
+    rlocusplot(P::StateSpace, K::Matrix; output = false)
 
-Plot the root locus of the SISO LTISystem `P` as computed by `rlocus`.
+Plot the root locus of the LTISystem `P` as computed by `rlocus`.
 """
 @recipe function rlocusplot(::Type{Rlocusplot}, p::Rlocusplot; K=500, output=false)
     if length(p.args) >= 2
