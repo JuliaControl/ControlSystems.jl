@@ -182,11 +182,11 @@ The return value contains the field `iscontrollable` which is `true` if the rank
 
 Technically, this function checks for controllability from the origin, also called reachability.
 """
-function controllability(A::AbstractMatrix{T}, B; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(T)) where T
+function controllability(A::AbstractMatrix{T}, B; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(float(T))) where T
     n = LinearAlgebra.checksquare(A)
     p = eigvals(A)
     ranks = zeros(Int, n)
-    sigma_min = similar(A, n)
+    sigma_min = similar(A, float(T), n)
     for i = 1:n
         sigmas = svdvals([(p[i]*I - A) B])
         r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
@@ -206,11 +206,11 @@ Check for observability of the pair `(A, C)` or `sys` using the PHB test.
 
 The return value contains the field `isobservable` which is `true` if the rank condition is met at all eigenvalues of `A`, and `false` otherwise. The returned structure also contains the rank and smallest singular value at each individual eigenvalue of `A` in the fields `ranks` and `sigma_min`.
 """
-function observability(A::AbstractMatrix{T}, C; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(T)) where T
+function observability(A::AbstractMatrix{T}, C; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(float(T))) where T
     n = LinearAlgebra.checksquare(A)
     p = eigvals(A)
     ranks = zeros(Int, n)
-    sigma_min = similar(A, n)
+    sigma_min = similar(A, float(T), n)
     for i = 1:n
         sigmas = svdvals([(p[i]*I - A); C])
         r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
