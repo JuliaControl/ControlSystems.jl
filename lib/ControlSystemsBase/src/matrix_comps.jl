@@ -301,6 +301,27 @@ LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p
 
 
 """
+    sysm, T, SF = schur_form(sys)
+
+Bring `sys` to Schur form.
+
+The Schur form is characterized by `A` being Schur with the real values of eigenvalues of `A` on the main diagonal. `T` is the similarity transform applied to the system such that 
+```julia
+sysm ≈ similarity_transform(sys, T)
+```
+`SF` is the Schur-factorization of `A`.
+
+See also [`modal_form`](@ref) and [`hess_form`](@ref)
+"""
+function schur_form(sys)
+    SF = schur(sys.A)
+    A = SF.T
+    B = SF.Z'*sys.B
+    C = sys.C*SF.Z
+    ss(A,B,C,sys.D, sys.timeevol), SF.Z, SF
+end
+
+"""
     Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
@@ -324,8 +345,8 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(sys, :hinf, tol)
-hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(sys, :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(schur_form(sys)[1], :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(schur_form(sys)[1], :hinf, tol)
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
@@ -352,10 +373,11 @@ state space systems in continuous and discrete time', American Control Conferenc
 See also [`hinfnorm`](@ref).
 """
 function linfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if iscontinuous(sys)
-        return _infnorm_two_steps_ct(sys, :linf, tol)
+    sys2, _ = schur_form(sys)
+    if iscontinuous(sys2)
+        return _infnorm_two_steps_ct(sys2, :linf, tol)
     else
-        return _infnorm_two_steps_dt(sys, :linf, tol)
+        return _infnorm_two_steps_dt(sys2, :linf, tol)
     end
 end
 linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol=tol)
@@ -443,7 +465,8 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
             end
         end
     end
-    error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    @error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    return T((1+tol)*lb), T(ω_peak)
 end
 
 function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
