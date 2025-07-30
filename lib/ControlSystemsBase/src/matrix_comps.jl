@@ -310,8 +310,6 @@ The Schur form is characterized by `A` being Schur with the real values of eigen
 sysm ≈ similarity_transform(sys, T)
 ```
 `SF` is the Schur-factorization of `A`.
-
-See also [`modal_form`](@ref) and [`hess_form`](@ref)
 """
 function schur_form(sys)
     SF = schur(sys.A)
