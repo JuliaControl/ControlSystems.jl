@@ -297,9 +297,9 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
     return TransferFunction{TE,T}(fill(sisozpk,1,1), timeevol(L))
 end
 
-function feedback(sys::Union{AbstractStateSpace, LFTSystem})
+function feedback(sys::Union{AbstractStateSpace, LFTSystem}; kwargs...)
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)); kwargs...)
 end
 
 """
