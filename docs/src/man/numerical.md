@@ -53,6 +53,26 @@ norm(bsys.A, Inf), norm(bsys.B, Inf), norm(bsys.C, Inf)
 ```
 If you plot the frequency-response of the two systems using [`bodeplot`](@ref), you'll see that they differ significantly (the balanced one is correct).
 
+## Extended precision and exotic number types
+Most functions in ControlSystems.jl can operate on numbers of any type, for example, computations can be performed with increased precision using the `BigFloat` type. While the `BigFloat` type is part of julia base, some functionality such as matrix factorizations used in `c2d` and `minreal` etc. require the user to load external packages to work with `BigFloat` numbers. The list below indicates how to make a number of functions work with `BigFloat` (and other exotic number types):
+- [`minreal`](@ref), [`observability`](@ref), [`controllability`](@ref): [`using GenericLinearAlgebra`](https://github.com/JuliaLinearAlgebra/GenericLinearAlgebra.jl) for a generic `svd` function.
+- [`poles`](@ref), [`are`](@ref), [`lqr`](@ref), [`kalman`](@ref), `tf(sys::StateSpace)`: [`using GenericSchur`](https://github.com/RalphAS/GenericSchur.jl).
+- [`c2d`](@ref)`(P, Ts, :zoh)`: `using ExponentialUtilities` followed by the following method definition: `LinearAlgebra.exp!(A::Matrix{BigFloat}) = ExponentialUtilities.exponential!(A)`.
+
+If you encounter errors like
+```
+MethodError: no method matching svdvals!(::Matrix{BigFloat}) --> Load GenericLinearAlgebra.jl
+```
+```
+MethodError: no method matching eigvals!(::Matrix{BigFloat}, ...) --> Load GenericSchur.jl (this defines eigvals as well)
+```
+or 
+```
+MethodError: no method matching schur!(::Matrix{BigFloat}) --> Load GenericSchur.jl
+```
+in any other function, you may need to load one of the packages mentioned above.
+
+
 ## Frequency-response calculation
 For small systems (small number of inputs, outputs and states), evaluating the frequency-response of a transfer function is reasonably accurate and very fast.
 
