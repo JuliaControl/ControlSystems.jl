@@ -12,6 +12,11 @@ using Aqua
     )
 end
 
+BIGMAT = big(1.0)*randn(3,3)
+@test_throws MethodError svd(BIGMAT)
+@test_throws MethodError eigvals(BIGMAT)
+@test_throws MethodError schur(BIGMAT)
+
 
 include("framework.jl")
 
