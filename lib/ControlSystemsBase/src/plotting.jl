@@ -371,7 +371,6 @@ _span(vec) = -(reverse(extrema(vec))...)
                     else
                         ws, phasedata
                     end
-
                 end
             end
         end

@@ -282,10 +282,15 @@ function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}
     end
 
     (z, iz, KRInfo) = MatrixPencils.spzeros(A, I, B, C, D; kwargs...)
-    if E
-        return (z, iz, KRInfo)
+    if z isa Vector{<:Real}
+        zc = complex(z)
     else
-        return filter(isfinite, z)
+        zc = z
+    end
+    if E
+        return (zc, iz, KRInfo)
+    else
+        return filter(isfinite, zc)
     end
 end
 
