@@ -252,6 +252,10 @@ function __init__()
             print(io, " for automatic discretization (applicable to systems without delays or nonlinearities only).")
         elseif exc.f ∈ (eigvals!, ) && argtypes[1] <: AbstractMatrix{<:Number}
             printstyled(io, "\nComputing eigenvalues of a matrix with exotic element types may require `using GenericSchur`.", color=:green, bold=true)
+        elseif (exc.f === svdvals! || exc.f === svd!) && length(argtypes) >= 1 && argtypes[1] <: AbstractMatrix{<:Number}
+            printstyled(io, "\nComputing the SVD of a matrix with exotic element types may require `using GenericLinearAlgebra`.", color=:green, bold=true)
+        elseif exc.f === schur! && length(argtypes) >= 1 && argtypes[1] <: AbstractMatrix{<:Number}
+            printstyled(io, "\nComputing Schur decomposition of a matrix with exotic element types may require `using GenericSchur`.", color=:green, bold=true)
         end
         plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
         if exc.f isa Function && nameof(exc.f) === :plot && parentmodule(argtypes[1]) == @__MODULE__() && !haskey(Base.loaded_modules, plots_id)
