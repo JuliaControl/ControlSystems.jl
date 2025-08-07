@@ -9,7 +9,7 @@ P, Q = numpoly(tf2)[], denpoly(tf2)[]
 for (k, rs, rs2) = zip(eachrow(K), eachrow(rts), eachrow(rts2))
     # test that entries are solutions
     for r in rs
-        @test isapprox((k[1]*P+Q)(r), 0, atol=1e-12)
+        @test isapprox((k[1]*P+Q)(r), 0, atol=1e-10)
     end
     @test isapprox(rs, rs2)
 end

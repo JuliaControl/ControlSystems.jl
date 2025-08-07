@@ -290,8 +290,6 @@ _span(vec) = -(reverse(extrema(vec))...)
     # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
 
-    link --> :x
-
     for (si,s) = enumerate(systems)
         if balance
             sbal = balance_statespace(s)[1]
@@ -319,6 +317,7 @@ _span(vec) = -(reverse(extrema(vec))...)
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
+                local inds
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
@@ -335,7 +334,7 @@ _span(vec) = -(reverse(extrema(vec))...)
                     group     --> group_ind
                     if adaptive
                         lmag = _PlotScale == "dB" ? magdata : log.(magdata)
-                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/300)
+                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/500)
                         wsi, magdata[inds]
                     else
                         ws, magdata
@@ -351,6 +350,10 @@ _span(vec) = -(reverse(extrema(vec))...)
                     end
                 end
 
+                if eltype(phasedata) <: AbstractFloat
+                    link --> :x # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
+                end
+
                 @series begin
                     xscale    --> :log10
                     # ylims      := ylimsphase
@@ -361,8 +364,10 @@ _span(vec) = -(reverse(extrema(vec))...)
                     label     --> ""
                     group     --> group_ind
                     phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
-                    if adaptive
-                        downsample(ws, phasedata, _span(phasedata)/300)[1:2]
+                    if adaptive && eltype(phasedata) <: AbstractFloat # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
+                        downsample(ws, phasedata, _span(phasedata)/500)[1:2]
+                    elseif adaptive
+                        ws[inds], phasedata[inds]
                     else
                         ws, phasedata
                     end
@@ -410,7 +415,7 @@ Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
 - `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
-- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
+- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`. See also [`margin_bounds`](@ref), [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref).
 - `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
 - `critical_point`: point on real axis to mark as critical for encirclements
 - If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
@@ -446,13 +451,15 @@ nyquistplot
                     if lab !== nothing
                         label --> lab
                     end
-                    hover --> [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
+                    hover_data = [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
                     if adaptive
                         indsre = downsample(w, redata, 1/500)[3]
                         indsim = downsample(w, imdata, 1/500)[3]
                         inds = sort!(union(indsre, indsim))
+                        hover --> hover_data[inds]
                         redata[inds], imdata[inds]
                     else
+                        hover --> hover_data
                         redata, imdata
                     end
                 end                
@@ -815,7 +822,7 @@ marginplot
                     m = bmag[i, j, :]
                     if adaptive
                         lmag = _PlotScale == "dB" ? m : log.(m)
-                        wsi, _, inds = downsample(w, lmag, _span(lmag)/300)
+                        wsi, _, inds = downsample(w, lmag, _span(lmag)/500)
                         wsi, m[inds]
                     else
                         w, m
@@ -848,7 +855,7 @@ marginplot
                     primary := true
                     seriestype := :bodephase
                     if adaptive
-                        downsample(w, phasedata, _span(phasedata)/300)[1:2]
+                        downsample(w, phasedata, _span(phasedata)/500)[1:2]
                     else
                         w, phasedata
                     end

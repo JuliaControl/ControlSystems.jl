@@ -18,8 +18,8 @@ See [`lqr`](@ref) for more details.
 Uses `MatrixEquations.arec`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.arec`,
 note that they define the input arguments in a different order.
 """
-function are(::ContinuousType, A::AbstractMatrix, B, Q, R; kwargs...)
-    arec(A, B, R, Q; kwargs...)[1]
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R, args...; kwargs...)
+    arec(A, B, R, Q, args...; kwargs...)[1]
 end
 
 """
@@ -34,8 +34,8 @@ See [`lqr`](@ref) for more details.
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.ared`,
 note that they define the input arguments in a different order.
 """
-function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
-    ared(A, B, R, Q; kwargs...)[1]
+function are(::DiscreteType, A::AbstractMatrix, B, Q, R, args...; kwargs...)
+    ared(A, B, R, Q, args...; kwargs...)[1]
 end
 
 are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
@@ -182,11 +182,11 @@ The return value contains the field `iscontrollable` which is `true` if the rank
 
 Technically, this function checks for controllability from the origin, also called reachability.
 """
-function controllability(A::AbstractMatrix{T}, B; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(T)) where T
+function controllability(A::AbstractMatrix{T}, B; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(float(T))) where T
     n = LinearAlgebra.checksquare(A)
     p = eigvals(A)
     ranks = zeros(Int, n)
-    sigma_min = similar(A, n)
+    sigma_min = similar(A, float(T), n)
     for i = 1:n
         sigmas = svdvals([(p[i]*I - A) B])
         r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
@@ -206,11 +206,11 @@ Check for observability of the pair `(A, C)` or `sys` using the PHB test.
 
 The return value contains the field `isobservable` which is `true` if the rank condition is met at all eigenvalues of `A`, and `false` otherwise. The returned structure also contains the rank and smallest singular value at each individual eigenvalue of `A` in the fields `ranks` and `sigma_min`.
 """
-function observability(A::AbstractMatrix{T}, C; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(T)) where T
+function observability(A::AbstractMatrix{T}, C; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(float(T))) where T
     n = LinearAlgebra.checksquare(A)
     p = eigvals(A)
     ranks = zeros(Int, n)
-    sigma_min = similar(A, n)
+    sigma_min = similar(A, float(T), n)
     for i = 1:n
         sigmas = svdvals([(p[i]*I - A); C])
         r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
@@ -301,6 +301,25 @@ LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p
 
 
 """
+    sysm, T, SF = schur_form(sys)
+
+Bring `sys` to Schur form.
+
+The Schur form is characterized by `A` being Schur with the real values of eigenvalues of `A` on the main diagonal. `T` is the similarity transform applied to the system such that 
+```julia
+sysm ≈ similarity_transform(sys, T)
+```
+`SF` is the Schur-factorization of `A`.
+"""
+function schur_form(sys)
+    SF = schur(sys.A)
+    A = SF.T
+    B = SF.Z'*sys.B
+    C = sys.C*SF.Z
+    ss(A,B,C,sys.D, sys.timeevol), SF.Z, SF
+end
+
+"""
     Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
@@ -324,8 +343,8 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(sys, :hinf, tol)
-hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(sys, :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(schur_form(sys)[1], :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(schur_form(sys)[1], :hinf, tol)
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
@@ -352,10 +371,11 @@ state space systems in continuous and discrete time', American Control Conferenc
 See also [`hinfnorm`](@ref).
 """
 function linfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if iscontinuous(sys)
-        return _infnorm_two_steps_ct(sys, :linf, tol)
+    sys2, _ = schur_form(sys)
+    if iscontinuous(sys2)
+        return _infnorm_two_steps_ct(sys2, :linf, tol)
     else
-        return _infnorm_two_steps_dt(sys, :linf, tol)
+        return _infnorm_two_steps_dt(sys2, :linf, tol)
     end
 end
 linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol=tol)
@@ -443,7 +463,8 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
             end
         end
     end
-    error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    @error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    return T((1+tol)*lb), T(ω_peak)
 end
 
 function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
@@ -542,7 +563,7 @@ Compute a similarity transform `T = S*P` resulting in `B = T\\A*T` such that the
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`).
 """
-function balance(A, perm::Bool=true)
+function balance(A::AbstractMatrix{<:LinearAlgebra.BlasFloat}, perm::Bool=true)
     n = LinearAlgebra.checksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
@@ -568,6 +589,11 @@ function cswap!(i::Integer, j::Integer, X::StridedMatrix)
     for k = 1:size(X,1)
         X[i, k], X[j, k] = X[j, k], X[i, k]
     end
+end
+
+function balance(A::AbstractMatrix, perm::Bool=true)
+    Ac = Float64.(A)
+    balance(Ac, perm)
 end
 
 
@@ -710,7 +736,7 @@ D̃ = D
 ```
 
 If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
-See also [`balance_statespace`](@ref).
+See also [`balance_statespace`](@ref), [`find_similarity_transform`](@ref).
 """
 function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
     if unitary
@@ -724,6 +750,44 @@ function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractSta
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
+end
+
+"""
+    find_similarity_transform(sys1, sys2, method = :obsv)
+
+Find T such that `similarity_transform(sys1, T) == sys2`
+
+Ref: Minimal state-space realization in linear system theory: an overview, B. De Schutter
+
+If `method == :obsv`, the observability matrices of `sys1` and `sys2` are used to find `T`, whereas `method == :ctrb` uses the controllability matrices.
+
+```jldoctest
+julia> using ControlSystemsBase
+
+julia> T = randn(3,3);
+
+julia> sys1 = ssrand(1,1,3);
+
+julia> sys2 = similarity_transform(sys1, T);
+
+julia> T2 = find_similarity_transform(sys1, sys2);
+
+julia> T2 ≈ T
+true
+```
+"""
+function find_similarity_transform(sys1, sys2, method = :obsv)
+    if method === :obsv
+        O1 = obsv(sys1)
+        O2 = obsv(sys2)
+        return O1\O2
+    elseif method === :ctrb
+        C1 = ctrb(sys1)
+        C2 = ctrb(sys2)
+        return C1/C2
+    else
+        error("Unknown method $method")
+    end
 end
 
 """

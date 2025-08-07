@@ -17,8 +17,4 @@ using ControlSystems
         include("test_nonlinear_timeresp.jl")
     end
 
-    @testset "rootlocus" begin
-        @info "Testing rootlocus"
-        include("test_rootlocus.jl")
-    end
 end

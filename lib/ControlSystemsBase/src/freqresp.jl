@@ -46,11 +46,27 @@ freqresp(G::Union{UniformScaling, AbstractMatrix, Number}, w::Real) = G
 """
     sys_fr = freqresp(sys, w)
 
-Evaluate the frequency response of a linear system
+Evaluate the frequency response of a linear system.
 
-`w -> C*((iw*im*I - A)^-1)*B + D`
+For continuous systems, computes `G(jω) = C(jωI - A)^{-1}B + D`
+For discrete systems, computes `G(e^{jωT}) = C(e^{jωT}I - A)^{-1}B + D`
 
-of system `sys` over the frequency vector `w`.
+# Arguments
+- `sys::LTISystem`: The system to analyze
+- `w::AbstractVector{<:Real}`: Frequency vector (rad/s)
+
+# Returns
+- `sys_fr`: Complex frequency response array of size `(ny, nu, length(w))`
+
+See also [`freqresp!`](@ref), [`evalfr`](@ref), [`bode`](@ref), [`nyquist`](@ref).
+
+# Examples
+```julia
+using ControlSystemsBase
+sys = ss([-1 0; 0 -2], [1; 1], [1 1], 0)
+w = exp10.(LinRange(-2, 2, 200))
+resp = freqresp(sys, w)
+```
 """
 @autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{W}) where W <: Real
     te = timeevol(sys)
@@ -299,12 +315,29 @@ end
     mag, phase, w = bode(sys[, w]; unwrap=true)
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
-at frequencies `w`. See also [`bodeplot`](@ref)
+at frequencies `w`. The frequency response is evaluated as `G(jω)` for continuous
+systems and `G(e^{jωT})` for discrete systems.
 
-`mag` and `phase` has size `(ny, nu, length(w))`.
-If `unwrap` is true (default), the function `unwrap!` will be applied to the phase angles. This procedure is costly and can be avoided if the unwrapping is not required.
+# Arguments
+- `sys::LTISystem`: The system to analyze
+- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+- `unwrap::Bool`: If true (default), apply phase unwrapping to avoid discontinuities
 
-For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
+# Returns
+- `mag`: Magnitude of frequency response, size `(ny, nu, length(w))`
+- `phase`: Phase in degrees, size `(ny, nu, length(w))`
+- `w`: Frequency vector used
+
+Note: Phase unwrapping is computationally expensive and can be disabled for better performance. For higher performance, see the function [`bodemag!`](@ref) that computes the magnitude only.
+
+See also [`bodeplot`](@ref), [`bodemag!`](@ref), [`freqresp`](@ref).
+
+# Examples
+```julia
+using ControlSystemsBase
+sys = tf(1, [1, 1])
+mag, phase, w = bode(sys)
+```
 """ 
 @autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
     resp = freqresp(sys, w)
@@ -330,8 +363,34 @@ end
 """
     mag = bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
 
-Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspace`](@ref). Note that the returned magnitude array is aliased with `ws.mag`.
-The output array `mag` is ∈ 𝐑(ny, nu, nω).
+Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspace`](@ref).
+
+# Arguments
+- `ws::BodemagWorkspace`: Pre-allocated workspace created with [`BodemagWorkspace`](@ref)
+- `sys::LTISystem`: The system to analyze
+- `w::AbstractVector`: Frequency vector (rad/s)
+
+# Returns
+- `mag`: Magnitude of frequency response, size `(ny, nu, length(w))`. 
+  Note: The returned array is aliased with `ws.mag`.
+
+# Performance
+This function provides significant performance benefits for repeated magnitude calculations:
+- Avoids memory allocation by reusing workspace arrays
+- Optimized for systems with many frequency points
+
+For thread-safe applications, create one workspace per thread.
+
+See also [`BodemagWorkspace`](@ref), [`bode`](@ref), [`freqresp!`](@ref).
+
+# Examples
+```julia
+using ControlSystemsBase
+sys = tf(1, [1, 1])
+w = exp10.(LinRange(-2, 2, 200))
+ws = BodemagWorkspace(sys, w)
+mag = bodemag!(ws, sys, w)
+```
 """
 function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
     freqresp!(ws.R, sys, w)
@@ -346,12 +405,31 @@ function bodemag_nohess!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector
 end
 
 """
-    re, im, w = nyquist(sys[, w])
+    re, img, w = nyquist(sys[, w])
 
 Compute the real and imaginary parts of the frequency response of system `sys`
-at frequencies `w`. See also [`nyquistplot`](@ref)
+at frequencies `w`. The frequency response is evaluated as `G(jω)` for continuous
+systems and `G(e^{jωT})` for discrete systems.
 
-`re` and `im` has size `(ny, nu, length(w))`""" 
+# Arguments
+- `sys::LTISystem`: The system to analyze
+- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+
+# Returns
+- `re`: Real part of frequency response, size `(ny, nu, length(w))`
+- `img`: Imaginary part of frequency response, size `(ny, nu, length(w))`
+- `w`: Frequency vector used
+
+See also [`nyquistplot`](@ref), [`freqresp`](@ref), [`bode`](@ref).
+
+# Examples
+```julia
+using ControlSystems
+sys = tf(1, [1, 1])
+w = logspace(-2, 2, 100)
+re, img, w = nyquist(sys, w)
+```
+""" 
 @autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     return real(resp), imag(resp), w
@@ -361,10 +439,30 @@ end
 """
     sv, w = sigma(sys[, w])
 
-Compute the singular values `sv` of the frequency response of system `sys` at
-frequencies `w`. See also [`sigmaplot`](@ref)
+Compute the singular values of the frequency response of system `sys` at
+frequencies `w`. The frequency response is evaluated as `G(jω)` for continuous
+systems and `G(e^{jωT})` for discrete systems.
 
-`sv` has size `(min(ny, nu), length(w))`""" 
+# Arguments
+- `sys::LTISystem`: The system to analyze
+- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+
+# Returns
+- `sv`: Singular values of frequency response, size `(min(ny, nu), length(w))`
+- `w`: Frequency vector used
+
+The singular values provide information about the system's gain characteristics
+across different frequencies and input/output directions.
+
+See also [`sigmaplot`](@ref), [`freqresp`](@ref), [`bode`](@ref).
+
+# Examples
+```julia
+using ControlSystems
+sys = ss([-1 0; 0 -2], [1 0; 0 1], [1 1; 0 1], 0)
+sv, w = sigma(sys)
+```
+""" 
 @autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     ny, nu = size(sys)

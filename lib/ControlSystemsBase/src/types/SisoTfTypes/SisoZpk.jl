@@ -129,6 +129,16 @@ function pairup_conjugates!(x::AbstractVector)
     end
     return true
 end
+function is_self_conjugate(x::AbstractVector)
+    length(x) == 0 && return true # Empty vector is self-conjugate
+    # Check that all complex numbers have a conjugate in the vector
+    for i = eachindex(x)
+        if findfirst(≈(conj(x[i])), x) === nothing
+            return false
+        end
+    end
+    return true
+end
 
 function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
     T0 = promote_type(T2, TR)

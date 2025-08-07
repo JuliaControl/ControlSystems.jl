@@ -16,6 +16,10 @@ Pages   = [libpath*"/plotting.jl"]
 Order   = [:function]
 Private = false
 ```
+```@docs
+ControlSystemsBase.rlocusplot
+```
+- To plot simulation results such as step and impulse responses, use `plot(::SimResult)`, see also [`lsim`](@ref).
 
 ## Examples
 

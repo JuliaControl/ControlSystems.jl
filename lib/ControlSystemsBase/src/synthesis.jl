@@ -167,8 +167,8 @@ Please note that this function can be numerically sensitive, solving the placeme
 """
 function place(A, B, p, opt=:c; direct = false, kwargs...)
     n = length(p)
-    n != size(A,1) && error("Must specify as many poles as states")
-    if opt === :c
+    n != size(A,1) && error("Must specify as many poles as the state dimension")
+    L = if opt === :c
         direct && error("direct = true only applies to observer design")
         n != size(B,1) && error("A and B must have same number of rows")
         if size(B,2) == 1
@@ -190,6 +190,11 @@ function place(A, B, p, opt=:c; direct = false, kwargs...)
     else
         error("fourth argument must be :c or :o")
     end
+    if isreal(A) && isreal(B) && is_self_conjugate(p)
+        @assert all(abs(imag(l)) .< 1e-6 for l in L) "Expected real coefficient in feedback gain, got complex: $L"
+        return real(L)
+    end
+    return L
 end
 function place(sys::AbstractStateSpace, p, opt=:c; direct = false, kwargs...)
     if opt === :c
@@ -251,20 +256,20 @@ This implementation uses "method 0" for the X-step and the QR factorization for 
 This function will be called automatically when [`place`](@ref) is called with a MIMO system.
 
 # Arguments:
-- `init`: Determines the initialization strategy for the iterations for find the `X` matrix. Possible choices are `:id` (default), `:rand`, `:s`. 
+- `init`: Determines the initialization strategy for the iterations for find the `X` matrix. Possible choices are `:id`, `:rand`, `:s` (default). 
 """
 function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0)
     n, m = size(B)
     T = float(promote_type(eltype(A), eltype(B)))
     CT = Complex{real(T)}
-    λ = sort(λ, by=LinearAlgebra.eigsortby)
-    length(λ) == size(A, 1) == n || error("Must specify as many poles as states")
+    λ = sort(vec(λ), by=LinearAlgebra.eigsortby)
+    length(λ) == size(A, 1) == n || error("Must specify as many poles as the state dimension")
     Λ = diagm(λ)
-    QRB = qr(B)
-    U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
-    Z = QRB.R
     R = svdvals(B)
     m = count(>(100*eps()*R[1]), R) # Rank of B
+    QRB = qr(B, ColumnNorm())
+    U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
+    Z = (QRB.R*QRB.P')[:, 1:m] 
     if m == n # Easy case, B is full rank
         r = count(e->imag(e) == 0, λ)
         ABF = diagm(real(λ))
@@ -277,9 +282,21 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
         return B\(A - ABF) # Solve for F in (A - BF) = Λ
     end
 
+    mB = size(B, 2)
+    if mB > m
+        # several inputs but not full column rank, this case must be handled separately
+        # when B does not have full column rank but that rank is not 1. In that case, find B2 and T from rank-revealing QR (qr(B, ColumnNorm())
+        verbose && @info "Projecting down to rank of B"
+        B2 = QRB.Q[:, 1:m]
+        T = QRB.P * QRB.R[1:m, :]'
+        F = place(A, B2, λ; verbose, init, method)
+        return pinv(T)'*F
+    end
+
     S = Matrix{CT}[]
     for j = 1:n
-        qj = qr((U1'*(A- λ[j]*I))')
+        H = (U1'*(A- λ[j]*I))
+        qj = qr(H')
         # Ŝj = qj.Q[:, 1:n-m] # Needed for method 2
         Sj = qj.Q[:, n-m+1:n]
         push!(S, Sj)

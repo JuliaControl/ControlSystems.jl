@@ -1,6 +1,9 @@
 # Iterative-Learning Control
 In this example, we will design an [Iterative-Learning Control (ILC)](https://en.wikipedia.org/wiki/Iterative_learning_control) iteration scheme. ILC can be thought of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
 
+!!! note
+    See the Julia package [IterativeLearningControl2.jl](https://baggepinnen.github.io/IterativeLearningControl2.jl/dev/) for implementations of several different ILC algorithms.
+
 ## Algorithm
 
 The ILC iteration scheme typically looks something like this (many variants exists), at ILC iteration $k$:

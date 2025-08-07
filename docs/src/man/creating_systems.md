@@ -515,7 +515,7 @@ using DSP, ControlSystemsBase, Plots
 fs = 100
 df = digitalfilter(Bandpass(5, 10), Butterworth(2); fs)
 G = tf(df, 1/fs) # Sample time must be provided in the conversion to get the correct frequency scale in the Bode plot
-bodeplot(G, xscale=:identity, yscale=:identity, hz=true)
+bodeplot(G, xscale=:identity, yscale=:identity, hz=true, adaptive=false)
 vline!([5 10], l=(:black, :dash), label="Band-pass limits", sp=1)
 ```
 

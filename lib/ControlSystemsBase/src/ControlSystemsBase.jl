@@ -44,6 +44,7 @@ export  LTISystem,
         balreal,
         baltrunc,
         similarity_transform,
+        find_similarity_transform,
         time_scale,
         innovation_form,
         observer_predictor,
@@ -80,6 +81,9 @@ export  LTISystem,
         output_comp_sensitivity,
         G_PS,
         G_CS,
+        margin_bounds,
+        Ms_from_phase_margin,
+        Ms_from_gain_margin,
         resolvent,
         input_resolvent,
         # Discrete
@@ -108,6 +112,8 @@ export  LTISystem,
         pade,
         thiran,
         nonlinearity,
+        rlocus,
+        rlocusplot,
         # demo systems
         ssrand,
         DemoSystems, # A module containing some example systems
@@ -132,6 +138,7 @@ import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
+import Hungarian
 
 export lyap # Make sure LinearAlgebra.lyap is available
 export plyap
@@ -206,6 +213,8 @@ include("nonlinear_components.jl")
 include("types/staticsystems.jl")
 
 include("plotting.jl")
+
+include("root_locus.jl")
 
 @deprecate pole poles
 @deprecate tzero tzeros

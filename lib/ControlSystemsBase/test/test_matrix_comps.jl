@@ -15,6 +15,11 @@ sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test similarity_transform(sysb, T) ≈ sys
 Ab,Bb,Cb,T = ControlSystemsBase.balance_statespace(A,B,C)
 
+sysbb,Tb = ControlSystemsBase.balance_statespace(big(1.0)*sys)
+@test Tb ≈ T
+@test sysbb ≈ sysb
+
+
 @test Ab*T ≈ T*A
 @test Bb ≈ T*B
 @test Cb*T ≈ C
@@ -38,6 +43,19 @@ sysdb, _ = balance_statespace(sysd)
 
 
 @test ControlSystemsBase.balance_transform(A,B,C) ≈ ControlSystemsBase.balance_transform(sys)
+
+@testset "similarity transform" begin
+    @info "Testing similarity transform"
+    T = randn(3,3)
+    sys1 = ssrand(1,1,3)
+    sys2 = ControlSystemsBase.similarity_transform(sys1, T)
+    T2 = find_similarity_transform(sys1, sys2)
+    @test T2 ≈ T atol=1e-8
+
+    T3 = find_similarity_transform(sys1, sys2, :ctrb)
+    @test T3 ≈ T atol=1e-8
+
+end
 
 W = [1 0; 0 1]
 @test covar(sys, W) ≈ [0.002560975609756 0.002439024390244; 0.002439024390244 0.002560975609756]
@@ -344,5 +362,42 @@ res = observability(sys)
 @test all(==(3), res.ranks)
 @test all(<(sqrt(eps())), res.sigma_min)
 
-end 
+
+## https://github.com/JuliaControl/ControlSystems.jl/issues/1014
+P_test = zpk(
+[-101.47795511977208 + 0.0im
+    -48.91219110762173 + 0.0im
+    -7.282563985219324 + 7.114985406231401im
+    -7.282563985219324 - 7.114985406231401im
+    -7.96322290641594 + 0.0im
+    -1.5268748507837735 + 1.2594070637611725im
+    -1.5268748507837735 - 1.2594070637611725im
+    -0.7114937019357614 + 0.0im
+],
+[ -101.32273797977184 + 0.0im
+ -49.510558929948274 + 0.0im
+               -20.0 + 0.0im
+  -11.82446898287247 + 0.0im
+ -10.604444850836952 + 0.0im
+  -5.297845964509693 + 6.146324852257861im
+  -5.297845964509693 - 6.146324852257861im
+ -1.4795349979133343 + 1.2376578249023653im
+ -1.4795349979133343 - 1.2376578249023653im
+ -0.6235091399063754 + 0.0im
+ -0.2743617810110765 + 0.0im
+],
+704.6392766532747
+);
+
+C_test = zpk(
+    [-0.5 + 0.0im],
+    [0.],
+    0.6
+);
+
+S_test = sensitivity(P_test, C_test);
+n,w = hinfnorm(S_test)
+@test n ≈ 1.3056118418593037 atol=1e-3
+@test w ≈ 5.687023116875403 atol=1e-3
+end
 
