@@ -64,4 +64,7 @@ end
 
   setPlotScale("log10")
   funcs[8]() # test marginlpot with log10 scale
+  
+  # Test marginplot with hz=true
+  @test_nowarn marginplot(tf([2], [1,1])^3, 10.0 .^range(-2,stop=2,length=50); hz=true)
 end

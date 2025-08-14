@@ -749,12 +749,13 @@ _to1series(y) = _to1series(1:size(y,3),y)
 
 @userplot Marginplot
 """
-    fig = marginplot(sys::LTISystem [,w::AbstractVector];  balance=true, kwargs...)
-    marginplot(sys::Vector{LTISystem}, w::AbstractVector;  balance=true, kwargs...)
+    fig = marginplot(sys::LTISystem [,w::AbstractVector]; hz=false, balance=true, kwargs...)
+    marginplot(sys::Vector{LTISystem}, w::AbstractVector; hz=false, balance=true, kwargs...)
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
 
 - A frequency vector `w` can be optionally provided.
+- `hz`: If true, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 
@@ -763,6 +764,7 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 marginplot
 @recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
     systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
@@ -805,7 +807,9 @@ marginplot
                     oneLine = 1
                     titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",v) for v in gm],", ")*"] "
                 end
-                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wgm],", ")*"] "
+                # Scale frequencies for display when hz=true
+                wgm_display = hz ? wgm ./ (2π) : wgm
+                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wgm_display],", ")*"] "
 
 
                 subplot := min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
@@ -822,10 +826,10 @@ marginplot
                     m = bmag[i, j, :]
                     if adaptive
                         lmag = _PlotScale == "dB" ? m : log.(m)
-                        wsi, _, inds = downsample(w, lmag, _span(lmag)/500)
+                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/500)
                         wsi, m[inds]
                     else
-                        w, m
+                        ws, m
                     end
                 end
                 
@@ -834,17 +838,19 @@ marginplot
                     primary := false
                     color --> :gray
                     linestyle --> :dash
-                    [w[1],w[end]], [oneLine,oneLine]
+                    [ws[1],ws[end]], [oneLine,oneLine]
                 end
                 @series begin
                     primary := false
-                    [wgm wgm]', [ones(length(mag)) mag]'
+                    [wgm_display wgm_display]', [ones(length(mag)) mag]'
                 end
                 plotphase || continue
 
 
                 titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%3.2g°",v) for v in pm],", ")*"] "
-                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%3.2g",v) for v in wpm],", ")*"] "
+                # Scale phase margin frequencies for display when hz=true
+                wpm_display = hz ? wpm ./ (2π) : wpm
+                titles[j,i,2,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wpm_display],", ")*"] "
                 
                 # Phase margins
                 subplot := s2i(2i,j)
@@ -855,9 +861,9 @@ marginplot
                     primary := true
                     seriestype := :bodephase
                     if adaptive
-                        downsample(w, phasedata, _span(phasedata)/500)[1:2]
+                        downsample(ws, phasedata, _span(phasedata)/500)[1:2]
                     else
-                        w, phasedata
+                        ws, phasedata
                     end
                 end
                 @series begin
@@ -869,7 +875,7 @@ marginplot
                 end
                 @series begin
                     primary := false
-                    [wpm wpm]', [fullPhase fullPhase-pm]'
+                    [wpm_display wpm_display]', [fullPhase fullPhase-pm]'
                 end
             end
         end
