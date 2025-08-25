@@ -216,6 +216,10 @@ include("plotting.jl")
 
 include("root_locus.jl")
 
+# CSMakie module for Makie plotting support
+include("CSMakie.jl")
+export CSMakie
+
 @deprecate pole poles
 @deprecate tzero tzeros
 @deprecate num numvec
