@@ -5,7 +5,7 @@ using GLMakie
 
 @testset "Makie Plot Tests" begin
     # Create test systems
-    P = tf([1], [1, 2, 1])
+    P = tf([1.2], [1, 2, 1])*tf(1, [10, 1])
     P2 = tf([1, 2], [1, 3, 2])
     Pss = ss(P)
     Pmimo = [P P2; P2 P]
@@ -129,7 +129,7 @@ using GLMakie
     end
     
     @testset "StepInfo plot" begin
-        res = step(P, 10)
+        res = step(P, 100)
         si = stepinfo(res)
         @test_nowarn begin
             fig = plot(si)

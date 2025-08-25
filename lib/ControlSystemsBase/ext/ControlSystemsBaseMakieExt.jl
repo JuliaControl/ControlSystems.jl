@@ -111,7 +111,6 @@ function CSMakie.pzmap!(ax::Axis, systems::Union{LTISystem, AbstractVector{<:LTI
     return ax
 end
 
-# ====== Bodeplot ======
 function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                           w=nothing; plotphase=true, unwrap=true, hz=false, 
                           balance=true, adjust_phase_start=true, adaptive=true, kwargs...)
@@ -219,7 +218,6 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
     return fig
 end
 
-# ====== Nyquistplot ======
 function CSMakie.nyquistplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                              w=nothing; Ms_circles=Float64[], Mt_circles=Float64[], 
                              unit_circle=false, hz=false, critical_point=-1, 
@@ -309,7 +307,6 @@ function CSMakie.nyquistplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
     return fig
 end
 
-# ====== Sigmaplot ======
 function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                            w=nothing; hz=false, balance=true, extrema=false, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
@@ -345,7 +342,6 @@ function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}
     return fig
 end
 
-# ====== Marginplot ======
 function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                             w=nothing; plotphase=true, hz=false, balance=true, 
                             adjust_phase_start=true, adaptive=true, kwargs...)
@@ -493,7 +489,6 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
     return fig
 end
 
-# ====== Root Locus Plot ======
 function CSMakie.rlocusplot(P::LTISystem, K=500; output=false, kwargs...)
     # Compute root locus
     result = rlocus(P, K; output=output)
@@ -543,7 +538,6 @@ function CSMakie.rlocusplot(P::LTISystem, K=500; output=false, kwargs...)
     return fig
 end
 
-# ====== RGA Plot ======
 function CSMakie.rgaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                          w=nothing; hz=false, balance=true, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
@@ -616,7 +610,8 @@ function CSMakie.nicholsplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
         ℑdata = dropdims(ℑresp, dims=(1,2))
         mag = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
         angles = 180/π*angle.(ℜdata .+ im*ℑdata)
-        
+        # unwrap angles
+        ControlSystemsBase.unwrap!(angles)
         lines!(ax, angles, mag, linewidth=2, label="System $sysi")
     end
     
@@ -626,10 +621,6 @@ function CSMakie.nicholsplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
     return fig
 end
 
-# ====== Direct plot methods for types ======
-# These allow direct plotting of types with plot()
-
-# Direct plot method for SimResult
 function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
     ny, nu, nx = r.ny, r.nu, r.nx
     t = r.t
@@ -684,7 +675,7 @@ function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
         end
     end
     
-    # Plot states
+    # Plot state
     if plotx
         for i in 1:nx
             ax = Axis(gl[plotind, 1],
@@ -719,7 +710,6 @@ function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
     return fig
 end
 
-# Direct plot method for StepInfo
 function Makie.plot(si::StepInfo)
     fig = Figure()
     ax = Axis(fig[1,1],
