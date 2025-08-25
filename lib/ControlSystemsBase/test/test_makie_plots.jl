@@ -1,7 +1,8 @@
 using ControlSystemsBase
 using Test
 using LinearAlgebra
-using CairoMakie
+import CairoMakie
+import CairoMakie.Makie
 
 @testset "Makie Plot Tests" begin
     # Create test systems
@@ -126,13 +127,13 @@ using CairoMakie
         t = 0:0.01:5
         res = step(P, t)
         @test_nowarn begin
-            fig = plot(res)
-            plot!(fig[1,2], res)
+            fig = Makie.plot(res)
+            Makie.plot!(fig[1,2], res)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
-            fig = plot(res; plotu=true, plotx=true)
-            plot!(fig[1,2], res, plotu=true, plotx=true)
+            fig = Makie.plot(res; plotu=true, plotx=true)
+            Makie.plot!(fig[1,2], res, plotu=true, plotx=true)
             @test fig isa Makie.Figure
         end
     end
@@ -141,8 +142,8 @@ using CairoMakie
         res = step(P, 100)
         si = stepinfo(res)
         @test_nowarn begin
-            fig = plot(si)
-            plot!(fig[1,2], si)
+            fig = Makie.plot(si)
+            Makie.plot!(fig[1,2], si)
             @test fig isa Makie.Figure
         end
     end

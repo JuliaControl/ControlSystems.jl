@@ -151,9 +151,9 @@ function CSMakie.bodeplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISy
                 
                 if adaptive && eltype(magdata) <: AbstractFloat
                     wsi, magi, _ = downsample(ws, magdata, _span(magdata)/500)
-                    lines!(ax_mag, wsi, magi, label=lab)
+                    lines!(ax_mag, wsi, magi; label=lab, kwargs...)
                 else
-                    lines!(ax_mag, ws, magdata, label=lab)
+                    lines!(ax_mag, ws, magdata; label=lab, kwargs...)
                 end
                 
                 # Plot phase
@@ -173,9 +173,9 @@ function CSMakie.bodeplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISy
                     if adaptive && eltype(phasedata) <: AbstractFloat
                         wsp, phasep, _ = downsample(ws, phasedata, 
                                                    _span(phasedata)/500)
-                        lines!(ax_phase, wsp, phasep)
+                        lines!(ax_phase, wsp, phasep; kwargs...)
                     else
-                        lines!(ax_phase, ws, phasedata)
+                        lines!(ax_phase, ws, phasedata; kwargs...)
                     end
                 end
             end
