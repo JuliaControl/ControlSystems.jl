@@ -626,33 +626,11 @@ function CSMakie.nicholsplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
     return fig
 end
 
-# ====== Recipes for Types (SimResult, StepInfo) ======
-# These use Makie's standard recipe system for plotting types
+# ====== Direct plot methods for types ======
+# These allow direct plotting of types with plot()
 
-@recipe(SimResultPlot, r) do scene
-    Attributes(
-        plotu = false,
-        plotx = false,
-        ploty = true,
-    )
-end
-
-function Makie.plot!(srp::SimResultPlot)
-    r = srp.r[]
-    
-    # Handle vector of SimResults
-    if r isa AbstractVector
-        for res in r
-            plot!(current_axis(), res; 
-                  plotu=srp.plotu[], plotx=srp.plotx[], ploty=srp.ploty[])
-        end
-        return srp
-    end
-    
-    plotu = srp.plotu[]
-    plotx = srp.plotx[]
-    ploty = srp.ploty[]
-    
+# Direct plot method for SimResult
+function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
     ny, nu, nx = r.ny, r.nu, r.nx
     t = r.t
     n_series = size(r.y, 3)
@@ -662,10 +640,8 @@ function Makie.plot!(srp::SimResultPlot)
     plotu && (nplots += nu)
     plotx && (nplots += nx)
     
-    # Get current figure or create new one
-    fig = current_figure()
-    
-    # Create grid layout for subplots
+    # Create figure with grid layout
+    fig = Figure()
     gl = GridLayout(fig[1, 1])
     
     plotind = 1
@@ -740,17 +716,16 @@ function Makie.plot!(srp::SimResultPlot)
         linkxaxes!(axes...)
     end
     
-    srp
+    return fig
 end
 
-@recipe(StepInfoPlot, si) do scene
-    Attributes()
-end
-
-function Makie.plot!(sip::StepInfoPlot)
-    si = sip.si[]
-    
-    ax = current_axis()
+# Direct plot method for StepInfo
+function Makie.plot(si::StepInfo)
+    fig = Figure()
+    ax = Axis(fig[1,1],
+             xlabel = "Time (s)",
+             ylabel = "Output",
+             title = "Step Response Analysis")
     
     # Plot the step response
     t = si.res.t
@@ -793,13 +768,9 @@ function Makie.plot!(sip::StepInfoPlot)
         lines!(ax, [t_under, t_under], [si.y0, si.lowerpeak], color=:orange, alpha=0.5)
     end
     
-    ax.xlabel = "Time (s)"
-    ax.ylabel = "Output"
-    ax.title = "Step Response Analysis"
-    
     axislegend(ax, position=:rt)
     
-    sip
+    return fig
 end
 
 end # module
