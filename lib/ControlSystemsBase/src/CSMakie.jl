@@ -18,135 +18,37 @@ module CSMakie
 
 using ..ControlSystemsBase: LTISystem
 
-# Error message for when Makie is not loaded
-const MAKIE_NOT_LOADED_ERROR = """
-Makie.jl must be loaded to use CSMakie plotting functions.
-Please run one of:
-  using GLMakie      # for interactive plots
-  using CairoMakie   # for static plots
-  using WGLMakie     # for web-based plots
-"""
+function bodeplot end
+function bodeplot! end
 
-# Define stub functions that will be overloaded by the extension
+function nyquistplot end
+function nyquistplot! end
 
-"""
-    bodeplot(sys::LTISystem, w=nothing; kwargs...)
-    bodeplot(sys::Vector{<:LTISystem}, w=nothing; kwargs...)
 
-Create a Bode plot using Makie.jl. Requires Makie to be loaded.
+function sigmaplot end
+function sigmaplot! end
 
-See the main `bodeplot` documentation for available options.
-"""
-function bodeplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
+function marginplot end
+function marginplot! end
 
-"""
-    nyquistplot(sys::LTISystem, w=nothing; kwargs...)
-    nyquistplot(sys::Vector{<:LTISystem}, w=nothing; kwargs...)
+function pzmap end
+function pzmap! end
 
-Create a Nyquist plot using Makie.jl. Requires Makie to be loaded.
+function nicholsplot end
+function nicholsplot! end
 
-See the main `nyquistplot` documentation for available options.
-"""
-function nyquistplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
+function rgaplot end
+function rgaplot! end
 
-"""
-    sigmaplot(sys::LTISystem, w=nothing; kwargs...)
-    sigmaplot(sys::Vector{<:LTISystem}, w=nothing; kwargs...)
+function rlocusplot end
+function rlocusplot! end
 
-Create a singular value plot using Makie.jl. Requires Makie to be loaded.
+function leadlinkcurve end
+function leadlinkcurve! end
 
-See the main `sigmaplot` documentation for available options.
-"""
-function sigmaplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    marginplot(sys::LTISystem, w=nothing; kwargs...)
-    marginplot(sys::Vector{<:LTISystem}, w=nothing; kwargs...)
-
-Create a margin plot using Makie.jl. Requires Makie to be loaded.
-
-See the main `marginplot` documentation for available options.
-"""
-function marginplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    pzmap(sys::LTISystem; kwargs...)
-    pzmap(sys::Vector{<:LTISystem}; kwargs...)
-
-Create a pole-zero map using Makie.jl. Requires Makie to be loaded.
-
-See the main `pzmap` documentation for available options.
-"""
-function pzmap(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    pzmap!(ax, sys::LTISystem; kwargs...)
-    pzmap!(ax, sys::Vector{<:LTISystem}; kwargs...)
-
-Add a pole-zero map to an existing Makie axis. Requires Makie to be loaded.
-"""
-function pzmap!(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    nicholsplot(sys::LTISystem, w=nothing; kwargs...)
-    nicholsplot(sys::Vector{<:LTISystem}, w=nothing; kwargs...)
-
-Create a Nichols chart using Makie.jl. Requires Makie to be loaded.
-
-See the main `nicholsplot` documentation for available options.
-"""
-function nicholsplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    rgaplot(sys::LTISystem, w=nothing; kwargs...)
-    rgaplot(sys::Vector{<:LTISystem}, w=nothing; kwargs...)
-
-Create a relative gain array plot using Makie.jl. Requires Makie to be loaded.
-
-See the main `rgaplot` documentation for available options.
-"""
-function rgaplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    rlocusplot(P::LTISystem, K=500; kwargs...)
-
-Create a root locus plot using Makie.jl. Requires Makie to be loaded.
-
-See the main `rlocusplot` documentation for available options.
-"""
-function rlocusplot(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-"""
-    leadlinkcurve(start=1; kwargs...)
-
-Plot the phase advance curve for a lead link using Makie.jl. Requires Makie to be loaded.
-
-See the main `leadlinkcurve` documentation for available options.
-"""
-function leadlinkcurve(args...; kwargs...)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
-# Also export the mutating versions that will be defined by the extension
-export bodeplot, nyquistplot, sigmaplot, marginplot, pzmap, pzmap!,
-       nicholsplot, rgaplot, rlocusplot, leadlinkcurve
+# Export all functions and their mutating versions
+export bodeplot, bodeplot!, nyquistplot, nyquistplot!, sigmaplot, sigmaplot!, 
+       marginplot, marginplot!, pzmap, pzmap!, nicholsplot, nicholsplot!, 
+       rgaplot, rgaplot!, rlocusplot, rlocusplot!, leadlinkcurve, leadlinkcurve!
 
 end # module CSMakie

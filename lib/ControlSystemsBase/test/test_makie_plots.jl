@@ -17,6 +17,7 @@ using GLMakie
     @testset "pzmap" begin
         @test_nowarn begin
             fig = CSMakie.pzmap(P)
+            CSMakie.pzmap!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -32,6 +33,7 @@ using GLMakie
     @testset "bodeplot" begin
         @test_nowarn begin
             fig = CSMakie.bodeplot(P)
+            CSMakie.bodeplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -58,6 +60,7 @@ using GLMakie
     @testset "nyquistplot" begin
         @test_nowarn begin
             fig = CSMakie.nyquistplot(P)
+            CSMakie.nyquistplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -73,6 +76,7 @@ using GLMakie
     @testset "sigmaplot" begin
         @test_nowarn begin
             fig = CSMakie.sigmaplot(P)
+            CSMakie.sigmaplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -84,6 +88,7 @@ using GLMakie
     @testset "marginplot" begin
         @test_nowarn begin
             fig = CSMakie.marginplot(P)
+            CSMakie.marginplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -95,6 +100,7 @@ using GLMakie
     @testset "rlocusplot" begin
         @test_nowarn begin
             fig = CSMakie.rlocusplot(P)
+            CSMakie.rlocusplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -106,6 +112,7 @@ using GLMakie
     @testset "rgaplot" begin
         @test_nowarn begin
             fig = CSMakie.rgaplot(Pmimo)
+            CSMakie.rgaplot!(fig[2,1:2], Pmimo)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -120,10 +127,12 @@ using GLMakie
         res = step(P, t)
         @test_nowarn begin
             fig = plot(res)
+            plot!(fig[1,2], res)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
             fig = plot(res; plotu=true, plotx=true)
+            plot!(fig[1,2], res, plotu=true, plotx=true)
             @test fig isa Makie.Figure
         end
     end
@@ -133,6 +142,7 @@ using GLMakie
         si = stepinfo(res)
         @test_nowarn begin
             fig = plot(si)
+            plot!(fig[1,2], si)
             @test fig isa Makie.Figure
         end
     end
@@ -140,6 +150,7 @@ using GLMakie
     @testset "leadlinkcurve" begin
         @test_nowarn begin
             fig = CSMakie.leadlinkcurve()
+            CSMakie.leadlinkcurve!(fig[1,2])
             @test fig isa Makie.Figure
         end
         @test_nowarn begin

@@ -23,11 +23,14 @@ function get_yscale_transform()
 end
 
 # ====== PZMap (Pole-Zero Map) ======
-function CSMakie.pzmap(systems::Union{LTISystem, AbstractVector{<:LTISystem}}; 
+function CSMakie.pzmap(args...; kwargs...)
+    fig = Figure()
+    CSMakie.pzmap!(fig, args...; kwargs...)
+end
+function CSMakie.pzmap!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}; 
                        hz=false, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
     
-    fig = Figure()
     ax = Axis(fig[1,1], aspect = DataAspect(),
              title = "Pole-zero map",
              xlabel = hz ? "Real [Hz]" : "Real",
@@ -70,48 +73,13 @@ function CSMakie.pzmap(systems::Union{LTISystem, AbstractVector{<:LTISystem}};
     return fig
 end
 
-function CSMakie.pzmap!(ax::Axis, systems::Union{LTISystem, AbstractVector{<:LTISystem}}; 
-                        hz=false, kwargs...)
-    systems_vec = systems isa AbstractVector ? systems : [systems]
-    
-    # Add grid at zero
-    vlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
-    hlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
-    
-    scale_factor = hz ? 1/(2π) : 1
-    
-    for (i, system) in enumerate(systems_vec)
-        p = poles(system) .* scale_factor
-        z = tzeros(system) .* scale_factor
-        
-        # Plot zeros as circles
-        if !isempty(z)
-            scatter!(ax, real(z), imag(z), 
-                    marker=:circle, markersize=15, 
-                    color=(:transparent, 0.5), strokewidth=2, 
-                    strokecolor=Cycled(i))
-        end
-        
-        # Plot poles as x's
-        if !isempty(p)
-            scatter!(ax, real(p), imag(p), 
-                    marker=:xcross, markersize=15,
-                    color=Cycled(i))
-        end
-        
-        # Add unit circle for discrete systems
-        if isdiscrete(system) && i == 1  # Only draw once
-            θ = range(0, 2π, length=100)
-            circle_scale = scale_factor
-            lines!(ax, circle_scale .* cos.(θ), circle_scale .* sin.(θ), 
-                  color=:gray, linestyle=:dash, alpha=0.5)
-        end
-    end
-    
-    return ax
-end
 
-function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
+
+function CSMakie.bodeplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.bodeplot!(fig, args...; kwargs...)
+end
+function CSMakie.bodeplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                           w=nothing; plotphase=true, unwrap=true, hz=false, 
                           balance=true, adjust_phase_start=true, adaptive=true, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
@@ -121,7 +89,6 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     
-    fig = Figure()
     gl = GridLayout(fig[1, 1])
     
     # Create axes grid
@@ -218,7 +185,11 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
     return fig
 end
 
-function CSMakie.nyquistplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
+function CSMakie.nyquistplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.nyquistplot!(fig, args...; kwargs...)
+end
+function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                              w=nothing; Ms_circles=Float64[], Mt_circles=Float64[], 
                              unit_circle=false, hz=false, critical_point=-1, 
                              balance=true, adaptive=true, kwargs...)
@@ -227,8 +198,7 @@ function CSMakie.nyquistplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
                                 _processfreqplot(Val{:nyquist}(), systems_vec, w; adaptive)
     
     ny, nu = size(systems[1])
-    
-    fig = Figure()
+
     gl = GridLayout(fig[1, 1])
     
     # Create axes grid
@@ -307,7 +277,11 @@ function CSMakie.nyquistplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
     return fig
 end
 
-function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
+function CSMakie.sigmaplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.sigmaplot!(fig, args...; kwargs...)
+end
+function CSMakie.sigmaplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                            w=nothing; hz=false, balance=true, extrema=false, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
     systems, w = isnothing(w) ? _processfreqplot(Val{:sigma}(), systems_vec) : 
@@ -315,7 +289,6 @@ function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}
     
     ws = (hz ? 1/(2π) : 1) .* w
     
-    fig = Figure()
     ax = Axis(fig[1,1],
              xscale = log10,
              yscale = get_yscale_transform(),
@@ -342,7 +315,11 @@ function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}
     return fig
 end
 
-function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
+function CSMakie.marginplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.marginplot!(fig, args...; kwargs...)
+end
+function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                             w=nothing; plotphase=true, hz=false, balance=true, 
                             adjust_phase_start=true, adaptive=true, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
@@ -352,7 +329,6 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     
-    fig = Figure()
     gl = GridLayout(fig[1, 1])
     
     # Create axes grid
@@ -489,14 +465,17 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
     return fig
 end
 
-function CSMakie.rlocusplot(P::LTISystem, K=500; output=false, kwargs...)
+function CSMakie.rlocusplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.rlocusplot!(fig, args...; kwargs...)
+end
+function CSMakie.rlocusplot!(fig, P::LTISystem, K=500; output=false, kwargs...)
     # Compute root locus
     result = rlocus(P, K; output=output)
     roots, Z, K_vals = result.roots, result.Z, result.K
     
     array_K = eltype(K_vals) <: AbstractArray
     
-    fig = Figure()
     ax = Axis(fig[1,1],
              aspect = DataAspect(),
              title = "Root Locus",
@@ -538,7 +517,11 @@ function CSMakie.rlocusplot(P::LTISystem, K=500; output=false, kwargs...)
     return fig
 end
 
-function CSMakie.rgaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
+function CSMakie.rgaplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.rgaplot!(fig, args...; kwargs...)
+end
+function CSMakie.rgaplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                          w=nothing; hz=false, balance=true, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
     systems, w = isnothing(w) ? _processfreqplot(Val{:sigma}(), systems_vec) : 
@@ -546,7 +529,6 @@ function CSMakie.rgaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}},
     
     ws = (hz ? 1/(2π) : 1) .* w
     
-    fig = Figure()
     ax = Axis(fig[1,1],
              xscale = log10,
              title = "RGA Plot",
@@ -571,11 +553,14 @@ function CSMakie.rgaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}},
 end
 
 # ====== LeadLinkCurve ======
-function CSMakie.leadlinkcurve(start=1; kwargs...)
+function CSMakie.leadlinkcurve(args...; kwargs...)
+    fig = Figure()
+    CSMakie.leadlinkcurve!(fig, args...; kwargs...)
+end
+function CSMakie.leadlinkcurve!(fig, start=1; kwargs...)
     N = range(start, stop=10, length=50)
     dph = map(Ni -> 180/π*atan(sqrt(Ni)) - atan(1/sqrt(Ni)), N)
     
-    fig = Figure()
     ax = Axis(fig[1,1],
              xlabel = "N",
              ylabel = "Phase advance [deg]",
@@ -589,7 +574,11 @@ end
 # ====== Nicholsplot ======
 # Note: This is a simplified version. The full implementation would require
 # porting all the complex grid calculations from the Plots version
-function CSMakie.nicholsplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
+function CSMakie.nicholsplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.nicholsplot!(fig, args...; kwargs...)
+end
+function CSMakie.nicholsplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
                              w=nothing; text=true, 
                              Gains=[12, 6, 3, 1, 0.5, -0.5, -1, -3, -6, -10, -20, -40, -60],
                              pInc=30, kwargs...)
@@ -597,7 +586,6 @@ function CSMakie.nicholsplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
     systems, w = isnothing(w) ? _processfreqplot(Val{:nyquist}(), systems_vec) : 
                                 _processfreqplot(Val{:nyquist}(), systems_vec, w)
     
-    fig = Figure()
     ax = Axis(fig[1,1],
              title = "Nichols Chart",
              xlabel = "Phase [deg]",
@@ -621,7 +609,9 @@ function CSMakie.nicholsplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
     return fig
 end
 
-function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
+Makie.plot(r::SimResult; kwargs...) = Makie.plot!(Figure(), r; kwargs...)
+
+function Makie.plot!(fig, r::SimResult; plotu=false, plotx=false, ploty=true)
     ny, nu, nx = r.ny, r.nu, r.nx
     t = r.t
     n_series = size(r.y, 3)
@@ -632,7 +622,6 @@ function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
     plotx && (nplots += nx)
     
     # Create figure with grid layout
-    fig = Figure()
     gl = GridLayout(fig[1, 1])
     
     plotind = 1
@@ -710,8 +699,9 @@ function Makie.plot(r::SimResult; plotu=false, plotx=false, ploty=true)
     return fig
 end
 
-function Makie.plot(si::StepInfo)
-    fig = Figure()
+Makie.plot(si::StepInfo; kwargs...) = Makie.plot!(Figure(), si; kwargs...)
+
+function Makie.plot!(fig, si::StepInfo)
     ax = Axis(fig[1,1],
              xlabel = "Time (s)",
              ylabel = "Output",
