@@ -50,9 +50,15 @@ function rlocusplot! end
 function leadlinkcurve end
 function leadlinkcurve! end
 
+function gangoffourplot end
+function gangoffourplot! end
+
+function interactive_pid_tuning end
+
 # Export all functions and their mutating versions
 export bodeplot, bodeplot!, nyquistplot, nyquistplot!, sigmaplot, sigmaplot!, 
        marginplot, marginplot!, pzmap, pzmap!, nicholsplot, nicholsplot!, 
-       rgaplot, rgaplot!, rlocusplot, rlocusplot!, leadlinkcurve, leadlinkcurve!
+       rgaplot, rgaplot!, rlocusplot, rlocusplot!, leadlinkcurve, leadlinkcurve!,
+       gangoffourplot, gangoffourplot!, interactive_pid_tuning
 
 end # module CSMakie

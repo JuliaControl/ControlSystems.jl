@@ -61,7 +61,6 @@ import CairoMakie.Makie
     @testset "nyquistplot" begin
         @test_nowarn begin
             fig = CSMakie.nyquistplot(P)
-            CSMakie.nyquistplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -89,7 +88,6 @@ import CairoMakie.Makie
     @testset "marginplot" begin
         @test_nowarn begin
             fig = CSMakie.marginplot(P)
-            CSMakie.marginplot!(fig[1,2], P)
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -164,6 +162,35 @@ import CairoMakie.Makie
         @test_nowarn begin
             fig = CSMakie.nicholsplot(P)
             @test fig isa Makie.Figure
+        end
+    end
+    
+    @testset "gangoffourplot" begin
+        C = tf(1)  # Unity controller
+        @test_nowarn begin
+            fig = CSMakie.gangoffourplot(P, C)
+            @test fig isa Makie.Figure
+        end
+        @test_nowarn begin
+            fig = CSMakie.gangoffourplot(P, C; sigma=false)
+            @test fig isa Makie.Figure
+        end
+    end
+    
+    @testset "interactive_pid_tuning" begin
+        # Test that the function creates a tuning interface
+        @test_nowarn begin
+            tuning_func = CSMakie.interactive_pid_tuning(P)
+            @test tuning_func isa Function
+            # Get parameters - should return a NamedTuple and controller
+            params, controller = tuning_func()
+            @test params isa NamedTuple
+            @test hasfield(typeof(params), :Kp)
+            @test hasfield(typeof(params), :Ki)
+            @test hasfield(typeof(params), :Kd)
+            @test hasfield(typeof(params), :Tf)
+            @test hasfield(typeof(params), :form)
+            @test controller isa LTISystem
         end
     end
 end

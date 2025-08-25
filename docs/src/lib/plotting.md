@@ -160,5 +160,38 @@ The `CSMakie` module provides Makie implementations of the following plotting fu
 - `CSMakie.rgaplot` - Relative gain array plots
 - `CSMakie.rlocusplot` - Root locus plots
 - `CSMakie.leadlinkcurve` - Lead-link design curves
+- `CSMakie.gangoffourplot` - Gang-of-four sensitivity functions (S, PS, CS, T)
+- `CSMakie.interactive_pid_tuning` - Interactive PID controller tuning interface with real-time visualization
 
 Additionally, `SimResult` and `StepInfo` types can be plotted directly using Makie's `plot` function.
+
+### Interactive PID Tuning
+
+The `interactive_pid_tuning` function provides an interactive interface for tuning PID controllers:
+
+```julia
+using ControlSystemsBase, GLMakie  # or CairoMakie
+
+# Define your plant
+P = tf([1], [1, 2, 1])
+
+# Launch interactive tuning interface
+fig, get_tuned_controller = CSMakie.interactive_pid_tuning(P)
+
+# Interact with the sliders to tune the controller
+# When done, retrieve the tuned parameters and controller
+params, C = get_tuned_controller()
+
+# params is a NamedTuple with fields: Kp, Ki, Kd, Tf, form
+# C is the tuned PID controller as an LTISystem
+```
+
+The interface features:
+- Sliders for Kp, Ki, Kd, and filter time constant Tf
+- Adjustable slider ranges via text boxes
+- Dropdown menu to select controller form (standard, parallel, series)
+- Real-time plots showing:
+  - Gain and phase margins
+  - Nyquist diagram with Ms circles
+  - Step responses
+  - Gang-of-four sensitivity functions

@@ -15,7 +15,12 @@ using ControlSystemsBase: downsample, _processfreqplot, _default_freq_vector,
                           input_names, output_names, state_names, system_name,
                           iscontinuous, isdiscrete, issiso, isrational,
                           integrator_excess, balance_statespace, LTISystem,
-                          _PlotScale, _PlotScaleFunc, _PlotScaleStr, _span  # Use existing plot scale settings
+                          _PlotScale, _PlotScaleFunc, _PlotScaleStr, _span,  # Use existing plot scale settings
+                          gangoffour, extended_gangoffour, pid, step, lsim,
+                          sensitivity, comp_sensitivity, G_PS, G_CS,
+                          output_sensitivity, input_sensitivity,
+                          output_comp_sensitivity, input_comp_sensitivity,
+                          convert_pidparams_from_parallel, convert_pidparams_to_parallel
 
 # Helper function to get y-scale transform for Makie
 function get_yscale_transform()
@@ -753,4 +758,274 @@ function Makie.plot!(fig, si::StepInfo)
     return fig
 end
 
+# ====== gangoffourplot ======
+function CSMakie.gangoffourplot(args...; kwargs...)
+    fig = Figure()
+    CSMakie.gangoffourplot!(fig, args...; kwargs...)
+end
+
+function CSMakie.gangoffourplot!(fig, P::LTISystem, C::LTISystem, w=nothing;
+                                 minimal=true, sigma=true, plotphase=false, 
+                                 Ms_lines=[1.0, 1.25, 1.5], Mt_lines=[], kwargs...)
+    S, PS, CS, T = gangoffour(P, C; minimal)
+    
+    # Process frequency vector
+    w = isnothing(w) ? exp10.(range(-3, stop=3, length=500)) : w
+    ws = w
+    
+    gl = fig isa GridLayout ? fig : GridLayout(fig[1, 1])
+    
+    # Create 2x2 grid of plots
+    if issiso(S) || !sigma
+        # Use bodeplot for SISO or when sigma=false
+        ax1 = Axis(gl[1, 1], xscale=log10, yscale=get_yscale_transform(), 
+                  title="Sensitivity S", ylabel="Magnitude")
+        ax2 = Axis(gl[1, 2], xscale=log10, yscale=get_yscale_transform(), 
+                  title="PS", ylabel="")
+        ax3 = Axis(gl[2, 1], xscale=log10, yscale=get_yscale_transform(), 
+                  title="CS", xlabel="Frequency [rad/s]", ylabel="Magnitude")
+        ax4 = Axis(gl[2, 2], xscale=log10, yscale=get_yscale_transform(), 
+                  title="Complementary Sensitivity T", xlabel="Frequency [rad/s]", ylabel="")
+        
+        # Compute and plot magnitude responses
+        for (ax, sys, title) in [(ax1, S, "S"), (ax2, PS, "PS"), 
+                                 (ax3, CS, "CS"), (ax4, T, "T")]
+            mag = abs.(vec(bode(sys, w)[1]))
+            if ControlSystemsBase._PlotScale == "dB"
+                mag = 20*log10.(mag)
+            end
+            lines!(ax, ws, mag, label=title)
+            
+            # Add Ms and Mt lines for S and T
+            if title == "S" && !isempty(Ms_lines)
+                for Ms in Ms_lines
+                    val = ControlSystemsBase._PlotScale == "dB" ? 20*log10(Ms) : Ms
+                    hlines!(ax, val, color=:gray, linestyle=:dash, alpha=0.5)
+                end
+            elseif title == "T" && !isempty(Mt_lines)
+                for Mt in Mt_lines
+                    val = ControlSystemsBase._PlotScale == "dB" ? 20*log10(Mt) : Mt
+                    hlines!(ax, val, color=:gray, linestyle=:dash, alpha=0.5)
+                end
+            end
+        end
+    else
+        # Use sigmaplot for MIMO when sigma=true
+        for (i, (sys, title)) in enumerate([(S, "Sensitivity S"), (PS, "PS"), 
+                                            (CS, "CS"), (T, "Complementary Sensitivity T")])
+            row = (i-1) ÷ 2 + 1
+            col = (i-1) % 2 + 1
+            ax = Axis(gl[row, col], xscale=log10, yscale=get_yscale_transform(),
+                     title=title,
+                     xlabel=row == 2 ? "Frequency [rad/s]" : "",
+                     ylabel=col == 1 ? "Singular Values" : "")
+            
+            sv = sigma(sys, w)[1]'
+            if ControlSystemsBase._PlotScale == "dB"
+                sv = 20*log10.(sv)
+            end
+            
+            # Plot all singular values
+            for j in 1:size(sv, 2)
+                lines!(ax, ws, sv[:, j])
+            end
+            
+            # Add Ms and Mt lines
+            if title == "Sensitivity S" && !isempty(Ms_lines)
+                for Ms in Ms_lines
+                    val = ControlSystemsBase._PlotScale == "dB" ? 20*log10(Ms) : Ms
+                    hlines!(ax, val, color=:gray, linestyle=:dash, alpha=0.5)
+                end
+            elseif title == "Complementary Sensitivity T" && !isempty(Mt_lines)
+                for Mt in Mt_lines
+                    val = ControlSystemsBase._PlotScale == "dB" ? 20*log10(Mt) : Mt
+                    hlines!(ax, val, color=:gray, linestyle=:dash, alpha=0.5)
+                end
+            end
+        end
+    end
+    
+    return fig
+end
+
+function delete_axes!(pos)
+    for child in contents(pos)
+        if child isa Axis
+            delete!(child)
+        elseif child isa GridLayout
+            delete_axes!(child)
+        end
+    end
+end
+
+# ====== Interactive PID Tuning ======
+function CSMakie.interactive_pid_tuning(P::LTISystem; 
+                                       Kp_range=(1e-3, 10.0),
+                                       Ki_range=(0.0, 10.0), 
+                                       Kd_range=(0.0, 10.0),
+                                       Tf_range=(0.0, 1.0),
+                                       form=:standard,
+                                       w=exp10.(range(-3, stop=3, length=500)))
+    issiso(P) || error("Plant must be SISO for interactive PID tuning")
+    
+    # Create figure
+    fig = Figure(size=(1600, 900))
+    
+    # Create main grid layout
+    # main_grid = GridLayout(fig[1, 1])
+    
+    # Left panel for controls
+    control_panel = GridLayout(fig[2, 1], width=400)
+    
+    # Right panel for plots
+    plot_panel = GridLayout(fig[1:3, 2])#, height=900)
+    
+    # Create observables for parameters
+    Kp = Observable(sum(Kp_range)/2)
+    Ki = Observable(sum(Ki_range)/2)
+    Kd = Observable(0.0)
+    Tf = Observable(0.01)
+    controller_form = Observable(form)
+    
+    # Create observables for slider ranges
+    Kp_min = Observable(Kp_range[1])
+    Kp_max = Observable(Kp_range[2])
+    Ki_min = Observable(Ki_range[1])
+    Ki_max = Observable(Ki_range[2])
+    Kd_min = Observable(Kd_range[1])
+    Kd_max = Observable(Kd_range[2])
+    Tf_min = Observable(Tf_range[1])
+    Tf_max = Observable(Tf_range[2])
+    
+    # Controller form selection
+    Label(control_panel[1, 1], "Form:", halign=:left)
+    form_menu = Menu(control_panel[1, 2:3], 
+                     options=["Standard", "Parallel", "Series"],
+                     default="Standard")
+    on(form_menu.selection) do sel
+        controller_form[] = sel == "Standard" ? :standard : sel == "Parallel" ? :parallel : :series
+    end
+    
+    # Helper function to create slider with range controls
+    function create_slider_with_range(parent_grid, row, label_text, value_obs, min_obs, max_obs)
+        Label(parent_grid[row, 1], label_text, halign=:left)
+        
+        # Create slider with dynamic range
+        slider_range = @lift(range($min_obs, $max_obs, length=100))
+        slider = Slider(parent_grid[row, 2:3], range=slider_range, startvalue=value_obs[], width=Auto())
+        
+        # Connect slider to observable
+        on(slider.value) do val
+            value_obs[] = val
+        end
+        
+        # Value display
+        value_label = Label(parent_grid[row, 4], @lift(Printf.@sprintf("%.3f", $value_obs)), width=60)
+        
+        # Min/Max textboxes
+        min_box = Textbox(parent_grid[row, 5], placeholder="min", width=60,
+                         stored_string=string(min_obs[]))
+        max_box = Textbox(parent_grid[row, 6], placeholder="max", width=60,
+                         stored_string=string(max_obs[]))
+        
+        # Update range when textboxes change
+        on(min_box.stored_string) do str
+            try
+                val = parse(Float64, str)
+                min_obs[] = val
+                # Update slider range
+                slider.range[] = range(val, max_obs[], length=100)
+                # Clamp current value if needed
+                if value_obs[] < val
+                    value_obs[] = val
+                end
+            catch
+            end
+        end
+        
+        on(max_box.stored_string) do str
+            try
+                val = parse(Float64, str)
+                max_obs[] = val
+                # Update slider range
+                slider.range[] = range(min_obs[], val, length=100)
+                # Clamp current value if needed
+                if value_obs[] > val
+                    value_obs[] = val
+                end
+            catch
+            end
+        end
+        
+        return slider
+    end
+    
+    # Create sliders with range controls
+    create_slider_with_range(control_panel, 2, "Kp:", Kp, Kp_min, Kp_max)
+    create_slider_with_range(control_panel, 3, "Ki:", Ki, Ki_min, Ki_max)
+    create_slider_with_range(control_panel, 4, "Kd:", Kd, Kd_min, Kd_max)
+    create_slider_with_range(control_panel, 5, "Tf:", Tf, Tf_min, Tf_max)
+    
+    # Create controller observable that updates when parameters change
+    C = @lift begin
+        # Create PID controller with current parameters
+        if $Kd > 0 && $Tf > 0
+            pid($Kp, $Ki, $Kd; form=$controller_form, Tf=$Tf)
+        elseif $Kd > 0
+            pid($Kp, $Ki, $Kd; form=$controller_form, Tf=0.01)  # Default small filter
+        else
+            pid($Kp, $Ki, 0; form=$controller_form)
+        end
+    end
+    
+    # Create PC observable
+    on(C) do c
+        delete_axes!(plot_panel)
+        PC = P * c
+        CSMakie.marginplot!(plot_panel[1, 1], PC, w)
+
+
+        fn = CSMakie.nyquistplot!(plot_panel[2, 1], PC, w; Ms_circles=[1.0, 1.5, 2.0])
+        # Set limits close to origin
+        ax = current_axis()
+        xlims!(ax, -3, 2)
+        ylims!(ax, -3, 2)
+
+        
+        Gcl = extended_gangoffour(P, c)
+        # Simulate step responses
+        t = range(0, stop=10, length=500)
+        res = step(Gcl, t)
+        plot!(plot_panel[1, 2], res)
+        # axislegend(step_ax, position=:rt)
+
+
+        CSMakie.gangoffourplot!(plot_panel[2, 2], P, c, w; sigma=false)
+    end
+    
+    # Add info text and return button
+    Label(control_panel[6, 1:5], "Adjust sliders to tune PID controller", 
+          fontsize=12, color=:gray)
+    
+    # Store final values
+    final_params = Ref((Kp=Kp[], Ki=Ki[], Kd=Kd[], Tf=Tf[], form=controller_form[]))
+    final_controller = Ref(C[])
+    
+    # Update final values when parameters change
+    on(C) do c
+        final_params[] = (Kp=Kp[], Ki=Ki[], Kd=Kd[], Tf=Tf[], form=controller_form[])
+        final_controller[] = c
+    end
+    notify(C)
+    rowsize!(fig.layout, 1, Auto(1))
+    # Display the figure
+    display(fig)
+    
+    # Return function that gets current parameters and controller
+    fig, () -> (params=final_params[], controller=final_controller[])
+end
+
 end # module
+
+
+
