@@ -1,7 +1,7 @@
 using ControlSystemsBase
 using Test
 using LinearAlgebra
-using GLMakie
+using CairoMakie
 
 @testset "Makie Plot Tests" begin
     # Create test systems

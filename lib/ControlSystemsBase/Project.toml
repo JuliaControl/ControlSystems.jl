@@ -53,11 +53,11 @@ julia = "1.6"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
-GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
 GenericSchur = "c145ed77-6b09-5dd9-b285-bf645a82121e"
 ImplicitDifferentiation = "57b37032-215b-411a-8a7c-41a003a55207"
@@ -68,4 +68,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Aqua", "ComponentArrays", "Documenter", "DSP", "FiniteDifferences", "ImplicitDifferentiation", "Makie", "GLMakie", "GenericSchur", "GR", "Plots", "SparseArrays", "StaticArrays"]
+test = ["Test", "Aqua", "ComponentArrays", "Documenter", "DSP", "FiniteDifferences", "ImplicitDifferentiation", "Makie", "CairoMakie", "GenericSchur", "GR", "Plots", "SparseArrays", "StaticArrays"]

@@ -13,6 +13,10 @@ CSMakie.nyquistplot(sys)
 ```
 
 All functions will throw an informative error if called without Makie.jl loaded.
+
+!!! danger "Experimental"
+
+    The support for plotting with Makie is currently experimental and at any time subject to breaking changes or removal **not** respecting semantic versioning.
 """
 module CSMakie
 
