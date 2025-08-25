@@ -8,6 +8,51 @@ Pages = ["plotting.md"]
 !!! note "Time-domain responses"
     There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure (`ControlSystemsBase.SimResult`) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
 
+## Makie support
+!!! danger "Experimental"
+    
+    The support for plotting with Makie is currently experimental and at any time subject to breaking changes or removal **not** respecting semantic versioning.
+
+ControlSystemsBase provides experimental support for plotting with [Makie.jl](https://docs.makie.org/) through the `CSMakie` module. This support is loaded automatically when you load a Makie backend (GLMakie, CairoMakie, or WGLMakie).
+
+### Usage
+
+```julia
+using ControlSystemsBase, GLMakie  # or CairoMakie, WGLMakie
+
+# Create a system
+P = tf([1], [1, 2, 1])
+
+# Use CSMakie plotting functions
+CSMakie.bodeplot(P)
+CSMakie.nyquistplot(P)
+CSMakie.pzmap(P)
+# ... and more
+
+# Direct plotting of simulation results
+res = step(P, 10)
+plot(res)  # Creates a figure with time-domain response
+
+si = stepinfo(res)
+plot(si)  # Visualizes step response characteristics
+```
+
+### Available functions
+
+The `CSMakie` module provides Makie implementations of the following plotting functions:
+
+- `CSMakie.bodeplot` - Bode magnitude and phase plots
+- `CSMakie.nyquistplot` - Nyquist plots with optional M and Mt circles
+- `CSMakie.sigmaplot` - Singular value plots
+- `CSMakie.marginplot` - Gain and phase margin plots
+- `CSMakie.pzmap` - Pole-zero maps
+- `CSMakie.nicholsplot` - Nichols charts
+- `CSMakie.rgaplot` - Relative gain array plots
+- `CSMakie.rlocusplot` - Root locus plots
+- `CSMakie.leadlinkcurve` - Lead-link design curves
+
+Additionally, `SimResult` and `StepInfo` types can be plotted directly using Makie's `plot` function.
+
 # Plotting functions
 
 ```@autodocs
