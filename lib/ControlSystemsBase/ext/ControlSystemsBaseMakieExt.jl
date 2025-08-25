@@ -372,18 +372,6 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
                                                                      allMargins=true, 
                                                                      adjust_phase_start)
                 
-                # Limit number of margins shown
-                if length(gm) > 5
-                    idx = sortperm(gm)
-                    wgm = wgm[idx[1:5]]
-                    gm = gm[idx[1:5]]
-                end
-                if length(pm) > 5
-                    idx = sortperm(pm)
-                    wpm = wpm[idx[1:5]]
-                    pm = pm[idx[1:5]]
-                end
-                
                 # Magnitude plot
                 ax_mag = axes_mag[i, j]
                 magdata = vec(bmag[i, j, :])

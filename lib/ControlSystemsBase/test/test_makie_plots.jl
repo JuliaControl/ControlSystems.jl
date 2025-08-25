@@ -65,7 +65,7 @@ import CairoMakie.Makie
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
-            fig = CSMakie.nyquistplot(P, w; Ms_circles=[1.5, 2.0])
+            fig = CSMakie.nyquistplot(P, w; Ms_circles=[1.5, 2.0], Mt_circles=[1.5, 2.0])
             @test fig isa Makie.Figure
         end
         @test_nowarn begin
@@ -134,6 +134,12 @@ import CairoMakie.Makie
         @test_nowarn begin
             fig = Makie.plot(res; plotu=true, plotx=true)
             Makie.plot!(fig[1,2], res, plotu=true, plotx=true)
+            @test fig isa Makie.Figure
+        end
+
+        res = step(Pmimo, t)
+        @test_nowarn begin
+            fig = Makie.plot(res; plotu=true)
             @test fig isa Makie.Figure
         end
     end
