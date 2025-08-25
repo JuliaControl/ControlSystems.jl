@@ -631,6 +631,10 @@ function Makie.plot!(fig, r::SimResult; plotu=false, plotx=false, ploty=true)
                     stairs!(ax, t, r.y[i, :, ms], label=label, step=:post)
                 end
             end
+            # Add legend if there are multiple series
+            if n_series > 1
+                axislegend(ax, position=:rt)
+            end
             plotind += 1
         end
     end
@@ -662,12 +666,14 @@ function Makie.plot!(fig, r::SimResult; plotu=false, plotx=false, ploty=true)
             
             if n_series > 1
                 for ms in 1:n_series
+                    label = "From $(input_names(r.sys)[ms])"
                     if iscontinuous(r.sys)
-                        lines!(ax, t, r.x[i, :, ms])
+                        lines!(ax, t, r.x[i, :, ms], label=label)
                     else
-                        stairs!(ax, t, r.x[i, :, ms], step=:post)
+                        stairs!(ax, t, r.x[i, :, ms], label=label, step=:post)
                     end
                 end
+                axislegend(ax, position=:rt)
             else
                 if iscontinuous(r.sys)
                     lines!(ax, t, r.x[i, :])
