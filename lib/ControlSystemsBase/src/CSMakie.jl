@@ -145,20 +145,8 @@ function leadlinkcurve(args...; kwargs...)
     error(MAKIE_NOT_LOADED_ERROR)
 end
 
-"""
-    setPlotScale(str)
-
-Set the default scale of magnitude in `bodeplot` and `sigmaplot` for Makie plots.
-`str` should be either `"dB"` or `"log10"`. The default scale is `"log10"`.
-
-Requires Makie to be loaded.
-"""
-function setPlotScale(str::AbstractString)
-    error(MAKIE_NOT_LOADED_ERROR)
-end
-
 # Also export the mutating versions that will be defined by the extension
 export bodeplot, nyquistplot, sigmaplot, marginplot, pzmap, pzmap!,
-       nicholsplot, rgaplot, rlocusplot, leadlinkcurve, setPlotScale
+       nicholsplot, rgaplot, rlocusplot, leadlinkcurve
 
 end # module CSMakie

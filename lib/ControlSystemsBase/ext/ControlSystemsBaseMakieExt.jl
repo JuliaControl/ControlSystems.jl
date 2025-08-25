@@ -14,36 +14,12 @@ using ControlSystemsBase: downsample, _processfreqplot, _default_freq_vector,
                           sisomargin, relative_gain_array, rlocus,
                           input_names, output_names, state_names, system_name,
                           iscontinuous, isdiscrete, issiso, isrational,
-                          integrator_excess, balance_statespace, LTISystem
+                          integrator_excess, balance_statespace, LTISystem,
+                          _PlotScale, _PlotScaleFunc, _PlotScaleStr, _span  # Use existing plot scale settings
 
-# Global plot scale settings (matching Plots.jl version)
-const _PlotScale = Ref("log10")
-const _PlotScaleFunc = Ref(:log10)
-const _PlotScaleStr = Ref("")
-
-"""
-    CSMakie.setPlotScale(str)
-
-Set the default scale of magnitude in `bodeplot` and `sigmaplot` for Makie plots.
-`str` should be either `"dB"` or `"log10"`. The default scale if none is chosen is `"log10"`.
-"""
-function CSMakie.setPlotScale(str::AbstractString)
-    if str == "dB"
-        _PlotScale[] = str
-        _PlotScaleFunc[] = :identity
-        _PlotScaleStr[] = "(dB)"
-    elseif str == "log10"
-        _PlotScale[] = str
-        _PlotScaleFunc[] = :log10
-        _PlotScaleStr[] = ""
-    else
-        error("Scale must be set to either \"dB\" or \"log10\"")
-    end
-end
-
-# Helper function to get y-scale transform
+# Helper function to get y-scale transform for Makie
 function get_yscale_transform()
-    _PlotScaleFunc[] == :log10 ? Makie.log10 : identity
+    ControlSystemsBase._PlotScaleFunc == :log10 ? Makie.log10 : identity
 end
 
 # ====== PZMap (Pole-Zero Map) ======
@@ -163,7 +139,7 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
                          xscale = log10,
                          yscale = get_yscale_transform(),
                          xlabel = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]"),
-                         ylabel = i == 1 ? "Magnitude $_PlotScaleStr[]" : "",
+                         ylabel = i == 1 ? "Magnitude $(ControlSystemsBase._PlotScaleStr)" : "",
                          title = j == 1 && i == 1 ? "Bode Plot" : "")
             axes_mag[i, j] = ax_mag
             
@@ -190,7 +166,7 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
         
         mag, phase = bode(sbal, w; unwrap=false)
         
-        if _PlotScale[] == "dB"
+        if ControlSystemsBase._PlotScale == "dB"
             mag = 20*log10.(mag)
         elseif 0 ∈ mag
             replace!(mag, 0 => NaN)
@@ -208,8 +184,7 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
                 lab = _get_plotlabel(s, i, j)
                 
                 if adaptive && eltype(magdata) <: AbstractFloat
-                    lmag = _PlotScale[] == "dB" ? magdata : log.(magdata)
-                    wsi, magi, _ = downsample(ws, lmag, maximum(lmag) - minimum(lmag)/500)
+                    wsi, magi, _ = downsample(ws, magdata, _span(magdata)/500)
                     lines!(ax_mag, wsi, magi, label=lab)
                 else
                     lines!(ax_mag, ws, magdata, label=lab)
@@ -231,7 +206,7 @@ function CSMakie.bodeplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}}
                     ax_phase = axes_phase[i, j]
                     if adaptive && eltype(phasedata) <: AbstractFloat
                         wsp, phasep, _ = downsample(ws, phasedata, 
-                                                   maximum(phasedata) - minimum(phasedata)/500)
+                                                   _span(phasedata)/500)
                         lines!(ax_phase, wsp, phasep)
                     else
                         lines!(ax_phase, ws, phasedata)
@@ -291,8 +266,8 @@ function CSMakie.nyquistplot(systems::Union{LTISystem, AbstractVector{<:LTISyste
                 lab = _get_plotlabel(s, i, j)
                 
                 if adaptive
-                    indsre, _, _ = downsample(w, redata, 1/500)
-                    indsim, _, _ = downsample(w, imdata, 1/500)
+                    indsre = downsample(w, redata, 1/500)[3]
+                    indsim = downsample(w, imdata, 1/500)[3]
                     inds = sort!(union(indsre, indsim))
                     lines!(ax, redata[inds], imdata[inds], label=lab)
                 else
@@ -349,7 +324,7 @@ function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}
              yscale = get_yscale_transform(),
              title = "Sigma Plot",
              xlabel = hz ? "Frequency [Hz]" : "Frequency [rad/s]",
-             ylabel = "Singular Values $_PlotScaleStr[]")
+             ylabel = "Singular Values $(ControlSystemsBase._PlotScaleStr)")
     
     for (si, s) in enumerate(systems)
         sbal = balance ? balance_statespace(s)[1] : s
@@ -359,10 +334,9 @@ function CSMakie.sigmaplot(systems::Union{LTISystem, AbstractVector{<:LTISystem}
             sv = sv[:, [1, end]]
         end
         
-        if _PlotScale[] == "dB"
+        if ControlSystemsBase._PlotScale == "dB"
             sv = 20*log10.(sv)
         end
-        
         # Use _to1series to efficiently plot multiple lines
         ws_series, sv_series = _to1series(ws, sv)
         lines!(ax, ws_series, sv_series, color=Cycled(si))
@@ -442,7 +416,7 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
                 ax_mag = axes_mag[i, j]
                 magdata = vec(bmag[i, j, :])
                 
-                if _PlotScale[] == "dB"
+                if ControlSystemsBase._PlotScale == "dB"
                     magdata = 20*log10.(magdata)
                     mag_margins = 20 .* log10.(1 ./ gm)
                     oneLine = 0
@@ -454,7 +428,7 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
                 # Plot magnitude response
                 if adaptive
                     wsi, magi, _ = downsample(ws, magdata, 
-                                            maximum(magdata) - minimum(magdata)/500)
+                                            _span(magdata)/500)
                     lines!(ax_mag, wsi, magi, label=_get_plotlabel(s, i, j))
                 else
                     lines!(ax_mag, ws, magdata, label=_get_plotlabel(s, i, j))
@@ -463,13 +437,12 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
                 # Unity gain line
                 hlines!(ax_mag, oneLine, color=:gray, linestyle=:dash, alpha=0.5)
                 
-                # Gain margins
+                # Gain margins - draw vertical lines from unity to margin value
                 wgm_display = hz ? wgm ./ (2π) : wgm
-                for k in 1:length(gm)
+                for k in eachindex(wgm_display)
+                    # Draw vertical line from unity gain to the margin value
                     lines!(ax_mag, [wgm_display[k], wgm_display[k]], 
-                          [oneLine, mag_margins[k]], color=:red)
-                    scatter!(ax_mag, [wgm_display[k]], [mag_margins[k]], 
-                            color=:red, markersize=8)
+                          [oneLine, mag_margins[k]], color=:red, linewidth=2)
                 end
                 
                 # Add title with margins info
@@ -485,7 +458,7 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
                     
                     if adaptive
                         wsp, phasep, _ = downsample(ws, phasedata, 
-                                                  maximum(phasedata) - minimum(phasedata)/500)
+                                                  _span(phasedata)/500)
                         lines!(ax_phase, wsp, phasep)
                     else
                         lines!(ax_phase, ws, phasedata)
@@ -493,13 +466,17 @@ function CSMakie.marginplot(systems::Union{LTISystem, AbstractVector{<:LTISystem
                     
                     # Phase margin lines
                     wpm_display = hz ? wpm ./ (2π) : wpm
+                    
+                    # Draw horizontal lines at phase margin crossings
                     for k in 1:length(pm)
                         phase_line = fullPhase[k] - pm[k]
                         hlines!(ax_phase, phase_line, color=:gray, linestyle=:dash, alpha=0.5)
+                    end
+                    
+                    # Draw vertical lines showing the phase margins
+                    for k in 1:length(pm)
                         lines!(ax_phase, [wpm_display[k], wpm_display[k]], 
-                              [fullPhase[k], phase_line], color=:blue)
-                        scatter!(ax_phase, [wpm_display[k]], [fullPhase[k]], 
-                                color=:blue, markersize=8)
+                              [fullPhase[k], fullPhase[k] - pm[k]], color=:blue, linewidth=2)
                     end
                     
                     # Add title with phase margins info

@@ -1,10 +1,7 @@
 using ControlSystemsBase
 using Test
 using LinearAlgebra
-
-# Check if Makie is available
-using Makie
-using CairoMakie # Use CairoMakie for non-interactive backend in tests
+using GLMakie
 
 @testset "Makie Plot Tests" begin
     # Create test systems
@@ -153,7 +150,7 @@ using CairoMakie # Use CairoMakie for non-interactive backend in tests
     
     @testset "nicholsplot" begin
         @test_nowarn begin
-            fig = nicholsCSMakie.plot(P)
+            fig = CSMakie.nicholsplot(P)
             @test fig isa Makie.Figure
         end
     end
