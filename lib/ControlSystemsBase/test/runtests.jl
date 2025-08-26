@@ -46,6 +46,7 @@ my_tests = [
             "test_demo_systems",
             "test_autovec",
             "test_plots",
+            "test_makie_plots",
             "test_dsp",
             "test_implicit_diff",
             "test_rootlocus",
