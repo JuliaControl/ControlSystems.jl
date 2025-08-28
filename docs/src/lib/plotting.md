@@ -3,7 +3,7 @@ Pages = ["plotting.md"]
 ```
 
 !!! note "Using Plots"
-    All plotting requires the user to manually load the Plots.jl library, e.g., by calling `using Plots`.
+    All plotting requires the user to manually load the Plots.jl library, e.g., by calling `using Plots`. See also experimental [Makie support](@ref) below.
 
 !!! note "Time-domain responses"
     There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure (`ControlSystemsBase.SimResult`) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
@@ -85,7 +85,7 @@ pzmap(c2d(tf2, 0.1))
 ![rlocus](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/rlocus.png?raw=true)
 
 ### Lsim response plot
-
+Simulation results are plotted directly using the `plot` function:
 ![lsim](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/lsim.png?raw=true)
 ```julia
 sys = ss([-1 2; 0 1], [1 0; 1 1], [1 0; 0 1], [0.1 0; 0 -0.2])
@@ -114,7 +114,7 @@ sys = [tf1 tf2]
 sysd = c2d(ss(sys), 0.01)
 res = step(sysd, 5)
 plot(res, l=(:dash, 4))
-# plot!(stepinfo(step(sysd[1,1], 5))) # adds extra info to the plot
+# plot!(stepinfo(step(sysd[1,1], 10))) # adds extra info to the plot
 ```
 
 
@@ -141,7 +141,7 @@ CSMakie.pzmap(P)
 
 # Direct plotting of simulation results
 res = step(P, 10)
-plot(res)  # Creates a figure with time-domain response
+plot(res)  # Creates a figure with time-domain response (note that this function does not belong to the CSMakie module)
 
 si = stepinfo(res)
 plot(si)  # Visualizes step response characteristics
