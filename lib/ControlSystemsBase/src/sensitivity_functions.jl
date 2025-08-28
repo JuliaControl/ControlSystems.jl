@@ -81,7 +81,7 @@ end
     G_PS(P, C)
 
 The closed-loop transfer function from load disturbance to plant output.
-Technically, the transfer function is given by `(1 + PC)⁻¹P` so `SP` would be a better, but nonstandard name.
+Technically, the transfer function is given by `(1 + PC)⁻¹P = P(1 + CP)⁻¹`.
 $sensdoc
 """
 G_PS(P, C) = feedback(P,C)#output_sensitivity(P, C)*P
@@ -90,7 +90,7 @@ G_PS(P, C) = feedback(P,C)#output_sensitivity(P, C)*P
     G_CS(P, C)
 
 The closed-loop transfer function from (-) measurement noise or (+) reference to control signal.
-Technically, the transfer function is given by `(1 + CP)⁻¹C` so `SC` would be a better, but nonstandard name.
+Technically, the transfer function is given by `(1 + CP)⁻¹C = C(1 + PC)⁻¹`.
 $sensdoc
 """
 G_CS(P, C) = feedback(C,P)#input_sensitivity(P, C)*C
@@ -192,14 +192,16 @@ The gang of four can be plotted like so
 Gcl = extended_gangoffour(G, C) # Form closed-loop system
 bodeplot(Gcl, lab=["S" "PS" "CS" "T"], plotphase=false) |> display # Plot gang of four
 ```
-Note, the last input of Gcl is the negative of the `PS` and `T` transfer functions from `gangoffour2`. To get a transfer matrix with the same sign as [`G_PS`](@ref) and [`input_comp_sensitivity`](@ref), call `extended_gangoffour(P, C, pos=false)`.
+Note, the last input of Gcl is the negative of the `PS` and `T` transfer functions from `gangoffour`. To get a transfer matrix with the same sign as [`G_PS`](@ref) and [`input_comp_sensitivity`](@ref), call `extended_gangoffour(P, C, pos=false)`.
 See `glover_mcfarlane` from RobustAndOptimalControl.jl for an extended example. See also `ncfmargin` and `feedback_control` from RobustAndOptimalControl.jl.
 """
 function extended_gangoffour(P, C, pos=true)
     ny,nu = size(P)
     te = timeevol(P)
     if pos
-        S = feedback(ss(I(ny+nu), te), [ss(0*I(ny), te) -P; C ss(0*I(nu), te)], pos_feedback=true)
+        Oy = ss(0*I(ny), te)
+        Ou = ss(0*I(nu), te)
+        S = feedback(ss(I(ny+nu), te), [Oy -P; C Ou], pos_feedback=true)
         return S + cat(0*I(ny), -I(nu), dims=(1,2))
     else
         Gtop = [I(ny); C] * [I(ny) P]
