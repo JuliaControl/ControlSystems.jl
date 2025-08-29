@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Automatic differentiation · ControlSystems.jl</title><meta name="title" content="Automatic differentiation · ControlSystems.jl"/><meta property="og:title" content="Automatic differentiation · ControlSystems.jl"/><meta property="twitter:title" content="Automatic differentiation · ControlSystems.jl"/><meta name="description" content="Documentation for ControlSystems.jl."/><meta property="og:description" content="Documentation for ControlSystems.jl."/><meta property="twitter:description" content="Documentation for ControlSystems.jl."/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="ControlSystems.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">ControlSystems.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Introductory guide</span><ul><li><a class="tocitem" href="../../man/introduction/">Introduction</a></li><li><a class="tocitem" href="../../man/creating_systems/">Creating Systems</a></li><li><a class="tocitem" href="../../man/numerical/">Performance considerations</a></li><li><a class="tocitem" href="../../man/differences/">Noteworthy differences from other languages</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../example/">Design</a></li><li><a class="tocitem" href="../analysis/">Analysis</a></li><li><a class="tocitem" href="../smith_predictor/">Smith predictor</a></li><li><a class="tocitem" href="../ilc/">Iterative Learning Control (ILC)</a></li><li><a class="tocitem" href="../delay_systems/">Properties of delay systems</a></li><li class="is-active"><a class="tocitem" href>Automatic differentiation</a><ul class="internal"><li><a class="tocitem" href="#Linearizing-nonlinear-dynamics"><span>Linearizing nonlinear dynamics</span></a></li><li><a class="tocitem" href="#Optimization-based-tuning–PID-controller"><span>Optimization-based tuning–PID controller</span></a></li><li><a class="tocitem" href="#Optimization-based-tuning–LQG-controller"><span>Optimization-based tuning–LQG controller</span></a></li><li><a class="tocitem" href="#Known-limitations"><span>Known limitations</span></a></li></ul></li><li><a class="tocitem" href="../tuning_from_data/">Tune a controller using experimental data</a></li><li><a class="tocitem" href="../zoh/">Analysis of sampled-data (continuous/discrete) systems</a></li></ul></li><li><span class="tocitem">Functions</span><ul><li><a class="tocitem" href="../../lib/constructors/">Constructors</a></li><li><a class="tocitem" href="../../lib/analysis/">Analysis</a></li><li><a class="tocitem" href="../../lib/synthesis/">Synthesis</a></li><li><a class="tocitem" href="../../lib/timefreqresponse/">Time and Frequency response</a></li><li><a class="tocitem" href="../../lib/plotting/">Plotting</a></li><li><a class="tocitem" href="../../lib/nonlinear/">Nonlinear</a></li></ul></li><li><a class="tocitem" href="../../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Automatic differentiation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Automatic differentiation</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaControl/ControlSystems.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaControl/ControlSystems.jl/blob/master/docs/src/examples/automatic_differentiation.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Automatic-Differentiation"><a class="docs-heading-anchor" href="#Automatic-Differentiation">Automatic Differentiation</a><a id="Automatic-Differentiation-1"></a><a class="docs-heading-anchor-permalink" href="#Automatic-Differentiation" title="Permalink"></a></h1><p>In Julia, it is often possible to automatically compute derivatives, gradients, Jacobians and Hessians of arbitrary Julia functions with precision matching the machine precision, that is, without the numerical inaccuracies incurred by finite-difference approximations.</p><p>Two general methods for automatic differentiation are available: forward and reverse mode. Forward mode is algorithmically more favorable for functions with few inputs but many outputs, while reverse mode is more efficient for functions with many parameters but few outputs (like in deep learning). In Julia, forward-mode AD is provided by the package <a href="https://github.com/JuliaDiff/ForwardDiff.jl">ForwardDiff.jl</a>, while reverse-mode AD is provided by several different packages, such as Zygote.jl and ReverseDiff.jl. Forward-mode AD generally has a lower overhead than reverse-mode AD, so for functions of a small number of parameters, say, less than about 10 or 100, forward-mode is usually most efficient. ForwardDiff.jl also has support for differentiating most of the Julia language, making the probability of success higher than for other packages, why we generally recommend trying ForwardDiff.jl first.</p><h2 id="Linearizing-nonlinear-dynamics"><a class="docs-heading-anchor" href="#Linearizing-nonlinear-dynamics">Linearizing nonlinear dynamics</a><a id="Linearizing-nonlinear-dynamics-1"></a><a class="docs-heading-anchor-permalink" href="#Linearizing-nonlinear-dynamics" title="Permalink"></a></h2><p>Nonlinear dynamics on the form</p><p class="math-container">\[\begin{aligned}
+\dot x &amp;= f(x, u) \\
+y &amp;= g(x, u)
+\end{aligned}\]</p><p>is easily linearized in the point <span>$x_0, u_0$</span> using ForwardDiff.jl:</p><pre><code class="language-julia hljs">using ControlSystemsBase, ForwardDiff
+
+&quot;An example of nonlinear dynamics&quot;
+function f(x, u)
+    x1, x2 = x
+    u1, u2 = u
+    [x2; u1*x1 + u2*x2]
+end
+
+x0 = [1.0, 0.0] # Operating point to linearize around
+u0 = [0.0, 1.0]
+
+A = ForwardDiff.jacobian(x -&gt; f(x, u0), x0)
+B = ForwardDiff.jacobian(u -&gt; f(x0, u), u0)
+
+&quot;An example of a nonlinear output (measurement) function&quot;
+function g(x, u)
+    y = [x[1] + 0.1x[1]*u[2]; x[2]]
+end
+
+C = ForwardDiff.jacobian(x -&gt; g(x, u0), x0)
+D = ForwardDiff.jacobian(u -&gt; g(x0, u), u0)
+
+linear_sys = ss(A, B, C, D)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
+A = 
+ 0.0  1.0
+ 0.0  1.0
+B = 
+ 0.0  0.0
+ 1.0  0.0
+C = 
+ 1.1  0.0
+ 0.0  1.0
+D = 
+ 0.0  0.1
+ 0.0  0.0
+
+Continuous-time state-space model</code></pre><p>The example above linearizes <code>f</code> in the point <span>$x_0, u_0$</span> to obtain the linear statespace matrices <span>$A$</span> and <span>$B$</span>, and linearizes <code>g</code> to obtain the linear output matrices <span>$C$</span> and <span>$D$</span>. Instead of manually calling ForwardDiff.jl to linearize the dynamics, the user may call the function <a href="../../lib/nonlinear/#ControlSystemsBase.linearize"><code>ControlSystemsBase.linearize</code></a> which includes the necessary calls to ForwardDiff.jl.</p><h2 id="Optimization-based-tuning–PID-controller"><a class="docs-heading-anchor" href="#Optimization-based-tuning–PID-controller">Optimization-based tuning–PID controller</a><a id="Optimization-based-tuning–PID-controller-1"></a><a class="docs-heading-anchor-permalink" href="#Optimization-based-tuning–PID-controller" title="Permalink"></a></h2><p>This example will demonstrate simple usage of AD using ForwardDiff.jl for optimization-based auto tuning of a PID controller.</p><p>The system we will control is a double-mass system, in which two masses (or inertias) are connected by a flexible transmission. </p><p>We start by defining the system model and an initial guess for the PID controller parameters</p><pre><code class="language-julia hljs">using ControlSystemsBase, ForwardDiff, Plots
+
+P = DemoSystems.double_mass_model()
+
+bodeplot(P, title=&quot;Bode plot of Double-mass system \$P(s)\$&quot;)</code></pre><img src="92966041.svg" alt="Example block output"/><pre><code class="language-julia hljs">Ω = exp10.(-2:0.03:3)
+kp,ki,kd,Tf =  1, 0.1, 0.1, 0.01 # controller parameters
+
+C  = pid(kp, ki, kd; Tf, form=:parallel, state_space=true) # Construct a PID controller with filter
+G  = feedback(P*C) # Closed-loop system
+S  = 1/(1 + P*C)   # Sensitivity function
+Gd = c2d(G, 0.1)   # Discretize the system
+res = step(Gd,15)  # Step-response
+
+mag = bodev(S, Ω)[1]
+plot(res, title=&quot;Time response&quot;, layout = (1,3), legend=:bottomright)
+plot!(Ω, mag, title=&quot;Sensitivity function&quot;, xscale=:log10, yscale=:log10, subplot=2, legend=:bottomright, ylims=(3e-2, Inf))
+Ms, _ = hinfnorm(S)
+hline!([Ms], l=(:black, :dash), subplot=2, lab=&quot;\$M_S = \$ $(round(Ms, digits=3))&quot;, sp=2)
+nyquistplot!(P*C, Ω, sp=3, ylims=(-2.1,1.1), xlims=(-2.1,1.2), size=(1200,400))</code></pre><img src="b109c7f2.svg" alt="Example block output"/><p>The initial controller <span>$C$</span> achieves a maximum peak of the sensitivity function of <span>$M_S = 1.3$</span> which implies a rather robust tuning, but the step response is sluggish. We will now try to optimize the controller parameters to achieve a better performance.</p><p>We start by defining a helper function <code>plot_optimized</code> that will evaluate the performance of the tuned controller. We then define a function <code>systems</code> that constructs the gang-of-four transfer functions (<a href="../../lib/synthesis/#ControlSystemsBase.extended_gangoffour"><code>extended_gangoffour</code></a>) and performs time-domain simulations of the transfer functions <span>$S(s)$</span> and <span>$P(s)S(s)$</span>, i.e., the transfer functions from reference <span>$r$</span> to control error <span>$e$</span>, and the transfer function from an input load disturbance <span>$d$</span> to the control error <span>$e$</span>. By optimizing these step responses with respect to the PID parameters, we will get a controller that achieves good performance. To promote robustness of the closed loop as well as to limit the amplification of measurement noise in the control signal, we penalize the peak of the sensitivity function <span>$S$</span> as well as the (approximate) frequency-weighted <span>$H_2$</span> norm of the transfer function <span>$CS(s)$</span>.</p><p>The constraint function <code>constraints</code> enforces the peak of the sensitivity function to be below <code>Msc</code>. Finally, we use <a href="https://github.com/SciML/Optimization.jl">Optimization.jl</a> to optimize the cost function and tell it to use ForwardDiff.jl to compute the gradient of the cost function. The optimizer we use in this example is <code>Ipopt</code>.</p><pre><code class="language-julia hljs">using Optimization, Statistics, LinearAlgebra
+using Ipopt, OptimizationMOI; MOI = OptimizationMOI.MOI
+
+function plot_optimized(P, params, res, systems)
+    fig = plot(layout=(1,3), size=(1200,400), bottommargin=2Plots.mm)
+    for (i,params) = enumerate((params, res))
+        ls = (i == 1 ? :dash : :solid)
+        lab = (i==1 ? &quot;Initial&quot; : &quot;Optimized&quot;)
+        C, G = systems(params, P)
+		r1, r2 = sim(G)
+        mag = reshape(bode(G, Ω)[1], 4, :)&#39;[:, [1, 2, 4]]
+        plot!([r1, r2]; title=&quot;Time response&quot;, subplot=1,
+            lab = lab .* [&quot; \$r → e\$&quot; &quot; \$d → e\$&quot;], legend=:bottomright, ls,
+            fillalpha=0.05, linealpha=0.8, seriestype=:path, c=[1 3])
+        plot!(Ω, mag; title=&quot;Sensitivity functions \$S(s), CS(s), T(s)\$&quot;,
+            xscale=:log10, yscale=:log10, subplot=2, lab, ls,
+            legend=:bottomright, fillalpha=0.05, linealpha=0.8, c=[1 2 3], linewidth=i)
+        nyquistplot!(P*C, Ω; Ms_circles=Msc, sp=3, ylims=(-2.1,1.1), xlims=(-2.1,1.2), lab, seriescolor=i, ls)
+    end
+    hline!([Msc], l=:dashdot, c=1, subplot=2, lab=&quot;Constraint&quot;, ylims=(9e-2, Inf))
+    fig
+end
+
+&quot;A helper function that creates a PID controller and closed-loop transfer functions&quot;
+function systemspid(params, P)
+    kp,ki,kd,Tf = params # We optimize parameters in
+    C    = pid(kp, ki, kd; form=:parallel, Tf, state_space=true)
+    G    = extended_gangoffour(P, C) # [S PS; CS T]
+    C, G
+end
+
+&quot;A helper function that simulates the closed-loop system&quot;
+function sim(G)
+    Gd = c2d(G, 0.1, :tustin)   # Discretize the system
+    res1 = step(Gd[1, 1], 0:0.1:15) # Simulate S
+    res2 = step(Gd[1, 2], 0:0.1:15) # Simulate PS
+    res1, res2
+end
+
+&quot;The cost function to optimize&quot;
+function cost(params::AbstractVector{T}, (P, systems)) where T
+    CSweight = 0.001 # Noise amplification penalty
+    C, G = systems(params, P)
+    res1, res2 = sim(G)
+    R, _ = bodev(G[2, 1], Ω; unwrap=false)
+    CS = sum(R .*= Ω)               # frequency-weighted noise sensitivity
+    perf = mean(abs2, res1.y .*= res1.t&#39;) + mean(abs2, res2.y .*= res2.t&#39;)
+    return perf + CSweight * CS # Blend all objectives together
+end
+
+&quot;The sensitivity constraint to enforce robustness&quot;
+function constraints(res, params::AbstractVector{T}, (P, systems)) where T
+    C, G = systems(params, P)
+    S, _ = bodev(G[1, 1], Ω; unwrap=false)
+    res .= maximum(S) # max sensitivity
+    nothing
+end
+
+Msc = 1.3        # Constraint on Ms
+
+params  = [kp, ki, kd, 0.01] # Initial guess for parameters
+
+solver = Ipopt.Optimizer()
+MOI.set(solver, MOI.RawOptimizerAttribute(&quot;print_level&quot;), 0)
+MOI.set(solver, MOI.RawOptimizerAttribute(&quot;max_iter&quot;), 200)
+MOI.set(solver, MOI.RawOptimizerAttribute(&quot;acceptable_tol&quot;), 1e-1)
+MOI.set(solver, MOI.RawOptimizerAttribute(&quot;acceptable_constr_viol_tol&quot;), 1e-2)
+MOI.set(solver, MOI.RawOptimizerAttribute(&quot;acceptable_iter&quot;), 5)
+MOI.set(solver, MOI.RawOptimizerAttribute(&quot;hessian_approximation&quot;), &quot;limited-memory&quot;)
+
+fopt = OptimizationFunction(cost, Optimization.AutoForwardDiff(); cons=constraints)
+
+prob = OptimizationProblem(fopt, params, (P, systemspid);
+    lb    = fill(-10.0, length(params)),
+    ub    = fill(10.0, length(params)),
+    ucons = fill(Msc, 1),
+    lcons = fill(-Inf, 1),
+)
+
+res = solve(prob, solver)
+plot_optimized(P, params, res.u, systemspid)</code></pre><img src="2cce1384.svg" alt="Example block output"/><p>The optimized controller achieves more or less the same low peak in the sensitivity function, but does this while <em>both</em> making the step responses significantly faster <em>and</em> using much less controller gain for large frequencies (the orange sensitivity function), an altogether better tuning. The only potentially negative effect of this tuning is that the overshoot in response to a reference step increased slightly, indicated also by the slightly higher peak in the complimentary sensitivity function (green). However, the response to reference steps can (and most often should) be additionally shaped by reference pre-filtering (sometimes referred to as &quot;feedforward&quot; or &quot;reference shaping&quot;), by introducing an additional filter appearing in the feedforward path only, thus allowing elimination of the overshoot without affecting the closed-loop properties.</p><h2 id="Optimization-based-tuning–LQG-controller"><a class="docs-heading-anchor" href="#Optimization-based-tuning–LQG-controller">Optimization-based tuning–LQG controller</a><a id="Optimization-based-tuning–LQG-controller-1"></a><a class="docs-heading-anchor-permalink" href="#Optimization-based-tuning–LQG-controller" title="Permalink"></a></h2><p>We could attempt a similar automatic tuning of an LQG controller. This time, we choose to optimize the weight matrices of the LQR problem and the state covariance matrix of the noise. The synthesis of an LQR controller involves the solution of a Ricatti equation, which in turn involves performing a Schur decomposition. These steps hard hard to differentiate through in a conventional way, but we can make use of implicit differentiation using the implicit function theorem. To do so, we load the package <code>ImplicitDifferentiation</code>, and define the conditions that hold at the solution of the Ricatti equation:</p><p class="math-container">\[A^TX + XA - XBR^{-1}B^T X + Q = 0\]</p><p>When <code>ImplicitDifferentiation</code> is loaded, differentiable versions of <a href="../../lib/synthesis/#ControlSystemsBase.lqr-Union{Tuple{E}, Tuple{Union{Continuous, Type{Continuous}}, Any, Any, Any, Any, Vararg{Any}}} where E"><code>lqr</code></a> and <a href="../../lib/synthesis/#ControlSystemsBase.kalman-Union{Tuple{E}, Tuple{Any, Any, Any, Any, Any, Vararg{Any}}} where E"><code>kalman</code></a> that make use of the &quot;implicit function&quot; are automatically loaded.</p><pre><code class="language-julia hljs">using ImplicitDifferentiation, ComponentArrays # Both these packages are required to load the implicit differentiation rules</code></pre><p>Since this is a SISO system, we do not need to tune the control-input matrix or the measurement covariance matrix, any non-unit weight assigned to those can be associated with the state matrices instead. Since these matrices are supposed to be positive semi-definite, we optimize Cholesky factors rather than the full matrices.</p><pre><code class="language-julia hljs">function triangular(x)
+    m = length(x)
+    n = round(Int, sqrt(2m-1))
+    T = zeros(eltype(x), n, n)
+    k = 1
+    for i = 1:n, j = i:n
+        T[i,j] = x[k]
+        k += 1
+    end
+    T
+end
+invtriangular(T) = [T[i,j] for i = 1:size(T,1) for j = i:size(T,1)]
+
+function systemslqr(params::AbstractVector{T}, P) where T
+    n2 = length(params) ÷ 2
+    Qchol = triangular(params[1:n2])
+    Rchol = triangular(params[n2+1:2n2])
+    Q = Qchol&#39;Qchol
+    R = Rchol&#39;Rchol
+    L = lqr(P, Q, one(T)*I(1)) # It&#39;s important that the last matrix has the correct type
+    K = kalman(P, R, one(T)*I(1))
+    C = observer_controller(P, L, K)
+    G = extended_gangoffour(P, C) # [S PS; CS T]
+    C, G
+end
+
+Q0 = diagm([1.0, 1, 1, 1]) # Initial guess LQR state penalty
+R0 = diagm([1.0, 1, 1, 1]) # Initial guess Kalman state covariance
+params2 = [invtriangular(cholesky(Q0).U); invtriangular(cholesky(R0).U)]
+
+prob2 = OptimizationProblem(fopt, params2, (P, systemslqr);
+    lb    = fill(-10.0, length(params2)),
+    ub    = fill(10.0, length(params2)),
+    ucons = fill(Msc, 1),
+    lcons = fill(-Inf, 1),
+)
+
+res2 = solve(prob2, solver)
+plot_optimized(P, params2, res2.u, systemslqr)</code></pre><img src="c96c5bfd.svg" alt="Example block output"/><p>This controller should perform better than the PID controller, which is known to be incapable of properly damping the resonance in a double-mass system. However, we did not include any integral action in the LQG controller, which has implication for the disturbance response, as indicated by the steady-state error in the green step response in the simulation above.</p><h3 id="Robustness-analysis"><a class="docs-heading-anchor" href="#Robustness-analysis">Robustness analysis</a><a id="Robustness-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Robustness-analysis" title="Permalink"></a></h3><p>To check the robustness of the designed LQG controller w.r.t. parametric uncertainty in the plant, we load the package <a href="https://github.com/baggepinnen/MonteCarloMeasurements.jl"><code>MonteCarloMeasurements</code></a> and recreate the plant model with 20% uncertainty in the spring coefficient.</p><pre><code class="language-julia hljs">using MonteCarloMeasurements
+Pu = DemoSystems.double_mass_model(k = Particles(32, Uniform(80, 120))) # Create a model with uncertainty in spring stiffness k ~ U(80, 120)
+unsafe_comparisons(true) # For the Bode plot to work
+
+C,_ = systemslqr(res2.u, P)             # Get the controller assuming P without uncertainty
+Gu = extended_gangoffour(Pu, C)     # Form the gang-of-four with uncertainty
+w = exp10.(LinRange(-1.5, 2, 500))
+bodeplot(Gu, w, plotphase=false, ri=false, N=32, ylims=(1e-1, 30), layout=1, sp=1, c=[1 2 4 3], lab=[&quot;S&quot; &quot;CS&quot; &quot;PS&quot; &quot;T&quot;])
+hline!([Msc], l=:dashdot, c=1, lab=&quot;Constraint&quot;, ylims=(9e-2, Inf))</code></pre><img src="fe14375a.svg" alt="Example block output"/><p>The uncertainty in the spring stiffness caused an uncertainty in the resonant peak in the sensitivity functions, it&#39;s a good thing that we designed a controller that was conservative with a large margin (small <span>$M_S$</span>) so that all the plausible variations of the plant are expected to behave reasonably well:</p><pre><code class="language-julia hljs">Gd   = c2d(Gu, 0.05)   # Discretize the system
+r1 = step(Gd[1,1], 0:0.05:15) # Simulate S
+r2 = step(Gd[1,2], 0:0.05:15) # Simulate PS
+plot([r1, r2]; title=&quot;Time response&quot;,
+            lab = [&quot; \$r → e\$&quot; &quot; \$d → e\$&quot;], legend=:bottomright,
+            fillalpha=0.05, linealpha=0.8, seriestype=:path, c=[1 3], ri=false, N=32)</code></pre><img src="6ceb09ca.svg" alt="Example block output"/><h3 id="Parameterizing-the-controller-using-feedback-gains"><a class="docs-heading-anchor" href="#Parameterizing-the-controller-using-feedback-gains">Parameterizing the controller using feedback gains</a><a id="Parameterizing-the-controller-using-feedback-gains-1"></a><a class="docs-heading-anchor-permalink" href="#Parameterizing-the-controller-using-feedback-gains" title="Permalink"></a></h3><p>For completeness, lets also parameterize the observer-based state-feedback controller using the gain matrices directly, that is, we search directly over <span>$L$</span> and <span>$K$</span>. This is typically a harder problem since the search space contains non-stabilizing controllers, and the set of stabilizing gains is non-convex. (For state feedback, a nice theoretical result exists that says that there are no local minima, but the space of stabilizing gains is still non-convex.)</p><pre><code class="language-julia hljs">function systems_sf(params::AbstractVector{T}, P) where T
+    n2 = length(params) ÷ 2
+    L = params[1:n2]&#39;
+    K = params[n2+1:2n2, 1:1]
+    C = observer_controller(P, L, K)
+    G = extended_gangoffour(P, C) # [S PS; CS T]
+    C, G
+end
+
+L0 = lqr(P, Q0, I) # Initial guess
+K0 = kalman(P, R0, I)
+params3 = [vec(L0); vec(K0)]
+prob3 = OptimizationProblem(fopt, params3, (P, systems_sf);
+    lb    = fill(-15.0, length(params3)),
+    ub    = fill(15.0, length(params3)),
+    ucons = fill(Msc, 1),
+    lcons = fill(-Inf, 1),
+)
+res3 = solve(prob3, solver)
+plot_optimized(P, params3, res3.u, systems_sf)</code></pre><img src="1e0d4b60.svg" alt="Example block output"/><h2 id="Known-limitations"><a class="docs-heading-anchor" href="#Known-limitations">Known limitations</a><a id="Known-limitations-1"></a><a class="docs-heading-anchor-permalink" href="#Known-limitations" title="Permalink"></a></h2><p>The following issues are currently known to exist when using AD through ControlSystems.jl:</p><h3 id="ForwardDiff"><a class="docs-heading-anchor" href="#ForwardDiff">ForwardDiff</a><a id="ForwardDiff-1"></a><a class="docs-heading-anchor-permalink" href="#ForwardDiff" title="Permalink"></a></h3><p><a href="https://github.com/JuliaDiff/ForwardDiff.jl">ForwardDiff.jl</a> works for a lot of workflows without any intervention required from the user. The following known limitations exist:</p><ul><li>The function <a href="../../lib/constructors/#ControlSystemsBase.c2d"><code>c2d</code></a> with the default <code>:zoh</code> discretization method makes a call to <code>LinearAlgebra.exp!</code>, which is not defined for <code>ForwardDiff.Dual</code> numbers. A forward rule for this function exist in ChainRules, which can be enabled using ForwardDiffChainRules.jl. One may also define <code>LinearAlgebra.exp!(A::AbstractMatrix{&lt;:ForwardDiff.Dual}) = ExponentialUtilities.exponential!(A)</code>.</li><li>The function <code>svdvals</code> does not have a forward rule defined. This means that the functions <a href="../../lib/timefreqresponse/#ControlSystemsBase.sigma-Tuple{LTISystem, AbstractVector}"><code>sigma</code></a> and <code>opnorm</code> will not work for MIMO systems with ForwardDiff. SISO, MISO and SIMO systems will, however, work.</li><li><a href="../../lib/analysis/#ControlSystemsBase.hinfnorm-Tuple{AbstractStateSpace{&lt;:Continuous}}"><code>hinfnorm</code></a> requires ImplicitDifferentiation.jl and ComponentArrays.jl to be manually loaded by the user, after which there are implicit differentiation rules defined for <a href="../../lib/analysis/#ControlSystemsBase.hinfnorm-Tuple{AbstractStateSpace{&lt;:Continuous}}"><code>hinfnorm</code></a>. The implicit rule calls <code>opnorm</code>, and is thus affected by the first limitation above for MIMO systems. <a href="../../lib/analysis/#ControlSystemsBase.hinfnorm-Tuple{AbstractStateSpace{&lt;:Continuous}}"><code>hinfnorm</code></a> has a reverse rule defined in RobustAndOptimalControl.jl, which is not affected by this limitation.</li><li><a href="../../lib/analysis/#ControlSystemsBase.are-Tuple{Union{Continuous, Type{Continuous}}, AbstractMatrix, Any, Any, Any, Vararg{Any}}"><code>are</code></a>, <a href="../../lib/synthesis/#ControlSystemsBase.lqr-Union{Tuple{E}, Tuple{Union{Continuous, Type{Continuous}}, Any, Any, Any, Any, Vararg{Any}}} where E"><code>lqr</code></a> and <a href="../../lib/synthesis/#ControlSystemsBase.kalman-Union{Tuple{E}, Tuple{Any, Any, Any, Any, Any, Vararg{Any}}} where E"><code>kalman</code></a> all require ImplicitDifferentiation.jl and ComponentArrays.jl to be manually loaded by the user, after which there are implicit differentiation rules defined. To invoke the correct method of these functions, it is important that the second matrix (corresponding to input or measurement) has the <code>Dual</code> number type, i.e., the <code>R</code> matrix in <code>lqr(P, Q, R)</code> or <code>lqr(Continuous, A, B, Q, R)</code></li><li>The <code>schur</code> factorization has an implicit differentiation rule defined, but the companion function <code>ordschur</code> does not. This is the fundamental reason for requiring ImplicitDifferentiation.jl to differentiate through the Ricatti equation solver. <code>schur</code> is called in several additional places, including <a href="../../lib/analysis/#ControlSystemsBase.balreal-Tuple{ST} where ST&lt;:AbstractStateSpace"><code>balreal</code></a> and all <a href="../../lib/analysis/#LinearAlgebra.lyap-Tuple{Union{Type{Discrete}, Discrete}, AbstractMatrix, Any}"><code>lyap</code></a> solvers. Many of these algorithms also call <code>givensAlgorithm</code> which has no rule either.</li><li>An implicit rule is defined for continuous-time <a href="../../lib/analysis/#LinearAlgebra.lyap-Tuple{Union{Type{Discrete}, Discrete}, AbstractMatrix, Any}"><code>lyap</code></a> and <a href="../../lib/analysis/#ControlSystemsBase.plyap-Tuple{AbstractStateSpace, Vararg{Any}}"><code>plyap</code></a> solvers, but not yet for discrete-time solvers. This means that <a href="../../lib/analysis/#ControlSystemsBase.gram-Tuple{AbstractStateSpace, Symbol}"><code>gram</code></a> <a href="../../lib/analysis/#ControlSystemsBase.covar-Tuple{AbstractStateSpace, Any}"><code>covar</code></a> and <a href="../../lib/analysis/#LinearAlgebra.norm"><code>norm</code></a> (<span>$H_2$</span>-norm) is differentiable for continuous-time systems but not for discrete.</li></ul><h3 id="Reverse-mode-AD"><a class="docs-heading-anchor" href="#Reverse-mode-AD">Reverse-mode AD</a><a id="Reverse-mode-AD-1"></a><a class="docs-heading-anchor-permalink" href="#Reverse-mode-AD" title="Permalink"></a></h3><ul><li>Zygote does not work very well at all, due to<ul><li>Frequent use of mutation for performance</li><li>Try/catch blocks</li></ul></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../delay_systems/">« Properties of delay systems</a><a class="docs-footer-nextpage" href="../tuning_from_data/">Tune a controller using experimental data »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Friday 29 August 2025 17:44">Friday 29 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
