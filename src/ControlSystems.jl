@@ -3,6 +3,7 @@ module ControlSystems
 using Reexport
 @reexport using ControlSystemsBase
 using ControlSystemsBase: issiso, ninputs, noutputs, nstates, numeric_type
+import DiffEqBase
 
 
 using LinearAlgebra
