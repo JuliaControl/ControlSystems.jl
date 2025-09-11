@@ -1,12 +1,6 @@
 using Pkg
 using Test, LinearAlgebra, Random
 using Aqua
-# @testset "Aqua" begin
-#     Aqua.test_all(ControlSystems;
-#         ambiguities = false, # causes 100s of hits in all dependencies
-#         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
-#     )
-# end
 
 # Helper to call dev on one of the packages in folder /lib
 function dev_subpkg(subpkg)
@@ -29,6 +23,14 @@ if GROUP == "All"
         subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
         Pkg.test(PackageSpec(name = GROUP, path = subpkg_path), coverage = true)
     end
+    @testset "Aqua" begin
+        import ControlSystems
+        Aqua.test_all(ControlSystems;
+            ambiguities = false, # causes 100s of hits in all dependencies
+            stale_deps = true,
+        )
+    end
+
 elseif GROUP != "ControlSystems"
     # dev_subpkg(GROUP) # Do this if more sub packages are added, don't forget to avoid doing it if GROUP is CSBase
     subpkg_path = joinpath(dirname(@__DIR__), "lib", GROUP)
