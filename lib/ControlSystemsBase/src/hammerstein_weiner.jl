@@ -40,7 +40,7 @@ This function can also be used to linearize an output equation `C, D = linearize
 """
 function linearize(f, xi::AbstractVector, ui::AbstractVector, args...)
     A = ForwardDiff.jacobian(x -> f(x, ui, args...), xi)
-    B = ForwardDiff.jacobian(u -> f(xi, u, args...), ui)
+    B = ForwardDiff.jacobian(u -> f(convert(typeof(u), xi), u, args...), ui)
     A, B
 end
 
