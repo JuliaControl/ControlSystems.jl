@@ -196,6 +196,14 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
         error("Time vector t must be uniformly spaced")
     end
 
+    # Handle pure D system (no states)
+    if nx == 0
+        x = Matrix{eltype(u)}(undef, 0, length(t)) # no states
+        y = sys.D * u
+        dsys = sys
+        return SimResult(y, t, x, u, dsys)
+    end
+
     if iscontinuous(sys)
         if method === :zoh
             dsys = c2d(sys, dt, :zoh)
@@ -279,6 +287,18 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
     T = promote_type(Float64, eltype(x0), numeric_type(sys))
 
     dt = t[2] - t[1]
+
+    # Handle pure D system (no states)
+    if nx == 0
+        uout = Matrix{T}(undef, nu, length(t))
+        for i = 1:length(t)
+            uout[:, i] = u(T[], t[i])
+        end
+        x = Matrix{T}(undef, 0, length(t)) # no states
+        y = sys.D * uout
+        simsys = sys
+        return SimResult(y, t, x, uout, simsys)
+    end
 
     if !iscontinuous(sys) || method ∈ (:zoh, :tustin, :foh, :fwdeuler)
         if iscontinuous(sys)
