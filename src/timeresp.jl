@@ -37,6 +37,18 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
 
     dt = t[2] - t[1]
 
+    # Handle pure D system (no state)
+    if nx == 0
+        uout = Matrix{T}(undef, nu, length(t))
+        for i = 1:length(t)
+            uout[:, i] = u(T[], t[i])
+        end
+        x = Matrix{T}(undef, 0, length(t)) # no states
+        y = sys.D * uout
+        simsys = sys
+        return SimResult(y, t, x, uout, simsys)
+    end
+
     if method === :zoh
         simsys = c2d(sys, dt, :zoh)
         x,uout = ControlSystemsBase.ltitr(simsys.A, simsys.B, u, t, T.(x0))
