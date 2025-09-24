@@ -1,5 +1,5 @@
 # Test lsim for pure D system (no states) with matrix input
-sysDm = ss([], [], [], [2.0])
+sysDm = ss([2.0])
 tDm = 0:0.1:1
 uDm = fill(3.0, 1, length(tDm))
 resDm = lsim(sysDm, uDm, tDm)
@@ -43,7 +43,7 @@ th = 1e-6
 
 
 # Test lsim for pure D system (no states)
-sysD = ss([], [], [], [2.0])
+sysD = ss([2.0])
 tD = 0:0.1:1
 uD(x, t) = [3.0]
 resD = lsim(sysD, uD, tD)
