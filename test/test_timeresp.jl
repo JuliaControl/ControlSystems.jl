@@ -1,3 +1,9 @@
+# Test lsim for pure D system (no states) with matrix input
+sysDm = ss([], [], [], [2.0])
+tDm = 0:0.1:1
+uDm = fill(3.0, 1, length(tDm))
+resDm = lsim(sysDm, uDm, tDm)
+@test resDm.y[:] == fill(2.0 * 3.0, length(tDm))
 import OrdinaryDiffEq
 using OrdinaryDiffEq: solve
 using ControlSystems
@@ -34,6 +40,14 @@ th = 1e-6
 
 # Error for nonuniformly spaced vector
 @test_throws ErrorException lsim(sys, [1 2 3 4], [0, 1, 1, 2])
+
+
+# Test lsim for pure D system (no states)
+sysD = ss([], [], [], [2.0])
+tD = 0:0.1:1
+uD(x, t) = [3.0]
+resD = lsim(sysD, uD, tD)
+@test resD.y[:] == fill(2.0 * 3.0, length(tD))
 
 # Test for problem with broadcast dimensions
 @test lsim(sys, zeros(1, 5), 0:0.2:0.8)[1][:] == zeros(5)
