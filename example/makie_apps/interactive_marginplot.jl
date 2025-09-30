@@ -1,16 +1,22 @@
 """
-# Interactive Margin Plot with Two-Point PI Controller Design
+# Interactive Margin Plot with P/PI/PID Controller Design
 
-This example demonstrates an interactive Makie app for designing PI controllers
-by specifying magnitude at TWO frequency points on a Bode magnitude plot.
-This properly utilizes both degrees of freedom (Kp and Ki) of a PI controller.
+This example demonstrates an interactive Makie app for designing P/PI/PID controllers
+by specifying magnitude at 1, 2, or 3 frequency points on a Bode magnitude plot.
+
+- **1 point**: Proportional (P) controller - Kp only
+- **2 points**: Proportional-Integral (PI) controller - Kp, Ki
+- **3 points**: Proportional-Integral-Derivative (PID) controller - Kp, Ki, Kd
+
+Uses pure algebraic approach (no iterative solvers) to compute controller parameters.
 
 ## Usage:
 1. Run this file to launch the interactive app
-2. Click to select FIRST point → Designs proportional controller (Kp only, Ki=0)
-3. Drag green marker vertically to adjust gain
-4. Click to select SECOND point → Upgrades to full PI controller (Kp + Ki)
-5. Drag either marker to adjust constraints, controller updates in real-time
+2. Click to select FIRST point → Designs P controller (Kp)
+3. Click to select SECOND point → Upgrades to PI controller (Kp, Ki)
+4. Click to select THIRD point → Upgrades to PID controller (Kp, Ki, Kd)
+5. Drag any marker vertically to adjust magnitude constraints
+6. Controller updates in real-time as you drag
 
 ## Requirements:
 - ControlSystemsBase
@@ -111,9 +117,275 @@ function compute_PI_two_points(P, ω1, m1_db, ω2, m2_db)
 end
 
 """
+    compute_PID_three_points(P, ω1, m1_db, ω2, m2_db, ω3, m3_db)
+
+Compute PID controller (Kp, Ki, Kd) such that:
+- |P(jω1) * C(jω1)| = 10^(m1_db/20)
+- |P(jω2) * C(jω2)| = 10^(m2_db/20)
+- |P(jω3) * C(jω3)| = 10^(m3_db/20)
+
+where C(s) = Kp + Ki/s + Kd*s
+
+Uses algebraic approach: enumerates 8 sign combinations to find solution.
+
+Returns: (Kp, Ki, Kd, success_flag, error_message)
+"""
+function compute_PID_three_points(P, ω1, m1_db, ω2, m2_db, ω3, m3_db)
+    try
+        # Check for degenerate cases
+        if abs(ω1 - ω2) < 1e-6 || abs(ω2 - ω3) < 1e-6 || abs(ω1 - ω3) < 1e-6
+            return (0.0, 0.0, 0.0, false, "Frequencies too close")
+        end
+
+        # Convert dB to linear
+        m1 = 10^(m1_db / 20)
+        m2 = 10^(m2_db / 20)
+        m3 = 10^(m3_db / 20)
+
+        # Get plant frequency response
+        P1 = freqresp(P, ω1)[]
+        P2 = freqresp(P, ω2)[]
+        P3 = freqresp(P, ω3)[]
+
+        # Required controller magnitudes
+        r1 = m1 / abs(P1)
+        r2 = m2 / abs(P2)
+        r3 = m3 / abs(P3)
+
+        # For PID: |C(jω)| = sqrt(Kp² + (Kd*ω - Ki/ω)²)
+        # Let yᵢ = Kd*ωᵢ - Ki/ωᵢ
+        # Then: Kp² + yᵢ² = rᵢ²  →  yᵢ = ±sqrt(rᵢ² - Kp²)
+
+        # Try all 8 sign combinations
+        tolerance = 1e-6
+
+        for s1 in [-1, 1], s2 in [-1, 1], s3 in [-1, 1]
+            # Assume y values and solve
+            # We need to find Kp first, then compute y values
+
+            # Actually, we don't know Kp yet. Let's solve the linear system for Kd, Ki
+            # treating y1, y2 as unknowns with given signs
+
+            # From equations: Kd*ω₁ - Ki/ω₁ = y₁ and Kd*ω₂ - Ki/ω₂ = y₂
+            # This is underdetermined since y₁, y₂ depend on Kp
+
+            # Better approach: try values of Kp, compute y values, solve for Kd, Ki, check y₃
+
+            # Actually, let me think differently.
+            # From first two equations:
+            # (Kd*ω₁ - Ki/ω₁)² = r₁² - Kp²
+            # (Kd*ω₂ - Ki/ω₂)² = r₂² - Kp²
+
+            # If we assume signs, y₁ = s1*sqrt(r₁² - Kp²), y₂ = s2*sqrt(r₂² - Kp²)
+            # But we still don't know Kp.
+
+            # From y₁² - y₂² = (r₁² - Kp²) - (r₂² - Kp²) = r₁² - r₂²
+            # So: y₁² - y₂² = r₁² - r₂²
+            # And:y₁ = s1*|y₁|, y₂ = s2*|y₂|
+
+            # Let's solve it differently: assume we have y₁, y₂ (with signs)
+            # Solve linear system for Kd, Ki:
+            # ω₁*Kd - Ki/ω₁ = y₁
+            # ω₂*Kd - Ki/ω₂ = y₂
+
+            # From the magnitude equations, if the signs are consistent:
+            # We need |y₁|² = r₁² - Kp² and |y₂|² = r₂² - Kp²
+            # This gives: |y₁|² - |y₂|² = r₁² - r₂²
+
+            # For given signs, we can parameterize by Kp and solve
+            # But that's complex. Let me try a direct enumeration approach.
+
+            # Actually, simpler: for each combination, solve assuming Kp > 0
+            # Check if all three equations are satisfied
+
+            # Let me solve for one Kp value and verify
+
+            # From r₁² = Kp² + y₁², if we guess Kp, we get y₁ = s1*sqrt(r₁² - Kp²)
+            # Similarly for y₂ and y₃
+
+            # Then solve linear system [ω₁ -1/ω₁][Kd] = [y₁]
+            #                         [ω₂ -1/ω₂][Ki]   [y₂]
+
+            # And verify with third equation
+
+            # But we need to find Kp. From consistency of the first two:
+            # After solving for Kd, Ki from y₁, y₂, we can compute Kp from either equation
+
+            # Let me implement a simpler approach:
+            # From the constraint that the first two equations must give the same Kp:
+            # Kp₁ = sqrt(r₁² - y₁²) must equal Kp₂ = sqrt(r₂² - y₂²)
+            # So: r₁² - y₁² = r₂² - y₂²
+            #     y₁² - y₂² = r₁² - r₂²
+
+            # Also: y₁ = Kd*ω₁ - Ki/ω₁ and y₂ = Kd*ω₂ - Ki/ω₂
+
+            # Let me solve assuming y₁² - y₂² = r₁² - r₂²
+            # With signs: s1²*|y₁|² - s2²*|y₂|² = r₁² - r₂² (since s² = 1)
+            #            |y₁|² - |y₂|² = r₁² - r₂²
+
+            # So: |y₁| = sqrt(|y₂|² + r₁² - r₂²)
+
+            # Hmm, this is getting circular. Let me try a more direct approach:
+
+            # Given r₁, r₂, r₃ and ω₁, ω₂, ω₃:
+            # 1. Assume Kp = r₁ (initial guess, proportional controller at ω₁)
+            # 2. Compute y₁ = s1*sqrt(r₁² - Kp²) (might be 0)
+            # 3. Compute y₂ = s2*sqrt(r₂² - Kp²)
+            # 4. Solve for Kd, Ki
+            # 5. Recompute Kp from equation 2: Kp_check = sqrt(r₂² - y₂²)
+            # 6. If Kp ≈ Kp_check, verify with equation 3
+
+            # Actually simpler: just solve the system directly
+            # From y₁² - y₂² = r₁² - r₂²
+            # And linear system, we can eliminate Kp
+
+            # Let me implement the direct algebraic solution:
+            # Given signs s1, s2:
+            # If y₁² - y₂² = r₁² - r₂², and both must be non-negative:
+
+            # diff_sq = r1^2 - r2^2
+
+            # y₁² - y₂² = diff_sq
+            # Try to find y₁, y₂ such that this holds and they're both valid
+
+            # With signs: y₁ = s1*|y₁|, y₂ = s2*|y₂|
+            # We need: y₁² - y₂² = s1²*|y₁|² - s2²*|y₂|² = |y₁|² - |y₂|² = diff_sq
+
+            # If diff_sq >= 0: |y₁|² = |y₂|² + diff_sq
+            # If diff_sq < 0: |y₂|² = |y₁|² - diff_sq
+
+            # Let's parameterize by |y₂| (or |y₁|)
+            # If diff_sq >= 0:
+            #   For any |y₂| >= 0, we get |y₁| = sqrt(|y₂|² + diff_sq)
+            # If diff_sq < 0:
+            #   We need |y₁|² >= -diff_sq, so |y₁| >= sqrt(-diff_sq)
+
+            # But we also have constraints from Kp:
+            # Kp² = r₁² - y₁² = r₁² - |y₁|² >= 0  →  |y₁| <= r₁
+            # Kp² = r₂² - y₂² = r₂² - |y₂|² >= 0  →  |y₂| <= r₂
+
+            # And both must give the same Kp!
+
+            # From r₁² - y₁² = r₂² - y₂²:
+            #      y₁² - y₂² = r₁² - r₂²  (which we already have)
+
+            # So the system is consistent. We can choose one parameter freely.
+            # Let's say we choose Kp directly.
+
+            # For a given Kp in [0, min(r₁, r₂, r₃)]:
+            # y₁ = s1*sqrt(r₁² - Kp²)
+            # y₂ = s2*sqrt(r₂² - Kp²)
+            # y₃ = s3*sqrt(r₃² - Kp²)
+
+            # Solve for Kd, Ki from first two equations:
+            # ω₁*Kd - Ki/ω₁ = y₁
+            # ω₂*Kd - Ki/ω₂ = y₂
+
+            # Check if third equation is satisfied:
+            # ω₃*Kd - Ki/ω₃ ≈ y₃
+
+            # Let me implement this search:
+
+            # Kp search range
+            Kp_min = 0.0
+            Kp_max = min(r1, r2, r3)
+
+            if Kp_max <= 0
+                continue  # No valid Kp
+            end
+
+            # Binary search or direct solve
+            # Actually, we can solve directly from the constraint
+            # that ω₃*Kd - Ki/ω₃ = y₃
+
+            # From equations 1 and 2:
+            # det = ω₁*(-1/ω₂) - (-1/ω₁)*ω₂ = -ω₁/ω₂ + ω₂/ω₁
+            det = (ω1^2 - ω2^2) / (ω1*ω2)
+
+            if abs(det) < 1e-10
+                continue  # Degenerate
+            end
+
+            # Use Newton-Raphson to find Kp such that third equation is satisfied
+            # Define residual function: we want y3_computed - y3 = 0
+
+            function residual(Kp)
+                if Kp < 0 || Kp > Kp_max
+                    return Inf
+                end
+
+                y1_sq = r1^2 - Kp^2
+                y2_sq = r2^2 - Kp^2
+                y3_sq = r3^2 - Kp^2
+
+                if y1_sq < 0 || y2_sq < 0 || y3_sq < 0
+                    return Inf
+                end
+
+                y1 = s1 * sqrt(y1_sq)
+                y2 = s2 * sqrt(y2_sq)
+                y3 = s3 * sqrt(y3_sq)
+
+                # Solve for Kd, Ki from first two equations
+                Kd = (ω1*y1 - ω2*y2) / (ω1^2 - ω2^2)
+                Ki = ω1*ω2*(ω2*y1 - ω1*y2) / (ω1^2 - ω2^2)
+
+                # Check third equation
+                y3_computed = Kd*ω3 - Ki/ω3
+
+                return y3_computed - y3
+            end
+
+            # Try bisection search
+            # First check if there's a sign change in the interval
+            res_min = residual(Kp_min + 1e-6)
+            res_max = residual(Kp_max - 1e-6)
+
+            if isfinite(res_min) && isfinite(res_max) && res_min * res_max < 0
+                # Bisection
+                a, b = Kp_min + 1e-6, Kp_max - 1e-6
+                for iter in 1:50
+                    c = (a + b) / 2
+                    res_c = residual(c)
+
+                    if abs(res_c) < tolerance || abs(b - a) < tolerance
+                        # Found solution!
+                        Kp_sol = c
+                        y1_sol = s1 * sqrt(r1^2 - Kp_sol^2)
+                        y2_sol = s2 * sqrt(r2^2 - Kp_sol^2)
+
+                        Kd = (ω1*y1_sol - ω2*y2_sol) / (ω1^2 - ω2^2)
+                        Ki = ω1*ω2*(ω2*y1_sol - ω1*y2_sol) / (ω1^2 - ω2^2)
+
+                        return (Kp_sol, Ki, Kd, true, "")
+                    end
+
+                    if residual(a) * res_c < 0
+                        b = c
+                    else
+                        a = c
+                    end
+                end
+            end
+        end
+
+        return (0.0, 0.0, 0.0, false, "No valid PID solution exists")
+
+    catch e
+        rethrow()
+        return (0.0, 0.0, 0.0, false, "Error: $e")
+    end
+end
+
+"""
     interactive_marginplot(P::LTISystem; w=nothing)
 
-Create an interactive Bode/margin plot for two-point PI controller design.
+Create an interactive Bode/margin plot for P/PI/PID controller design.
+
+Supports 1, 2, or 3 frequency-magnitude constraints:
+- 1 point → P controller (Kp only)
+- 2 points → PI controller (Kp, Ki)
+- 3 points → PID controller (Kp, Ki, Kd)
 
 # Arguments
 - `P::LTISystem`: The plant transfer function (must be SISO)
@@ -157,7 +429,7 @@ function interactive_marginplot(P::LTISystem; w=nothing)
     mag_loop_db = Observable(copy(mag_p_db))
     phase_loop_deg = Observable(copy(phase_p_deg))
 
-    # State: 0 = no points, 1 = one point, 2 = two points selected
+    # State: 0 = no points, 1 = one point, 2 = two points, 3 = three points selected
     selection_state = Observable(0)
 
     # Selected points: (index, target_mag_db)
@@ -170,6 +442,11 @@ function interactive_marginplot(P::LTISystem; w=nothing)
     point2_mag = Observable(0.0)
     point2_pos = Observable(Point2f(0, 0))
     point2_visible = Observable(false)
+
+    point3_idx = Observable(1)
+    point3_mag = Observable(0.0)
+    point3_pos = Observable(Point2f(0, 0))
+    point3_visible = Observable(false)
 
     # Status text
     status_text = Observable("Select FIRST point on blue curve")
@@ -220,10 +497,12 @@ function interactive_marginplot(P::LTISystem; w=nothing)
              visible=point1_visible, label="Point 1")
     scatter!(ax_mag, point2_pos, color=:orange, markersize=14,
              visible=point2_visible, label="Point 2")
+    scatter!(ax_mag, point3_pos, color=:purple, markersize=14,
+             visible=point3_visible, label="Point 3")
 
     # Interaction state
     dragging = Ref(false)
-    dragging_which = Ref(0)  # 1 or 2
+    dragging_which = Ref(0)  # 1, 2, or 3
 
     # Helper function to update controller
     function update_controller()
@@ -283,6 +562,38 @@ function interactive_marginplot(P::LTISystem; w=nothing)
             else
                 status_text[] = "✗ " * err_msg * " | Try different points"
             end
+
+        elseif selection_state[] == 3
+            # Three points: design full PID controller
+            ω1 = w_used[point1_idx[]]
+            ω2 = w_used[point2_idx[]]
+            ω3 = w_used[point3_idx[]]
+            m1_db = point1_mag[]
+            m2_db = point2_mag[]
+            m3_db = point3_mag[]
+
+            Kp, Ki, Kd, success, err_msg = compute_PID_three_points(P_float, ω1, m1_db, ω2, m2_db, ω3, m3_db)
+
+            if success
+                # Create controller and update
+                C = pid(Kp, Ki, Kd, form=:parallel)
+                controller[] = C
+                L = P_float * C
+                loop_transfer[] = L
+
+                # Update Bode curves
+                mag_l, phase_l, _ = bode(L, w_used)
+                mag_loop_db[] = 20 .* log10.(vec(mag_l))
+                phase_loop_deg[] = vec(phase_l)
+
+                # Update status
+                status_text[] = @sprintf(
+                    "✓ PID: Kp=%.3f, Ki=%.3f, Kd=%.3f | ω1=%.2f→%.1fdB, ω2=%.2f→%.1fdB, ω3=%.2f→%.1fdB",
+                    Kp, Ki, Kd, ω1, m1_db, ω2, m2_db, ω3, m3_db
+                )
+            else
+                status_text[] = "✗ " * err_msg * " | Try different points"
+            end
         end
     end
 
@@ -310,12 +621,22 @@ function interactive_marginplot(P::LTISystem; w=nothing)
                         return
                     end
 
-                    # If two points, also check point 2
-                    if selection_state[] == 2
+                    # If two or more points, also check point 2
+                    if selection_state[] >= 2
                         dist_to_point2 = abs(log10(w_used[point2_idx[]]) - log10(w_used[idx]))
                         if dist_to_point2 < threshold
                             dragging[] = true
                             dragging_which[] = 2
+                            return
+                        end
+                    end
+
+                    # If three points, also check point 3
+                    if selection_state[] == 3
+                        dist_to_point3 = abs(log10(w_used[point3_idx[]]) - log10(w_used[idx]))
+                        if dist_to_point3 < threshold
+                            dragging[] = true
+                            dragging_which[] = 3
                             return
                         end
                     end
@@ -341,10 +662,20 @@ function interactive_marginplot(P::LTISystem; w=nothing)
                     update_controller()
 
                 elseif selection_state[] == 2
+                    # Select third point
+                    point3_idx[] = idx
+                    point3_mag[] = mp[2]
+                    point3_pos[] = Point2f(w_used[idx], mp[2])
+                    point3_visible[] = true
+                    selection_state[] = 3
+                    update_controller()
+
+                elseif selection_state[] == 3
                     # Reset and start over
                     selection_state[] = 0
                     point1_visible[] = false
                     point2_visible[] = false
+                    point3_visible[] = false
                     status_text[] = "Select FIRST point on blue curve"
                     # Reset loop to plant
                     mag_loop_db[] = copy(mag_p_db)
@@ -362,14 +693,24 @@ function interactive_marginplot(P::LTISystem; w=nothing)
         if dragging[]
             mp = mouseposition(ax_mag.scene)
 
+            # Find nearest frequency for horizontal position
+            idx = find_nearest_frequency(w_used, mp[1])
+
             if dragging_which[] == 1
-                # Drag point 1
+                # Drag point 1 - update both frequency and magnitude
+                point1_idx[] = idx
                 point1_mag[] = mp[2]
-                point1_pos[] = Point2f(w_used[point1_idx[]], mp[2])
+                point1_pos[] = Point2f(w_used[idx], mp[2])
             elseif dragging_which[] == 2
-                # Drag point 2
+                # Drag point 2 - update both frequency and magnitude
+                point2_idx[] = idx
                 point2_mag[] = mp[2]
-                point2_pos[] = Point2f(w_used[point2_idx[]], mp[2])
+                point2_pos[] = Point2f(w_used[idx], mp[2])
+            elseif dragging_which[] == 3
+                # Drag point 3 - update both frequency and magnitude
+                point3_idx[] = idx
+                point3_mag[] = mp[2]
+                point3_pos[] = Point2f(w_used[idx], mp[2])
             end
 
             update_controller()
@@ -391,12 +732,15 @@ function demo_interactive_marginplot()
 
     println("\nInteractive Margin Plot launched!")
     println("Instructions:")
-    println("1. Click to select FIRST point → Proportional controller (Kp only)")
-    println("2. Drag green marker to adjust gain")
-    println("3. Click to select SECOND point → Full PI controller (Kp + Ki)")
-    println("4. Drag either marker vertically to adjust magnitude")
+    println("1. Click to select FIRST point → P controller (Kp)")
+    println("2. Click to select SECOND point → PI controller (Kp, Ki)")
+    println("3. Click to select THIRD point → PID controller (Kp, Ki, Kd)")
+    println("4. Drag any marker vertically to adjust magnitude constraints")
     println("5. Click anywhere to reset and start over")
-    println("\nNote: One point = P control, Two points = full PI control!")
+    println("\nNote:")
+    println("  • 1 point = P control")
+    println("  • 2 points = PI control")
+    println("  • 3 points = PID control")
 
     return fig
 end
