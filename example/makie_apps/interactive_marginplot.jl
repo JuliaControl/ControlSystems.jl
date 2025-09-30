@@ -451,6 +451,16 @@ function interactive_marginplot(P::LTISystem; w=nothing)
     # Status text
     status_text = Observable("Select FIRST point on blue curve")
 
+    # Margin indicators (initially nothing)
+    gm_freq = Observable(NaN)  # Frequency where phase = -180°
+    gm_mag = Observable(NaN)   # Magnitude at that frequency (dB)
+    gm_value = Observable(NaN) # Gain margin in dB
+    gm_text_str = Observable("")
+    pm_freq = Observable(NaN)  # Frequency where magnitude = 0 dB
+    pm_phase = Observable(NaN) # Phase at that frequency (deg)
+    pm_value = Observable(NaN) # Phase margin in degrees
+    pm_text_str = Observable("")
+
     # Create figure with two vertically stacked axes
     fig = Figure(size=(1000, 900))
 
@@ -492,6 +502,28 @@ function interactive_marginplot(P::LTISystem; w=nothing)
     axislegend(ax_mag, position=:lb)
     axislegend(ax_phase, position=:lb)
 
+    # Gain margin indicators (line segment from curve to 0 dB)
+    gm_line_mag = lines!(ax_mag,
+        @lift([Point2f($gm_freq, $gm_mag), Point2f($gm_freq, 0.0)]),
+        color=:darkgreen, linewidth=2, linestyle=:dot)
+
+    # Phase margin indicators (line segment from curve to -180°)
+    pm_line_phase = lines!(ax_phase,
+        @lift([Point2f($pm_freq, $pm_phase), Point2f($pm_freq, -180.0)]),
+        color=:darkblue, linewidth=2, linestyle=:dot)
+
+    # Text labels for margins
+    text!(ax_mag, @lift(Point2f($gm_freq, $gm_mag - 5)),
+          text=gm_text_str, color=:darkgreen, fontsize=12)
+    text!(ax_phase, @lift(Point2f($gm_freq, -180.0)),
+          text=@lift(isnan($gm_freq) ? "" : string("GM freq=", round($gm_freq, digits=2))),
+          color=:darkgreen, fontsize=10, align=(:left, :bottom))
+    text!(ax_mag, @lift(Point2f($pm_freq, 5.0)),
+          text=pm_text_str, color=:darkblue, fontsize=10, align=(:left, :top))
+    text!(ax_phase, @lift(Point2f($pm_freq, $pm_phase + 5)),
+          text=@lift(isnan($pm_freq) ? "" : string("PM=", round($pm_value, digits=1), "°")),
+          color=:darkblue, fontsize=12)
+
     # Interactive markers
     scatter!(ax_mag, point1_pos, color=:green, markersize=14,
              visible=point1_visible, label="Point 1")
@@ -503,6 +535,66 @@ function interactive_marginplot(P::LTISystem; w=nothing)
     # Interaction state
     dragging = Ref(false)
     dragging_which = Ref(0)  # 1, 2, or 3
+
+    # Helper function to compute and update margins
+    function update_margins(mag_db, phase_deg, w)
+        # Find gain margin: magnitude at frequency where phase = -180°
+        # Phase crossover frequency
+        phase_cross_idx = findfirst(i -> i > 1 &&
+            (phase_deg[i] <= -180 && phase_deg[i-1] > -180),
+            eachindex(phase_deg))
+
+        if phase_cross_idx !== nothing
+            # Interpolate to find exact frequency
+            idx = phase_cross_idx
+            if idx > 1
+                # Linear interpolation
+                f1, f2 = w[idx-1], w[idx]
+                p1, p2 = phase_deg[idx-1], phase_deg[idx]
+                m1, m2 = mag_db[idx-1], mag_db[idx]
+
+                # Interpolate frequency where phase = -180
+                t = (-180 - p1) / (p2 - p1)
+                gm_freq[] = f1 * (1 - t) + f2 * t
+                gm_mag[] = m1 * (1 - t) + m2 * t
+                gm_value[] = -gm_mag[]  # GM in dB (positive means stable)
+                gm_text_str[] = string("GM=", round(gm_value[], digits=1), "dB")
+            end
+        else
+            gm_freq[] = NaN
+            gm_mag[] = NaN
+            gm_value[] = NaN
+            gm_text_str[] = ""
+        end
+
+        # Find phase margin: phase at frequency where magnitude = 0 dB
+        # Gain crossover frequency
+        gain_cross_idx = findfirst(i -> i > 1 &&
+            (mag_db[i] <= 0 && mag_db[i-1] > 0),
+            eachindex(mag_db))
+
+        if gain_cross_idx !== nothing
+            idx = gain_cross_idx
+            if idx > 1
+                # Linear interpolation
+                f1, f2 = w[idx-1], w[idx]
+                m1, m2 = mag_db[idx-1], mag_db[idx]
+                p1, p2 = phase_deg[idx-1], phase_deg[idx]
+
+                # Interpolate frequency where magnitude = 0
+                t = (0 - m1) / (m2 - m1)
+                pm_freq[] = f1 * (1 - t) + f2 * t
+                pm_phase[] = p1 * (1 - t) + p2 * t
+                pm_value[] = pm_phase[] + 180  # PM in degrees
+                pm_text_str[] = string("PM freq=", round(pm_freq[], digits=2))
+            end
+        else
+            pm_freq[] = NaN
+            pm_phase[] = NaN
+            pm_value[] = NaN
+            pm_text_str[] = ""
+        end
+    end
 
     # Helper function to update controller
     function update_controller()
@@ -526,6 +618,9 @@ function interactive_marginplot(P::LTISystem; w=nothing)
             mag_l, phase_l, _ = bode(L, w_used)
             mag_loop_db[] = 20 .* log10.(vec(mag_l))
             phase_loop_deg[] = vec(phase_l)
+
+            # Update margins
+            update_margins(mag_loop_db[], phase_loop_deg[], w_used)
 
             # Update status
             status_text[] = @sprintf(
@@ -553,6 +648,9 @@ function interactive_marginplot(P::LTISystem; w=nothing)
                 mag_l, phase_l, _ = bode(L, w_used)
                 mag_loop_db[] = 20 .* log10.(vec(mag_l))
                 phase_loop_deg[] = vec(phase_l)
+
+                # Update margins
+                update_margins(mag_loop_db[], phase_loop_deg[], w_used)
 
                 # Update status
                 status_text[] = @sprintf(
@@ -585,6 +683,9 @@ function interactive_marginplot(P::LTISystem; w=nothing)
                 mag_l, phase_l, _ = bode(L, w_used)
                 mag_loop_db[] = 20 .* log10.(vec(mag_l))
                 phase_loop_deg[] = vec(phase_l)
+
+                # Update margins
+                update_margins(mag_loop_db[], phase_loop_deg[], w_used)
 
                 # Update status
                 status_text[] = @sprintf(
