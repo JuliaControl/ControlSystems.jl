@@ -127,8 +127,8 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
         Q = Matrix(F.Q)
     catch e
         # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
-        e isa Union{MethodError, ErrorException} && return freqresp_nohess!(R, sys, w_vec)
-        # ErrorException appears if we try to access Q on a type which does not have Q as a field or property, notably HessenbergFactorization from GenericLinearAlgebra
+        (e isa @static VERSION < v"1.12" ? Union{MethodError, ErrorException} : Union{MethodError, ErrorException, FieldError}) && return freqresp_nohess!(R, sys, w_vec)
+        # ErrorException appears if we try to access Q on a type which does not have Q as a field or property, notably HessenbergFactorization from GenericLinearAlgebra, on julia v1.12, this is instead a FieldError
         rethrow()
     end
     A = F.H
