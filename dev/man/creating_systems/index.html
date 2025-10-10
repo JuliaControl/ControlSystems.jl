@@ -185,18 +185,18 @@ mimo = ssrand(2,2,2)
 @test_throws DimensionMismatch siso * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr32"><span class="sgr1">Test Passed</span></span>
       Thrown: DimensionMismatch</code></pre><p>To multiply <code>siso</code> with each output channel of <code>mimo</code> in the example above, use broadcasting:</p><pre><code class="language-julia hljs">siso .* mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -1.0   0.0  -1.8916015356158355    0.0008131245566711027
-  0.0  -1.0  -1.2531127016246626   -0.19251729758477604
-  0.0   0.0  -0.5089870520890936   -1.0044537495803822
-  0.0   0.0  -0.18604095643922045  -0.5015970481755003
+ -1.0   0.0  -1.2505382936320015    0.22690864216353002
+  0.0  -1.0   1.689911850603968    -1.2042358505938195
+  0.0   0.0  -1.2294916235614268   -0.3159804491977129
+  0.0   0.0  -0.14998495387233113  -0.09532560877788188
 B = 
-  0.6895772496420843  -0.8371914571942803
-  0.6332915506856357  -0.02673800965499239
- -0.3689333155658233   2.6007969600773095
- -1.0556996024097633  -0.5561355441373734
+ -2.0631277102687537    -1.6473270026970857
+  0.009178112646953937  -1.1282418053087382
+ -2.9622379186165437    -0.6269332464319659
+  1.1319689120616072     0.07211544658313807
 C = 
- 1.0  0.0  -0.0  0.0
- 0.0  1.0  -0.0  0.0
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
 D = 
  0.0  -0.0
  0.0  -0.0
@@ -204,18 +204,18 @@ D =
 Continuous-time state-space model</code></pre><p>This is equivalent to first expanding the SISO system into a diagonal system</p><pre><code class="language-julia hljs">using LinearAlgebra
 (siso .* I(2)) * mimo</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -1.0   0.0  -1.8916015356158355    0.0008131245566711027
-  0.0  -1.0  -1.2531127016246626   -0.19251729758477604
-  0.0   0.0  -0.5089870520890936   -1.0044537495803822
-  0.0   0.0  -0.18604095643922045  -0.5015970481755003
+ -1.0   0.0  -1.2505382936320015    0.22690864216353002
+  0.0  -1.0   1.689911850603968    -1.2042358505938195
+  0.0   0.0  -1.2294916235614268   -0.3159804491977129
+  0.0   0.0  -0.14998495387233113  -0.09532560877788188
 B = 
-  0.6895772496420843  -0.8371914571942803
-  0.6332915506856357  -0.02673800965499239
- -0.3689333155658233   2.6007969600773095
- -1.0556996024097633  -0.5561355441373734
+ -2.0631277102687537    -1.6473270026970857
+  0.009178112646953937  -1.1282418053087382
+ -2.9622379186165437    -0.6269332464319659
+  1.1319689120616072     0.07211544658313807
 C = 
- 1.0  0.0  -0.0  0.0
- 0.0  1.0  -0.0  0.0
+ 1.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0
 D = 
  0.0  -0.0
  0.0  -0.0
@@ -224,17 +224,17 @@ Continuous-time state-space model</code></pre><h3 id="Converting-an-array-of-sys
 P2 = ssrand(1,1,1)
 append(P1, P2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Float64}
 A = 
- -0.7155760908706825   0.0
-  0.0                 -0.8129843312913904
+ -0.26899266089204893   0.0
+  0.0                  -0.005366642618012334
 B = 
- 1.0393910720492328  0.0
- 0.0                 0.45979927600490544
+ -0.5495518495561557   0.0
+  0.0                 -2.1305848708535633
 C = 
- 0.3579901325556084   0.0
- 0.0                 -1.974051539884936
+ 0.019377687220455866   0.0
+ 0.0                   -0.23159745368699206
 D = 
- -0.7253840358175502  0.0
-  0.0                 1.4022231260445666
+ 0.7682382456542317   0.0
+ 0.0                 -1.166304633401258
 
 Continuous-time state-space model</code></pre><p>More general arrays of systems can be converted to a MIMO system using <a href="../../lib/synthesis/#ControlSystemsBase.array2mimo-Tuple{AbstractArray{&lt;:LTISystem}}"><code>array2mimo</code></a>.</p><pre><code class="language-julia hljs">sys_array = fill(P, 2, 2) # Creates an array of systems
 mimo_sys = array2mimo(sys_array)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">StateSpace{Continuous, Int64}
@@ -259,44 +259,44 @@ Continuous-time state-space model</code></pre><h3 id="Converting-MIMO-system-to-
 sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)&#39;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2×3 Matrix{StateSpace{Continuous, Float64}}:
  StateSpace{Continuous, Float64}
 A = 
- -0.5949842671065951
+ -1.2013124740682795
 B = 
- 0.10662938934603755
+ 0.1778781025345889
 C = 
- 0.5071772721230181
+ -0.6940835452544953
 D = 
- 0.19663045579227592
+ -0.3250481850808776
 
-Continuous-time state-space model      …  StateSpace{Continuous, Float64}
+Continuous-time state-space model  …  StateSpace{Continuous, Float64}
 A = 
- -0.5949842671065951
+ -1.2013124740682795
 B = 
- -1.8283181909432038
+ 0.38309707248620334
 C = 
- 0.5071772721230181
+ -0.6940835452544953
 D = 
- -0.8746052324765485
+ 0.22886070404704514
 
 Continuous-time state-space model
  StateSpace{Continuous, Float64}
 A = 
- -0.5949842671065951
+ -1.2013124740682795
 B = 
- 0.10662938934603755
+ 0.1778781025345889
 C = 
- -0.0023989355615613855
+ -0.4465319012580799
 D = 
- -0.7718461022336535
+ 1.09651717513617
 
-Continuous-time state-space model     StateSpace{Continuous, Float64}
+Continuous-time state-space model        StateSpace{Continuous, Float64}
 A = 
- -0.5949842671065951
+ -1.2013124740682795
 B = 
- -1.8283181909432038
+ 0.38309707248620334
 C = 
- -0.0023989355615613855
+ -0.4465319012580799
 D = 
- 1.0557143678993572
+ -0.015971284098490933
 
 Continuous-time state-space model</code></pre><h2 id="Demo-systems"><a class="docs-heading-anchor" href="#Demo-systems">Demo systems</a><a id="Demo-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Demo-systems" title="Permalink"></a></h2><p>The module <code>ControlSystemsBase.DemoSystems</code> contains a number of demo systems demonstrating different kinds of dynamics.</p><h2 id="From-block-diagrams-to-code"><a class="docs-heading-anchor" href="#From-block-diagrams-to-code">From block diagrams to code</a><a id="From-block-diagrams-to-code-1"></a><a class="docs-heading-anchor-permalink" href="#From-block-diagrams-to-code" title="Permalink"></a></h2><p>This section lists a number of block diagrams, and indicates the corresponding transfer functions and how they are built in code.</p><p>The function <code>feedback(G1, G2)</code> can be thought of like this: the first argument <code>G1</code> is the system that appears directly between the input and the output (the <em>forward path</em>), while the second argument <code>G2</code> (defaults to 1 if omitted) contains all other systems that appear in the closed loop (the <em>feedback path</em>). The feedback is assumed to be negative, unless the argument <code>pos_feedback = true</code> is passed (<code>lft</code> is an exception, which due to convention defaults to positive feedback). This means that <code>feedback(G, 1)</code> results in unit negative feedback, while <code>feedback(G, -1)</code> or <code>feedback(G, 1, pos_feedback = true)</code> results in unit positive feedback.</p><p>The returned closed-loop system will have a state vector comprised of the state of <code>G1</code> followed by the state of <code>G2</code>.</p><hr/><p>Closed-loop system from reference to output</p><pre><code class="nohighlight hljs">    ┌─────┐     ┌─────┐
 r   │     │  u  │     │ y
@@ -402,7 +402,7 @@ fs = 100
 df = digitalfilter(Bandpass(5, 10), Butterworth(2); fs)
 G = tf(df, 1/fs) # Sample time must be provided in the conversion to get the correct frequency scale in the Bode plot
 bodeplot(G, xscale=:identity, yscale=:identity, hz=true, adaptive=false)
-vline!([5 10], l=(:black, :dash), label=&quot;Band-pass limits&quot;, sp=1)</code></pre><img src="12b83df2.svg" alt="Example block output"/><p>See also</p><ul><li><a href="../../lib/constructors/#ControlSystemsBase.seriesform"><code>ControlSystemsBase.seriesform</code></a></li></ul><h2 id="Open-loop-in-terms-of-closed-loop"><a class="docs-heading-anchor" href="#Open-loop-in-terms-of-closed-loop">Open loop in terms of closed loop</a><a id="Open-loop-in-terms-of-closed-loop-1"></a><a class="docs-heading-anchor-permalink" href="#Open-loop-in-terms-of-closed-loop" title="Permalink"></a></h2><p>The following identities are useful when solving for open-loop transfer functions in terms of closed-loop transfer functions. This is relevant, e.g., when system identification has to be performed in closed-loop.</p><p class="math-container">\[\begin{aligned}
+vline!([5 10], l=(:black, :dash), label=&quot;Band-pass limits&quot;, sp=1)</code></pre><img src="6c2fc310.svg" alt="Example block output"/><p>See also</p><ul><li><a href="../../lib/constructors/#ControlSystemsBase.seriesform"><code>ControlSystemsBase.seriesform</code></a></li></ul><h2 id="Open-loop-in-terms-of-closed-loop"><a class="docs-heading-anchor" href="#Open-loop-in-terms-of-closed-loop">Open loop in terms of closed loop</a><a id="Open-loop-in-terms-of-closed-loop-1"></a><a class="docs-heading-anchor-permalink" href="#Open-loop-in-terms-of-closed-loop" title="Permalink"></a></h2><p>The following identities are useful when solving for open-loop transfer functions in terms of closed-loop transfer functions. This is relevant, e.g., when system identification has to be performed in closed-loop.</p><p class="math-container">\[\begin{aligned}
 L_o &amp;= PC \\
 L_i &amp;= CP \\
 L_x &amp;= S_x^{-1} - I \\
