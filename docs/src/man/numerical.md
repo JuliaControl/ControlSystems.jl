@@ -139,4 +139,4 @@ For discrete-time systems, the function [`lsim!`](@ref) accepts a pre-allocated 
 If you are only interested in the simulated outputs, not the state trajectories, you may consider applying balancing to the statespace model using [`balance_statespace`](@ref) before simulating, see the section on [State-space balancing](@ref) above. If the state trajectories are of interest, balancing can still be performed before simulation, and the inverse transformation applied to the state trajectories after simulation.
 
 ## Static arrays in StateSpace systems
-The special statespace system type [HeteroStateSapce](@ref) can be used to store statespace models with static arrays rather than the default matrix type `Matrix`. See [State-Space Systems](@ref) for more details.
+The special statespace system type [HeteroStateSpace](@ref) can be used to store statespace models with static arrays rather than the default matrix type `Matrix`. See [State-Space Systems](@ref) for more details.

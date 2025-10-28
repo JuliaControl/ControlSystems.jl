@@ -66,7 +66,7 @@ The JuliaControl and surrounding ecosystem contains a few additional packages th
 - [ControlSystemIdentification.jl](https://github.com/baggepinnen/ControlSystemIdentification.jl) is a system-identification toolbox for identification of LTI systems using either time or frequency-domain data. This package can use data to estimate statespace models, transfer-function models and Kalman filters that can be used for control design.
 - [ControlSystemsMTK.jl](https://juliacontrol.github.io/ControlSystemsMTK.jl/dev/) is an interface between ControlSystems.jl and [ModelingToolkit.jl](https://mtk.sciml.ai/stable/).
 - [DiscretePIDs.jl](https://github.com/JuliaControl/DiscretePIDs.jl) contains a reference implementation in Julia of a discrete-time PID controller including set-point weighting, integrator anti-windup, derivative filtering and bumpless transfer.
-- [IterativeLearningControl2.jl]([IterativeLearningControl2.jl](https://baggepinnen.github.io/IterativeLearningControl2.jl/dev/)) Implementations of several different ILC algorithms with a unified interface.
+- [IterativeLearningControl2.jl](https://baggepinnen.github.io/IterativeLearningControl2.jl/dev/) Implementations of several different ILC algorithms with a unified interface.
 
 See also [the paper](https://portal.research.lu.se/en/publications/controlsystemsjl-a-control-toolbox-in-julia) describing the toolbox
 
