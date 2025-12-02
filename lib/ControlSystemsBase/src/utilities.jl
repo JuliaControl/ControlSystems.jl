@@ -155,10 +155,11 @@ the output tuple should be flattened. If the function only has a single output i
 (not a tuple with a single item) it should be called as `@autovec () f() = ...`.
 `f()` is the original function and `fv()` will be the version with flattened outputs.
 """
-macro autovec(indices, f)
+macro autovec(indices0, f)
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
-    indices = eval(indices)
+    MacroTools.@capture indices0 (inds__,)
+    indices = inds
 
     # If indices is empty it means we vec the entire return value
     if length(indices) == 0
