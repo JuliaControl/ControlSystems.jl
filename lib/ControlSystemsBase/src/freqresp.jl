@@ -463,7 +463,7 @@ sys = ss([-1 0; 0 -2], [1 0; 0 1], [1 1; 0 1], 0)
 sv, w = sigma(sys)
 ```
 """ 
-@autovec (1) function sigma(sys::LTISystem, w::AbstractVector)
+@autovec (1,) function sigma(sys::LTISystem, w::AbstractVector)
     resp = freqresp(sys, w)
     ny, nu = size(sys)
     if ny == 1 || nu == 1 # Shortcut available
@@ -476,7 +476,7 @@ sv, w = sigma(sys)
     end
     return sv, w
 end
-@autovec (1) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
+@autovec (1,) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
 
 function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false)
     if adaptive
