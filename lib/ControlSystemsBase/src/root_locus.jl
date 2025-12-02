@@ -1,4 +1,3 @@
-const Polynomials = ControlSystemsBase.Polynomials
 import ControlSystemsBase.RootLocusResult
 @userplot Rlocusplot
 
