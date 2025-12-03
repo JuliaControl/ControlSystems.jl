@@ -1020,3 +1020,12 @@ end
 function observer_filter(sys::AbstractStateSpace{Continuous}, K::AbstractMatrix; kwargs...)
     observer_predictor(sys, K; kwargs...)
 end
+
+function LinearAlgebra.det(sys::LTISystem)
+    sys = deepcopy(sys)
+    arrayofsys = getindex.(Ref(sys), 1:sys.ny, (1:sys.nu)')
+    if sys isa AbstractStateSpace
+        @. arrayofsys = sminreal(arrayofsys)
+    end
+    LinearAlgebra.det_bareiss!(arrayofsys)
+end

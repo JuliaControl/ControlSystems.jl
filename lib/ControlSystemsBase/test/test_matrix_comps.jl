@@ -11,6 +11,12 @@ sysr, G = balreal(sys)
 @test gram(sysr, :o) ≈ diagm(G)
 @test sort(poles(sysr), by=real) ≈ sort(poles(sys), by=real)
 
+@testset "det" begin
+    detsys = det(sys)
+    w = 0.1
+    @test freqresp(detsys, w)[1] ≈ det(freqresp(sys, w))
+end
+
 sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test similarity_transform(sysb, T) ≈ sys
 Ab,Bb,Cb,T = ControlSystemsBase.balance_statespace(A,B,C)

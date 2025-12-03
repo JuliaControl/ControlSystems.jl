@@ -265,6 +265,10 @@ Base.zero(sys::AbstractStateSpace) = basetype(sys)(zero(sys.D), sys.timeevol)
 Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
 Base.zero(::Type{StateSpace{D, F}}) where {D<:Discrete, F} = ss([zero(F)], undef_sampletime(D))
 
+# one is a multiplicative identity, which can be set to the one of the element type. This is different from oneunit which should be of the same type.
+Base.one(::Type{StateSpace{TE, T}}) where {TE, T} = Base.one(T)
+
+
 function +(s1::ST, s2::ST) where {ST <: AbstractStateSpace}
     #Ensure systems have same dimensions
     if size(s1) != size(s2)
