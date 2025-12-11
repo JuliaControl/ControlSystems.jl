@@ -45,14 +45,16 @@ end
 
 function count_eigval_multiplicity(p, location, e=eps(maximum(abs, p, init=0.0))) # The init is to handle poor type inference with exotic number types
     n = length(p)
-    n == 0 && return 0
+    tol = zero(e)
+    n == 0 && return (0, tol)
     for i = 1:n
         # if we count i poles within the circle assuming i integrators, we return i
-        if count(p->abs(p-location) < (e^(1/i)), p) == i
-            return i
+        tol = e^(1/i)
+        if count(p->abs(p-location) < tol, p) == i
+            return (i, tol)
         end
     end
-    0
+    (0, tol)
 end
 
 """
@@ -65,7 +67,7 @@ See also [`integrator_excess`](@ref).
 function count_integrators(P::LTISystem)
     p = poles(P)
     location = iscontinuous(P) ? 0 : 1
-    count_eigval_multiplicity(p, location)
+    count_eigval_multiplicity(p, location)[1]
 end
 
 """
@@ -79,7 +81,18 @@ function integrator_excess(P::LTISystem)
     p = poles(P)
     z = tzeros(P)
     location = iscontinuous(P) ? 0 : 1
-    count_eigval_multiplicity(p, location) - count_eigval_multiplicity(z, location)
+    np, tolp = count_eigval_multiplicity(p, location)
+    nz, tolz = count_eigval_multiplicity(z, location)
+    np - nz
+end
+
+function integrator_excess_with_tol(P::LTISystem)
+    p = poles(P)
+    z = tzeros(P)
+    location = iscontinuous(P) ? 0 : 1
+    np, tolp = count_eigval_multiplicity(p, location)
+    nz, tolz = count_eigval_multiplicity(z, location)
+    np - nz, p, z, tolp, tolz
 end
 
 
@@ -563,12 +576,14 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
         end
     end
     if adjust_phase_start && isrational(sys)
-        intexcess = integrator_excess(sys)
+        intexcess, p, z, tol = integrator_excess_with_tol(sys)
+        n_unstable_poles = count(real(p) > tol for p in p)
         if intexcess != 0
             # Snap phase so that it starts at -90*intexcess
             nineties = round(Int, phase[1] / 90)
             adjust = ((90*(-intexcess-nineties)) ÷ 360) * 360
-            pm = pm .+ adjust
+            pm_unstable_adjust = n_unstable_poles*360 # count the number of unstable poles, and remove 360 for each. Be careful with poles that are counted as integrators
+            pm = pm .+ adjust .- pm_unstable_adjust
             phase .+= adjust
             fullPhase = fullPhase .+ adjust
         end
