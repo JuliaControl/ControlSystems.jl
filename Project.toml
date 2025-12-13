@@ -1,8 +1,8 @@
 name = "ControlSystems"
 uuid = "a6e380b2-a6ca-5380-bf3e-84a91bcd477e"
+version = "1.15.1"
 authors = ["Dept. Automatic Control, Lund University"]
 repo = "https://github.com/JuliaControl/ControlSystems.jl.git"
-version = "1.15.1"
 
 [deps]
 ControlSystemsBase = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
@@ -20,7 +20,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-Aqua = "0.5"
+Aqua = "0.5, 0.8"
 ControlSystemsBase = "1.3"
 DelayDiffEq = "5.31"
 DiffEqBase = "6"
