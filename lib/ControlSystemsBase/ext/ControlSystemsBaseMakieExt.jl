@@ -27,8 +27,10 @@ function CSMakie.pzmap(args...; kwargs...)
     fig = Figure()
     CSMakie.pzmap!(fig, args...; kwargs...)
 end
-function CSMakie.pzmap!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}; 
-                       hz=false, kwargs...)
+function CSMakie.pzmap!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}};
+                       hz=false, grid=true,
+                       ζ = [0.1:0.1:0.6; 1/sqrt(2); 0.82; 0.9; 0.96],
+                       ωn=Float64[], kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
     
     ax = Axis(fig[1,1], aspect = DataAspect(),
@@ -50,8 +52,7 @@ function CSMakie.pzmap!(fig, systems::Union{LTISystem, AbstractVector{<:LTISyste
         if !isempty(z)
             scatter!(ax, real(z), imag(z), 
                     marker=:circle, markersize=15, 
-                    color=(:transparent, 0.5), strokewidth=2, 
-                    strokecolor=Cycled(i), label="Zeros")
+                    color=Cycled(i), strokewidth=2, label="Zeros")
         end
         
         # Plot poles as x's
@@ -65,11 +66,53 @@ function CSMakie.pzmap!(fig, systems::Union{LTISystem, AbstractVector{<:LTISyste
         if isdiscrete(system) && i == 1  # Only draw once
             θ = range(0, 2π, length=100)
             circle_scale = scale_factor
-            lines!(ax, circle_scale .* cos.(θ), circle_scale .* sin.(θ), 
+            lines!(ax, circle_scale .* cos.(θ), circle_scale .* sin.(θ),
                   color=:gray, linestyle=:dash, alpha=0.5)
         end
     end
-    
+
+    # Draw damping/frequency grid for continuous-time systems
+    if grid
+        has_continuous = any(iscontinuous, systems_vec)
+        if has_continuous
+            # Compute extent from all poles for scaling
+            all_poles = vcat([poles(s) .* scale_factor for s in systems_vec if iscontinuous(s)]...)
+            if !isempty(all_poles)
+                max_extent = maximum(abs.(all_poles))
+                r_max = max_extent * 1.3
+
+                # Auto-compute ωn values if not provided
+                ωn_vals = isempty(ωn) ? collect(range(0, r_max, length=6)[2:end]) : ωn .* scale_factor
+
+                # Draw constant ζ lines (rays from origin into left half-plane)
+                for ζi in ζ
+                    θ_zeta = acos(clamp(ζi, 0, 1))
+                    # Upper ray (positive imaginary)
+                    lines!(ax, [-r_max * cos(θ_zeta), 0], [r_max * sin(θ_zeta), 0],
+                           color=:gray, linestyle=:dash, alpha=0.4, linewidth=0.5)
+                    # Lower ray (negative imaginary)
+                    lines!(ax, [-r_max * cos(θ_zeta), 0], [-r_max * sin(θ_zeta), 0],
+                           color=:gray, linestyle=:dash, alpha=0.4, linewidth=0.5)
+                    # Label at upper ray endpoint
+                    text!(ax, -r_max * cos(θ_zeta) * 0.95, r_max * sin(θ_zeta) * 0.95,
+                          text = "ζ=$(ζi ≈ 1/sqrt(2) ? "1/√2" : round(ζi, digits=2))", fontsize=8,
+                          color=:gray, align=(:right, :bottom))
+                end
+
+                # Draw constant ωn semicircles (left half-plane only)
+                θ_arc = range(π/2, 3π/2, length=50)
+                for ωni in ωn_vals
+                    lines!(ax, ωni .* cos.(θ_arc), ωni .* sin.(θ_arc),
+                           color=:gray, linestyle=:dot, alpha=0.4, linewidth=0.5)
+                    # Label at top of semicircle
+                    text!(ax, 0, ωni * 1.02,
+                          text = "ωn=$(round(ωni, digits=1))", fontsize=8,
+                          color=:gray, align=(:left, :bottom))
+                end
+            end
+        end
+    end
+
     return fig
 end
 
