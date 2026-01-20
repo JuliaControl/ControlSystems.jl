@@ -429,3 +429,13 @@ ptf  = poles(Gtf)
 ztf  = tzeros(Gtf)
 pzpk = poles(zpk(G))
 zzpk = tzeros(zpk(G))
+
+
+
+## Test isunstable
+using ControlSystemsBase: isunstable
+@test !isunstable(tf(1, [1,1]))
+@test isunstable(tf(1, [1,-1]))
+@test isunstable(tf(1, [1,0,0])) # Double integrator
+@test isunstable(zpk([1], [im, im, -im, -im], 1)) # Repeated pole on imaginary axis not in origin
+@test !isunstable(zpk([1], [im+1e-8im, im, -im-1e-8im, -im], 1)) # Almost repeated pole on imaginary axis not in origin
