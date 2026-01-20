@@ -119,7 +119,7 @@ isstable(sys::LTISystem{<:Discrete}) = all(abs.(poles(sys)) .< 1)
     isunstable(sys)
 
 Returns `true` if `sys` is exponentially unstable, else returns `false`.
-Marginally stable systems (systems with a single integrator) are considered stable by this function, see [`isstable`](@ref) for a function that returns true only for exponentially stable systems.
+Marginally stable systems (systems with a simple poles on the imaginary axis) are considered stable by this function, see [`isstable`](@ref) for a function that returns true only for exponentially stable systems.
 """
 function isunstable(sys::LTISystem)
     inte, p, z, tolp, tolz = integrator_excess_with_tol(sys)
