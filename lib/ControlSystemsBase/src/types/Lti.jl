@@ -107,9 +107,33 @@ common_timeevol(systems::LTISystem...) = common_timeevol(timeevol(sys) for sys i
 """
     isstable(sys)
 
-Returns `true` if `sys` is stable, else returns `false`."""
+Returns `true` if `sys` is stable, else returns `false`.
+
+Marginally stable systems are considered unstable by this function, see [`isunstable`](@ref) for a function that returns true only for exponentially unstable systems, that is, `!isunstable(sys)` implies that `sys` is either stable or marginally stable.
+"""
 isstable(sys::LTISystem{Continuous}) = all(real.(poles(sys)) .< 0)
 isstable(sys::LTISystem{<:Discrete}) = all(abs.(poles(sys)) .< 1)
+
+
+"""
+    isunstable(sys)
+
+Returns `true` if `sys` is exponentially unstable, else returns `false`.
+Marginally stable systems (systems with a simple poles on the imaginary axis) are considered stable by this function, see [`isstable`](@ref) for a function that returns true only for exponentially stable systems.
+"""
+function isunstable(sys::LTISystem)
+    inte, p, z, tolp, tolz = integrator_excess_with_tol(sys)
+    if inte > 1
+        return true
+    end
+    # Go through all poles on the imaginary axis and check if they are duplicated
+    for pi in p
+        abs(real(pi)) > sqrt(sqrt(eps(abs(pi)))) && continue # The pole is too far away to be on the imaginary axis
+        # check if there are multiple poles with this imaginary part
+        count_eigval_multiplicity(p, complex(0.0, imag(pi)))[1] > 1 && return true
+    end
+    return iscontinuous(sys) ? any(real.(p) .> tolp) : any(abs.(p) .> tolp)
+end
 
 # Fallback since LTISystem not AbstractArray
 Base.size(sys::LTISystem, i::Integer) = size(sys)[i]

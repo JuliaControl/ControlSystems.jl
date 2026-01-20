@@ -2,7 +2,7 @@ name = "ControlSystemsBase"
 uuid = "aaaaaaaa-a6ca-5380-bf3e-84a91bcd477e"
 authors = ["Dept. Automatic Control, Lund University"]
 repo = "https://github.com/JuliaControl/ControlSystems.jl.git"
-version = "1.20.1"
+version = "1.20.2"
 
 [deps]
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
@@ -39,7 +39,7 @@ Hungarian = "0.7.0"
 ImplicitDifferentiation = "0.7.2"
 LinearAlgebra = "<0.0.1, 1"
 MacroTools = "0.5"
-Makie = "0.24"
+Makie = "0.22, 0.23, 0.24"
 MatrixEquations = "1, 2.1"
 MatrixPencils = "1.8.3"
 Polynomials = "3.0, 4.0"
