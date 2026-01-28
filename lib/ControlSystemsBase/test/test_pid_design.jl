@@ -57,24 +57,24 @@ Css = pid(1,1,1, Tf=0.1, d = 1, state_space=true)
 @test all(p->imag(p) == 0, poles(Css))
 @test tf(Css) ≈ Ctf
 
-Ctf = pid(1,0,1, Tf=0.1, d = 0.9)
-Css = pid(1,0,1, Tf=0.1, d = 0.9, state_space=true)
+Ctf = pid(1.1,0,1.2, Tf=0.1, d = 0.9)
+Css = pid(1.1,0,1.2, Tf=0.1, d = 0.9, state_space=true)
 @test tf(Css) ≈ Ctf
 
 # test filter order 1
 # All params
-Ctf = pid(1.0, 1, 1, Tf=0.1, filter_order=1)
-Css = pid(1.0, 1, 1, Tf=0.1, filter_order=1, state_space=true)
+Ctf = pid(1.1, 1.2, 1.5, Tf=0.1, filter_order=1)
+Css = pid(1.1, 1.2, 1.5, Tf=0.1, filter_order=1, state_space=true)
 @test freqresptest(Ctf, Css) < 1e-10
 
 # No Ki
-Ctf = pid(1.0, 0, 1, Tf=0.1, filter_order=1)
-Css = pid(1.0, 0, 1, Tf=0.1, filter_order=1, state_space=true)
+Ctf = pid(1.1, 0.2, 1.5, Tf=0.1, filter_order=1)
+Css = pid(1.1, 0.2, 1.5, Tf=0.1, filter_order=1, state_space=true)
 @test freqresptest(Ctf, Css) < 1e-10
 
 # No Kd (no filter either in this case)
-Ctf = pid(1.0, 1, 0, Tf=0.1, filter_order=1)
-Css = pid(1.0, 1, 0, Tf=0.1, filter_order=1, state_space=true)
+Ctf = pid(1.1, 1.2, 0, Tf=0.1, filter_order=1)
+Css = pid(1.1, 1.2, 0, Tf=0.1, filter_order=1, state_space=true)
 @test freqresptest(Ctf, Css) < 1e-10
 
 # bodeplot([Ctf, Css])
