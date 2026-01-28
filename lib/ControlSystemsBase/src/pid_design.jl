@@ -519,6 +519,46 @@ function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standa
     (; C, kp, ki, fig, CF)
 end
 
+function loopshapingPD(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standard, doplot=false, Tf = nothing, F=nothing)
+    issiso(P0) || throw(ArgumentError("P must be SISO"))
+    if F === nothing && Tf !== nothing
+        F = tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
+    end
+    if F !== nothing
+        P = P0*F
+    else
+        P = P0
+    end
+    Pw = freqresp(P, ωp)[]
+    ϕp = angle(Pw)
+    rp = abs.(Pw)
+
+    if phasemargin > 0
+        ϕl == 0 || @warn "Both phasemargin and ϕl provided, the provided value for ϕl will be ignored."
+        ϕl = deg2rad(-180+phasemargin)
+    else
+        ϕl = ϕl == 0 ? ϕp : ϕl
+    end
+    rl = rl == 0 ? rp : rl
+
+    kp = rl/rp*cos(ϕp-ϕl)
+    kd = rl/(rp*ωp)*sin(ϕl-ϕp)
+    C = pid(kp, 0, kd, form=:parallel)
+    CF = F === nothing ? C : C*F
+
+    fig = if doplot
+        w = exp10.(LinRange(log10(ωp)-2, log10(ωp)+2, 500))
+        f1 = gangoffourplot(P0,CF, w)
+        f2 = nyquistplot([P0 * CF, P0], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, show=false, lab=["PC" "P"])
+        RecipesBase.plot!([rl*cos(ϕl)], [rl*sin(ϕl)], lab="Specification point", seriestype=:scatter)
+        RecipesBase.plot(f1, f2)
+    else
+        nothing
+    end
+    kp, _, kd = convert_pidparams_from_parallel(kp, 0, kd, form)
+    (; C, kp, kd, fig, CF)
+end
+
 
 """
     C, kp, ki = placePI(P, ω₀, ζ; form=:standard)
