@@ -235,3 +235,25 @@ res = lsim(nl, (x,t)->2sin(t), 0:0.01:4pi)
 @test minimum(res.y) ≈ -0.6 rtol=1e-3
 @test maximum(res.y) ≈ 1.3 rtol=1e-3
 
+## Hysteresis
+using ControlSystemsBase: hysteresis
+
+# Construction
+@test hysteresis() isa HammersteinWienerSystem
+@test hysteresis(; amplitude=0.7, width=1.5) isa HammersteinWienerSystem
+
+# Simulate with sine input and verify output bounded by amplitude
+amplitude = 0.7
+width = 1.5
+sys_hyst = hysteresis(; width, amplitude)
+t = 0:0.001:10
+res = lsim(sys_hyst, (x,t) -> 5sin(t), t)
+@test maximum(res.y) ≈ amplitude rtol=0.1
+@test minimum(res.y) ≈ -amplitude rtol=0.1
+
+# Finite hardness (smooth tanh transition)
+sys_hyst_smooth = hysteresis(; width, amplitude, hardness=5.0)
+res_smooth = lsim(sys_hyst_smooth, (x,t) -> 5sin(t), t)
+@test maximum(res_smooth.y) ≈ amplitude rtol=0.15
+@test minimum(res_smooth.y) ≈ -amplitude rtol=0.15
+
