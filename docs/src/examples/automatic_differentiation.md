@@ -108,8 +108,8 @@ We start by defining a helper function `plot_optimized` that will evaluate the p
 The constraint function `constraints` enforces the peak of the sensitivity function to be below `Msc`. Finally, we use [Optimization.jl](https://github.com/SciML/Optimization.jl) to optimize the cost function and tell it to use ForwardDiff.jl to compute the gradient of the cost function. The optimizer we use in this example is `Ipopt`.
 
 ```@example autodiff
-using Optimization, Statistics, LinearAlgebra
-using Ipopt, OptimizationMOI; MOI = OptimizationMOI.MOI
+using Statistics, LinearAlgebra
+using OptimizationIpopt
 
 function plot_optimized(P, params, res, systems)
     fig = plot(layout=(1,3), size=(1200,400), bottommargin=2Plots.mm)
@@ -170,15 +170,18 @@ Msc = 1.3        # Constraint on Ms
 
 params  = [kp, ki, kd, 0.01] # Initial guess for parameters
 
-solver = Ipopt.Optimizer()
-MOI.set(solver, MOI.RawOptimizerAttribute("print_level"), 0)
-MOI.set(solver, MOI.RawOptimizerAttribute("max_iter"), 200)
-MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_tol"), 1e-1)
-MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_constr_viol_tol"), 1e-2)
-MOI.set(solver, MOI.RawOptimizerAttribute("acceptable_iter"), 5)
-MOI.set(solver, MOI.RawOptimizerAttribute("hessian_approximation"), "limited-memory")
+solver = IpoptOptimizer(;
+    acceptable_tol = 1e-1,
+    acceptable_iter = 5,
+    hessian_approximation = "limited-memory",
+    additional_options = Dict(
+        "print_level" => 0,
+        "max_iter" => 200,
+        "acceptable_constr_viol_tol" => 1e-2,
+    ),
+)
 
-fopt = OptimizationFunction(cost, Optimization.AutoForwardDiff(); cons=constraints)
+fopt = OptimizationFunction(cost, OptimizationIpopt.AutoForwardDiff(); cons=constraints)
 
 prob = OptimizationProblem(fopt, params, (P, systemspid);
     lb    = fill(-10.0, length(params)),

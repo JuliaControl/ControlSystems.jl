@@ -229,6 +229,39 @@ f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Controlled wigg
 plot(f1,f2, size=(1300,800))
 ```
 
+### Hysteresis
+Here we demonstrate that we may use this simple framework to model also stateful nonlinearities, such as hysteresis. The `hysteresis` function internally creates a feedback interconnection between a fast first-order system and a `sign` or `tanh` nonlinearity to create a simple hysteresis loop. The width and amplitude of the loop can be adjusted through the parameters `width` and `amplitude`, respectively.
+```@example HYSTERESIS
+using ControlSystems, Plots
+import ControlSystemsBase: hysteresis
+
+amplitude = 0.7
+width = 1.5
+sys_hyst =  hysteresis(; width, amplitude)
+
+t = 0:0.01:20
+ufun(y,x,t) = y .= 5.0 .* sin(t) ./ (1+t/5) # A sine wave that sweeps back and forth with decreasing amplitude
+
+res = lsim(sys_hyst, ufun, t)
+
+p1 = plot(res.u[:], res.y[:], 
+    title="Hysteresis Loop",
+    xlabel="Input u(t)", 
+    ylabel="Output y(t)",
+    lw=2, color=:blue, lab="", framestyle=:zerolines)
+
+hline!([amplitude -amplitude], l=:dash, c=:red, label=["Amplitude" ""])
+vline!([width -width], l=:dash, c=:green, label=["Width" ""])
+
+# Plotting time series to see the "jumps" in the response
+p2 = plot(t, [res.u[:] res.y[:]], 
+    title="Time Domain Response",
+    label=["Input (Sine)" "Output (Hysteresis)"], 
+    xlabel="Time (s)",
+    lw=2)
+
+plot(p1, p2, layout=(1,2), size=(900, 400))
+```
 
 ## Limitations
 - Remember, this functionality is experimental and subject to breakage.
@@ -260,4 +293,5 @@ ControlSystemsBase.saturation
 ControlSystemsBase.ratelimit
 ControlSystemsBase.deadzone
 ControlSystemsBase.linearize
+ControlSystemsBase.hysteresis
 ```

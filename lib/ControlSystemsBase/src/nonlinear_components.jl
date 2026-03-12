@@ -132,3 +132,41 @@ See [`ControlSystemsBase.offset`](@ref) for handling operating points.
 deadzone(args...) = nonlinearity(DeadZone(args...))
 deadzone(v::AbstractVector, args...) = nonlinearity(DeadZone.(v, args...))
 Base.show(io::IO, f::DeadZone) = f.u == -f.l ? print(io, "deadzone($(f.u))") : print(io, "deadzone($(f.l), $(f.u))")
+
+
+## Hysteresis ==================================================================
+
+"""
+    hysteresis(; amplitude, width, Tf, hardness)
+
+Create a hysteresis nonlinearity. The signal switches between `±amplitude` when the input crosses `±width`. `Tf` controls the time constant of the internal state that tracks the hysteresis, and `hardness` controls how sharp the transition is between the two states.
+
+```
+       
+      y▲        
+       │        
+amp┌───┼───┬─►  
+   │   │   ▲    
+   │   │   │    
+ ──┼───┼───┼───► u
+   │   │   │w   
+   ▼   │   │    
+ ◄─┴───┼───┘    
+       │        
+```
+
+$nonlinear_warning
+"""
+function hysteresis(; amplitude=1.0, width=1.0, Tf=0.001, hardness=20.0)
+    T = promote_type(typeof(amplitude), typeof(width), typeof(Tf), typeof(hardness))
+    G = tf(1, [Tf, 1]) 
+    if isfinite(hardness)
+        nl_func = y -> width * tanh(hardness*y)
+    else
+        nl_func = y -> width * sign(y)
+    end
+    nl = nonlinearity(nl_func)
+    amplitude/width*(feedback(G, -nl) - 1)
+end
+
+
