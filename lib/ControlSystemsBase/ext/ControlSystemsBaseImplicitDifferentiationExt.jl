@@ -131,7 +131,7 @@ function conditions_lyapc(pars, X, noneed)
     (; A,Q) = pars
     AX = A*X
     O = AX .+ AX' .+ Q
-    vec(O) + vec(X - X')
+    O .+ (X .- X')
 end
 
 # linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
@@ -174,7 +174,7 @@ end
 # plyap
 function forward_plyapc(pars)
     (; A,Q) = pars
-    ControlSystemsBase.plyapc(A, Q), 0
+    Matrix(ControlSystemsBase.plyapc(A, Q)), 0
 end
 
 function conditions_plyapc(pars, Xc, noneed)
@@ -183,7 +183,7 @@ function conditions_plyapc(pars, Xc, noneed)
     X = Xc*Xc'
     AX = A*X
     O = AX .+ AX' .+ Q
-    vec(O) + vec(Xc - UpperTriangular(Xc))
+    O .+ (Xc .- UpperTriangular(Xc))
 end
 
 # linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
@@ -238,15 +238,9 @@ end
 function conditions_schur(A, F, s)
     (; Z, T) = F
     if all(isreal, s.values)
-        [
-            vec(Z' * A * Z - T);
-            vec(Z' * Z - I + LowerTriangular(T) - Diagonal(T))
-        ]
+        ComponentVector(; Z = Z' * A * Z - T, T = Z' * Z - I + LowerTriangular(T) - Diagonal(T))
     else
-        [
-            vec(Z' * A * Z - T);
-            vec(Z' * Z - I + UpperTriangular(T) - Diagonal(T))
-        ]
+        ComponentVector(; Z = Z' * A * Z - T, T = Z' * Z - I + UpperTriangular(T) - Diagonal(T))
     end
 end
 
