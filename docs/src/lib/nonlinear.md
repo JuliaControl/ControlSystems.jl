@@ -263,6 +263,45 @@ p2 = plot(t, [res.u[:] res.y[:]],
 plot(p1, p2, layout=(1,2), size=(900, 400))
 ```
 
+### Describing Function Analysis
+
+The [describing function](https://en.wikipedia.org/wiki/Describing_function) is a quasi-linearization technique for predicting limit cycles in nonlinear feedback systems. Given a nonlinearity ``f(x)`` and an input ``A\sin(\theta)``, the describing function ``N(A)`` is the complex gain of the fundamental Fourier component of the output.
+
+A limit cycle at amplitude ``A`` and frequency ``\omega`` is predicted when the Nyquist curve of the linear part ``L(j\omega)`` intersects ``-1/N(A)``.
+
+Analytical formulas are provided for [`Saturation`](@ref ControlSystemsBase.saturation), [`DeadZone`](@ref ControlSystemsBase.deadzone), and [`Hysteresis`](@ref ControlSystemsBase.Hysteresis). For other nonlinearities, a generic numerical method is used.
+
+Please note that the describing function is an approximation that only considers the fundamental harmonic of the output, and thus may not always give accurate predictions, especially for strongly nonlinear systems or systems that are not of lowpass character.
+
+```@example DF
+using ControlSystemsBase
+using ControlSystemsBase: describing_function, Saturation, DeadZone, Hysteresis
+# Analytical describing function for saturation
+A = 2.0
+describing_function(Saturation(1.0), A)
+```
+
+```@example DF
+# Numerical describing function for an arbitrary nonlinearity
+describing_function(x -> clamp(x, -1, 1), A)
+```
+
+```@example DF
+# Describing function for dead-zone
+describing_function(DeadZone(0.5), A)
+```
+
+To perform a graphical limit-cycle analysis, use [`ControlSystemsBase.describing_function_plot`](@ref) which overlays ``-1/N(A)`` on the Nyquist plot:
+```@example DF
+using Plots
+using ControlSystemsBase: describing_function_plot
+s = tf("s")
+G = 10 / (s^3 + 2s^2 + s + 1)
+
+describing_function_plot(G, Saturation(1.0); A_range=0.01:0.01:100)
+```
+The intersection of the Nyquist curve and the ``-1/N(A)`` curve indicates a potential limit cycle. The amplitude of the limit cycle can be estimated from the corresponding ``A`` value.
+
 ## Limitations
 - Remember, this functionality is experimental and subject to breakage.
 - Currently only `Continuous` systems supported.
@@ -294,4 +333,7 @@ ControlSystemsBase.ratelimit
 ControlSystemsBase.deadzone
 ControlSystemsBase.linearize
 ControlSystemsBase.hysteresis
+ControlSystemsBase.Hysteresis
+describing_function
+ControlSystemsBase.describing_function_plot
 ```
