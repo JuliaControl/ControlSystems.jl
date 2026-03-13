@@ -334,6 +334,6 @@ ControlSystemsBase.deadzone
 ControlSystemsBase.linearize
 ControlSystemsBase.hysteresis
 ControlSystemsBase.Hysteresis
-describing_function
+ControlSystemsBase.describing_function
 ControlSystemsBase.describing_function_plot
 ```

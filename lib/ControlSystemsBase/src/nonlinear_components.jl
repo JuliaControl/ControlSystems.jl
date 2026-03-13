@@ -137,7 +137,7 @@ Base.show(io::IO, f::DeadZone) = f.u == -f.l ? print(io, "deadzone($(f.u))") : p
 ## Hysteresis ==================================================================
 
 """
-    Hysteresis{T} <: Function
+    Hysteresis(amplitude, width, hardness)
 
 A named struct representing the internal nonlinearity used inside [`hysteresis`](@ref).
 Stores the `amplitude`, `width`, and `hardness` parameters so that analytical
