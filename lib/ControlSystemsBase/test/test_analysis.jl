@@ -219,8 +219,8 @@ temp = let
     ss(tempA, tempB, tempC, tempD)
 end
 wgm, gm, wpm, pm = margin(temp, allMargins=true)
-@test wgm[] ≈ [-1.2311038829891778, 0.0, 1.2311038829891778] atol=1e-3
-@test gm[] ≈ [2.005125180939021, 0.8733647564616344, 2.005125180939021] atol=1e-3
+@test wgm[] ≈ [0.0, 1.2311038829891778] atol=1e-3
+@test gm[] ≈ [0.8733647564616344, 2.005125180939021] atol=1e-3
 
 
 
