@@ -595,8 +595,10 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _default_freq_vector(system, Val{:bode}()); kwargs...)
+margin(system, _add_reflected(_default_freq_vector(system, Val{:bode}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
+
+_add_reflected(w) = [-reverse(w); w]
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
@@ -649,11 +651,14 @@ The delay margin is computed as the phase margin in radians divided by the cross
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     issiso(G) || error("delaymargin only supports SISO systems")
-    m     = margin(G,allMargins=true)
-    isempty(m[4][1]) && return Inf
-    ϕₘ, i = findmin(m[4][1])
+    ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G,allMargins=true)
+    isempty(ϕₘa[1]) && return Inf
+    ϕₘ, i = findmin(sign.(ωϕₘa[1]) .* ϕₘa[1]) # flip sign of negative frequency margins 
     ϕₘ   *= π/180
-    ωϕₘ   = m[3][1][i]
+    ωϕₘ   = ωϕₘa[1][i]
+    if numeric_type(G) <: Real
+        ωϕₘ = abs(ωϕₘ)
+    end
     dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
