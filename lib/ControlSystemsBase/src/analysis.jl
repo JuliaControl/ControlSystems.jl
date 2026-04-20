@@ -492,7 +492,7 @@ end
 """
     wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true)
 
-returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
+returns frequencies for gain margins, gain margins (magnitude), frequencies for phase margins, phase margins (degrees)
 
 - If `!allMargins`, return only the smallest margin
 - If `full` return also `fullPhase`
@@ -542,8 +542,19 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     mag, phase, w = bode(sys, w)
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
+    remove = Int[]
     for i = eachindex(wgm)
-        gm[i] = 1 ./ abs(freqresp(sys,wgm[i])[1])
+        Giw = freqresp(sys,wgm[i])[1]
+        if sign(w[1]) != sign(w[end]) && abs(Giw) > 1e6 && wgm[i] < 0.001
+            # This tries to filter out extremely large gain margins that can arise when the Nyquist contour crosses the negative real axis at -Inf.
+            # This is filter is in addition to the filter_th check in _findCrossings
+            push!(remove, i)
+        end
+        gm[i] = 1 ./ abs(Giw)
+    end
+    if !isempty(remove)
+        deleteat!(gm, remove)
+        deleteat!(wgm, remove)
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
@@ -578,9 +589,10 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     if adjust_phase_start && isrational(sys)
         intexcess, p, z, tol = integrator_excess_with_tol(sys)
         n_unstable_poles = count(real(p) > tol for p in p)
-        if intexcess != 0
+        first_positive_freq_ind = findfirst(>(0), w)
+        if intexcess != 0 && (first_positive_freq_ind !== nothing)
             # Snap phase so that it starts at -90*intexcess
-            nineties = round(Int, phase[1] / 90)
+            nineties = round(Int, phase[first_positive_freq_ind] / 90)
             adjust = ((90*(-intexcess-nineties)) ÷ 360) * 360
             pm_unstable_adjust = n_unstable_poles*360 # count the number of unstable poles, and remove 360 for each. Be careful with poles that are counted as integrators
             pm = pm .+ adjust .- pm_unstable_adjust
@@ -595,8 +607,10 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _default_freq_vector(system, Val{:bode}()); kwargs...)
+margin(system, _add_eps_negative(_default_freq_vector(system, Val{:bode}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
+
+_add_eps_negative(w) = [-(eps(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
@@ -613,10 +627,10 @@ function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
     n = fld.(phase.+180,360) #Nbr of crossed
     ph = mod.(phase,360) .- 180 #Residual
-    _findCrossings(w, n, ph)
+    _findCrossings(w, n, ph; filter_th=20.0)
 end
 
-function _findCrossings(w, n, res)
+function _findCrossings(w, n, res; filter_th=Inf)
     wcross = Vector{eltype(w)}()
     tcross = Vector{eltype(w)}()
     for i in 1:(length(w)-1)
@@ -624,8 +638,14 @@ function _findCrossings(w, n, res)
             push!(wcross, w[i])
             push!(tcross, i)
         elseif n[i] != n[i+1]
+            d = res[i]-res[i+1]
+            if abs(d) > filter_th && (sign(w[i+1]) != sign(w[i]))
+                # This can happen when there are both negative and positive frequencies and the Nyquist contour crosses the negative real axis at -infinity
+                # This logic is slightly flawed since if there are two frequencies, like -eps, eps that have phase values very close to each other we'll fail to reject the crossing, but to handle this case properly one would have to look at both phase and gain at the same time, which we aren't set-up to do easily at this. We should be able to reject the most common case when the default eps() negative frequency is the only one used
+                continue
+            end
             #Interpolate to approximate crossing
-            t = res[i]/(res[i]-res[i+1])
+            t = res[i]/d
             push!(tcross, i+t)
             wt = w[i]+t*(w[i+1]-w[i])
             push!(wcross, wt)
@@ -649,11 +669,14 @@ The delay margin is computed as the phase margin in radians divided by the cross
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     issiso(G) || error("delaymargin only supports SISO systems")
-    m     = margin(G,allMargins=true)
-    isempty(m[4][1]) && return Inf
-    ϕₘ, i = findmin(m[4][1])
+    ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G,allMargins=true)
+    isempty(ϕₘa[1]) && return Inf
+    ϕₘ, i = findmin(sign.(ωϕₘa[1]) .* ϕₘa[1]) # flip sign of negative frequency margins 
     ϕₘ   *= π/180
-    ωϕₘ   = m[3][1][i]
+    ωϕₘ   = ωϕₘa[1][i]
+    if numeric_type(G) <: Real
+        ωϕₘ = abs(ωϕₘ)
+    end
     dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does

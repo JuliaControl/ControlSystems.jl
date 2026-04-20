@@ -1,5 +1,6 @@
 @test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericSchur
 using GenericSchur # Required to compute eigvals (in tzeros and poles) of a matrix with exotic element types
+using Test
 
 es(x) = sort(x, by=LinearAlgebra.eigsortby)
 ## tzeros ##
@@ -209,6 +210,21 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 
 ## MARGIN ##
 
+# Test case that requires negative frequencies to be included in the grid in order to find one margin
+# https://github.com/JuliaControl/ControlSystems.jl/issues/1045
+temp = let
+    tempA = [-1.42119805189796 1.0 1.42119805189796 0.0; -1.5105265612217906 -1.4146551592967844 1.009901951359278 0.0; 0.0 0.0 0.0 1.0; 0.0 0.0 0.5 0.0]
+    tempB = [0.0; 0.0; 0.0; 0.1;;]
+    tempC = [10.006246098625127 14.146551592967842 0.0 0.0]
+    tempD = [0.0;;]
+    ss(tempA, tempB, tempC, tempD)
+end
+wgm, gm, wpm, pm = margin(temp, allMargins=true)
+@test wgm[] ≈ [0.0, 1.2311038829891778] atol=1e-3
+@test gm[] ≈ [0.8733647564616344, 2.005125180939021] atol=1e-3
+
+
+
 w = exp10.(LinRange(-1, 2, 100))
 P = tf(1,[1.0, 1])
 ωgₘ, gₘ, ωϕₘ, ϕₘ = margin(P, w)
@@ -230,6 +246,7 @@ marginplot(P, w)
 @test gₘ[][] == Inf
 @test ϕₘ[][] ≥ 50
 @test ωϕₘ[][] ≈ 0.7871132039227572
+
 
 ## Delay margin
 dm = delaymargin(P)[]
