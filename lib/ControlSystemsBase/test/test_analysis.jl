@@ -1,5 +1,6 @@
 @test_throws MethodError poles(big(1.0)*ssrand(1,1,1)) # This errors before loading GenericSchur
 using GenericSchur # Required to compute eigvals (in tzeros and poles) of a matrix with exotic element types
+using Test
 
 es(x) = sort(x, by=LinearAlgebra.eigsortby)
 ## tzeros ##

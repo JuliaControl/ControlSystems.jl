@@ -492,7 +492,7 @@ end
 """
     wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true)
 
-returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
+returns frequencies for gain margins, gain margins (magnitude), frequencies for phase margins, phase margins (degrees)
 
 - If `!allMargins`, return only the smallest margin
 - If `full` return also `fullPhase`
@@ -542,8 +542,19 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     mag, phase, w = bode(sys, w)
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
+    remove = Int[]
     for i = eachindex(wgm)
-        gm[i] = 1 ./ abs(freqresp(sys,wgm[i])[1])
+        Giw = freqresp(sys,wgm[i])[1]
+        if sign(w[1]) != sign(w[end]) && abs(Giw) > 1e6 && wgm[i] < 0.001
+            # This tries to filter out extremely large gain margins that can arise when the Nyquist contour crosses the negative real axis at -Inf.
+            # This is filter is in addition to the filter_th check in _findCrossings
+            push!(remove, i)
+        end
+        gm[i] = 1 ./ abs(Giw)
+    end
+    if !isempty(remove)
+        deleteat!(gm, remove)
+        deleteat!(wgm, remove)
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
@@ -599,7 +610,7 @@ margin(system::LTISystem; kwargs...) =
 margin(system, _add_eps_negative(_default_freq_vector(system, Val{:bode}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
-_add_eps_negative(w) = [-sqrt(eps(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 
+_add_eps_negative(w) = [-(eps(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
@@ -630,7 +641,7 @@ function _findCrossings(w, n, res; filter_th=Inf)
             d = res[i]-res[i+1]
             if abs(d) > filter_th && (sign(w[i+1]) != sign(w[i]))
                 # This can happen when there are both negative and positive frequencies and the Nyquist contour crosses the negative real axis at -infinity
-                # This logic is slightly flawed since if there are two frequencies, like -eps, eps that have phase values very close to each other we'll fail to reject the crossing, but to handle this case properly one would have to look at both phase and gain at the same time, which we aren't set-up to do easily at this. We should be able to reject the most common case when the default sqrt(eps()) negative frequency is the only one used
+                # This logic is slightly flawed since if there are two frequencies, like -eps, eps that have phase values very close to each other we'll fail to reject the crossing, but to handle this case properly one would have to look at both phase and gain at the same time, which we aren't set-up to do easily at this. We should be able to reject the most common case when the default eps() negative frequency is the only one used
                 continue
             end
             #Interpolate to approximate crossing
