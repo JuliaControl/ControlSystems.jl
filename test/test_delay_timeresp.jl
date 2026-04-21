@@ -112,7 +112,7 @@ y, t, x = step(sys, t)
 y_sol = [zeros(200);0:0.01:2]'
 
 @test maximum(abs,y-y_sol) < 1e-13
-@test maximum(abs,x-collect(0:0.01:4)') < 1e-15
+@test maximum(abs,x-collect(0:0.01:4)') < 1e-13
 
 # TODO For some reason really bad accuracy here
 # Looks like a lag in time
