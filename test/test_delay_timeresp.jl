@@ -1,4 +1,5 @@
-import DelayDiffEq: MethodOfSteps, Tsit5
+import DelayDiffEq: MethodOfSteps
+import OrdinaryDiffEq: Tsit5
 using SparseArrays
 
 s = tf('s')
