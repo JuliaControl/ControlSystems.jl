@@ -122,6 +122,7 @@ function unwrap!(M::Array, dim=1)
         # d = M[i,:,:,...,:] - M[i-1,:,...,:]
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
+        any(!isfinite, d) && continue
         M[alldims(i)...] -= @. floor((d + π) / π2) * π2
     end
     return M

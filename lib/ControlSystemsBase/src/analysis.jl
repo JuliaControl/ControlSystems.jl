@@ -607,10 +607,10 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _add_eps_negative(_default_freq_vector(system, Val{:bode}())); kwargs...)
+margin(system, _add_zero(_default_freq_vector(system, Val{:bode}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
-_add_eps_negative(w) = [-(eps(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 
+_add_zero(w) = [-(zero(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
@@ -639,11 +639,7 @@ function _findCrossings(w, n, res; filter_th=Inf)
             push!(tcross, i)
         elseif n[i] != n[i+1]
             d = res[i]-res[i+1]
-            if abs(d) > filter_th && (sign(w[i+1]) != sign(w[i]))
-                # This can happen when there are both negative and positive frequencies and the Nyquist contour crosses the negative real axis at -infinity
-                # This logic is slightly flawed since if there are two frequencies, like -eps, eps that have phase values very close to each other we'll fail to reject the crossing, but to handle this case properly one would have to look at both phase and gain at the same time, which we aren't set-up to do easily at this. We should be able to reject the most common case when the default eps() negative frequency is the only one used
-                continue
-            end
+            w[i] == 0 && continue
             #Interpolate to approximate crossing
             t = res[i]/d
             push!(tcross, i+t)
