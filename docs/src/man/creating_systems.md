@@ -21,14 +21,14 @@ tf(num, den, Ts) # Discrete-time system
 where `num` and `den` are the polynomial coefficients of the numerator and denominator of the polynomial and `Ts`, if provided, is the sample time for a discrete-time system.
 #### Example:
 ```jldoctest
-tf([1.0],[1,2,1])
+tf([1.0],[1,2,3])
 
 # output
 
 TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
         1.0
 -------------------
-1.0s^2 + 2.0s + 1.0
+1.0s^2 + 2.0s + 3.0
 
 Continuous-time transfer function model
 ```
