@@ -14,7 +14,7 @@ using Test
 @test typeof(promote(nonlinearity(abs2), ss(1))[1]) == HammersteinWienerSystem{Float64}
 
 @test sprint(show, ss(1, 1, 1, 1) * nonlinearity(abs2)) ==
-      "HammersteinWienerSystem{Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\nContinuous-time state-space model\n\nNonlinearities: Function[abs2]"
+      "HammersteinWienerSystem{Float64}\n\nP: StateSpace{Continuous, Float64}\nA = \n 1.0\nB = \n 0.0  1.0\nC = \n 1.0\n 0.0\nD = \n 0.0  1.0\n 1.0  0.0\n\nContinuous-time state-space model\n\nNonlinearities: Function[abs2]"
 
 
 P1 = HammersteinWienerSystem(ss(-1.0, 1, 1, 0))
