@@ -142,6 +142,43 @@ _,_,_,pm = margin(P*CF)
 @test pm[] > 45*0.99
 
 
+# Test loopshapingPD
+P = tf(1,[1, 1, 1])
+
+# Basic phase-margin spec — mirrors the loopshapingPI block above
+C, kp, kd = loopshapingPD(P, 10; phasemargin = 30, doplot = false)
+_,_,_,pm = margin(P*C)
+@test pm[] > 30*0.99
+
+# With second-order noise filter Tf and doplot=true (exercises the plot branch and 5-tuple return)
+C, kp, kd, fig, CF = loopshapingPD(P, 1; phasemargin = 45, doplot = true, Tf = 0.1)
+_,_,_,pm = margin(P*CF)
+@test pm[] > 45*0.99
+
+# Design-point property: with default rl, L(jωp) has |P(jωp)| magnitude and angle -180°+phasemargin
+ωp = 2.0
+pm_spec = 60
+C, kp, kd, fig, CF = loopshapingPD(P, ωp; phasemargin = pm_spec)
+L_at_ωp = freqresp(P*CF, ωp)[]
+@test abs(L_at_ωp) ≈ abs(freqresp(P, ωp)[]) rtol=1e-6
+@test rad2deg(angle(L_at_ωp)) ≈ -180 + pm_spec rtol=1e-6
+
+# Explicit rl, ϕl spec — verifies the rl/ϕl branch
+rl_spec = 0.5
+ϕl_spec = deg2rad(-150)
+C, kp, kd = loopshapingPD(P, ωp; rl = rl_spec, ϕl = ϕl_spec)
+L_at_ωp = freqresp(P*C, ωp)[]
+@test abs(L_at_ωp) ≈ rl_spec rtol=1e-6
+@test angle(L_at_ωp) ≈ ϕl_spec rtol=1e-6
+
+# SISO guard
+@test_throws ArgumentError loopshapingPD(ssrand(2,2,2), 1.0)
+
+# form = :parallel returns kp, kd that reconstruct C directly
+C, kp, kd = loopshapingPD(P, ωp; phasemargin = 45, form = :parallel)
+@test freqresptest(C, pid(kp, 0, kd, form=:parallel)) < 1e-10
+
+
 # Test placePI
 P = tf(1,[1, 1])
 C, Kp, Ti = placePI(P, 2, 0.7; form=:standard)
