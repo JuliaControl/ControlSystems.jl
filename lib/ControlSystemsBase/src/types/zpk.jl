@@ -65,7 +65,7 @@ zpk(k::Real, Ts::TimeEvolution) = zpk(eltype(k)[], eltype(k)[], k, Ts)
 zpk(sys::AbstractStateSpace) = zpk(zpkdata(sys)..., timeevol(sys))
 
 function zpk(G::TransferFunction{TE,S}) where {TE<:TimeEvolution,T0, S<:SisoTf{T0}}
-    T = typeof(one(T0)/one(T0))
+    T = typeof(oneunit(T0)/oneunit(T0))
     convert(TransferFunction{TE,SisoZpk{T, complex(T)}}, G)
 end
 

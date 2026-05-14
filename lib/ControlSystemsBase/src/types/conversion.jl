@@ -291,7 +291,7 @@ function convert(::Type{TransferFunction{TE,SisoRational{T}}}, sys::AbstractStat
     TransferFunction{TE,SisoRational{T}}(matrix, TE(sys.timeevol))
 end
 function convert(::Type{TransferFunction{TE1,SisoRational}}, sys::StateSpace{TE2,T0}) where {TE1,TE2,T0<:Number}
-    T = typeof(one(T0)/one(T0))
+    T = typeof(oneunit(T0)/oneunit(T0))
     convert(TransferFunction{TE1,SisoRational{T}}, sys)
 end
 
@@ -307,7 +307,7 @@ function convert(::Type{TransferFunction{TE,SisoZpk{T,TR}}}, sys::AbstractStateS
 end
 function convert(::Type{TransferFunction{TE1,SisoZpk}}, sys::AbstractStateSpace{TE2}) where {TE1,TE2}
     T0 = numeric_type(sys)
-    T = typeof(one(T0)/one(T0))
+    T = typeof(oneunit(T0)/oneunit(T0))
     convert(TransferFunction{TE1,SisoZpk{T,complex(T)}}, sys)
 end
 
@@ -335,7 +335,7 @@ Implements: "An accurate and efficient algorithm for the computation of the char
 """
 function charpoly(A::AbstractMatrix{T}) where {T}
     N = size(A, 1)
-    TT = typeof(one(T)/one(T))
+    TT = typeof(oneunit(T)/oneunit(T))
     poly_factors = vec(ones(TT, N+1))
     if N <= 0
         return poly_factors

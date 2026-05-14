@@ -474,7 +474,7 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
     T = promote_type(real(numeric_type(sys)), Float64, typeof(true/sys.Ts))
-    Tw = typeof(one(T)/sys.Ts)
+    Tw = typeof(oneunit(T)/sys.Ts)
 
     if sys.nx == 0  # static gain
         return (T(opnorm(sys.D)), Tw(0))
