@@ -80,16 +80,15 @@ end
 # Again we have to do something for default vectors, more or less a copy from timeresp.jl
 function _default_dt(sys::DelayLtiSystem)
     if !isstable(sys.P.P)
-        return 0.05   # Something small
-    else
-        ps = poles(sys.P.P)
-        r = minimum([abs.(real.(ps));0]) # Find the fastest pole of sys.P.P
-        r = min(r, minimum([sys.Tau;0])) # Find the fastest delay
-        if r == 0.0
-            r = 1.0
-        end
-        return 0.07/r
+        return 0.05
     end
+    ps = poles(sys.P.P)
+    ω_max = isempty(ps) ? 0.0 : maximum(abs, ps)
+    τ_min = minimum((τ for τ in sys.Tau if τ > 0); init = Inf)
+    dt_pole  = ω_max > 0      ? round(1/(12*ω_max), sigdigits=2) : Inf
+    dt_delay = isfinite(τ_min) ? round(τ_min/12,    sigdigits=2) : Inf
+    dt = min(dt_pole, dt_delay)
+    return isfinite(dt) ? dt : 0.05
 end
 
 

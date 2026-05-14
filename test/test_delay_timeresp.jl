@@ -133,3 +133,14 @@ P = 1 / (0.85*s + 1)*exp(-0.14*s)
 res = step(P, 5)
 @test res.t[end] > 4.5
 @test length(res.y) > 30
+
+# Issue #544: step(delay(τ)) with small τ used to throw BoundsError after
+# `dt <= dtmin` from the DDE solver; default dt now adapts to τ.
+let sys = delay(0.01)
+    res = step(sys)
+    @test res.t[2] - res.t[1] ≤ 0.01/5
+    @test res.t[end] > 0.1
+    @test all(isfinite, res.y)
+    @test res.y[1] ≈ 0 atol = 1e-8
+    @test res.y[end] ≈ 1 atol = 1e-3
+end
