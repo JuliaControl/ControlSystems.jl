@@ -217,10 +217,24 @@
 
         # Printing
         if SS <: StateSpace
-            @test sprint(show, C_222) == "StateSpace{Continuous, Int64}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\n\nContinuous-time state-space model"
-            @test sprint(show, C_022) == "StateSpace{Continuous, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nContinuous-time state-space model"
-            @test sprint(show, D_022) == "StateSpace{Discrete{Float64}, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
-            @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\n\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
+            @test sprint(show, C_222) == "StateSpace{Continuous, Int64}\nA = \n -5  -3\n  2  -9\nB = \n 1  0\n 0  2\nC = \n 1  0\n 0  1\nD = \n 0  0\n 0  0\nContinuous-time state-space model"
+            @test sprint(show, C_022) == "StateSpace{Continuous, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\nContinuous-time state-space model"
+            @test sprint(show, D_022) == "StateSpace{Discrete{Float64}, Float64}\nD = \n 4.0  0.0\n 0.0  4.0\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
+            @test sprint(show, D_222) == "StateSpace{Discrete{Float64}, Float64}\nA = \n  0.2  -0.8\n -0.8   0.07\nB = \n 1.0  0.0\n 0.0  2.0\nC = \n 1.0  0.0\n 0.0  1.0\nD = \n 0.0  0.0\n 0.0  0.0\nSample Time: 0.005 (seconds)\nDiscrete-time state-space model"
+
+            # Large systems use a compressed format
+            G_large_zeroD = ss(zeros(15,15), zeros(15,15), zeros(15,15), zeros(15,15))
+            @test sprint(show, G_large_zeroD) == "StateSpace{Continuous, Float64}\nA = Matrix{Float64}(15, 15)\nB = Matrix{Float64}(15, 15)\nC = Matrix{Float64}(15, 15)\nD =   0\nContinuous-time state-space model"
+
+            G_large_nonzeroD = ss(zeros(15,15), zeros(15,15), zeros(15,15), ones(15,15))
+            @test sprint(show, G_large_nonzeroD) == "StateSpace{Continuous, Float64}\nA = Matrix{Float64}(15, 15)\nB = Matrix{Float64}(15, 15)\nC = Matrix{Float64}(15, 15)\nD = Matrix{Float64}(15, 15)\nContinuous-time state-space model"
+
+            G_large_A = ss(zeros(15,15), zeros(15,1), zeros(1,15), 0)
+            out_large_A = sprint(show, G_large_A)
+            @test occursin("A = Matrix{Float64}(15, 15)", out_large_A)
+            @test occursin("B = \n", out_large_A)
+            @test occursin("C = \n", out_large_A)
+            @test occursin("D = \n", out_large_A)
         end
 
         G = ssrand(1,2,3)

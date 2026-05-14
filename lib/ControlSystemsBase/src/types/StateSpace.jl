@@ -573,9 +573,9 @@ function Base.show(io::IO, sys::AbstractStateSpace)
             println(io, "B = $(typeof(B))$(size(B))")
         length(C) < 200 ? println(io, "C = \n", _string_mat_with_headers(C)) :
             println(io, "C = $(typeof(C))$(size(C))")
-        length(D) < 200 ? println(io, "D = \n", _string_mat_with_headers(D)) :
-            println(io, "D = ", iszero(D) ? "  0" : "$(typeof(D))$(size(D))")
     end
+    length(D) < 200 ? println(io, "D = \n", _string_mat_with_headers(D)) :
+        println(io, "D = ", iszero(D) ? "  0" : "$(typeof(D))$(size(D))")
     # Print sample time
     if isdiscrete(sys)
         println(io, "Sample Time: ", sys.Ts, " (seconds)")
