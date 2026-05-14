@@ -408,8 +408,8 @@ end
 
 @userplot Nyquistplot
 """
-    fig = nyquistplot(sys;                Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
-    nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
+    fig = nyquistplot(sys;                Ms_circles=Float64[], Mt_circles=Float64[], disk_margin_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
+    nyquistplot(LTISystem[sys1, sys2...]; Ms_circles=Float64[], Mt_circles=Float64[], disk_margin_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, kwargs...)
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
@@ -417,6 +417,7 @@ optionally provided.
 - `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`. See also [`margin_bounds`](@ref), [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref).
 - `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
+- `disk_margin_circles`: draw disk-margin circles for the given values of `M` (`M > 1`, supplied as a number or vector of numbers). Each circle is the disk on the negative real axis passing through `-(M-1)/M` and `-M/(M-1)`. A design whose Nyquist curve stays outside this disk has a symmetric (balanced) gain margin of at least `[(M-1)/M, M/(M-1)]` — i.e. the loop gain may be multiplied by any real factor in that interval without losing stability — together with a phase margin of at least `atan((2M-1)/(2M(M-1)))` rad. Larger `M` corresponds to a smaller, more permissive disk and weaker margin guarantees.
 - `critical_point`: point on real axis to mark as critical for encirclements
 - If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
@@ -424,7 +425,7 @@ optionally provided.
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], M_circles=[], unit_circle=false, hz=false, critical_point=-1, balance=true, adaptive=true)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], disk_margin_circles=Float64[], unit_circle=false, hz=false, critical_point=-1, balance=true, adaptive=true)
     systems, w = _processfreqplot(Val{:nyquist}(), p.args...; adaptive)
     ny, nu = size(systems[1])
     nw = length(w)
@@ -490,8 +491,9 @@ nyquistplot
                             rt = Mt/(Mt^2-1)    # Mt radius
                             ct.+rt.*C, rt.*S
                         end
-                    end  
-                    for M in M_circles
+                    end
+                    for M in disk_margin_circles
+                        M > 1 || throw(ArgumentError("disk_margin_circles requires M > 1, got M = $M"))
                         @series begin
                             subplot --> s2i(i,j)
                             primary := false
@@ -499,12 +501,12 @@ nyquistplot
                             linecolor := :gray
                             seriestype := :path
                             markershape := :none
-                            label := "M = $(round(M, digits=2))"
-                            ct = -(2M^2 - 2M + 1)/(2M*(M-1)) # M center
-                            rt = (2M - 1)/(2M*(M-1)) # M radius
+                            label := "Disk margin M = $(round(M, digits=2))"
+                            ct = -(2M^2 - 2M + 1)/(2M*(M-1)) # disk-margin center
+                            rt = (2M - 1)/(2M*(M-1))        # disk-margin radius
                             ct.+rt.*C, rt.*S
                         end
-                    end        
+                    end
                     if unit_circle 
                         @series begin
                             subplot --> s2i(i,j)
