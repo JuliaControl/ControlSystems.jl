@@ -1,6 +1,6 @@
 import OrdinaryDiffEq: ODEProblem, Tsit5, solve
 import OrdinaryDiffEqLowOrderRK: BS3
-import ControlSystemsBase: lsim, step, impulse, HammersteinWienerSystem, DelayLtiSystem, PartitionedStateSpace, SimResult
+import ControlSystemsBase: lsim, step, impulse, HammersteinWienerSystem, DelayLtiSystem, SimResult
 import DelayDiffEq: MethodOfSteps
 # Function for DifferentialEquations lsim
 """

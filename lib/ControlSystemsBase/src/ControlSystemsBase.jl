@@ -131,26 +131,36 @@ export  LTISystem,
         add_output
 
 
-using RecipesBase, LinearAlgebra
 import Polynomials
-import Polynomials: Polynomial, coeffs
+import Polynomials: Polynomial, coeffs, conv # TODO: replace this internal function with something public
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
 import Hungarian
+import MatrixPencils
+import Printf
+import Printf: @printf, @sprintf
 
 export lyap # Make sure LinearAlgebra.lyap is available
 export plyap
-import Printf
-import Printf: @printf, @sprintf
-import Polynomials: conv # TODO: replace this internal function with something public
-using ForwardDiff
-import MatrixPencils
-using MacroTools
-using MatrixEquations
-using UUIDs # to load Plots in gangoffourplot
-using StaticArraysCore
+
+# Explicit imports — only the symbols actually used in this module.
+# Prevents future breakage from upstream packages exporting new names.
+# Derived from `ExplicitImports.print_explicit_imports(ControlSystemsBase)`.
+using ForwardDiff: ForwardDiff
+using LinearAlgebra: LinearAlgebra, Adjoint, ColumnNorm, Diagonal, I, LAPACK,
+                     Symmetric, UniformScaling, UpperHessenberg, cholesky,
+                     cond, diag, diagind, diagm, eigen, eigvals, eigvals!,
+                     factorize, hessenberg, isdiag, ishermitian, isposdef,
+                     issuccess, ldiv!, lmul!, lu, lu!, lyap, mul!, norm,
+                     opnorm, pinv, qr, rank, rdiv!, schur, schur!, svd!,
+                     svdvals, svdvals!, tr
+using MacroTools: MacroTools
+using MatrixEquations: MatrixEquations, arec, ared, lyapc, lyapd, plyapc, plyapd
+using RecipesBase: RecipesBase, @recipe, @series, @userplot
+using StaticArraysCore: StaticArraysCore, SArray, SMatrix, SVector, SizedArray
+using UUIDs: UUIDs, UUID # to load Plots in gangoffourplot
 
 abstract type AbstractSystem end
 

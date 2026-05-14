@@ -1,20 +1,21 @@
 module ControlSystems
 
-using Reexport
+using Reexport: Reexport, @reexport
 @reexport using ControlSystemsBase
-using ControlSystemsBase: issiso, ninputs, noutputs, nstates, numeric_type
+# Explicit imports — only the symbols actually used in this module.
+# Derived from `ExplicitImports.print_explicit_imports(ControlSystems)`.
+using ControlSystemsBase: ControlSystemsBase, AbstractStateSpace, Continuous,
+                          c2d, iscontinuous, ninputs, noutputs, nstates, numeric_type
 import DiffEqBase
 
-
-using LinearAlgebra
+using LinearAlgebra: LinearAlgebra, diagind, mul!
 import OrdinaryDiffEq
-import LinearAlgebra: BlasFloat
 import DiffEqCallbacks: SavingCallback, SavedValues
 import DelayDiffEq
-using SparseArrays
-using StaticArrays
-using RecipesBase
-using Printf
+using SparseArrays: SparseArrays
+using StaticArrays: StaticArrays
+using RecipesBase: RecipesBase
+using Printf: Printf
 
 export Simulator
 
