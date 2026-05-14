@@ -1,7 +1,7 @@
 # Performance considerations
 
 ## Numerical accuracy
-Transfer functions, and indeed polynomials in general, are infamous for having poor numerical properties. Consider the simple polynomial $ax^n - 1$ which, due to rounding of the polynomial coefficients, is represented as $(a+\epsilon)x^n - 1$ where $\epsilon$ is on the order of `eps(a)`. The roots of this polynomial have a much larger $\epsilon$, due to the n:th root in the expression $\dfrac{1}{\sqrt[n]{(a + \epsilon)}}$. For this reason, it's ill-advised to use high-order transfer functions. Orders as low as 6 may already be considered high. When a transfer function is converted to a state-space representation using `ss(G)`, balancing is automatically performed in an attempt at making the numerical properties of the model better.
+Transfer functions, and indeed polynomials in general, are infamous for having poor numerical properties and for this reason, it's ill-advised to use high-order transfer functions. Orders as low as 6 may already be considered high. When a transfer function is converted to a state-space representation using `ss(G)`, balancing is automatically performed in an attempt at making the numerical properties of the model better.
 
 This problem is illustrated below, where we first create a statespace system ``G`` and convert this to a transfer function ``G_1``. We then perturb a *single element* of the dynamics matrix ``A`` by adding the machine epsilon for `Float64` (`eps() = 2.22044e-16`), and convert this perturbed statespace system to a transfer function ``G_2``. The difference between the two transfer functions is enormous, the norm of the difference in their denominator coefficient vectors is on the order of ``10^{96}``.
 
@@ -17,8 +17,9 @@ If we plot the poles of the two systems, they are also very different
 ```julia
 scatter(poles(G1)); scatter!(poles(G2))
 ```
-![Noisy poles](https://user-images.githubusercontent.com/3797491/215962177-38447944-6cca-4070-95ea-7f3829efee2e.png))
+![Noisy poles](https://user-images.githubusercontent.com/3797491/215962177-38447944-6cca-4070-95ea-7f3829efee2e.png)
 
+If we instead compute the poles of the statespace model before and after the perturbation, they are almost indistinguishable.
 
 #### State-space balancing
 
@@ -51,6 +52,26 @@ bsys, T = balance_statespace(linsys)
 norm(bsys.A, Inf), norm(bsys.B, Inf), norm(bsys.C, Inf)
 ```
 If you plot the frequency-response of the two systems using [`bodeplot`](@ref), you'll see that they differ significantly (the balanced one is correct).
+
+## Extended precision and exotic number types
+Most functions in ControlSystems.jl can operate on numbers of any type, for example, computations can be performed with increased precision using the `BigFloat` type. While the `BigFloat` type is part of julia base, some functionality such as matrix factorizations used in `c2d` and `minreal` etc. require the user to load external packages to work with `BigFloat` numbers. The list below indicates how to make a number of functions work with `BigFloat` (and other exotic number types):
+- [`minreal`](@ref), [`observability`](@ref), [`controllability`](@ref): [`using GenericLinearAlgebra`](https://github.com/JuliaLinearAlgebra/GenericLinearAlgebra.jl) for a generic `svd` function.
+- [`poles`](@ref), [`are`](@ref), [`lqr`](@ref), [`kalman`](@ref), `tf(sys::StateSpace)`: [`using GenericSchur`](https://github.com/RalphAS/GenericSchur.jl).
+- [`c2d`](@ref)`(P, Ts, :zoh)`: `using ExponentialUtilities` followed by the following method definition: `LinearAlgebra.exp!(A::Matrix{BigFloat}) = ExponentialUtilities.exponential!(A)`.
+
+If you encounter errors like
+```
+MethodError: no method matching svdvals!(::Matrix{BigFloat}) --> Load GenericLinearAlgebra.jl
+```
+```
+MethodError: no method matching eigvals!(::Matrix{BigFloat}, ...) --> Load GenericSchur.jl (this defines eigvals as well)
+```
+or 
+```
+MethodError: no method matching schur!(::Matrix{BigFloat}) --> Load GenericSchur.jl
+```
+in any other function, you may need to load one of the packages mentioned above.
+
 
 ## Frequency-response calculation
 For small systems (small number of inputs, outputs and states), evaluating the frequency-response of a transfer function is reasonably accurate and very fast.
@@ -116,3 +137,6 @@ For discrete-time systems, the function [`lsim!`](@ref) accepts a pre-allocated 
 
 ### Numerical balancing
 If you are only interested in the simulated outputs, not the state trajectories, you may consider applying balancing to the statespace model using [`balance_statespace`](@ref) before simulating, see the section on [State-space balancing](@ref) above. If the state trajectories are of interest, balancing can still be performed before simulation, and the inverse transformation applied to the state trajectories after simulation.
+
+## Static arrays in StateSpace systems
+The special statespace system type [HeteroStateSpace](@ref) can be used to store statespace models with static arrays rather than the default matrix type `Matrix`. See [State-Space Systems](@ref) for more details.

@@ -13,7 +13,7 @@ end
 ```
 
 ### tf - Rational Representation
-The syntax for creating a transfer function is [`tf`](@ref)
+The basic syntax for creating a transfer function is [`tf`](@ref)
 ```julia
 tf(num, den)     # Continuous-time system
 tf(num, den, Ts) # Discrete-time system
@@ -21,19 +21,43 @@ tf(num, den, Ts) # Discrete-time system
 where `num` and `den` are the polynomial coefficients of the numerator and denominator of the polynomial and `Ts`, if provided, is the sample time for a discrete-time system.
 #### Example:
 ```jldoctest
-tf([1.0],[1,2,1])
+tf([1.0],[1,2,3])
 
 # output
 
 TransferFunction{Continuous, ControlSystemsBase.SisoRational{Float64}}
         1.0
 -------------------
-1.0s^2 + 2.0s + 1.0
+1.0s^2 + 2.0s + 3.0
 
 Continuous-time transfer function model
 ```
 
 The transfer functions created using this method will be of type `TransferFunction{SisoRational}`.
+For more general expressions, it is sometimes more convenient to define `s = tf("s")` (only use this approach for low-order systems).:
+#### Example:
+```julia
+julia> s = tf("s") # or s = zpk("s"), z = tf("z", Ts), z = zpk("z", Ts)
+
+TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}
+s
+-
+1
+
+Continuous-time transfer function model
+```
+
+This allows us to use `s` to define transfer-functions:
+```julia
+julia> (s-1)*(s^2 + s + 1)/(s^2 + 3s + 2)/(s+1)
+
+TransferFunction{Continuous,ControlSystems.SisoRational{Int64}}
+       s^3 - 1
+---------------------
+s^3 + 4*s^2 + 5*s + 2
+
+Continuous-time transfer function model
+```
 
 ### zpk - Pole-Zero-Gain Representation
 Sometimes it's better to represent the transfer function by its poles, zeros and gain, this can be done using the function [`zpk`](@ref)
@@ -60,10 +84,25 @@ The transfer functions created using this method will be of type `TransferFuncti
 
 
 ## State-Space Systems
-A state-space system is created using
+A state-space system
+```math
+\begin{aligned}
+\dot{x} &= Ax + Bu \\
+y &= Cx + Du
+\end{aligned}
+```
+in continuous time, or
+```math
+\begin{aligned}
+x_{t+T_s} &= Ax_t + Bu_t \\
+y_t &= Cx_t + Du_t
+\end{aligned}
+```
+in discrete time, is created using
 ```julia
 ss(A,B,C,D)    # Continuous-time system
 ss(A,B,C,D,Ts) # Discrete-time system
+ss(P; balance=true, minimal=false) # Convert transfer function P to state space
 ```
 and they behave similarly to transfer functions.
 
@@ -80,11 +119,11 @@ HeteroStateSpace(sys, to_static)
 ```
 Notice the different matrix types used.
 
-To associate **names** with states, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems) from RobustAndOptimalControl.jl.
+To associate **names** with state variables, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems) from RobustAndOptimalControl.jl.
 
 
 ## Converting between types
-It is sometime useful to convert one representation to another, this is possible using the constructors `tf, zpk, ss`, for example
+It is sometime useful to convert one representation to another. This is possible using the constructors `tf, zpk, ss`, for example
 ```jldoctest
 tf(zpk([-1], [1], 2, 0.1))
 
@@ -98,6 +137,14 @@ z - 1
 Sample Time: 0.1 (seconds)
 Discrete-time transfer function model
 ```
+
+When a transfer function `P` is converted to a state-space model using `ss(P; balance=true, minimal=false)`, the user may choose whether to balance the state-space model (default=true) and/or to return a minimal realization (default=false).
+
+
+## Converting between continuous and discrete time
+A continuous-time system represents differential equations or a transfer function in the [Laplace domain](https://en.wikipedia.org/wiki/Laplace_transform), while a discrete-time system represents difference equations or a transfer function in the [Z-domain](https://en.wikipedia.org/wiki/Z-transform).
+
+The functions [`c2d`](@ref) and [`d2c`](@ref) implement sampling/discretization of continuous-time systems and the inverse mapping from discrete-time to continuous-time systems. 
 
 ## Delay Systems
 The constructor [`delay`](@ref) creates a pure delay, which may be connected to a system by multiplication:
@@ -114,7 +161,7 @@ L = 1.2 # Delay time
 tf(1, [1, 1]) * exp(-L*s)
 ```
 
-Padé approximations of delays can be created using [`pade`](@ref).
+Padé approximations of delays can be created using [`pade`](@ref). Models with delays can be discretized using [`c2d`](@ref), currently, only delays that are integer multiples of the sample time are supported. Pure fractional delays can be approximately discretized using the function [`thiran`](@ref).
 
 A tutorial on delay systems is available here:
 ```@raw html
@@ -150,6 +197,9 @@ P1 = ss(-1,1,1,0)
 P2 = ss(-2,1,1,0)
 P2*P1
 ```
+
+The state of the resulting system is the concatenation of the states of the two systems, starting with the left/first operand (`P2` above).
+
 If the input dimension of `P2` does not match the output dimension of `P1`, an error is thrown. If one of the systems is SISO and the other is MIMO, broadcasted multiplication will expand the SISO system to match the input or output dimension of the MIMO system, e.g.,
 ```@example MIMO
 Pmimo = ssrand(2,2,1)
@@ -164,6 +214,12 @@ using LinearAlgebra
 Psiso .* I(2)
 ```
 
+## Adding systems
+Two systems can be connected in parallel by addition
+```@example MIMO
+P12 = P1 + P2
+```
+The state of the resulting system is the concatenation of the states of the two systems, starting with the left/first operand (`P1` above).
 
 ## MIMO systems and arrays of systems
 Concatenation of systems creates MIMO systems, which is different from an array of systems. For example
@@ -215,19 +271,6 @@ P = ssrand(2,3,1) # A random 2×3 MIMO system
 sys_array = getindex.(Ref(P), 1:P.ny, (1:P.nu)')
 ```
 
-### Creating arrays with different types of systems
-When calling `hcat/vcat`, Julia automatically tries to promote the types to the smallest common supertype, this means that creating an array with one continuous and one discrete-time system fails
-```@example MIMO
-P_cont = ssrand(2,3,1) 
-P_disc = ssrand(2,3,1, Ts=1)
-@test_throws ErrorException [P_cont, P_disc] # ERROR: Sampling time mismatch
-```
-You can explicitly tell Julia that you want a particular supertype, e.g,
-```@example MIMO
-StateSpace[P_cont, P_disc]
-```
-The type `StateSpace` is abstract, since the type parameters are not specified.
-
 ## Demo systems
 The module `ControlSystemsBase.DemoSystems` contains a number of demo systems demonstrating different kinds of dynamics.
 
@@ -237,13 +280,15 @@ This section lists a number of block diagrams, and indicates the corresponding t
 
 The function `feedback(G1, G2)` can be thought of like this: the first argument `G1` is the system that appears directly between the input and the output (the *forward path*), while the second argument `G2` (defaults to 1 if omitted) contains all other systems that appear in the closed loop (the *feedback path*). The feedback is assumed to be negative, unless the argument `pos_feedback = true` is passed (`lft` is an exception, which due to convention defaults to positive feedback). This means that `feedback(G, 1)` results in unit negative feedback, while `feedback(G, -1)` or `feedback(G, 1, pos_feedback = true)` results in unit positive feedback.
 
+The returned closed-loop system will have a state vector comprised of the state of `G1` followed by the state of `G2`.
+
 ---
 Closed-loop system from reference to output
 ```
-r   ┌─────┐     ┌─────┐
-───►│     │  u  │     │ y
-    │  C  ├────►│  P  ├─┬─►
- -┌►│     │     │     │ │
+    ┌─────┐     ┌─────┐
+r   │     │  u  │     │ y
+──+►│  C  ├────►│  P  ├─┬─►
+ -▲ │     │     │     │ │
   │ └─────┘     └─────┘ │
   │                     │
   └─────────────────────┘
@@ -341,6 +386,32 @@ Here, we have reversed the order of `P` and `C` to get the correct sign of the c
 
 ---
 
+Two degree of freedom control system with feedforward ``F`` and feedback controller ``C``
+
+```
+         +-------+
+         |       |
+   +----->   F   +----+
+   |     |       |    |
+   |     +-------+    |
+   |     +-------+    |    +-------+
+r  |  -  |       |    |    |       |    y
++--+----->   C   +----+---->   P   +---+-->
+      |  |       |         |       |   |
+      |  +-------+         +-------+   |
+      |                                |
+      +--------------------------------+
+```
+
+```math
+Y = (F+C)\dfrac{P}{I + PC}R
+```
+
+Code: `feedback(P,C)*(F+C)` or `feedback2dof(P, C, F)`
+- [`feedback2dof`](@ref)
+
+---
+
 Linear fractional transformation
 
 ```
@@ -390,9 +461,9 @@ I & P
 w_1 \\ w_2
 \end{bmatrix}
 ```
-Code: This function requires the package [RobustAndOptimalControl.jl](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/).
+Code: 
 ```julia
-RobustAndOptimalControl.extended_gangoffour(P, C, pos=true)
+extended_gangoffour(P, C, pos=true)
 # For SISO P
 S  = G[1, 1]
 PS = G[1, 2]
@@ -442,10 +513,50 @@ Filters can be designed using [DSP.jl](https://docs.juliadsp.org/stable/filters/
 using DSP, ControlSystemsBase, Plots
 
 fs = 100
-df = digitalfilter(Bandpass(5, 10; fs), Butterworth(2))
+df = digitalfilter(Bandpass(5, 10), Butterworth(2); fs)
 G = tf(df, 1/fs) # Sample time must be provided in the conversion to get the correct frequency scale in the Bode plot
-bodeplot(G, xscale=:identity, yscale=:identity, hz=true)
+bodeplot(G, xscale=:identity, yscale=:identity, hz=true, adaptive=false)
+vline!([5 10], l=(:black, :dash), label="Band-pass limits", sp=1)
 ```
 
 See also
 - [`ControlSystemsBase.seriesform`](@ref)
+
+## Open loop in terms of closed loop
+The following identities are useful when solving for open-loop transfer functions in terms of closed-loop transfer functions. This is relevant, e.g., when system identification has to be performed in closed-loop.
+```math
+\begin{aligned}
+L_o &= PC \\
+L_i &= CP \\
+L_x &= S_x^{-1} - I \\
+L_x &= T_x (I - T_x)^{-1} \\
+(I + L)^{-1} &= I - (I + L)^{-1}L = I - L(I + L)^{-1} \text{("push-through identity")} \Rightarrow\\
+\Rightarrow S &= I - T \qquad S + T = I\\
+G &= (I + PC)^{-1}P \Longrightarrow P = G(I - CG)^{-1} \\
+G &= (I + CP)^{-1}C \Longrightarrow C = G(I - PG)^{-1} \\
+\end{aligned}
+```
+Solving for ``P`` from ``S`` or ``T`` naively requires ``C`` to be invertible (and vice versa). Solving for ``P`` from ``SP = (I + PC)^{-1}P`` is thus recommended. See also [`DescriptorSystems.grsol`](https://andreasvarga.github.io/DescriptorSystems.jl/dev/advanced_operations.html#DescriptorSystems.grsol) (and the corresponding `glsol`) which can solve transfer-matrix equations like `PC = B` for ``C`` when ``P`` is not invertible. The solution is only unique if the largest transfer function between ``S_o`` and ``S_i``, or between ``T_o`` and ``T_i`` is used.
+
+As an example, below we solve for ``P`` using ``S_o \in \mathbb{C}^{2 \times 2}`` which produces the correct result
+```julia
+using ControlSystemsBase, DescriptorSystems, Plots, LinearAlgebra
+P = ssrand(2,1,2)
+C = ssrand(1,2,2)
+S = output_sensitivity(P, C)
+P′ = (inv(S)-I(2)) / C # Errors due to C not being invertible
+DescriptorSystems.dss(sys::ControlSystemsBase.StateSpace) = DescriptorSystems.dss(sys.A, sys.B, sys.C, sys.D; Ts = ControlSystemsBase.isdiscrete(sys) ? sys.Ts : 0)
+P′d, _ = DescriptorSystems.glsol(dss(C), dss(inv(S)-I(2)))
+P′s, _ = dss2ss(P′d)
+P′ = ss(P′s.A, P′s.B, P′s.C, P′s.D)
+bodeplot([P, P′])
+```
+
+Had we used ``S_i \in \mathbb{C}^{1 \times 1}`` instead, we would generally not have obtained the correct ``P`` since this system of equations is underdetermined
+```julia
+Si = input_sensitivity(P, C)
+P′d, _ = DescriptorSystems.grsol(dss(C), dss(inv(Si)-I(1)))
+P′s, _ = dss2ss(P′d)
+P′ = ss(P′s.A, P′s.B, P′s.C, P′s.D)
+bodeplot([P, P′])
+```

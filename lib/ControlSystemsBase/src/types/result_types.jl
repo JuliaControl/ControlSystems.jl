@@ -24,6 +24,14 @@ y, t, x, u = result
 - `x::Tx`
 - `u::Tu`
 - `sys::Ts`
+
+## Concatenation of SimResults
+
+Two SimResults can be concatenated in time using `hcat`, or `[res1 res2]`, the rules for this are as follows:
+- If the start time of the second result is one sample interval after the end time of the first result, the results are concatenated and the length of the result is the sum of the lengths of the two results.
+- If the start time of the second result is equal to the end time of the first result, _and_ the initial state of the second result is equal to the final state of the first result, the results are concatenated omitting the initial point from the second result, which would otherwise have been repeated. The length of the result is the sum of the lengths of the two results minus one.
+If none of the above holds, a warning is issued and the result has the length of the sum of the lengths of the two results.
+- If the sample intervals of the two results are different, an error is thrown.
 """
 struct SimResult{Ty, Tt, Tx, Tu, Ts} <: AbstractSimResult # Result of lsim
     y::Ty
@@ -40,6 +48,18 @@ end
 
 function Base.getindex(r::SimResult, v::AbstractVector)
     return getfield.((r,), v) 
+end
+
+function Base.hcat(r1::SimResult, r2::SimResult)
+    r1.sys.Ts == r2.sys.Ts || throw(ArgumentError("Sampling-time mismatch"))
+    if r1.x[:, end] == r2.x[:, 1] && r1.t[end] == r2.t[1]
+        r1.u[:, end] == r2.u[:, 1] || @warn "Concatenated SimResults have different inputs at the join"
+        # This is a common case when r2 starts with initial conditions from r1
+        return SimResult(hcat(r1.y, r2.y[:, 2:end]), vcat(r1.t, r2.t[2:end]), hcat(r1.x, r2.x[:, 2:end]), hcat(r1.u, r2.u[:, 2:end]), r1.sys)
+    elseif !(r1.t[end] + r1.sys.Ts ≈ r2.t[1])
+        @warn "Concatenated SimResults do not appear to be continuous in time, the first ends at t=$(r1.t[end]) and the second starts at t=$(r2.t[1]). With sample interval Ts=$(r1.sys.Ts), the second simulation was expected to start at t=$(r1.t[end] + r1.sys.Ts) To start a simulation at a non-zero time, pass a time vector to lsim."
+    end
+    SimResult(hcat(r1.y, r2.y), vcat(r1.t, r2.t), hcat(r1.x, r2.x), hcat(r1.u, r2.u), r1.sys)
 end
 
 issiso(r::SimResult) = issiso(r.sys)

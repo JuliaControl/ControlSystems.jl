@@ -129,6 +129,16 @@ function pairup_conjugates!(x::AbstractVector)
     end
     return true
 end
+function is_self_conjugate(x::AbstractVector)
+    length(x) == 0 && return true # Empty vector is self-conjugate
+    # Check that all complex numbers have a conjugate in the vector
+    for i = eachindex(x)
+        if findfirst(≈(conj(x[i])), x) === nothing
+            return false
+        end
+    end
+    return true
+end
 
 function evalfr(f::SisoZpk{T1,TR}, s::T2) where {T1<:Number, TR<:Number, T2<:Number}
     T0 = promote_type(T2, TR)
@@ -154,9 +164,9 @@ function poly_factors2string(poly_factors::AbstractArray{<:Polynomial{T}}, var) 
     end
 end
 
-""" Heurisitc function that tries to add parentheses when printing the coeffcient
+""" Heuristic function that tries to add parentheses when printing the coefficient
     for systems on zpk form. Should at least handle the following types
-    Measurment, Dual, Sym. """
+    Measurement, Dual, Sym. """
 function _printcoefficient(nbr::Number)
     # Print type information as in 1.0f0 for Float32
     # showcompact might be better, but is not consistent with polynomials

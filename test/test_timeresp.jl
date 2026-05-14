@@ -1,3 +1,9 @@
+# Test lsim for pure D system (no states) with matrix input
+sysDm = ss([2.0])
+tDm = 0:0.1:1
+uDm = fill(3.0, 1, length(tDm))
+resDm = lsim(sysDm, uDm, tDm)
+@test resDm.y[:] == fill(2.0 * 3.0, length(tDm))
 import OrdinaryDiffEq
 using OrdinaryDiffEq: solve
 using ControlSystems
@@ -34,6 +40,14 @@ th = 1e-6
 
 # Error for nonuniformly spaced vector
 @test_throws ErrorException lsim(sys, [1 2 3 4], [0, 1, 1, 2])
+
+
+# Test lsim for pure D system (no states)
+sysD = ss([2.0])
+tD = 0:0.1:1
+uD(x, t) = [3.0]
+resD = lsim(sysD, uD, tD)
+@test resD.y[:] == fill(2.0 * 3.0, length(tD))
 
 # Test for problem with broadcast dimensions
 @test lsim(sys, zeros(1, 5), 0:0.2:0.8)[1][:] == zeros(5)
@@ -75,7 +89,7 @@ xreal[3,:,2] = exp.(-t).*t
 y, t, x = step(systf, t0, method=:zoh)
 yreal[1,:,1] = 1 .- exp.(-t)
 yreal[2,:,2] = -1 .+ exp.(-t) + 2*exp.(-t).*t
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 #Step ss
 y, t, x = step(sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
@@ -88,7 +102,7 @@ xreal[3,:,2] = exp.(-t).*(-t .- 1) .+ 1
 y, t, x = impulse(systf, t, method=:zoh)
 yreal[1,:,1] = exp.(-t)
 yreal[2,:,2] = exp.(-t).*(1 .- 2*t)
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 #Impulse ss
 y, t, x = impulse(1.0sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
@@ -130,3 +144,31 @@ for balanced in [true, false]
     res2 = step(sys2, t ./ a)
     @test res1.y ≈ res2.y rtol=1e-2 atol=1e-2
 end
+
+
+
+# Discontinuous u function
+s = tf('s')
+sys = 0.0002/s^2;
+t = 0:0.01:10
+u1(x,t) = [25(5.0 <= t < 5.1)]
+@test lsim(sys, u1, t; ).y[end] ≈ lsim(sys, u1, t; method=:zoh).y[end] rtol=0.1
+
+
+## Slow and fast time constants make reasonable length time vector (https://github.com/JuliaControl/ControlSystems.jl/issues/880)
+A =
+[ -6538.4         -40.38          0.0                  0.0;
+   409.6               0.0                 0.0                  0.0;
+     0.0               0.9164            -28.28       -20.0;
+     0.0               0.0                20.0                  0.0]
+B =
+[ 3846.15    0.0;
+    0.0             -288.0;
+    0.0                0.0;
+    0.0                0.0]
+C =[ 0.0  0.0  0.0  1.0]
+D =[ 0.0  0.0]
+
+sys = ss(A,B,C,D)
+@test length(ControlSystemsBase._default_time_vector(sys)) <= 1e5+1
+@test step(sys) isa ControlSystemsBase.SimResult

@@ -1,4 +1,5 @@
-import OrdinaryDiffEq: ODEProblem, Tsit5, DiffEqBase, solve, BS3
+import OrdinaryDiffEq: ODEProblem, Tsit5, solve
+import OrdinaryDiffEqLowOrderRK: BS3
 import ControlSystemsBase: lsim, step, impulse, HammersteinWienerSystem, DelayLtiSystem, PartitionedStateSpace, SimResult
 import DelayDiffEq: MethodOfSteps
 # Function for DifferentialEquations lsim
@@ -22,7 +23,7 @@ end
 
 # This method is more specific than the lsim in ControlSystemsBase that does not specify Continuous timeevol for sys, hence, if ControlSystems is loaded, ControlSystems.lsim will take precedence over ControlSystemsBase.lsim for Continuous systems
 function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, alg = Tsit5(), kwargs...)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, dtmax = t[2]-t[1], alg = Tsit5(), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,t[1])
@@ -37,12 +38,24 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
 
     dt = t[2] - t[1]
 
+    # Handle pure D system (no state)
+    if nx == 0
+        uout = Matrix{T}(undef, nu, length(t))
+        for i = 1:length(t)
+            uout[:, i] = u(T[], t[i])
+        end
+        x = Matrix{T}(undef, 0, length(t)) # no states
+        y = sys.D * uout
+        simsys = sys
+        return SimResult(y, t, x, uout, simsys)
+    end
+
     if method === :zoh
         simsys = c2d(sys, dt, :zoh)
         x,uout = ControlSystemsBase.ltitr(simsys.A, simsys.B, u, t, T.(x0))
     else
         p = (sys.A, sys.B, u)
-        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; saveat=t, kwargs...)
+        sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; dtmax, saveat=t, kwargs...)
         x = reduce(hcat, sol.u)::Matrix{T}
         uout = Matrix{T}(undef, nu, length(t))
         for i = eachindex(t)
@@ -73,7 +86,7 @@ Arguments:
 - `u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
     - A constant `Number` or `Vector`, interpreted as a constant input.
     - Function `u(x, t)` that takes the internal state and time, note, the state representation for delay systems is not the same as for rational systems.
-    - In-place function `u(uₜ, x, t)`. (Slightly more effienct)
+    - In-place function `u(uₜ, x, t)`. (Slightly more efficient)
 
 `alg, abstol, reltol` and `kwargs...`: are sent to `DelayDiffEq.solve`.
 
@@ -312,7 +325,7 @@ Simulate system `sys`, over time `t`, using input signal `u`, with initial state
 - `u`: Function to determine control signal `uₜ` at a time `t`, on any of the following forms:
     Can be a constant `Number` or `Vector`, interpreted as `uₜ .= u` , or
     Function `uₜ .= u(x, t)`, or
-    In-place function `u(uₜ, x, t)`. (Slightly more effienct)
+    In-place function `u(uₜ, x, t)`. (Slightly more efficient)
 - `alg, abstol, reltol` and `kwargs...`: are sent to `OrdinaryDiffEq.solve`.
 
 Returns an instance of [`SimResult`](@ref).

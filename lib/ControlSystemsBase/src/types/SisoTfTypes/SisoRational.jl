@@ -90,7 +90,7 @@ function ==(f1::SisoRational, f2::SisoRational)
     (f1num * f2den[1] == f2num * f1den[1] && f1den * f2den[1] == f2den * f1den[1]) # NOTE: Not in analogy with how it's done for SisoZpk
 end
 
-# We might want to consider alowing scaled num and den as equal
+# We might want to consider allowing scaled num and den as equal
 function isapprox(f1::SisoRational, f2::SisoRational; rtol::Real=sqrt(eps()), atol::Real=0)
     # Get representation of num/den so index access is correct
     f1num, f1den = numvec(f1), denvec(f1)

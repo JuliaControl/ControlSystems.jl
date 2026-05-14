@@ -77,9 +77,9 @@ sysd = c2d(sys, 1)
 @test d2c(sysd) ≈ sys
 
 
-# forward euler / tustin
+# forward euler / tustin / backward euler
 @test c2d(C_111, 1, :fwdeuler).A == I + C_111.A
-for method in (:fwdeuler, :tustin)
+for method in (:fwdeuler, :tustin, :bwdeuler)
     @test d2c(c2d(C_111, 0.01, method), method) ≈ C_111 atol = sqrt(eps())
     @test d2c(c2d(C_212, 0.01, method), method) ≈ C_212 atol = sqrt(eps())
     @test d2c(c2d(C_221, 0.01, method), method) ≈ C_221 atol = sqrt(eps())
@@ -132,7 +132,7 @@ Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of t
 
 R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
 
-Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
+Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectors are of equal length
 
 @test ControlSystemsBase.isstable(Gcl)
 
@@ -140,10 +140,123 @@ p = poles(Gcl)
 # Test that all desired poles are in the closed-loop system
 @test norm(minimum(abs.((poles(tf(Bm,Am)) .- sort(p, by=imag)')), dims=2)) < 1e-6
 # Test that the observer poles are in the closed-loop system
-@test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+# @test norm(minimum(abs.((poles(tf(1,Ao)) .- sort(p, by=imag)')), dims=2)) < 1e-6
+@test sort(poles(tf(1,Ao)), by=LinearAlgebra.eigsortby)[2:end] ≈ sort(p, by=LinearAlgebra.eigsortby) # One pole is (correctly) cancelled in Gcl, causing the test above to fail
 
 
 pd = c2d_poly2poly(A, 0.1)
 @test pd ≈ denvec(c2d(P, 0.1))[]
+
+
+@testset "d2c_exact" begin
+    @info "Testing d2c_exact"
+    sys = ssrand(2, 3, 2, Ts = 1)
+    sysc_causal = d2c_exact(sys, :causal)
+    sysc_acausal = d2c_exact(sys, :acausal)
+    @test_throws ErrorException d2c_exact(sys, :KentMorgan)
+    # bodeplot(sys, w, lab="Discrete SS")
+    # bodeplot!(sysc_causal, w, lab="Continuous SS with causal delays", l=:dash, size=(800, 800))
+    # bodeplot!(sysc_acausal, w, lab="Continuous SS with acausal (negative) delays", l=:dash, size=(800, 800))
+    w = exp10.(LinRange(-2, 2, 200))
+    @test freqresp(sys, w) ≈ freqresp(sysc_causal, w) atol = 1e-8
+    @test freqresp(sys, w) ≈ freqresp(sysc_acausal, w) atol = 1e-8
+
+    # Requires full ControlSystems but does pass
+    # rd = step(sys, 0:10)
+    # rc = step(sysc_causal, 0:10)
+    # @test rd.y ≈ rc.y atol = 1e-8
+
+    sys = ss(1,1)
+    sysc = d2c_exact(sys)
+    sysc2 = DelayLtiSystem(ss(1))
+    @test sysc.P.P ≈ sysc2.P.P
+    @test sysc.P.ny ≈ sysc2.P.ny
+    @test sysc.Tau ≈ sysc2.Tau
+end
+
+
+## Sampling of covariance and cost matrices
+
+# Covariance matrices (opt = :o)
+sysc = DemoSystems.resonant()
+Ts = 0.5
+sysd = c2d(sysc, Ts)
+Qd = [1 0.1; 0.1 2]
+Qc = d2c(sysd, Qd)
+
+Qd2 = c2d(sysc, Qc, Ts) # Continuous system as input
+@test Qd2 ≈ Qd
+
+Qd3 = c2d(sysd, Qc) # Discrete system as input
+@test Qd3 ≈ Qd
+
+
+# Test sampling of cost matrix (opt = :c)
+sysc = DemoSystems.resonant()
+x0 = ones(sysc.nx)
+Ts = 0.01 # cost approximation becomes more crude as Ts increases
+Qc = [1 0.01; 0.01 2]
+Rc = I(1)
+sysd = c2d(sysc, Ts)
+
+Qd, Rd = c2d(sysc, Qc, Rc, Ts, opt=:c) # Continuous system as input
+Qc2, Rc2 = d2c(sysd, Qd, Rd; opt=:c) # Test round trip
+@test Qc2 ≈ Qc
+@test Rc2 ≈ Rc
+
+Qd3, Rd3 = c2d(sysd, Qc, Rc; opt=:c) # Discrete system as input
+@test Qd3 ≈ Qd
+@test Rd3 ≈ Rd
+
+
+# NOTE: these tests are not run due to OrdinaryDiffEq latency, they should pass
+# using OrdinaryDiffEq
+# L = lqr(sysc, Qc, Rc)
+# dynamics = function (xc, p, t)
+#     x = xc[1:sysc.nx]
+#     u = -L*x
+#     dx = sysc.A*x + sysc.B*u
+#     dc = dot(x, Qc, x) + dot(u, Rc, u)
+#     return [dx; dc]
+# end
+# prob = ODEProblem(dynamics, [x0; 0], (0.0, 10.0))
+# sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+# cc = sol.u[end][end]
+# Ld = lqr(sysd, Qd, Rd)
+# sold = lsim(sysd, (x, t) -> -Ld*x, 0:Ts:10, x0 = x0)
+# function cost(x, u, Q, R)
+#     dot(x, Q, x) + dot(u, R, u)
+# end
+# cd = cost(sold.x, sold.u, Qd, Rd)
+# @test cc ≈ cd rtol=0.01
+# @test abs(cc-cd) < 1.0001*0.005531389319983315
+
+
+# test case from paper
+A = [
+    2 -8 -6
+    10 -19 -12
+    -10 15 8
+]
+B = [
+    5 1
+    1 4
+    3 2
+]
+Qc = [
+    4 1 2
+    1 3 1
+    2 1 5
+]
+
+Qd = c2d(ss(A,B,I,0), Qc, 1, opt=:c)
+Qd_van_load = [
+    9.934877720 -11.08568953 -9.123023900
+    -11.08568953 13.66870748 11.50451512
+    -9.123023900 11.50451512 10.29179555 
+]
+
+@test norm(Qd - Qd_van_load) < 1e-6
+
 
 end

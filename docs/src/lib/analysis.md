@@ -11,7 +11,7 @@ Modules = [ControlSystems, ControlSystemsBase]
 Pages   = [
          libpath*"/analysis.jl", 
          libpath*"/matrix_comps.jl", 
-         libpath*"/conversion.jl"
+         libpath*"/types/conversion.jl"
         ]
 Order   = [:function, :type]
 Private = false

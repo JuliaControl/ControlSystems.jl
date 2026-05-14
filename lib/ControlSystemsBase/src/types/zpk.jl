@@ -69,8 +69,8 @@ function zpk(G::TransferFunction{TE,S}) where {TE<:TimeEvolution,T0, S<:SisoTf{T
     convert(TransferFunction{TE,SisoZpk{T, complex(T)}}, G)
 end
 
-zpk(var::AbstractString) = zpk(tf(var))
-zpk(var::AbstractString, Ts::Real) = zpk(tf(var, Ts))
+zpk(var::Union{AbstractString, Char}) = zpk(tf(var))
+zpk(var::Union{AbstractString, Char}, Ts::Real) = zpk(tf(var, Ts))
 
 # Catch all 3(4) argument versions
 zpk(z, p, k, Ts::Number) = zpk(z, p, k, Discrete(Ts))

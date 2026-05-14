@@ -1,5 +1,5 @@
 const _scaling_notice = """
-Note: Gramian computations are sensitive to input-output scaling. For the result of a numerical balancing, gramian computation or truncation of MIMO systems to be meaningful, the inputs and outputs of the system must thusbe scaled in a meaningful way. A common (but not the only) approach is:
+Note: Gramian computations are sensitive to input-output scaling. For the result of a numerical balancing, gramian computation or truncation of MIMO systems to be meaningful, the inputs and outputs of the system must thus be scaled in a meaningful way. A common (but not the only) approach is:
 - The outputs are scaled such that the maximum allowed control error, the maximum expected reference variation, or the maximum expected variation, is unity.
 - The input variables are scaled to have magnitude one. This is done by dividing each variable by its maximum expected or allowed change, i.e., ``u_{scaled} = u / u_{max}``
 
@@ -18,8 +18,8 @@ See [`lqr`](@ref) for more details.
 Uses `MatrixEquations.arec`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.arec`,
 note that they define the input arguments in a different order.
 """
-function are(::ContinuousType, A::AbstractMatrix, B, Q, R; kwargs...)
-    arec(A, B, R, Q; kwargs...)[1]
+function are(::ContinuousType, A::AbstractMatrix, B, Q, R, args...; kwargs...)
+    arec(A, B, R, Q, args...; kwargs...)[1]
 end
 
 """
@@ -34,8 +34,8 @@ See [`lqr`](@ref) for more details.
 Uses `MatrixEquations.ared`. For keyword arguments, see the docstring of `ControlSystemsBase.MatrixEquations.ared`,
 note that they define the input arguments in a different order.
 """
-function are(::DiscreteType, A::AbstractMatrix, B, Q, R; kwargs...)
-    ared(A, B, R, Q; kwargs...)[1]
+function are(::DiscreteType, A::AbstractMatrix, B, Q, R, args...; kwargs...)
+    ared(A, B, R, Q, args...; kwargs...)[1]
 end
 
 are(t::TimeEvolType, A::Number, B::Number, Q::Number, R::Number) = are(t, fill(A,1,1),fill(B,1,1),fill(Q,1,1),fill(R,1,1))
@@ -123,7 +123,9 @@ Compute the observability matrix with `n` rows for the system described by `(A, 
 
 Note that checking for observability by computing the rank from `obsv` is
 not the most numerically accurate way, a better method is checking if
-`gram(sys, :o)` is positive definite.
+`gram(sys, :o)` is positive definite or to call the function [`observability`](@ref).
+
+The unobservable subspace is `nullspace(obsv(A, C))`, initial conditions in this subspace produce a zero response.
 """
 function obsv(A::AbstractMatrix, C::AbstractMatrix, n::Int = size(A,1))
     T = promote_type(eltype(A), eltype(C))
@@ -150,7 +152,9 @@ Compute the controllability matrix for the system described by `(A, B)` or
 
 Note that checking for controllability by computing the rank from
 `ctrb` is not the most numerically accurate way, a better method is
-checking if `gram(sys, :c)` is positive definite.
+checking if `gram(sys, :c)` is positive definite or to call the function [`controllability`](@ref).
+
+The controllable subspace is given by the range of this matrix, and the uncontrollable subspace is `nullspace(ctrb(A, B)') (note the transpose)`.
 """
 function ctrb(A::AbstractMatrix, B::AbstractVecOrMat)
     T = promote_type(eltype(A), eltype(B))
@@ -169,6 +173,55 @@ end
 ctrb(sys::AbstractStateSpace) = ctrb(sys.A, sys.B)
 
 """
+    controllability(A, B; atol, rtol)
+    controllability(sys; atol, rtol)
+
+Check for controllability of the pair `(A, B)` or `sys` using the PHB test.
+
+The return value contains the field `iscontrollable` which is `true` if the rank condition is met at all eigenvalues of `A`, and `false` otherwise. The returned structure also contains the rank and smallest singular value at each individual eigenvalue of `A` in the fields `ranks` and `sigma_min`.
+
+Technically, this function checks for controllability from the origin, also called reachability.
+"""
+function controllability(A::AbstractMatrix{T}, B; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(float(T))) where T
+    n = LinearAlgebra.checksquare(A)
+    p = eigvals(A)
+    ranks = zeros(Int, n)
+    sigma_min = similar(A, float(T), n)
+    for i = 1:n
+        sigmas = svdvals([(p[i]*I - A) B])
+        r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
+        ranks[i] = r
+        sigma_min[i] = sigmas[end]
+    end
+    (; iscontrollable = all(==(n), ranks), ranks, sigma_min)
+end
+controllability(sys::AbstractStateSpace; kwargs...) = controllability(sys.A, sys.B; kwargs...)
+
+
+"""
+    observability(A, C; atol, rtol)
+
+
+Check for observability of the pair `(A, C)` or `sys` using the PHB test.
+
+The return value contains the field `isobservable` which is `true` if the rank condition is met at all eigenvalues of `A`, and `false` otherwise. The returned structure also contains the rank and smallest singular value at each individual eigenvalue of `A` in the fields `ranks` and `sigma_min`.
+"""
+function observability(A::AbstractMatrix{T}, C; atol::Real=0, rtol::Real=atol>0 ? 0 : size(A,1)*eps(float(T))) where T
+    n = LinearAlgebra.checksquare(A)
+    p = eigvals(A)
+    ranks = zeros(Int, n)
+    sigma_min = similar(A, float(T), n)
+    for i = 1:n
+        sigmas = svdvals([(p[i]*I - A); C])
+        r = count(>=(max(atol, rtol*sigmas[1])), sigmas)
+        ranks[i] = r
+        sigma_min[i] = sigmas[end]
+    end
+    (; isobservable = all(==(n), ranks), ranks, sigma_min)
+end
+observability(sys::AbstractStateSpace; kwargs...) = observability(sys.A, sys.C; kwargs...)
+
+"""
     P = covar(sys, W)
 
 Calculate the stationary covariance `P = E[y(t)y(t)']` of the output `y` of a
@@ -177,13 +230,16 @@ Calculate the stationary covariance `P = E[y(t)y(t)']` of the output `y` of a
 
 Remark: If `sys` is unstable then the resulting covariance is a matrix of `Inf`s.
 Entries corresponding to direct feedthrough (D*W*D' .!= 0) will equal `Inf`
-for continuous-time systems."""
+for continuous-time systems.
+    
+See also [`innovation_form`](@ref).
+"""
 function covar(sys::AbstractStateSpace, W)
     (A, B, C, D) = ssdata(sys)
     if !isa(W, UniformScaling) && (size(B,2) != size(W, 1) || size(W, 1) != size(W, 2))
         error("W must be a square matrix the same size as `sys.B` columns")
     end
-    isa(W, UniformScaling) && (W = I(size(B, 2)))
+    isa(W, UniformScaling) && (W = W(size(B, 2)))
     if !isstable(sys)
         return fill(Inf,(size(C,1),size(C,1)))
     end
@@ -245,6 +301,25 @@ LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p
 
 
 """
+    sysm, T, SF = schur_form(sys)
+
+Bring `sys` to Schur form.
+
+The Schur form is characterized by `A` being Schur with the real values of eigenvalues of `A` on the main diagonal. `T` is the similarity transform applied to the system such that 
+```julia
+sysm ≈ similarity_transform(sys, T)
+```
+`SF` is the Schur-factorization of `A`.
+"""
+function schur_form(sys)
+    SF = schur(sys.A)
+    A = SF.T
+    B = SF.Z'*sys.B
+    C = sys.C*SF.Z
+    ss(A,B,C,sys.D, sys.timeevol), SF.Z, SF
+end
+
+"""
     Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
@@ -268,8 +343,8 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(sys, :hinf, tol)
-hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(sys, :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(schur_form(sys)[1], :hinf, tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(schur_form(sys)[1], :hinf, tol)
 hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
 
 """
@@ -296,10 +371,11 @@ state space systems in continuous and discrete time', American Control Conferenc
 See also [`hinfnorm`](@ref).
 """
 function linfnorm(sys::AbstractStateSpace; tol=1e-6)
-    if iscontinuous(sys)
-        return _infnorm_two_steps_ct(sys, :linf, tol)
+    sys2, _ = schur_form(sys)
+    if iscontinuous(sys2)
+        return _infnorm_two_steps_ct(sys2, :linf, tol)
     else
-        return _infnorm_two_steps_dt(sys, :linf, tol)
+        return _infnorm_two_steps_dt(sys2, :linf, tol)
     end
 end
 linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol=tol)
@@ -311,7 +387,7 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
-    # outputs: An approximatation of the L∞ norm and the frequency ω_peak at which it is achieved
+    # outputs: An approximation of the L∞ norm and the frequency ω_peak at which it is achieved
     # QUESTION: The tolerance for determining if there are poles on the imaginary axis
     # would not be very appropriate for systems with slow dynamics?
     T = promote_type(real(numeric_type(sys)), Float64)
@@ -387,12 +463,13 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
             end
         end
     end
-    error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    @error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    return T((1+tol)*lb), T(ω_peak)
 end
 
 function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
     # Discrete-time version of linfnorm_two_steps_ct above
-    # Compuations are done in normalized frequency θ
+    # Computations are done in normalized frequency θ
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
 
@@ -486,7 +563,7 @@ Compute a similarity transform `T = S*P` resulting in `B = T\\A*T` such that the
 and column norms of `B` are approximately equivalent. If `perm=false`, the
 transformation will only scale `A` using diagonal `S`, and not permute `A` (i.e., set `P=I`).
 """
-function balance(A, perm::Bool=true)
+function balance(A::AbstractMatrix{<:LinearAlgebra.BlasFloat}, perm::Bool=true)
     n = LinearAlgebra.checksquare(A)
     B = copy(A)
     job = perm ? 'B' : 'S'
@@ -514,12 +591,17 @@ function cswap!(i::Integer, j::Integer, X::StridedMatrix)
     end
 end
 
+function balance(A::AbstractMatrix, perm::Bool=true)
+    Ac = Float64.(A)
+    balance(Ac, perm)
+end
+
 
 
 """
 `sysr, G, T = balreal(sys::StateSpace)`
 
-Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`. `T` is the similarity transform between the old state `x` and the new state `z` such that `Tz = x`.
+Calculates a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`. `T` is the similarity transform between the old state `x` and the new state `z` such that `z = Tx`.
 
 See also [`gram`](@ref), [`baltrunc`](@ref).
 
@@ -543,7 +625,7 @@ function balreal(sys::ST) where ST <: AbstractStateSpace
     U,Σ,V = SV
 
     # Determine the order of a minimal realization to √ϵ tolerance
-    rmin = count(Σ .> sqrt(eps())*Σ[1])
+    rmin = count(Σ .> sqrt(eps(eltype(Σ)))*Σ[1])
     i1 = 1:rmin
     Σ = Σ[i1]
 
@@ -562,7 +644,7 @@ end
 
 Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
 
-`T` is the similarity transform between the old state `x` and the newstate `z` such that `Tz = x`.
+`T` is the projection matrix between the old state `x` and the newstate `z` such that `z = Tx`. `T` will in general be a non-square matrix.
 
 If `residual = true`, matched static gain is achieved through "residualization", i.e., setting
 ```math
@@ -579,16 +661,22 @@ For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduc
 # Extended help
 $(_scaling_notice)
 """
-function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = sqrt(eps(numeric_type(sys))), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
     if n === nothing
         S = S[S .>= atol]
         S = S[S .>= S[1]*rtol]
         n = length(S)
     else
+        n > sys.nx && error("n too large. A state dimension of n = $n was requested, but the original system has a $(sys.nx)-dimensional state.")
+        if length(S) < n
+            @error("n too large. A state dimension of n = $n was requested, but after a balanced realization was computed only $(length(S)) dimensions remain. Try either calling `minreal` before calling `baltrunc`, or try balancing the model using `balance_statespace`. Returning a system with n = $(length(S))")
+            n = length(S)
+        end
         S = S[1:n]
     end
     i1 = 1:n
+    T = T[i1, :]
     if residual
         A,B,C,D = ssdata(sysbal)
         i2 = n+1:size(A, 1)
@@ -617,6 +705,27 @@ function baltrunc(sys::ST; atol = sqrt(eps()), rtol = 1e-3, n = nothing, residua
 end
 
 """
+    stab, unstab, sep = stab_unstab(sys; kwargs...)
+
+Decompose `sys` into `sys = stab + unstab` where `stab` contains all stable poles and `unstab` contains unstable poles. 
+
+`0 ≤ sep ≤ 1` is the estimated separation between the stable and unstable spectra.
+
+The docstring of `MatrixPencils.ssblkdiag`, reproduced below, provides more information on the keyword arguments:
+$(@doc(MatrixPencils.ssblkdiag))
+"""
+function stab_unstab(sys::AbstractStateSpace; kwargs...)
+    stable_unstable = true
+    disc = isdiscrete(sys)
+    A, B, C, _, _, blkdims, sep = MatrixPencils.ssblkdiag(sys.A, sys.B, sys.C; disc, stable_unstable, withQ = false, withZ = false, kwargs...)
+    n1 = blkdims[1];
+    i1 = 1:n1; i2 = n1+1:sys.nx 
+    return (; stab=ss(A[i1,i1], B[i1,:], C[:,i1], sys.D, timeevol(sys)), 
+            unstab=ss(A[i2,i2], B[i2,:], C[:,i2], 0, timeevol(sys)),
+            sep)
+end
+
+"""
     syst = similarity_transform(sys, T; unitary=false)
 Perform a similarity transform `T : Tx̃ = x` on `sys` such that
 ```
@@ -627,7 +736,7 @@ D̃ = D
 ```
 
 If `unitary=true`, `T` is assumed unitary and the matrix adjoint is used instead of the inverse.
-See also [`balance_statespace`](@ref).
+See also [`balance_statespace`](@ref), [`find_similarity_transform`](@ref).
 """
 function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractStateSpace
     if unitary
@@ -641,6 +750,44 @@ function similarity_transform(sys::ST, T; unitary=false) where ST <: AbstractSta
     C = sys.C*T
     D = sys.D
     ST(A,B,C,D,sys.timeevol)
+end
+
+"""
+    find_similarity_transform(sys1, sys2, method = :obsv)
+
+Find T such that `similarity_transform(sys1, T) == sys2`
+
+Ref: Minimal state-space realization in linear system theory: an overview, B. De Schutter
+
+If `method == :obsv`, the observability matrices of `sys1` and `sys2` are used to find `T`, whereas `method == :ctrb` uses the controllability matrices.
+
+```jldoctest
+julia> using ControlSystemsBase
+
+julia> T = randn(3,3);
+
+julia> sys1 = ssrand(1,1,3);
+
+julia> sys2 = similarity_transform(sys1, T);
+
+julia> T2 = find_similarity_transform(sys1, sys2);
+
+julia> T2 ≈ T
+true
+```
+"""
+function find_similarity_transform(sys1, sys2, method = :obsv)
+    if method === :obsv
+        O1 = obsv(sys1)
+        O2 = obsv(sys2)
+        return O1\O2
+    elseif method === :ctrb
+        C1 = ctrb(sys1)
+        C2 = ctrb(sys2)
+        return C1/C2
+    else
+        error("Unknown method $method")
+    end
 end
 
 """
@@ -747,8 +894,8 @@ function innovation_form(sys::ST, K) where ST <: AbstractStateSpace
 end
 
 """
-    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1)
-    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12])
+    observer_predictor(sys::AbstractStateSpace, K; h::Int = 1, output_state = false)
+    observer_predictor(sys::AbstractStateSpace, R1, R2[, R12]; output_state = false)
 
 If `sys` is continuous, return the observer predictor system
 ```math
@@ -763,22 +910,25 @@ If `sys` is discrete, the prediction horizon `h` may be specified, in which case
 
 If covariance matrices `R1, R2` are given, the kalman gain `K` is calculated using [`kalman`](@ref).
 
-See also [`innovation_form`](@ref) and [`observer_controller`](@ref).
+If `output_state` is true, the output is the state estimate `x̂` instead of the output estimate `ŷ`.
+
+See also [`innovation_form`](@ref), [`observer_controller`](@ref) and [`observer_filter`](@ref).
 """
 function observer_predictor(sys::AbstractStateSpace, R1, R2::Union{AbstractArray, UniformScaling}, args...; kwargs...)
     K = kalman(sys, R1, R2, args...)
     observer_predictor(sys, K; kwargs...)
 end
 
-function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1)
+function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integer = 1, output_state = false)
     h >= 1 || throw(ArgumentError("h must be positive."))
     ny = noutputs(sys)
     size(K, 1) == sys.nx && size(K,2) == ny || throw(ArgumentError("K has the wrong size, expected $((sys.nx, ny))"))
     A,B,C,D = ssdata(sys)
     if h == 1
-        ss(A-K*C, [B-K*D K], C, [D zeros(ny, ny)], sys.timeevol)
+        ss(A-K*C, [B-K*D K], output_state ? I : C, output_state ? 0 : [D zeros(ny, ny)], sys.timeevol)
     else
         isdiscrete(sys) || throw(ArgumentError("A prediction horizon is only supported for discrete systems. "))
+        output_state && throw(ArgumentError("output_state is not supported for h > 1."))
         # The impulse response of the innovation form calculates the influence of a measurement at time t on the prediction at time t+h
         # Below, we form a system del (delay) that convolves the input (y) with the impulse response
         # We then add the output again to account for the fact that we propagated error and not measurement
@@ -795,12 +945,28 @@ function observer_predictor(sys::AbstractStateSpace, K::AbstractMatrix; h::Integ
 end
 
 """
-    cont = observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+    cont = observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix; direct=false)
 
+
+# If `direct = false`
 Return the observer_controller `cont` that is given by
 `ss(A - B*L - K*C + K*D*L, K, L, 0)`
+such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
 
-Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-KC` and `A-BL`.
+This controller does not have a direct term, and corresponds to state feedback operating on state estimated by [`observer_predictor`](@ref). Use this form if the computed control signal is applied at the next sampling instant, or with an otherwise large delay in relation to the measurement fed into the controller.
+
+Ref: "Computer-Controlled Systems" Eq 4.37
+
+# If `direct = true`
+Return the observer controller `cont` that is given by
+`ss((I-KC)(A-BL), (I-KC)(A-BL)K, L, LK)`
+such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues given by `A-BL` and `A-BL-KC`.
+This controller has a direct term, and corresponds to state feedback operating on state estimated by [`observer_filter`](@ref). Use this form if the computed control signal is applied immediately after receiveing a measurement. This version typically has better performance than the one without a direct term.
+
+!!! note
+    To use this formulation, the observer gain `K` should have been designed for the pair `(A, CA)` rather than `(A, C)`. To do this, pass `direct = true` when calling [`place`](@ref) or [`kalman`](@ref).
+
+Ref: Ref: "Computer-Controlled Systems" pp 140 and "Computer-Controlled Systems" pp 162 prob 4.7
 
 # Arguments:
 - `sys`: Model of system
@@ -809,7 +975,57 @@ Such that `feedback(sys, cont)` produces a closed-loop system with eigenvalues g
 
 See also [`observer_predictor`](@ref) and [`innovation_form`](@ref).
 """
-function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix)
+function observer_controller(sys, L::AbstractMatrix, K::AbstractMatrix; direct=false)
     A,B,C,D = ssdata(sys)
-    ss(A - B*L - K*C + K*D*L, K, L, 0, sys.timeevol)
+    if direct && isdiscrete(sys)
+        iszero(D) || throw(ArgumentError("D must be zero when using direct formulation of `observer_controller`"))
+        IKC = (I - K*C)
+        ABL = (A - B*L)
+        ss(IKC*ABL,       IKC*ABL*K, L, L*K, sys.timeevol)
+    else
+        ss(A - B*L - K*C + K*D*L, K, L, 0,   sys.timeevol)
+    end
+end
+
+
+"""
+    observer_filter(sys, K; output_state = false)
+
+Return the observer filter 
+```math
+\\begin{aligned}
+x̂(k|k) &= (I - KC)Ax̂(k-1|k-1) + (I - KC)Bu(k-1) + Ky(k) \\\\
+\\end{aligned}
+```
+with the input equation `[(I - KC)B K] * [u(k-1); y(k)]`.
+
+Note the time indices in the equations, the filter assumes that the user passes the *current* ``y(k)``, but the *past* ``u(k-1)``, that is, this filter is used to estimate the state *before* the current control input has been applied. This causes a state-feedback controller acting on the estimate produced by this observer to have a direct term.
+
+This is similar to [`observer_predictor`](@ref), but in contrast to the predictor, the filter output depends on the current measurement, whereas the predictor output only depend on past measurements.
+
+The observer filter is equivalent to the [`observer_predictor`](@ref) for continuous-time systems.
+
+!!! note
+    To use this formulation, the observer gain `K` should have been designed for the pair `(A, CA)` rather than `(A, C)`. To do this, pass `direct = true` when calling [`place`](@ref) or [`kalman`](@ref).
+
+Ref: "Computer-Controlled Systems" Eq 4.32
+"""
+function observer_filter(sys::AbstractStateSpace{<:Discrete}, K::AbstractMatrix; output_state = false)
+    A,B,C,D = ssdata(sys)
+    iszero(D) || throw(ArgumentError("D must be zero in `observer_filter`, consider using `observer_predictor` if you have a non-zero `D`."))
+    IKC = (I-K*C)
+    ss(IKC*A, [IKC*B K], output_state ? I : C, 0, sys.timeevol)
+end
+
+function observer_filter(sys::AbstractStateSpace{Continuous}, K::AbstractMatrix; kwargs...)
+    observer_predictor(sys, K; kwargs...)
+end
+
+function LinearAlgebra.det(sys::LTISystem)
+    sys = deepcopy(sys)
+    arrayofsys = getindex.(Ref(sys), 1:sys.ny, (1:sys.nu)')
+    if sys isa AbstractStateSpace
+        @. arrayofsys = sminreal(arrayofsys)
+    end
+    LinearAlgebra.det_bareiss!(arrayofsys)
 end

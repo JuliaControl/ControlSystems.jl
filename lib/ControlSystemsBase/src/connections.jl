@@ -134,17 +134,42 @@ end
 function Base.typed_hcat(::Type{T}, X...) where {T<:LTISystem}
     hcat(convert.(T, X)...)
 end
+
+# This method is copied from Base on julia v1.11, it was changed in v1.12, but we rely on it to create a MIMO transfer function
+function Base.typed_hvcat(::Type{T}, rows::Tuple{Vararg{Int}}, as...) where {T<:LTISystem}
+    nbr = length(rows)  # number of block rows
+    rs = Vector{Any}(undef, nbr)
+    a = 1
+    for i = 1:nbr
+        rs[i] = Base.typed_hcat(T, as[a:a-1+rows[i]]...)
+        a += rows[i]
+    end
+    T[rs...;]
+end
+
 # Ambiguity
 Base.typed_hcat(::Type{S}, X::Number...) where {S<:LTISystem} = hcat(convert.(S, X)...)
 Base.typed_hcat(::Type{S}, X::Union{AbstractArray{<:Number,1}, AbstractArray{<:Number,2}}...) where {S<:LTISystem} = hcat(convert.(S, X)...)
+
+## Mixed-type array creation
+# When creating an array of systems, an error may be thrown if the default Base.vect is called that tries to promote all systems to a common type. E.g., when using non-proper transfer functions and statespace systems. We thus opt out of the conversion with the method below
+function Base.vect(X0::LTISystem, X::LTISystem...)
+    LTISystem[X0, X...]
+end
+
+function Base.vect(X0::T, X::T...) where T <: LTISystem
+    T[X0, X...]
+end
 
 """
     add_input(sys::AbstractStateSpace, B2::AbstractArray, D2 = 0)
 
 Add inputs to `sys` by forming
 ```math
-x' = Ax + [B \\; B_2]u
-y  = Cx + [D \\; D_2]u
+\\begin{aligned}
+x' &= Ax + [B \\; B_2]u \\\\
+y  &= Cx + [D \\; D_2]u \\\\
+\\end{aligned}
 ```
 If `B2` is an integer it will be interpreted as an index and an input matrix containing a single 1 at the specified index will be used.
 
@@ -175,10 +200,14 @@ end
 
 Add outputs to `sys` by forming
 ```math
-x' = Ax + Bu
-y  = [C; C_2]x + [D; D_2]u
+\\begin{aligned}
+x' &= Ax + Bu \\\\
+y  &= [C; C_2]x + [D; D_2]u \\\\
+\\end{aligned}
 ```
 If `C2` is an integer it will be interpreted as an index and an output matrix containing a single 1 at the specified index will be used.
+
+When called with `C2 = I(sys.nx)`, this function is in some settings known to as `augstate`.
 """
 function add_output(sys::AbstractStateSpace, C2::AbstractArray, D2=0)
     T = promote_type(numeric_type(sys), eltype(C2), eltype(D2))
@@ -196,6 +225,10 @@ end
 
 # Catch special cases where inv(sys) might not be possible after promotion, like improper tf
 function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::LTISystem)
+    sys1new, sys2new = promote(sys1, 1/sys2)
+    return sys1new*sys2new
+end
+function /(sys1::Union{StateSpace,AbstractStateSpace}, sys2::TransferFunction) # This method is handling ambiguity between method above and one with explicit TF as second argument, hit by ss(1)/tf(1)
     sys1new, sys2new = promote(sys1, 1/sys2)
     return sys1new*sys2new
 end
@@ -226,7 +259,8 @@ feedback(P1::TransferFunction, P2::TransferFunction; pos_feedback::Bool = false)
 
 function feedback(G1::TransferFunction{<:TimeEvolution,<:SisoRational}, G2::TransferFunction{<:TimeEvolution,<:SisoRational}; pos_feedback::Bool = false)
     if !issiso(G1) || !issiso(G2)
-        error("MIMO TransferFunction feedback isn't implemented.")
+        @warn("MIMO TransferFunction feedback isn't implemented yet, converting to a state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible.")
+        return tf(feedback(ss(G1), ss(G2); pos_feedback))
     end
     G1num = numpoly(G1)[]
     G1den = denpoly(G1)[]
@@ -241,7 +275,8 @@ end
 #Efficient implementations
 function feedback(L::TransferFunction{<:TimeEvolution,T}) where T<:SisoRational
     if size(L) != (1,1)
-        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
+        @warn("MIMO TransferFunction feedback isn't implemented yet, converting to a state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible.")
+        return tf(feedback(ss(L)))
     end
     P = numpoly(L)
     Q = denpoly(L)
@@ -250,7 +285,8 @@ end
 
 function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZpk}
     if size(L) != (1,1)
-        error("MIMO TransferFunction feedback isn't implemented, use L/(1+L)")
+        @warn("MIMO TransferFunction feedback isn't implemented yet, converting to a state-space object and back. Consider converting your transfer functions to state-space form using `ss` as soon as possible.")
+        return tf(feedback(ss(L)))
     end
     #Extract polynomials and create P/(P+Q)
     k = L.matrix[1].k
@@ -261,9 +297,9 @@ function feedback(L::TransferFunction{TE, T}) where {TE<:TimeEvolution, T<:SisoZ
     return TransferFunction{TE,T}(fill(sisozpk,1,1), timeevol(L))
 end
 
-function feedback(sys::Union{AbstractStateSpace, LFTSystem})
+function feedback(sys::Union{AbstractStateSpace, LFTSystem}; kwargs...)
     ninputs(sys) != noutputs(sys) && error("Use feedback(sys1, sys2) if number of inputs != outputs")
-    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)))
+    feedback(sys,ss(Matrix{numeric_type(sys)}(I,size(sys)...), timeevol(sys)); kwargs...)
 end
 
 """
@@ -284,6 +320,7 @@ end
            └──────────────┘
 ```
 If no second system `sys2` is given, negative identity feedback (`sys2 = 1`) is assumed.
+The returned closed-loop system will have a state vector comprised of the state of `sys1` followed by the state of `sys2`.
 
 *Advanced use*
 `feedback` also supports more flexible use according to the figure below
@@ -298,9 +335,9 @@ If no second system `sys2` is given, negative identity feedback (`sys2 = 1`) is 
       w2─────►│              ├───────►z2
               └──────────────┘
 ```
-`U1`, `W1` specifies the indices of the input signals of `sys1` corresponding to `u1` and `w1`
-`Y1`, `Z1` specifies the indices of the output signals of `sys1` corresponding to `y1` and `z1`
-`U2`, `W2`, `Y2`, `Z2` specifies the corresponding signals of `sys2` 
+- `U1`, `W1` specify the indices of the input signals of `sys1` corresponding to `u1` and `w1`. `W1` contains the indices of the inputs of `sys1` that are included among the inputs to the returned system, i.e., external inputs.
+- `Y1`, `Z1` specify the indices of the output signals of `sys1` corresponding to `y1` and `z1`. `Z1 contains the indices of the outputs of `sys1` that are included among the outputs of the returned system, i.e., external outputs.
+- `U2`, `W2`, `Y2`, `Z2` specify the corresponding signals of `sys2`. `W2 contains the indices of the inputs of `sys2` that are included among the inputs to the returned system, i.e., external inputs. `Z2` contains the indices of the outputs of `sys2` that are included among the outputs of the returned system, i.e., external outputs.
 
 Specify  `Wperm` and `Zperm` to reorder the inputs (corresponding to [w1; w2])
 and outputs (corresponding to [z1; z2]) in the resulting statespace model.
@@ -309,7 +346,7 @@ Negative feedback (α = -1) is the default. Specify `pos_feedback=true` for posi
 
 See also `lft`, `starprod`, `sensitivity`, `input_sensitivity`, `output_sensitivity`, `comp_sensitivity`, `input_comp_sensitivity`, `output_comp_sensitivity`, `G_PS`, `G_CS`.
 
-The manual section [From block diagrams to code](https://juliacontrol.github.io/ControlSystems.jl/stable/man/creating_systems/#From-block-diagrams-to-code) contains higher-level instructions on how to use this function.
+The manual section [From block diagrams to code](https://juliacontrol.github.io/ControlSystems.jl/stable/man/creating_systems/#From-block-diagrams-to-code) contains higher-level instructions on how to use this function. See also [RobustAndOptimalControl.jl: Connections using named signals](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Connecting-systems-together) for a higher-level interface.
 
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
@@ -324,6 +361,14 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     if !(isa(Y2, Colon) || allunique(Y2)); @warn "Connecting single output to multiple inputs Y2=$Y2"; end
     if !(isa(U1, Colon) || allunique(U1)); @warn "Connecting multiple outputs to a single input U1=$U1"; end
     if !(isa(U2, Colon) || allunique(U2)); @warn "Connecting a single output to multiple inputs U2=$U2"; end
+    U1 isa Number && (U1 = [U1])
+    Y1 isa Number && (Y1 = [Y1])
+    U2 isa Number && (U2 = [U2])
+    Y2 isa Number && (Y2 = [Y2])
+    W1 isa Number && (W1 = [W1])
+    Z1 isa Number && (Z1 = [Z1])
+    W2 isa Number && (W2 = [W2])
+    Z2 isa Number && (Z2 = [Z2])
 
     if (U1 isa Colon ? size(sys1, 2) : length(U1)) != (Y2 isa Colon ? size(sys2, 1) : length(Y2))
         error("Lengths of U1 ($U1) and Y2 ($Y2) must be equal")
@@ -387,13 +432,13 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
         R1 = try
             inv(α*I - s2_D22*s1_D22) # slightly faster than α*inv(I - α*s2_D22*s1_D22)
         catch
-            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 not invertible")
         end
 
         R2 = try
             inv(I - α*s1_D22*s2_D22)
         catch
-            error("Ill-posed feedback interconnection,  I - α*s2_D22*s1_D22 or I - α*s2_D22*s1_D22 not invertible")
+            error("Ill-posed feedback interconnection,  I - α*s1_D22*s2_D22 not invertible")
         end
 
         s2_B2R2 = s2_B2*R2
@@ -417,14 +462,14 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
 end
 
 mutable(x::AbstractArray, ::Type{T}) where T = convert(Matrix{T}, x)
-mutable(x::StaticArray, ::Type{T}) where T = Matrix{T}(x)
+mutable(x::StaticArraysCore.StaticArray, ::Type{T}) where T = Matrix{T}(x)
 
 
 """
     feedback2dof(P,R,S,T)
     feedback2dof(B,A,R,S,T)
 
-- Return `BT/(AR+ST)` where B and A are the numerator and denomenator polynomials of `P` respectively
+- Return `BT/(AR+ST)` where B and A are the numerator and denominator polynomials of `P` respectively
 - Return `BT/(AR+ST)`
 """
 function feedback2dof(P::TransferFunction,R,S,T)
@@ -435,7 +480,7 @@ end
 feedback2dof(B,A,R,S,T) = tf(conv(B,T),zpconv(A,R,B,S))
 
 """
-    feedback2dof(P::TransferFunction, C::TransferFunction, F::TransferFunction)
+    feedback2dof(P, C, F)
 
 Return the transfer function
 `P(F+C)/(1+PC)`
@@ -456,7 +501,7 @@ r  |  -  |       |    |    |       |    y
 ```
 """
 function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::TransferFunction{TE}) where TE
-    !issiso(P) && error("Feedback not implemented for MIMO systems")
+    issiso(P) || return tf(feedback2dof(ss(P), ss(C), ss(F)))
     timeevol = common_timeevol(P, C, F)
     
     Pn,Pd = numpoly(P)[], denpoly(P)[]
@@ -464,6 +509,10 @@ function feedback2dof(P::TransferFunction{TE}, C::TransferFunction{TE}, F::Trans
     Fn,Fd = numpoly(F)[], denpoly(F)[]
     den = (Cd*Pd + Pn*Cn)*Fd
     tf(Cd*Pn*Fn + Pn*Cn*Fd, den, timeevol)
+end
+
+function feedback2dof(P,C,F)
+    feedback(P,C)*(F+C)
 end
 
 """

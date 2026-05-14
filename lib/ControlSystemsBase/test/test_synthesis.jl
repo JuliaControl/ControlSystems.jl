@@ -114,7 +114,7 @@ end
         # @show cond(gram(sys, :c))
         (; A, B) = sys
         p = [-1.0, -2, -3]
-        L = place(A, B, p)
+        L = place(A, B, p, verbose=false)
         @test eltype(L) <: Real
         @test allin(eigvals(A - B*L), p)
 
@@ -177,6 +177,28 @@ end
     @test allin(eigvals(A - B*L), p; tol=0.025) # Tolerance from paper
     # norm(L)
 
+    ## Rank deficient multi-input B
+    P = let
+        tempA = [0.0 1.0; -4.0 -1.2]
+        tempB = [0.0 0.0; 4.0 4.0]
+        tempC = [1.0 0.0]
+        tempD = [0.0 0.0]
+        ss(tempA, tempB, tempC, tempD)
+    end
+    F = place(P, [-2, -2], verbose=true)
+    @test allin(eigvals(P.A - P.B*F), [-2, -2])
+
+
+    P = let
+        tempA = [0.0 1.0; -4.0 -1.2]
+        tempB = randn(2, 1) * randn(1, 10) # Rank deficient
+        tempC = [1.0 0.0]
+        tempD = zeros(1, 10)
+        ss(tempA, tempB, tempC, tempD)
+    end
+    F = place(P, [-2, -2], verbose=true)
+    @test allin(eigvals(P.A - P.B*F), [-2, -2])
+
 end
 
 @testset "LQR" begin
@@ -188,6 +210,8 @@ end
     R = I
     L = lqr(Discrete, A,B,Q,R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]
+    L, S, p = lqr(Discrete, A,B,Q,R, extra=Val(true))
+    @test p ≈ eigvals(A-B*L)
     sys = ss(A,B,C,0,Ts)
     L = lqr(sys, Q, R)
     @test L ≈ [0.5890881713787511 0.7118839434795103]

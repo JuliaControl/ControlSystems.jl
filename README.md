@@ -1,14 +1,11 @@
 # ControlSystems.jl
 
-[![Build Status](https://github.com/JuliaControl/ControlSystems.jl/workflows/CI/badge.svg)](https://github.com/JuliaControl/ControlSystems.jl/actions?query=workflow%3ACI)
-[![Documentation Status](https://github.com/JuliaControl/ControlSystems.jl/workflows/Docs/badge.svg)](https://github.com/JuliaControl/ControlSystems.jl/actions?query=workflow%3ADocs)
-
-[![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/C/ControlSystems.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
-[![codecov](https://codecov.io/gh/JuliaControl/ControlSystems.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaControl/ControlSystems.jl)
-
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/stable)
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://juliacontrol.github.io/ControlSystems.jl/dev)
 [![Star on GitHub](https://img.shields.io/github/stars/JuliaControl/ControlSystems.jl.svg?style=social)](https://github.com/JuliaControl/ControlSystems.jl/stargazers)
+
+[![Build Status](https://github.com/JuliaControl/ControlSystems.jl/workflows/CI/badge.svg)](https://github.com/JuliaControl/ControlSystems.jl/actions?query=workflow%3ACI)
+
 
 A control systems design toolbox for Julia.
 
@@ -76,7 +73,7 @@ P = K/(s*((J*s + b)*(L*s + R) + K^2))
 #Continuous-time transfer function model
 
 # Create an array of closed loop systems for different values of Kp
-CLs = TransferFunction[kp*P/(1 + kp*P) for kp = [1, 5, 15]];
+CLs = [kp*P/(1 + kp*P) for kp ∈ [1, 5, 15]];
 
 # Plot the step response of the controllers
 # Any keyword arguments supported in Plots.jl can be supplied

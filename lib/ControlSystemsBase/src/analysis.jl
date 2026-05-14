@@ -1,12 +1,20 @@
 """
     poles(sys)
 
-Compute the poles of system `sys`."""
+Compute the poles of system `sys`.
+
+Note: Poles with multiplicity `n > 1` may suffer numerical inaccuracies on the order `eps(numeric_type(sys))^(1/n)`, i.e., a double pole in a system with `Float64` coefficients may be computed with an error of about `√(eps(Float64)) ≈ 1.5e-8`.
+
+To compute the poles of a system with non-BLAS floats, such as `BigFloat`, install and load the package `GenericSchur.jl` before calling `poles`.
+"""
 poles(sys::AbstractStateSpace) = eigvalsnosort(sys.A)
 
 # Seems to have a lot of rounding problems if we run the full thing with sisorational,
 # converting to zpk before works better in the cases I have tested.
-poles(sys::TransferFunction) = poles(zpk(sys))
+function poles(sys::TransferFunction{<:TimeEvolution,SisoRational{T}}; kwargs...) where {T}
+    n,d = numpoly(sys), denpoly(sys)
+    sort!(filter!(isfinite, MatrixPencils.rmpoles(n, d; kwargs...)[1]), by=abs)
+end
 
 function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
     # With right TR, this code works for any SisoTf
@@ -33,6 +41,60 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
 
     return lcmpoles
 end
+
+
+function count_eigval_multiplicity(p, location, e=eps(maximum(abs, p, init=0.0))) # The init is to handle poor type inference with exotic number types
+    n = length(p)
+    tol = zero(e)
+    n == 0 && return (0, tol)
+    for i = 1:n
+        # if we count i poles within the circle assuming i integrators, we return i
+        tol = e^(1/i)
+        if count(p->abs(p-location) < tol, p) == i
+            return (i, tol)
+        end
+    end
+    (0, tol)
+end
+
+"""
+    count_integrators(P)
+
+Count the number of poles in the origin by finding the first value of `n` for which the number of poles within a circle of radius `eps(maximum(abs, p))^(1/n)` around the origin (1 in discrete time) equals `n`.
+
+See also [`integrator_excess`](@ref).
+"""
+function count_integrators(P::LTISystem)
+    p = poles(P)
+    location = iscontinuous(P) ? 0 : 1
+    count_eigval_multiplicity(p, location)[1]
+end
+
+"""
+    integrator_excess(P)
+
+Count the number of integrators in the system by finding the difference between the number of poles in the origin and the number of zeros in the origin. If the number of zeros in the origin is greater than the number of poles in the origin, the count is negative.
+
+For discrete-time systems, the origin ``s = 0`` is replaced by the point ``z = 1``.
+"""
+function integrator_excess(P::LTISystem)
+    p = poles(P)
+    z = tzeros(P)
+    location = iscontinuous(P) ? 0 : 1
+    np, tolp = count_eigval_multiplicity(p, location)
+    nz, tolz = count_eigval_multiplicity(z, location)
+    np - nz
+end
+
+function integrator_excess_with_tol(P::LTISystem)
+    p = poles(P)
+    z = tzeros(P)
+    location = iscontinuous(P) ? 0 : 1
+    np, tolp = count_eigval_multiplicity(p, location)
+    nz, tolz = count_eigval_multiplicity(z, location)
+    np - nz, p, z, tolp, tolz
+end
+
 
 # TODO: Improve implementation, should be more efficient ways.
 # Calculates the same minors several times in some cases.
@@ -193,132 +255,162 @@ dampreport(sys::LTISystem) = dampreport(stdout, sys)
 
 """
     tzeros(sys)
+    tzeros(sys::AbstractStateSpace; extra=Val(false))
 
 Compute the invariant zeros of the system `sys`. If `sys` is a minimal
-realization, these are also the transmission zeros."""
-function tzeros(sys::TransferFunction)
+realization, these are also the transmission zeros.
+
+If `sys` is a state-space system the function has additional keyword arguments, see [`?ControlSystemsBase.MatrixPencils.spzeros`](https://andreasvarga.github.io/MatrixPencils.jl/dev/sklfapps.html#MatrixPencils.spzeros) for more details. If `extra = Val(true)`, the function returns `z, iz, KRInfo` where `z` are the transmission zeros, information on the multiplicities of infinite zeros in `iz` and information on the Kronecker-structure in the KRInfo object. The number of infinite zeros is the sum of the components of iz.
+
+To compute zeros of a system with non-BLAS floats, such as `BigFloat`, install and load the package `GenericSchur.jl` before calling `tzeros`.
+"""
+function tzeros(sys::TransferFunction{<:TimeEvolution,SisoRational{T}}; kwargs...) where {T}
     if issiso(sys)
         return tzeros(sys.matrix[1,1])
     else
-        return tzeros(ss(sys))
+        n,d = numpoly(sys), denpoly(sys)
+        filter!(isfinite, MatrixPencils.rmzeros(n, d; kwargs...)[1]) # This uses rm2ls -> rm2lspm internally
     end
 end
 
-# Implements the algorithm described in:
-# Emami-Naeini, A. and P. Van Dooren, "Computation of Zeros of Linear
-# Multivariable Systems," Automatica, 18 (1982), pp. 415–430.
-#
-# Note that this returns either Vector{ComplexF32} or Vector{Float64}
-tzeros(sys::AbstractStateSpace) = tzeros(sys.A, sys.B, sys.C, sys.D)
+function tzeros(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, TR}
+    if issiso(sys)
+        return tzeros(sys.matrix[1,1])
+    else
+        return tzeros(ss(sys))  # Convert to ss since rmzeros does this anyways, so no reason to pass through tf{SisoRational}
+    end
+end
+
+tzeros(sys::AbstractStateSpace; kwargs...) = tzeros(sys.A, sys.B, sys.C, sys.D; kwargs...)
 # Make sure everything is BlasFloat
 function tzeros(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix)
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
     A2, B2, C2, D2, _ = promote(A,B,C,D, fill(zero(T)/one(T),0,0)) # If Int, we get Float64
     tzeros(A2, B2, C2, D2)
 end
-function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}#= For eps(T) =#}
-    # Balance the system
-    A, B, C = balance_statespace(A, B, C)
 
-    # Compute a good tolerance
-    meps = 10*eps(real(T))*norm([A B; C D])
+function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}; extra::Val{E} = Val{false}(), balance=true, kwargs...) where {T, E}
+    if balance
+        A, B, C = balance_statespace(A, B, C)
+    end
 
-    # Step 1:
-    A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
-
-    # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
-    A_rc, B_rc, C_rc, D_rc = reduce_sys(copy(transpose(A_r)), copy(transpose(C_r)), copy(transpose(B_r)), copy(transpose(D_r)), meps)
-    isempty(A) && return complex(T)[]
-
-    # Step 3:
-    # Compress cols of [C D] to [0 Df]
-    mat = [C_rc D_rc]
-    Wr = qr(mat').Q * I
-    W = reverse(Wr, dims=2)
-    mat = mat*W
-    if fastrank(mat', meps) > 0
-        nf = size(A_rc, 1)
-        m = size(D_rc, 2)
-        Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
-        Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
-        zs = eigvalsnosort(Af, Bf)
-        _fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
+    (z, iz, KRInfo) = MatrixPencils.spzeros(A, I, B, C, D; kwargs...)
+    if z isa Vector{<:Real}
+        zc = complex(z)
     else
-        zs = complex(T)[]
+        zc = z
     end
-    return zs
+    if E
+        return (zc, iz, KRInfo)
+    else
+        return filter(isfinite, zc)
+    end
 end
 
+# function tzeros(A::AbstractMatrix{T}, B::AbstractMatrix{T}, C::AbstractMatrix{T}, D::AbstractMatrix{T}; extra::Val{E} = Val{false}(), kwargs...) where {T <: Union{AbstractFloat,Complex{<:AbstractFloat}}, E}
+#     isempty(A) && return complex(T)[]
 
-"""
-    reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
-Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
-A, B, C, D matrices. These are empty if there are no zeros.
-"""
-function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
-    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
-    Cbar, Dbar = C, D
-    if isempty(A)
-        return A, B, C, D
-    end
-    while true
-        # Compress rows of D
-        U = qr(D).Q
-        D = U'D
-        C = U'C
-        sigma = fastrank(D, meps)
-        Cbar = C[1:sigma, :]
-        Dbar = D[1:sigma, :]
-        Ctilde = C[(1 + sigma):end, :]
-        if sigma == size(D, 1)
-            break
-        end
+#     # Balance the system
+#     A, B, C = balance_statespace(A, B, C; verbose=false)
 
-        # Compress columns of Ctilde
-        V = reverse(qr(Ctilde').Q * I, dims=2)
-        Sj = Ctilde*V
-        rho = fastrank(Sj', meps)
-        nu = size(Sj, 2) - rho
+#     # Compute a good tolerance
+#     meps = 10*eps(real(T))*norm([A B; C D])
 
-        if rho == 0
-            break
-        elseif nu == 0
-            # System has no zeros, return empty matrices
-            A = B = Cbar = Dbar = Matrix{T}(undef, 0,0)
-            break
-        end
-        # Update System
-        n, m = size(B)
-        Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)] # I(m) is not used for type stability reasons (as of julia v1.7)
-        if sigma > 0
-            M = [A B; Cbar Dbar]
-            Vs = [copy(V') zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
-        else
-            M = [A B]
-            Vs = copy(V')
-        end
-        sigma, rho, nu
-        M = Vs * M * Vm
-        A = M[1:nu, 1:nu]
-        B = M[1:nu, (nu + rho + 1):end]
-        C = M[(nu + 1):end, 1:nu]
-        D = M[(nu + 1):end,  (nu + rho + 1):end]
-    end
-    return A, B, Cbar, Dbar
-end
+#     # Step 1:
+#     A_r, B_r, C_r, D_r = reduce_sys(A, B, C, D, meps)
 
-# Determine the number of non-zero rows, with meps as a tolerance. For an
-# upper-triangular matrix, this is a good proxy for determining the row-rank.
-function fastrank(A::AbstractMatrix, meps::Real)
-    n, m = size(A)
-    if n*m == 0     return 0    end
-    norms = Vector{real(eltype(A))}(undef, n)
-    for i = 1:n
-        norms[i] = norm(A[i, :])
-    end
-    mrank = sum(norms .> meps)
-    return mrank
-end
+#     # Step 2: (conjugate transpose should be avoided since single complex zeros get conjugated)
+#     A_rc, B_rc, C_rc, D_rc = reduce_sys(copy(transpose(A_r)), copy(transpose(C_r)), copy(transpose(B_r)), copy(transpose(D_r)), meps)
+
+#     # Step 3:
+#     # Compress cols of [C D] to [0 Df]
+#     mat = [C_rc D_rc]
+#     Wr = qr(mat').Q * I
+#     W = reverse(Wr, dims=2)
+#     mat = mat*W
+#     if fastrank(mat', meps) > 0
+#         nf = size(A_rc, 1)
+#         m = size(D_rc, 2)
+#         Af = ([A_rc B_rc] * W)[1:nf, 1:nf]
+#         Bf = ([Matrix{T}(I, nf, nf) zeros(nf, m)] * W)[1:nf, 1:nf]
+#         Z = schur(complex.(Af), complex.(Bf)) # Schur instead of eigvals to handle BigFloat
+#         zs = Z.values
+#         ControlSystemsBase._fix_conjugate_pairs!(zs) # Generalized eigvals does not return exact conj. pairs
+#     else
+#         zs = complex(T)[]
+#     end
+#     return zs
+# end
+
+# """
+#     reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
+# Implements REDUCE in the Emami-Naeini & Van Dooren paper. Returns transformed
+# A, B, C, D matrices. These are empty if there are no zeros.
+# """
+# function reduce_sys(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::AbstractMatrix, meps::AbstractFloat)
+#     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D))
+#     Cbar, Dbar = C, D
+#     if isempty(A)
+#         return A, B, C, D
+#     end
+#     while true
+#         # Compress rows of D
+#         U = qr(D).Q
+#         D = U'D
+#         C = U'C
+#         sigma = fastrank(D, meps)
+#         Cbar = C[1:sigma, :]
+#         Dbar = D[1:sigma, :]
+#         Ctilde = C[(1 + sigma):end, :]
+#         if sigma == size(D, 1)
+#             break
+#         end
+
+#         # Compress columns of Ctilde
+#         V = reverse(qr(Ctilde').Q * I, dims=2)
+#         Sj = Ctilde*V
+#         rho = fastrank(Sj', meps)
+#         nu = size(Sj, 2) - rho
+
+#         if rho == 0
+#             break
+#         elseif nu == 0
+#             # System has no zeros, return empty matrices
+#             A = B = Cbar = Dbar = Matrix{T}(undef, 0,0)
+#             break
+#         end
+#         # Update System
+#         n, m = size(B)
+#         Vm = [V zeros(T, n, m); zeros(T, m, n) Matrix{T}(I, m, m)] # I(m) is not used for type stability reasons (as of julia v1.7)
+#         if sigma > 0
+#             M = [A B; Cbar Dbar]
+#             Vs = [copy(V') zeros(T, n, sigma) ; zeros(T, sigma, n) Matrix{T}(I, sigma, sigma)]
+#         else
+#             M = [A B]
+#             Vs = copy(V')
+#         end
+#         sigma, rho, nu
+#         M = Vs * M * Vm
+#         A = M[1:nu, 1:nu]
+#         B = M[1:nu, (nu + rho + 1):end]
+#         C = M[(nu + 1):end, 1:nu]
+#         D = M[(nu + 1):end,  (nu + rho + 1):end]
+#     end
+#     return A, B, Cbar, Dbar
+# end
+
+# # Determine the number of non-zero rows, with meps as a tolerance. For an
+# # upper-triangular matrix, this is a good proxy for determining the row-rank.
+# function fastrank(A::AbstractMatrix, meps::Real)
+#     n, m = size(A)
+#     if n*m == 0     return 0    end
+#     norms = Vector{real(eltype(A))}(undef, n)
+#     for i = 1:n
+#         norms[i] = norm(A[i, :])
+#     end
+#     mrank = sum(norms .> meps)
+#     return mrank
+# end
 
 """
     relative_gain_array(G, w::AbstractVector)
@@ -327,7 +419,7 @@ end
 Calculate the relative gain array of `G` at frequencies `w`. 
 G(iω) .* pinv(tranpose(G(iω)))
 
-The RGA can be used to find input-output pairings for MIMO control using individially tuned loops. Pair the inputs and outputs such that the RGA(ωc) at the crossover frequency becomes as close to diagonal as possible. Avoid pairings such that RGA(0) contains negative diagonal elements. 
+The RGA can be used to find input-output pairings for MIMO control using individually tuned loops. Pair the inputs and outputs such that the RGA(ωc) at the crossover frequency becomes as close to diagonal as possible. Avoid pairings such that RGA(0) contains negative diagonal elements. 
 
 - The sum of the absolute values of the entries in the RGA is a good measure of the "true condition number" of G, the best condition number that can be achieved by input/output scaling of `G`, -Glad, Ljung.
 - The RGA is invariant to input/output scaling of `G`.
@@ -398,34 +490,36 @@ function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
 end
 
 """
-    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true)
 
-returns frequencies for gain margins, gain margins, frequencies for phase margins, phase margins
+returns frequencies for gain margins, gain margins (magnitude), frequencies for phase margins, phase margins (degrees)
 
-If `!allMargins`, return only the smallest margin
+- If `!allMargins`, return only the smallest margin
+- If `full` return also `fullPhase`
+- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 
-If `full` return also `fullPhase`
 See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
-function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
+function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true)
     ny, nu = size(sys)
 
+    T = float(numeric_type(sys))
     if allMargins
-        wgm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        gm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        wpm         = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        pm          = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
-        fullPhase   = Array{Array{numeric_type(sys),1}}(undef, ny,nu)
+        wgm         = Array{Array{T,1}}(undef, ny,nu)
+        gm          = Array{Array{T,1}}(undef, ny,nu)
+        wpm         = Array{Array{T,1}}(undef, ny,nu)
+        pm          = Array{Array{T,1}}(undef, ny,nu)
+        fullPhase   = Array{Array{T,1}}(undef, ny,nu)
     else
-        wgm         = Array{numeric_type(sys),2}(undef, ny, nu)
-        gm          = Array{numeric_type(sys),2}(undef, ny, nu)
-        wpm         = Array{numeric_type(sys),2}(undef, ny, nu)
-        pm          = Array{numeric_type(sys),2}(undef, ny, nu)
-        fullPhase   = Array{numeric_type(sys),2}(undef, ny, nu)
+        wgm         = Array{T,2}(undef, ny, nu)
+        gm          = Array{T,2}(undef, ny, nu)
+        wpm         = Array{T,2}(undef, ny, nu)
+        pm          = Array{T,2}(undef, ny, nu)
+        fullPhase   = Array{T,2}(undef, ny, nu)
     end
     for j=1:nu
         for i=1:ny
-            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins)
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins, adjust_phase_start)
         end
     end
     if full
@@ -436,11 +530,11 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
 end
 
 """
-    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false)
+    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true))
 
 Return frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. If `allMargins=false`, only the smallest margins are returned.
 """
-function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false)
+function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true)
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
@@ -448,19 +542,36 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     mag, phase, w = bode(sys, w)
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
+    remove = Int[]
     for i = eachindex(wgm)
-        gm[i] = 1 ./ abs(freqresp(sys,[wgm[i]])[1][1])
+        Giw = freqresp(sys,wgm[i])[1]
+        if sign(w[1]) != sign(w[end]) && abs(Giw) > 1e6 && wgm[i] < 0.001
+            # This tries to filter out extremely large gain margins that can arise when the Nyquist contour crosses the negative real axis at -Inf.
+            # This is filter is in addition to the filter_th check in _findCrossings
+            push!(remove, i)
+        end
+        gm[i] = 1 ./ abs(Giw)
+    end
+    if !isempty(remove)
+        deleteat!(gm, remove)
+        deleteat!(wgm, remove)
     end
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
     for i = eachindex(wpm)
-        pm[i] = mod(rad2deg(angle(freqresp(sys,[wpm[i]])[1][1])),360)-180
+        # We have to access the actual phase value from the `phase` array to get unwrapped phase. This value is not fully accurate since it is computed at a grid point, so we compute the more accurate phase at the interpolated frequency. This accurate value is not unwrapped, so we add an integer multiple of 360 to get the closest unwrapped phase.
+        φ_nom = rad2deg(angle(freqresp(sys,wpm[i])[1]))
+        φ_rounded = phase[clamp(round(Int, fi[i]), 1, length(phase))] # fi is interpolated, so we round to the closest integer
+        φ_int = φ_nom - 360 * round( (φ_nom - φ_rounded) / 360 )
+
+        # Now compute phase margin relative to -180:
+        pm[i] = 180 + φ_int
     end
     if !allMargins #Only output the smallest margins
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
+        pm, idx = findmin([pm;Inf])
         fi = [fi;NaN][idx]
-        pm, idx = findmin([abs.(pm);Inf])
         wpm = [wpm;NaN][idx]
         if full
             if !isnan(fi) #fi may be NaN, fullPhase is a scalar
@@ -475,15 +586,31 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
             fullPhase = interpolate(fi, phase)
         end
     end
+    if adjust_phase_start && isrational(sys)
+        intexcess, p, z, tol = integrator_excess_with_tol(sys)
+        n_unstable_poles = count(real(p) > tol for p in p)
+        first_positive_freq_ind = findfirst(>(0), w)
+        if intexcess != 0 && (first_positive_freq_ind !== nothing)
+            # Snap phase so that it starts at -90*intexcess
+            nineties = round(Int, phase[first_positive_freq_ind] / 90)
+            adjust = ((90*(-intexcess-nineties)) ÷ 360) * 360
+            pm_unstable_adjust = n_unstable_poles*360 # count the number of unstable poles, and remove 360 for each. Be careful with poles that are counted as integrators
+            pm = pm .+ adjust .- pm_unstable_adjust
+            phase .+= adjust
+            fullPhase = fullPhase .+ adjust
+        end
+    end
     if full
-        (; wgm, gm, wpm, pm, fullPhase)
+        (; wgm, gm, wpm, pm, fullPhase, phasedata = phase[:]) # phasedata is used by marginplot
     else
         (; wgm, gm, wpm, pm)
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _default_freq_vector(system, Val{:bode}()); kwargs...)
+margin(system, _add_zero(_default_freq_vector(system, Val{:bode}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
+
+_add_zero(w) = [-(zero(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 
 
 # Interpolate the values in "list" given the floating point "index" fi
 function interpolate(fi, list)
@@ -500,27 +627,29 @@ function _allPhaseCrossings(w, phase)
     #Calculate numer of times real axis is crossed on negative side
     n = fld.(phase.+180,360) #Nbr of crossed
     ph = mod.(phase,360) .- 180 #Residual
-    _findCrossings(w, n, ph)
+    _findCrossings(w, n, ph; filter_th=20.0)
 end
 
-function _findCrossings(w, n, res)
+function _findCrossings(w, n, res; filter_th=Inf)
     wcross = Vector{eltype(w)}()
     tcross = Vector{eltype(w)}()
     for i in 1:(length(w)-1)
         if res[i] == 0
-            wcross = [wcross; w[i]]
-            tcross = [tcross; i]
+            push!(wcross, w[i])
+            push!(tcross, i)
         elseif n[i] != n[i+1]
+            d = res[i]-res[i+1]
+            w[i] == 0 && continue
             #Interpolate to approximate crossing
-            t = res[i]/(res[i]-res[i+1])
-            tcross = [tcross; i+t]
+            t = res[i]/d
+            push!(tcross, i+t)
             wt = w[i]+t*(w[i+1]-w[i])
-            wcross = [wcross; wt]
+            push!(wcross, wt)
         end
     end
     if res[end] == 0 #Special case if multiple points
-        wcross = [wcross; w[end]]
-        tcross = [tcross; length(w)]
+        push!(wcross, w[end])
+        push!(tcross, length(w))
     end
     wcross, tcross
 end
@@ -530,15 +659,20 @@ end
 
 Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
 Only supports SISO systems.
+
+The delay margin is computed as the phase margin in radians divided by the cross-over frequency in rad/s. The delay margin is the maximum time delay that can be added to the system before it becomes unstable.
 """
 function delaymargin(G::LTISystem)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     issiso(G) || error("delaymargin only supports SISO systems")
-    m     = margin(G,allMargins=true)
-    isempty(m[4][1]) && return Inf
-    ϕₘ, i = findmin(m[4][1])
+    ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G,allMargins=true)
+    isempty(ϕₘa[1]) && return Inf
+    ϕₘ, i = findmin(sign.(ωϕₘa[1]) .* ϕₘa[1]) # flip sign of negative frequency margins 
     ϕₘ   *= π/180
-    ωϕₘ   = m[3][1][i]
+    ωϕₘ   = ωϕₘa[1][i]
+    if numeric_type(G) <: Real
+        ωϕₘ = abs(ωϕₘ)
+    end
     dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does

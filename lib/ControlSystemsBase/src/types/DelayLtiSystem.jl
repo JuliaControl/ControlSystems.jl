@@ -15,7 +15,7 @@ feedback_channel(sys::DelayLtiSystem) = sys.Tau
 """
     DelayLtiSystem{T, S}(sys::StateSpace, Tau::AbstractVector{S}=Float64[]) where {T <: Number, S <: Real}
 
-Create a delayed system by speciying both the system and time-delay vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
+Create a delayed system by specifying both the system and time-delay vector. NOTE: if you want to create a system with simple input or output delays, use the Function `delay(τ)`.
 """
 function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]) where {T<:Number,S<:Real}
     nu = ninputs(sys) - length(Tau)
@@ -24,8 +24,8 @@ function DelayLtiSystem{T,S}(sys::StateSpace, Tau::AbstractVector{S} = Float64[]
     if nu < 0  || ny < 0
         throw(ArgumentError("The delay vector of length $length(Tau) is too long."))
     end
-
-    psys = PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(sys, nu, ny)
+    csys = convert(StateSpace{Continuous,T}, sys)
+    psys = PartitionedStateSpace{Continuous, StateSpace{Continuous,T}}(csys, nu, ny)
     DelayLtiSystem{T,S}(psys, Tau)
 end
 # For converting DelayLtiSystem{T,S} to different T
@@ -49,7 +49,7 @@ Base.promote_rule(::Type{<:TransferFunction{<:Any, ST}}, ::Type{DelayLtiSystem{T
 #Base.promote_rule(::Type{<:UniformScaling}, ::Type{S}) where {S<:DelayLtiSystem} = DelayLtiSystem{T,S}
 
 function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::StateSpace) where {T,S}
-    DelayLtiSystem{T,S}(sys)
+    DelayLtiSystem{T,S}(convert(StateSpace{Continuous,T}, sys))
 end
 function Base.convert(::Type{DelayLtiSystem{T1,S}}, d::T2) where {T1,T2 <: Number,S}
     DelayLtiSystem{T1,S}(StateSpace(T1(d)))
@@ -65,7 +65,7 @@ function Base.convert(::Type{DelayLtiSystem{T,S}}, sys::TransferFunction{TE}) wh
        
     DelayLtiSystem{T,S}(convert(StateSpace{TE, T}, sys))
 end
-# Catch convertsion between T
+# Catch conversion between T
 Base.convert(::Type{V}, sys::DelayLtiSystem)  where {T, V<:DelayLtiSystem{T}} =
     sys isa V ? sys : V(StateSpace{Continuous,T}(sys.P.P), sys.Tau)
 
@@ -94,9 +94,16 @@ function +(sys::DelayLtiSystem{T1,S}, n::T2) where {T1,T2<:Number,S}
 end
 
 
+"""
+    /(G1, G2::DelayLtiSystem)
+
+Compute ``G_1 * G_2^{-1} where ``G_2`` is a DelayLtiSystem.
+Throws a SingularException if ``G_2`` is not invertible.
+"""
 function /(anything, sys::DelayLtiSystem)
-    all(iszero, sys.Tau) || error("A delayed system can not be inverted. Consider use of the function `feedback`.")
-    /(anything, sys.P.P) # If all delays are zero, invert the inner system
+    ny,nu = size(sys)
+    ny == nu || error("The denominator system must be square")
+    return anything * feedback(I(nu), sys - I(nu))
 end
 
 for other_type in [:Number, :AbstractMatrix, :LTISystem]
@@ -150,7 +157,7 @@ delay(T::Type{<:Number}, τ::Number, Ts::Number) = c2d(delay(T, τ), Ts)
 
 Create a time delay of length `tau` with `exp(-τ*s)` where `s=tf("s")` and `τ` > 0.
 
-See also: [`delay`](@ref) which is arguably more conenient than this function.
+See also: [`delay`](@ref) which is arguably more convenient than this function.
 """
 function Base.exp(G::TransferFunction{Continuous,<:SisoRational})
     if size(G.matrix) != (1,1) && iscontinuous(G)

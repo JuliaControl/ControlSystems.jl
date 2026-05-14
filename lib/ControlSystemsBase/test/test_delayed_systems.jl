@@ -27,7 +27,7 @@ using ControlSystemsBase
 @test evalfr(1 - delay(1.0), 0)[] ≈ 0
 @test evalfr([2 -delay(1.0)], 0) ≈ [2 -1]
 
-# Stritcly proper system
+# Strictly proper system
 P1 = DelayLtiSystem(ss(-1.0, 1, 1, 0))
 P1_fr = 1 ./ (im*ω .+ 1)
 @test freqresp(P1, ω)[:] ≈ P1_fr
@@ -42,7 +42,7 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(1 + delay(1), ω)[:] ≈ 1 .+ exp.(-im*ω)
 @test freqresp(P1 + delay(1), ω)[:] ≈ P1_fr .+ exp.(-im*ω)
 
-# Substraction
+# Subtraction
 @test freqresp(P1 - delay(1), ω)[:] ≈ P1_fr .- exp.(-im*ω)
 
 ## Multiplication by scalar
@@ -56,6 +56,29 @@ P2_fr = (im*ω .+ 1) ./ (im*ω .+ 2)
 @test freqresp(P2 * delay(1), ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 @test freqresp(delay(1) * P2, ω)[:] ≈ P2_fr .* exp.(-im*ω) rtol=1e-15
 
+## Division / feedback
+@test freqresp(1/(1+P1), ω) ≈ freqresp(feedback(I(size(P1, 1)), P1), ω) rtol=1e-15
+
+## Zero
+@test zero(typeof(P1)) == ss(0.0)
+@test zero(P1) == ss(0.0)
+
+## append
+P12 = append(P1, P2)
+G12 = [P1 tf(0); tf(0) P2]
+
+F = freqresp(P12, ω)
+
+@test freqrespv(P1, ω) ≈ F[1,1,:]
+@test freqrespv(P2, ω) ≈ F[2,2,:]
+@test all(iszero, F[1,2,:])
+@test all(iszero, F[2,1,:])
+
+F = freqresp(G12, ω)
+@test freqrespv(P1, ω) ≈ F[1,1,:]
+@test freqrespv(P2, ω) ≈ F[2,2,:]
+@test all(iszero, F[1,2,:])
+@test all(iszero, F[2,1,:])
 
 # Equality
 @test P1 == deepcopy(P1)
@@ -163,9 +186,10 @@ w = 10 .^ (-2:0.1:2)
 
 @test propertynames(delay(1.0)) == (:P, :Tau, :nu, :ny)
 
-@test_throws ErrorException 1/f2
-@test_throws ErrorException randn(2,2)/f2
-@test_throws ErrorException f2/f2
+@test_throws SingularException 1/f2
+@test_throws SingularException randn(2,2)/f2
+@test_throws SingularException f2/f2
+@test 1/(I(2)+f2) == feedback(I(2), f2)
 
 #FIXME: A lot more tests, including MIMO systems in particular
 
@@ -204,6 +228,28 @@ P_wb = DemoSystems.woodberry()
 @test freqresp(pade(P_wb, 3), Ω) ≈ freqresp(P_wb, Ω) atol=5e-4
 
 @test freqresp(pade(feedback(eye_(2), P_wb), 3), Ω) ≈ freqresp(feedback(eye_(2), P_wb), Ω) atol=1e-4
+
+## Test pade(tau, m, n)
+t = 1.5
+P15 = pade(t, 1, 5)
+dv = denvec(P15)[]
+dv1 = dv[1]/t^5 # Rescale to compare with https://www2.humusoft.cz/www/papers/tcp09/035_hanta.pdf
+@test numvec(P15)[] ./ dv1 ≈ [-120*t, 720]
+@test dv ./ dv1 ≈ [t^5, 10*t^4, 60*t^3, 240*t^2, 600*t, 720]
+
+
+P15 = pade(t, 2, 5)
+# Test vectors computed using RobustPade.robustpade(s->exp(-t*s), 2, 5)
+@test numvec(P15)[] ≈ [0.05357142857142857, -0.42857142857142855, 1.0]
+@test denvec(P15)[] ≈ [0.0030133928571428573, 0.03013392857142857, 0.1607142857142857, 0.5357142857142857, 1.0714285714285714, 1.0]
+
+# test thiran
+for Ts = [1, 1.1]
+    z = tf('z', Ts)
+    @test thiran(2Ts, Ts) == 1/z^2
+end
+
+@test thiran(pi, 1) ≈ tf([-0.00031815668236122736, 0.0042438423976339556, -0.03424682772398137, 0.8290601401044773, 1.0], [1.0, 0.8290601401044773, -0.03424682772398137, 0.0042438423976339556, -0.00031815668236122736], 1)
 
 
 # test automatic frequency selection

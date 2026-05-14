@@ -148,7 +148,15 @@ P = ss(-1.0, 2.0, 3.0, 4.0)
 @test [2.5 P 3.5] == ss(-1.0, [0.0 2.0 0.0], 3.0, [2.5 4.0 3.5])
 @test [2.5; P; 3.5] == ss(-1.0, 2.0, [0.0; 3.0; 0.0], [2.5; 4.0; 3.5])
 
+# Test vector creation
+v = [ssrand(1,1,1), tf(1)]
+@test v isa Vector{LTISystem}
+@test v[1] isa StateSpace{Continuous, Float64}
+@test v[2] isa TransferFunction{Continuous, ControlSystemsBase.SisoRational{Int64}}
 
+# Test vector creation
+v = [tf(1), tf(1)]
+@test v isa Vector{TransferFunction{Continuous, ControlSystemsBase.SisoRational{Int64}}}
 
 # Combination tfRational and sisoZpk
 Czpk_111 = zpk([-2],[-5],1)
@@ -294,6 +302,8 @@ F = tf(1.0, [1,1])
 @test feedback2dof(P0, C, 0*F) == feedback(P0*C)
 @test_nowarn feedback2dof(P0, C, F)
 
+C = pid(1, 0, 1, form=:parallel)
+hinfnorm(minreal(feedback2dof(ss(P0), ss(C*F), ss(F)) - feedback2dof(P0, C*F, F)))[1] < 1e-8
 
 
 G1 = tf([1, 0],[1, 2, 2])
@@ -415,5 +425,19 @@ function feedback_ctrl(G, K)
     feedback(K, G; Z2 = :, Zperm)
 end
 @test_throws ErrorException feedback_ctrl(tf([1], [0.1, 1]), delay(0.1))
+
+Pr = resolvent(P)
+@test Pr.A == P.A
+@test Pr.B == I
+@test Pr.C == I
+@test iszero(Pr.D)
+
+Pr = input_resolvent(P)
+@test Pr.A == P.A
+@test Pr.B == P.B
+@test Pr.C == I
+@test iszero(Pr.D)
+
+@test ss(1) / tf(1) == ss(1) # Test no method ambiguity
 
 end

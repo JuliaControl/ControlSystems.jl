@@ -8,7 +8,7 @@ function state_space_validation(A,B,C,D)
     ny = size(C, 1)
 
     if size(A, 2) != nx && nx != 0
-        error("A has dimentions $(size(A)), but must be square")
+        error("A has dimensions $(size(A)), but must be square")
     elseif size(B, 1) != nx
         error("The number of rows of A ($(size(A,1))) and B ($(size(B,1))) are not equal")
     elseif size(C, 2) != nx
@@ -113,14 +113,13 @@ function StateSpace(D::AbstractArray{T}, timeevol::TimeEvolution) where {T<:Numb
     A = zeros(T, 0, 0)
     B = zeros(T, 0, nu)
     C = zeros(T, ny, 0)
-    D = reshape(D, (ny,nu))
     return StateSpace(A, B, C, D, timeevol)
 end
 StateSpace(D::AbstractArray, Ts::Number) = StateSpace(D, Discrete(Ts))
 StateSpace(D::AbstractArray) = StateSpace(D, Continuous())
 
-StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d], Discrete(Ts))
-StateSpace(d::Number; kwargs...) = StateSpace([d], Continuous())
+StateSpace(d::Number, Ts::Number; kwargs...) = StateSpace([d;;], Discrete(Ts))
+StateSpace(d::Number; kwargs...) = StateSpace([d;;], Continuous())
 
 
 # StateSpace(sys) converts to StateSpace
@@ -129,6 +128,7 @@ StateSpace(sys::LTISystem; kwargs...) = convert(StateSpace, sys; kwargs...)
 """
     sys = ss(A, B, C, D)      # Continuous
     sys = ss(A, B, C, D, Ts)  # Discrete
+    sys = ss(P::TransferFunction; balance=true, minimal=false) # Convert TransferFunction to StateSpace
 
 Create a state-space model `sys::StateSpace{TE, T}`
 with matrix element type `T` and TE is `Continuous` or `<:Discrete`.
@@ -139,7 +139,9 @@ Otherwise, this is a discrete-time model with sampling period `Ts`.
 `D` may be specified as `0` in which case a zero matrix of appropriate size is constructed automatically. 
 `sys = ss(D [, Ts])` specifies a static gain matrix `D`.
 
-To associate names with states, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems).
+When a transfer function `P` is converted to a state-space model, the user may choose whether to balance the state-space model (default=true) and/or to return a minimal realization (default=false). This conversion has more keyword argument options, see `?ControlSystemsBase.MatrixPencils.rm2ls` for additional details.
+
+To associate names with state variables, inputs and outputs, see [`named_ss`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/#Named-systems).
 """
 ss(args...;kwargs...) = StateSpace(args...;kwargs...)
 
@@ -215,11 +217,11 @@ HeteroStateSpace(sys::LTISystem) = convert(HeteroStateSpace, sys)
 """
     A, B, C, D = ssdata(sys)
 
-A destructor that outputs the statespace matrices.
+Outputs the statespace matrices of sys. The matrices are not copies: no new memory is allocated, but modifying the matrices in-place will change the behavior of sys.
 """
 ssdata(sys) = sys.A, sys.B, sys.C, sys.D
 
-# Funtions for number of intputs, outputs and states
+# Functions for number of inputs, outputs and states
 ninputs(sys::AbstractStateSpace) = size(sys.D, 2)
 noutputs(sys::AbstractStateSpace) = size(sys.D, 1)
 nstates(sys::AbstractStateSpace) = size(sys.A, 1)
@@ -234,6 +236,7 @@ function isstable(sys::StateSpace{<:Discrete, <:ForwardDiff.Dual})
     all(abs.(ForwardDiff.value.(sys.A)) .< 1)
 end
 
+isrational(::AbstractStateSpace) = true
 
 #####################################################################
 ##                         Math Operators                          ##
@@ -248,13 +251,23 @@ end
 ## Approximate ##
 function isapprox(sys1::ST1, sys2::ST2; kwargs...) where {ST1<:AbstractStateSpace,ST2<:AbstractStateSpace}
     fieldnames(ST1) == fieldnames(ST2) || (return false)
-    return all(isapprox(getfield(sys1, f), getfield(sys2, f); kwargs...) for f in fieldnames(ST1))
+    return all(fieldnames(ST1)) do f
+        if fieldtype(ST1, f) <: Union{Number, AbstractArray{<:Number}, LTISystem}
+            isapprox(getfield(sys1, f), getfield(sys2, f); kwargs...)
+        else
+            getfield(sys1, f) == getfield(sys2, f)
+        end
+    end
 end
 
 ## ADDITION ##
 Base.zero(sys::AbstractStateSpace) = basetype(sys)(zero(sys.D), sys.timeevol)
 Base.zero(::Type{StateSpace{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
 Base.zero(::Type{StateSpace{D, F}}) where {D<:Discrete, F} = ss([zero(F)], undef_sampletime(D))
+
+# one is a multiplicative identity, which can be set to the one of the element type. This is different from oneunit which should be of the same type.
+Base.one(::Type{StateSpace{TE, T}}) where {TE, T} = Base.one(T)
+
 
 function +(s1::ST, s2::ST) where {ST <: AbstractStateSpace}
     #Ensure systems have same dimensions
@@ -365,8 +378,8 @@ function Base.Broadcast.broadcasted(::typeof(*), M::AbstractArray{<:Number}, sys
     sminreal(basetype(ST)(Ae, Be, Ce, De, sys1.timeevol))
 end
 
-function *(sys1::ST, D::Diagonal) where {ST <: AbstractStateSpace}
-    if issiso(sys1) # This is a special case that falls back on broadcasting
+function *(sys1::AbstractStateSpace, D::AbstractMatrix)
+    if issiso(sys1) && isdiag(D) # This is a special case that falls back on broadcasting
         return sys1 .* D
     else # This is the standard implementation but must be handled here since we special case diagonal matrices for the case above
         sys1 * ss(D, sys1.timeevol)
@@ -378,15 +391,105 @@ end
 
 
 ## DIVISION ##
-/(sys1::AbstractStateSpace, sys2::AbstractStateSpace) = sys1*inv(sys2)
+
+
+"""
+    /(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE}; atol::Real = 0, atol1::Real = atol, atol2::Real = atol, rtol::Real = max(size(sys1.A, 1), size(sys2.A, 1)) * eps(real(float(one(numeric_type(sys1))))) * iszero(min(atol1, atol2)))
+
+Compute `sys1 / sys2 = sys1 * inv(sys2)` in a way that tries to handle situations in which the inverse `sys2` is non-proper, but the resulting system `sys1 / sys2` is proper.
+
+See `ControlSystemsBase.MatrixPencils.isregular` for keyword arguments `atol`, `atol1`, `atol2`, and `rtol`.
+"""
+function Base.:(/)(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE}; 
+    atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = max(size(sys1.A,1),size(sys2.A,1))*eps(real(float(one(numeric_type(sys1)))))*iszero(min(atol1,atol2))) where {TE<:ControlSystemsBase.TimeEvolution}
+    T1 = float(numeric_type(sys1))
+    T2 = float(numeric_type(sys2))
+    T = promote_type(T1,T2)
+    timeevol = common_timeevol(sys1, sys2)
+    ny2, nu2 = sys2.ny, sys2.nu
+    nu2 == ny2  || error("The system sys2 must be square")
+    ny1, nu1 = sys1.ny, sys1.nu
+    nu1 == nu2  || error("The systems sys1 and sys2 must have the same number of inputs")
+    nx1 = sys1.nx
+    nx2 = sys2.nx
+    if nx2 > 0
+        A, B, C, D = ssdata([sys2; sys1])
+        Ai = [A B; C[1:ny2,:] D[1:ny2,:]]
+        Ei = [I zeros(T,nx1+nx2,ny2); zeros(T,ny2,nx1+nx2+ny2)] |> Matrix # TODO: rm call to Matrix when type piracy in https://github.com/JuliaLinearAlgebra/LinearMaps.jl/issues/219 is fixed
+        MatrixPencils.isregular(Ai, Ei; atol1, atol2, rtol) || 
+            error("The system sys2 is not invertible")
+        Ci = [C[ny2+1:ny1+ny2,:] D[ny2+1:ny1+ny2,:]]
+        Bi = [zeros(T,nx1+nx2,nu1); -I] |> Matrix # TODO: rm call to Matrix when type piracy in https://github.com/JuliaLinearAlgebra/LinearMaps.jl/issues/219 is fixed
+        Di = zeros(T,ny1,nu1)
+        Ai, Ei, Bi, Ci, Di = MatrixPencils.lsminreal(Ai, Ei, Bi, Ci, Di; fast = true, atol1 = 0, atol2, rtol, contr = true, obs = true, noseig = true)
+        if Ei != I
+            luE = lu!(Ei, check=false)
+            issuccess(luE) || throw(ArgumentError("The system sys2 is not invertible"))
+            Ai = luE\Ai
+            Bi = luE\Bi
+        end
+    else
+        D2 = T.(sys2.D)
+        LUD = lu(D2)
+        (norm(D2,Inf) <= atol1 || rcond(LUD.U) <= 10*nu1*eps(real(float(one(T))))) && 
+                error("The system sys2 is not invertible")
+        Ai, Bi, Ci, Di = ssdata(sys1)
+        rdiv!(Bi,LUD); rdiv!(Di,LUD)
+    end
+
+    return StateSpace{TE, T}(Ai, Bi, Ci, Di, timeevol) 
+end
+
+function Base.:(\)(sys1::AbstractStateSpace{TE}, sys2::AbstractStateSpace{TE}; 
+    atol::Real = 0, atol1::Real = atol, atol2::Real = atol, 
+    rtol::Real = max(size(sys1.A,1),size(sys2.A,1))*eps(real(float(one(numeric_type(sys1)))))*iszero(min(atol1,atol2))) where {TE<:ControlSystemsBase.TimeEvolution}
+    T1 = float(numeric_type(sys1))
+    T2 = float(numeric_type(sys2))
+    T = promote_type(T1,T2)
+    timeevol = common_timeevol(sys1, sys2)
+    ny2, nu2 = sys2.ny, sys2.nu
+    nu2 == ny2  || error("The system sys2 must be square")
+    ny1, nu1 = sys1.ny, sys1.nu
+    nu1 == nu2  || error("The systems sys1 and sys2 must have the same number of inputs")
+    nx1 = sys1.nx
+    nx2 = sys2.nx
+    if nx2 > 0
+        A, B, C, D = ssdata([sys1 sys2])
+        Ai = [A B[:,1:nu1]; C D[:,1:nu1]]
+        Ei = [I zeros(T,nx1+nx2,nu1); zeros(T,nu1,nx1+nx2+nu1)] |> Matrix # TODO: rm call to Matrix when type piracy in https://github.com/JuliaLinearAlgebra/LinearMaps.jl/issues/219 is fixed
+        MatrixPencils.isregular(Ai, Ei; atol1, atol2, rtol) || 
+            error("The system sys1 is not invertible")
+        Bi = [B[:,nu1+1:nu1+nu2]; D[:,nu1+1:nu1+nu2]]
+        Ci = [zeros(T,ny1,nx1+nx2) -I] 
+        Di = zeros(T,ny1,nu2)
+        Ai, Ei, Bi, Ci, Di = MatrixPencils.lsminreal(Ai, Ei, Bi, Ci, Di; fast = true, atol1 = 0, atol2, rtol, contr = true, obs = true, noseig = true)
+        if Ei != I
+            luE = lu!(Ei, check=false)
+            issuccess(luE) || throw(ArgumentError("The system sys1 is not invertible"))
+            Ai = luE\Ai
+            Bi = luE\Bi
+        end
+    else
+        D1 = T.(sys1.D)
+        LUD = lu(D1)
+        (norm(D1,Inf) <= atol1 || rcond(LUD.U) <= 10*nu1*eps(real(float(one(T))))) && 
+                error("The system sys1 is not invertible")
+        Ai, Bi, Ci, Di = ssdata(sys2)
+        ldiv!(LUD, Ci); ldiv!(LUD, Di)
+    end
+
+    return StateSpace{TE, T}(Ai, Bi, Ci, Di, timeevol) 
+end
 
 function /(n::Number, sys::ST) where ST <: AbstractStateSpace
     # Ensure s.D is invertible
     A, B, C, D = ssdata(sys)
+    size(D, 1) == size(D, 2) || error("The inverted system must have the same number of inputs and outputs")
     Dinv = try
         inv(D)
     catch
-        error("D isn't invertible")
+        error("D isn't invertible. If you are trying to form a quotient between two systems `N(s) / D(s)` where the quotient is proper but the inverse of `D(s)` isn't, consider calling `N / D` instead of `N * inv(D)")
     end
     return basetype(ST)(A - B*Dinv*C, B*Dinv, -n*Dinv*C, n*Dinv, sys.timeevol)
 end
@@ -394,6 +497,22 @@ end
 Base.inv(sys::AbstractStateSpace) = 1/sys
 /(sys::ST, n::Number) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B/n, sys.C, sys.D/n, sys.timeevol)
 Base.:\(n::Number, sys::ST) where ST <: AbstractStateSpace = basetype(ST)(sys.A, sys.B, sys.C/n, sys.D/n, sys.timeevol)
+
+
+function Base.adjoint(sys::ST) where ST <: AbstractStateSpace{Continuous}
+    return basetype(ST)(-sys.A', -sys.C', sys.B', sys.D') 
+end
+
+function Base.adjoint(sys::ST) where ST <: AbstractStateSpace{<:Discrete}
+    nx, ny, nu = sys.nx, sys.ny, sys.nu
+    T = numeric_type(sys)
+    return basetype(ST)(
+        [sys.A' sys.C'; zeros(T,ny,nx+ny)], 
+        [zeros(T,nx,ny) ; -I], 
+        [sys.B' zeros(T,nu,ny)], copy(sys.D'),
+        sys.timeevol
+    ) 
+ end
 
 
 #####################################################################
@@ -480,7 +599,7 @@ end
 
 
 """
-    minreal(sys::T; fast=false, kwargs...)
+    minreal(sys::StateSpace; fast=false, balance=true, kwargs...)
 
 Minimal realisation algorithm from P. Van Dooreen, The generalized eigenstructure problem in linear system theory, IEEE Transactions on Automatic Control
 
@@ -488,11 +607,14 @@ For information about the options, see `?ControlSystemsBase.MatrixPencils.lsminr
 
 See also [`sminreal`](@ref), which is both numerically exact and substantially faster than `minreal`, but with a much more limited potential in removing non-minimal dynamics.
 """
-function minreal(sys::T, tol=nothing; fast=false, atol=0.0, kwargs...) where T <: AbstractStateSpace
+function minreal(sys::T, tol=nothing; fast=false, atol=0.0, balance=true, kwargs...) where T <: AbstractStateSpace
     A,B,C,D = ssdata(sys)
     if tol !== nothing
         atol == 0 || atol == tol || error("Both positional argument `tol` and keyword argument `atol` were set but were not equal. `tol` is provided for backwards compat and can not be set to another value than `atol`.")
         atol = tol
+    end
+    if balance
+        A,B,C,_ = balance_statespace(A,B,C)
     end
     Ar, Br, Cr = MatrixPencils.lsminreal(A,B,C; atol, fast, kwargs...)
     if hasfield(T, :sys)

@@ -9,7 +9,7 @@
     Gds = DSP.SecondOrderSections(Gd)
 
     u = randn(100)
-    uf = DSP.filt(Gds, u, zeros(2,2))
+    uf = DSP.filt(DSP.DF2TFilter(Gds, zeros(2,2)), u)
     uls = lsim(Gd, u').y'
     @test uf[1:end-1] ≈ uls[2:end]
 
@@ -26,5 +26,18 @@
     uf = DSP.filt(f, u)
     uls = lsim(fcs, u').y'
     @test uf ≈ uls
+
+
+
+
+
+
+    u = randn(100)
+    res = lsim(Gd, u')
+    yf = res.y
+    @test yf' ≈ DSP.filt(Gd, u)
+
+    # The filtfilt function has a complicated initialization of the filter state, making it hard to compare to twice lsim
+    @test length(DSP.filtfilt(Gd, u)) == length(u)
     
 end

@@ -1,6 +1,6 @@
 function Base.convert(::Type{SisoZpk{T,TR}}, f::SisoRational{T2}) where {T<:Number, TR<:Number, T2<:Number}
     if length(f.num) == 0
-        return SisoZpk(T[],TR[],0)
+        return SisoZpk(T[],TR[],zero(T))
     elseif all(f.den == zero(f.den))
         error("Zero denominator, this should not be possible") # NOTE: Should we keep this?
     end

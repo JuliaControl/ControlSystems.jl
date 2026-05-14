@@ -50,7 +50,7 @@ z = @inferred tf("z", 0.005)
 @test tf([1.0], [1.0,0.0]) != tf([1.0], [2.0,0.0])
 @test tf([1.0+2.0im], [2.0+im,3.0]) != tf([1+2.0im], [1.0+im,3.0])
 
-# Test approximate equlity
+# Test approximate equality
 # rtol should just be on the order of ϵ, no particular reason that exactly ϵ
 # would work, but apparently it does
 ϵ = 1e-14
@@ -103,7 +103,11 @@ tf(vecarray(1, 2, [0], [0]), vecarray(1, 2, [1], [1]), 0.005)
 @test minreal(C_111.*C_222 - C_222.*C_111, 1e-3) == tf(ss(0*I(2))) # scalar times MIMO
 @test C_111 .* C_222 == (C_111 .* I(2)) * C_222
 
-@test_broken @inferred C_111 .* I(2)
+if VERSION >= v"1.10.0-rc1"
+  @inferred C_111 .* I(2)
+else
+  @test_broken @inferred C_111 .* I(2)
+end
 
 C_111_d = tf(ssrand(1,1,2))
 M = ones(2,2)
@@ -153,6 +157,8 @@ M = randn(2,1)
 @test C_222[1,1] == tf([1, 2, 3], [1, 8, 15])
 @test C_222[1:1,1] == tf([1, 2, 3], [1, 8, 15])
 @test C_222[1,1:2] == C_221
+@test C_222[1,:] == C_221
+@test C_222[:,:] == C_222
 @test size(C_222[1,[]]) == (1,0)
 
 # Accessing Ts through .Ts
@@ -208,7 +214,7 @@ D_diffTs = tf([1], [2], 0.1)
 @test_throws ErrorException D_111 + D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 - D_diffTs          # Sampling time mismatch
 @test_throws ErrorException D_111 * D_diffTs          # Sampling time mismatch
-@test_throws ErrorException tf([1], [2], -0.1)        # Negative samping time
+@test_throws ErrorException tf([1], [2], -0.1)        # Negative sampling time
 @test_throws ErrorException tf("s", 0.01)             # s creation can't be discrete
 @test_throws ErrorException tf("z", 0)                # z creation can't be continuous
 @test_throws ErrorException tf("z")                   # z creation can't be continuous
@@ -264,5 +270,23 @@ b = [1.0, 3.0]
 if VERSION >= v"1.8.0-rc1"
     @test @test_logs (:warn, r"deprecated") tf(1).Ts == 0
 end
+
+# Test MIMO TransferFunction feedback behavior
+@test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222)
+@test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222, C_222)
+# Test that feedback returns state-space for MIMO
+fb_result = @test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222)
+@test fb_result isa TransferFunction
+fb_result2 = @test_logs (:warn, r"MIMO TransferFunction feedback isn't implemented yet") feedback(C_222, C_222)
+@test fb_result2 isa TransferFunction
+
+# Test MIMO TransferFunction division behavior
+Ci_222 = tf(ssrand(2,2,2))
+# Test that division returns state-space for MIMO
+div_result = @test_logs (:warn, r"MIMO TransferFunction inversion isn't implemented yet") C_222 / Ci_222
+@test div_result isa TransferFunction
+
+# Test improved error messages in MIMO TransferFunction inversion
+@test_throws ErrorException("MIMO TransferFunction inversion isn't implemented yet, consider converting your transfer functions to state-space form using `ss`") 1 / Ci_222
 
 end

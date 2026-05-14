@@ -1,3 +1,4 @@
+using Test, LinearAlgebra
 @testset "test_matrix_comps" begin
 A = [-0.21 0.2; 0.2 -0.21]
 B = 0.01*[1 0; 0 1]
@@ -8,11 +9,22 @@ sysr, G = balreal(sys)
 
 @test gram(sysr, :c) ≈ diagm(G)
 @test gram(sysr, :o) ≈ diagm(G)
-@test sort(poles(sysr)) ≈ sort(poles(sys))
+@test sort(poles(sysr), by=real) ≈ sort(poles(sys), by=real)
+
+@testset "det" begin
+    detsys = det(sys)
+    w = 0.1
+    @test freqresp(detsys, w)[1] ≈ det(freqresp(sys, w))
+end
 
 sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test similarity_transform(sysb, T) ≈ sys
 Ab,Bb,Cb,T = ControlSystemsBase.balance_statespace(A,B,C)
+
+sysbb,Tb = ControlSystemsBase.balance_statespace(big(1.0)*sys)
+@test Tb ≈ T
+@test sysbb ≈ sysb
+
 
 @test Ab*T ≈ T*A
 @test Bb ≈ T*B
@@ -20,6 +32,8 @@ Ab,Bb,Cb,T = ControlSystemsBase.balance_statespace(A,B,C)
 
 @test sysb.A ≈ Ab
 @test similarity_transform(sysb, T) ≈ sys
+
+@test dcgain(sys) ≈ dcgain(sysb)
 
 
 U = svd(randn(2,2)).U
@@ -29,8 +43,25 @@ Ab,Bb,Cb,Db = ssdata(syst)
 @test Bb ≈ U'B
 @test Cb ≈ C*U
 
+sysd = ss(A,B,C,D,1)
+sysdb, _ = balance_statespace(sysd)
+@test dcgain(sysd) ≈ dcgain(sysdb)
+
 
 @test ControlSystemsBase.balance_transform(A,B,C) ≈ ControlSystemsBase.balance_transform(sys)
+
+@testset "similarity transform" begin
+    @info "Testing similarity transform"
+    T = randn(3,3)
+    sys1 = ssrand(1,1,3)
+    sys2 = ControlSystemsBase.similarity_transform(sys1, T)
+    T2 = find_similarity_transform(sys1, sys2)
+    @test T2 ≈ T atol=1e-8
+
+    T3 = find_similarity_transform(sys1, sys2, :ctrb)
+    @test T3 ≈ T atol=1e-8
+
+end
 
 W = [1 0; 0 1]
 @test covar(sys, W) ≈ [0.002560975609756 0.002439024390244; 0.002439024390244 0.002560975609756]
@@ -82,6 +113,20 @@ syst = similarity_transform(sys, Tr)
 @test sys.C*Tr ≈ syst.C
 
 
+## stab_unstab
+sys = ssrand(2,3,40, stable=false)
+stab, unstab = stab_unstab(sys)
+@test all(real(poles(stab)) .< 0)
+@test all(real(poles(unstab)) .>= 0)
+@test linfnorm(stab + unstab - sys)[1] < 1e-5
+
+sys = ssrand(2,3,40, stable=false, Ts=1)
+stab, unstab = stab_unstab(sys)
+@test all(abs.(poles(stab)) .< 1)
+@test all(abs.(poles(unstab)) .>= 1)
+@test linfnorm(stab + unstab - sys)[1] < 1e-5
+
+
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
 sysi = ControlSystemsBase.innovation_form(sys, I, I)
 @test sysi.A ≈ sysi.A
@@ -117,6 +162,8 @@ sysp = ControlSystemsBase.observer_predictor(sys, I(2), I(1))
 K = kalman(sys, I(2), I(1))
 @test sysp.A == sys.A-K*sys.C
 @test sysp.B == [sys.B-K*sys.D K]
+
+@test sysp == observer_filter(sys, K) # Equivalent for continuous-time systems
 
 # test longer prediction horizons
 
@@ -191,6 +238,7 @@ R2 = I(2)
 L = lqr(sys, Q1, Q2)
 K = kalman(sys, R1, R2)
 cont = observer_controller(sys, L, K)
+@test iszero(cont.D)
 syscl = feedback(sys, cont)
 
 pcl = poles(syscl)
@@ -201,6 +249,71 @@ allpoles = [
 ]
 @test sort(pcl, by=LinearAlgebra.eigsortby) ≈ sort(allpoles, by=LinearAlgebra.eigsortby) 
 @test cont.B == K
+
+## Test time scaling
+for balanced in [true, false]
+    sys = ssrand(1,1,5);
+    t = 0:0.1:50
+    a = 10
+
+    Gs = tf(1, [1e-6, 1]) # micro-second time scale modeled in seconds
+    Gms = time_scale(Gs, 1e-6; balanced) # Change to micro-second time scale
+    @test Gms == tf(1, [1, 1])
+end
+
+
+
+# Test observer_controller discrete with LQG
+Ts = 0.01
+sys = ssrand(2,3,4; Ts, proper=true)
+Q1 = I(4)
+Q2 = I(3)
+R1 = I(4)
+R2 = I(2)
+@test are(sys, Q1, Q2) == are(Discrete, sys.A, sys.B, Q1, Q2)
+@test lyap(sys, Q1) == lyap(Discrete, sys.A, Q1)
+L = lqr(sys, Q1, Q2)
+K = kalman(sys, R1, R2; direct = true)
+cont = observer_controller(sys, L, K, direct=true)
+@test !iszero(cont.D)
+syscl = feedback(sys, cont)
+@test isstable(syscl)
+
+# Test observer_controller discrete with pole placement
+Ts = 0.01
+sys = ssrand(2,3,4; Ts, proper=true)
+p = exp.(Ts .* [-10, -20, -30, -40])
+p2 = exp.(2*Ts .* [-10, -20, -30, -40])
+L = place(sys, p, :c)
+K = place(sys, p2, :o)
+cont = observer_controller(sys, L, K)
+@test iszero(cont.D)
+syscl = feedback(sys, cont)
+
+pcl = poles(syscl)
+A,B,C,D = ssdata(sys)
+allpoles = [
+    eigvals(A-B*L)
+    eigvals(A-K*C)
+]
+@test sort(pcl, by=real) ≈ (sort(allpoles, by=real)) rtol=1e-3
+@test cont.B == K
+
+
+Kd = place(sys, p2, :o; direct = true) 
+@test Kd == place(sys.A', (sys.C*sys.A)', p2)'
+cont_direct = observer_controller(sys, L, Kd, direct=true)
+@test !iszero(cont_direct.D)
+
+syscld = feedback(sys, cont_direct)
+@test isstable(syscld)
+
+pcl = poles(syscld)
+A,B,C,D = ssdata(sys)
+allpoles = [
+    p; p2
+]
+@test sort(pcl, by=real) ≈ sort(allpoles, by=real) rtol=1e-3
 
 ## Test time scaling
 for balanced in [true, false]
@@ -227,4 +340,70 @@ sysb,T = ControlSystemsBase.balance_statespace(sys)
 @test T != I
 @test similarity_transform(sysb, T) ≈ sys
 
-end 
+
+# controllability
+
+sys = ssrand(1,1,2,proper=true)
+sys = [sys; 2sys] # 1 uncontrollable mode
+
+res = controllability(sys)
+@test !res.iscontrollable
+@test all(==(3), res.ranks)
+@test all(<(sqrt(eps())), res.sigma_min)
+
+
+sys = [sys; 2sys] # 3 uncontrollable modes
+res = controllability(sys)
+@test !res.iscontrollable
+@test all(==(5), res.ranks) # Three uncontrollable modes 8 - 3 = 5
+@test all(<(sqrt(eps())), res.sigma_min)
+
+
+
+sys = ssrand(1,1,2,proper=true)
+sys = [sys 2sys]
+
+res = observability(sys)
+@test !res.isobservable
+@test all(==(3), res.ranks)
+@test all(<(sqrt(eps())), res.sigma_min)
+
+
+## https://github.com/JuliaControl/ControlSystems.jl/issues/1014
+P_test = zpk(
+[-101.47795511977208 + 0.0im
+    -48.91219110762173 + 0.0im
+    -7.282563985219324 + 7.114985406231401im
+    -7.282563985219324 - 7.114985406231401im
+    -7.96322290641594 + 0.0im
+    -1.5268748507837735 + 1.2594070637611725im
+    -1.5268748507837735 - 1.2594070637611725im
+    -0.7114937019357614 + 0.0im
+],
+[ -101.32273797977184 + 0.0im
+ -49.510558929948274 + 0.0im
+               -20.0 + 0.0im
+  -11.82446898287247 + 0.0im
+ -10.604444850836952 + 0.0im
+  -5.297845964509693 + 6.146324852257861im
+  -5.297845964509693 - 6.146324852257861im
+ -1.4795349979133343 + 1.2376578249023653im
+ -1.4795349979133343 - 1.2376578249023653im
+ -0.6235091399063754 + 0.0im
+ -0.2743617810110765 + 0.0im
+],
+704.6392766532747
+);
+
+C_test = zpk(
+    [-0.5 + 0.0im],
+    [0.],
+    0.6
+);
+
+S_test = sensitivity(P_test, C_test);
+n,w = hinfnorm(S_test)
+@test n ≈ 1.3056118418593037 atol=1e-3
+@test w ≈ 5.687023116875403 atol=1e-3
+end
+

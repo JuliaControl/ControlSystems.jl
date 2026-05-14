@@ -2,15 +2,20 @@ using ControlSystemsBase
 using Test, LinearAlgebra, Random
 import Base.isapprox        # In framework and test_synthesis
 import SparseArrays: sparse # In test_matrix_comps
-import DSP: conv            # In test_conversion and test_synthesis
+import Polynomials: conv            # In test_conversion and test_synthesis
 using Aqua
 @testset "Aqua" begin
     Aqua.test_all(ControlSystemsBase;
-        ambiguities = false, # casues 100s of hits in all dependencies
+        ambiguities = false, # causes 100s of hits in all dependencies
         stale_deps = true,  # Aqua complains about itself https://github.com/JuliaTesting/Aqua.jl/issues/78 
         project_toml_formatting = false, # https://github.com/JuliaTesting/Aqua.jl/issues/105
     )
 end
+
+BIGMAT = big(1.0)*randn(3,3)
+@test_throws MethodError svd(BIGMAT)
+@test_throws MethodError eigvals(BIGMAT)
+@test_throws MethodError schur(BIGMAT)
 
 
 include("framework.jl")
@@ -41,8 +46,11 @@ my_tests = [
             "test_demo_systems",
             "test_autovec",
             "test_plots",
+            "test_makie_plots",
             "test_dsp",
             "test_implicit_diff",
+            "test_rootlocus",
+            "test_root_locus_matrix",
             ]
 
 @testset "All Tests" begin

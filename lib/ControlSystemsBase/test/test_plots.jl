@@ -55,5 +55,16 @@ end
 
   sys = ssrand(3,3,3)
   sigmaplot(sys, extrema=true)
+  bodeplot(sys, adaptive=false)
+  nyquistplot(sys, adaptive=false)
 
+  Gmimo = ssrand(2,2,2,Ts=1)
+  @test_nowarn plot(step(Gmimo, 10), plotx=true)
+  # plot!(step(Gmimo[:, 1], 10), plotx=true) # Verify that this plots the same as the "from u(1)" series above
+
+  setPlotScale("log10")
+  funcs[8]() # test marginlpot with log10 scale
+  
+  # Test marginplot with hz=true
+  @test_nowarn marginplot(tf([2], [1,1])^3, 10.0 .^range(-2,stop=2,length=50); hz=true)
 end

@@ -113,7 +113,7 @@ yr    = G.C*xr  # Reference output
 Gop   = offset(yr) * G * offset(-ur) # Make the plant operate in Δ-coordinates 
 C_sat = saturation(umin, umax) * C   # while the controller and the saturation operate in the original coordinates
 ```
-We now simulate the closed-loop system, the initial state of the plant is adjusted with the operating point `x0-xr` since the plant operates in Δ-coordinates 
+We now simulate the closed-loop system, the initial state of the plant is adjusted with the operating point `x0-xr` since the plant operates in Δ-coordinates
 ```@example nonlinear
 x0 = [2, 1, 8, 3] # Initial tank levels
 plot(
@@ -122,6 +122,8 @@ plot(
 )
 hline!([yr[1]], label="Reference", l=:dash, sp=1, c=1)
 ```
+
+The state vector resulting from the call to `feedback` is comprised of the concatenated states of the first and second arguments, i.e., `feedback(C_sat, Gop)` has the state vector `[C_sat.x; Gop.x]` while `feedback(Gop*C_sat)` has the state vector of `Gop*C_sat` which is starting with the first operand, `[Gop.x; C_sat.x]`.
 
 
 ### Duffing oscillator
@@ -227,6 +229,39 @@ f2 = plot(step(feedback(duffing, C), 8), plotx=true, plot_title="Controlled wigg
 plot(f1,f2, size=(1300,800))
 ```
 
+### Hysteresis
+Here we demonstrate that we may use this simple framework to model also stateful nonlinearities, such as hysteresis. The `hysteresis` function internally creates a feedback interconnection between a fast first-order system and a `sign` or `tanh` nonlinearity to create a simple hysteresis loop. The width and amplitude of the loop can be adjusted through the parameters `width` and `amplitude`, respectively.
+```@example HYSTERESIS
+using ControlSystems, Plots
+import ControlSystemsBase: hysteresis
+
+amplitude = 0.7
+width = 1.5
+sys_hyst =  hysteresis(; width, amplitude)
+
+t = 0:0.01:20
+ufun(y,x,t) = y .= 5.0 .* sin(t) ./ (1+t/5) # A sine wave that sweeps back and forth with decreasing amplitude
+
+res = lsim(sys_hyst, ufun, t)
+
+p1 = plot(res.u[:], res.y[:], 
+    title="Hysteresis Loop",
+    xlabel="Input u(t)", 
+    ylabel="Output y(t)",
+    lw=2, color=:blue, lab="", framestyle=:zerolines)
+
+hline!([amplitude -amplitude], l=:dash, c=:red, label=["Amplitude" ""])
+vline!([width -width], l=:dash, c=:green, label=["Width" ""])
+
+# Plotting time series to see the "jumps" in the response
+p2 = plot(t, [res.u[:] res.y[:]], 
+    title="Time Domain Response",
+    label=["Input (Sine)" "Output (Hysteresis)"], 
+    xlabel="Time (s)",
+    lw=2)
+
+plot(p1, p2, layout=(1,2), size=(900, 400))
+```
 
 ## Limitations
 - Remember, this functionality is experimental and subject to breakage.
@@ -257,4 +292,6 @@ ControlSystemsBase.offset
 ControlSystemsBase.saturation
 ControlSystemsBase.ratelimit
 ControlSystemsBase.deadzone
+ControlSystemsBase.linearize
+ControlSystemsBase.hysteresis
 ```

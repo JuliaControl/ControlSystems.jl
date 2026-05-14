@@ -116,7 +116,7 @@ To make the Kalman solver work with dual numbers, make sure that the `R` matrix 
 function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual})
     X = are(Discrete, A', C', Q, R)
     CX = C*X
-    (R+CX*B)\(CX*A)
+    (R+CX*C')\(CX*A')
 end
 
 
@@ -131,7 +131,7 @@ function conditions_lyapc(pars, X, noneed)
     (; A,Q) = pars
     AX = A*X
     O = AX .+ AX' .+ Q
-    vec(O) + vec(X - X')
+    O .+ (X .- X')
 end
 
 # linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
@@ -174,7 +174,7 @@ end
 # plyap
 function forward_plyapc(pars)
     (; A,Q) = pars
-    ControlSystemsBase.plyapc(A, Q), 0
+    Matrix(ControlSystemsBase.plyapc(A, Q)), 0
 end
 
 function conditions_plyapc(pars, Xc, noneed)
@@ -183,7 +183,7 @@ function conditions_plyapc(pars, Xc, noneed)
     X = Xc*Xc'
     AX = A*X
     O = AX .+ AX' .+ Q
-    vec(O) + vec(Xc - UpperTriangular(Xc))
+    O .+ (Xc .- UpperTriangular(Xc))
 end
 
 # linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
@@ -201,10 +201,12 @@ import ControlSystemsBase: hinfnorm
 function forward_hinfnorm(pars; kwargs...)
     (; A,B,C,D) = pars
     sys = ss(A,B,C,D)
-    hinfnorm(sys; kwargs...)
+    γ, w = hinfnorm(sys; kwargs...)
+    return [γ], w
 end
 
-function conditions_hinfnorm(pars, γ, w; tol=1e-10)
+function conditions_hinfnorm(pars, γ_vec, w; tol=1e-10)
+    γ = only(γ_vec)
     (; A,B,C,D) = pars
     sys = ss(A,B,C,D)
     [opnorm(freqresp(sys, w)) - γ]
@@ -215,48 +217,46 @@ const implicit_hinfnorm = ImplicitFunction(forward_hinfnorm, conditions_hinfnorm
 """
     hinfnorm(sys::StateSpace{Continuous, <:Dual}; kwargs)
 
-The H∞ norm can be differentiated through using ForwardDiff.jl, but at the time of writing, is limited to systems with *either* a signel input *or* a single output. 
+The H∞ norm can be differentiated through using ForwardDiff.jl, but at the time of writing, is limited to systems with *either* a single input *or* a single output. 
 
-A reverse-differention rule is defined in RobustAndOptimalControl.jl, which means that hinfnorm is differentiable using, e.g., Zygote in reverse mode.
+A reverse-differentiation rule is defined in RobustAndOptimalControl.jl, which means that hinfnorm is differentiable using, e.g., Zygote in reverse mode.
 """
 function hinfnorm(sys::StateSpace{Continuous, <:Dual}; kwargs...)
     A,B,C,D = ssdata(sys)
     pars = ComponentVector(; A,B,C,D)
-    γ, w = implicit_hinfnorm(pars)
-    γ, w
+    γ_vec, w = implicit_hinfnorm(pars)
+    only(γ_vec), w
 end
 
 
-# ## Schur, currently not working when the matrix A has complex eigenvalues.
-# Sec 4.2 in "A PROCEDURE FOR DIFFERENTIATING PERFECT-FORESIGHT-MODEL REDUCED-FORM  OEFFICIENTS", Gary ANDERSON  has a formula for the derivative, but it looks rather expensive to compute, involving the factorization of a rather large Kronecker matrix. THis factorization only has to be done once, though, since it does not depend on the partials.
-# function forward_schur(A)
-#     F = schur(A)
-#     ComponentVector(; F.Z, F.T), F
-# end
+# ## Schur
+function forward_schur(A)
+    F = schur(A)
+    ComponentVector(; F.Z, F.T), F
+end
 
-# function conditions_schur(A, F, noneed)
-#     (; Z, T) = F
-#     [
-#         vec(Z' * A * Z - T);
-#         vec(Z' * Z - I + LowerTriangular(T) - Diagonal(T))
-#     ]
-# end
+function conditions_schur(A, F, s)
+    (; Z, T) = F
+    if all(isreal, s.values)
+        ComponentVector(; Z = Z' * A * Z - T, T = Z' * Z - I + LowerTriangular(T) - Diagonal(T))
+    else
+        ComponentVector(; Z = Z' * A * Z - T, T = Z' * Z - I + UpperTriangular(T) - Diagonal(T))
+    end
+end
 
-# linear_solver = (A, b) -> (Matrix(A) \ b, (solved=true,))
-# const implicit_schur = ImplicitFunction(forward_schur, conditions_schur, linear_solver)
+const implicit_schur = ImplicitFunction(forward_schur, conditions_schur)
 
-# # vectors = Z
-# # Schur = T
-# # A = F.vectors * F.Schur * F.vectors'
-# # A = Z * T * Z'
-# function LinearAlgebra.schur(A::AbstractMatrix{<:Dual})
-#     ZT, F = implicit_schur(A)
-#     n = length(A)
-#     Z = reshape(ZT[1:n], size(A))
-#     T = reshape(ZT[n+1:end], size(A))
-#     Schur(T, Z, F.values)
-# end
+# vectors = Z
+# Schur = T
+# A = F.vectors * F.Schur * F.vectors'
+# A = Z * T * Z'
+function LinearAlgebra.schur(A::AbstractMatrix{<:Dual})
+    ZT, F = implicit_schur(A)
+    n = length(A)
+    Z = reshape(ZT[1:n], size(A))
+    T = reshape(ZT[n+1:end], size(A))
+    Schur(T, Z, F.values)
+end
 
 
 end # module
-

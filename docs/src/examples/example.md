@@ -42,8 +42,8 @@ L       = lqr(Discrete,A,B,Q,R) # lqr(sys,Q,R) can also be used
 u(x,t)  = -L*x .+ 1.5(t>=2.5) # Form control law (u is a function of t and x), a constant input disturbance is affecting the system from t≧2.5
 t       = 0:Ts:5              # Time vector
 x0      = [1,0]               # Initial condition
-y, t, x, uout = lsim(sys,u,t,x0=x0)
-plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]")
+res = lsim(sys,u,t,x0=x0)
+plot(res, lab=["Position" "Velocity"], ploty=false, plotx=true, layout=1, sp=1)
 
 save_docs_plot("lqrplot.svg"); # hide
 
@@ -64,8 +64,58 @@ See also the following tutorial video on LQR and LQG design
 <iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/NuAxN1mGCPs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 ```
 
+## Pole Placement Design
+
+The example below demonstrates basic pole placement controller design using the same double integrator system from the LQR example. We design a state-feedback controller with desired closed-loop poles and an observer that is 5 times faster than the closed-loop response.
+
+```@example POLEPLACEMENT
+using ControlSystemsBase
+using LinearAlgebra
+using Plots
+
+# Create system - same as LQR example
+Ts = 0.1
+A  = [1 Ts; 0 1]
+B  = [0; 1]
+C  = I(2)
+P  = ss(A,B,C,0,Ts)
+
+# Design controller using pole placement
+# Choose desired closed-loop poles (well-damped, faster than original system)
+desired_poles_cont = [-2+0.5im, -2-0.5im]       # Continuous-time poles
+desired_poles = exp.(Ts .* desired_poles_cont)  # Discrete-time poles
+
+# Design state feedback gain using pole placement
+L = place(P, desired_poles)
+
+# Design observer with poles 5x faster
+observer_poles = exp.(Ts*5 .* desired_poles_cont)
+K = place(P, observer_poles, :o) # Note the :o for observer design
+
+# Create controller system
+controller = observer_controller(P, L, K)
+
+# Form closed-loop system and analyze
+T_cl = feedback(P * controller)
+
+r(x,t)  = [1.5(t>=2.5); 0] # Form control law (r is a function of t and x), change reference to 1.5 at t≧2.5
+t = 0:Ts:5          # Time vector
+x0 = [1.0, 0, 0, 0] # Initial condition (plant state followed by controller state)
+res = lsim(T_cl, r, t; x0)
+plot(res, lab=["Position" "Velocity"], layout=1, sp=1)
+```
+
+Plot Gang of Four to analyze closed-loop properties
+```@example POLEPLACEMENT
+gangoffourplot(P, controller)
+```
+
+
+The pole placement design allows direct specification of closed-loop pole locations. The [`place`](@ref) function computes the required feedback gains, while [`observer_controller`](@ref) combines the state feedback and observer into a single controller.
+
+
 ## PID design functions
-A basic PID controller can be constructed using the constructor [`pid`](@ref).
+A basic PID controller can be constructed using the constructors [`pid`](@ref), [`pid_2dof`](@ref).
 In ControlSystems.jl, we often refer to three different formulations of the PID controller, which are defined as
 
 * Standard form: ``K_p(1 + \frac{1}{T_i s} + T_ds)``
@@ -138,7 +188,7 @@ Tf = 1/20ω
 C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt, doplot=true, Tf)
 fig
 ```
-As we can see, the addition of the filter increases the high-frequency roll-off in both $T$ and $CS$, which is typically desireable.
+As we can see, the addition of the filter increases the high-frequency roll-off in both $T$ and $CS$, which is typically desirable.
 
 To get better control over the filter, it can be pre-designed and supplied to [`loopshapingPID`](@ref) with the keyword argument `F`:
 ```julia
@@ -193,12 +243,12 @@ Bm  = conv(B⁺, B⁻) # In this case, keep the entire numerator polynomial of t
 
 R,S,T = rstc(B⁺,B⁻,A,Bm,Am,Ao,AR) # Calculate the 2-DOF controller polynomials
 
-Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectores are of equal length
+Gcl = tf(conv(B,T),zpconv(A,R,B,S)) # Form the closed loop polynomial from reference to output, the closed-loop characteristic polynomial is AR + BS, the function zpconv takes care of the polynomial multiplication and makes sure the coefficient vectors are of equal length
 
 plot(step(P, 20))
 plot!(step(Gcl, 20)) # Visualize the open and closed loop responses.
 save_docs_plot("ppstepplot.svg") # hide
-gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all tranfer functions are OK
+gangoffourplot(P, tf(-S,R)) # Plot the gang of four to check that all transfer functions are OK
 save_docs_plot("ppgofplot.svg"); # hide
 
 # output
@@ -209,81 +259,6 @@ save_docs_plot("ppgofplot.svg"); # hide
 ![](../../plots/ppgofplot.svg)
 
 
-## Stability boundary for PID controllers
-The stability boundary, i.e., the surface of PID parameters where the transfer function ``P(s)C(s)`` equals -1, can be plotted with the command [`stabregionPID`](@ref). The process can be given in function form or as a regular LTIsystem.
-
-```jldoctest; output = false
-P1 = s -> exp(-sqrt(s))
-doplot = true
-form = :parallel
-kp, ki, f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)); doplot, form); f1
-P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
-kp, ki, f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)); doplot, form); f2
-P3 = tf(1,[1,1])^4
-kp, ki, f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)); doplot, form); f3
-
-save_docs_plot(f1, "stab1.svg") # hide
-save_docs_plot(f2, "stab2.svg") # hide
-save_docs_plot(f3, "stab3.svg"); # hide
-
-# output
-
-```
-![](../../plots/stab1.svg)
-![](../../plots/stab2.svg)
-![](../../plots/stab3.svg)
-
-
-## PID plots
-This example utilizes the function [`pidplots`](@ref), which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
-```jldoctest PIDPLOTS; output = false
-using ControlSystemsBase
-P = tf([1.], [1., 1])
-
-ζ = 0.5 # Desired damping
-ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
-kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
-ki = ws.^2
-
-ω = exp10.(range(-3, stop = 2, length = 500))
-pidplots(
-    P,
-    :nyquist;
-    params_p = kp,
-    params_i = ki,
-    ω = ω,
-    ylims = (-2, 2),
-    xlims = (-3, 3),
-    form = :parallel,
-)
-save_docs_plot("pidplotsnyquist1.svg") # hide
-pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false, form=:parallel, legendfontsize=6, size=(1000, 1000))
-# You can also request both Nyquist and Gang-of-four plots (more plots are available, see ?pidplots ):
-# pidplots(P,:nyquist,:gof;kps=kp,kis=ki,ω=ω);
-save_docs_plot("pidplotsgof1.svg"); # hide
-
-# output
-
-```
-![](../../plots/pidplotsnyquist1.svg)
-![](../../plots/pidplotsgof1.svg)
-
-
-Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
-```jldoctest PIDPLOTS; output = false
-kp = range(-1, stop=1, length=8) #
-ki = sqrt.(1 .- kp.^2)/10
-
-pidplots(P,:nyquist,;params_p=kp,params_i=ki,ylims=(-1,1),xlims=(-1.5,1.5), form=:parallel)
-save_docs_plot("pidplotsnyquist2.svg") # hide
-pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20), form=:parallel, legendfontsize=6, size=(1000, 1000))
-save_docs_plot("pidplotsgof2.svg"); # hide
-
-# output
-
-```
-![](../../plots/pidplotsnyquist2.svg)
-![](../../plots/pidplotsgof2.svg)
 
 ## Further examples
 - See the [examples folder](https://github.com/JuliaControl/ControlSystems.jl/tree/master/example) as well as the notebooks in [ControlExamples.jl](https://github.com/JuliaControl/ControlExamples.jl).

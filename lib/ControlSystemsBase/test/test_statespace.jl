@@ -98,7 +98,11 @@
         @test C_111 .* C_222 == ss([-5 0 2 0; 0 -5 0 2; 0 0 -5 -3; 0 0 2 -9], [0 0; 0 0; 1 0; 0 2], [3 0 0 0; 0 3 0 0], 0)
         @test Ref(ss(1)) .* [C_111, C_111] == [C_111, C_111]
 
-        @test_broken @inferred C_111 * C_221
+        if VERSION >= v"1.10.0-rc1"
+            @inferred C_111 * C_221
+        else
+            @test_broken @inferred C_111 * C_221
+        end
         @test_broken @inferred C_111 .* I(2)
 
         C_111_d = ssrand(1,1,2)
@@ -159,10 +163,19 @@
 
         # Division
         @test 1/C_222_d == SS([-6 -3; 2 -11],[1 0; 0 2],[-1 0; -0 -1],[1 -0; 0 1])
-        @test C_221/C_222_d == SS([-5 -3 -1 0; 2 -9 -0 -2; 0 0 -6 -3;
-        0 0 2 -11],[1 0; 0 2; 1 0; 0 2],[1 0 0 0],[0 0])
+        @test hinfnorm((C_221/C_222_d) - SS([-5 -3 -1 0; 2 -9 -0 -2; 0 0 -6 -3;
+        0 0 2 -11],[1 0; 0 2; 1 0; 0 2],[1 0 0 0],[0 0]))[1] < 1e-10
         @test 1/D_222_d == SS([-0.8 -0.8; -0.8 -1.93],[1 0; 0 2],[-1 0; -0 -1],
         [1 -0; 0 1],0.005)
+
+        # Division when denominator inverse is non-proper but quotient is proper
+        G1 = tf([1], [1, 1])
+        G2 = tf([1], [1, 1, 1])
+        G1s = ss(G1)
+        G2s = ss(G2)
+        @test tf(G2s / G1s) ≈ G2 / G1
+
+        @test tf(G1s \ G2s) ≈ G2 / G1
 
         fsys = ss(1,1,1,0)/3 # Int becomes FLoat after division
         @test fsys.B[]*fsys.C[] == 1/3
@@ -243,7 +256,7 @@
         @test_throws ErrorException SS([1 2], [1], [2], [3])      # Not square A
         @test_throws ErrorException SS([1], [2 0], [1], [2])      # I/0 dim mismatch
         @test_throws ErrorException SS([1], [2], [3 4], [1])      # I/0 dim mismatch
-        @test_throws ErrorException SS([1], [2], [3], [4], -0.1)  # Negative samping time
+        @test_throws ErrorException SS([1], [2], [3], [4], -0.1)  # Negative sampling time
         @test_throws ErrorException SS(eye_(2), eye_(2), eye_(2), [0]) # Dimension mismatch
 
         # Misc tests

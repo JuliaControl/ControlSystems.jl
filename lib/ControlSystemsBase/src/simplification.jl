@@ -45,9 +45,13 @@ structurally controllable based on the location of zeros in the matrices.
 function struct_ctrb_states(A::AbstractVecOrMat, B::AbstractVecOrMat)
     size(A,1) > typemax(UInt16) && error("Maximum size of A exceeded. If you encounter this error, please open an issue. This limit is not fundamental and exists for performance reasons only.")
     # UInt16 can only store up to 65535, so if A is completely dense and of size larger than 65535, the computations below might overflow. This is exceedingly unlikely though.
-    bitA = UInt16.(.!iszero.(A)) # Convert to Int because mutiplying with a bit matrix is slow
+    bitA = UInt16.(.!iszero.(A)) # Convert to Int because multiplying with a bit matrix is slow
     x = vec(any(B .!= 0, dims=2)) # index vector indicating states that have been affected by input
-    xi = bitA * x
+    if A isa SMatrix
+        xi = Vector(bitA * x) # To aboid setindex! error below
+    else
+        xi = bitA * x
+    end
     xi2 = similar(xi)
     @. xi = (xi != false) | !iszero(x)
     for i = 2:size(A, 1) # apply A nx times, similar to controllability matrix

@@ -1,7 +1,31 @@
 abstract type LTISystem{TE<:TimeEvolution} <: AbstractSystem end
+isrational(sys::LTISystem) = false
 +(sys1::LTISystem, sys2::LTISystem) = +(promote(sys1, sys2)...)
 -(sys1::LTISystem, sys2::LTISystem) = -(promote(sys1, sys2)...)
-*(sys1::LTISystem, sys2::LTISystem) = *(promote(sys1, sys2)...)
+function *(sys1::LTISystem, sys2::LTISystem)
+    zeroexcess(sys) = length(numvec(sys)[]) - length(denvec(sys)[])
+    try
+        *(promote(sys1, sys2)...)
+    catch e
+        e isa ImproperException || rethrow()
+        if sys1 isa AbstractStateSpace && sys2 isa TransferFunction
+            issiso(sys2) || rethrow() # Can't invert MIMO tf
+            zeroexcess(sys2) <= sys1.nx || rethrow() # Quotient can't be proper
+            Q = sys1 / ss(inv(sys2))
+        elseif sys1 isa TransferFunction && sys2 isa AbstractStateSpace
+            issiso(sys1) || rethrow() # Can't invert MIMO tf
+            zeroexcess(sys1) <= sys2.nx || rethrow() # Quotient can't be proper
+            Q = ss(inv(sys1)) \ sys2
+        else
+            rethrow()
+        end
+        Q = balance_statespace(Q)[1]
+        if max(maximum(abs, Q.A), maximum(abs, Q.B), maximum(abs, Q.C), maximum(abs, Q.D)) > 1e7
+            @warn "Possible numerical instability detected: Multiplication of a statespace system and a non-proper transfer function may result in numerical inaccuracy. Verify result carefully, and consider making use of DescriptorSystems.jl to represent this product as a DescriptorSystem with non-unit descriptor matrix if result is inaccurate."
+        end
+        return Q
+    end
+end
 /(sys1::LTISystem, sys2::LTISystem) = /(promote(sys1, sys2)...)
 
 # Fallback number
@@ -83,9 +107,33 @@ common_timeevol(systems::LTISystem...) = common_timeevol(timeevol(sys) for sys i
 """
     isstable(sys)
 
-Returns `true` if `sys` is stable, else returns `false`."""
+Returns `true` if `sys` is stable, else returns `false`.
+
+Marginally stable systems are considered unstable by this function, see [`isunstable`](@ref) for a function that returns true only for exponentially unstable systems, that is, `!isunstable(sys)` implies that `sys` is either stable or marginally stable.
+"""
 isstable(sys::LTISystem{Continuous}) = all(real.(poles(sys)) .< 0)
 isstable(sys::LTISystem{<:Discrete}) = all(abs.(poles(sys)) .< 1)
+
+
+"""
+    isunstable(sys)
+
+Returns `true` if `sys` is exponentially unstable, else returns `false`.
+Marginally stable systems (systems with a simple poles on the imaginary axis) are considered stable by this function, see [`isstable`](@ref) for a function that returns true only for exponentially stable systems.
+"""
+function isunstable(sys::LTISystem)
+    inte, p, z, tolp, tolz = integrator_excess_with_tol(sys)
+    if inte > 1
+        return true
+    end
+    # Go through all poles on the imaginary axis and check if they are duplicated
+    for pi in p
+        abs(real(pi)) > sqrt(sqrt(eps(abs(pi)))) && continue # The pole is too far away to be on the imaginary axis
+        # check if there are multiple poles with this imaginary part
+        count_eigval_multiplicity(p, complex(0.0, imag(pi)))[1] > 1 && return true
+    end
+    return iscontinuous(sys) ? any(real.(p) .> tolp) : any(abs.(p) .> tolp)
+end
 
 # Fallback since LTISystem not AbstractArray
 Base.size(sys::LTISystem, i::Integer) = size(sys)[i]
@@ -104,7 +152,7 @@ system_name(::LTISystem) = ""
     input_names(P)
     input_names(P, i)
 
-Get a vector of strings with the names of the inputs of `P`, or the `i`:th name if and index is given.
+Get a vector of strings with the names of the inputs of `P`, or the `i`:th name if an index is given.
 """
 input_names(P::LTISystem; kwargs...) = [input_names(P, i; kwargs...) for i in 1:ninputs(P)]
 function input_names(P::LTISystem, i; default = "u")
@@ -117,7 +165,7 @@ end
     output_names(P)
     output_names(P, i)
 
-Get a vector of strings with the names of the outputs of `P`, or the `i`:th name if and index is given.
+Get a vector of strings with the names of the outputs of `P`, or the `i`:th name if an index is given.
 """
 output_names(P::LTISystem; kwargs...) = [output_names(P, i; kwargs...) for i in 1:noutputs(P)]
 function output_names(P::LTISystem, i; default = "y")
@@ -130,7 +178,7 @@ end
     state_names(P)
     state_names(P, i)
 
-Get a vector of strings with the names of the states of `P`, or the `i`:th name if and index is given.
+Get a vector of strings with the names of the states of `P`, or the `i`:th name if an index is given.
 """
 state_names(P::LTISystem; kwargs...) = [state_names(P, i; kwargs...) for i in 1:nstates(P)]
 function state_names(P::LTISystem, i; default = "x")

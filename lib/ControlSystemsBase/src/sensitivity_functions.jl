@@ -23,10 +23,11 @@ d₁────+──┴──►  P  ├─────┬──►e₄
 """
 See [`output_sensitivity`](@ref)
 
-The output [sensitivity function](https://en.wikipedia.org/wiki/Sensitivity_(control_systems)) ``S_o = (I + PC)^{-1}`` is the transfer function from a reference input to control error, while the input sensitivity function ``S_i = (I + CP)^{-1}`` is the transfer function from a disturbance at the plant input to the total plant input. For SISO systems, input and output sensitivity functions are equal. In general, we want to minimize the sensitivity function to improve robustness and performance, but pracitcal constraints always cause the sensitivity function to tend to 1 for high frequencies. A robust design minimizes the peak of the sensitivity function, ``M_S``. The peak magnitude of ``S`` is the inverse of the distance between the open-loop Nyquist curve and the critical point -1. Upper bounding the sensitivity peak ``M_S`` gives lower-bounds on phase and gain margins according to
+The output [sensitivity function](https://en.wikipedia.org/wiki/Sensitivity_(control_systems)) ``S_o = (I + PC)^{-1}`` is the transfer function from a reference input to control error, while the input sensitivity function ``S_i = (I + CP)^{-1}`` is the transfer function from a disturbance at the plant input to the total plant input. For SISO systems, input and output sensitivity functions are equal. In general, we want to minimize the sensitivity function to improve robustness and performance, but practical constraints always cause the sensitivity function to tend to 1 for high frequencies. A robust design minimizes the peak of the sensitivity function, ``M_S``. The peak magnitude of ``S`` is the inverse of the distance between the open-loop Nyquist curve and the critical point -1. Upper bounding the sensitivity peak ``M_S`` gives lower-bounds on phase and gain margins according to
 ```math
 ϕ_m ≥ 2\\text{sin}^{-1}(\\frac{1}{2M_S}), g_m ≥ \\frac{M_S}{M_S-1}
 ```
+(see [`margin_bounds`](@ref) for a function that computes these bounds, and [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref) for the inverse functions.)
 Generally, bounding ``M_S`` is a better objective than looking at gain and phase margins due to the possibility of combined gain and pahse variations, which may lead to poor robustness despite large gain and pahse margins.
 
 $sensdoc
@@ -34,6 +35,39 @@ $sensdoc
 function sensitivity(args...)# Sensitivity function
     return output_sensitivity(args...)
 end
+
+
+"""
+    g_m, ϕ_m = margin_bounds(M_S)
+
+Compute the phase margin lower bound ϕ_m (in radians) and gain margin lower bound g_m given a maximum sensitivity peak ``M_S = ||S||_∞``. These bounds are derived from the fact that the inverse of the sensitivity function is the distance from the open-loop Nyquist curve to the critical point -1.
+
+See also [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref) for the inverse functions. The circle corresponding to the maximum sensitivity peak ``M_S`` can be plotted in [`nyquistplot`](@ref) by passing the keyword argument `Ms_circles = [Ms]`.
+"""
+function margin_bounds(M_S)
+    M_S < 1 && error("Maximum sensitivity peak M_S must be greater than or equal to 1, got $M_S")
+    ϕ_m = 2 * asin(1 / (2 * M_S))
+    g_m = M_S / (M_S - 1)
+    return (; g_m, ϕ_m, ϕ_m_deg = rad2deg(ϕ_m))
+end
+
+"""
+    Ms_from_phase_margin(ϕ_m)
+
+Compute the maximum sensitivity peak ``M_S = ||S||_∞`` such that if respected, gives a phase margin of at least ϕ_m (in radians).
+
+See also [`Ms_from_gain_margin`](@ref) and [`margin_bounds`](@ref).
+"""
+Ms_from_phase_margin(ϕ_m) = 1 / (2 * sin(ϕ_m / 2))
+
+"""
+    Ms_from_gain_margin(g_m)
+
+Compute the maximum sensitivity peak ``M_S = ||S||_∞`` such that if respected, gives a gain margin of at least g_m.
+
+See also [`Ms_from_phase_margin`](@ref) and [`margin_bounds`](@ref).
+"""
+Ms_from_gain_margin(g_m) = g_m / (g_m - 1)
 
 """
 See [`output_comp_sensitivity`](@ref)
@@ -47,7 +81,7 @@ end
     G_PS(P, C)
 
 The closed-loop transfer function from load disturbance to plant output.
-Technically, the transfer function is given by `(1 + PC)⁻¹P` so `SP` would be a better, but nonstandard name.
+Technically, the transfer function is given by `(1 + PC)⁻¹P = P(1 + CP)⁻¹`.
 $sensdoc
 """
 G_PS(P, C) = feedback(P,C)#output_sensitivity(P, C)*P
@@ -56,7 +90,7 @@ G_PS(P, C) = feedback(P,C)#output_sensitivity(P, C)*P
     G_CS(P, C)
 
 The closed-loop transfer function from (-) measurement noise or (+) reference to control signal.
-Technically, the transfer function is given by `(1 + CP)⁻¹C` so `SC` would be a better, but nonstandard name.
+Technically, the transfer function is given by `(1 + CP)⁻¹C = C(1 + PC)⁻¹`.
 $sensdoc
 """
 G_CS(P, C) = feedback(C,P)#input_sensitivity(P, C)*C
@@ -156,20 +190,51 @@ T  = G[P.ny+1:end, P.ny+1:end] # Input complimentary sensitivity function
 The gang of four can be plotted like so
 ```julia
 Gcl = extended_gangoffour(G, C) # Form closed-loop system
-bodeplot(Gcl, lab=["S" "CS" "PS" "T"], plotphase=false) |> display # Plot gang of four
+bodeplot(Gcl, lab=["S" "PS" "CS" "T"], plotphase=false) |> display # Plot gang of four
 ```
-Note, the last input of Gcl is the negative of the `PS` and `T` transfer functions from `gangoffour2`. To get a transfer matrix with the same sign as [`G_PS`](@ref) and [`input_comp_sensitivity`](@ref), call `extended_gangoffour(P, C, pos=false)`.
-See [`glover_mcfarlane`](@ref) from RobustAndOptimalControl.jl for an extended example. See also [`ncfmargin`](@ref) and [`feedback_control`](@ref) from RobustAndOptimalControl.jl.
+Note, the last input of Gcl is the negative of the `PS` and `T` transfer functions from `gangoffour`. To get a transfer matrix with the same sign as [`G_PS`](@ref) and [`input_comp_sensitivity`](@ref), call `extended_gangoffour(P, C, pos=false)`.
+See `glover_mcfarlane` from RobustAndOptimalControl.jl for an extended example. See also `ncfmargin` and `feedback_control` from RobustAndOptimalControl.jl.
 """
 function extended_gangoffour(P, C, pos=true)
     ny,nu = size(P)
     te = timeevol(P)
     if pos
-        S = feedback(ss(I(ny+nu), te), [ss(0*I(ny), te) -P; C ss(0*I(nu), te)], pos_feedback=true)
+        Oy = ss(0*I(ny), te)
+        Ou = ss(0*I(nu), te)
+        S = feedback(ss(I(ny+nu), te), [Oy -P; C Ou], pos_feedback=true)
         return S + cat(0*I(ny), -I(nu), dims=(1,2))
     else
         Gtop = [I(ny); C] * [I(ny) P]
-        return feedback(Gtop, ss(I(nu)), U1=(1:nu).+ny, Y1=(1:nu).+ny, pos_feedback=false)
+        return feedback(Gtop, ss(I(nu), te), U1=(1:nu).+ny, Y1=(1:nu).+ny, pos_feedback=false)
     end
 end
 
+"""
+    input_resolvent(sys::AbstractStateSpace)
+
+Return the input-mapped resolvent of `sys`
+```math
+(sI - A)^{-1}B
+```
+i.e., the system `ss(A, B, I, 0)`.
+"""
+function input_resolvent(sys::AbstractStateSpace)
+    A,B,C,D = ssdata(sys)
+    ss(A, B, I, 0, timeevol(sys))
+end
+
+"""
+    resolvent(sys::AbstractStateSpace)
+
+Return the resolvent of `sys`
+```math
+(sI - A)^{-1}
+```
+i.e., the system `ss(A, I, I, 0)`.
+
+See also [`input_resolvent`](@ref).
+"""
+function resolvent(sys::AbstractStateSpace)
+    A,B,C,D = ssdata(sys)
+    ss(A, I(sys.nx), I, 0, timeevol(sys))
+end

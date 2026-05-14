@@ -1,22 +1,31 @@
-export pid, pid_tf, pid_ss, pidplots, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
+export pid, pid_tf, pid_ss, pid_2dof, pid_ss_2dof, pidplots, leadlink, laglink, leadlinkat, leadlinkcurve, stabregionPID, loopshapingPI, placePI, loopshapingPID
+export convert_pidparams_from_parallel, convert_pidparams_from_standard, convert_pidparams_from_to, convert_pidparams_to_parallel, convert_pidparams_to_standard
 
 """
-    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts])
+    C = pid(param_p, param_i, [param_d]; form=:standard, state_space=false, [Tf], [Ts], filter_order=2, d=1/√(2))
 
 Calculates and returns a PID controller. 
 
-The `form` can be chosen as one of the following
-* `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
-* `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
-* `:parallel` - `Kp + Ki/s + Kd*s`
+The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
 
-If `state_space` is set to `true`, either `kd` has to be zero 
+If `state_space` is set to `true`, either `Kd` has to be zero
 or a positive `Tf` has to be provided for creating a filter on 
-the input to allow for a state space realization. 
-The filter used is `1 / (1 + s*Tf + (s*Tf)^2/2)`, where `Tf` can typically 
-be chosen as `Ti/N` for a PI controller and `Td/N` for a PID controller,
-and `N` is commonly in the range 2 to 20. 
-The state space will be returned on controllable canonical form.
+the input to allow for a state-space realization. 
+A balanced state-space realization is returned, unless `balance = false`.
+
+## Filter
+If `Tf` is supplied, a filter is added, the filter used is either
+- `filter_order = 2` (default): ``1 / ((sT_f)^2/(4d^2) + sT_f + 1)`` in series with the controller. Note: this parametrization of the filter differs in behavior from the common parameterizaiton ``1/(s^2 + 2dws + w^2)`` as the parameters vary, the former maintains an almost fixed _bandwidth_ while `d` varies, while the latter maintains a fixed distance of the poles from the origin.
+- `filter_order = 1`: ``1 / (1 + sT_f)`` applied to the derivative term only
+
+``T_f`` can typically be chosen as ``T_i/N`` for a PI controller and ``T_d/N`` for a PID controller,
+and `N` is commonly in the range 2 to 20. With a second-order filter, `d` controls the damping. `d = 1/√(2)` gives a Butterworth configuration of the poles, and `d=1` gives a critically damped filter (no overshoot). `d` above one may be used, although `d > 1` yields an increasingly over-damped filter (this parametrization does not send one pole to the origin ``d → ∞`` like the ``(ω,ζ)`` parametrization does).
+
+
+## Discrete-time
 
 For a discrete controller a positive `Ts` can be supplied.
 In this case, the continuous-time controller is discretized using the Tustin method.
@@ -25,17 +34,17 @@ In this case, the continuous-time controller is discretized using the Tustin met
 ```
 C1 = pid(3.3, 1, 2)                             # Kd≠0 works without filter in tf form
 C2 = pid(3.3, 1, 2; Tf=0.3, state_space=true)   # In statespace a filter is needed
-C3 = pid(2., 3, 0; Ts=0.4, state_space=true)    # Discrete
+C3 = pid(2.,  3, 0; Ts=0.4, state_space=true)   # Discrete
 ```
 
 The functions `pid_tf` and `pid_ss` are also exported. They take the same parameters
-and is what is actually called in `pid` based on the `state_space` parameter.
+and is what is actually called in `pid` based on the `state_space` parameter. See also [`pid_2dof`](@ref) for a 2DOF controller with inputs `[r; y]` and outputs `u`.
 """
-function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false)
-    C = if state_space # Type unstability? Can it be fixed easily, does it matter?
-        pid_ss(param_p, param_i, param_d; form, Tf)
+function pid(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Ts=nothing, Tf=nothing, state_space=false, balance=true, kwargs...)
+    C = if state_space # Type instability? Can it be fixed easily, does it matter?
+        pid_ss(param_p, param_i, param_d; form, Tf, balance, kwargs...)
     else
-        pid_tf(param_p, param_i, param_d; form, Tf)
+        pid_tf(param_p, param_i, param_d; form, Tf, kwargs...)
     end
     if Ts === nothing
         return C
@@ -47,58 +56,164 @@ end
 
 @deprecate pid(; kp=0, ki=0, kd=0, series = false) pid(kp, ki, kd; form=series ? :series : :parallel)
 
-function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
-    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
-    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
-    if isnothing(Tf)
-        if ia
-            return tf([Kp * Td, Kp, Kp / Ti], [1, 0])
+function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, filter_order=2, d=1/√(2))
+    Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+    filter_order ∈ (1,2) || throw(ArgumentError("Filter order must be 1 or 2"))
+    if isnothing(Tf) || (Kd == 0 && filter_order == 1)
+        if Ki == 0
+            return tf([Kd, Kp], [1])
         else
-            return tf([Kp * Td, Kp], [1])
+            return tf([Kd, Kp, Ki], [1, 0])
         end
     else
-        if ia
-            return tf([Kp * Td, Kp, Kp / Ti], [Tf^2/2, Tf, 1, 0])
+        if Ki == 0
+            if filter_order == 1
+                tf([Kd*Tf + Kd, Kd], [Tf, 1])
+            else
+                return tf([Kd, Kp], [Tf^2/(4d^2), Tf, 1])
+            end
         else
-            return tf([Kp * Td, Kp], [Tf^2/2, Tf, 1])
+            if filter_order == 1
+                return tf([Kd + Kp*Tf, Ki*Tf + Kp, Ki], [Tf, 1, 0])
+            else
+                return tf([Kd, Kp, Ki], [Tf^2/(4d^2), Tf, 1, 0])
+            end
         end
     end
 end
 
-function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,  Tf=nothing)
-    Kp, Ti, Td = convert_pidparams_to_standard(param_p, param_i, param_d, form)
-    TE = Continuous()
-    ia = Ti != Inf && Ti != 0 # integral action, 0 would result in division by zero, but typically indicates that the user wants no integral action
+function pid_ss(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, Tf=nothing, balance=true, filter_order=2, d=nothing)
+    Kp, Ki, Kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
     if !isnothing(Tf)
-        if ia
-            A = [0 1 0; 0 0 1; 0 -2/Tf^2 -2/Tf]
-            B = [0; 0; 1]
-            C = 2 * Kp / Tf^2 * [1/Ti 1 Td]
+        d42 = d === nothing ? 2.0 : 4d^2 # To avoid d = 1/sqrt(2) not yielding exactly 2
+        if Ki == 0
+            if filter_order == 1
+                A = [-1 / Tf;;]
+                B = [-Kd/Tf^2]
+                C = [1.0;;]
+                D = [Kd/Tf + Kp;;]
+            else # 2
+                A = [0 1; -d42/Tf^2 -d42/Tf]
+                B = [0; 1]
+                C = d42 / Tf^2 * [Kp Kd]
+                D = [0.0;;]
+            end
         else
-            A = [0 1; -2/Tf^2 -2/Tf]
-            B = [0; 1]
-            C = 2 * Kp / Tf^2 * [1 Td]
+            if filter_order == 1
+                A = [0 0; 0 -1/Tf]
+                B = [Ki; -Kd/Tf^2]
+                C = [1.0 1]
+                D = [Kd/Tf + Kp;;]
+            else # 2
+                A = [0 1 0; 0 0 1; 0 -d42/Tf^2 -d42/Tf]
+                B = [0; 0; 1]
+                C = d42 / Tf^2 * [Ki Kp Kd]
+                D = [0.0;;]
+            end
         end
-        D = 0
-    elseif Td == 0
-        if ia
-            A = 0
-            B = 1
-            C = Kp / Ti # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
-            D = Kp
+    elseif Kd == 0
+        if Ki != 0
+            A = [0.0;;]
+            B = [1.0;;]
+            C = [Ki;;] # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            D = [Kp;;]
         else
             return ss([Kp])
         end
     else
-        throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(TransferFunction; params...), or supply Tf to create a filter."))
+        throw(DomainError("cannot create controller as a state space if Td != 0 without a filter. Either create the controller as a transfer function, pid(params..., state_space=false), or supply keyword argument Tf to add a filter."))
     end
-    return first(balance_statespace(ss(A, B, C, D)))
+    K = ss(A, B, C, D)
+    balance ? first(balance_statespace(K)) : K
 end
+
+"""
+    C = pid_2dof(param_p, param_i, [param_d]; form=:standard, state_space=true, N = 10, [Ts], b=1, c=0, disc=:tustin)
+
+Calculates and returns a PID controller on 2DOF form with inputs `[r; y]` and outputs `u` where `r` is the reference signal, `y` is the measured output and `u` is the control signal.
+
+Below we show two different depections of the controller, one as a 2-input system (left) and one where the tw internal SISO systems of the controller are shown (right).
+```
+                                ┌──────┐                      
+                             r  │      │                      
+                            ───►│  Cr  ├────┐                 
+r  ┌─────┐     ┌─────┐          │      │    │    ┌─────┐      
+──►│     │  u  │     │ y        └──────┘    │    │     │ y    
+   │  C  ├────►│  P  ├─┬─►                  +───►│  P  ├─┬───►
+ ┌►│     │     │     │ │        ┌──────┐    │    │     │ │    
+ │ └─────┘     └─────┘ │      y │      │    │    └─────┘ │    
+ │                     │     ┌─►│  Cy  ├────┘            │    
+ └─────────────────────┘     │  │      │                 │    
+                             │  └──────┘                 │    
+                             │                           │    
+                             └───────────────────────────┘     
+```
+
+The `form` can be chosen as one of the following (determines how the arguments `param_p, param_i, param_d` are interpreted)
+* `:standard` - ``K_p(br-y + (r-y)/(T_i s) + T_d s (cr-y)/(T_f s + 1))``
+* `:parallel` - ``K_p(br-y) + K_i (r-y)/s + K_d s (cr-y)/(Tf s + 1)``
+
+- `b` is a set-point weighting for the proportional term
+- `c` is a set-point weighting for the derivative term, this defaults to 0.
+- If both `b` and `c` are set to zero, the feedforward path of the controller will be strictly proper.
+- `Tf` is a time constant for a filter on the derivative term, this defaults to `Td/N` where `N` is set to 10. Instead of passing `Tf` one can also pass `N` directly. The proportional term is not affected by this filter. **Please note**: this derivative filter is not the same as the one used in the `pid` function, where the filter is of second order and applied in series with the contorller, i.e., it affects all three PID terms.
+- A PD controller is constructed by setting `param_i` to zero. 
+- A balanced state-space realization is returned, unless `balance = false`
+- If `Ts` is supplied, the controller is discretized using the method `disc` (defaults to `:tustin`).
+
+This controller has negative feedback built in, and the closed-loop system from `r` to `y` is thus formed as
+```
+Cr, Cy = C[1, 1], C[1, 2]
+feedback(P, Cy, pos_feedback=true)*Cr                    # Alternative 1
+feedback(P, -Cy)*Cr                                      # Alternative 2
+feedback(P, C, U2=2, W2=1, W1=[], pos_feedback=true) # Alternative 3, less pretty but more efficient, returns smaller realization
+```
+"""
+function pid_2dof(args...; state_space = true, Ts = nothing, disc = :tustin, kwargs...)
+    C = pid_ss_2dof(args...; kwargs...)
+    Ccd = Ts === nothing ? C : c2d(C, Ts, disc)
+    state_space ? Ccd : tf(Ccd)
+end
+
+function pid_ss_2dof(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard, b = 1, c = 0, Tf=nothing, N=nothing, balance=true)
+    kp, ki, kd = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+    if kd == 0
+        if ki == 0
+            return ss([kp -kp])
+        else
+            A = [0.0;;]
+            B = [ki -ki]
+            C = [1.0;;] # Ti == 0 would result in division by zero, but typically indicates that the user wants no integral action
+            D = [b*kp -kp]
+            return ss(A, B, C, D)
+        end
+    end
+    # On standard form we use N
+    Tf !== nothing && N !== nothing && throw(ArgumentError("Cannot supply both Tf and N"))
+    if Tf === nothing && N === nothing
+        N = 10 # Default value
+    end
+    Tf = @something(Tf, kd / N)
+    Tf <= 0 && throw(ArgumentError("Tf must be strictly positive"))
+    if ki == 0
+        A = [-(1 / Tf);;]
+        B = [-kd*c/(Tf^2) kd/(Tf^2)]
+        C = [1.0]
+    else
+        A = [0 0; 0 -(1 / Tf)]
+        B = [ki -ki; -kd*c/Tf^2 kd/Tf^2]
+        C = [1.0 1]
+    end
+    D = [kd*c/Tf+kp*b -(kd/Tf + kp)]
+    K = ss(A, B, C, D)
+    balance ? first(balance_statespace(K)) : K
+end
+
 
 """
     pidplots(P, args...; params_p, params_i, params_d=0, form=:standard, ω=0, grid=false, kwargs...)
 
-Plots interesting figures related to closing the loop around process `P` with a PID controller supplied in `params`
+Display the relevant plots related to closing the loop around process `P` with a PID controller supplied in `params`
 on one of the following forms:
 * `:standard` - `Kp*(1 + 1/(Ti*s) + Td*s)` 
 * `:series` - `Kc*(1 + 1/(τi*s))*(τd*s + 1)`
@@ -112,6 +227,40 @@ and should be supplied as additional arguments to the function.
 One can also supply a frequency vector `ω` to be used in Bode and Nyquist plots.
 
 See also `loopshapingPI`, `stabregionPID`
+
+## Example
+This example utilizes the function [`pidplots`](@ref), which accepts vectors of PID-parameters and produces relevant plots. The task is to take a system with bandwidth 1 rad/s and produce a closed-loop system with bandwidth 0.1 rad/s. If one is not careful and proceed with pole placement, one easily get a system with very poor robustness.
+```julia
+using ControlSystemsBase, Plots
+P = tf([1.], [1., 1])
+
+ζ = 0.5 # Desired damping
+ws = exp10.(range(-1, stop=2, length=8)) # A vector of closed-loop bandwidths
+kp = 2*ζ*ws .- 1 # Simple pole placement with PI given the closed-loop bandwidth, the poles are placed in a butterworth pattern
+ki = ws.^2
+
+ω = exp10.(range(-3, stop = 2, length = 500))
+pidplots(
+    P,
+    :nyquist;
+    params_p = kp,
+    params_i = ki,
+    ω = ω,
+    ylims = (-2, 2),
+    xlims = (-3, 3),
+    form = :parallel,
+)
+pidplots(P, :gof; params_p = kp, params_i = ki, ω = ω, legend = false, form=:parallel, legendfontsize=6, size=(1000, 1000))
+```
+Now try a different strategy, where we have specified a gain crossover frequency of 0.1 rad/s
+```julia
+kp = range(-1, stop=1, length=8) #
+ki = sqrt.(1 .- kp.^2)/10
+
+pidplots(P,:nyquist,;params_p=kp,params_i=ki,ylims=(-1,1),xlims=(-1.5,1.5), form=:parallel)
+pidplots(P,:gof,;params_p=kp,params_i=ki,legend=false,ylims=(0.08,8),xlims=(0.003,20), form=:parallel, legendfontsize=6, size=(1000, 1000))
+```
+
 """
 function pidplots(P::LTISystem, args...; 
     params_p, params_i, params_d=0, 
@@ -137,7 +286,7 @@ function pidplots(P::LTISystem, args...;
         kp = kps[i]
         ki = kis[i]
         kd = kds[i]
-        label = latexstring("k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))")
+        label = "\$k_p = $(round(kp, digits=3)),      k_i = $(round(ki, digits=3)),      k_d = $(round(kd, digits=3))\$"
 
         C = pid(kp,ki,kd,form=form)
         T = robust_minreal(feedback(P*C, 1))
@@ -157,7 +306,7 @@ function pidplots(P::LTISystem, args...;
         pzmap(Ts; title="Pole-zero map", kwargs...) |> display
     end
     if :controller ∈ args
-        bodeplot(Cs, ω; lab=labels, title="Controller bode plot", kwargs...) |> display
+        bodeplot(Cs, ω; lab=repeat(labels, inner=(1,2)), title="Controller bode plot", kwargs...) |> display
     end
 end
 
@@ -260,6 +409,20 @@ arg(P) + arg(C) = -π
 ```
 If `P` is a function (e.g. s -> exp(-sqrt(s)) ), the stability of feedback loops using PI-controllers can be analyzed for processes with models with arbitrary analytic functions
 See also [`loopshapingPI`](@ref), [`loopshapingPID`](@ref), [`pidplots`](@ref)
+
+## Example
+The stability boundary, i.e., the surface of PID parameters where the transfer function ``P(s)C(s)`` equals -1, can be plotted with the command [`stabregionPID`](@ref). The process can be given in function form or as a regular LTIsystem.
+
+```julia
+P1 = s -> exp(-sqrt(s))
+doplot = true
+form = :parallel
+kp, ki, f1 = stabregionPID(P1,exp10.(range(-5, stop=1, length=1000)); doplot, form); f1
+P2 = s -> 100*(s+6).^2. /(s.*(s+1).^2. *(s+50).^2)
+kp, ki, f2 = stabregionPID(P2,exp10.(range(-5, stop=2, length=1000)); doplot, form); f2
+P3 = tf(1,[1,1])^4
+kp, ki, f3 = stabregionPID(P3,exp10.(range(-5, stop=0, length=1000)); doplot, form); f3
+```
 """
 function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=:standard, doplot=false)
     Pv  = freqrespv(P,ω)
@@ -267,9 +430,10 @@ function stabregionPID(P, ω = _default_freq_vector(P,Val{:bode}()); kd=0, form=
     phi = angle.(Pv)
     kp  = @. -cos(phi)/r
     ki  = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    K   = convert_pidparams_from_parallel.(kp, ki, kd, form)
+    kp, ki = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
-        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
+        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
         nothing
     end
@@ -283,9 +447,10 @@ function stabregionPID(P::Function, ω = exp10.(range(-3, stop=1, length=50)); k
     phi     = angle.(Pv)
     kp      = -cos.(phi)./r
     ki      = @. kd*ω^2 - ω*sin(phi)/r
-    kp, ki  = convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    K       = convert_pidparams_from_parallel.(kp, ki, kd, form)
+    kp, ki  = getindex.(K, 1), getindex.(K, 2)
     fig = if doplot
-        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel=L"k_p", ylabel=L"k_i", title="Stability region of P, k_d = $(round(kd, digits=4))")
+        RecipesBase.plot(kp,ki,linewidth = 1.5, xlabel="\$k_p\$", ylabel="\$k_i\$", title="Stability region of P, k_d = $(round(kd, digits=4))")
     else 
         nothing
     end
@@ -300,7 +465,7 @@ Selects the parameters of a PI-controller (on parallel form) such that the Nyqui
 
 The parameters can be returned as one of several common representations 
 chosen by `form`, the options are
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 
@@ -350,7 +515,7 @@ function loopshapingPI(P0, ωp; ϕl=0, rl=0, phasemargin=0, form::Symbol=:standa
     else
         nothing
     end
-    kp, ki = convert_pidparams_from_to(kp, ki, 0, :parallel, form)
+    kp, ki = convert_pidparams_from_parallel(kp, ki, 0, form)
     (; C, kp, ki, fig, CF)
 end
 
@@ -432,7 +597,7 @@ C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt = 75, doplot=true)
 ```
 """
 function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, doplot=false, lb=-10, ub=10, Tf = 1/1000ω, verbose=true, F=nothing)
-
+    iscontinuous(P0) || throw(ArgumentError("Discrete-time system models are not supported, convert to continuous time with d2c(P)"))
     if F === nothing
         F = tf(1, [Tf^2, 2*Tf/sqrt(2), 1])
     end
@@ -491,10 +656,10 @@ function loopshapingPID(P0, ω; Mt = 1.3, ϕt=75, form::Symbol = :standard, dopl
     verbose && ki < 0 && @warn "Calculated ki is negative, inspect the Nyquist plot generated with doplot = true and try adjusting ω or the angle ϕt"
     C = pid(kp, ki, kd, form=:parallel)
     any(real(p) > 0 for p in poles(C)) && @error "Calculated controller is unstable."
-    kp, ki, kd = ControlSystemsBase.convert_pidparams_from_to(kp, ki, kd, :parallel, form)
+    kp, ki, kd = convert_pidparams_from_parallel(kp, ki, kd, form)
     CF = C*F
     fig = if doplot
-        w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 500))
+        w = exp10.(LinRange(log10(ω)-2, log10(ω)+2, 1000))
         f1 = gangoffourplot(P0,CF, w, Mt_lines=[Mt])
         f2 = nyquistplot([P0 * CF, P0], w, ylims=(-4,2), xlims=(-4,1.2), unit_circle=true, Mt_circles=[Mt], show=false, lab=["PC" "P"])
         RecipesBase.plot!([ct, real(specpoint)], [0, imag(specpoint)], lab="ϕt = $(ϕt)°", l=:dash)
@@ -522,15 +687,42 @@ The `form` can be chosen as one of the following
 """
 function convert_pidparams_to_standard(param_p, param_i, param_d, form::Symbol)
     if form === :standard
-        return param_p, param_i, param_d
+        return (param_p, param_i, param_d)
     elseif form === :series
-        return @. (
+        return (
             param_p * (param_i + param_d) / param_i,
             param_i + param_d,
             param_i * param_d / (param_i + param_d)
         )
     elseif form === :parallel
-        return @. (param_p, param_p / param_i, param_d / param_p)
+        return (param_p, param_p / param_i, param_d / param_p)
+    else
+        throw(ArgumentError("form $(form) not supported."))
+    end
+end
+
+"""
+    Kp, Ti, Td = convert_pidparams_to_parallel(param_p, param_i, param_d, form)
+
+Convert parameters from form `form` to `:parallel` form.
+
+The `form` can be chosen as one of the following
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
+"""
+function convert_pidparams_to_parallel(param_p, param_i, param_d, form::Symbol)
+    if form === :parallel
+        return (param_p, param_i, param_d)
+    elseif form === :series
+        # param_i = 0 would result in division by zero, but typically indicates that the user wants no integral action
+        param_i == 0 && return (param_p, 0, param_p * param_d)
+        return (param_p * (param_i + param_d) / param_i,
+                param_p / param_i,
+                param_p * param_d)
+    elseif form === :standard
+        param_i == 0 && return (param_p, 0, param_p * param_d)
+        return (param_p, param_p / param_i, param_p * param_d)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
@@ -542,30 +734,69 @@ end
 Convert parameters to form `form` from `:standard` form. 
 
 The `form` can be chosen as one of the following
-* `:standard` - ``K_p(1 + 1/(T_i s) + T_ds)``
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
 * `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
 * `:parallel` - ``K_p + K_i/s + K_d s``
 """
 function convert_pidparams_from_standard(Kp, Ti, Td, form::Symbol)
     if form === :standard
-        return Kp, Ti, Td
+        return (Kp, Ti, Td)
     elseif form === :series
-        return @. (
-            (Ti - sqrt(Ti * (Ti - 4 * Td))) / 2 * Kp / Ti,
-            (Ti - sqrt(Ti * (Ti - 4 * Td))) / 2,
-            (Ti + sqrt(Ti * (Ti - 4 * Td))) / 2,
-        )
+        Δ = Ti * (Ti - 4 * Td)
+        Δ < 0 && throw(DomainError("The condition Ti^2 ≥ 4Td*Ti is not satisfied: the PID parameters cannot be converted to series form"))
+        sqrtΔ = sqrt(Δ)
+        return ((Ti - sqrtΔ) / 2 * Kp / Ti,
+                (Ti - sqrtΔ) / 2,
+                (Ti + sqrtΔ) / 2)
     elseif form === :parallel
-        return @. (Kp, Kp/Ti, Td*Kp)
+        return (Kp, Kp/Ti, Td*Kp)
     else
         throw(ArgumentError("form $(form) not supported."))
     end
 end
 
+
+"""
+    Kp, Ti, Td = convert_pidparams_from_parallel(Kp, Ki, Kd, to_form)
+
+Convert parameters from form `:parallel` to form `to_form`.
+
+The `form` can be chosen as one of the following
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
+"""
+function convert_pidparams_from_parallel(Kp, Ki, Kd, to::Symbol)
+    if to === :parallel
+        return (Kp, Ki, Kd)
+    elseif to === :series
+        Ki == 0 && return (Kp, 0, Kp*Kd)
+        Δ = Kp^2-4Ki*Kd
+        Δ < 0 &&
+            throw(DomainError("The condition Kp^2 ≥ 4Ki*Kd is not satisfied: the PID parameters cannot be converted to series form"))
+        sqrtΔ = sqrt(Δ)
+        return ((Kp - sqrtΔ)/2, (Kp - sqrtΔ)/(2Ki), (Kp + sqrtΔ)/(2Ki))
+    elseif to === :standard
+        Kp == 0 && throw(DomainError("Cannot convert to standard form when Kp=0"))
+        Ki == 0 && return (Kp, Inf, Kd / Kp)
+        return (Kp, Kp / Ki, Kd / Kp)
+    else
+        throw(ArgumentError("form $(form) not supported."))
+    end
+end
+
+
 """
     convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
+
+Convert PID parameters from `from` form to `to` form.
+
+The `from` and `to` forms can be chosen as one of the following
+* `:standard` - ``K_p(1 + 1/(T_i s) + T_d s)``
+* `:series` - ``K_c(1 + 1/(τ_i s))(τ_d s + 1)``
+* `:parallel` - ``K_p + K_i/s + K_d s``
 """
 function convert_pidparams_from_to(kp, ki, kd, from::Symbol, to::Symbol)
-    kp, ki, kd = convert_pidparams_to_standard(kp, ki, kd, from)
-    convert_pidparams_from_standard(kp, ki, kd, to)
+    Kp, Ki, Kd = convert_pidparams_to_parallel(kp, ki, kd, from)
+    convert_pidparams_from_parallel(Kp, Ki, Kd, to)
 end

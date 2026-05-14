@@ -34,8 +34,8 @@ to_abstract_matrix(A::AbstractVector) = reshape(A, length(A), 1)
 to_abstract_matrix(A::Number) = fill(A, 1, 1)
 
 # Do no sorting of eigenvalues
-eigvalsnosort(args...; kwargs...) = eigvals(args...; sortby=nothing, kwargs...)
-eigvalsnosort(A::StaticMatrix; kwargs...) =  eigvalsnosort(Matrix(A); kwargs...)
+eigvalsnosort(A, args...; kwargs...)::Vector{Complex{real(float(eltype(A)))}} = eigvals(A, args...; sortby=nothing, kwargs...)
+eigvalsnosort(A::StaticArraysCore.StaticMatrix; kwargs...) =  eigvalsnosort(Matrix(A); kwargs...)
 roots(args...; kwargs...) = Polynomials.roots(args...; sortby=nothing, kwargs...)
 
 issemiposdef(A) = ishermitian(A) && minimum(real.(eigvals(A))) >= 0
@@ -48,7 +48,7 @@ printpolyfun(var) = (io, p, mimetype = MIME"text/plain"()) -> Polynomials.printp
 
 # NOTE: Tolerances for checking real-ness removed, shouldn't happen from LAPACK?
 # TODO: This doesn't play too well with dual numbers..
-# Allocate for maxiumum possible length of polynomial vector?
+# Allocate for maximum possible length of polynomial vector?
 #
 # This function rely on that the every complex roots is followed by its exact conjugate,
 # and that the first complex root in each pair has positive imaginary part. This format is always
@@ -77,7 +77,7 @@ function roots2real_poly_factors(roots::Vector{cT}) where cT <: Number
 
     return poly_factors
 end
-# This function should hande both Complex as well as symbolic types
+# This function should handle both Complex as well as symbolic types
 function roots2poly_factors(roots::Vector{T}) where T <: Number
     return Polynomial{T,:x}[Polynomial{T,:x}([-r, 1]) for r in roots]
 end
@@ -122,6 +122,7 @@ function unwrap!(M::Array, dim=1)
         # d = M[i,:,:,...,:] - M[i-1,:,...,:]
         # M[i,:,:,...,:] -= floor((d+π) / (2π)) * 2π
         d = M[alldims(i)...] - M[alldims(i-1)...]
+        any(!isfinite, d) && continue
         M[alldims(i)...] -= @. floor((d + π) / π2) * π2
     end
     return M
@@ -155,10 +156,11 @@ the output tuple should be flattened. If the function only has a single output i
 (not a tuple with a single item) it should be called as `@autovec () f() = ...`.
 `f()` is the original function and `fv()` will be the version with flattened outputs.
 """
-macro autovec(indices, f)
+macro autovec(indices0, f)
     dict = MacroTools.splitdef(f)
     rtype = get(dict, :rtype, :Any)
-    indices = eval(indices)
+    MacroTools.@capture indices0 (inds__,)
+    indices = inds
 
     # If indices is empty it means we vec the entire return value
     if length(indices) == 0

@@ -1,6 +1,10 @@
 abstract type LFTSystem{TE, T} <: LTISystem{TE} end
 timeevol(sys::LFTSystem) = timeevol(sys.P)
 
+Base.zero(sys::LFTSystem) = ss(zero(sys.P.D), sys.P.timeevol)
+Base.zero(::Type{<:LFTSystem{Continuous, F}}) where {F} = ss([zero(F)], Continuous())
+
+
 function *(n::Number, sys::LFTSystem)
     new_C = [sys.P.C1*n; sys.P.C2]
     new_D = [sys.P.D11*n sys.P.D12*n; sys.P.D21 sys.P.D22]
@@ -95,7 +99,7 @@ Base.getindex(sys::LFTSystem, i, j) =
 
 function Base.getindex(sys::LFTSystem, i::AbstractArray, j::AbstractArray)
     ny, nu = size(sys)
-    # Cant use "boundscheck" since not AbstractArray
+    # Can't use "boundscheck" since not AbstractArray
     imin, imax = extrema(i)
     jmin, jmax = extrema(j)
     if imax > ny || imin < 1 || jmax > nu || jmin < 1
@@ -114,15 +118,15 @@ end
 
 function append(systems::LFTT...) where LFTT <: LFTSystem
     timeevol = common_timeevol(systems...)
-    A   = blockdiag(s.A for s in systems)
-    B1  = blockdiag(s.B1 for s in systems)
-    B2  = blockdiag(s.B2 for s in systems)
-    C1  = blockdiag(s.C1 for s in systems)
-    C2  = blockdiag(s.C2 for s in systems)
-    D11 = blockdiag(s.D11 for s in systems)
-    D12 = blockdiag(s.D12 for s in systems)
-    D21 = blockdiag(s.D21 for s in systems)
-    D22 = blockdiag(s.D22 for s in systems)
+    A   = blockdiag(s.P.A for s in systems)
+    B1  = blockdiag(s.P.B1 for s in systems)
+    B2  = blockdiag(s.P.B2 for s in systems)
+    C1  = blockdiag(s.P.C1 for s in systems)
+    C2  = blockdiag(s.P.C2 for s in systems)
+    D11 = blockdiag(s.P.D11 for s in systems)
+    D12 = blockdiag(s.P.D12 for s in systems)
+    D21 = blockdiag(s.P.D21 for s in systems)
+    D22 = blockdiag(s.P.D22 for s in systems)
     LFTT(
         PartitionedStateSpace(A,B1,B2,C1,C2,D11,D12,D21,D22,timeevol),
         reduce(vcat, [feedback_channel(s) for s in systems])

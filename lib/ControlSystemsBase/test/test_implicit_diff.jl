@@ -3,6 +3,7 @@ using ImplicitDifferentiation
 using ForwardDiff
 using FiniteDifferences
 using ComponentArrays
+using Test, LinearAlgebra
 fdgrad(f, x) = FiniteDifferences.grad(central_fdm(3, 1), f, x) |> first
 
 P = ssrand(1, 1, 2)
@@ -183,34 +184,45 @@ J2 = fdgrad(difffun, pars)
 
 
 
-## Schur currently not working when the matrix A has complex eigenvalues.
+## Schur decomposition
 
-# sys = ssrand(1,1,3, proper=true)
+sys = ssrand(1,1,3, proper=true)
 # sys.A .-= 1I(3)
-# (; A, B, C, D) = sys
+(; A, B, C, D) = sys
 
-# function schur_sys(sys)
-#     SF = schur(sys.A)
-#     A = SF.T
-#     B = SF.Z'*sys.B
-#     C = sys.C*SF.Z
-#     ss(A,B,C,sys.D, sys.timeevol)
-# end
+function schur_sys(sys)
+    SF = schur(sys.A)
+    A = SF.T
+    B = SF.Z'*sys.B
+    C = sys.C*SF.Z
+    ss(A,B,C,sys.D, sys.timeevol)
+end
 
-# function difffun(pars)
-#     (; A,B,C,D) = pars
-#     sys = ss(A, B, C, 0)
-#     sys = schur_sys(sys)
-#     sum(abs2, freqresp(sys, 0.1))
-# end
+function difffun(pars)
+    (; A,B,C,D) = pars
+    sys = ss(A, B, C, 0)
+    sys = schur_sys(sys)
+    sum(abs2, freqresp(sys, 0.1))
+end
 
-# pars = ComponentVector(; A,B,C,D)
+pars = ComponentVector(; A,B,C,D)
 
-# J1 = ForwardDiff.gradient(difffun, pars)[:]
-# J2 = fdgrad(difffun, pars)[:]
-
-
+J1 = ForwardDiff.gradient(difffun, pars)[:]
+J2 = fdgrad(difffun, pars)[:]
 # @show norm(J1-J2)
+@test J1 ≈ J2 rtol = 1e-5
 
-# @test J1 ≈ J2 rtol = 1e-3
+## Test differentiation of tf 2 ss conversion
 
+function difffun(pars)
+    P = tf(1, pars)
+    sum(abs2, step(P, 0:0.1:10, method=:tustin).y + 
+        impulse(P, 0:0.1:10, method=:tustin).y
+    )
+end
+
+pars = [1.0, 2, 1]
+
+g1 = ForwardDiff.gradient(difffun, pars)
+g2 = fdgrad(difffun, pars)
+@test g1 ≈ g2 rtol = 1e-5

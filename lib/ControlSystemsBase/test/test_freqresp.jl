@@ -120,6 +120,7 @@ Base.isapprox(t1::Tuple, t2::Tuple) = t1[1] ≈ t2[1] && t1[2] ≈ t2[2]
 @test bode(sys, ws)[1:2] ≈ (abs.(resp), rad2deg.(angle.(resp)))
 workspace = BodemagWorkspace(sys, ws)
 @test bode(sys, ws)[1] == bodemag!(workspace, sys, ws)
+@test bode(sys, ws)[1] ≈ ControlSystemsBase.bodemag_nohess!(workspace, ss(sys), ws)
 @test nyquist(sys, ws)[1:2] ≈ (real(resp), imag(resp))
 sigs = Array{Float64}(undef, 2, 50)
 for i in eachindex(ws)
@@ -173,6 +174,9 @@ mag, mag, ws2 = bode(sys2)
 @test maximum(ws2) >= 5max(p,z)
 @test minimum(ws2) <= 0.2min(p,z)
 @test length(ws2) > 100
+
+@test margin(tf(1, [1, -1], 0.01)).gm == [2;;]
+
 end
 
 
@@ -205,3 +209,4 @@ end
 # f2 = plot(sizes, last.(times1), scale=:log10, lab="Allocations freqresp", m=:o)
 # plot!(sizes, last.(times2), scale=:log10, lab="Allocations freqresp_large", xlabel="Model order", m=:o)
 # plot(f1, f2)
+

@@ -8,8 +8,8 @@ A = randn(ComplexF64,3,3)
 
 G = tf(1.0,[1,1])
 H = zpk([0.0], [1.0], 1.0)
-@inferred ControlSystemsBase.siso_tf_to_ss(Float64, G.matrix[1,1])
-@inferred ControlSystemsBase.siso_tf_to_ss(Float64, H.matrix[1,1])
+# @inferred ControlSystemsBase.siso_tf_to_ss(Float64, G.matrix[1,1])
+# @inferred ControlSystemsBase.siso_tf_to_ss(Float64, H.matrix[1,1])
 
 # Easy second order system
 sys1 = ss([-1 0;1 1],[1;0],[1 1],0)
@@ -65,6 +65,11 @@ H3 = zpk([(-1+im*sqrt(79))/8, (-1-im*sqrt(79))/8], [-3/2], 2)
 s = tf("s")
 @test_throws ErrorException delay(5)*((s+1))/((s+2)*(s+0.5))
 @test_throws ErrorException delay(5)*zpk((s+1))/zpk((s+2)*(s+0.5))
+
+P = ss(-1, 1, 1, 0)
+Pd = P * delay(big(1))
+@test Pd.P.P ≈ (tf(P) * delay(big(1))).P.P
+@test Pd.Tau == [1]
 
 # Test complex 1
 A = [1.0 + im 1; 0 -2-3im]
@@ -135,7 +140,7 @@ fb = BigFloat(1.0)*f
 # @test fb isa RationalBigFloat # Do we want this? We get TransferFunction{ControlSystemsBase.SisoZpk{BigFloat,Complex{Float64}}}
 @test ss(fb) isa SSBigFloat
 @test tf(fb) isa RationalBigFloat
-# Cant compute poles:
+# Can't compute poles:
 # @test zpk(tf(fb)) isa SSBigFloat
 
 @test convert(SSBigFloat, fb) isa SSBigFloat
@@ -172,7 +177,7 @@ Hd = zpk([], [1, 0.5], 1.0, h)
 
 
 # Error, not proper
-@test_throws ErrorException ss(tf([1,0],[1]))
+@test_throws ControlSystemsBase.ImproperException ss(tf([1,0],[1]))
 
 s1 = HeteroStateSpace(zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1),zeros(Int, 1,1))
 s2 = HeteroStateSpace(zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1),zeros(Float64, 1,1))
@@ -187,5 +192,37 @@ myss = ss(mytf)
 
 test = ss([-1 2 3; 0 -2 3; 0 0 -3],[1;2;3],[1 2 3], [0])
 @test tf(test) isa TransferFunction
+
+
+# Issue https://github.com/JuliaControl/ControlSystems.jl/issues/869
+
+sys = tf(ssrand(2,2,2))
+sys.matrix[1,1] = 0
+syszpk = zpk(sys)
+@test syszpk isa TransferFunction{Continuous, ControlSystemsBase.SisoZpk{Float64, ComplexF64}}
+
+## Test multiplication of improper transfer function and statespace system
+P = DemoSystems.double_mass_model()
+C = tf('s')
+@test norm(P*C - C*P) < 1e-10
+mp = minreal(minreal(tf(P)*C) - P*C)
+@test hinfnorm(mp)[1] < 1e-10
+@inferred P*C
+
+@test_logs (:warn,"Possible numerical instability detected: Multiplication of a statespace system and a non-proper transfer function may result in numerical inaccuracy. Verify result carefully, and consider making use of DescriptorSystems.jl to represent this product as a DescriptorSystem with non-unit descriptor matrix if result is inaccurate.") P*tf('s')^3
+
+@test_throws ControlSystemsBase.ImproperException P*tf('s')^5
+# Discrete
+
+P = c2d(P, 0.01, :fwdeuler) # to get poles exactly at 1
+C = tf('z', 0.01)-1
+@test norm(minreal(P*C - C*P)) < 1e-10
+mp = minreal(minreal(tf(P)*C) - P*C)
+@test hinfnorm(mp)[1] < 1e-10
+@inferred P*C
+
+# @test_logs (:warn,"Possible numerical instability detected: Multiplication of a statespace system and a non-proper transfer function may result in numerical inaccuracy. Verify result carefully, and consider making use of DescriptorSystems.jl to represent this product as a DescriptorSystem with non-unit descriptor matrix if result is inaccurate.") P*C^3
+
+@test_throws ControlSystemsBase.ImproperException P*C^5
 
 end

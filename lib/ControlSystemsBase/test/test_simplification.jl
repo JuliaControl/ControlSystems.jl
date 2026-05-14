@@ -74,6 +74,14 @@ y2,x2 = step(sysmin,t, method=:zoh)[[1,3]]
     @test dcgain(sysr)[] ≈ dcgain(sys)[] rtol=sqrt(eps())
 
 
+    # Test the returned transformation
+    sysr,_,T = baltrunc(sys, n=10)
+    x0 = ones(sys.nx)
+    res = impulse(sys, 10; x0)
+    resr = impulse(sysr, 10; x0=T*x0)
+    @test res.y ≈ resr.y rtol=1e-3
+    # plot([res, resr])
+
     ## Large random system
     errors = map(1:3) do _
         G = ssrand(1,1,300)

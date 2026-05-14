@@ -1,5 +1,8 @@
 # Iterative-Learning Control
-In this example, we will design an [Iterative-Learning Control (ILC)](https://en.wikipedia.org/wiki/Iterative_learning_control) iteration scheme. ILC can be though of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
+In this example, we will design an [Iterative-Learning Control (ILC)](https://en.wikipedia.org/wiki/Iterative_learning_control) iteration scheme. ILC can be thought of as a simple reinforcement-learning strategy that is suitable in situations where a *repetitive task* is to be performed multiple times, and disturbances acting on the system are also repetitive and predictable but unknown. Multiple versions of ILC exists, in this tutorial we will consider a heuristic scheme as well as a model-based scheme. 
+
+!!! note
+    See the Julia package [IterativeLearningControl2.jl](https://baggepinnen.github.io/IterativeLearningControl2.jl/dev/) for implementations of several different ILC algorithms.
 
 ## Algorithm
 
@@ -102,7 +105,7 @@ nothing # hide
 ```
 
 ## Choosing filters
-The next step is to define the ILC filters ``Q(x)`` and ``L(z)``.
+The next step is to define the ILC filters ``Q(q)`` and ``L(q)``.
 
 The filter $L(q)$ acts as a frequency-dependent step size. To make the procedure take smaller steps, simply scale $L$ by a constant < 1. Scaling down $L$ makes the learning process slower but more robust. A heuristic choice of $L$ is some form of scaled lookahead, such as $0.5z^l$ where $l \geq 0$ is the number of samples lookahead. A model-based approach may use some form of inverse of the system model, which is what we will use here. [^nonlinear]
 
@@ -134,7 +137,8 @@ The next step is to implement the ILC scheme and run it:
 ```@example ilc
 function ilc(Gc, Q, L)
     a = zero(r) # ILC adjustment signal starts at 0
-    fig = plot(t, vec(r), sp=1, layout=(3,1), l=(:black, 3), lab="Ref")
+    fig1 = plot(t, vec(r), sp=1, layout=(3,1), l=(:black, 3), lab="Ref")
+    fig2 = plot(title="Sum of squared error", xlabel="Iteration", legend=false, titlefontsize=10, framestyle=:zerolines, ylims=(0, 7.1))
     for iter = 1:5
         ra = r .+ a
         res = lsim(Gc, ra, t) # Simulate system, replaced by an actual experiment if running on real process
@@ -143,10 +147,12 @@ function ilc(Gc, Q, L)
         Le = lsim_noncausal(L, e, t)
         a  = lsim_zerophase(Q, a + Le, t) # Update ILC adjustment
 
-        plot!(res, plotu=true, sp=[1 2], title=["Output \$y(t)\$" "Adjusted reference \$r + a\$"], lab="Iter $iter", c=iter)
-        plot!(e[:], sp=3, title="Tracking error \$e(t)\$", lab="err: $(round(sum(abs2, e), digits=2))", c=iter)
+        err = sum(abs2, e)
+        plot!(fig1, res, plotu=true, sp=[1 2], title=["Output \$y(t)\$" "Adjusted reference \$r + a\$"], lab="Iter $iter", c=iter)
+        plot!(fig1, e[:], sp=3, title="Tracking error \$e(t)\$", lab="err: $(round(err, digits=2))", c=iter)
+        scatter!(fig2, [iter], [err])
     end
-    fig
+    plot(fig1, fig2, layout=@layout([a{0.7w} b{0.3w}]))
 end
 ilc(Gc, Q, L)
 ```

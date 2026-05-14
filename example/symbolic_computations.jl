@@ -2,7 +2,7 @@ using Revise
 using ControlSystems
 using SymPy
 
-# Some basic demonstations of working with symbolic LTI systems
+# Some basic demonstrations of working with symbolic LTI systems
 # Functionality is rather limited, and for complicated expressions the
 # printing is awful.
 # For additional functionality, see https://github.com/JuliaControl/SymbolicControlSystems.jl
@@ -33,7 +33,7 @@ end
 # Define a symbolic parameter
 a = symbols("a", real=true)
 
-# Define a statespace and a trasnfer function
+# Define a statespace and a transfer function
 sys = ss([1 a; a 1], [0; 1], [1 0], 0)
 
 s = tf("s")
@@ -73,7 +73,7 @@ real_roots = roots[SymPy.imag(roots) .== 0]
 maximum([subs(sys_fr_mag, w => r) for r in real_roots])
 
 
-# Compute the impulse resonse of some systems (on statespace form)
+# Compute the impulse response of some systems (on statespace form)
 impulse(sys)[1]
 simplify(impulse(ss(G))[1])
 

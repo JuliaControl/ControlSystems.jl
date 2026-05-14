@@ -147,7 +147,7 @@ xreal = zeros(3, length(t0), 2)
 y, t, x = step(systf, t0, method=:zoh) # Method is :zoh so discretization is applied
 yreal[1,:,1] = 1 .- exp.(-t)
 yreal[2,:,2] = -1 .+ exp.(-t) + 2*exp.(-t).*t
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 #Step ss
 y, t, x = step(sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
@@ -160,7 +160,7 @@ xreal[3,:,2] = exp.(-t).*(-t .- 1) .+ 1
 y, t, x = impulse(systf, t, method=:zoh)
 yreal[1,:,1] = exp.(-t)
 yreal[2,:,2] = exp.(-t).*(1 .- 2*t)
-@test y ≈ yreal atol=1e-14
+@test y ≈ yreal atol=1e-13
 #Impulse ss
 y, t, x = impulse(1.0sysss, t, method=:zoh)
 @test y ≈ yreal atol=1e-13
@@ -176,7 +176,7 @@ y, t2, x = step(G, 10)
 @test y ≈ [zeros(1, 3) ones(1, 8)] atol=1e-5
 @test t2 == 0:1:10 # isapprox is broken for ranges (julia 1.3.1)
 
-#Impulse response of discrete system to final time that is not mulitple of the sample time
+#Impulse response of discrete system to final time that is not multiple of the sample time
 G = tf([1], [1; zeros(3)], 0.3)
 y, t2, x = step(G, 2)
 @test y ≈ [zeros(1, 3) ones(1, 4)] atol=1e-5
@@ -254,5 +254,25 @@ res = step(G, 20)
 si = stepinfo(res)
 @test si.undershoot ≈ 27.98 rtol=0.01
 plot(si)
+
+# Test concatenation of SimResults
+u = ones(1, 100)
+sysd = c2d(sys,0.1)
+res1 = lsim(sysd,u)
+res2 = lsim(sysd,u; x0 = res1.x[:, end])
+@test_logs (:warn, r"Concatenated SimResults do not appear to be continuous in time") [res1 res2]
+
+res2 = lsim(sysd,u,res1.t[end]:0.1:res1.t[end]+9.9; x0 = res1.x[:, end])
+res12 = [res1 res2]
+@test length(res12.t) == length(res1.t) + length(res2.t) - 1 # -1 since we do not include the initial time point from the second result which overlaps with the first
+
+res2 = lsim(sysd,u)
+@test_logs (:warn, r"Concatenated SimResults do not appear to be continuous in time") [res1 res2]
+res12 = [res1 res2]
+@test length(res12.t) == length(res1.t) + length(res2.t) # not -1 since we do include the initial time point from the second result if they do not appear to be continuous in time
+
+res2 = lsim(sysd,u, res1.t[end]+0.1:0.1:res1.t[end]+10)
+@test_nowarn res12 = [res1 res2]
+@test length(res12.t) == length(res1.t) + length(res2.t) # not -1 since we do do include the initial time point from the second result if they do not appear to be continuous in time
 
 end

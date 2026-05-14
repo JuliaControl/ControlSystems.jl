@@ -3,10 +3,11 @@ Pages = ["plotting.md"]
 ```
 
 !!! note "Using Plots"
-    All plotting requires the user to manually load the Plots.jl library, e.g., by calling `using Plots`.
+    All plotting requires the user to manually load the Plots.jl library, e.g., by calling `using Plots`. See also experimental [Makie support](@ref) below.
 
 !!! note "Time-domain responses"
-    There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure ([`ControlSystemsBase.SimResult`](@ref)) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
+    There are no special functions to plot time-domain results, such as step and impulse responses, instead, simply call `plot` on the result structure (`ControlSystemsBase.SimResult`) returned by [`lsim`](@ref), [`step`](@ref), [`impulse`](@ref) etc.
+
 
 # Plotting functions
 
@@ -16,6 +17,10 @@ Pages   = [libpath*"/plotting.jl"]
 Order   = [:function]
 Private = false
 ```
+```@docs
+ControlSystemsBase.rlocusplot
+```
+- To plot simulation results such as step and impulse responses, use `plot(::SimResult)`, see also [`lsim`](@ref).
 
 ## Examples
 
@@ -80,7 +85,7 @@ pzmap(c2d(tf2, 0.1))
 ![rlocus](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/rlocus.png?raw=true)
 
 ### Lsim response plot
-
+Simulation results are plotted directly using the `plot` function:
 ![lsim](https://github.com/JuliaControl/ControlExamplePlots.jl/blob/master/src/figures/lsim.png?raw=true)
 ```julia
 sys = ss([-1 2; 0 1], [1 0; 1 1], [1 0; 0 1], [0.1 0; 0 -0.2])
@@ -109,5 +114,51 @@ sys = [tf1 tf2]
 sysd = c2d(ss(sys), 0.01)
 res = step(sysd, 5)
 plot(res, l=(:dash, 4))
-# plot!(stepinfo(step(sysd[1,1], 5))) # adds extra info to the plot
+# plot!(stepinfo(step(sysd[1,1], 10))) # adds extra info to the plot
 ```
+
+
+## Makie support
+!!! danger "Experimental"
+    
+    The support for plotting with Makie is currently experimental and at any time subject to breaking changes or removal **not** respecting semantic versioning.
+
+ControlSystemsBase provides experimental support for plotting with [Makie.jl](https://docs.makie.org/) through the `CSMakie` module. This support is loaded automatically when you load a Makie backend (GLMakie, CairoMakie, or WGLMakie).
+
+### Usage
+
+```julia
+using ControlSystemsBase, GLMakie  # or CairoMakie, WGLMakie
+
+# Create a system
+P = tf([1], [1, 2, 1])
+
+# Use CSMakie plotting functions
+CSMakie.bodeplot(P)
+CSMakie.nyquistplot(P)
+CSMakie.pzmap(P)
+# ... and more
+
+# Direct plotting of simulation results
+res = step(P, 10)
+plot(res)  # Creates a figure with time-domain response (note that this function does not belong to the CSMakie module)
+
+si = stepinfo(res)
+plot(si)  # Visualizes step response characteristics
+```
+
+### Available functions
+
+The `CSMakie` module provides Makie implementations of the following plotting functions:
+
+- `CSMakie.bodeplot` - Bode magnitude and phase plots
+- `CSMakie.nyquistplot` - Nyquist plots with optional M and Mt circles
+- `CSMakie.sigmaplot` - Singular value plots
+- `CSMakie.marginplot` - Gain and phase margin plots
+- `CSMakie.pzmap` - Pole-zero maps
+- `CSMakie.nicholsplot` - Nichols charts
+- `CSMakie.rgaplot` - Relative gain array plots
+- `CSMakie.rlocusplot` - Root locus plots
+- `CSMakie.leadlinkcurve` - Lead-link design curves
+
+Additionally, `SimResult` and `StepInfo` types can be plotted directly using Makie's `plot` function.

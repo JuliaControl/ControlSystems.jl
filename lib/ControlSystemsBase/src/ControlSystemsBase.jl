@@ -22,6 +22,7 @@ export  LTISystem,
         # Linear Algebra
         balance,
         balance_statespace,
+        stab_unstab,
         are,
         lqr,
         kalman,
@@ -33,18 +34,21 @@ export  LTISystem,
         grampd,
         ctrb,
         obsv,
+        controllability,
+        observability,
         place,
         place_knvd,
         # Model Simplification
-        reduce_sys,
         sminreal,
         minreal,
         balreal,
         baltrunc,
         similarity_transform,
+        find_similarity_transform,
         time_scale,
         innovation_form,
         observer_predictor,
+        observer_filter,
         observer_controller,
         # Stability Analysis
         isstable,
@@ -77,10 +81,16 @@ export  LTISystem,
         output_comp_sensitivity,
         G_PS,
         G_CS,
+        margin_bounds,
+        Ms_from_phase_margin,
+        Ms_from_gain_margin,
+        resolvent,
+        input_resolvent,
         # Discrete
         c2d,
         c2d_x0map,
         d2c,
+        d2c_exact,
         # Time Response
         step,
         impulse,
@@ -100,7 +110,10 @@ export  LTISystem,
         # delay systems
         delay,
         pade,
+        thiran,
         nonlinearity,
+        rlocus,
+        rlocusplot,
         # demo systems
         ssrand,
         DemoSystems, # A module containing some example systems
@@ -118,26 +131,26 @@ export  LTISystem,
         add_output
 
 
-# QUESTION: are these used? LaTeXStrings, Requires, IterTools
-using RecipesBase, LaTeXStrings, LinearAlgebra
+using RecipesBase, LinearAlgebra
 import Polynomials
 import Polynomials: Polynomial, coeffs
 import Base: +, -, *, /, (==), (!=), isapprox, convert, promote_op
 import Base: getproperty, getindex
 import Base: exp # for exp(-s)
 import LinearAlgebra: BlasFloat
+import Hungarian
 
 export lyap # Make sure LinearAlgebra.lyap is available
+export plyap
 import Printf
 import Printf: @printf, @sprintf
-import DSP
-import DSP: conv
+import Polynomials: conv # TODO: replace this internal function with something public
 using ForwardDiff
 import MatrixPencils
 using MacroTools
 using MatrixEquations
 using UUIDs # to load Plots in gangoffourplot
-using StaticArrays, Polyester
+using StaticArraysCore
 
 abstract type AbstractSystem end
 
@@ -152,7 +165,7 @@ include("types/Lti.jl")
 
 include("types/SisoTf.jl")
 
-# Transfer functions and tranfer function elemements
+# Transfer functions and transfer function elements
 include("types/TransferFunction.jl")
 include("types/SisoTfTypes/SisoZpk.jl")
 include("types/SisoTfTypes/SisoRational.jl")
@@ -200,7 +213,12 @@ include("nonlinear_components.jl")
 include("types/staticsystems.jl")
 
 include("plotting.jl")
-include("dsp.jl")
+
+include("root_locus.jl")
+
+# CSMakie module for Makie plotting support
+include("CSMakie.jl")
+export CSMakie
 
 @deprecate pole poles
 @deprecate tzero tzeros
@@ -211,6 +229,16 @@ include("dsp.jl")
 @deprecate luenberger(sys, p) place(sys, p, :o)
 @deprecate luenberger(A, C, p) place(A, C, p, :o)
 # There are some deprecations in pid_control.jl for laglink/leadlink/leadlinkat
+
+"""
+    Gs, k = seriesform(G::TransferFunction{Discrete})
+
+Convert a transfer function `G` to a vector of second-order transfer functions and a scalar gain `k`, the product of which equals `G`.
+
+!!! note
+    This function requires the user to load the package DSP.jl.
+"""
+seriesform(a) = error(a isa TransferFunction{<:Discrete} ? "seriesform requires the user to load the package DSP" : "seriesform requires a discrete-time TransferFunction (and the package DSP.jl to be loaded)")
 
 function covar(D::Union{AbstractMatrix,UniformScaling}, R)
     @warn "This call is deprecated due to ambiguity, use covar(ss(D), R) or covar(ss(D, Ts), R) instead"
@@ -226,9 +254,15 @@ function __init__()
             print(io, "\n$(exc.f) with continuous-time systems, including delay systems and nonlinear systems, require the user to first ")
             printstyled(io, "install and load ControlSystems.jl, or pass the keyword method = :zoh", color=:green, bold=true)
             print(io, " for automatic discretization (applicable to systems without delays or nonlinearities only).")
+        elseif exc.f ∈ (eigvals!, ) && argtypes[1] <: AbstractMatrix{<:Number}
+            printstyled(io, "\nComputing eigenvalues of a matrix with exotic element types may require `using GenericSchur`.", color=:green, bold=true)
+        elseif (exc.f === svdvals! || exc.f === svd!) && length(argtypes) >= 1 && argtypes[1] <: AbstractMatrix{<:Number}
+            printstyled(io, "\nComputing the SVD of a matrix with exotic element types may require `using GenericLinearAlgebra`.", color=:green, bold=true)
+        elseif exc.f === schur! && length(argtypes) >= 1 && argtypes[1] <: AbstractMatrix{<:Number}
+            printstyled(io, "\nComputing Schur decomposition of a matrix with exotic element types may require `using GenericSchur`.", color=:green, bold=true)
         end
         plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
-        if nameof(exc.f) === :plot && parentmodule(argtypes[1]) == @__MODULE__() && !haskey(Base.loaded_modules, plots_id)
+        if exc.f isa Function && nameof(exc.f) === :plot && parentmodule(argtypes[1]) == @__MODULE__() && !haskey(Base.loaded_modules, plots_id)
             printstyled(io, "\nPlotting is not available unless Plots.jl is loaded manually. Call `using Plots` before plotting.", color=:green, bold=true)
         elseif (exc.f == /) && argtypes[2] <: DelayLtiSystem
             print(io, "A delayed system can not be inverted. Consider use of the function `feedback`.")

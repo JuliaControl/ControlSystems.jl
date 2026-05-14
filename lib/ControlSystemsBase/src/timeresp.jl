@@ -19,7 +19,7 @@ end
     LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix)
     LsimWorkspace{T}(ny, nu, nx, N)
 
-Genereate a workspace object for use with the in-place function [`lsim!`](@ref).
+Generate a workspace object for use with the in-place function [`lsim!`](@ref).
 `sys` is the discrete-time system to be simulated and `N` is the number of time steps, alternatively, the input `u` can be provided instead of `N`.
 Note: for threaded applications, create one workspace object per thread. 
 """
@@ -37,9 +37,13 @@ LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix) = LsimWorkspace(sys, s
     y, t, x = step(sys[, tfinal])
     y, t, x = step(sys[, t])
 
-Calculate the step response of system `sys`. If the final time `tfinal` or time
-vector `t` is not provided, one is calculated based on the system pole
-locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
+Calculate the response of the system `sys` to a unit step at time `t = 0`. 
+If the final time `tfinal` or time vector `t` is not provided, 
+one is calculated based on the system pole locations. 
+
+The return value is a structure of type `SimResult`. 
+A `SimResul` can be plotted by `plot(result)`, 
+or destructured as `y, t, x = result`. 
 
 `y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`
 
@@ -67,17 +71,26 @@ end
 
 Base.step(sys::LTISystem, tfinal::Real; kwargs...) = step(sys, _default_time_vector(sys, tfinal); kwargs...)
 Base.step(sys::LTISystem; kwargs...) = step(sys, _default_time_vector(sys); kwargs...)
-Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys), t::AbstractVector; kwargs...)
+Base.step(sys::TransferFunction, t::AbstractVector; kwargs...) = step(ss(sys, minimal=numeric_type(sys) isa BlasFloat), t::AbstractVector; kwargs...)
 
 """
     y, t, x = impulse(sys[, tfinal])
     y, t, x = impulse(sys[, t])
 
-Calculate the impulse response of system `sys`. If the final time `tfinal` or time
-vector `t` is not provided, one is calculated based on the system pole
-locations. The return value is a structure of type `SimResult` that can be plotted or destructured as `y, t, x = result`.
+Calculate the response of the system `sys` to an impulse at time `t = 0`. 
+For continous-time systems, the impulse is a unit Dirac impulse. 
+For discrete-time systems, the impulse lasts one sample and has magnitude `1/Ts`. 
+If the final time `tfinal` or time vector `t` is not provided, 
+one is calculated based on the system pole locations. 
 
-`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`"""
+The return value is a structure of type `SimResult`. 
+A `SimResul` can be plotted by `plot(result)`, 
+or destructured as `y, t, x = result`.
+
+`y` has size `(ny, length(t), nu)`, `x` has size `(nx, length(t), nu)`
+
+See also [`lsim`](@ref).
+"""
 function impulse(sys::AbstractStateSpace, t::AbstractVector; kwargs...)
     T = promote_type(eltype(sys.A), Float64)
     ny, nu = size(sys)
@@ -106,13 +119,13 @@ end
 
 impulse(sys::LTISystem, tfinal::Real; kwargs...) = impulse(sys, _default_time_vector(sys, tfinal); kwargs...)
 impulse(sys::LTISystem; kwargs...) = impulse(sys, _default_time_vector(sys); kwargs...)
-impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys), t; kwargs...)
+impulse(sys::TransferFunction, t::AbstractVector; kwargs...) = impulse(ss(sys, minimal=numeric_type(sys) isa BlasFloat), t; kwargs...)
 
 """
     result = lsim(sys, u[, t]; x0, method])
     result = lsim(sys, u::Function, t; x0, method)
 
-Calculate the time response of system `sys` to input `u`. If `x0` is ommitted,
+Calculate the time response of system `sys` to input `u`. If `x0` is omitted,
 a zero vector is used.
 
 The result structure contains the fields `y, t, x, u` and can be destructured automatically by iteration, e.g.,
@@ -125,13 +138,13 @@ plot(result, plotu=true, plotx=false)
 ```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level inteface, see `?Simulator` and `?solve`
+Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level interface, see `?Simulator` and `?solve`. For continuous-time systems, keyword arguments are forwarded to the ODE solver. By default, the option `dtmax = t[2]-t[1]` is used to prevent the solver from stepping over discontinuities in `u(x, t)`. This prevents the solver from taking too large steps, but may also slow down the simulation when `u` is smooth. To disable this behavior, set `dtmax = Inf`.
 
 `u` can be a function or a *matrix* of precalculated control signals and must have dimensions `(nu, length(t))`.
-If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuos ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
+If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuous ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
 To simulate a unit step at `t=t₀`, use `(x,t)-> t ≥ t₀`, for a ramp, use `(x,t)-> t`, for a step at `t=5`, use `(x,t)-> (t >= 5)` etc.
 
-*Note:* The function `u` will be called once before simulating to verify that it returns an array of the correct dimensions. This can cause problems if `u` is stateful. You can disable this check by passing `check_u = false`.
+*Note:* The function `u` will be called once before simulating to verify that it returns an array of the correct dimensions. This can cause problems if `u` is stateful or has other side effects. You can disable this check by passing `check_u = false`.
 
 For maximum performance, see function [`lsim!`](@ref), available for discrete-time systems only.
 
@@ -183,6 +196,14 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
         error("Time vector t must be uniformly spaced")
     end
 
+    # Handle pure D system (no states)
+    if nx == 0
+        x = Matrix{eltype(u)}(undef, 0, length(t)) # no states
+        y = sys.D * u
+        dsys = sys
+        return SimResult(y, t, x, u, dsys)
+    end
+
     if iscontinuous(sys)
         if method === :zoh
             dsys = c2d(sys, dt, :zoh)
@@ -193,7 +214,7 @@ function lsim(sys::AbstractStateSpace, u::AbstractVecOrMat, t::AbstractVector;
             error("Unsupported discretization method: $method")
         end
     else
-        if sys.Ts != dt
+        if !(sys.Ts ≈ dt)
             error("Time vector must match the sample time of the discrete-time system, $(sys.Ts): got $dt")
         end
         dsys = sys
@@ -212,10 +233,10 @@ function lsim(sys::AbstractStateSpace{<:Discrete}, u::AbstractVecOrMat; kwargs..
     if size(u, 1) != nu
         if u isa AbstractVector && sys.nu == 1
             # The isa Array is a safeguard against type instability due to the copy(u')
-            @warn("u should be a row-vector of size (1, $nu): got size $(size(u)). The transpose of u will be used. To silence this warning, use the correct input dimension.")
+            @warn("u should be a row-vector of size (1, $(length(u))): got a regular vector of size $(size(u)). The transpose of u will be used. To silence this warning, use the correct input dimension.")
             u = copy(transpose(u))
         else
-            error("u must be a matrix of size (nu, length(t)) where nu=$nu, got size u = $(size(u))")
+            error("u must be a matrix of size (nu, length(t)) where the number of inputs nu=$nu, got size u = $(size(u))")
         end
     end
     t = range(0, length=size(u, 2), step=sys.Ts)
@@ -267,12 +288,24 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 
     dt = t[2] - t[1]
 
-    if !iscontinuous(sys) || method === :zoh
+    # Handle pure D system (no states)
+    if nx == 0
+        uout = Matrix{T}(undef, nu, length(t))
+        for i = 1:length(t)
+            uout[:, i] = u(T[], t[i])
+        end
+        x = Matrix{T}(undef, 0, length(t)) # no states
+        y = sys.D * uout
+        simsys = sys
+        return SimResult(y, t, x, uout, simsys)
+    end
+
+    if !iscontinuous(sys) || method ∈ (:zoh, :tustin, :foh, :fwdeuler)
         if iscontinuous(sys)
-            simsys = c2d(sys, dt, :zoh)
+            simsys = c2d(sys, dt, method)
         else
-            if sys.Ts != dt
-                error("Time vector must match sample time for discrete system")
+            if !(sys.Ts ≈ dt)
+                error("Time vector interval ($dt) must match sample time for discrete system ($(sys.Ts))")
             end
             simsys = sys
         end
@@ -288,7 +321,7 @@ function lsim(sys::AbstractStateSpace, u::Function, t::AbstractVector;
 end
 
 
-lsim(sys::TransferFunction, args...; kwargs...) = lsim(ss(sys), args...; kwargs...)
+lsim(sys::TransferFunction, args...; kwargs...) = lsim(ss(sys, minimal=numeric_type(sys) isa BlasFloat), args...; kwargs...)
 
 
 """
@@ -299,7 +332,7 @@ Simulate the discrete time system `x[k + 1] = A x[k] + B u[k]`, returning `x`.
 If `x0` is not provided, a zero-vector is used.
 
 The type of `x0` determines the matrix structure of the returned result,
-e.g, `x0` should prefereably not be a sparse vector.
+e.g, `x0` should preferably not be a sparse vector.
 
 If `u` is a function, then `u(x,i)` is called to calculate the control signal every iteration. This can be used to provide a control law such as state feedback `u=-Lx` calculated by `lqr`. In this case, an integrer `iters` must be provided that indicates the number of iterations.
 """
@@ -368,7 +401,7 @@ function lsim!(ws::LsimWorkspace{T}, sys::AbstractStateSpace{<:Discrete}, u, t::
         x0::AbstractVecOrMat=zeros(eltype(T), nstates(sys))) where T
 
     x, y = ws.x, ws.y
-    size(x, 2) == length(t) || throw(ArgumentError("Inconsitent lengths of workspace cache and t"))
+    size(x, 2) == length(t) || throw(ArgumentError("Inconsistent lengths of workspace cache and t"))
     arr = u isa AbstractArray
     if arr
         copyto!(ws.u, u)
@@ -402,6 +435,7 @@ function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
             ω0_min = minimum(w for w in ws if w > 1e-6; init=dt)
             dt_slow = round(1/(2ω0_min), sigdigits=2)
             tfinal = max(200dt, dt_slow)
+            tfinal = min(tfinal, 100_000*dt)
         else
             tfinal = 200dt
         end
@@ -510,6 +544,7 @@ function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02
     undershoot = direction * 100 * (y0 - lowerpeak) / stepsize
     undershoot > 0 ? undershoot : zero(undershoot)
     settlingtimeind = findlast(abs(y-yf) > settling_th * stepsize for y in y)
+    settlingtimeind === nothing && (settlingtimeind = length(res.t))
     settlingtimeind == length(res.t) && @warn "System might not have settled within the simulation time"
     settlingtime = res.t[settlingtimeind] + Ts
     op = direction == 1 ? (>) : (<)

@@ -25,7 +25,7 @@ function setPlotScale(str::AbstractString)
 end
 
 # """
-# Get atributes from xlims or ylims
+# Get attributes from xlims or ylims
 # default to extrema(wmag) if xlims/ylims not defined or empty
 # """
 # function getlims(xylims, plotattributes, wmag)
@@ -90,7 +90,7 @@ end
 #         minor     = minor[ind]
 #         minorText = minorText[ind]
 #         if length(minor) > minor_text_limit
-#             minorText = [" " for t in minorText]#fill!(minorText, L" ")
+#             minorText = [" " for t in minorText]#fill!(minorText, " ")
 #         end
 #         perm = sortperm([major; minor])
 #         return [major; minor][perm], [majorText; minorText][perm]
@@ -102,7 +102,7 @@ end
 
 
 # This will be called on plot(lsim(sys, args...))
-@recipe function simresultplot(r::SimResult; plotu=false, plotx=false, ploty=true)
+@recipe function simresultplot(r::SimResult; plotu=false, plotx=false, ploty=true, input_names=ControlSystemsBase.input_names(r.sys), output_names=ControlSystemsBase.output_names(r.sys), state_names=ControlSystemsBase.state_names(r.sys))
     ny, nu, nx, sys = r.ny, r.nu, r.nx, r.sys
     t = r.t
     n_series = size(r.y, 3) # step and impulse produce multiple results
@@ -115,11 +115,11 @@ end
     if ploty
         for ms in 1:n_series
             for i=1:ny
-                ytext = output_names(sys, i)
+                ytext = output_names[i]
                 @series begin
                     xguide  --> "Time (s)"
                     yguide  --> ytext
-                    label   --> (n_series > 1 ? "From $(input_names(sys, ms))" : "")
+                    label   --> (n_series > 1 ? "From $(input_names[ms])" : "")
                     subplot --> i
                     t,  r.y[i, :, ms]
                 end
@@ -129,7 +129,7 @@ end
     end 
     if plotu # bug in recipe system, can't use `plotu || return`
         for i=1:nu
-            utext = input_names(sys, i)
+            utext = input_names[i]
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> utext
@@ -142,13 +142,13 @@ end
     end
     if plotx
         for i=1:nx
-            xtext = state_names(sys, i)
+            xtext = state_names[i]
             @series begin
                 xguide  --> "Time (s)"
                 yguide  --> xtext
                 subplot --> plotind
                 label --> ""
-                t,  r.x[i, :]
+                t,  (n_series > 1 ? r.x[i, :, :] : r.x[i, :])
             end
             plotind += 1
         end
@@ -227,13 +227,15 @@ Calculate default frequency vector and put system in array of not already array.
 for which `_default_freq_vector` is defined.
 Check that system dimensions are compatible.
 """
-_processfreqplot(plottype, system::LTISystem, args...) =
-    _processfreqplot(plottype, [system], args...)
+_processfreqplot(plottype, system::LTISystem, args...; kwargs...) =
+    _processfreqplot(plottype, [system], args...; kwargs...)
 # Catch when system is not vector, with and without frequency input
 
-# Cantch correct form
-function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem},
-            w = _default_freq_vector(systems, plottype))
+# Catch correct form
+_processfreqplot(plottype, systems::AbstractVector{<:LTISystem}; adaptive=false) =
+    _processfreqplot(plottype, systems, _default_freq_vector(systems, plottype; adaptive))
+
+function _processfreqplot(plottype, systems::AbstractVector{<:LTISystem}, w; kwargs...)
 
     if !_same_io_dims(systems...)
         error("All systems must have the same input/output dimensions")
@@ -253,6 +255,8 @@ optionally provided. To change the Magnitude scale see [`setPlotScale`](@ref). T
                                             
 - If `hz=true`, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
+- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
+- `adaptive`: If true, an adaptive frequency grid is used in order to keep the number of plotted points low, while resolving features in the frequency response well. If a manually provided frequency vector is used, this may be downsampled before plotting.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
@@ -274,8 +278,10 @@ function _get_plotlabel(s, i, j)
     end
 end
 
-@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true)
-    systems, w = _processfreqplot(Val{:bode}(), p.args...)
+_span(vec) = -(reverse(extrema(vec))...)
+
+@recipe function bodeplot(p::Bodeplot; plotphase=true, ylimsphase=(), unwrap=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -284,15 +290,20 @@ end
     # xticks --> getLogTicks(ws, getlims(:xlims, plotattributes, ws))
     grid   --> true
 
-    link --> :x
-
     for (si,s) = enumerate(systems)
         if balance
-            s = balance_statespace(s)[1]
+            sbal = balance_statespace(s)[1]
+        else
+            sbal = s
         end
-        mag, phase = bode(s, w)[1:2]
+        if plotphase && adjust_phase_start && isrational(sbal)
+            intexcess = integrator_excess(sbal)
+        end
+        mag, phase = bode(sbal, w; unwrap=false)
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
+        elseif 0 ∈ mag
+            replace!(mag, 0 => -Inf) # To prevent plot crashing when some magnitude is exactly zero
         end
 
         xlab = plotphase ? "" : (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
@@ -306,6 +317,7 @@ end
                     continue
                 end
                 phasedata = vec(phase[i, j, :])
+                local inds
                 @series begin
                     yscale    --> _PlotScaleFunc
                     xscale    --> :log10
@@ -320,9 +332,27 @@ end
                         label --> lab
                     end
                     group     --> group_ind
-                    ws, magdata
+                    if adaptive
+                        lmag = _PlotScale == "dB" ? magdata : log.(magdata)
+                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/500)
+                        wsi, magdata[inds]
+                    else
+                        ws, magdata
+                    end
                 end
                 plotphase || continue
+
+                if adjust_phase_start == true && isrational(sbal)
+                    if intexcess != 0
+                        # Snap phase so that it starts at -90*intexcess
+                        nineties = round(Int, phasedata[1] / 90)
+                        phasedata .+= ((90*(-intexcess-nineties)) ÷ 360) * 360
+                    end
+                end
+
+                if eltype(phasedata) <: AbstractFloat
+                    link --> :x # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
+                end
 
                 @series begin
                     xscale    --> :log10
@@ -333,9 +363,15 @@ end
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
                     label     --> ""
                     group     --> group_ind
-                    ws, unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
+                    if adaptive && eltype(phasedata) <: AbstractFloat # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
+                        downsample(ws, phasedata, _span(phasedata)/500)[1:2]
+                    elseif adaptive
+                        ws[inds], phasedata[inds]
+                    else
+                        ws, phasedata
+                    end
                 end
-
             end
         end
     end
@@ -349,7 +385,7 @@ end
     grid   --> true
     yscale --> _PlotScaleFunc
     xscale --> :log10
-    yguide --> "Magnitude"
+    yguide --> "Magnitude $_PlotScaleStr"
     x := w
     y := magdata
     ()
@@ -378,8 +414,8 @@ end
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-- `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain corssover frequency.
-- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`.
+- `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
+- `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`. See also [`margin_bounds`](@ref), [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref).
 - `Mt_circles`: draw circles corresponding to given levels of complementary sensitivity. `Mt_circles` can be supplied as a number or a vector of numbers.
 - `critical_point`: point on real axis to mark as critical for encirclements
 - If `hz=true`, the hover information will be displayed in Hertz, the input frequency vector is still treated as rad/s.
@@ -388,8 +424,8 @@ optionally provided.
 `kwargs` is sent as argument to plot.
 """
 nyquistplot
-@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], M_circles=[], unit_circle=false, hz=false, critical_point=-1, balance=true)
-    systems, w = _processfreqplot(Val{:nyquist}(), p.args...)
+@recipe function nyquistplot(p::Nyquistplot; Ms_circles=Float64[], Mt_circles=Float64[], M_circles=[], unit_circle=false, hz=false, critical_point=-1, balance=true, adaptive=true)
+    systems, w = _processfreqplot(Val{:nyquist}(), p.args...; adaptive)
     ny, nu = size(systems[1])
     nw = length(w)
     layout --> (ny,nu)
@@ -415,8 +451,17 @@ nyquistplot
                     if lab !== nothing
                         label --> lab
                     end
-                    hover --> [hz ? Printf.@sprintf("f = %.3f", w/2π) : Printf.@sprintf("ω = %.3f", w) for w in w]
-                    (redata, imdata)
+                    hover_data = [hz ? Printf.@sprintf("f = %.3g", w/2π) : Printf.@sprintf("ω = %.3g", w) for w in w]
+                    if adaptive
+                        indsre = downsample(w, redata, 1/500)[3]
+                        indsim = downsample(w, imdata, 1/500)[3]
+                        inds = sort!(union(indsre, indsim))
+                        hover --> hover_data[inds]
+                        redata[inds], imdata[inds]
+                    else
+                        hover --> hover_data
+                        redata, imdata
+                    end
                 end                
                 
                 if si == length(systems)
@@ -718,23 +763,27 @@ _to1series(y) = _to1series(1:size(y,3),y)
 
 @userplot Marginplot
 """
-    fig = marginplot(sys::LTISystem [,w::AbstractVector];  balance=true, kwargs...)
-    marginplot(sys::Vector{LTISystem}, w::AbstractVector;  balance=true, kwargs...)
+    fig = marginplot(sys::LTISystem [,w::AbstractVector]; hz=false, balance=true, kwargs...)
+    marginplot(sys::Vector{LTISystem}, w::AbstractVector; hz=false, balance=true, kwargs...)
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
 
 - A frequency vector `w` can be optionally provided.
+- `hz`: If true, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
+- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 
 `kwargs` is sent as argument to RecipesBase.plot.
 """
-@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true)
-    systems, w = _processfreqplot(Val{:bode}(), p.args...)
+marginplot
+@recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
+    systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
+    ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
     titles = Array{AbstractString}(undef, nu,ny,2,2)
-    titles[:,:,1,1] .= "Gm: "
+    titles[:,:,1,1] .= _PlotScale == "dB" ? "Gm (dB): " : "Gm: "
     titles[:,:,2,1] .= "Pm: "
     titles[:,:,1,2] .= "ω gm: "
     titles[:,:,2,2] .= "ω pm: "
@@ -745,10 +794,10 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
             s = balance_statespace(s)[1]
         end
         bmag, bphase = bode(s, w)
+
         for j=1:nu
             for i=1:ny
-                wgm, gm, wpm, pm, fullPhase = sisomargin(s[i,j],w, full=true, allMargins=true)  
-                # Let's be reasonable, only plot 5 smallest gain margins
+                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j],w; full=true, allMargins=true, adjust_phase_start)
                 if length(gm) > 5
                     @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
                     idx = sortperm(gm)
@@ -766,14 +815,16 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
                     mag = 20 .* log10.(1 ./ gm)
                     oneLine = 0
                     @. bmag = 20*log10(bmag)
+                    titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",20log10(v)) for v in gm],", ")*"] "
                 else
                     mag = 1 ./ gm
                     oneLine = 1
+                    titles[j,i,1,1] *= "["*join([Printf.@sprintf("%3.2g",v) for v in gm],", ")*"] "
                 end
-                titles[j,i,1,1] *= "["*join([Printf.@sprintf("%2.2f",v) for v in gm],", ")*"] "
-                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%2.2f",v) for v in wgm],", ")*"] "
-                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in pm],", ")*"] "
-                titles[j,i,2,2] *=  "["*join([Printf.@sprintf("%2.2f",v) for v in wpm],", ")*"] "
+                # Scale frequencies for display when hz=true
+                wgm_display = hz ? wgm ./ (2π) : wgm
+                titles[j,i,1,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wgm_display],", ")*"] "
+
 
                 subplot := min(s2i((plotphase ? (2i-1) : i),j), prod(plotattributes[:layout]))
                 if si == length(systems)
@@ -786,20 +837,34 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
                     end
                     primary := true
                     seriestype := :bodemag
-                    w, bmag[i, j, :]
+                    m = bmag[i, j, :]
+                    if adaptive
+                        lmag = _PlotScale == "dB" ? m : log.(m)
+                        wsi, _, inds = downsample(ws, lmag, _span(lmag)/500)
+                        wsi, m[inds]
+                    else
+                        ws, m
+                    end
                 end
                 
                 #Plot gain margins
-                primary --> false
                 @series begin
+                    primary := false
                     color --> :gray
                     linestyle --> :dash
-                    [w[1],w[end]], [oneLine,oneLine]
+                    [ws[1],ws[end]], [oneLine,oneLine]
                 end
                 @series begin
-                    [wgm wgm]', [ones(length(mag)) mag]'
+                    primary := false
+                    [wgm_display wgm_display]', [ones(length(mag)) mag]'
                 end
                 plotphase || continue
+
+
+                titles[j,i,2,1] *=  "["*join([Printf.@sprintf("%3.2g°",v) for v in pm],", ")*"] "
+                # Scale phase margin frequencies for display when hz=true
+                wpm_display = hz ? wpm ./ (2π) : wpm
+                titles[j,i,2,2] *= "["*join([Printf.@sprintf("%3.2g",v) for v in wpm_display],", ")*"] "
                 
                 # Phase margins
                 subplot := s2i(2i,j)
@@ -809,16 +874,22 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
                 @series begin
                     primary := true
                     seriestype := :bodephase
-                    w, bphase[i, j, :]
+                    if adaptive
+                        downsample(ws, phasedata, _span(phasedata)/500)[1:2]
+                    else
+                        ws, phasedata
+                    end
                 end
                 @series begin
+                    primary := false
                     color --> :gray
                     linestyle --> :dash
                     seriestype := :hline
                     ((fullPhase .- pm) .* ones(1, 2))'
                 end
                 @series begin
-                    [wpm wpm]', [fullPhase fullPhase-pm]'
+                    primary := false
+                    [wpm_display wpm_display]', [fullPhase fullPhase-pm]'
                 end
             end
         end
@@ -906,7 +977,7 @@ Gang-of-Four plot.
 `sigma` determines whether a [`sigmaplot`](@ref) is used instead of a [`bodeplot`](@ref) for MIMO `S` and `T`.
 `kwargs` are sent as argument to RecipesBase.plot.
 """
-function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.25, 1.5], Mt_lines = [], sigma = true,  plotphase=false, kwargs...)    
+function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minimal=true, Ms_lines = [1.0, 1.25, 1.5], Mt_lines = [], sigma = true,  plotphase=false, adaptive=true, kwargs...)    
     if P isa LTISystem # Don't broadcast over scalar (with size?)
         P = [P]
     end
@@ -916,16 +987,16 @@ function gangoffourplot(P::Union{<:Vector, LTISystem}, C::Vector, args...; minim
 
     gofs = gangoffour.(P,C)
     S,D,N,T = ntuple(i->getindex.(gofs, i), 4)
-    bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, kwargs...)
+    bp = (args...; kwargs...) -> sigma ? sigmaplot(args...; kwargs...) : bodeplot(args...; plotphase=false, adaptive, kwargs...)
     f1 = bp(S, args...; show=false, title="S = 1/(1+PC)", kwargs...)
     if !isnothing(Ms_lines) && !isempty(Ms_lines)
         Plots.hline!(Ms_lines', l=(:dash, [:green :orange :red :darkred :purple]), sp=1, primary=false, lab=string.(Ms_lines'), ylims=(1e-2,4))
     else
         Plots.hline!([1.0], l=(:dash, :black), sp=1, ylims=(1e-2,1.8))
     end
-    f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, kwargs...)
+    f2 = bodeplot(D, args...; show=false, title="P/(1+PC)", plotphase=false, adaptive, kwargs...)
     Plots.hline!(ones(1, ninputs(D[1])*noutputs(D[1])), l=(:black, :dash), primary=false)
-    f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, kwargs...)
+    f3 = bodeplot(N, args...; show=false, title="C/(1+PC)", plotphase=false, adaptive, kwargs...)
     f4 = bp(T, args...; show=false, title="T = PC/(1+PC)", ylims=(1e-2,4), kwargs...)
     if !isnothing(Mt_lines) && !isempty(Mt_lines)
         Plots.hline!(Mt_lines', l=(:dash, [:green :orange :red :darkred :purple]), primary=false, lab=string.(Mt_lines'), ylims=(1e-2,4))
@@ -977,4 +1048,77 @@ rgaplot
             end
         end
     end
+end
+
+
+## Adaptive sampling
+# Code adapted from https://github.com/iuliancioarca/AdaptiveSampling.jl/blob/master/LICENSE
+
+function downsample(t,y,detail_th)
+    # Compress signal by removing redundant points.
+    # Adjust waveform detail/compression ratio with 'detail_th' (maximum allowed
+    # difference between original and approximated points from the signal)
+    yln           = length(y)
+    idx_l         = 1
+    idx_r         = yln
+    idx_d_max     = 1
+    cond_break    = true
+    d_max         = 0.0
+    M             = zeros(Int,yln) # hash table for relevant indices
+    idx2save      = zeros(Int,yln+2)
+    cnt           = 2
+    idx2save[1:2] = [1,yln]
+    while cond_break
+        # get maximum error(difference) and index, between original chunk of signal
+        # and linear approximation
+        d_max, idx_d_max = get_d_max(idx_l,idx_r,y)
+        # save all indices
+        M[idx_d_max] = idx_r
+        if d_max > detail_th
+            # if computed error is greater than maximum allowed error, save
+            # next point index and call get_d_max(idx_l,idx_r,y) at next
+            # iteration; keep going towards leftmost branches
+            cnt           = cnt + 1
+            idx_r         = idx_d_max
+            idx2save[cnt] = idx_d_max
+        else
+            # if computed error is smaller than maximum allowed error, stop, go
+            # right(to the next waveform segment) and call get_d_max(idx_l,idx_r,y)
+            # at the next iteration
+            idx_l     = idx_r;
+            if idx_l != yln
+                idx_r = M[idx_l]
+            else
+                cond_break = false
+            end
+        end
+    end
+    # sort all indexes corresponding to relevent points and generate resampled
+    # signal
+    idx2save = idx2save[1:cnt]
+    idx2save = sort(idx2save)
+    t_new    = @view t[idx2save]
+    y_new    = @view y[idx2save]
+    return t_new, y_new, idx2save
+end
+function get_d_max(idx_l,idx_r,y)
+    # cut segment to be resampled
+    yp = view(y,idx_l:idx_r)
+    # construct linear approximation
+    dr = LinRange(y[idx_l], y[idx_r], length(yp))
+    # compute distance(error) and get index of maximum error
+    # -> this will be used for further splitting the
+    # signal and will be part of the final resampled signal
+    d_max     = 0.0
+    idx_d_max = 1
+    err_val   = 0.0
+    for i = 1:length(yp)
+        err_val = abs(yp[i] - dr[i])
+        if err_val > d_max
+            d_max     = err_val
+            idx_d_max = i
+        end
+    end
+    idx_d_max = idx_d_max + idx_l - 1
+    return d_max, idx_d_max
 end
