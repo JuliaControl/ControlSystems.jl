@@ -79,11 +79,12 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
             distance, zidx = findmin(abs.(p .- newZ))
 
             if distance < eps
-                if imag(p) == 0 && imag(newZ[zidx]) != 0
+                if imag(p) == 0 && imag(newZ[zidx]) != 0 && zidx < length(newZ)
                     newZ[zidx+1] = real(newZ[zidx+1])
                 end
                 if imag(newZ[zidx]) == 0 && imag(p) != 0
                     pidx += 1
+                    pidx > length(sys.p) && (deleteat!(newZ, zidx); break)
                     p = real(sys.p[pidx])
                     deleteat!(newZ, zidx)
                     continue
