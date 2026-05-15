@@ -550,7 +550,14 @@ function stepinfo(res::SimResult; y0 = nothing, yf = nothing, settling_th = 0.02
     op = direction == 1 ? (>) : (<)
     i10 = findfirst(op.(y, y0 + risetime_th[1] * stepsize * direction))
     i90 = findfirst(op.(y, y0 + risetime_th[2] * stepsize * direction))
-    risetime = res.t[i90] - res.t[i10]
+    if i10 === nothing || i90 === nothing
+        @warn "Response did not reach the requested risetime threshold(s) within the simulation window"
+        i10 = i10 === nothing ? 0 : i10
+        i90 = i90 === nothing ? 0 : i90
+        risetime = oftype(float(res.t[1]), NaN)
+    else
+        risetime = res.t[i90] - res.t[i10]
+    end
     StepInfo(y0, yf, stepsize, peak, peaktime, overshoot, lowerpeak, lowerpeakind, undershoot, settlingtime, settlingtimeind, risetime, i10, i90, res, settling_th, risetime_th)
 end
 
