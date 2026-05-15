@@ -68,7 +68,7 @@ function pid_tf(param_p, param_i, param_d=zero(typeof(param_p)); form=:standard,
     else
         if Ki == 0
             if filter_order == 1
-                tf([Kd*Tf + Kd, Kd], [Tf, 1])
+                return tf([Kd + Kp*Tf, Kp], [Tf, 1])
             else
                 return tf([Kd, Kp], [Tf^2/(4d^2), Tf, 1])
             end
