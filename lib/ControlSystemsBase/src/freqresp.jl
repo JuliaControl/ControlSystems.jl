@@ -295,7 +295,7 @@ function (sys::TransferFunction)(s)
 end
 
 function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
-    isdiscrete(sys) || throw(ArgumentError("It only makes no sense to call this function with discrete systems"))
+    isdiscrete(sys) || throw(ArgumentError("This function can only be called with discrete-time systems"))
     if map_to_unit_circle
         isreal(z_or_omega) ? evalfr(sys,exp(im*z_or_omega.*sys.Ts)) : error("To map to the unit circle, omega should be real")
     else
@@ -304,7 +304,7 @@ function (sys::TransferFunction)(z_or_omega::Number, map_to_unit_circle::Bool)
 end
 
 function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle::Bool)
-    isdiscrete(sys) || throw(ArgumentError("It only makes no sense to call this function with discrete systems"))
+    isdiscrete(sys) || throw(ArgumentError("This function can only be called with discrete-time systems"))
     vals = sys.(z_or_omegas, map_to_unit_circle)# evalfr.(sys,exp.(evalpoints))
     # Reshape from vector of evalfr matrizes, to (in,out,freq) Array
     nu,ny = size(vals[1])
