@@ -233,7 +233,7 @@ function isstable(sys::StateSpace{Continuous, <:ForwardDiff.Dual})
     all(real.(eigvals(ForwardDiff.value.(sys.A))) .< 0)
 end
 function isstable(sys::StateSpace{<:Discrete, <:ForwardDiff.Dual})
-    all(abs.(ForwardDiff.value.(sys.A)) .< 1)
+    all(abs.(eigvals(ForwardDiff.value.(sys.A))) .< 1)
 end
 
 isrational(::AbstractStateSpace) = true
