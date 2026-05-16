@@ -144,6 +144,14 @@ k = 0.3
 @test minreal(zpk([-1.0, -2.0], Float64[], 2.5)) == zpk([-1.0, -2.0], Float64[], 2.5)
 @test minreal(zpk(Float64[], [-1.0, -2.0], 2.5)) == zpk(Float64[], [-1.0, -2.0], 2.5)
 
+# Regression: bounds-checks in SisoZpk minreal. With complex-valued zpk the
+# constructor does not enforce conjugate-pair ordering, so the cancellation
+# loop can hit `newZ[zidx+1]` (line 83) with `zidx == length(newZ)`, or
+# advance `pidx` past `length(sys.p)` before reading `sys.p[pidx]` (line 87).
+# Both previously threw BoundsError; they should now return cleanly.
+@test minreal(zpk([1.0+0.001im, 1.0-0.001im], [1.0, 1.0+0.001im], 1.0+0im), 0.01) == zpk(ComplexF64[], ComplexF64[], 1.0+0im)
+@test minreal(zpk([1.0+0.001im, 1.0-0.001im], [1.0+0.001im, 1.0], 1.0+0im), 0.01) == zpk(ComplexF64[], ComplexF64[], 1.0+0im)
+
 # Test type inference
 @test eltype(fill(zpk("s"),2)) <: TransferFunction
 @test eltype(fill(zpk([1],[1,1],1),2)) <: TransferFunction
