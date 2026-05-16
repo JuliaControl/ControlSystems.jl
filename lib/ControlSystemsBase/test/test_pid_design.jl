@@ -77,6 +77,13 @@ Ctf = pid(1.1, 1.2, 0, Tf=0.1, filter_order=1)
 Css = pid(1.1, 1.2, 0, Tf=0.1, filter_order=1, state_space=true)
 @test freqresptest(Ctf, Css) < 1e-10
 
+# Regression for #1058: pid_tf for Ki=0 and filter_order=1 used to emit
+# tf([Kd*Tf + Kd, Kd], [Tf, 1]) — Kp dropped and replaced with Kd.
+Ctf = pid(1.1, 0, 1.5, Tf=0.1, filter_order=1, form=:parallel)
+Css = pid(1.1, 0, 1.5, Tf=0.1, filter_order=1, form=:parallel, state_space=true)
+@test freqresptest(Ctf, Css) < 1e-10
+@test Ctf ≈ tf([1.5 + 1.1*0.1, 1.1], [0.1, 1])
+
 # bodeplot([Ctf, Css])
 
 
