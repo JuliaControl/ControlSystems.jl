@@ -810,8 +810,8 @@ marginplot
                 if length(pm) > 5
                     @warn "Only showing \"smallest\" 5 out of $(length(pm)) phase margins"
                     idx = sortperm(pm)
-                    wgm = wpm[idx[1:5]]
-                    gm = pm[idx[1:5]]
+                    wpm = wpm[idx[1:5]]
+                    pm = pm[idx[1:5]]
                 end
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
