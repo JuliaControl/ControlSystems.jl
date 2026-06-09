@@ -107,6 +107,11 @@ function ldiv2_turbo!(ur, ui, cs, H::AbstractMatrix{<:Real}, Xr, Xi, μ::Complex
         ur[k-1] = hr*c - (urk*sr + uik*si)
         ui[k-1] = hi*c - (uik*sr - urk*si)
     end
+    # NOTE: this back-substitution loop is NOT @turbo-able. The inner j-loop is a
+    # sequential recurrence (τ₁ carried across iterations — a scan), which @turbo cannot
+    # vectorize, and the only independent axis (columns i) is length 1 for SISO. Annotating
+    # it with @turbo merely trips check_args and falls back to a plain @inbounds @fastmath
+    # loop (no actual vectorization).
     @inbounds for i = 1:n             # back substitution
         u1r = ur[1]; u1i = ui[1]
         d = u1r*u1r + u1i*u1i
