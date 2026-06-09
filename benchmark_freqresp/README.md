@@ -113,10 +113,44 @@ and long compile times for no gain at this size. It would only pay off at much l
 (thousands of states, very many frequencies, or batches of systems) or on GPU — and there
 the same modal array program is what you would feed it.
 
-**Caveat:** the modal form trades robustness for speed. It relies on the eigendecomposition,
-so accuracy degrades with `cond(V)` for non-normal / near-defective `A`. That conditioning
-risk is exactly why the package defaults to the Hessenberg solve. Modal is an excellent
-fast path for well-conditioned systems, not a safe drop-in default.
+### When the modal form degrades or fails
+
+The modal form's accuracy is governed by `cond(V)` (the conditioning of the eigenvector
+matrix). Checked against a 256-bit `BigFloat` resolvent reference:
+
+| System                              | cond(V) | Hessenberg relerr | modal relerr |
+|-------------------------------------|---------|-------------------|--------------|
+| random (near-normal), nx=20         | 2e1     | 2e-15             | 8e-15 ✓      |
+| 8 repeated poles at −1              | 1.5e110 | 1e-15             | **1.0** ✗    |
+| 12 repeated poles at −1             | 7.6e172 | 2e-15             | **1.0** ✗    |
+| clustered eigenvalues (non-normal)  | 1e20    | 8e-16             | **8.7e2** ✗  |
+| lightly damped, eval across pole    | 1e0     | 6e-15             | 2e-14 ✓      |
+
+Failure conditions, in order of severity:
+
+1. **Defective (non-diagonalizable) `A`** — a repeated eigenvalue with a non-trivial Jordan
+   block. `A = VΛV⁻¹` does not exist (`V` singular), and the simple-pole form cannot
+   represent the response (needs `rⱼ/(s−λ)ᵏ` terms). Total failure (relerr ≈ 1).
+2. **Near-defective / strongly non-normal `A`** — diagonalizable but `cond(V)` huge.
+   Forming `V⁻¹B` and the residue sum loses ≈ `log₁₀(cond(V))` digits with catastrophic
+   cancellation; error scales with `cond(V)`.
+3. **Clustered eigenvalues** — nearly-parallel eigenvectors → ill-conditioned `V` (a milder
+   case 2).
+
+These are common in control (repeated integrators, cascaded identical lags,
+Butterworth/Bessel clustered poles). Note that evaluating *near a pole* (`iω ≈ λⱼ`) is **not**
+a modal-specific weakness — the response genuinely blows up there for every method; with a
+well-conditioned `V` the modal form is as accurate as Hessenberg across the resonance.
+
+**Why the Hessenberg solve is immune:** it computes `(iωI − A)⁻¹B` via a backward-stable
+linear solve whose accuracy depends on `cond(iωI − A)` (benign except genuinely at a pole),
+**not** on `cond(V)`, and it never diagonalizes so it handles defective `A` fine. That
+robustness is why the package defaults to it.
+
+**Caveat / rule of thumb:** the modal fast path is safe only when `A` is near-normal with
+simple, well-separated poles. Guard it by checking `cond(V)` — beyond ~`1/√eps ≈ 1e8` half
+the digits are gone, and it should fall back to the Hessenberg solve. It is an excellent
+opt-in fast path for well-conditioned systems, not a safe drop-in default.
 
 ## Recommendation
 
