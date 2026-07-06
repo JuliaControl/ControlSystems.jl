@@ -184,4 +184,27 @@ using ControlSystemsBase: Saturation, DeadZone, Offset, Hysteresis, describing_f
     @test describing_function(nl, 2.0) ≈ describing_function(Saturation(1.0), 2.0)
     @test_throws ErrorException describing_function(nonlinearity(abs2) + nonlinearity(abs), 1.0)
 
+    # Promoting Hysteresis constructor
+    @test Hysteresis(3, 1.5, Inf) === Hysteresis(3.0, 1.5, Inf)
+    @test Hysteresis(1, 1, 20.0) === Hysteresis(1.0, 1.0, 20.0)
+
+    # Amplitude validation in analytical overloads
+    @test_throws ArgumentError describing_function(Saturation(1.0), -2.0)
+    @test_throws ArgumentError describing_function(DeadZone(1.0), 0.0)
+    @test_throws ArgumentError describing_function(Hysteresis(1.0, 0.5, 20.0), -1.0)
+
+    # DeadZone through the identity N_dz = 1 - N_sat, also for asymmetric dead-zone
+    @test describing_function(DeadZone(-0.5, 1.0), 2.0) ≈ 1 - describing_function(Saturation(-0.5, 1.0), 2.0)
+
+    # A HammersteinWienerSystem containing a Hysteresis applies only the static
+    # callable, so the DF must be that of the callable, not the analytical
+    # relay-with-hysteresis formula
+    df_hw = describing_function(nonlinearity(h), 2.0)
+    @test df_hw ≈ describing_function(x -> h(x), 2.0)
+    @test abs(imag(df_hw)) < 1e-10 # a static odd nonlinearity has a real DF
+    @test !(df_hw ≈ describing_function(h, 2.0))
+
+    # describing_function_plot requires a SISO external part
+    @test_throws ErrorException ControlSystemsBase.describing_function_plot([tf(1); tf(1)] * nl)
+
 end

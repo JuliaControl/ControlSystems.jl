@@ -14,6 +14,9 @@ using ControlSystemsBase: describing_function, describing_function_plot, Saturat
 relay(x) = sign(x)
 println("Relay N(2): ", describing_function(relay, 2.0))
 # Theoretical check: 4/(π*A) = 4/(2π) ≈ 0.6366
+# The numerical method uses a fixed-grid trapezoidal rule; for discontinuous
+# nonlinearities like the relay it converges slowly, increase the keyword
+# argument N for higher accuracy.
 
 # 2. Saturation function — analytical
 println("Saturation N(2) (analytical): ", describing_function(Saturation(1.0), 2.0))
