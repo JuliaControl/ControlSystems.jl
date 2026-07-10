@@ -72,6 +72,16 @@ import CairoMakie.Makie
             fig = CSMakie.nyquistplot([P, P2]; unit_circle=true)
             @test fig isa Makie.Figure
         end
+        @test_nowarn begin
+            fig = CSMakie.nyquistplot(P; polar=true, rlimits=(0, 3),
+                                      Ms_circles=[1.5], Mt_circles=[1.5], unit_circle=true)
+            @test fig isa Makie.Figure
+            @test any(x -> x isa Makie.PolarAxis, fig.content)
+        end
+        @test_nowarn begin
+            fig = CSMakie.nyquistplot(Pmimo; polar=true)
+            @test fig isa Makie.Figure
+        end
     end
     
     @testset "sigmaplot" begin
