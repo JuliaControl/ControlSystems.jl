@@ -251,8 +251,13 @@ function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LT
     for j in 1:nu
         for i in 1:ny
             if polar
+                # Label angles in (-180°, 180°] so that the phase lag of a typical
+                # system reads as a negative angle in the lower half-plane,
+                # following the convention of polar Nyquist charts in textbooks
+                thetatickvalues = range(0, 2π, step=π/4)[1:end-1]
+                thetaticklabels = [string(round(Int, rad2deg(v > π ? v - 2π : v)), "°") for v in thetatickvalues]
                 ax = PolarAxis(gl[i, j],
-                         thetaticks = Makie.AngularTicks(180/pi, "°"),
+                         thetaticks = (collect(thetatickvalues), thetaticklabels),
                          rlimits = rlimits,
                          title = i == 1 && j == 1 ? "Nyquist Plot" : "")
             else
