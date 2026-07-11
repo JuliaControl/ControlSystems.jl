@@ -205,8 +205,14 @@ syszpk = zpk(sys)
 P = DemoSystems.double_mass_model()
 C = tf('s')
 @test norm(P*C - C*P) < 1e-10
-mp = minreal(minreal(tf(P)*C) - P*C)
-@test hinfnorm(mp)[1] < 1e-10
+# The difference below is analytically zero but contains near pole-zero cancellations on
+# the stability boundary. An explicit minreal tolerance is required to reliably remove the
+# nearly non-minimal modes; the default tolerance occasionally leaves a weakly coupled
+# boundary pole for which hinfnorm correctly returns Inf. The modes truncated by minreal
+# may contribute a gain on the order of the truncation tolerance, hence the test threshold
+# is above the minreal tolerance.
+mp = minreal(minreal(tf(P)*C) - P*C, 1e-9)
+@test hinfnorm(mp)[1] < 1e-8
 @inferred P*C
 
 @test_logs (:warn,"Possible numerical instability detected: Multiplication of a statespace system and a non-proper transfer function may result in numerical inaccuracy. Verify result carefully, and consider making use of DescriptorSystems.jl to represent this product as a DescriptorSystem with non-unit descriptor matrix if result is inaccurate.") P*tf('s')^3
@@ -217,8 +223,8 @@ mp = minreal(minreal(tf(P)*C) - P*C)
 P = c2d(P, 0.01, :fwdeuler) # to get poles exactly at 1
 C = tf('z', 0.01)-1
 @test norm(minreal(P*C - C*P)) < 1e-10
-mp = minreal(minreal(tf(P)*C) - P*C)
-@test hinfnorm(mp)[1] < 1e-10
+mp = minreal(minreal(tf(P)*C) - P*C, 1e-9) # see comment on the continuous-time case above
+@test hinfnorm(mp)[1] < 1e-8
 @inferred P*C
 
 # @test_logs (:warn,"Possible numerical instability detected: Multiplication of a statespace system and a non-proper transfer function may result in numerical inaccuracy. Verify result carefully, and consider making use of DescriptorSystems.jl to represent this product as a DescriptorSystem with non-unit descriptor matrix if result is inaccurate.") P*C^3

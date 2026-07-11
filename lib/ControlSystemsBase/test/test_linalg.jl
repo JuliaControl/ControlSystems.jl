@@ -291,6 +291,37 @@ Ninf, ω_peak = linfnorm(sys)
 @test ω_peak ≈ 0
 
 
+## Spurious boundary/unstable poles with negligible residues (imperfect pole-zero
+## cancellations) should not cause Inf to be returned
+# Discrete time: decoupled mode exactly on the unit circle, the coupled part 1/(z-0.5)
+# peaks at z=1 with gain 2
+sys = ss([0.5 0; 0 1.0], [1; 1e-12], [1 1e-12], 0, 0.01)
+Ninf, ω_peak = hinfnorm(sys)
+@test Ninf ≈ 2 rtol=1e-4
+@test ω_peak ≈ 0 atol=1 # The gain peak is very flat, the peak frequency is ill-determined
+@test linfnorm(sys)[1] ≈ 2 rtol=1e-4
+# Decoupled mode just outside the unit circle
+@test hinfnorm(ss([0.5 0; 0 1+1e-9], [1; 1e-12], [1 1e-12], 0, 0.01))[1] ≈ 2 rtol=1e-4
+
+# Continuous time: decoupled mode on the imaginary axis, coupled part 1/(s+1)
+sys = ss([-1 0; 0 0], [1; 1e-12], [1 1e-12], 0)
+@test hinfnorm(sys)[1] ≈ 1 rtol=1e-4
+# Decoupled mode slightly in the right half-plane
+@test hinfnorm(ss([-1 0; 0 1e-11], [1; 1e-12], [1 1e-12], 0))[1] ≈ 1 rtol=1e-4
+
+# Genuinely coupled boundary/unstable modes must still give Inf, also for small-gain systems
+@test hinfnorm(ss(0.0, 1e-9, 1e-9, 0))[1] == Inf
+@test hinfnorm(ss([-1 0; 0 1e-3], [1; 1], [1 1], 0))[1] == Inf
+@test hinfnorm(ss([0.5 0; 0 1.0], [1; 1], [1 1], 0, 0.01))[1] == Inf
+
+# resid_tol = 0 recovers the strict behavior
+@test hinfnorm(ss([-1 0; 0 0], [1; 1e-12], [1 1e-12], 0), resid_tol=0)[1] == Inf
+@test hinfnorm(ss([0.5 0; 0 1.0], [1; 1e-12], [1 1e-12], 0, 0.01), resid_tol=0)[1] == Inf
+
+# Completely decoupled boundary mode: the algorithm must terminate with a finite result
+@test hinfnorm(ss([0.5 0; 0 1.0], [1; 0], [1 0], 0, 0.01))[1] ≈ 2 rtol=1e-4
+
+
 A = [1  100  10000; .01  1  100; .0001  .01  1]
 T, P, B = balance(A)
 # The scaling is BLAS dependent. However, the ratio should be the same on all

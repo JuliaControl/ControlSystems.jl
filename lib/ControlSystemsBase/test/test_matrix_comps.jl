@@ -404,6 +404,10 @@ C_test = zpk(
 S_test = sensitivity(P_test, C_test);
 n,w = hinfnorm(S_test)
 @test n ≈ 1.3056118418593037 atol=1e-3
+# The gain peak is flat, so the peak frequency is only determined to within ~w*√tol
+@test w ≈ 5.687023116875403 atol=1e-2
+n,w = hinfnorm(S_test, tol=1e-10)
+@test n ≈ 1.3056118418593037 atol=1e-3
 @test w ≈ 5.687023116875403 atol=1e-3
 end
 
