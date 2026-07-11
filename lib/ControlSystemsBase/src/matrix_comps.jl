@@ -320,7 +320,7 @@ function schur_form(sys)
 end
 
 """
-    Ninf, ω_peak = hinfnorm(sys; tol=1e-6)
+    Ninf, ω_peak = hinfnorm(sys; tol=1e-6, resid_tol=nothing)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain Ninf is achieved.
@@ -330,6 +330,15 @@ Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 
 `tol` is an optional keyword argument for the desired relative accuracy for
 the computed H∞ norm (not an absolute certificate).
+
+`resid_tol` controls the handling of poles on or outside the stability boundary
+(the imaginary axis in continuous time, the unit circle in discrete time). A pole
+whose modal residue is smaller than `resid_tol*opnorm(B)*opnorm(C)` is considered
+the result of an imperfect pole-zero cancellation; such nearly non-minimal modes
+are ignored rather than causing `Inf` to be returned, e.g., the norm of `s/s`
+evaluates to 1 rather than `Inf`. The default is `nx*√eps` where `nx` is the
+state dimension. Pass `resid_tol = 0` to treat every pole on or outside the
+boundary as genuine.
 
 `sys` is first converted to a state space model if needed.
 
@@ -343,12 +352,12 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6) = _infnorm_two_steps_ct(schur_form(sys)[1], :hinf, tol)
-hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6) = _infnorm_two_steps_dt(schur_form(sys)[1], :hinf, tol)
-hinfnorm(sys::TransferFunction; tol=1e-6) = hinfnorm(ss(sys); tol=tol)
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6, resid_tol=nothing) = _infnorm_two_steps_ct(schur_form(sys)[1], :hinf, tol; resid_tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6, resid_tol=nothing) = _infnorm_two_steps_dt(schur_form(sys)[1], :hinf, tol; resid_tol)
+hinfnorm(sys::TransferFunction; tol=1e-6, resid_tol=nothing) = hinfnorm(ss(sys); tol, resid_tol)
 
 """
-    Ninf, ω_peak = linfnorm(sys; tol=1e-6)
+    Ninf, ω_peak = linfnorm(sys; tol=1e-6, resid_tol=nothing)
 
 Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain `Ninf` is achieved.
@@ -357,6 +366,9 @@ Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 
 `tol` is an optional keyword argument representing the desired relative accuracy for
 the computed L∞ norm (this is not an absolute certificate however).
+
+`resid_tol` controls the handling of poles on the stability boundary, see
+[`hinfnorm`](@ref) for details.
 
 `sys` is first converted to a state space model if needed.
 
@@ -370,47 +382,85 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`hinfnorm`](@ref).
 """
-function linfnorm(sys::AbstractStateSpace; tol=1e-6)
+function linfnorm(sys::AbstractStateSpace; tol=1e-6, resid_tol=nothing)
     sys2, _ = schur_form(sys)
     if iscontinuous(sys2)
-        return _infnorm_two_steps_ct(sys2, :linf, tol)
+        return _infnorm_two_steps_ct(sys2, :linf, tol; resid_tol)
     else
-        return _infnorm_two_steps_dt(sys2, :linf, tol)
+        return _infnorm_two_steps_dt(sys2, :linf, tol; resid_tol)
     end
 end
-linfnorm(sys::TransferFunction; tol=1e-6) = linfnorm(ss(sys); tol=tol)
+linfnorm(sys::TransferFunction; tol=1e-6, resid_tol=nothing) = linfnorm(ss(sys); tol, resid_tol)
 
-function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approximag=1e-10)
+"""
+    _modal_residues(sys, suspects)
+
+Estimate the norm of the modal residue `‖(C*vᵢ)(wᵢ'B)/(wᵢ'vᵢ)‖` for the eigenvalue of
+`sys.A` closest to each pole in `suspects`. A residue that is negligible relative to
+`opnorm(B)*opnorm(C)` indicates a mode that is nearly uncontrollable or unobservable,
+typically the result of an imperfect pole-zero cancellation.
+
+Returns `nothing` if the eigenvector decomposition fails (defective `A`), in which case
+callers should treat all suspect poles as genuine.
+"""
+function _modal_residues(sys::AbstractStateSpace, suspects::AbstractVector)
+    local E, WB
+    try
+        E = eigen(sys.A, sortby=nothing)
+        WB = E.vectors \ sys.B # Rows scale as 1/(wᵢ'vᵢ), no explicit normalization needed
+    catch
+        return nothing
+    end
+    CV = sys.C * E.vectors
+    map(suspects) do p
+        i = argmin(abs.(E.values .- p)) # Robust index matching against poles(sys)
+        norm(@view(CV[:, i])) * norm(@view(WB[i, :]))
+    end
+end
+
+function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approximag=1e-10; resid_tol=nothing)
     # norm type :hinf or :linf the reason that to not use `hinfnorm(sys) = isstable(sys) : linfnorm ? (Inf, Nan)`
     # is to avoid re computing the poles and return the peak frequencies for, e.g., 1/(s^2 + 1)
-    # `maxIters`: the maximum  number of iterations allowed in the algorithm (default 1000)
+    # `maxIters`: the maximum  number of iterations allowed in the algorithm
     # approximag is a tuning parameter: what does it mean for a number to be on the imaginary axis
     # Because of this tuning for example, the relative precision that we provide on the norm computation
     # is not a true guarantee, more an order of magnitude
     # outputs: An approximation of the L∞ norm and the frequency ω_peak at which it is achieved
-    # QUESTION: The tolerance for determining if there are poles on the imaginary axis
-    # would not be very appropriate for systems with slow dynamics?
     T = promote_type(real(numeric_type(sys)), Float64)
-    on_imag_axis = z -> abs(real(z)) < approximag # Helper fcn for readability
+    # The test is relative in the eigenvalue magnitude (with a floor of one) to remain
+    # meaningful for both slow and fast dynamics
+    on_imag_axis = z -> abs(real(z)) < approximag*max(1, abs(z)) # Helper fcn for readability
 
     if sys.nx == 0  # static gain
         return (T(opnorm(sys.D)), T(0))
     end
 
+    resid_tol = something(resid_tol, sys.nx*sqrt(eps(T)))
+
     pole_vec = poles(sys)
 
-    # Check if there is a pole on the imaginary axis
-    pidx = findfirst(on_imag_axis, pole_vec)
-    if !(pidx isa Nothing)
-        return (T(Inf), T(imag(pole_vec[pidx])))
-        # note: in case of cancellation, for s/s for example, we return Inf, whereas Matlab returns 1
+    # Check for poles on the imaginary axis and, for the H∞ norm, in the right half-plane.
+    # Poles whose modal residue is negligible are regarded as spurious remainders of
+    # imperfect pole-zero cancellations and are ignored, so that, e.g., s/s has norm 1
+    # rather than Inf.
+    boundary = findall(on_imag_axis, pole_vec)
+    unstable = normtype === :hinf ? findall(z -> real(z) > 0 && !on_imag_axis(z), pole_vec) : Int[]
+    suspects = vcat(boundary, unstable)
+    if !isempty(suspects)
+        rs = _modal_residues(sys, pole_vec[suspects])
+        thresh = resid_tol * opnorm(sys.B) * opnorm(sys.C)
+        spurious = rs === nothing ? falses(length(suspects)) : (rs .<= thresh)
+        for (k, i) in enumerate(boundary)
+            spurious[k] || return (T(Inf), T(imag(pole_vec[i])))
+        end
+        for k in length(boundary)+1:length(suspects)
+            spurious[k] || return (T(Inf), T(NaN)) # The system is unstable
+        end
     end
 
-    if normtype === :hinf && any(z -> real(z) > 0, pole_vec)
-        return T(Inf), T(NaN) # The system is unstable
-    end
-
-    # Initialization: computation of a lower bound from 3 terms
+    # Initialization: computation of a lower bound from a set of candidate frequencies:
+    # zero, infinity, the pole with the highest ratio of imaginary to real part, and the
+    # imaginary part and magnitude of each pole
     if isreal(pole_vec)  # only real poles
         ω_p = minimum(abs.(pole_vec))
     else  # at least one pair of complex poles
@@ -418,12 +468,20 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         ω_p = abs(pole_vec[maxidx])
     end
 
-    m_vec_init = [0, ω_p, Inf]
+    pole_freqs = numeric_type(sys) <: Real ? abs.(imag.(pole_vec)) : imag.(pole_vec)
+    m_vec_init = [0; ω_p; pole_freqs; abs.(pole_vec)]
 
-    (lb, idx) = findmax([opnorm(evalfr(sys, im*m_vec_init[1]));
-                         opnorm(evalfr(sys, im*m_vec_init[2]));
-                         opnorm(sys.D)])
-    ω_peak = m_vec_init[idx]
+    lb = T(opnorm(sys.D)) # The gain at ω = Inf
+    ω_peak = T(Inf)
+    for ω in m_vec_init
+        σ = opnorm(evalfr(sys, im*ω))
+        # evalfr at a frequency very close to a pole may yield non-finite values
+        isfinite(σ) || continue
+        if σ > lb
+            lb = σ
+            ω_peak = ω
+        end
+    end
     lb == 0 && (return zero(T), zero(T))
     # Iterations
     for iter=1:maxIters
@@ -452,23 +510,34 @@ function _infnorm_two_steps_ct(sys::AbstractStateSpace, normtype::Symbol, tol=1e
             return T((1+tol)*lb), T(ω_peak)
         end
 
-        # Improve the lower bound
-        # if not empty, ω_vec contains at least two values
-        for k=1:length(ω_vec)-1
-            mk = (ω_vec[k] + ω_vec[k+1])/2
+        # Improve the lower bound by evaluating the gain at the crossing frequencies
+        # themselves and at the midpoints between adjacent crossings. Evaluating at the
+        # crossings guarantees progress also when only a single crossing is detected.
+        lb_prev = lb
+        midpoints = [(ω_vec[k] + ω_vec[k+1])/2 for k = 1:length(ω_vec)-1]
+        for mk in [ω_vec; midpoints]
             sigmamax_mk = opnorm(evalfr(sys,mk*1im))
+            isfinite(sigmamax_mk) || continue
             if sigmamax_mk > lb
                 lb = sigmamax_mk
                 ω_peak = mk
             end
         end
+        if lb <= lb_prev*(1 + 3*T(tol))
+            # The improvement of the lower bound did not exceed the γ-margin, meaning that
+            # the evaluations at the crossings themselves were the only progress. This
+            # happens at a tangential crossing (converged), or when the detected crossings
+            # are artifacts of spurious near-cancelled poles close to the imaginary axis,
+            # in which case further iterations cannot make meaningful progress either.
+            return T((1+tol)*lb), T(ω_peak)
+        end
     end
-    @error("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations")
+    @warn("In _infnorm_two_steps_ct: The computation of the H∞/L∞ norm did not converge in $maxIters iterations, the result may be inaccurate")
     return T((1+tol)*lb), T(ω_peak)
 end
 
-function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8)
-    # Discrete-time version of linfnorm_two_steps_ct above
+function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e-6, maxIters=250, approxcirc=1e-8; resid_tol=nothing)
+    # Discrete-time version of _infnorm_two_steps_ct above
     # Computations are done in normalized frequency θ
 
     on_unit_circle = z -> abs(abs(z) - 1) < approxcirc # Helper fcn for readability
@@ -480,38 +549,45 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
         return (T(opnorm(sys.D)), Tw(0))
     end
 
+    resid_tol = something(resid_tol, sys.nx*sqrt(eps(T)))
+
     pole_vec = poles(sys)
 
-    # Check if there is a pole on the unit circle
-    pidx = findfirst(on_unit_circle, pole_vec)
-    if !(pidx isa Nothing)
-        return T(Inf), Tw(angle(pole_vec[pidx])/sys.Ts)
+    # Check for poles on the unit circle and, for the H∞ norm, outside of it.
+    # Poles whose modal residue is negligible are regarded as spurious remainders of
+    # imperfect pole-zero cancellations and are ignored, see _infnorm_two_steps_ct.
+    boundary = findall(on_unit_circle, pole_vec)
+    unstable = normtype === :hinf ? findall(z -> abs(z) > 1 && !on_unit_circle(z), pole_vec) : Int[]
+    suspects = vcat(boundary, unstable)
+    if !isempty(suspects)
+        rs = _modal_residues(sys, pole_vec[suspects])
+        thresh = resid_tol * opnorm(sys.B) * opnorm(sys.C)
+        spurious = rs === nothing ? falses(length(suspects)) : (rs .<= thresh)
+        for (k, i) in enumerate(boundary)
+            spurious[k] || return (T(Inf), Tw(angle(pole_vec[i])/sys.Ts))
+        end
+        for k in length(boundary)+1:length(suspects)
+            spurious[k] || return (T(Inf), Tw(NaN)) # The system is unstable
+        end
     end
 
-    if normtype == :hinf && any(z -> abs(z) > 1, pole_vec)
-        return T(Inf), Tw(NaN) # The system is unstable
+    # Initialization: computation of a lower bound from a set of candidate frequencies:
+    # zero, the Nyquist frequency, and the frequency of each pole
+    pole_freqs = numeric_type(sys) <: Real ? abs.(angle.(pole_vec)) : angle.(pole_vec)
+    m_vec_init = [0; pole_freqs; pi]
+
+    lb = zero(T)
+    θ_peak = zero(T)
+    for θ in m_vec_init
+        σ = opnorm(evalfr(sys, exp(im*θ)))
+        # evalfr at a frequency very close to a pole may yield non-finite values
+        isfinite(σ) || continue
+        if σ > lb
+            lb = σ
+            θ_peak = θ
+        end
     end
-
-    # Initialization: computation of a lower bound from 3 terms
-
-    if isreal(pole_vec)  # not just real poles
-        # find frequency of pôle closest to unit circle
-        θ_p = angle(pole_vec[argmin(abs.(abs.(pole_vec).-1))])
-    else
-        θ_p = T(pi)/2
-    end
-
-    if isreal(pole_vec)  # only real poles
-        ω_p = minimum(abs.(pole_vec))
-    else  # at least one pair of complex poles
-        maxidx = argmax([abs(imag(p)/real(p))/abs(p) for p in pole_vec])
-        ω_p = abs(pole_vec[maxidx])
-    end
-
-    m_vec_init = [0, θ_p, pi]
-
-    (lb, idx) = findmax([opnorm(evalfr(sys, exp(im*m))) for m in m_vec_init])
-    θ_peak = m_vec_init[idx]
+    lb == 0 && (return zero(T), zero(Tw))
 
     # Iterations
     for iter=1:maxIters
@@ -541,18 +617,30 @@ function _infnorm_two_steps_dt(sys::AbstractStateSpace, normtype::Symbol, tol=1e
             return T((1+tol)*lb), Tw(θ_peak/sys.Ts)
         end
 
-        # Improve the lower bound
-        # if not empty, θ_vec contains at least two values
-        for k=1:length(θ_vec)-1
-            mk = (θ_vec[k] + θ_vec[k+1])/2
+        # Improve the lower bound by evaluating the gain at the crossing frequencies
+        # themselves and at the midpoints between adjacent crossings. Evaluating at the
+        # crossings guarantees progress also when only a single crossing is detected.
+        lb_prev = lb
+        midpoints = [(θ_vec[k] + θ_vec[k+1])/2 for k = 1:length(θ_vec)-1]
+        for mk in [θ_vec; midpoints]
             sigmamax_mk = opnorm(evalfr(sys,exp(mk*1im)))
+            isfinite(sigmamax_mk) || continue
             if sigmamax_mk > lb
                 lb = sigmamax_mk
                 θ_peak = mk
             end
         end
+        if lb <= lb_prev*(1 + 3*T(tol))
+            # The improvement of the lower bound did not exceed the γ-margin, meaning that
+            # the evaluations at the crossings themselves were the only progress. This
+            # happens at a tangential crossing (converged), or when the detected crossings
+            # are artifacts of spurious near-cancelled poles close to the unit circle,
+            # in which case further iterations cannot make meaningful progress either.
+            return T((1+tol)*lb), Tw(θ_peak/sys.Ts)
+        end
     end
-    error("In _infnorm_two_steps_dt: The computation of the L∞ norm did not converge in $maxIters iterations")
+    @warn("In _infnorm_two_steps_dt: The computation of the H∞/L∞ norm did not converge in $maxIters iterations, the result may be inaccurate")
+    return T((1+tol)*lb), Tw(θ_peak/sys.Ts)
 end
 
 
