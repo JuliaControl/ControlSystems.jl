@@ -256,16 +256,20 @@ function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LT
                 # following the convention of polar Nyquist charts in textbooks
                 thetatickvalues = range(0, 2π, step=π/4)[1:end-1]
                 thetaticklabels = [string(round(Int, rad2deg(v > π ? v - 2π : v)), "°") for v in thetatickvalues]
-                ax = PolarAxis(gl[i, j],
+                # kwargs... are forwarded to PolarAxis and may override the defaults
+                ax = PolarAxis(gl[i, j];
                          thetaticks = (collect(thetatickvalues), thetaticklabels),
                          rlimits = rlimits,
-                         title = i == 1 && j == 1 ? "Nyquist Plot" : "")
+                         title = i == 1 && j == 1 ? "Nyquist Plot" : "",
+                         kwargs...)
             else
-                ax = Axis(gl[i, j],
+                # kwargs... are forwarded to Axis and may override the defaults
+                ax = Axis(gl[i, j];
                          aspect = DataAspect(),
                          xlabel = j == ny ? "Real" : "",
                          ylabel = i == 1 ? "Imaginary" : "",
-                         title = i == 1 && j == 1 ? "Nyquist Plot" : "")
+                         title = i == 1 && j == 1 ? "Nyquist Plot" : "",
+                         kwargs...)
 
                 # Add grid lines at zero
                 vlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)

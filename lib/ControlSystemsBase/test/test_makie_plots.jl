@@ -82,6 +82,20 @@ import CairoMakie.Makie
             fig = CSMakie.nyquistplot(Pmimo; polar=true)
             @test fig isa Makie.Figure
         end
+        # Extra keyword arguments are forwarded to the axis constructor
+        @test_nowarn begin
+            fig = CSMakie.nyquistplot(P; polar=true, rlimits=(0, 3),
+                                      rticks=0:0.5:3,
+                                      thetaminorticks=Makie.IntervalsBetween(3),
+                                      thetaminorgridvisible=true, rminorgridvisible=true)
+            @test fig isa Makie.Figure
+        end
+        @test_nowarn begin
+            fig = CSMakie.nyquistplot(P; xgridvisible=false, title="Custom title")
+            @test fig isa Makie.Figure
+        end
+        # Unsupported keyword arguments now error instead of being silently ignored
+        @test_throws Exception CSMakie.nyquistplot(P; not_a_keyword=true)
     end
     
     @testset "sigmaplot" begin
