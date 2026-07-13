@@ -152,7 +152,7 @@ plot(si)  # Visualizes step response characteristics
 The `CSMakie` module provides Makie implementations of the following plotting functions:
 
 - `CSMakie.bodeplot` - Bode magnitude and phase plots
-- `CSMakie.nyquistplot` - Nyquist plots with optional M and Mt circles
+- `CSMakie.nyquistplot` - Nyquist plots with optional M and Mt circles. Pass `polar=true` to draw the plot in a polar axis with circular grid lines.
 - `CSMakie.sigmaplot` - Singular value plots
 - `CSMakie.marginplot` - Gain and phase margin plots
 - `CSMakie.pzmap` - Pole-zero maps

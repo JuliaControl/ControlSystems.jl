@@ -232,36 +232,57 @@ function CSMakie.nyquistplot(args...; kwargs...)
     fig = Figure()
     CSMakie.nyquistplot!(fig, args...; kwargs...)
 end
-function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}}, 
-                             w=nothing; Ms_circles=Float64[], Mt_circles=Float64[], 
-                             unit_circle=false, hz=false, critical_point=-1, 
-                             balance=true, adaptive=true, kwargs...)
+function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISystem}},
+                             w=nothing; Ms_circles=Float64[], Mt_circles=Float64[],
+                             unit_circle=false, hz=false, critical_point=-1,
+                             balance=true, adaptive=true, polar=false,
+                             rlimits=(:origin, nothing), kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
-    systems, w = isnothing(w) ? _processfreqplot(Val{:nyquist}(), systems_vec; adaptive) : 
+    systems, w = isnothing(w) ? _processfreqplot(Val{:nyquist}(), systems_vec; adaptive) :
                                 _processfreqplot(Val{:nyquist}(), systems_vec, w; adaptive)
-    
+
     ny, nu = size(systems[1])
 
     gl = GridLayout(fig[1, 1])
-    
+
     # Create axes grid
     axes = Matrix{Any}(undef, ny, nu)
-    
+
     for j in 1:nu
         for i in 1:ny
-            ax = Axis(gl[i, j],
-                     aspect = DataAspect(),
-                     xlabel = j == ny ? "Real" : "",
-                     ylabel = i == 1 ? "Imaginary" : "",
-                     title = i == 1 && j == 1 ? "Nyquist Plot" : "")
+            if polar
+                # Label angles in (-180°, 180°] so that the phase lag of a typical
+                # system reads as a negative angle in the lower half-plane,
+                # following the convention of polar Nyquist charts in textbooks
+                thetatickvalues = range(0, 2π, step=π/4)[1:end-1]
+                thetaticklabels = [string(round(Int, rad2deg(v > π ? v - 2π : v)), "°") for v in thetatickvalues]
+                # kwargs... are forwarded to PolarAxis and may override the defaults
+                ax = PolarAxis(gl[i, j];
+                         thetaticks = (collect(thetatickvalues), thetaticklabels),
+                         rlimits = rlimits,
+                         title = i == 1 && j == 1 ? "Nyquist Plot" : "",
+                         kwargs...)
+            else
+                # kwargs... are forwarded to Axis and may override the defaults
+                ax = Axis(gl[i, j];
+                         aspect = DataAspect(),
+                         xlabel = j == ny ? "Real" : "",
+                         ylabel = i == 1 ? "Imaginary" : "",
+                         title = i == 1 && j == 1 ? "Nyquist Plot" : "",
+                         kwargs...)
+
+                # Add grid lines at zero
+                vlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
+                hlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
+            end
             axes[i, j] = ax
-            
-            # Add grid lines at zero
-            vlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
-            hlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
         end
     end
-    
+
+    # Map Cartesian coordinates to the coordinates expected by the axis type;
+    # PolarAxis expects (angle, radius) tuples
+    coords = polar ? (x, y) -> (atan.(y, x), hypot.(x, y)) : tuple
+
     θ = range(0, 2π, length=100)
     
     for (si, s) in enumerate(systems)
@@ -280,37 +301,37 @@ function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LT
                     indsre = downsample(w, redata, 1/500)[3]
                     indsim = downsample(w, imdata, 1/500)[3]
                     inds = sort!(union(indsre, indsim))
-                    lines!(ax, redata[inds], imdata[inds], label=lab)
+                    lines!(ax, coords(redata[inds], imdata[inds])..., label=lab)
                 else
-                    lines!(ax, redata, imdata, label=lab)
+                    lines!(ax, coords(redata, imdata)..., label=lab)
                 end
-                
+
                 # Add circles and critical point for last system
                 if si == length(systems)
                     # Ms circles
                     for Ms in Ms_circles
-                        lines!(ax, -1 .+ (1/Ms) .* cos.(θ), (1/Ms) .* sin.(θ),
+                        lines!(ax, coords(-1 .+ (1/Ms) .* cos.(θ), (1/Ms) .* sin.(θ))...,
                               color=:gray, linestyle=:dash, alpha=0.5,
                               label="Ms = $(round(Ms, digits=2))")
                     end
-                    
+
                     # Mt circles
                     for Mt in Mt_circles
                         ct = -Mt^2/(Mt^2-1)
                         rt = Mt/(abs(Mt^2-1))
-                        lines!(ax, ct .+ rt .* cos.(θ), rt .* sin.(θ),
+                        lines!(ax, coords(ct .+ rt .* cos.(θ), rt .* sin.(θ))...,
                               color=:gray, linestyle=:dash, alpha=0.5,
                               label="Mt = $(round(Mt, digits=2))")
                     end
-                    
+
                     # Unit circle
                     if unit_circle
-                        lines!(ax, cos.(θ), sin.(θ),
+                        lines!(ax, coords(cos.(θ), sin.(θ))...,
                               color=:gray, linestyle=:dash, alpha=0.5)
                     end
-                    
+
                     # Critical point
-                    scatter!(ax, [critical_point], [0],
+                    scatter!(ax, coords([critical_point], [0])...,
                             marker=:xcross, markersize=15, color=:red)
                 end
             end

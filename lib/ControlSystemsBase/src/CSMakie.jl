@@ -25,6 +25,20 @@ using ..ControlSystemsBase: LTISystem
 function bodeplot end
 function bodeplot! end
 
+"""
+    nyquistplot(sys, [w]; Ms_circles=Float64[], Mt_circles=Float64[], unit_circle=false, critical_point=-1, balance=true, adaptive=true, polar=false, rlimits=(:origin, nothing), kwargs...)
+
+Makie version of [`ControlSystemsBase.nyquistplot`](@ref). In addition to the keyword arguments of the Plots version, this version supports
+- `polar`: If `true`, the Nyquist curve is drawn in a `Makie.PolarAxis` with polar grid lines (circles of constant magnitude and rays of constant phase) instead of a Cartesian axis.
+- `rlimits`: Radial axis limits, e.g., `(0, 3)`. Only used when `polar = true`. Limiting the radial axis is useful when the system has poles on or close to the imaginary axis, causing the Nyquist curve to reach very large magnitudes.
+- `kwargs...`: Any remaining keyword arguments are forwarded to the axis constructor (`Makie.PolarAxis` when `polar = true`, otherwise `Makie.Axis`) and may override the defaults set by this function. This allows customization of, e.g., grid density and appearance:
+```julia
+CSMakie.nyquistplot(sys; polar=true, rlimits=(0, 3),
+    rticks = 0:0.5:3,                                  # magnitude circles
+    thetaminorticks = Makie.IntervalsBetween(3),       # phase rays every 15°
+    thetaminorgridvisible = true, rminorgridvisible = true)
+```
+"""
 function nyquistplot end
 function nyquistplot! end
 
