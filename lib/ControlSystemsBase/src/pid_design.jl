@@ -193,7 +193,10 @@ function pid_ss_2dof(param_p, param_i, param_d=zero(typeof(param_p)); form=:stan
     if Tf === nothing && N === nothing
         N = 10 # Default value
     end
-    Tf = @something(Tf, kd / N)
+    if Tf === nothing
+        kp == 0 && throw(ArgumentError("Cannot compute Tf = Td/N when the proportional gain is zero, pass Tf explicitly instead of N"))
+        Tf = kd / (kp * N) # Tf = Td/N where Td = kd/kp is the derivative time constant on standard form
+    end
     Tf <= 0 && throw(ArgumentError("Tf must be strictly positive"))
     if ki == 0
         A = [-(1 / Tf);;]
