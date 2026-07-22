@@ -84,6 +84,28 @@ Css = pid(1.1, 0, 1.5, Tf=0.1, filter_order=1, form=:parallel, state_space=true)
 @test freqresptest(Ctf, Css) < 1e-10
 @test Ctf ≈ tf([1.5 + 1.1*0.1, 1.1], [0.1, 1])
 
+# Tf semantics: Tf is the filter time constant directly (not Td/N).
+# filter_order=1 filters the derivative term only: C = Kp + Ki/s + Kd*s/(Tf*s + 1)
+s = tf('s')
+kp_f, ki_f, kd_f, Tf_f = 1.3, 0.7, 2.1, 0.13
+Cref = kp_f + ki_f/s + kd_f*s/(Tf_f*s + 1)
+@test freqresptest(pid(kp_f, ki_f, kd_f; form=:parallel, Tf=Tf_f, filter_order=1), Cref) < 1e-10
+@test freqresptest(pid(kp_f, ki_f, kd_f; form=:parallel, Tf=Tf_f, filter_order=1, state_space=true), Cref) < 1e-10
+
+# filter_order=2 applies 1/((s*Tf)^2/(4d^2) + Tf*s + 1) in series with the whole
+# controller, with default damping d = 1/√2 so that (Tf)^2/(4d^2) = Tf^2/2
+Cref2 = (kp_f + ki_f/s + kd_f*s) * tf(1, [Tf_f^2/2, Tf_f, 1])
+@test freqresptest(pid(kp_f, ki_f, kd_f; form=:parallel, Tf=Tf_f), Cref2) < 1e-10
+d_f = 0.8
+Cref2d = (kp_f + ki_f/s + kd_f*s) * tf(1, [Tf_f^2/(4d_f^2), Tf_f, 1])
+@test freqresptest(pid(kp_f, ki_f, kd_f; form=:parallel, Tf=Tf_f, d=d_f), Cref2d) < 1e-10
+@test freqresptest(pid(kp_f, ki_f, kd_f; form=:parallel, Tf=Tf_f, d=d_f, state_space=true), Cref2d) < 1e-10
+
+# On standard form the derivative term is K*Td*s/(Tf*s + 1)
+K_f, Ti_f, Td_f = 2.0, 1.5, 0.8
+Crefstd = K_f*(1 + 1/(Ti_f*s) + Td_f*s/(Tf_f*s + 1))
+@test freqresptest(pid(K_f, Ti_f, Td_f; form=:standard, Tf=Tf_f, filter_order=1), Crefstd) < 1e-10
+
 # bodeplot([Ctf, Css])
 
 
@@ -109,10 +131,19 @@ Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; Tf, b, c, form=:parallel)
 @test freqresptest(Kss, Ktf) < 1e-10
 
 kp, ki, kd, b, c, N = rand(6)
-Tf = kd/N
+Tf = kd/(kp*N) # Tf = Td/N with Td = kd/kp
 Ktf = [(kp*b + ki/s + kd*s*c/(Tf*s + 1)) -(kp + ki/s + kd*s/(Tf*s + 1))]
 Kss = ControlSystemsBase.pid_ss_2dof(kp, ki, kd; N, b, c, form=:parallel)
 @test freqresptest(Kss, Ktf) < 1e-10
+
+# Passing N in standard form is equivalent to passing Tf = Td/N
+Kp, Ti, Td, N = 2.0, 1.5, 0.8, 12.0
+Kss_N = ControlSystemsBase.pid_ss_2dof(Kp, Ti, Td; N, form=:standard)
+Kss_Tf = ControlSystemsBase.pid_ss_2dof(Kp, Ti, Td; Tf=Td/N, form=:standard)
+@test freqresptest(Kss_N, Kss_Tf) < 1e-10
+
+# Td/N is undefined when the proportional gain is zero
+@test_throws ArgumentError ControlSystemsBase.pid_ss_2dof(0.0, 1.0, 1.0; N=10, form=:parallel)
 
 
 kp, ki, kd, b, c, Tf = rand(6)
