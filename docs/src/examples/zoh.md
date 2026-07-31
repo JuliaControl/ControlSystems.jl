@@ -24,13 +24,17 @@ Z = (1 - delay(Ts))/(Ts*s) # The transfer function of the ZoH operator
 Pd = c2d(P, Ts) # Discrete-time system obtained by ZoH sampling
 Pz = P*Z # The continuous-time version of the discrete-time system
 
-wd = exp10.(-2:0.01:log10(2*0.5))
+wd = exp10.(LinRange(-2, log10(π/Ts), 200)) # Up to the Nyquist frequency
 bodeplot(P, wd, lab="\$P(s)\$")
 bodeplot!(Pz, wd, lab="\$P(s)Z(s)\$")
 bodeplot!(Pd, wd, lab="\$P_d(z)\$ (ZoH sampling)", l=:dash)
-vline!([0.5 0.5], l=(:black, :dash), lab="Nyquist freq.", legend=:bottomleft)
+vline!([π/Ts π/Ts], l=(:black, :dash), lab="Nyquist freq.", legend=:bottomleft)
 ```
-The frequency response of `Pz` ``= P(s) Z(s)`` matches that of ``P_d(z)`` exactly, but these two differ from the frequency response of the original ``P(s)`` due to the ZoH operator.
+Both `Pz` ``= P(s)Z(s)`` and ``P_d(z)`` differ from the frequency response of the original ``P(s)`` due to the ZoH operator. `Pz` and ``P_d`` agree closely over the lower part of the frequency axis, but they are *not* equal: sampling folds the response at all frequencies ``\omega + k\omega_s`` down onto ``\omega``, so the exact relation between them is the aliasing sum [^CCS]
+```math
+P_d(e^{i\omega T_s}) = \sum_{k=-\infty}^{\infty} Z\big(i(\omega + k\omega_s)\big) \, P\big(i(\omega + k\omega_s)\big), \qquad \omega_s = 2\pi/T_s
+```
+of which ``P(s)Z(s)`` is the ``k = 0`` term alone. The folded terms are negligible as long as ``P`` has rolled off well before ``\omega_s``, which is why the two curves are indistinguishable at low frequencies, but they diverge visibly as ``\omega`` approaches the Nyquist frequency ``\pi/T_s``. When an accurate continuous-time equivalent is required near or above the Nyquist frequency, use [`d2c_exact`](@ref) instead, see [Discrete to continuous](@ref) below.
 
 The step response of `Pz` ``= P(s) Z(s)`` matches the discrete output of ``P_d(z)`` delayed by half the sample time
 ```@example zoh
@@ -56,8 +60,10 @@ plot!(t_shift, resPd.y[:], lab="Pd shifted", m=:o)
 ```
 
 With a _continuous_ input signal, the result is different,
-after the initial transient, the output of `Pz` matches that of `Pd` exactly
-(try plotting with the plotly() backend and zoom in at the end)
+after the initial transient, the output of `Pz` closely matches that of `Pd`
+(try plotting with the plotly() backend and zoom in at the end). The match here is close but
+not exact — the residual difference is the aliasing contribution discussed above, and it grows
+as the frequency of the input approaches the Nyquist frequency.
 ```@example zoh
 Tf = 100
 ufun = (x,t)->[sin(2pi*t/5)]
@@ -82,7 +88,7 @@ Pc = d2c(Pd)
 bodeplot(Pd, wd, lab="\$P_d(z)\$")
 bodeplot!(Pdc, wd, lab="\$P_d(s)\$ (exact translation)", l=:dash)
 bodeplot!(Pc, wd, lab="\$P_d(s)\$ (inverse ZoH sampling)")
-vline!([0.5 0.5], l=(:black, :dash), lab="Nyquist freq.", legend=:bottomleft)
+vline!([π/Ts π/Ts], l=(:black, :dash), lab="Nyquist freq.", legend=:bottomleft)
 ```
 We see that the translation of the discrete-time system to continuous time using the standard inverse ZoH sampling (`d2c(Pd)`) is not accurate for frequencies close to and above the Nyquist frequency. The translation using exact method (`d2c_exact(Pd)`) matches the frequency response of the discrete-time system exactly over the entire frequency axis.
 
