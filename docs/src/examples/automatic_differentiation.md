@@ -110,6 +110,8 @@ The constraint function `constraints` enforces the peak of the sensitivity funct
 ```@example autodiff
 using Statistics, LinearAlgebra
 using OptimizationIpopt
+using SciMLBase: OptimizationFunction, OptimizationProblem, solve
+using ADTypes: AutoForwardDiff
 
 function plot_optimized(P, params, res, systems)
     fig = plot(layout=(1,3), size=(1200,400), bottommargin=2Plots.mm)
@@ -181,7 +183,7 @@ solver = IpoptOptimizer(;
     ),
 )
 
-fopt = OptimizationFunction(cost, OptimizationIpopt.AutoForwardDiff(); cons=constraints)
+fopt = OptimizationFunction(cost, AutoForwardDiff(); cons=constraints)
 
 prob = OptimizationProblem(fopt, params, (P, systemspid);
     lb    = fill(-10.0, length(params)),
