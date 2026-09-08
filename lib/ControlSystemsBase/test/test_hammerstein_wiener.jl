@@ -126,3 +126,85 @@ G = ss(1)
 A, B = ControlSystemsBase.linearize((x,u)->x.^2 + sin.(u), [1.0], [2.0])
 @test A ≈ [2.0;;]
 @test B ≈ [cos(2);;]
+
+## Test nonlinear_components coverage ==========================================
+using ControlSystemsBase: Saturation, DeadZone, Offset, Hysteresis, describing_function, deadzone
+
+@testset "nonlinear_components" begin
+
+    # Show methods
+    @test sprint(show, Saturation(1.0)) == "saturation(1.0)"
+    @test sprint(show, Saturation(-2.0, 1.0)) == "saturation(-2.0, 1.0)"
+    @test sprint(show, Offset(1.5)) == "offset(1.5)"
+    @test sprint(show, DeadZone(1.0)) == "deadzone(1.0)"
+    @test sprint(show, DeadZone(-2.0, 1.0)) == "deadzone(-2.0, 1.0)"
+    @test sprint(show, Hysteresis(1.0, 0.5, 20.0)) == "Hysteresis(amplitude=1.0, width=0.5, hardness=20.0)"
+
+    # Hysteresis callable
+    h = Hysteresis(1.0, 0.5, 20.0)
+    @test isfinite(h(10.0))
+    @test h(10.0) ≈ 0.5 * tanh(20.0 * 10.0)
+    h_inf = Hysteresis(1.0, 0.5, Inf)
+    @test h_inf(10.0) == 0.5
+    @test h_inf(-10.0) == -0.5
+
+    # Vector constructors (MIMO)
+    @test saturation([1.0, 2.0]) isa HammersteinWienerSystem
+    @test deadzone([0.5, 1.0]) isa HammersteinWienerSystem
+    @test offset([1.0, 2.0]) isa HammersteinWienerSystem
+
+    # describing_function — numerical
+    df_num = describing_function(x -> clamp(x, -1, 1), 2.0)
+    df_ana = describing_function(Saturation(1.0), 2.0)
+    @test df_num ≈ df_ana rtol=1e-3
+    @test_throws ArgumentError describing_function(abs, -1.0)
+
+    # describing_function — Saturation analytical
+    @test describing_function(Saturation(2.0), 1.0) == 1.0 + 0im  # A ≤ d
+    @test describing_function(Saturation(1.0), 2.0) ≈ 0.6089977810442294
+    @test describing_function(Saturation(-0.5, 1.0), 2.0) isa Complex  # asymmetric fallback
+
+    # describing_function — DeadZone analytical
+    @test describing_function(DeadZone(2.0), 1.0) == 0.0 + 0im  # A ≤ d
+    df_sat = describing_function(Saturation(1.0), 2.0)
+    df_dz = describing_function(DeadZone(1.0), 2.0)
+    @test df_sat + df_dz ≈ 1.0 + 0im  # complementary
+    @test describing_function(DeadZone(-0.5, 1.0), 2.0) isa Complex  # asymmetric fallback
+
+    # describing_function — Hysteresis analytical
+    @test describing_function(Hysteresis(1.0, 0.5, 20.0), 0.3) == 0.0 + 0im  # A ≤ width
+    h = Hysteresis(1.0, 0.5, 20.0)
+    A = 2.0
+    r = 0.5 / A
+    expected = (4 * 1.0 / (π * A)) * complex(sqrt(1 - r^2), -r)
+    @test describing_function(h, A) ≈ expected
+
+    # describing_function — HammersteinWienerSystem
+    nl = saturation(1.0)
+    @test describing_function(nl, 2.0) ≈ describing_function(Saturation(1.0), 2.0)
+    @test_throws ErrorException describing_function(nonlinearity(abs2) + nonlinearity(abs), 1.0)
+
+    # Promoting Hysteresis constructor
+    @test Hysteresis(3, 1.5, Inf) === Hysteresis(3.0, 1.5, Inf)
+    @test Hysteresis(1, 1, 20.0) === Hysteresis(1.0, 1.0, 20.0)
+
+    # Amplitude validation in analytical overloads
+    @test_throws ArgumentError describing_function(Saturation(1.0), -2.0)
+    @test_throws ArgumentError describing_function(DeadZone(1.0), 0.0)
+    @test_throws ArgumentError describing_function(Hysteresis(1.0, 0.5, 20.0), -1.0)
+
+    # DeadZone through the identity N_dz = 1 - N_sat, also for asymmetric dead-zone
+    @test describing_function(DeadZone(-0.5, 1.0), 2.0) ≈ 1 - describing_function(Saturation(-0.5, 1.0), 2.0)
+
+    # A HammersteinWienerSystem containing a Hysteresis applies only the static
+    # callable, so the DF must be that of the callable, not the analytical
+    # relay-with-hysteresis formula
+    df_hw = describing_function(nonlinearity(h), 2.0)
+    @test df_hw ≈ describing_function(x -> h(x), 2.0)
+    @test abs(imag(df_hw)) < 1e-10 # a static odd nonlinearity has a real DF
+    @test !(df_hw ≈ describing_function(h, 2.0))
+
+    # describing_function_plot requires a SISO external part
+    @test_throws ErrorException ControlSystemsBase.describing_function_plot([tf(1); tf(1)] * nl)
+
+end
