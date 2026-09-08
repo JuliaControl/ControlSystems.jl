@@ -147,9 +147,9 @@ end
 """
     alpha_beta(alpha, Ts; beta = 2(2 - alpha) - 4√(1 - alpha))
 
-The α-β tracker: a fixed-gain estimator of the position and rate of a target modelled as moving
-at a locally constant rate, returned as a discrete-time `StateSpace` whose input is the
-measured position and whose outputs are the estimates ``[x̂, v̂]``.
+Make an α-β tracker. The tracker estimates the position and the rate of a target. The function
+returns a discrete-time `StateSpace` system. The input of the system is the measured position.
+The outputs are the estimates ``[x̂, v̂]``.
 
 ```math
 \\begin{aligned}
@@ -159,27 +159,28 @@ v̂(k) &= v̂(k-1) + \\dfrac{β}{T_s} r(k)
 \\end{aligned}
 ```
 
-This is [`observer_filter`](@ref) applied to a double integrator sampled at `Ts` with the gain
-``K = [α,\\ β/T_s]``, so the state *is* the a-posteriori estimate and the system is strictly
-proper. The rate output is a filtered derivative of the input, available without a separate
-differentiator.
+The system is [`observer_filter`](@ref) of a double integrator with the gain
+``K = [α,\\ β/T_s]``. The state of the system is the a-posteriori estimate. Thus the system is
+strictly proper. The rate output is a filtered derivative of the input. A separate differentiator
+is not necessary.
 
-!!! note "One-sample bookkeeping"
-    The state is ``x̂(k|k)``, the estimate that has absorbed the measurement ``y(k)``. Because the
-    state-space update is ``x(k+1) = Ax(k) + Bu(k)``, that estimate appears at output index
-    ``k+1`` of a simulation: the output at index ``k`` has absorbed measurements up to
-    ``y(k-1)``. This is the same convention as [`observer_filter`](@ref).
+!!! note "The sample index"
+    The state is ``x̂(k|k)``. This estimate includes the measurement ``y(k)``. The state-space
+    update is ``x(k+1) = Ax(k) + Bu(k)``. Therefore, in a simulation, this estimate is at output
+    index ``k+1``. The output at index ``k`` includes the measurements up to ``y(k-1)``.
+    [`observer_filter`](@ref) uses the same convention.
 
-`alpha` sets how far each measurement moves the position estimate and must satisfy
-``0 < α < 1``; the stability constraint on the rate gain is ``0 < β ≤ 2 - α``. The default `beta`
-is Kalata's steady-state relation ``β = 2(2 - α) - 4\\sqrt{1 - α}``, which makes the tracker the
-steady-state Kalman filter for a constant-velocity target, so `alpha` alone is a complete tuning.
+`alpha` sets the effect of each measurement on the position estimate. The value of `alpha` must
+be in the range ``0 < α < 1``. The value of `beta` must be in the range ``0 < β ≤ 2 - α``. The
+default `beta` is Kalata's steady-state relation ``β = 2(2 - α) - 4\\sqrt{1 - α}``. This relation
+makes the filter equal to the steady-state Kalman filter for a target that has a constant rate.
+Thus `alpha` is a sufficient tuning parameter.
 
-See also [`alpha_beta_gamma`](@ref) for the constant-acceleration version, and [`kalman`](@ref)
-with [`observer_filter`](@ref) if the noise covariances are known rather than the gains.
+For a target that accelerates, use [`alpha_beta_gamma`](@ref). If you know the noise covariances
+and not the gains, use [`kalman`](@ref) with [`observer_filter`](@ref).
 
 # Example
-Track a ramp, and see that the rate estimate converges to its slope:
+The rate estimate converges to the slope of a ramp input.
 ```jldoctest
 julia> using ControlSystemsBase
 
@@ -195,19 +196,20 @@ julia> round(res.y[2, end], digits = 3)
 ```
 
 # Extended help
-The estimation-error dynamics are ``(I - KC)A``, whose eigenvalues the gains place. Kalata's
-default leaves a complex pair for every `alpha`. To place both error poles on the real axis at a
-common radius ``s ∈ (0, 1)`` instead — a critically damped tracker, whose error decays without an
-oscillatory mode — pass both gains:
+The estimation-error dynamics are ``(I - KC)A``. The gains set the eigenvalues of this matrix.
+The default `beta` gives a complex pole pair for each value of `alpha`. To put both error poles
+on the real axis at the same radius ``s ∈ (0, 1)``, give both gains:
 
 ``α = 1 - s^2``, ``β = (1 - s)^2``.
 
-Setting only `alpha` is not enough, since `beta` would keep its Kalata default and move the poles
-back off the axis.
+These gains make the filter critically damped. The error then decays with no oscillation.
 
-``s`` is then the speed knob in place of `alpha`: the error decays as ``k s^k``, so
-``-T_s/\\ln s`` is the useful time-constant estimate. A smaller ``s`` tracks faster and passes
-more measurement noise.
+Do not give only `alpha`. If you give only `alpha`, `beta` keeps its default value, and the poles
+do not stay on the real axis.
+
+``s`` replaces `alpha` as the tuning parameter. The error decays as ``k s^k``. Use
+``-T_s/\\ln s`` as an estimate of the time constant. A smaller value of ``s`` gives faster
+tracking and more measurement noise in the estimates.
 """
 function alpha_beta(alpha, Ts; beta = 2 * (2 - alpha) - 4 * sqrt(1 - alpha))
     0 < alpha < 1 || throw(ArgumentError("alpha must satisfy 0 < alpha < 1, got $alpha"))
@@ -222,9 +224,9 @@ end
 """
     alpha_beta_gamma(alpha, Ts; beta = 2(2 - alpha) - 4√(1 - alpha), gamma = beta^2 / (2alpha))
 
-The α-β-γ tracker: the constant-acceleration sibling of [`alpha_beta`](@ref), returned as a
-discrete-time `StateSpace` whose input is the measured position and whose outputs are the
-estimates ``[x̂, v̂, â]``.
+Make an α-β-γ tracker. The tracker estimates the position, the rate and the acceleration of a
+target. The function returns a discrete-time `StateSpace` system. The input of the system is the
+measured position. The outputs are the estimates ``[x̂, v̂, â]``.
 
 ```math
 \\begin{aligned}
@@ -235,19 +237,22 @@ v̂(k) &= v̂(k-1) + T_s â(k-1) + \\dfrac{β}{T_s} r(k) \\\\
 \\end{aligned}
 ```
 
-i.e. [`observer_filter`](@ref) of a triple integrator with ``K = [α,\\ β/T_s,\\ γ/T_s^2]``,
-with the same one-sample bookkeeping noted for [`alpha_beta`](@ref).
+The system is [`observer_filter`](@ref) of a triple integrator with the gain
+``K = [α,\\ β/T_s,\\ γ/T_s^2]``. The rule for the sample index that applies to
+[`alpha_beta`](@ref) also applies to this filter.
 
-The extra state is what it buys: an α-β tracker predicts with a locally constant rate, so on a
-signal that is genuinely accelerating its rate estimate lags by an amount proportional to the
-acceleration, and no choice of `alpha` and `beta` removes that bias. Predicting with the
-acceleration as well removes it, which pays when the measurement is oversampled relative to the
-signal — a longer effective memory then costs little lag, so noise rejection is bought rather
-than paid for in phase.
+An α-β tracker predicts with a constant rate. If the target accelerates, the rate estimate of an
+α-β tracker has an error. This error is proportional to the acceleration. No value of `alpha` and
+`beta` removes this error. This filter also predicts with the acceleration. Thus the error is not
+present.
 
-The defaults are Kalata's steady-state relations, which make this the steady-state Kalman filter
-for a constant-acceleration target, so `alpha` alone is again a complete tuning. With the default
-``α = 0.5`` they are ``β ≈ 0.1716`` and ``γ ≈ 0.0294``.
+Use this filter when the sample rate is much higher than the frequency content of the signal. In
+this condition, a long filter memory causes only a small lag. The filter then decreases the
+effect of the measurement noise.
+
+The default gains are Kalata's steady-state relations. These gains make the filter equal to the
+steady-state Kalman filter for a target that has a constant acceleration. Thus `alpha` is a
+sufficient tuning parameter. If ``α = 0.5``, then ``β ≈ 0.1716`` and ``γ ≈ 0.0294``.
 
 # Example
 ```jldoctest
@@ -260,23 +265,24 @@ julia> size(sys)
 ```
 
 # Extended help
-As for [`alpha_beta`](@ref), the defaults are not critically damped — the Kalata triple leaves a
-complex pole pair for every `alpha`. To place all three error poles on the real axis at a common
-radius ``s ∈ (0, 1)``, pass all three gains:
+The default gains are not critically damped. This is also true for [`alpha_beta`](@ref). The
+Kalata gains give a complex pole pair for each value of `alpha`. To put all three error poles on
+the real axis at the same radius ``s ∈ (0, 1)``, give all three gains:
 
 ``α = 1 - s^3``, ``β = \\tfrac{3}{2}(1 - s)^2(1 + s)``, ``γ = (1 - s)^3``.
 
-Setting only `alpha` leaves `beta` and `gamma` at their Kalata defaults and puts the poles back
-off the axis: at ``s = 0.9`` the critically damped triple is ``(0.271, 0.0285, 0.001)``, whereas
-`alpha = 0.271` on its own gives ``β = 0.0427`` and ``γ = 0.0034``.
+Do not give only `alpha`. If you give only `alpha`, `beta` and `gamma` keep their default values,
+and the poles do not stay on the real axis. For example, at ``s = 0.9`` the critically damped
+gains are ``(0.271, 0.0285, 0.001)``. If you give `alpha = 0.271` and no other gain, you get
+``β = 0.0427`` and ``γ = 0.0034``.
 
-The pole is triple, so the error decays as ``k^2 s^k`` and settles somewhat slower than the
-radius alone suggests, but ``-T_s/\\ln s`` remains the useful estimate: about 9.5 samples at
-``s = 0.9``.
+The pole has a multiplicity of three. Thus the error decays as ``k^2 s^k``, and the settling time
+is longer than the pole radius alone indicates. Use ``-T_s/\\ln s`` as an estimate of the time
+constant. At ``s = 0.9`` this estimate is approximately 9.5 samples.
 
-Note that these relations are stated for the gain convention above, in which the acceleration
-correction is ``γ/T_s^2`` alongside the rate correction ``β/T_s``. References differ by factors
-of two here depending on whether ``γ`` or ``2γ`` is written in that position.
+These relations apply to the gain convention that is shown above. In this convention, the
+acceleration correction is ``γ/T_s^2`` and the rate correction is ``β/T_s``. Other references put
+``2γ`` in this position. The relations in those references are thus different by a factor of two.
 """
 function alpha_beta_gamma(alpha, Ts; beta = 2 * (2 - alpha) - 4 * sqrt(1 - alpha),
                                      gamma = beta^2 / (2 * alpha))
