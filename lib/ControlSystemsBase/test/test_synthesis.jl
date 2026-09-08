@@ -242,3 +242,121 @@ end
 end
 
 end
+
+@testset "alpha_beta / alpha_beta_gamma" begin
+    Ts = 0.1
+    kalata(a) = 2 * (2 - a) - 4 * sqrt(1 - a)
+
+    @testset "shape and defaults" begin
+        s2 = alpha_beta(0.5, Ts)
+        s3 = alpha_beta_gamma(0.5, Ts)
+        @test size(s2) == (2, 1)
+        @test size(s3) == (3, 1)
+        @test s2.Ts == Ts && s3.Ts == Ts
+        @test iszero(s2.D) && iszero(s3.D)          # the state is the estimate
+        @test s2.C == I && s3.C == I
+
+        # The documented default gains.
+        @test kalata(0.5) ≈ 0.1715728752538097
+        @test kalata(0.5)^2 / (2 * 0.5) ≈ 0.029437251522859908
+        # ... and they are what the systems are actually built with: B == K.
+        @test s2.B ≈ [0.5; kalata(0.5) / Ts;;]
+        @test s3.B ≈ [0.5; kalata(0.5) / Ts; kalata(0.5)^2 / (2 * 0.5) / Ts^2;;]
+    end
+
+    @testset "reproduces the documented recurrence" begin
+        a, b, g = 0.4, 0.2, 0.05
+        t = 0:Ts:2
+        us = collect(float.(t))                      # a unit-slope ramp
+
+        x = 0.0; v = 0.0; X = Float64[]; V = Float64[]
+        for u in us
+            pred = x + Ts * v
+            r = u - pred
+            x = pred + a * r
+            v = v + (b / Ts) * r
+            push!(X, x); push!(V, v)
+        end
+        y = lsim(alpha_beta(a, Ts; beta = b), reshape(us, 1, :), t).y
+        # The estimate that absorbed us[k] appears at output index k+1.
+        @test y[1, 2:end] ≈ X[1:end-1]
+        @test y[2, 2:end] ≈ V[1:end-1]
+
+        x = 0.0; v = 0.0; ac = 0.0; X = Float64[]; V = Float64[]; A = Float64[]
+        for u in us
+            pred = x + Ts * v + Ts^2 / 2 * ac
+            predv = v + Ts * ac
+            r = u - pred
+            x = pred + a * r
+            v = predv + (b / Ts) * r
+            ac = ac + (g / Ts^2) * r
+            push!(X, x); push!(V, v); push!(A, ac)
+        end
+        y = lsim(alpha_beta_gamma(a, Ts; beta = b, gamma = g), reshape(us, 1, :), t).y
+        @test y[1, 2:end] ≈ X[1:end-1]
+        @test y[2, 2:end] ≈ V[1:end-1]
+        @test y[3, 2:end] ≈ A[1:end-1]
+    end
+
+    @testset "tracks a ramp" begin
+        t = 0:Ts:5
+        res = lsim(alpha_beta(0.5, Ts), (x, t) -> [t], t)
+        @test res.y[2, end] ≈ 1 atol = 1e-6          # rate converges to the slope
+        res = lsim(alpha_beta_gamma(0.5, Ts), (x, t) -> [t], t)
+        @test res.y[2, end] ≈ 1 atol = 1e-3          # third order settles slower on a ramp
+        @test res.y[3, end] ≈ 0 atol = 1e-3          # and the acceleration to zero
+    end
+
+    @testset "equals observer_filter of the integrator chain" begin
+        for (n, f) in ((2, alpha_beta), (3, alpha_beta_gamma))
+            A = n == 2 ? [1 Ts; 0 1.0] : [1 Ts Ts^2/2; 0 1 Ts; 0 0 1.0]
+            B = n == 2 ? [Ts^2/2; Ts] : [Ts^3/6; Ts^2/2; Ts]
+            C = n == 2 ? [1.0 0] : [1.0 0 0]
+            sys = ss(A, B, C, 0, Ts)
+            a, b, g = 0.4, 0.2, 0.05
+            K = n == 2 ? [a; b/Ts;;] : [a; b/Ts; g/Ts^2;;]
+            filt = n == 2 ? f(a, Ts; beta = b) : f(a, Ts; beta = b, gamma = g)
+            ref = observer_filter(sys, K; output_state = true)
+            @test filt.A ≈ ref.A
+            @test filt.B ≈ ref.B[:, 2:2]             # observer_filter also takes u; this has only y
+        end
+    end
+
+    @testset "critical damping" begin
+        # The recipes in the extended help place every error pole on the real axis at s. The
+        # eigenvalue is defective, so it is only conditioned to about sqrt(eps).
+        for s in (0.95, 0.9, 0.8, 0.5, 0.2)
+            p = eigvals(alpha_beta(1 - s^2, Ts; beta = (1 - s)^2).A)
+            @test all(z -> isapprox(z, s; atol = 1e-6), p)
+
+            p = eigvals(alpha_beta_gamma(1 - s^3, Ts;
+                                         beta = 1.5 * (1 - s)^2 * (1 + s), gamma = (1 - s)^3).A)
+            @test all(z -> isapprox(z, s; atol = 1e-4), p)
+        end
+
+        # Independent of the sample rate: these gains are dimensionless in this parameterization.
+        for Ts2 in (1.0, 0.01, 1e-4)
+            p = eigvals(alpha_beta(1 - 0.9^2, Ts2; beta = (1 - 0.9)^2).A)
+            @test all(z -> isapprox(z, 0.9; atol = 1e-6), p)
+        end
+
+        # The defaults are a different tuning and always leave a complex pair, which is why the
+        # recipes have to set every gain rather than just `alpha`.
+        for a in (0.2, 0.5, 0.9)
+            @test any(z -> abs(imag(z)) > 1e-6, eigvals(alpha_beta(a, Ts).A))
+            @test any(z -> abs(imag(z)) > 1e-6, eigvals(alpha_beta_gamma(a, Ts).A))
+        end
+        # The numbers the docstring quotes for s = 0.9.
+        @test all((1 - 0.9^3, 1.5 * 0.1^2 * 1.9, 0.1^3) .≈ (0.271, 0.0285, 0.001))
+        @test kalata(0.271) ≈ 0.0427 atol = 1e-4
+        @test kalata(0.271)^2 / (2 * 0.271) ≈ 0.0034 atol = 1e-4
+    end
+
+    @testset "argument checking" begin
+        @test_throws ArgumentError alpha_beta(0.0, Ts)
+        @test_throws ArgumentError alpha_beta(1.0, Ts)
+        @test_throws ArgumentError alpha_beta(0.5, 0.0)
+        @test_throws ArgumentError alpha_beta_gamma(-0.1, Ts)
+        @test_throws ArgumentError alpha_beta_gamma(0.5, -1.0)
+    end
+end

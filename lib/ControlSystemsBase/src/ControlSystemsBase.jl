@@ -49,6 +49,8 @@ export  LTISystem,
         innovation_form,
         observer_predictor,
         observer_filter,
+        alpha_beta,
+        alpha_beta_gamma,
         observer_controller,
         # Stability Analysis
         isstable,

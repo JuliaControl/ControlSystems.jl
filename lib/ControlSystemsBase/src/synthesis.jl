@@ -145,6 +145,151 @@ end
 @deprecate dkalman(args...; kwargs...)  kalman(Discrete, args...; kwargs...)
 
 """
+    alpha_beta(alpha, Ts; beta = 2(2 - alpha) - 4√(1 - alpha))
+
+The α-β tracker: a fixed-gain estimator of the position and rate of a target modelled as moving
+at a locally constant rate, returned as a discrete-time `StateSpace` whose input is the
+measured position and whose outputs are the estimates ``[x̂, v̂]``.
+
+```math
+\\begin{aligned}
+r(k) &= y(k) - \\big(x̂(k-1) + T_s v̂(k-1)\\big) \\\\
+x̂(k) &= x̂(k-1) + T_s v̂(k-1) + α\\, r(k) \\\\
+v̂(k) &= v̂(k-1) + \\dfrac{β}{T_s} r(k)
+\\end{aligned}
+```
+
+This is [`observer_filter`](@ref) applied to a double integrator sampled at `Ts` with the gain
+``K = [α,\\ β/T_s]``, so the state *is* the a-posteriori estimate and the system is strictly
+proper. The rate output is a filtered derivative of the input, available without a separate
+differentiator.
+
+!!! note "One-sample bookkeeping"
+    The state is ``x̂(k|k)``, the estimate that has absorbed the measurement ``y(k)``. Because the
+    state-space update is ``x(k+1) = Ax(k) + Bu(k)``, that estimate appears at output index
+    ``k+1`` of a simulation: the output at index ``k`` has absorbed measurements up to
+    ``y(k-1)``. This is the same convention as [`observer_filter`](@ref).
+
+`alpha` sets how far each measurement moves the position estimate and must satisfy
+``0 < α < 1``; the stability constraint on the rate gain is ``0 < β ≤ 2 - α``. The default `beta`
+is Kalata's steady-state relation ``β = 2(2 - α) - 4\\sqrt{1 - α}``, which makes the tracker the
+steady-state Kalman filter for a constant-velocity target, so `alpha` alone is a complete tuning.
+
+See also [`alpha_beta_gamma`](@ref) for the constant-acceleration version, and [`kalman`](@ref)
+with [`observer_filter`](@ref) if the noise covariances are known rather than the gains.
+
+# Example
+Track a ramp, and see that the rate estimate converges to its slope:
+```jldoctest
+julia> using ControlSystemsBase
+
+julia> Ts = 0.1; sys = alpha_beta(0.5, Ts);
+
+julia> size(sys)
+(2, 1)
+
+julia> res = lsim(sys, (x, t) -> [t], 0:Ts:5);
+
+julia> round(res.y[2, end], digits = 3)
+1.0
+```
+
+# Extended help
+The estimation-error dynamics are ``(I - KC)A``, whose eigenvalues the gains place. Kalata's
+default leaves a complex pair for every `alpha`. To place both error poles on the real axis at a
+common radius ``s ∈ (0, 1)`` instead — a critically damped tracker, whose error decays without an
+oscillatory mode — pass both gains:
+
+``α = 1 - s^2``, ``β = (1 - s)^2``.
+
+Setting only `alpha` is not enough, since `beta` would keep its Kalata default and move the poles
+back off the axis.
+
+``s`` is then the speed knob in place of `alpha`: the error decays as ``k s^k``, so
+``-T_s/\\ln s`` is the useful time-constant estimate. A smaller ``s`` tracks faster and passes
+more measurement noise.
+"""
+function alpha_beta(alpha, Ts; beta = 2 * (2 - alpha) - 4 * sqrt(1 - alpha))
+    0 < alpha < 1 || throw(ArgumentError("alpha must satisfy 0 < alpha < 1, got $alpha"))
+    Ts > 0 || throw(ArgumentError("Ts must be positive, got $Ts"))
+    T = float(promote_type(typeof(alpha), typeof(beta), typeof(Ts)))
+    A = T[1 Ts; 0 1]
+    C = T[1 0]
+    K = T[alpha; beta/Ts;;]
+    ss((I - K * C) * A, K, Matrix{T}(I, 2, 2), zeros(T, 2, 1), Ts)
+end
+
+"""
+    alpha_beta_gamma(alpha, Ts; beta = 2(2 - alpha) - 4√(1 - alpha), gamma = beta^2 / (2alpha))
+
+The α-β-γ tracker: the constant-acceleration sibling of [`alpha_beta`](@ref), returned as a
+discrete-time `StateSpace` whose input is the measured position and whose outputs are the
+estimates ``[x̂, v̂, â]``.
+
+```math
+\\begin{aligned}
+r(k) &= y(k) - \\big(x̂(k-1) + T_s v̂(k-1) + \\tfrac{T_s^2}{2} â(k-1)\\big) \\\\
+x̂(k) &= x̂(k-1) + T_s v̂(k-1) + \\tfrac{T_s^2}{2} â(k-1) + α\\, r(k) \\\\
+v̂(k) &= v̂(k-1) + T_s â(k-1) + \\dfrac{β}{T_s} r(k) \\\\
+â(k) &= â(k-1) + \\dfrac{γ}{T_s^2} r(k)
+\\end{aligned}
+```
+
+i.e. [`observer_filter`](@ref) of a triple integrator with ``K = [α,\\ β/T_s,\\ γ/T_s^2]``,
+with the same one-sample bookkeeping noted for [`alpha_beta`](@ref).
+
+The extra state is what it buys: an α-β tracker predicts with a locally constant rate, so on a
+signal that is genuinely accelerating its rate estimate lags by an amount proportional to the
+acceleration, and no choice of `alpha` and `beta` removes that bias. Predicting with the
+acceleration as well removes it, which pays when the measurement is oversampled relative to the
+signal — a longer effective memory then costs little lag, so noise rejection is bought rather
+than paid for in phase.
+
+The defaults are Kalata's steady-state relations, which make this the steady-state Kalman filter
+for a constant-acceleration target, so `alpha` alone is again a complete tuning. With the default
+``α = 0.5`` they are ``β ≈ 0.1716`` and ``γ ≈ 0.0294``.
+
+# Example
+```jldoctest
+julia> using ControlSystemsBase
+
+julia> sys = alpha_beta_gamma(0.5, 0.1);
+
+julia> size(sys)
+(3, 1)
+```
+
+# Extended help
+As for [`alpha_beta`](@ref), the defaults are not critically damped — the Kalata triple leaves a
+complex pole pair for every `alpha`. To place all three error poles on the real axis at a common
+radius ``s ∈ (0, 1)``, pass all three gains:
+
+``α = 1 - s^3``, ``β = \\tfrac{3}{2}(1 - s)^2(1 + s)``, ``γ = (1 - s)^3``.
+
+Setting only `alpha` leaves `beta` and `gamma` at their Kalata defaults and puts the poles back
+off the axis: at ``s = 0.9`` the critically damped triple is ``(0.271, 0.0285, 0.001)``, whereas
+`alpha = 0.271` on its own gives ``β = 0.0427`` and ``γ = 0.0034``.
+
+The pole is triple, so the error decays as ``k^2 s^k`` and settles somewhat slower than the
+radius alone suggests, but ``-T_s/\\ln s`` remains the useful estimate: about 9.5 samples at
+``s = 0.9``.
+
+Note that these relations are stated for the gain convention above, in which the acceleration
+correction is ``γ/T_s^2`` alongside the rate correction ``β/T_s``. References differ by factors
+of two here depending on whether ``γ`` or ``2γ`` is written in that position.
+"""
+function alpha_beta_gamma(alpha, Ts; beta = 2 * (2 - alpha) - 4 * sqrt(1 - alpha),
+                                     gamma = beta^2 / (2 * alpha))
+    0 < alpha < 1 || throw(ArgumentError("alpha must satisfy 0 < alpha < 1, got $alpha"))
+    Ts > 0 || throw(ArgumentError("Ts must be positive, got $Ts"))
+    T = float(promote_type(typeof(alpha), typeof(beta), typeof(gamma), typeof(Ts)))
+    A = T[1 Ts Ts^2/2; 0 1 Ts; 0 0 1]
+    C = T[1 0 0]
+    K = T[alpha; beta/Ts; gamma/Ts^2;;]
+    ss((I - K * C) * A, K, Matrix{T}(I, 3, 3), zeros(T, 3, 1), Ts)
+end
+
+"""
     place(A, B, p, opt=:c; direct = false)
     place(sys::StateSpace, p, opt=:c; direct = false)
 
