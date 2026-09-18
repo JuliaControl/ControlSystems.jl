@@ -42,6 +42,24 @@ to_sized(sys::AbstractStateSpace) = HeteroStateSpace(sys, to_sized)
 
 StaticStateSpace(G::TransferFunction) = StaticStateSpace(ss(G))
 
+# The generic method for `AbstractStateSpace` returns a `StateSpace`, which would turn a
+# system with static matrices into one with dense matrices. The balancing transformation
+# itself is computed with dense matrices since it relies on LAPACK, the matrix container
+# type is restored afterwards. The element type is allowed to change, balancing a system
+# with integer matrices produces floating-point ones.
+function balance_statespace(sys::HeteroStateSpace, perm::Bool=false; kwargs...)
+    A, B, C, T = balance_statespace(_dense(sys.A), _dense(sys.B), _dense(sys.C), perm; kwargs...)
+    f = _matrix_container(sys.A)
+    HeteroStateSpace(f(A), f(B), f(C), sys.D, sys.timeevol), T
+end
+
+_dense(A::AbstractMatrix) = A
+_dense(A::Union{SArray, SizedArray}) = Matrix(A)
+
+_matrix_container(::AbstractMatrix) = identity
+_matrix_container(::SArray) = to_static
+_matrix_container(::SizedArray) = to_sized
+
 # function to_static(sys::DelayLtiSystem)
 #     innerP = to_static(sys.P.P)
 #     partP = PartitionedStateSpace(innerP, sys.P.nu1, sys.P.ny1)
@@ -201,7 +219,7 @@ end
 
 
 
-@autovec () function freqresp_nohess!(R::Array{T,3}, sys::StaticStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
+@autovec () function freqresp_nohess!(R::Array{T,3}, sys::StaticStateSpace, w_vec::AbstractVector{W}; balance=true) where {T, W <: Real}
     ny, nu = size(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
     nx = sys.nx
@@ -211,6 +229,7 @@ end
         end
         return R
     end
+    sys = _balance(sys, balance)
     A,B,C0,D = ssdata(sys)
     C = complex.(C0) # Still important when using ForwardDiff
     te = sys.timeevol

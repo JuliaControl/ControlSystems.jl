@@ -14,7 +14,7 @@ using ControlSystemsBase: downsample, _processfreqplot, _default_freq_vector,
                           sisomargin, relative_gain_array, rlocus,
                           input_names, output_names, state_names, system_name,
                           iscontinuous, isdiscrete, issiso, isrational,
-                          integrator_excess, balance_statespace, LTISystem,
+                          integrator_excess, LTISystem,
                           _PlotScale, _PlotScaleFunc, _PlotScaleStr, _span  # Use existing plot scale settings
 
 # Helper function to get y-scale transform for Makie
@@ -166,14 +166,12 @@ function CSMakie.bodeplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISy
     
     # Plot data for each system
     for (si, s) in enumerate(systems)
-        sbal = balance ? balance_statespace(s)[1] : s
-        
         intexcess = 0
-        if plotphase && adjust_phase_start && isrational(sbal)
-            intexcess = integrator_excess(sbal)
+        if plotphase && adjust_phase_start && isrational(s)
+            intexcess = integrator_excess(s)
         end
         
-        mag, phase = bode(sbal, w; unwrap=false)
+        mag, phase = bode(s, w; unwrap=false, balance)
         
         if ControlSystemsBase._PlotScale == "dB"
             mag = 20*log10.(mag)
@@ -203,7 +201,7 @@ function CSMakie.bodeplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISy
                 if plotphase
                     phasedata = vec(phase[i, j, :])
                     
-                    if adjust_phase_start && isrational(sbal) && intexcess != 0
+                    if adjust_phase_start && isrational(s) && intexcess != 0
                         nineties = round(Int, phasedata[1] / 90)
                         phasedata .+= ((90*(-intexcess-nineties)) ÷ 360) * 360
                     end
@@ -286,8 +284,7 @@ function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LT
     θ = range(0, 2π, length=100)
     
     for (si, s) in enumerate(systems)
-        sbal = balance ? balance_statespace(s)[1] : s
-        re_resp, im_resp = nyquist(sbal, w)[1:2]
+        re_resp, im_resp = nyquist(s, w; balance)[1:2]
         
         for j in 1:nu
             for i in 1:ny
@@ -361,8 +358,7 @@ function CSMakie.sigmaplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTIS
              ylabel = "Singular Values $(ControlSystemsBase._PlotScaleStr)")
     
     for (si, s) in enumerate(systems)
-        sbal = balance ? balance_statespace(s)[1] : s
-        sv = sigma(sbal, w)[1]'
+        sv = sigma(s, w; balance)[1]'
         
         if extrema && size(sv, 2) > 2
             sv = sv[:, [1, end]]
@@ -426,15 +422,15 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
     
     # Plot data for each system
     for (si, s) in enumerate(systems)
-        sbal = balance ? balance_statespace(s)[1] : s
-        bmag, bphase = bode(sbal, w)
+        bmag, bphase = bode(s, w; balance)
         
         for j in 1:nu
             for i in 1:ny
-                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(sbal[i,j], w; 
+                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j], w; 
                                                                      full=true, 
                                                                      allMargins=true, 
-                                                                     adjust_phase_start)
+                                                                     adjust_phase_start,
+                                                                     balance)
                 
                 # Magnitude plot
                 ax_mag = axes_mag[i, j]
@@ -588,8 +584,7 @@ function CSMakie.rgaplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTISys
              ylabel = "Element magnitudes")
     
     for (si, s) in enumerate(systems)
-        sbal = balance ? balance_statespace(s)[1] : s
-        rga = abs.(relative_gain_array(sbal, w))
+        rga = abs.(relative_gain_array(s, w; balance))
         
         for j in 1:size(rga, 1)
             for i in 1:size(rga, 2)

@@ -293,15 +293,10 @@ _span(vec) = -(reverse(extrema(vec))...)
     grid   --> true
 
     for (si,s) = enumerate(systems)
-        if balance
-            sbal = balance_statespace(s)[1]
-        else
-            sbal = s
+        if plotphase && adjust_phase_start && isrational(s)
+            intexcess = integrator_excess(s)
         end
-        if plotphase && adjust_phase_start && isrational(sbal)
-            intexcess = integrator_excess(sbal)
-        end
-        mag, phase = bode(sbal, w; unwrap=false)
+        mag, phase = bode(s, w; unwrap=false, balance)
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         elseif 0 ∈ mag
@@ -344,7 +339,7 @@ _span(vec) = -(reverse(extrema(vec))...)
                 end
                 plotphase || continue
 
-                if adjust_phase_start == true && isrational(sbal)
+                if adjust_phase_start == true && isrational(s)
                     if intexcess != 0
                         # Snap phase so that it starts at -90*intexcess
                         nineties = round(Int, phasedata[1] / 90)
@@ -437,10 +432,7 @@ nyquistplot
     θ = range(0, stop=2π, length=100)
     S, C = sin.(θ), cos.(θ)
     for (si,s) = enumerate(systems)
-        if balance
-            s = balance_statespace(s)[1]
-        end
-        re_resp, im_resp = nyquist(s, w)[1:2]
+        re_resp, im_resp = nyquist(s, w; balance)[1:2]
         for j=1:nu
             for i=1:ny
                 redata = re_resp[i, j, :]
@@ -564,6 +556,8 @@ fontsize = 10
 
 `val` ∈ [0,1] determines the brightness of the gain lines
 
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
+
 Additional keyword arguments are sent to the function plotting the systems and can be
 used to specify colors, line styles etc. using regular RecipesBase.jl syntax
 
@@ -579,7 +573,8 @@ nicholsplot
     pInc     = 30,
     sat      = 0.4,
     val      = 0.85,
-    fontsize = 10)
+    fontsize = 10,
+    balance  = true)
 
     plots_id = Base.PkgId(UUID("91a5bcdd-55d7-5caf-9e0b-520d859cae80"), "Plots")
     haskey(Base.loaded_modules, plots_id) || error("Call using Plots before calling this function")
@@ -612,7 +607,7 @@ nicholsplot
     Ni_La(ϕ)        = @. 0.090*10^(ϕ/60)
     getColor(mdb)   = convert(Colors.RGB,Colors.HSV(360*((mdb-minimum(Gains))/(maximum(Gains)-minimum(Gains)))^1.5,sat,val))
 
-    megaangles      = vcat(map(s -> 180/π*angle(vec(freqresp(s, w))), systems)...)
+    megaangles      = vcat(map(s -> 180/π*angle(vec(freqresp(s, w; balance))), systems)...)
     filter!(x-> !isnan(x), megaangles)
     extremeangles = extrema(megaangles)
     extremeangles = floor(extremeangles[1]/180)*180, ceil(extremeangles[2]/180)*180
@@ -694,7 +689,7 @@ nicholsplot
     extremas = extrema(Gains)
     # colors = [:blue, :cyan, :green, :yellow, :orange, :red, :magenta]
     for (sysi,s) = enumerate(systems)
-        ℜresp, ℑresp        = nyquist(s, w)[1:2]
+        ℜresp, ℑresp        = nyquist(s, w; balance)[1:2]
         ℜdata               = dropdims(ℜresp, dims=(1,2))
         ℑdata               = dropdims(ℑresp, dims=(1,2))
         mag                 = 20*log10.(sqrt.(ℜdata.^2 + ℑdata.^2))
@@ -736,10 +731,7 @@ sigmaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Singular Values $_PlotScaleStr"
     for (si, s) in enumerate(systems)
-        if balance
-            s = balance_statespace(s)[1]
-        end
-        sv = sigma(s, w)[1]'
+        sv = sigma(s, w; balance)[1]'
         if extrema && size(sv, 2) > 2
             sv = sv[:, [1, end]]
         end
@@ -794,14 +786,11 @@ marginplot
     layout --> (2ny, nu)
     label --> ""
     for (si, s) in enumerate(systems)
-        if balance
-            s = balance_statespace(s)[1]
-        end
-        bmag, bphase = bode(s, w)
+        bmag, bphase = bode(s, w; balance)
 
         for j=1:nu
             for i=1:ny
-                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j],w; full=true, allMargins=true, adjust_phase_start)
+                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j], w; full=true, allMargins=true, adjust_phase_start, balance)
                 if length(gm) > 5
                     @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
                     idx = sortperm(gm)
@@ -1038,10 +1027,7 @@ rgaplot
     xguide --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
     yguide --> "Element magnitudes"
     for (si, s) in enumerate(systems)
-        if balance
-            s = balance_statespace(s)[1]
-        end
-        sv = abs.(relative_gain_array(s, w))
+        sv = abs.(relative_gain_array(s, w; balance))
         for j in 1:size(sv, 1)
             for i in 1:size(sv, 2)
                 @series begin

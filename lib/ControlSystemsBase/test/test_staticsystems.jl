@@ -156,6 +156,20 @@ freqresp_nohess!(R, syss, w) # precompile
 D = StaticStateSpace(randn(2,2))
 @test freqresp_nohess(D, w) ≈ freqresp_nohess(ss(D), w)
 
+# Balancing a system with static matrices must not turn it into a dense `StateSpace`
+@test ControlSystemsBase.balance_statespace(syss)[1] isa StaticStateSpace
+@test freqresp(syss, w) ≈ freqresp(ss(syss), w)
+@test freqresp(syss, w; balance=false) ≈ freqresp(ss(syss), w)
+sys_ill = ss([-1e6 1e5; 1e-5 -1.0], [1e-4; 1.0;;], [1.0 1e4], 0)
+syss_ill = StaticStateSpace(sys_ill)
+@test ControlSystemsBase.balance_statespace(syss_ill)[1] isa StaticStateSpace
+@test ControlSystemsBase.balance_statespace(syss_ill)[1].A != syss_ill.A
+# Balancing an integer `HeteroStateSpace` promotes the element type rather than erroring
+sysh_int = HeteroStateSpace([-5 1; 0 -2], [2; 1;;], [3 0], [0;;], Continuous())
+@test ControlSystemsBase.balance_statespace(sysh_int)[1] isa HeteroStateSpace
+@test freqresp(sysh_int, w) ≈ freqresp(ss(sysh_int), w)
+@test ControlSystemsBase.balance_statespace(to_sized(sys_ill))[1].A isa SizedArray
+
 # Benchmarks with length(w) = 20000
 # @btime freqresp_nohess!(R, syss, w);
 # 29.660 ms (240001 allocations: 409.55 MiB)

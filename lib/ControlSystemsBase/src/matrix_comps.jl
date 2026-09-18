@@ -273,7 +273,7 @@ covar(sys::TransferFunction, W) = covar(ss(sys), W)
 # Note: the H∞ norm computation is probably not as accurate as with SLICOT,
 # but this seems to be still reasonably ok as a first step
 """
-    norm(sys, p=2; tol=1e-6)
+    norm(sys, p=2; tol=1e-6, balance=true)
 
 `norm(sys)` or `norm(sys,2)` computes the H2 norm of the LTI system `sys`.
 
@@ -287,17 +287,19 @@ It represents the desired relative accuracy for the computed L∞ norm
 (this is not an absolute certificate however).
 
 `sys` is first converted to a `StateSpace` model if needed.
+
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the norm. The norm depends on the system only through its input-output map, and balancing improves the numerical conditioning for poorly scaled systems.
 """
-function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6)
+function LinearAlgebra.norm(sys::AbstractStateSpace, p::Real=2; tol=1e-6, balance=true)
     if p == 2
-        return sqrt(max(0,tr(covar(sys, I))))
+        return sqrt(max(0,tr(covar(_balance(sys, balance), I))))
     elseif p == Inf
-        return hinfnorm(sys; tol=tol)[1]
+        return hinfnorm(sys; tol, balance)[1]
     else
         error("`p` must be either `2` or `Inf`")
     end
 end
-LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6) = norm(ss(sys), p, tol=tol)
+LinearAlgebra.norm(sys::TransferFunction, p::Real=2; tol=1e-6, balance=true) = norm(ss(sys), p; tol, balance)
 
 
 """
@@ -320,7 +322,7 @@ function schur_form(sys)
 end
 
 """
-    Ninf, ω_peak = hinfnorm(sys; tol=1e-6, resid_tol=nothing)
+    Ninf, ω_peak = hinfnorm(sys; tol=1e-6, resid_tol=nothing, balance=true)
 
 Compute the H∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain Ninf is achieved.
@@ -342,6 +344,8 @@ boundary as genuine.
 
 `sys` is first converted to a state space model if needed.
 
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the norm. The norm depends on the system only through its input-output map, and balancing improves the numerical conditioning for poorly scaled systems.
+
 The continuous-time L∞ norm computation implements the 'two-step algorithm' in:\\
 **N.A. Bruinsma and M. Steinbuch**, 'A fast algorithm to compute the H∞-norm of
 a transfer function matrix', Systems and Control Letters (1990), pp. 287-293.
@@ -352,12 +356,12 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`linfnorm`](@ref).
 """
-hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6, resid_tol=nothing) = _infnorm_two_steps_ct(schur_form(sys)[1], :hinf, tol; resid_tol)
-hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6, resid_tol=nothing) = _infnorm_two_steps_dt(schur_form(sys)[1], :hinf, tol; resid_tol)
-hinfnorm(sys::TransferFunction; tol=1e-6, resid_tol=nothing) = hinfnorm(ss(sys); tol, resid_tol)
+hinfnorm(sys::AbstractStateSpace{<:Continuous}; tol=1e-6, resid_tol=nothing, balance=true) = _infnorm_two_steps_ct(schur_form(_balance(sys, balance))[1], :hinf, tol; resid_tol)
+hinfnorm(sys::AbstractStateSpace{<:Discrete}; tol=1e-6, resid_tol=nothing, balance=true) = _infnorm_two_steps_dt(schur_form(_balance(sys, balance))[1], :hinf, tol; resid_tol)
+hinfnorm(sys::TransferFunction; tol=1e-6, resid_tol=nothing, balance=true) = hinfnorm(ss(sys); tol, resid_tol, balance)
 
 """
-    Ninf, ω_peak = linfnorm(sys; tol=1e-6, resid_tol=nothing)
+    Ninf, ω_peak = linfnorm(sys; tol=1e-6, resid_tol=nothing, balance=true)
 
 Compute the L∞ norm `Ninf` of the LTI system `sys`, together with a frequency
 `ω_peak` at which the gain `Ninf` is achieved.
@@ -372,6 +376,8 @@ the computed L∞ norm (this is not an absolute certificate however).
 
 `sys` is first converted to a state space model if needed.
 
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the norm. The norm depends on the system only through its input-output map, and balancing improves the numerical conditioning for poorly scaled systems.
+
 The continuous-time L∞ norm computation implements the 'two-step algorithm' in:\\
 **N.A. Bruinsma and M. Steinbuch**, 'A fast algorithm to compute the H∞-norm of
 a transfer function matrix', Systems and Control Letters (1990), pp. 287-293.
@@ -382,15 +388,15 @@ state space systems in continuous and discrete time', American Control Conferenc
 
 See also [`hinfnorm`](@ref).
 """
-function linfnorm(sys::AbstractStateSpace; tol=1e-6, resid_tol=nothing)
-    sys2, _ = schur_form(sys)
+function linfnorm(sys::AbstractStateSpace; tol=1e-6, resid_tol=nothing, balance=true)
+    sys2, _ = schur_form(_balance(sys, balance))
     if iscontinuous(sys2)
         return _infnorm_two_steps_ct(sys2, :linf, tol; resid_tol)
     else
         return _infnorm_two_steps_dt(sys2, :linf, tol; resid_tol)
     end
 end
-linfnorm(sys::TransferFunction; tol=1e-6, resid_tol=nothing) = linfnorm(ss(sys); tol, resid_tol)
+linfnorm(sys::TransferFunction; tol=1e-6, resid_tol=nothing, balance=true) = linfnorm(ss(sys); tol, resid_tol, balance)
 
 """
     _modal_residues(sys, suspects)

@@ -1,5 +1,5 @@
-function freqresp!(R::Array{T,3}, sys::HammersteinWienerSystem, ω::AbstractVector{W}) where {T, W <: Real}
-    all(f isa Offset for f in sys.f) && return freqresp!(R, lft(sys.P.P, ss(I(length(sys.f)), timeevol(sys))), ω)
+function freqresp!(R::Array{T,3}, sys::HammersteinWienerSystem, ω::AbstractVector{W}; balance=true) where {T, W <: Real}
+    all(f isa Offset for f in sys.f) && return freqresp!(R, lft(sys.P.P, ss(I(length(sys.f)), timeevol(sys))), ω; balance)
     throw(ArgumentError("Frequency response is not defined for HammersteinWienerSystem with nonlinearities. Call linearize to obtain a linearized system"))
 end
 
