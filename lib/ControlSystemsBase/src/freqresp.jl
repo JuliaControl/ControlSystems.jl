@@ -31,7 +31,8 @@ end
 
 BodemagWorkspace(sys::LTISystem, ω::AbstractVector) = BodemagWorkspace(sys, length(ω))
 
-function freqresp(sys::LTISystem, w::Real)
+function freqresp(sys::LTISystem, w::Real; balance=true)
+    sys = _balance(sys, balance)
     # Create imaginary freq vector s
     if iscontinuous(sys)
         s = im*w
@@ -41,10 +42,10 @@ function freqresp(sys::LTISystem, w::Real)
     evalfr(sys, s)
 end
 
-freqresp(G::Union{UniformScaling, AbstractMatrix, Number}, w::Real) = G
+freqresp(G::Union{UniformScaling, AbstractMatrix, Number}, w::Real; balance=true) = G
 
 """
-    sys_fr = freqresp(sys, w)
+    sys_fr = freqresp(sys, w; balance=true)
 
 Evaluate the frequency response of a linear system.
 
@@ -54,6 +55,7 @@ For discrete systems, computes `G(e^{jωT}) = C(e^{jωT}I - A)^{-1}B + D`
 # Arguments
 - `sys::LTISystem`: The system to analyze
 - `w::AbstractVector{<:Real}`: Frequency vector (rad/s)
+- `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response. Balancing improves the numerical accuracy for poorly scaled systems and does not change the input-output map. Pass `balance=false` to avoid the (small) overhead.
 
 # Returns
 - `sys_fr`: Complex frequency response array of size `(ny, nu, length(w))`
@@ -68,20 +70,24 @@ w = exp10.(LinRange(-2, 2, 200))
 resp = freqresp(sys, w)
 ```
 """
-@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{W}) where W <: Real
+@autovec () function freqresp(sys::LTISystem, w_vec::AbstractVector{W}; balance=true) where W <: Real
     te = timeevol(sys)
     ny,nu = noutputs(sys), ninputs(sys)
     T = promote_type(Complex{real(numeric_type(sys))}, Complex{W})
     R = Array{T, 3}(undef, ny, nu, length(w_vec))
-    freqresp!(R, sys, w_vec)
+    freqresp!(R, sys, w_vec; balance)
 end
 
 """
-    freqresp!(R::Array{T, 3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
+    freqresp!(R::Array{T, 3}, sys::LTISystem, w_vec::AbstractVector{<:Real}; balance=true)
 
 In-place version of [`freqresp`](@ref) that takes a pre-allocated array `R` of size (ny, nu, nw)`
+
+Note that `balance=true` allocates a balanced copy of `sys`. Pass `balance=false` to keep the
+call free of allocations that scale with the state dimension.
 """
-function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real}) where T
+function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real}; balance=true) where T
+    sys = _balance(sys, balance)
     te = sys.timeevol
     ny,nu = noutputs(sys), ninputs(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
@@ -91,7 +97,7 @@ function freqresp!(R::Array{T,3}, sys::LTISystem, w_vec::AbstractVector{<:Real})
     R
 end
 
-function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<:Real}) where T
+function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<:Real}; balance=true) where T
     te = sys.timeevol
     ny,nu = noutputs(sys), ninputs(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
@@ -101,18 +107,18 @@ function freqresp!(R::Array{T,3}, sys::TransferFunction, w_vec::AbstractVector{<
     R
 end
 
-@autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real})
+@autovec () function freqresp(G::AbstractMatrix, w_vec::AbstractVector{<:Real}; balance=true)
     repeat(G, 1, 1, length(w_vec))
 end
 
-@autovec () function freqresp(G::Number, w_vec::AbstractVector{<:Real})
+@autovec () function freqresp(G::Number, w_vec::AbstractVector{<:Real}; balance=true)
     fill(G, 1, 1, length(w_vec))
 end
 
 _freq(w, ::Continuous) = complex(0, w)
 _freq(w, te::Discrete) = cis(w*te.Ts)
 
-@autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
+@autovec () function freqresp!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}; balance=true) where {T, W <: Real}
     ny, nu = size(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
     if sys.nx == 0 # Only D-matrix
@@ -121,13 +127,14 @@ _freq(w, te::Discrete) = cis(w*te.Ts)
         end
         return R
     end
+    sys = _balance(sys, balance)
     local F, Q
     try
         F = hessenberg(sys.A)
         Q = Matrix(F.Q)
     catch e
         # For matrix types that do not have a hessenberg implementation, we call the standard version of freqresp.
-        (e isa @static VERSION < v"1.12" ? Union{MethodError, ErrorException} : Union{MethodError, ErrorException, FieldError}) && return freqresp_nohess!(R, sys, w_vec)
+        (e isa @static VERSION < v"1.12" ? Union{MethodError, ErrorException} : Union{MethodError, ErrorException, FieldError}) && return freqresp_nohess!(R, sys, w_vec; balance=false) # sys is already balanced above
         # ErrorException appears if we try to access Q on a type which does not have Q as a field or property, notably HessenbergFactorization from GenericLinearAlgebra, on julia v1.12, this is instead a FieldError
         rethrow()
     end
@@ -205,21 +212,23 @@ function ldiv2!(u, cs, F::UpperHessenberg, B::AbstractVecOrMat; shift::Number=fa
     return X
 end
 
-function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}) where W <: Real
+function freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{W}; balance=true) where W <: Real
     ny, nu = size(sys)
     T = promote_type(Complex{real(eltype(sys.A))}, Complex{W})
     R = Array{T, 3}(undef, ny, nu, length(w_vec))
-    freqresp_nohess!(R, sys, w_vec)
+    freqresp_nohess!(R, sys, w_vec; balance)
 end
 
 """
-    freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{<:Real})
+    freqresp_nohess(sys::AbstractStateSpace, w_vec::AbstractVector{<:Real}; balance=true)
 
 Compute the frequency response of `sys` without forming a Hessenberg factorization.
 This function is called automatically if the Hessenberg factorization fails.
+
+- `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response.
 """
 freqresp_nohess
-@autovec () function freqresp_nohess!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}) where {T, W <: Real}
+@autovec () function freqresp_nohess!(R::Array{T,3}, sys::AbstractStateSpace, w_vec::AbstractVector{W}; balance=true) where {T, W <: Real}
     ny, nu = size(sys)
     @boundscheck size(R) == (ny,nu,length(w_vec))
     nx = sys.nx
@@ -229,6 +238,7 @@ freqresp_nohess
         end
         return R
     end
+    sys = _balance(sys, balance)
     A,B,C0,D = ssdata(sys)
     C = complex.(C0) # We make C complex in order to not incur allocations in mul! below
     te = sys.timeevol
@@ -263,7 +273,9 @@ end
 Evaluate the transfer function of the LTI system sys
 at the complex number s=x (continuous-time) or z=x (discrete-time).
 
-For many values of `x`, use `freqresp` instead.
+For many values of `x`, use `freqresp` instead. Unlike [`freqresp`](@ref), this function does
+not balance the realization of `sys`, call [`balance_statespace`](@ref) manually if `sys` is
+poorly scaled.
 """
 function evalfr(sys::AbstractStateSpace, s::Number)
     T = _evalfr_return_type(sys, s)
@@ -312,7 +324,7 @@ function (sys::TransferFunction)(z_or_omegas::AbstractVector, map_to_unit_circle
 end
 
 """
-    mag, phase, w = bode(sys[, w]; unwrap=true)
+    mag, phase, w = bode(sys[, w]; unwrap=true, balance=true)
 
 Compute the magnitude and phase parts of the frequency response of system `sys`
 at frequencies `w`. The frequency response is evaluated as `G(jω)` for continuous
@@ -322,6 +334,7 @@ systems and `G(e^{jωT})` for discrete systems.
 - `sys::LTISystem`: The system to analyze
 - `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
 - `unwrap::Bool`: If true (default), apply phase unwrapping to avoid discontinuities
+- `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 
 # Returns
 - `mag`: Magnitude of frequency response, size `(ny, nu, length(w))`
@@ -339,14 +352,14 @@ sys = tf(1, [1, 1])
 mag, phase, w = bode(sys)
 ```
 """ 
-@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true)
-    resp = freqresp(sys, w)
+@autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true, balance=true)
+    resp = freqresp(sys, w; balance)
     angles = angle.(resp)
     unwrap && unwrap!(angles,3)
     @. angles = rad2deg(angles)
     return abs.(resp), angles, w
 end
-@autovec (1, 2) bode(sys::LTISystem) = bode(sys, _default_freq_vector(sys, Val{:bode}()))
+@autovec (1, 2) bode(sys::LTISystem; unwrap=true, balance=true) = bode(sys, _default_freq_vector(sys, Val{:bode}()); unwrap, balance)
 
 # Performance difference between bode and bodemag for tf. Note how expensive the phase unwrapping is.
 # using ControlSystemsBase
@@ -361,7 +374,7 @@ end
 # # 2.991 ms (1 allocation: 64 bytes)
 
 """
-    mag = bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
+    mag = bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector; balance=true)
 
 Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspace`](@ref).
 
@@ -369,6 +382,7 @@ Compute the Bode magnitude operating in-place on an instance of [`BodemagWorkspa
 - `ws::BodemagWorkspace`: Pre-allocated workspace created with [`BodemagWorkspace`](@ref)
 - `sys::LTISystem`: The system to analyze
 - `w::AbstractVector`: Frequency vector (rad/s)
+- `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response. This allocates a balanced copy of `sys`, pass `balance=false` to keep the call free of allocations that scale with the state dimension.
 
 # Returns
 - `mag`: Magnitude of frequency response, size `(ny, nu, length(w))`. 
@@ -392,20 +406,20 @@ ws = BodemagWorkspace(sys, w)
 mag = bodemag!(ws, sys, w)
 ```
 """
-function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
-    freqresp!(ws.R, sys, w)
+function bodemag!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector; balance=true)
+    freqresp!(ws.R, sys, w; balance)
     @. ws.mag = abs(ws.R)
     ws.mag
 end
 
-function bodemag_nohess!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector)
-    freqresp_nohess!(ws.R, sys, w)
+function bodemag_nohess!(ws::BodemagWorkspace, sys::LTISystem, w::AbstractVector; balance=true)
+    freqresp_nohess!(ws.R, sys, w; balance)
     @. ws.mag = abs(ws.R)
     ws.mag
 end
 
 """
-    re, img, w = nyquist(sys[, w])
+    re, img, w = nyquist(sys[, w]; balance=true)
 
 Compute the real and imaginary parts of the frequency response of system `sys`
 at frequencies `w`. The frequency response is evaluated as `G(jω)` for continuous
@@ -414,6 +428,7 @@ systems and `G(e^{jωT})` for discrete systems.
 # Arguments
 - `sys::LTISystem`: The system to analyze
 - `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+- `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 
 # Returns
 - `re`: Real part of frequency response, size `(ny, nu, length(w))`
@@ -430,14 +445,14 @@ w = logspace(-2, 2, 100)
 re, img, w = nyquist(sys, w)
 ```
 """ 
-@autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)
+@autovec (1, 2) function nyquist(sys::LTISystem, w::AbstractVector; balance=true)
+    resp = freqresp(sys, w; balance)
     return real(resp), imag(resp), w
 end
-@autovec (1, 2) nyquist(sys::LTISystem) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()))
+@autovec (1, 2) nyquist(sys::LTISystem; balance=true) = nyquist(sys, _default_freq_vector(sys, Val{:nyquist}()); balance)
 
 """
-    sv, w = sigma(sys[, w])
+    sv, w = sigma(sys[, w]; balance=true)
 
 Compute the singular values of the frequency response of system `sys` at
 frequencies `w`. The frequency response is evaluated as `G(jω)` for continuous
@@ -446,6 +461,7 @@ systems and `G(e^{jωT})` for discrete systems.
 # Arguments
 - `sys::LTISystem`: The system to analyze
 - `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+- `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 
 # Returns
 - `sv`: Singular values of frequency response, size `(min(ny, nu), length(w))`
@@ -463,8 +479,8 @@ sys = ss([-1 0; 0 -2], [1 0; 0 1], [1 1; 0 1], 0)
 sv, w = sigma(sys)
 ```
 """ 
-@autovec (1,) function sigma(sys::LTISystem, w::AbstractVector)
-    resp = freqresp(sys, w)
+@autovec (1,) function sigma(sys::LTISystem, w::AbstractVector; balance=true)
+    resp = freqresp(sys, w; balance)
     ny, nu = size(sys)
     if ny == 1 || nu == 1 # Shortcut available
         sv = Matrix{real(eltype(resp))}(undef, 1, length(w))
@@ -476,7 +492,7 @@ sv, w = sigma(sys)
     end
     return sv, w
 end
-@autovec (1,) sigma(sys::LTISystem) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()))
+@autovec (1,) sigma(sys::LTISystem; balance=true) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()); balance)
 
 function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false)
     if adaptive

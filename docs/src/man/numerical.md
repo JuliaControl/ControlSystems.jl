@@ -30,9 +30,11 @@ TAT^{-1} & TB\\
 CT^{-1} & 0
 \end{bmatrix}
 ```
-are approximately equal. This typically improves the numerical performance of several algorithms, including frequency-response calculations and continuous-time simulations. When frequency-responses are plotted using any of the built-in functions, such as [`bodeplot`](@ref) or [`nyquistplot`](@ref), this balancing is performed automatically. However, when calling [`bode`](@ref) and [`nyquist`](@ref) directly, the user is responsible for performing the balancing. The balancing is a relatively cheap operation, but it
+are approximately equal. This typically improves the numerical performance of several algorithms, including frequency-response calculations and continuous-time simulations.
+
+Balancing is performed automatically by the functions that depend on the system only through its input-output map. This includes [`freqresp`](@ref), [`bode`](@ref), [`nyquist`](@ref), [`sigma`](@ref), [`margin`](@ref), [`delaymargin`](@ref), [`relative_gain_array`](@ref), [`dcgain`](@ref), [`hinfnorm`](@ref), [`linfnorm`](@ref), `norm`, as well as the corresponding plot functions such as [`bodeplot`](@ref) and [`nyquistplot`](@ref). All of these accept the keyword argument `balance = false` to turn the balancing off. The balancing is a relatively cheap operation, but it
 1. Changes the state representations of the system (but not the input-output mapping). If balancing is performed before simulation, the output will correspond to the output of the original system, but the state trajectory will not.
-2. Allocates some memory.
+2. Allocates some memory. This matters mostly for the in-place functions [`freqresp!`](@ref) and [`bodemag!`](@ref), which are otherwise free of allocations that scale with the state dimension. Pass `balance = false` to these when the realization is known to be well scaled.
 
 Balancing is also automatically performed when a transfer function is converted to a statespace system using `ss(G)`, to convert without balancing, call `convert(StateSpace, G, balance=false)`.
 
@@ -51,7 +53,7 @@ which after balancing becomes
 bsys, T = balance_statespace(linsys)
 norm(bsys.A, Inf), norm(bsys.B, Inf), norm(bsys.C, Inf)
 ```
-If you plot the frequency-response of the two systems using [`bodeplot`](@ref), you'll see that they differ significantly (the balanced one is correct).
+If you plot the frequency-response of the two systems using `bodeplot(sys, balance=false)`, you'll see that they differ significantly (the balanced one is correct). With the default `balance = true`, both plots coincide since the balancing is then performed internally.
 
 ## Extended precision and exotic number types
 Most functions in ControlSystems.jl can operate on numbers of any type, for example, computations can be performed with increased precision using the `BigFloat` type. While the `BigFloat` type is part of julia base, some functionality such as matrix factorizations used in `c2d` and `minreal` etc. require the user to load external packages to work with `BigFloat` numbers. The list below indicates how to make a number of functions work with `BigFloat` (and other exotic number types):

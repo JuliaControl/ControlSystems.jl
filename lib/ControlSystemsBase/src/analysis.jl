@@ -150,7 +150,7 @@ function det(sys::Matrix{S}) where {S<:SisoZpk}
 end
 
 """
-    dcgain(sys, ϵ=0)
+    dcgain(sys, ϵ=0; balance=true)
 
 Compute the dcgain of system `sys`.
 
@@ -158,8 +158,11 @@ equal to G(0) for continuous-time systems and G(1) for discrete-time systems.
 
 `ϵ` can be provided to evaluate the dcgain with a small perturbation into
 the stability region of the complex plane.
+
+`balance`: Call [`balance_statespace`](@ref) on the system before evaluating the transfer function, see [`freqresp`](@ref).
 """
-function dcgain(sys::LTISystem, ϵ=0)
+function dcgain(sys::LTISystem, ϵ=0; balance=true)
+    sys = _balance(sys, balance)
     return iscontinuous(sys) ? evalfr(sys, -ϵ) : evalfr(sys, exp(-ϵ*sys.Ts))
 end
 dcgain(G::Union{UniformScaling, Number, AbstractMatrix}) = G
@@ -413,8 +416,8 @@ end
 # end
 
 """
-    relative_gain_array(G, w::AbstractVector)
-    relative_gain_array(G, w::Number)
+    relative_gain_array(G, w::AbstractVector; balance=true)
+    relative_gain_array(G, w::Number; balance=true)
 
 Calculate the relative gain array of `G` at frequencies `w`. 
 G(iω) .* pinv(tranpose(G(iω)))
@@ -439,11 +442,11 @@ Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matri
 Jeffrey Uhlmann
 https://arxiv.org/pdf/1805.10312.pdf
 """
-function relative_gain_array(G, w::AbstractVector)
-    mapslices(relative_gain_array, freqresp(G, w), dims=(1,2))
+function relative_gain_array(G, w::AbstractVector; balance=true)
+    mapslices(relative_gain_array, freqresp(G, w; balance), dims=(1,2))
 end
 
-relative_gain_array(G, w::Number) = relative_gain_array(freqresp(G, w))
+relative_gain_array(G, w::Number; balance=true) = relative_gain_array(freqresp(G, w; balance))
 
 """
     relative_gain_array(A::AbstractMatrix; tol = 1.0e-15)
@@ -490,17 +493,18 @@ function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
 end
 
 """
-    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true)
+    wgm, gm, wpm, pm = margin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true, balance=true)
 
 returns frequencies for gain margins, gain margins (magnitude), frequencies for phase margins, phase margins (degrees)
 
 - If `!allMargins`, return only the smallest margin
 - If `full` return also `fullPhase`
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
+- `balance`: Call [`balance_statespace`](@ref) on each SISO channel before computing the frequency response, see [`freqresp`](@ref).
 
 See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
-function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true)
+function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true, balance=true)
     ny, nu = size(sys)
 
     T = float(numeric_type(sys))
@@ -519,7 +523,7 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
     end
     for j=1:nu
         for i=1:ny
-            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins, adjust_phase_start)
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins, adjust_phase_start, balance)
         end
     end
     if full
@@ -530,21 +534,24 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
 end
 
 """
-    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true))
+    ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true, balance=true))
 
 Return frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. If `allMargins=false`, only the smallest margins are returned.
+
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 """
-function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true)
+function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true, balance=true)
     ny, nu = size(sys)
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
     end
-    mag, phase, w = bode(sys, w)
+    sys = _balance(sys, balance) # All frequency-response evaluations below use the balanced realization
+    mag, phase, w = bode(sys, w; balance=false)
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
     remove = Int[]
     for i = eachindex(wgm)
-        Giw = freqresp(sys,wgm[i])[1]
+        Giw = freqresp(sys, wgm[i]; balance=false)[1]
         if sign(w[1]) != sign(w[end]) && abs(Giw) > 1e6 && wgm[i] < 0.001
             # This tries to filter out extremely large gain margins that can arise when the Nyquist contour crosses the negative real axis at -Inf.
             # This is filter is in addition to the filter_th check in _findCrossings
@@ -560,7 +567,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     pm = similar(wpm)
     for i = eachindex(wpm)
         # We have to access the actual phase value from the `phase` array to get unwrapped phase. This value is not fully accurate since it is computed at a grid point, so we compute the more accurate phase at the interpolated frequency. This accurate value is not unwrapped, so we add an integer multiple of 360 to get the closest unwrapped phase.
-        φ_nom = rad2deg(angle(freqresp(sys,wpm[i])[1]))
+        φ_nom = rad2deg(angle(freqresp(sys, wpm[i]; balance=false)[1]))
         φ_rounded = phase[clamp(round(Int, fi[i]), 1, length(phase))] # fi is interpolated, so we round to the closest integer
         φ_int = φ_nom - 360 * round( (φ_nom - φ_rounded) / 360 )
 
@@ -655,17 +662,19 @@ function _findCrossings(w, n, res; filter_th=Inf)
 end
 
 """
-    dₘ = delaymargin(G::LTISystem)
+    dₘ = delaymargin(G::LTISystem; balance=true)
 
 Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
 Only supports SISO systems.
 
 The delay margin is computed as the phase margin in radians divided by the cross-over frequency in rad/s. The delay margin is the maximum time delay that can be added to the system before it becomes unstable.
+
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 """
-function delaymargin(G::LTISystem)
+function delaymargin(G::LTISystem; balance=true)
     # Phase margin in radians divided by cross-over frequency in rad/s.
     issiso(G) || error("delaymargin only supports SISO systems")
-    ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G,allMargins=true)
+    ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G; allMargins=true, balance)
     isempty(ϕₘa[1]) && return Inf
     ϕₘ, i = findmin(sign.(ωϕₘa[1]) .* ϕₘa[1]) # flip sign of negative frequency margins 
     ϕₘ   *= π/180

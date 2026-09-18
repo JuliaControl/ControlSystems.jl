@@ -177,6 +177,63 @@ mag, mag, ws2 = bode(sys2)
 
 @test margin(tf(1, [1, -1], 0.01)).gm == [2;;]
 
+## Balancing ##
+# The functions that depend on the system only through its input-output map balance the
+# realization by default. The results must agree with the unbalanced computation for a
+# well-conditioned system, and the keyword must be accepted by every entry point.
+@testset "balance keyword" begin
+    Random.seed!(0)
+    Gbal = ssrand(2, 2, 4)
+    Gsiso = ssrand(1, 1, 4)
+    wbal = exp10.(LinRange(-2, 2, 50))
+
+    @test freqresp(Gbal, wbal) ≈ freqresp(Gbal, wbal; balance=false)
+    @test freqresp(Gbal, 1.0) ≈ freqresp(Gbal, 1.0; balance=false)
+    @test bode(Gbal, wbal)[1] ≈ bode(Gbal, wbal; balance=false)[1]
+    @test bode(Gbal)[1] ≈ bode(Gbal; balance=false)[1]
+    @test nyquist(Gbal, wbal)[1] ≈ nyquist(Gbal, wbal; balance=false)[1]
+    @test sigma(Gbal, wbal)[1] ≈ sigma(Gbal, wbal; balance=false)[1]
+    @test dcgain(Gbal) ≈ dcgain(Gbal; balance=false)
+    @test relative_gain_array(Gbal, wbal) ≈ relative_gain_array(Gbal, wbal; balance=false)
+    @test relative_gain_array(Gbal, 1.0) ≈ relative_gain_array(Gbal, 1.0; balance=false)
+    @test margin(Gsiso, wbal).gm ≈ margin(Gsiso, wbal; balance=false).gm
+    @test delaymargin(Gsiso) ≈ delaymargin(Gsiso; balance=false)
+    @test hinfnorm(Gbal)[1] ≈ hinfnorm(Gbal; balance=false)[1] rtol=1e-6
+    @test linfnorm(Gbal)[1] ≈ linfnorm(Gbal; balance=false)[1] rtol=1e-6
+    @test norm(Gbal) ≈ norm(Gbal; balance=false) rtol=1e-8
+    @test norm(Gbal, Inf) ≈ norm(Gbal, Inf; balance=false) rtol=1e-6
+
+    ws_bal = ControlSystemsBase.BodemagWorkspace(Gbal, wbal)
+    @test bodemag!(ws_bal, Gbal, wbal) ≈ bode(Gbal, wbal)[1]
+    @test bodemag!(ws_bal, Gbal, wbal; balance=false) ≈ bode(Gbal, wbal; balance=false)[1]
+
+    @test ControlSystemsBase.freqresp_nohess(Gbal, wbal) ≈ freqresp(Gbal, wbal)
+    @test ControlSystemsBase.freqresp_nohess(Gbal, wbal; balance=false) ≈ freqresp(Gbal, wbal)
+
+    # The autovec versions forward the keyword as well
+    @test bodev(Gsiso, wbal; balance=false)[1] ≈ bodev(Gsiso, wbal)[1]
+    @test nyquistv(Gsiso; balance=false)[1] ≈ nyquistv(Gsiso)[1]
+    @test sigmav(Gsiso; balance=false)[1] ≈ sigmav(Gsiso)[1]
+    @test freqrespv(Gsiso, wbal; balance=false) ≈ freqrespv(Gsiso, wbal)
+
+    # Representations without a state-space realization accept the keyword and ignore it
+    Ptf = tf(1, [1, 1])
+    @test freqresp(Ptf, wbal; balance=false) ≈ freqresp(Ptf, wbal)
+    @test freqresp(ss(2.0), wbal; balance=false) ≈ freqresp(ss(2.0), wbal)
+
+    # A poorly scaled realization is where balancing actually matters
+    Aill = [-1e6 1e5; 1e-5 -1.0]
+    Gill = ss(Aill, [1e-4; 1.0;;], [1.0 1e4], 0)
+    @test ControlSystemsBase.balance_statespace(Gill)[1].A != Gill.A
+    @test freqresp(Gill, wbal) ≈ freqresp(Gill, wbal; balance=false) rtol=1e-6
+
+    # Balancing keeps an integer realization at full precision, see issue with
+    # `balance_transform` demoting integer systems to Float32
+    Gint = ss([0 1; -1 -1], [0; 1], [1 0], 0)
+    @test eltype(ControlSystemsBase.balance_statespace(Gint)[2]) === Float64
+    @test hinfnorm(Gint, tol=1e-10)[1] ≈ 2/sqrt(3) rtol=1e-10
+end
+
 end
 
 

@@ -1,8 +1,8 @@
-function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}) where {T, W <: Real}
+function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}; balance=true) where {T, W <: Real}
     ny = noutputs(sys)
     nu = ninputs(sys)
     @boundscheck size(R) == (ny,nu,length(ω))
-    P_fr = freqresp(sys.P.P, ω)
+    P_fr = freqresp(sys.P.P, ω; balance)
 
     cache = cis.(ω[1].*sys.Tau)
 

@@ -238,6 +238,18 @@ end
 balance_statespace(sys, args...) = sys, I # For system types that do not have an implementation
 
 """
+    _balance(sys, balance::Bool)
+
+Return `balance_statespace(sys)[1]` if `balance` is `true`, otherwise `sys` unchanged.
+
+This helper is used by functions that depend on `sys` only through its input-output map,
+for which balancing improves the numerical conditioning without changing the result. It is
+a no-op for system representations that have no state-space realization to balance, such as
+transfer functions.
+"""
+_balance(sys, balance::Bool) = balance ? balance_statespace(sys)[1] : sys
+
+"""
 `T = balance_transform{R}(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)`
 
 `T = balance_transform(sys::StateSpace, perm::Bool=false) = balance_transform(A,B,C,perm)`
@@ -252,7 +264,7 @@ See also `balance_statespace`, `balance`
 function balance_transform(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)
     nx = size(A, 1)
     # Compute a scaling of the system matrix M
-    R = promote_type(eltype(A), eltype(B), eltype(C), Float32) # Make sure we get at least BlasFloat
+    R = promote_type(float(promote_type(eltype(A), eltype(B), eltype(C))), Float32) # Make sure we get at least BlasFloat. The inner `float` prevents an integer or rational system from being demoted to `Float32`.
     T = R[A B; C zeros(R, size(C*B))]
 
     size(T,1) < size(T,2) && (T = [T; zeros(R, size(T,2)-size(T,1),size(T,2))])
