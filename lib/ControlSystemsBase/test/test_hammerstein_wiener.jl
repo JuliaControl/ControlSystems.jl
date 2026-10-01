@@ -127,6 +127,15 @@ A, B = ControlSystemsBase.linearize((x,u)->x.^2 + sin.(u), [1.0], [2.0])
 @test A ≈ [2.0;;]
 @test B ≈ [cos(2);;]
 
+# The state may have a different length and array type than the input
+using StaticArrays, ComponentArrays
+A, B = ControlSystemsBase.linearize((x,u)->SA[x[2], -sin(x[1]) + u[1]*u[2], x[3]], SA[0.0, 1.0, 2.0], SA[2.0, 3.0])
+@test A ≈ [0 1 0; -1 0 0; 0 0 1]
+@test B ≈ [0 0; 3 2; 0 0]
+A, B = ControlSystemsBase.linearize((x,u)->[x.v, -x.p + u[1]], ComponentArray(p=1.0, v=2.0), [3.0])
+@test A ≈ [0 1; -1 0]
+@test B ≈ [0; 1;;]
+
 ## Test nonlinear_components coverage ==========================================
 using ControlSystemsBase: Saturation, DeadZone, Offset, Hysteresis, describing_function, deadzone
 
