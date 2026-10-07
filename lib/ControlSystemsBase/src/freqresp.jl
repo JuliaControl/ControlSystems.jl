@@ -507,7 +507,24 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false
     w2 = maximum(maximum, bounds)
 
     nw = round(Int, max(min_pt_total, min_pt_per_dec*(w2 - w1)))
-    w = exp10.(range(w1, stop=w2, length=nw))
+    if plot isa Val{:margin}
+        # Keep the original Bode samples so that extending the search range
+        # does not perturb interpolation of already-resolved crossovers.
+        w = _default_freq_vector(systems, Val{:bode}(); adaptive)
+        l1, l2 = log10(w[1]), log10(w[end])
+        step = (l2 - l1)/(length(w) - 1)
+        if step > 0
+            n1 = max(0, ceil(Int, (l1 - w1)/step))
+            n2 = max(0, ceil(Int, (w2 - l2)/step))
+            lower = exp10.(l1 .- step .* (n1:-1:1))
+            upper = exp10.(l2 .+ step .* (1:n2))
+            w = [lower; w; upper]
+        else
+            w = exp10.(range(w1, stop=w2, length=nw))
+        end
+    else
+        w = exp10.(range(w1, stop=w2, length=nw))
+    end
     if length(systems) == 1 && isdiscrete(systems[1])
         w[end] = π/systems[1].Ts # To account for numerical rounding problems from exp(log())
     end
@@ -519,7 +536,7 @@ _default_freq_vector(sys::LTISystem, plot; kwargs...) = _default_freq_vector(
 function _bounds_and_features(sys::LTISystem, plot::Val)
     # Get zeros and poles for each channel
     if !isa(plot, Val{:sigma})
-        zs, ps = zpkdata(sys)
+        zs, ps, ks = zpkdata(sys)
         # Compose vector of all zs, ps, positive conjugates only.
         zpType = promote_type(eltype(eltype(zs)), eltype(eltype(ps)))
         zp = vcat(zpType[], zs..., ps...) # Emty vector to avoid type unstable vcat()
@@ -528,9 +545,9 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         # For sigma plots, use the MIMO poles and zeros
         zp = [tzeros(sys); poles(sys)]
     end
-    # Get the frequencies of the features, ignoring low frequency dynamics
+    # Margin searches must also retain features at very low frequencies.
     fzp = log10.(abs.(zp))
-    fzp = fzp[fzp .> -4]
+    fzp = plot isa Val{:margin} ? filter(isfinite, fzp) : fzp[fzp .> -4]
     fzp = sort!(fzp)
     # Determine the bounds on the frequency vector
     if !isempty(fzp)
@@ -547,6 +564,36 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
     end
     if isdiscrete(sys)
         w2 = log10(π/sys.Ts) # Draw up to Nyquist frequency for discrete systems
+    end
+    if plot isa Val{:margin} && isrational(sys)
+        # Pole/zero locations alone can miss gain crossovers. Extend the range
+        # until the endpoint gains agree with their low/high-frequency limits
+        # about which side of unity they lie on.
+        location = iscontinuous(sys) ? 0 : 1
+        for i in eachindex(ks)
+            iszero(ks[i]) && continue
+            z = filter(!iszero, zs[i] .- location)
+            p = filter(!iszero, ps[i] .- location)
+            nz, np = length(zs[i]) - length(z), length(ps[i]) - length(p)
+            dc = np == nz ? abs(evalfr(SisoZpk(z, p, ks[i]), 0)) : (np > nz ? Inf : 0)
+            G = SisoZpk(zs[i], ps[i], ks[i])
+            while w1 > log10(floatmin(Float64)) &&
+                  !isnan(dc) &&
+                  dc != 1 &&
+                  (abs(evalfr(G, _freq(exp10(w1), timeevol(sys)))) > 1) != (dc > 1)
+                w1 -= 1
+            end
+            if iscontinuous(sys)
+                n = length(ps[i]) - length(zs[i])
+                hf = n == 0 ? abs(ks[i]) : (n > 0 ? 0 : Inf)
+                while w2 < floor(log10(floatmax(Float64))) &&
+                      !isnan(hf) &&
+                      hf != 1 &&
+                      (abs(evalfr(G, _freq(exp10(w2), timeevol(sys)))) > 1) != (hf > 1)
+                    w2 += 1
+                end
+            end
+        end
     end
     return [w1, w2], zp
 end

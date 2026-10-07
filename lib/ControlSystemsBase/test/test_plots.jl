@@ -68,3 +68,31 @@ end
   # Test marginplot with hz=true
   @test_nowarn marginplot(tf([2], [1,1])^3, 10.0 .^range(-2,stop=2,length=50); hz=true)
 end
+
+@testset "marginplot phase guides" begin
+  has_phase_guide(p, phase) = any(p[2].series_list) do series
+    series[:linestyle] == :dash && any(y -> isapprox(y, phase; atol=1e-3), series[:y])
+  end
+  # The original report should find and display the low-frequency crossover.
+  G = tf([1.0], [1.0, 13, 40, 0])
+  p = marginplot(G; xticks=exp10.(-2:0.5:4))
+  @test minimum(p[1].series_list[1][:x]) < 0.024999565453073247
+  @test !occursin("Pm: []", p[2][:title])
+  @test has_phase_guide(p, -180)
+
+  # Guides are also needed when no finite phase margin is found, including
+  # phase branches other than the usual -180-degree branch.
+  w = exp10.(range(-1, 3; length=200))
+  for (sys, phase) in (
+    (tf(0.1, [1.0, 1]), -180),
+    (tf(-0.1, [1.0, 1]), 180),
+    (tf(1e-6, [1.0, 0, 0, 0, 0, 0]), -540),
+  )
+    @test isinf(margin(sys, w).pm[])
+    for adaptive in (false, true), hz in (false, true)
+      p = marginplot(sys, w; adaptive, hz)
+      @test has_phase_guide(p, phase)
+      @test p[1].series_list[1][:x][1] ≈ w[1]/(hz ? 2π : 1)
+    end
+  end
+end

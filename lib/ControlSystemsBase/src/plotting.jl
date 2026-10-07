@@ -773,7 +773,7 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 """
 marginplot
 @recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
-    systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
+    systems, w = _processfreqplot(Val{:margin}(), p.args...; adaptive)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
@@ -873,12 +873,20 @@ marginplot
                         ws, phasedata
                     end
                 end
+                phaseguides = filter(isfinite, fullPhase .- pm)
+                if isempty(phaseguides)
+                    # No finite phase margin: use the critical phase nearest
+                    # the displayed phase branch instead of omitting the guide.
+                    idx = findfirst(isfinite, phasedata)
+                    phase = idx === nothing ? 0 : phasedata[idx]
+                    phaseguides = [-180 + 360round((phase + 180)/360)]
+                end
                 @series begin
                     primary := false
                     color --> :gray
                     linestyle --> :dash
                     seriestype := :hline
-                    ((fullPhase .- pm) .* ones(1, 2))'
+                    (phaseguides .* ones(1, 2))'
                 end
                 @series begin
                     primary := false

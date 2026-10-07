@@ -499,6 +499,8 @@ returns frequencies for gain margins, gain margins (magnitude), frequencies for 
 
 - If `!allMargins`, return only the smallest margin
 - If `full` return also `fullPhase`
+- If `w` is omitted, a gain-aware default frequency range is used. An explicit
+  frequency vector limits margin detection to that range.
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 - `balance`: Call [`balance_statespace`](@ref) on each SISO channel before computing the frequency response, see [`freqresp`](@ref).
 
@@ -614,7 +616,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     end
 end
 margin(system::LTISystem; kwargs...) =
-margin(system, _add_zero(_default_freq_vector(system, Val{:bode}())); kwargs...)
+margin(system, _add_zero(_default_freq_vector(system, Val{:margin}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
 _add_zero(w) = [-(zero(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 

@@ -210,6 +210,47 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 
 ## MARGIN ##
 
+@testset "Default margin frequency range" begin
+    # Issue #771: the unity-gain crossover is below the pole-based Bode grid.
+    G = tf([1.0], [1.0, 13, 40, 0])
+    for sys in (G, ss(G))
+        m = margin(sys)
+        @test m.wpm[] ≈ 0.024999565453073247 rtol=1e-3
+        @test m.pm[] ≈ 89.53448285318315 atol=1e-2
+        @test m.gm[] ≈ 520 rtol=1e-3
+        mall = margin(sys; allMargins=true)
+        @test only(mall.wpm[]) ≈ m.wpm[]
+        @test only(mall.pm[]) ≈ m.pm[]
+    end
+
+    # Cover crossovers on either side of the default frequency range.
+    for gain in (1e-6, 1e6)
+        m = margin(tf(gain, [1.0, 0]))
+        @test m.wpm[] ≈ gain rtol=1e-3
+        @test m.pm[] ≈ 90
+    end
+    # A finite DC gain can also put a crossover below the Bode grid.
+    gain = 1.000001
+    @test margin(tf(gain, [1.0, 1])).wpm[] ≈ sqrt(gain^2 - 1) rtol=1e-3
+
+    # Slow resonances must not be discarded by the plotting frequency cutoff.
+    slow = tf(1e-13, [1.0, 2e-9, 1e-12])
+    @test length(margin(slow; allMargins=true).pm[]) == 2
+
+    # Discrete-time grids must still stop at the Nyquist frequency.
+    Gd = tf(1e-6, [1.0, -1], 0.1)
+    wd = ControlSystemsBase._default_freq_vector(Gd, Val(:margin))
+    @test wd[end] == π/Gd.Ts
+    @test margin(Gd).wpm[] ≈ 2asin(1e-6/2)/Gd.Ts rtol=1e-3
+
+    for sys in (tf(0), tf(2), tf(0.1, [1.0, 1]))
+        @test isinf(margin(sys).pm[])
+    end
+    # An explicit frequency vector continues to limit the search range.
+    w = exp10.(range(-1, 3; length=200))
+    @test isinf(margin(G, w).pm[])
+end
+
 # Test case that requires negative frequencies to be included in the grid in order to find one margin
 # https://github.com/JuliaControl/ControlSystems.jl/issues/1045
 temp = let
