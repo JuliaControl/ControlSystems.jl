@@ -43,24 +43,33 @@ function poles(sys::TransferFunction{<:TimeEvolution,SisoZpk{T,TR}}) where {T, T
 end
 
 
-function count_eigval_multiplicity(p, location, e=eps(maximum(abs, p, init=0.0))) # The init is to handle poor type inference with exotic number types
+"""
+    n, tol = count_eigval_multiplicity(p, location, e = nothing; scale = maximum(abs, p))
+
+Return the multiplicity `n` of the eigenvalue `location` among the computed eigenvalues `p`, together with the tolerance `tol` used to obtain it. The multiplicity is the first value of `i` for which exactly `i` elements of `p` lie within the radius `r(i)` around `location`. If no such `i` exists, `n = 0` and `tol = r(1)`.
+
+A backward-stable eigenvalue algorithm perturbs an eigenvalue of multiplicity `i` by an amount of order `ϵ^(1/i)` relative to the scale of the problem. The default radius is therefore `r(i) = (100ϵ)^(1/i) * scale`, which coincides with the tolerances for simple and double imaginary-axis eigenvalues in the Bruinsma–Steinbuch algorithm for the ``H_∞`` norm (`100ϵ` and `10√ϵ`). The radius is proportional to `scale`, so that the result does not depend on the time unit of the system. If `e` is provided, the radius `r(i) = e^(1/i)` is used instead.
+"""
+function count_eigval_multiplicity(p, location, e=nothing; scale=maximum(abs, p, init=0.0)) # The init is to handle poor type inference with exotic number types
+    T = eltype(p)
+    ϵ = T <: Number && isconcretetype(T) ? eps(real(float(T))) : eps(float(real(typeof(scale))))
+    radius(i) = e === nothing ? (100ϵ)^(1/i)*scale : e^(1/i)
     n = length(p)
-    tol = zero(e)
-    n == 0 && return (0, tol)
+    n == 0 && return (0, zero(radius(1)))
     for i = 1:n
         # if we count i poles within the circle assuming i integrators, we return i
-        tol = e^(1/i)
-        if count(p->abs(p-location) < tol, p) == i
+        tol = radius(i)
+        if count(p->abs(p-location) <= tol, p) == i
             return (i, tol)
         end
     end
-    (0, tol)
+    (0, radius(1))
 end
 
 """
     count_integrators(P)
 
-Count the number of poles in the origin by finding the first value of `n` for which the number of poles within a circle of radius `eps(maximum(abs, p))^(1/n)` around the origin (1 in discrete time) equals `n`.
+Count the number of poles in the origin by finding the first value of `n` for which the number of poles within a circle of radius `(100ϵ)^(1/n) * maximum(abs, p)` around the origin (1 in discrete time) equals `n`, see `ControlSystemsBase.count_eigval_multiplicity`.
 
 See also [`integrator_excess`](@ref).
 """
@@ -78,12 +87,7 @@ Count the number of integrators in the system by finding the difference between 
 For discrete-time systems, the origin ``s = 0`` is replaced by the point ``z = 1``.
 """
 function integrator_excess(P::LTISystem)
-    p = poles(P)
-    z = tzeros(P)
-    location = iscontinuous(P) ? 0 : 1
-    np, tolp = count_eigval_multiplicity(p, location)
-    nz, tolz = count_eigval_multiplicity(z, location)
-    np - nz
+    integrator_excess_with_tol(P)[1]
 end
 
 function integrator_excess_with_tol(P::LTISystem)
@@ -91,7 +95,8 @@ function integrator_excess_with_tol(P::LTISystem)
     z = tzeros(P)
     location = iscontinuous(P) ? 0 : 1
     np, tolp = count_eigval_multiplicity(p, location)
-    nz, tolz = count_eigval_multiplicity(z, location)
+    # The zeros are computed from the system pencil, whose scale is at least that of the poles. A single zero in the origin does not provide a scale of its own.
+    nz, tolz = count_eigval_multiplicity(z, location; scale=max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0)))
     np - nz, p, z, tolp, tolz
 end
 
