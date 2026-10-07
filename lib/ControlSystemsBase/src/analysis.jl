@@ -597,7 +597,9 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     end
     if adjust_phase_start && isrational(sys)
         intexcess, p, z, tol = integrator_excess_with_tol(sys)
-        n_unstable_poles = count(real(p) > tol for p in p)
+        n_unstable_poles =
+            iscontinuous(sys) ? count(real(pi) > tol for pi in p) :
+            count(abs(pi) > 1 + tol for pi in p)
         first_positive_freq_ind = findfirst(>(0), w)
         if intexcess != 0 && (first_positive_freq_ind !== nothing)
             # Snap phase so that it starts at -90*intexcess

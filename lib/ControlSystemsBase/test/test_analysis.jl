@@ -236,12 +236,69 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
     # Slow resonances must not be discarded by the plotting frequency cutoff.
     slow = tf(1e-13, [1.0, 2e-9, 1e-12])
     @test length(margin(slow; allMargins=true).pm[]) == 2
+    @test length(margin(slow*tf(1, [1, 1]); allMargins=true).pm[]) == 2
+
+    # Review of #1076: unity DC gain must not create tiny noise crossovers.
+    Tss = feedback(ss(tf(1, [1, 1, 0])) * ss(pid(1.0, 1.0, 0.1; Tf=0.01)))
+    L = ss(tf([1, 1], [1, 10])) * ss(10.0)
+    for sys in (Tss, L)
+        wm = ControlSystemsBase._default_freq_vector(sys, Val(:margin))
+        @test wm == ControlSystemsBase._default_freq_vector(sys, Val(:bode))
+        @test all(w -> iszero(w) || w >= wm[1], margin(sys; allMargins=true).wpm[])
+    end
+    @test only(filter(>(0), margin(Tss; allMargins=true).wpm[])) ≈ 1.36926 rtol=1e-3
+    @test isempty(filter(>(0), margin(L; allMargins=true).wpm[]))
+
+    # Use each gain's precision when deciding whether its limit is unity.
+    for T in (Float32, Float64, BigFloat), gain in (one(T) - eps(T), one(T) + eps(T))
+        for sys in (zpk(T[], T[-1], gain), zpk(T[-1], T[-2], gain))
+            @test ControlSystemsBase._default_freq_vector(sys, Val(:margin)) ==
+                  ControlSystemsBase._default_freq_vector(sys, Val(:bode))
+        end
+    end
+    for T in (Float32, Float64)
+        gain = one(T) + 4sqrt(eps(T))
+        @test margin(zpk(T[], T[-1], gain)).wpm[] ≈ sqrt(gain^2 - 1) rtol=1e-3
+        @test margin(zpk(T[-1], T[-2], gain)).wpm[] ≈ sqrt((4 - gain^2)/(gain^2 - 1)) rtol=1e-3
+        gain = one(T) - 4sqrt(eps(T))
+        @test margin(zpk(T[-2], T[-1], gain)).wpm[] ≈ sqrt((4gain^2 - 1)/(1 - gain^2)) rtol=1e-3
+    end
+
+    # Numerical integrators must not determine the frequency bounds.
+    double_mass = DemoSystems.double_mass_model()
+    wm = ControlSystemsBase._default_freq_vector(double_mass, Val(:margin))
+    @test wm == ControlSystemsBase._default_freq_vector(double_mass, Val(:bode))
+    @test wm[1] >= 1e-3
+    @test length(wm) < 500
+    @test margin(double_mass).wpm[] ≈ 0.45477 rtol=1e-3
+    @test ControlSystemsBase._margin_nonintegrators([-1e-14, -10.0], 0) == [-10.0]
+    @test ControlSystemsBase._margin_nonintegrators([-1e-12], 0) == [-1e-12]
+    @test ControlSystemsBase._margin_nonintegrators([1 + eps(), 0.5], 1) == [0.5]
+    # The endpoint evaluation must agree with the numerical-origin limit.
+    tiny = zpk(Float64[], [-1e-14, -1.0], 1e-16)
+    wtiny = ControlSystemsBase._default_freq_vector(tiny, Val(:margin))
+    @test wtiny[1] > 1e-20
+    @test isinf(margin(tiny).pm[])
 
     # Discrete-time grids must still stop at the Nyquist frequency.
     Gd = tf(1e-6, [1.0, -1], 0.1)
     wd = ControlSystemsBase._default_freq_vector(Gd, Val(:margin))
     @test wd[end] == π/Gd.Ts
     @test margin(Gd).wpm[] ≈ 2asin(1e-6/2)/Gd.Ts rtol=1e-3
+    # Phase correction must use the unit circle for discrete-time poles.
+    @test margin(Gd).pm[] ≈ 90 atol=1e-2
+    @test margin(Gd*tf(1, [1, -0.5], Gd.Ts)).pm[] ≈ 90 atol=1e-2
+    @test margin(Gd*tf(1, [1, -1.5], Gd.Ts)).pm[] ≈ -90 atol=1e-2
+    for Ts in (0.1, 1000.0)
+        sys = tf(1e-6, [1.0, -1], Ts)
+        wd = ControlSystemsBase._default_freq_vector(sys, Val(:margin))
+        @test issorted(wd)
+        @test all(0 .< wd .<= π/Ts)
+        @test wd[end] == π/Ts
+    end
+    wd = ControlSystemsBase._default_freq_vector([Gd, tf(1, [1, 0.5], 10)], Val(:margin))
+    @test issorted(wd)
+    @test all(0 .< wd .<= π/10)
 
     for sys in (tf(0), tf(2), tf(0.1, [1.0, 1]))
         @test isinf(margin(sys).pm[])
@@ -249,6 +306,32 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
     # An explicit frequency vector continues to limit the search range.
     w = exp10.(range(-1, 3; length=200))
     @test isinf(margin(G, w).pm[])
+    @test ControlSystemsBase._processfreqplot(Val(:margin), [G], w)[2] === w
+    @test ControlSystemsBase._processfreqplot(Val(:margin), [Gd], w)[2] === w
+end
+
+@testset "Margin phase guides" begin
+    guides = ControlSystemsBase._margin_phase_guides
+    @test guides([-90.0], [90.0], [-90.0, -270.0]) == [-180.0]
+    @test guides([90.0], [-90.0], [90.0]) == [180.0]
+    @test guides([-90.0, NaN], [90.0, Inf], [-90.0]) == [-180.0]
+    @test guides(Float64[], Float64[], [-90.0, -270.0]) == [-180.0]
+    @test guides(Float64[], Float64[], [90.0]) == [180.0]
+    @test guides([NaN], [Inf], [NaN, Inf, -450.0]) == [-540.0]
+    @test guides(Float64[], Float64[], [NaN, Inf]) == [-180.0]
+    @test guides(Float64[], Float64[], Float64[]) == [-180.0]
+
+    w = exp10.(range(-1, 3; length=200))
+    for (sys, phase) in (
+        (tf(0.1, [1.0, 1]), -180),
+        (tf(-0.1, [1.0, 1]), 180),
+        (tf(1e-6, [1.0, 0, 0, 0, 0, 0]), -540),
+    )
+        m = ControlSystemsBase.sisomargin(sys, w; full=true, allMargins=true)
+        @test guides(m.fullPhase, m.pm, m.phasedata) == [phase]
+        @test isempty(m.pm)
+        @test isempty(m.wpm)
+    end
 end
 
 # Test case that requires negative frequencies to be included in the grid in order to find one margin
@@ -331,6 +414,8 @@ C3 = (kpo + kio/s)*(1/(t*s + 1))
 Cb = (kpb + kib/s)*(1/(t*s + 1))
 OL = (ss(Cb)*ss(C1)*ss(C2)*ss(C3)*exp(-3*tau*s))/((C1 - a*s)*(C2 - a*s)*(C3 - a*s));
 
+@test ControlSystemsBase._default_freq_vector(OL, Val(:margin)) ==
+      ControlSystemsBase._default_freq_vector(OL, Val(:bode))
 wgm, gm, ωϕₘ, ϕₘ = margin(OL; full=true, allMargins=true)
 @test ϕₘ[][] ≈ -320 rtol=1e-2
 for wgm in wgm[]

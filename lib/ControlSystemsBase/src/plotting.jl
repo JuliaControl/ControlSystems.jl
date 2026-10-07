@@ -764,7 +764,9 @@ _to1series(y) = _to1series(1:size(y,3),y)
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
 
-- A frequency vector `w` can be optionally provided.
+- If `w` is omitted, a margin-specific frequency range is selected using
+  pole/zero features and limiting gains to locate gain crossovers. An explicit
+  frequency vector is used without extending its range.
 - `hz`: If true, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
@@ -803,6 +805,7 @@ marginplot
                     idx = sortperm(pm)
                     wpm = wpm[idx[1:5]]
                     pm = pm[idx[1:5]]
+                    fullPhase = fullPhase[idx[1:5]]
                 end
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
@@ -873,14 +876,7 @@ marginplot
                         ws, phasedata
                     end
                 end
-                phaseguides = filter(isfinite, fullPhase .- pm)
-                if isempty(phaseguides)
-                    # No finite phase margin: use the critical phase nearest
-                    # the displayed phase branch instead of omitting the guide.
-                    idx = findfirst(isfinite, phasedata)
-                    phase = idx === nothing ? 0 : phasedata[idx]
-                    phaseguides = [-180 + 360round((phase + 180)/360)]
-                end
+                phaseguides = _margin_phase_guides(fullPhase, pm, phasedata)
                 @series begin
                     primary := false
                     color --> :gray
@@ -898,6 +894,16 @@ marginplot
 end
 
 # HELPERS:
+
+function _margin_phase_guides(fullPhase, pm, phasedata)
+    guides = filter(isfinite, fullPhase .- pm)
+    isempty(guides) || return guides
+    # No finite phase margin: use the critical phase nearest the displayed
+    # phase branch without adding a phase margin or a crossover frequency.
+    idx = findfirst(isfinite, phasedata)
+    phase = idx === nothing ? 0 : phasedata[idx]
+    [-180 + 360round((phase + 180)/360)]
+end
 
 function _same_io_dims(systems::LTISystem...)
     sizes = map(size, systems)

@@ -120,6 +120,27 @@ import CairoMakie.Makie
             fig = CSMakie.marginplot(P; plotphase=false)
             @test fig isa Makie.Figure
         end
+        # Issue #771 and the numerical cases from the review of #1076.
+        G = tf([1.0], [1.0, 13, 40, 0])
+        Tss = feedback(ss(tf(1, [1, 1, 0])) * ss(pid(1.0, 1.0, 0.1; Tf=0.01)))
+        L = ss(tf([1, 1], [1, 10])) * ss(10.0)
+        for sys in (G, Tss, L, DemoSystems.double_mass_model())
+            @test_nowarn begin
+                fig = CSMakie.marginplot(sys)
+                @test fig isa Makie.Figure
+            end
+        end
+        # Explicit ranges and fallback phase branches use the same helper
+        # as Plots; verify that both sampling and display options work.
+        for sys in (G, tf(0.1, [1.0, 1]), tf(-0.1, [1.0, 1]), tf(1e-6, [1.0, 0, 0, 0, 0, 0]))
+            for adaptive in (false, true), hz in (false, true)
+                @test_nowarn begin
+                    fig = CSMakie.marginplot(sys, w; adaptive, hz)
+                    @test fig isa Makie.Figure
+                end
+            end
+        end
+        @test_nowarn CSMakie.marginplot(Tss, exp10.(range(-8, 4; length=1000)))
     end
     
     @testset "rlocusplot" begin

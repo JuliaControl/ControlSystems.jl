@@ -8,7 +8,7 @@ using Printf
 
 # Import necessary functions from ControlSystemsBase
 using ControlSystemsBase: downsample, _processfreqplot, _default_freq_vector,
-                          _same_io_dims, _get_plotlabel, _to1series,
+                          _same_io_dims, _get_plotlabel, _to1series, _margin_phase_guides,
                           SimResult, StepInfo, RootLocusResult,
                           poles, tzeros, bode, nyquist, sigma, margin, 
                           sisomargin, relative_gain_array, rlocus,
@@ -383,9 +383,9 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
                             w=nothing; plotphase=true, hz=false, balance=true, 
                             adjust_phase_start=true, adaptive=true, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
-    systems, w = isnothing(w) ? _processfreqplot(Val{:bode}(), systems_vec; adaptive) : 
-                                _processfreqplot(Val{:bode}(), systems_vec, w; adaptive)
-    
+    systems, w =
+        isnothing(w) ? _processfreqplot(Val{:margin}(), systems_vec; adaptive) :
+        _processfreqplot(Val{:margin}(), systems_vec, w; adaptive)
     ws = (hz ? 1/(2π) : 1) .* w
     ny, nu = size(systems[1])
     
@@ -487,12 +487,10 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
                     # Phase margin lines
                     wpm_display = hz ? wpm ./ (2π) : wpm
                     
-                    # Draw horizontal lines at phase margin crossings
-                    for k in 1:length(pm)
-                        phase_line = fullPhase[k] - pm[k]
-                        hlines!(ax_phase, phase_line, color=:gray, linestyle=:dash, alpha=0.5)
-                    end
-                    
+                    # Draw critical-phase guides, including when no finite
+                    # phase margin is found, using the shared backend logic.
+                    guides = _margin_phase_guides(fullPhase, pm, phasedata)
+                    hlines!(ax_phase, guides, color=:gray, linestyle=:dash, alpha=0.5)
                     # Draw vertical lines showing the phase margins
                     for k in 1:length(pm)
                         lines!(ax_phase, [wpm_display[k], wpm_display[k]], 

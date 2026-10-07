@@ -502,7 +502,13 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false
         min_pt_per_dec = 60
         min_pt_total = 200
     end
-    bounds = map(sys -> _bounds_and_features(sys, plot)[1], systems)
+    bounds_features = map(systems) do sys
+        # An augmented model's channel gains do not give the limiting gains
+        # of the external delay/interconnected system.
+        plottype = plot isa Val{:margin} && !isrational(sys) ? Val{:bode}() : plot
+        _bounds_and_features(sys, plottype)
+    end
+    bounds = first.(bounds_features)
     w1 = minimum(minimum, bounds)
     w2 = maximum(maximum, bounds)
 
@@ -510,7 +516,16 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false
     if plot isa Val{:margin}
         # Keep the original Bode samples so that extending the search range
         # does not perturb interpolation of already-resolved crossovers.
-        w = _default_freq_vector(systems, Val{:bode}(); adaptive)
+        # Reuse the pole/zero data when constructing the original Bode grid.
+        bodebounds = map(systems, bounds_features) do sys, bf
+            isrational(sys) ? _frequency_bounds(sys, Val{:bode}(), bf[2]) : bf[1]
+        end
+        b1, b2 = minimum(minimum, bodebounds), maximum(maximum, bodebounds)
+        bn = round(Int, max(min_pt_total, min_pt_per_dec*(b2 - b1)))
+        w = exp10.(range(b1, stop=b2, length=bn))
+        if length(systems) == 1 && isdiscrete(systems[1])
+            w[end] = π/systems[1].Ts
+        end
         l1, l2 = log10(w[1]), log10(w[end])
         step = (l2 - l1)/(length(w) - 1)
         if step > 0
@@ -525,6 +540,11 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false
     else
         w = exp10.(range(w1, stop=w2, length=nw))
     end
+    if plot isa Val{:margin} && all(isdiscrete, systems)
+        nyquist = minimum(sys -> π/sys.Ts, systems)
+        filter!(<=(nyquist), w)
+        w[end] == nyquist || push!(w, nyquist)
+    end
     if length(systems) == 1 && isdiscrete(systems[1])
         w[end] = π/systems[1].Ts # To account for numerical rounding problems from exp(log())
     end
@@ -532,6 +552,15 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false
 end
 _default_freq_vector(sys::LTISystem, plot; kwargs...) = _default_freq_vector(
         [sys], plot; kwargs...)
+
+function _margin_nonintegrators(roots, location)
+    n, tol = count_eigval_multiplicity(roots, location)
+    scale = maximum(abs, roots; init=zero(real(float(one(eltype(roots))))))
+    # Retain the multiplicity-aware tolerance, with a relative floor for
+    # single integrators whose eigenvalues are displaced by rounding error.
+    tol = max(n == 0 ? zero(tol) : tol, sqrt(eps(one(scale)))*scale)
+    filter(r -> !iszero(r - location) && abs(r - location) >= tol, roots)
+end
 
 function _bounds_and_features(sys::LTISystem, plot::Val)
     # Get zeros and poles for each channel
@@ -545,6 +574,54 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
         # For sigma plots, use the MIMO poles and zeros
         zp = [tzeros(sys); poles(sys)]
     end
+    location = iscontinuous(sys) ? 0 : 1
+    if plot isa Val{:margin} && isrational(sys)
+        zfeatures = map(z -> _margin_nonintegrators(z, location), zs)
+        pfeatures = map(p -> _margin_nonintegrators(p, location), ps)
+        features = vcat(zpType[], zfeatures..., pfeatures...)
+    else
+        features = zp
+    end
+    w1, w2 = _frequency_bounds(sys, plot, features)
+    if plot isa Val{:margin} && isrational(sys)
+        # Pole/zero locations alone can miss gain crossovers. Extend the range
+        # until the endpoint gains agree with their low/high-frequency limits
+        # about which side of unity they lie on. Approximate unity gain must
+        # not extend the grid into crossovers caused by rounding error.
+        for i in eachindex(ks)
+            iszero(ks[i]) && continue
+            z, p = zfeatures[i] .- location, pfeatures[i] .- location
+            nz, np = length(zs[i]) - length(z), length(ps[i]) - length(p)
+            dc = np == nz ? abs(evalfr(SisoZpk(z, p, ks[i]), 0)) : (np > nz ? Inf : 0)
+            # Use the same origin classification in the endpoint evaluations
+            # and limiting gain, so the extension can reach the chosen limit.
+            G = SisoZpk(
+                [zfeatures[i]; fill(location, nz)],
+                [pfeatures[i]; fill(location, np)],
+                ks[i],
+            )
+            while w1 > log10(floatmin(Float64)) &&
+                  !isnan(dc) &&
+                  !isapprox(dc, one(dc)) &&
+                  (abs(evalfr(G, _freq(exp10(w1), timeevol(sys)))) > 1) != (dc > 1)
+                w1 -= 1
+            end
+            if iscontinuous(sys)
+                n = length(ps[i]) - length(zs[i])
+                hf = n == 0 ? abs(ks[i]) : (n > 0 ? 0 : Inf)
+                while w2 < floor(log10(floatmax(Float64))) &&
+                      !isnan(hf) &&
+                      !isapprox(hf, one(hf)) &&
+                      (abs(evalfr(G, _freq(exp10(w2), timeevol(sys)))) > 1) != (hf > 1)
+                    w2 += 1
+                end
+            end
+        end
+    end
+    return [w1, w2], zp
+end
+
+function _frequency_bounds(sys, plot, zp)
     # Margin searches must also retain features at very low frequencies.
     fzp = log10.(abs.(zp))
     fzp = plot isa Val{:margin} ? filter(isfinite, fzp) : fzp[fzp .> -4]
@@ -564,36 +641,7 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
     end
     if isdiscrete(sys)
         w2 = log10(π/sys.Ts) # Draw up to Nyquist frequency for discrete systems
+        plot isa Val{:margin} && (w1 = min(w1, w2 - 1))
     end
-    if plot isa Val{:margin} && isrational(sys)
-        # Pole/zero locations alone can miss gain crossovers. Extend the range
-        # until the endpoint gains agree with their low/high-frequency limits
-        # about which side of unity they lie on.
-        location = iscontinuous(sys) ? 0 : 1
-        for i in eachindex(ks)
-            iszero(ks[i]) && continue
-            z = filter(!iszero, zs[i] .- location)
-            p = filter(!iszero, ps[i] .- location)
-            nz, np = length(zs[i]) - length(z), length(ps[i]) - length(p)
-            dc = np == nz ? abs(evalfr(SisoZpk(z, p, ks[i]), 0)) : (np > nz ? Inf : 0)
-            G = SisoZpk(zs[i], ps[i], ks[i])
-            while w1 > log10(floatmin(Float64)) &&
-                  !isnan(dc) &&
-                  dc != 1 &&
-                  (abs(evalfr(G, _freq(exp10(w1), timeevol(sys)))) > 1) != (dc > 1)
-                w1 -= 1
-            end
-            if iscontinuous(sys)
-                n = length(ps[i]) - length(zs[i])
-                hf = n == 0 ? abs(ks[i]) : (n > 0 ? 0 : Inf)
-                while w2 < floor(log10(floatmax(Float64))) &&
-                      !isnan(hf) &&
-                      hf != 1 &&
-                      (abs(evalfr(G, _freq(exp10(w2), timeevol(sys)))) > 1) != (hf > 1)
-                    w2 += 1
-                end
-            end
-        end
-    end
-    return [w1, w2], zp
+    [w1, w2]
 end
