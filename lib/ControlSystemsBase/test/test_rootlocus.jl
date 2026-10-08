@@ -21,3 +21,20 @@ Nroots = -1.0 .+  [-1.732050807568877im, 1.732050807568877im]
 Droots =  [0.0, -4.0, -6.0, -0.7 - 0.7141428428542851im, -0.7 + 0.7141428428542851im]
 G = zpk(Nroots, Droots, 1.0)
 rlocusplot(G, 200)
+
+# The number of steps must not grow linearly with the distance the poles travel
+sys = ss([-0.5 4000; -66.66666666666667 -875], [0.0; 6000.0;;], [9.549296585513721 0.0], 0)
+r = rlocus(sys)
+@test length(r.K) < 2000
+P, Q = numpoly(tf(sys))[], denpoly(tf(sys))[]
+for (k, rs) = zip(r.K, eachrow(r.roots))
+    for p in rs
+        @test abs((k*P+Q)(p)) <= 1e-8*abs(k*P(p))+1e-8*abs(Q(p))
+    end
+end
+
+# The step-size control is independent of the time unit of the system
+sys_ms = ss(sys.A/1000, sys.B/1000, sys.C, 0) # Time unit ms instead of s
+r_ms = rlocus(sys_ms)
+@test length(r_ms.K) == length(r.K)
+@test r_ms.roots ≈ r.roots/1000

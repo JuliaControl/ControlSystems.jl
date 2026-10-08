@@ -11,6 +11,31 @@ If a SISO system is passed, the feedback gain `K` is a scalar that ranges from 0
 """
 rlocusplot
 
+"""
+    pole_reference_scale(poles...)
+
+Return a magnitude below which the step-size control of the root locus measures the displacement of a pole in absolute rather than relative terms. The scale is a small fraction of the smallest nonzero magnitude among the poles and zeros passed in, where magnitudes below `sqrt(eps())` times the largest magnitude are regarded as zero since they are typically the result of rounding errors in the computation of a root at the origin. This bounds the number of steps required for a pole that approaches or departs from the origin.
+"""
+function pole_reference_scale(poles...)
+    magnitudes = [abs(x) for p in poles for x in p if isfinite(x)]
+    largest = maximum(magnitudes; init=0.0)
+    smallest = minimum(a for a in magnitudes if a > sqrt(eps())*largest; init=Inf)
+    isfinite(smallest) ? 1e-3*smallest : 1.0
+end
+
+"""
+    relative_step_cost(D, assignment, prevpoles, s_ref)
+
+Return the sum over all poles of the distance moved in one step, each distance divided by the magnitude of the pole before the step (but at least `s_ref`). Measuring the displacement relative to the pole magnitude makes the number of steps grow logarithmically rather than linearly with the distance the poles travel.
+"""
+function relative_step_cost(D, assignment, prevpoles, s_ref)
+    cost = 0.0
+    for (r, c) in enumerate(assignment)
+        cost += D[r, c] / max(abs(prevpoles[c]), s_ref)
+    end
+    cost
+end
+
 
 function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
@@ -50,6 +75,7 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     push!(poleout_list, initial_poles)
     push!(k_scalars_collected, 0.0)
     prevpoles = initial_poles # Set prevpoles for the first actual step
+    s_ref = pole_reference_scale(Polynomials.roots(Q), compute_poles(K), Polynomials.roots(P))
     
     while k_scalar < K
         # Propose a new k_scalar value
@@ -61,7 +87,8 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
         # Calculate cost using Hungarian algorithm
         if !isempty(prevpoles)
             D .= abs.(current_poles_proposed .- transpose(prevpoles))
-            assignment, cost = Hungarian.hungarian(D)
+            assignment, _ = Hungarian.hungarian(D)
+            cost = relative_step_cost(D, assignment, prevpoles, s_ref)
         else
             cost = 0.0
             assignment = collect(1:nx-1)
@@ -106,7 +133,7 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
         end
     end
     
-    return hcat(poleout_list...)' |> copy, k_scalars_collected
+    return copy(transpose(reduce(hcat, poleout_list))), k_scalars_collected
 end
 
 
@@ -128,7 +155,7 @@ function getpoles(G, K::AbstractVector{T}) where {T<:Number}
             poleout[:,i] .= temppoles
         end
     end
-    copy(poleout'), K
+    copy(transpose(poleout)), K
 end
 
 """
@@ -137,6 +164,8 @@ end
 Compute the poles of the closed-loop system defined by `sys` with feedback gains `γ*K` where `γ` is a scalar that ranges from 0 to 1.
 
 If `output = true`, `K` is assumed to be an output feedback matrix of dim `(nu, ny)`
+
+The step size in `γ` is adapted such that the sum over all poles of the distance moved in one step, each relative to the magnitude of the pole, is at most `2tol` times the state dimension.
 """
 function getpoles(sys::StateSpace, K_matrix::AbstractMatrix; tol = 1e-2, initial_stepsize = 1e-3, output=false)
     (; A, B, C) = sys
@@ -170,6 +199,8 @@ function getpoles(sys::StateSpace, K_matrix::AbstractMatrix; tol = 1e-2, initial
     push!(poleout_list, initial_poles)
     push!(k_scalars_collected, 0.0)
     prevpoles = initial_poles # Set prevpoles for the first actual step
+    s_ref = pole_reference_scale(initial_poles, eigvals(A - B * K_matrix))
+    D = zeros(nx, nx) # distance matrix
 
     while k_scalar < 1.0
         # Propose a new k_scalar value
@@ -180,13 +211,9 @@ function getpoles(sys::StateSpace, K_matrix::AbstractMatrix; tol = 1e-2, initial
         current_poles_proposed = eigvals(A_cl_proposed)
 
         # Calculate cost using Hungarian algorithm
-        D = zeros(nx, nx)
-        for r in 1:nx
-            for c in 1:nx
-                D[r, c] = abs(current_poles_proposed[r] - prevpoles[c])
-            end
-        end
-        assignment, cost = Hungarian.hungarian(D)
+        D .= abs.(current_poles_proposed .- transpose(prevpoles))
+        assignment, _ = Hungarian.hungarian(D)
+        cost = relative_step_cost(D, assignment, prevpoles, s_ref)
 
         # Adaptive step size logic
         if cost > 2 * tol # Cost is too high, reject step and reduce stepsize
@@ -224,7 +251,7 @@ function getpoles(sys::StateSpace, K_matrix::AbstractMatrix; tol = 1e-2, initial
         end
     end
 
-    return hcat(poleout_list...)' |> copy, k_scalars_collected .* Ref(K_matrix) # Return transposed pole matrix and k_values
+    return copy(transpose(reduce(hcat, poleout_list))), k_scalars_collected .* Ref(K_matrix) # Return transposed pole matrix and k_values
 end
 
 
@@ -236,6 +263,8 @@ Compute the root locus of the LTISystem `P` with a negative feedback loop and fe
 `roots` is a complex matrix containing the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 
 If `K` is a matrix and `P` a `StateSpace` system, the poles are computed as `K` ranges from `0*K` to `1*K`. In this case, `K` is assumed to be a state-feedback matrix of dimension `(nu, nx)`. To compute the poles for output feedback, use, pass `output = true` and `K` of dimension `(nu, ny)`.
+
+The keyword arguments `tol = 1e-2` and `initial_stepsize = 1e-3` control the adaptive step size. A step is accepted if the sum over all poles of the distance moved, each relative to the magnitude of the pole, is at most `2tol` times the number of poles. The number of steps thus grows logarithmically with the distance the poles travel, independent of the time unit of the system.
 """
 function rlocus(P, K; kwargs...)
     Z = tzeros(P)
