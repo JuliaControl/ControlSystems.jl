@@ -100,6 +100,9 @@ function integrator_excess_with_tol(P::LTISystem)
     np - nz, p, z, tolp, tolz
 end
 
+# Whether the frequency response of the SISO system `sys` is zero at ω = 0, i.e., whether `sys` has more zeros than poles in the origin (z = 1 in discrete time)
+_zero_dc_gain(sys::LTISystem) = isrational(sys) && integrator_excess(sys) < 0
+
 
 # TODO: Improve implementation, should be more efficient ways.
 # Calculates the same minors several times in some cases.
@@ -560,6 +563,9 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
         if sign(w[1]) != sign(w[end]) && abs(Giw) > 1e6 && wgm[i] < 0.001
             # This tries to filter out extremely large gain margins that can arise when the Nyquist contour crosses the negative real axis at -Inf.
             # This is filter is in addition to the filter_th check in _findCrossings
+            push!(remove, i)
+        elseif iszero(wgm[i]) && _zero_dc_gain(sys)
+            # The frequency response at ω = 0 is zero, so its computed phase is determined by rounding error and the Nyquist contour does not cross the negative real axis there
             push!(remove, i)
         end
         gm[i] = 1 ./ abs(Giw)
