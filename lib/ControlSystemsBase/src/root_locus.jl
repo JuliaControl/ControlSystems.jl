@@ -7,7 +7,7 @@ import ControlSystemsBase.RootLocusResult
 
 Plot the root locus of a system under feedback.
 
-If a SISO system is passed, the feedback gain `K` is a scalar that ranges from 0 to `K` (if provided). If a `StateSpace` system is passed, `K` is a matrix that defines the feedback gain, and the poles are computed as `K` ranges from `0*K` to `1*K`. In this case, `K` is assumed to be a state-feedback matrix of dimension `(nu, nx)`. To compute the poles for output feedback, pass `output = true` and `K` of dimension `(nu, ny)`.
+If a SISO system is passed, the feedback gain `K` is a scalar that ranges from 0 to `K` (if provided, see [`rlocus`](@ref) for the default). If a `StateSpace` system is passed, `K` is a matrix that defines the feedback gain, and the poles are computed as `K` ranges from `0*K` to `1*K`. In this case, `K` is assumed to be a state-feedback matrix of dimension `(nu, nx)`. To compute the poles for output feedback, pass `output = true` and `K` of dimension `(nu, ny)`.
 """
 rlocusplot
 
@@ -37,26 +37,87 @@ function relative_step_cost(D, assignment, prevpoles, s_ref)
 end
 
 """
-    improper_initial_gain(P, Q, K; radius_factor = 10, rtol = 1e-2, npoints = 64)
+    characteristic_magnitude(poles, zeros, discrete::Bool)
 
-Return the gain at which the root locus of the improper transfer function `P/Q` is started, at most `K/10`. At this gain, the `degree(P) - degree(Q)` poles that originate at infinity have a magnitude larger than `radius_factor` times the largest magnitude among the open-loop poles and zeros, and each of the remaining poles is located within a distance `rtol*|p|` of an open-loop pole `p` (or a cluster thereof).
-
-The bound follows from Rouché's theorem: if `k|P(s)| < |Q(s)|` on a closed contour, `Q + kP` has as many roots inside the contour as `Q`. The contour condition is evaluated at `npoints` points on each contour.
+Return the largest magnitude among the open-loop `poles` and `zeros`, at least 1 for a discrete-time system. If all poles and zeros of a continuous-time system are located at the origin, the root locus has no intrinsic scale and 1 is returned.
 """
-function improper_initial_gain(P, Q, K; radius_factor = 10, rtol = 1e-2, npoints = 64)
-    ol_poles = Polynomials.roots(Q)
-    largest = maximum(abs, [ol_poles; Polynomials.roots(P)]; init=0.0)
-    largest > 0 || (largest = 1.0) # All poles and zeros are located at the origin, the locus has no intrinsic scale
+function characteristic_magnitude(poles, zeros, discrete::Bool)
+    ω0 = maximum(x->isfinite(x) ? abs(x) : 0.0, [poles; zeros]; init=0.0)
+    discrete && (ω0 = max(ω0, 1.0))
+    ω0 > 0 ? ω0 : 1.0
+end
+
+"""
+    rouche_contour(ω0, centers; radius_factor = 10, rtol = 1e-2, npoints = 64)
+
+Return `npoints` points on each of the circles that make up the contour used to bound the location of the closed-loop poles by Rouché's theorem: a circle of radius `radius_factor*ω0` centered at the origin (omitted if `radius_factor = 0`), and circles of radius `rtol*max(|c|, rtol*ω0)` around each `c` in `centers`.
+"""
+function rouche_contour(ω0, centers; radius_factor = 10, rtol = 1e-2, npoints = 64)
     circle = cis.(range(0, 2π, length=npoints+1)[1:end-1])
-    contour = radius_factor*largest .* circle
-    for p in ol_poles
-        append!(contour, p .+ rtol*max(abs(p), rtol*largest) .* circle)
+    contour = radius_factor > 0 ? radius_factor*ω0 .* circle : ComplexF64[]
+    for c in centers
+        append!(contour, c .+ rtol*max(abs(c), rtol*ω0) .* circle)
     end
-    k0 = minimum(s->abs(Q(s))/abs(P(s)), contour)
+    contour
+end
+
+"""
+    improper_initial_gain(P, Q, K, discrete)
+
+Return the gain at which the root locus of the improper transfer function `P/Q` is started, at most `K/10`. At this gain, the `degree(P) - degree(Q)` poles that originate at infinity have a magnitude larger than ten times the [`characteristic_magnitude`](@ref) of the open-loop poles and zeros, and each of the remaining poles is located within a distance `0.01|p|` of an open-loop pole `p` (or a cluster thereof).
+
+The bound follows from Rouché's theorem: if `k|P(s)| < |Q(s)|` on a closed contour, `Q + kP` has as many roots inside the contour as `Q`. The contour condition is evaluated at a finite number of points on the contour, see [`rouche_contour`](@ref).
+"""
+function improper_initial_gain(P, Q, K, discrete)
+    ol_poles = Polynomials.roots(Q)
+    ω0 = characteristic_magnitude(ol_poles, Polynomials.roots(P), discrete)
+    contour = rouche_contour(ω0, ol_poles)
+    k0 = minimum(abs(Q(s))/abs(P(s)) for s in contour)
     k0 = min(k0, K/10)
     k0 > 0 ? k0 : eps(float(K))
 end
 
+"""
+    default_rlocus_gain(G)
+
+Return the default maximum gain of the root locus of the SISO system `G`, with transfer function `P/Q`. At this gain, the `degree(Q) - degree(P)` poles that tend to infinity have a magnitude larger than ten times the [`characteristic_magnitude`](@ref) `ω0` of the open-loop poles and zeros, and each of the remaining poles is located within a distance `0.01max(|z|, 0.01ω0)` of a zero `z` (or a cluster thereof). The gain is thus invariant to a change of the time unit and inversely proportional to the gain of `G`.
+
+The bound follows from Rouché's theorem: if `k|P(s)| > |Q(s)|` on a closed contour, `Q + kP` has as many roots inside the contour as `P`. The contour condition is evaluated at a finite number of points on the contour, see [`rouche_contour`](@ref).
+"""
+function default_rlocus_gain(G)
+    issiso(G) || error("A default gain is only available for SISO systems, provide a feedback gain matrix `K` for a MIMO system.")
+    G isa TransferFunction || (G = tf(G))
+    P = numpoly(G)[]
+    Q = denpoly(G)[]
+    zeros = Polynomials.roots(P)
+    ω0 = characteristic_magnitude(Polynomials.roots(Q), zeros, isdiscrete(G))
+    # The large circle is only required if there are poles that tend to infinity
+    radius_factor = Polynomials.degree(Q) > Polynomials.degree(P) ? 10 : 0
+    contour = rouche_contour(ω0, zeros; radius_factor)
+    K = maximum((k for k in (abs(Q(s))/abs(P(s)) for s in contour) if isfinite(k)); init=0.0)
+    K > 0 ? K : 1.0 # G is a static gain
+end
+
+"""
+    rlocus_limits(r::RootLocusResult; radius_factor = 2, pad = 0.1)
+
+Return the default axis limits `(xlims, ylims)` for a plot of the root locus `r`. The limits contain the open-loop poles and zeros, the origin, the unit circle for a discrete-time system, the closed-loop poles at the final gain if the gain is a matrix, and all points of the locus with a magnitude of at most `radius_factor` times the [`characteristic_magnitude`](@ref) of the open-loop poles and zeros. The limits are symmetric about the real axis and enlarged by the fraction `pad` of the larger of the two ranges.
+"""
+function rlocus_limits(r; radius_factor = 2, pad = 0.1)
+    ol_poles = poles(r.sys)
+    discrete = isdiscrete(r.sys)
+    ω0 = characteristic_magnitude(ol_poles, r.Z, discrete)
+    pts = ComplexF64[ol_poles; r.Z; 0]
+    append!(pts, filter(p->abs(p) <= radius_factor*ω0, vec(r.roots)))
+    eltype(r.K) <: AbstractArray && append!(pts, r.roots[end, :])
+    discrete && append!(pts, [1, -1, im, -im])
+    filter!(isfinite, pts)
+    xmin, xmax = extrema(real, pts)
+    ymax = maximum(x->abs(imag(x)), pts)
+    d = pad*max(xmax - xmin, 2ymax)
+    d > 0 || (d = pad*ω0)
+    (xmin - d, xmax + d), (-ymax - d, ymax + d)
+end
 
 function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
@@ -80,7 +141,7 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     
     stepsize = initial_stepsize
     # For an improper system, the closed-loop system has more poles than the open-loop system for k > 0, the additional poles originate at infinity. The locus is thus started at a gain k > 0 at which these poles have a large magnitude.
-    k_scalar = improper && K > 0 ? improper_initial_gain(P, Q, K) : 0.0
+    k_scalar = improper && K > 0 ? improper_initial_gain(P, Q, K, isdiscrete(G)) : 0.0
     
     # Function to compute poles for a given k value
     compute_poles = function(k)
@@ -277,9 +338,11 @@ end
 
 
 """
-    roots, Z, K = rlocus(P::LTISystem, K = 500)
+    roots, Z, K = rlocus(P::LTISystem, K = nothing)
 
 Compute the root locus of the LTISystem `P` with a negative feedback loop and feedback gains between 0 and `K`. `rlocus` will use an adaptive step-size algorithm to determine the values of the feedback gains used to generate the plot.
+
+If `K = nothing` (default), the maximum gain is chosen such that the poles that tend to infinity have a magnitude larger than ten times the largest magnitude among the open-loop poles and zeros, and the remaining poles are close to the zeros, see [`ControlSystemsBase.default_rlocus_gain`](@ref).
 
 `roots` is a complex matrix containing the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 
@@ -290,12 +353,13 @@ If `K` is a matrix and `P` a `StateSpace` system, the poles are computed as `K` 
 The keyword arguments `tol = 1e-2` and `initial_stepsize = 1e-3` control the adaptive step size. A step is accepted if the sum over all poles of the distance moved, each relative to the magnitude of the pole, is at most `2tol` times the number of poles. The number of steps thus grows logarithmically with the distance the poles travel, independent of the time unit of the system.
 """
 function rlocus(P, K; kwargs...)
+    K === nothing && (K = default_rlocus_gain(P))
     Z = tzeros(P)
     roots, K = getpoles(P, K; kwargs...)
     ControlSystemsBase.RootLocusResult(roots, Z, K, P)
 end
 
-rlocus(P; K=500) = rlocus(P, K)
+rlocus(P; K=nothing, kwargs...) = rlocus(P, K; kwargs...)
 
 
 # This will be called on plot(rlocus(sys, args...))
@@ -304,16 +368,24 @@ rlocus(P; K=500) = rlocus(P, K)
     array_K = eltype(K) <: AbstractArray
     redata = real.(roots)
     imdata = imag.(roots)
-    all_redata = [vec(redata); real.(Z)]
-    all_imdata = [vec(imdata); imag.(Z)]
 
-    ylims --> (max(-50,minimum(all_imdata) - 1), min(50,maximum(all_imdata) + 1))
-    xlims --> (max(-50,minimum(all_redata) - 1), clamp(maximum(all_redata) + 1, 1, 50))
+    default_xlims, default_ylims = rlocus_limits(r)
+    xlims --> default_xlims
+    ylims --> default_ylims
     framestyle --> :zerolines
     title --> "Root locus"
     xguide --> "Re(roots)"
     yguide --> "Im(roots)"
     form(k, p) = Printf.@sprintf("%.4f", k) * "  pole=" * Printf.@sprintf("%.3f%+.3fim", real(p), imag(p))
+    if isdiscrete(r.sys)
+        @series begin
+            primary := false
+            linestyle := :dash
+            linecolor := :gray
+            ϕ = range(0, 2π, length=200)
+            cos.(ϕ), sin.(ϕ)
+        end
+    end
     @series begin
         legend --> false
         if !array_K
@@ -350,12 +422,12 @@ end
 
 
 """
-    rlocusplot(P::LTISystem; K)
+    rlocusplot(P::LTISystem; K = nothing)
     rlocusplot(P::StateSpace, K::Matrix; output = false)
 
-Plot the root locus of the LTISystem `P` as computed by `rlocus`.
+Plot the root locus of the LTISystem `P` as computed by `rlocus`. The default axis limits are computed by [`ControlSystemsBase.rlocus_limits`](@ref).
 """
-@recipe function rlocusplot(::Type{Rlocusplot}, p::Rlocusplot; K=500, output=false)
+@recipe function rlocusplot(::Type{Rlocusplot}, p::Rlocusplot; K=nothing, output=false)
     if length(p.args) >= 2
         rlocus(p.args[1], p.args[2]; output)
     else

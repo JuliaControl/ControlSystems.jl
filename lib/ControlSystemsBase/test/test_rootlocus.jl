@@ -9,7 +9,7 @@ P, Q = numpoly(tf2)[], denpoly(tf2)[]
 for (k, rs, rs2) = zip(eachrow(K), eachrow(rts), eachrow(rts2))
     # test that entries are solutions
     for r in rs
-        @test isapprox((k[1]*P+Q)(r), 0, atol=1e-10)
+        @test isapprox((k[1]*P+Q)(r), 0, atol=1e-10*(1 + k[1]))
     end
     @test isapprox(rs, rs2)
 end
@@ -56,3 +56,36 @@ end
 rts, _ = ControlSystemsBase.getpoles(G, [0.0, 1.0, 2.0])
 @test size(rts) == (3, 2)
 plot(r)
+
+# Default gain: the poles that tend to infinity have a magnitude of at least ten times the largest magnitude among the open-loop poles and zeros, the remaining poles are close to the zeros
+using ControlSystemsBase: default_rlocus_gain, rlocus_limits
+for G in (tf([1/5,2],[1,1,1]), tf(1, [1, 3, 2, 0]), zpk([-1000], [-1, -10, -10], 1), tf([-1, 1], [1, 1, 1]), tf(sys))
+    local r = rlocus(G)
+    @test r.K[end] == default_rlocus_gain(G)
+    ω0 = maximum(abs, [poles(G); tzeros(G)])
+    z = tzeros(G)
+    far = abs.(r.roots[end, :]) .> 10ω0
+    @test count(far) == length(poles(G)) - length(z)
+    @test all(minimum(abs.(p .- z)) <= 0.0101*max(abs(z[argmin(abs.(p .- z))]), 0.01ω0) for p in r.roots[end, .!far])
+end
+@test default_rlocus_gain(10tf(sys)) ≈ default_rlocus_gain(tf(sys))/10
+@test default_rlocus_gain(sys_ms) ≈ default_rlocus_gain(sys)
+@test_throws ErrorException rlocus(ssrand(2, 2, 3))
+
+# Default plot limits contain the open-loop poles and the origin, and are not determined by the poles at the final gain
+r = rlocus(sys)
+r_ms = rlocus(sys_ms)
+xl, yl = rlocus_limits(r)
+ω0 = maximum(abs, poles(sys))
+@test all(xl[1] < real(p) < xl[2] && yl[1] < imag(p) < yl[2] for p in [poles(sys); 0])
+@test xl[2] - xl[1] < 3ω0 && yl[2] - yl[1] < 6ω0
+xl_ms, yl_ms = rlocus_limits(r_ms)
+@test all(xl_ms .≈ xl ./ 1000) && all(yl_ms .≈ yl ./ 1000)
+
+# Discrete-time system, the limits contain the unit circle
+Gd = zpk([-0.5], [1, 0.6], 0.1, 0.1)
+rd = rlocus(Gd)
+xl, yl = rlocus_limits(rd)
+@test xl[1] < -1 && xl[2] > 1 && yl[1] < -1 && yl[2] > 1
+plot(rd)
+rlocusplot(Gd)
