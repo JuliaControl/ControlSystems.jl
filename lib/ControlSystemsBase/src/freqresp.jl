@@ -553,13 +553,11 @@ end
 _default_freq_vector(sys::LTISystem, plot; kwargs...) = _default_freq_vector(
         [sys], plot; kwargs...)
 
-function _margin_nonintegrators(roots, location)
-    n, tol = count_eigval_multiplicity(roots, location)
-    scale = maximum(abs, roots; init=zero(real(float(one(eltype(roots))))))
-    # Retain the multiplicity-aware tolerance, with a relative floor for
-    # single integrators whose eigenvalues are displaced by rounding error.
-    tol = max(n == 0 ? zero(tol) : tol, sqrt(eps(one(scale)))*scale)
-    filter(r -> !iszero(r - location) && abs(r - location) >= tol, roots)
+function _margin_nonintegrators(roots, location; scale=maximum(abs, roots, init=0.0))
+    # Remove the roots that are located at `location` up to rounding error, using the
+    # same classification as the integrator excess in the phase adjustment of `sisomargin`.
+    n, tol = count_eigval_multiplicity(roots, location; scale)
+    n == 0 ? roots : filter(r -> abs(r - location) > tol, roots)
 end
 
 function _bounds_and_features(sys::LTISystem, plot::Val)
@@ -576,7 +574,10 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
     end
     location = iscontinuous(sys) ? 0 : 1
     if plot isa Val{:margin} && isrational(sys)
-        zfeatures = map(z -> _margin_nonintegrators(z, location), zs)
+        zfeatures = map(zs, ps) do z, p
+            # A zero in the origin does not provide a scale of its own, see `integrator_excess_with_tol`.
+            _margin_nonintegrators(z, location; scale=max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0)))
+        end
         pfeatures = map(p -> _margin_nonintegrators(p, location), ps)
         features = vcat(zpType[], zfeatures..., pfeatures...)
     else

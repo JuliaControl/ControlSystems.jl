@@ -274,6 +274,16 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
     @test ControlSystemsBase._margin_nonintegrators([-1e-14, -10.0], 0) == [-10.0]
     @test ControlSystemsBase._margin_nonintegrators([-1e-12], 0) == [-1e-12]
     @test ControlSystemsBase._margin_nonintegrators([1 + eps(), 0.5], 1) == [0.5]
+    @test ControlSystemsBase._margin_nonintegrators([1e-16], 0) == [1e-16]
+    @test isempty(ControlSystemsBase._margin_nonintegrators([1e-16], 0; scale=1.0))
+    # Zeros in the origin that are not computed exactly must not determine the frequency bounds.
+    let s = tf("s")
+        for sys in (balreal(ss(s/(s+1)^2))[1], balreal(ss(s^2/((s+1)*(s^2 + 0.2s + 4))))[1])
+            @test ControlSystemsBase._default_freq_vector(sys, Val(:margin)) ==
+                  ControlSystemsBase._default_freq_vector(sys, Val(:bode))
+            @test all(w -> iszero(w) || w >= 1e-3, margin(sys; allMargins=true).wgm[])
+        end
+    end
     # The endpoint evaluation must agree with the numerical-origin limit.
     tiny = zpk(Float64[], [-1e-14, -1.0], 1e-16)
     wtiny = ControlSystemsBase._default_freq_vector(tiny, Val(:margin))
