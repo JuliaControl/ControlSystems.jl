@@ -38,3 +38,21 @@ sys_ms = ss(sys.A/1000, sys.B/1000, sys.C, 0) # Time unit ms instead of s
 r_ms = rlocus(sys_ms)
 @test length(r_ms.K) == length(r.K)
 @test r_ms.roots ≈ r.roots/1000
+
+# Improper transfer function, the closed-loop system has more poles than the open-loop system
+G = tf([1, 2, 3], [1, 1])
+r = rlocus(G, 100)
+@test size(r.roots, 2) == 2
+@test 0 < r.K[1] < r.K[end] == 100
+P, Q = numpoly(G)[], denpoly(G)[]
+for (k, rs) = zip(r.K, eachrow(r.roots))
+    for p in rs
+        @test isapprox((k*P+Q)(p), 0, atol=1e-8*(abs(k*P(p))+abs(Q(p))))
+    end
+end
+@test minimum(abs.(r.roots[1, :] .- poles(G)')) <= 1.01e-2 # One pole starts close to the open-loop pole
+@test maximum(abs, r.roots[1, :]) > 10*maximum(abs, [poles(G); tzeros(G)]) # The other pole starts at a large magnitude
+@test sort(r.roots[end, :], by=imag) ≈ sort(tzeros(G), by=imag) rtol=0.1 # All poles approach the zeros
+rts, _ = ControlSystemsBase.getpoles(G, [0.0, 1.0, 2.0])
+@test size(rts) == (3, 2)
+plot(r)

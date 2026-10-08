@@ -36,6 +36,27 @@ function relative_step_cost(D, assignment, prevpoles, s_ref)
     cost
 end
 
+"""
+    improper_initial_gain(P, Q, K; radius_factor = 10, rtol = 1e-2, npoints = 64)
+
+Return the gain at which the root locus of the improper transfer function `P/Q` is started, at most `K/10`. At this gain, the `degree(P) - degree(Q)` poles that originate at infinity have a magnitude larger than `radius_factor` times the largest magnitude among the open-loop poles and zeros, and each of the remaining poles is located within a distance `rtol*|p|` of an open-loop pole `p` (or a cluster thereof).
+
+The bound follows from Rouché's theorem: if `k|P(s)| < |Q(s)|` on a closed contour, `Q + kP` has as many roots inside the contour as `Q`. The contour condition is evaluated at `npoints` points on each contour.
+"""
+function improper_initial_gain(P, Q, K; radius_factor = 10, rtol = 1e-2, npoints = 64)
+    ol_poles = Polynomials.roots(Q)
+    largest = maximum(abs, [ol_poles; Polynomials.roots(P)]; init=0.0)
+    largest > 0 || (largest = 1.0) # All poles and zeros are located at the origin, the locus has no intrinsic scale
+    circle = cis.(range(0, 2π, length=npoints+1)[1:end-1])
+    contour = radius_factor*largest .* circle
+    for p in ol_poles
+        append!(contour, p .+ rtol*max(abs(p), rtol*largest) .* circle)
+    end
+    k0 = minimum(s->abs(Q(s))/abs(P(s)), contour)
+    k0 = min(k0, K/10)
+    k0 > 0 ? k0 : eps(float(K))
+end
+
 
 function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
@@ -44,36 +65,35 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
     Q = denpoly(G)[]
     T = float(typeof(K))
     ϵ = eps(T)
-    nx = length(Q)
+    improper = Polynomials.degree(P) > Polynomials.degree(Q)
+    npoles = max(Polynomials.degree(P), Polynomials.degree(Q)) # Number of closed-loop poles for k > 0
     
     # Scale tolerance with system order
-    tol = tol * (nx - 1)
+    tol = tol * npoles
     
     poleout_list = Vector{Vector{ComplexF64}}() # To store pole sets at each accepted step
     k_scalars_collected = Float64[] # To store accepted k_scalar values
     
     prevpoles = ComplexF64[] # Initialize prevpoles for the first iteration
-    temppoles = zeros(ComplexF64, nx-1)
-    D = zeros(nx-1, nx-1) # distance matrix
+    temppoles = zeros(ComplexF64, npoles)
+    D = zeros(npoles, npoles) # distance matrix
     
     stepsize = initial_stepsize
-    k_scalar = 0.0
+    # For an improper system, the closed-loop system has more poles than the open-loop system for k > 0, the additional poles originate at infinity. The locus is thus started at a gain k > 0 at which these poles have a large magnitude.
+    k_scalar = improper && K > 0 ? improper_initial_gain(P, Q, K) : 0.0
     
     # Function to compute poles for a given k value
     compute_poles = function(k)
-        if k == 0 && length(P) > length(Q)
-            # More zeros than poles, make sure the vector of roots is of correct length when k = 0
-            # When this happens, there are fewer poles for k = 0, these poles can be seen as being located somewhere at Inf
-            # We get around the problem by not allowing k = 0 for non-proper systems.
+        if k == 0 && improper
+            # Make sure the vector of roots is of correct length, the additional poles are located at a large magnitude
             k = ϵ
         end
         ComplexF64.(Polynomials.roots(k*P+Q))
     end
     
-    # Initial poles at k_scalar = 0.0
-    initial_poles = compute_poles(0.0)
+    initial_poles = compute_poles(k_scalar)
     push!(poleout_list, initial_poles)
-    push!(k_scalars_collected, 0.0)
+    push!(k_scalars_collected, k_scalar)
     prevpoles = initial_poles # Set prevpoles for the first actual step
     s_ref = pole_reference_scale(Polynomials.roots(Q), compute_poles(K), Polynomials.roots(P))
     
@@ -91,7 +111,7 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
             cost = relative_step_cost(D, assignment, prevpoles, s_ref)
         else
             cost = 0.0
-            assignment = collect(1:nx-1)
+            assignment = collect(1:npoles)
         end
         
         # Adaptive step size logic
@@ -106,7 +126,7 @@ function getpoles(G, K::Number; tol = 1e-2, initial_stepsize = 1e-3, kwargs...)
         else # Step is acceptable
             # Sort poles using the assignment from Hungarian algorithm
             if !isempty(prevpoles)
-                for i = 1:nx-1
+                for i = 1:npoles
                     temppoles[assignment[i]] = current_poles_proposed[i]
                 end
                 current_poles_sorted = copy(temppoles)
@@ -141,17 +161,18 @@ function getpoles(G, K::AbstractVector{T}) where {T<:Number}
     issiso(G) || error("root locus with scalar gain only supports SISO systems, did you intend to pass a feedback gain matrix `K`?")
     G isa TransferFunction || (G = tf(G))
     P, Q = numpoly(G)[], denpoly(G)[]
-    poleout = Matrix{ComplexF64}(undef, Polynomials.degree(Q), length(K))
-    nx = length(Q)
-    D = zeros(nx-1, nx-1) # distance matrix
-    temppoles = zeros(ComplexF64, nx-1)
+    npoles = max(Polynomials.degree(P), Polynomials.degree(Q)) # Number of closed-loop poles for k > 0
+    poleout = Matrix{ComplexF64}(undef, npoles, length(K))
+    D = zeros(npoles, npoles) # distance matrix
+    temppoles = zeros(ComplexF64, npoles)
     for (i, k) in enumerate(K)
-        k == 0 && length(P) > length(Q) && (k = eps(T))
+        # For an improper system, the additional poles are located at infinity for k = 0, they are approximated by poles of large magnitude
+        k == 0 && Polynomials.degree(P) > Polynomials.degree(Q) && (k = eps(float(T)))
         poleout[:,i] = ComplexF64.(Polynomials.roots(k[1]*P+Q))
         if i > 1
             D .= abs.(poleout[:,i] .- transpose(poleout[:,i-1]))
             assignment, _ = Hungarian.hungarian(D)
-            foreach(k->temppoles[assignment[k]] = poleout[:,i][k], 1:nx-1)
+            foreach(k->temppoles[assignment[k]] = poleout[:,i][k], 1:npoles)
             poleout[:,i] .= temppoles
         end
     end
@@ -262,6 +283,8 @@ Compute the root locus of the LTISystem `P` with a negative feedback loop and fe
 
 `roots` is a complex matrix containing the poles trajectories of the closed-loop `1+k⋅G(s)` as a function of `k`, `Z` contains the zeros of the open-loop system `G(s)` and `K` the values of the feedback gain.
 
+If `P` is improper, the closed-loop system has more poles than the open-loop system for `k > 0`, the additional poles originate at infinity. The root locus is then started at a gain `K[1] > 0` at which these poles have a large magnitude in relation to the open-loop poles and zeros.
+
 If `K` is a matrix and `P` a `StateSpace` system, the poles are computed as `K` ranges from `0*K` to `1*K`. In this case, `K` is assumed to be a state-feedback matrix of dimension `(nu, nx)`. To compute the poles for output feedback, use, pass `output = true` and `K` of dimension `(nu, ny)`.
 
 The keyword arguments `tol = 1e-2` and `initial_stepsize = 1e-3` control the adaptive step size. A step is accepted if the sum over all poles of the distance moved, each relative to the magnitude of the pole, is at most `2tol` times the number of poles. The number of steps thus grows logarithmically with the distance the poles travel, independent of the time unit of the system.
@@ -311,7 +334,8 @@ rlocus(P; K=500) = rlocus(P, K)
         markershape --> :xcross
         markersize --> 10
         label --> "Open-loop poles"
-        redata[1,:], imdata[1,:]
+        ol_poles = poles(r.sys)
+        real.(ol_poles), imag.(ol_poles)
     end
     if array_K
         @series begin

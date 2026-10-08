@@ -551,7 +551,8 @@ function CSMakie.rlocusplot!(fig, P::LTISystem, K=500; output=false, kwargs...)
     end
     
     # Plot open-loop poles
-    scatter!(ax, redata[1, :], imdata[1, :], 
+    ol_poles = poles(result.sys)
+    scatter!(ax, real.(ol_poles), imag.(ol_poles), 
             marker=:xcross, markersize=10, 
             color=:red, label="Open-loop poles")
     
