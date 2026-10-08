@@ -77,6 +77,13 @@ function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
     return [min(ws[1], floor(extreme[1]-0.2)), max(ws[2], ceil(extreme[2]+0.2))], pz
 end
 
+# At ω = 0, every delay equals the identity, so the frequency response equals that of the delay-free system
+function _zero_dc_gain(sys::DelayLtiSystem{T}) where T
+    n = length(sys.Tau)
+    n == 0 && return _zero_dc_gain(sys.P.P)
+    _zero_dc_gain(lft(sys.P.P, ss(Matrix{T}(I, n, n))))
+end
+
 # Again we have to do something for default vectors, more or less a copy from timeresp.jl
 function _default_dt(sys::DelayLtiSystem)
     if !isstable(sys.P.P)
