@@ -8,7 +8,7 @@ using Printf
 
 # Import necessary functions from ControlSystemsBase
 using ControlSystemsBase: downsample, _processfreqplot, _default_freq_vector,
-                          _same_io_dims, _get_plotlabel, _to1series,
+                          _same_io_dims, _get_plotlabel, _to1series, _margin_phase_guides,
                           SimResult, StepInfo, RootLocusResult,
                           poles, tzeros, bode, nyquist, sigma, margin, 
                           sisomargin, relative_gain_array, rlocus,
@@ -392,10 +392,8 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
                             w=nothing; plotphase=true, hz=false, balance=true, 
                             adjust_phase_start=true, adaptive=true, kwargs...)
     systems_vec = systems isa AbstractVector ? systems : [systems]
-    systems, w = isnothing(w) ? _processfreqplot(Val{:bode}(), systems_vec; adaptive) : 
-                                _processfreqplot(Val{:bode}(), systems_vec, w; adaptive)
-    
-    ws = (hz ? 1/(2π) : 1) .* w
+    # Without a frequency vector, each channel of each system uses its own default frequency vector, see `margin`
+    systems, w = _processfreqplot(Val{:margin}(), systems_vec, w)
     ny, nu = size(systems[1])
     
     gl = GridLayout(fig[1, 1])
@@ -431,11 +429,11 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
     
     # Plot data for each system
     for (si, s) in enumerate(systems)
-        bmag, bphase = bode(s, w; balance)
-        
         for j in 1:nu
             for i in 1:ny
-                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j], w; 
+                wij = isnothing(w) ? _default_freq_vector(s[i,j], Val{:margin}(); adaptive) : w
+                ws = (hz ? 1/(2π) : 1) .* wij
+                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j], wij;
                                                                      full=true, 
                                                                      allMargins=true, 
                                                                      adjust_phase_start,
@@ -443,7 +441,7 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
                 
                 # Magnitude plot
                 ax_mag = axes_mag[i, j]
-                magdata = vec(bmag[i, j, :])
+                magdata = vec(bode(s[i,j], wij; balance)[1])
                 
                 if ControlSystemsBase._PlotScale == "dB"
                     magdata = 20*log10.(magdata)
@@ -496,12 +494,10 @@ function CSMakie.marginplot!(fig, systems::Union{LTISystem, AbstractVector{<:LTI
                     # Phase margin lines
                     wpm_display = hz ? wpm ./ (2π) : wpm
                     
-                    # Draw horizontal lines at phase margin crossings
-                    for k in 1:length(pm)
-                        phase_line = fullPhase[k] - pm[k]
-                        hlines!(ax_phase, phase_line, color=:gray, linestyle=:dash, alpha=0.5)
-                    end
-                    
+                    # Draw critical-phase guides, including when no finite
+                    # phase margin is found, using the shared backend logic.
+                    guides = _margin_phase_guides(fullPhase, pm, phasedata)
+                    hlines!(ax_phase, guides, color=:gray, linestyle=:dash, alpha=0.5)
                     # Draw vertical lines showing the phase margins
                     for k in 1:length(pm)
                         lines!(ax_phase, [wpm_display[k], wpm_display[k]], 

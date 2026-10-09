@@ -39,7 +39,11 @@ LsimWorkspace(sys::AbstractStateSpace, u::AbstractMatrix) = LsimWorkspace(sys, s
 
 Calculate the response of the system `sys` to a unit step at time `t = 0`. 
 If the final time `tfinal` or time vector `t` is not provided, 
-one is calculated based on the system pole locations. 
+one is calculated based on the system pole locations: the sample interval
+resolves the fastest pole and the final time is chosen such that the slowest
+stable mode has decayed, or, for an unstable system, such that the fastest
+growing mode has increased by a factor of about ``e^5``. Integrators are
+excluded from this computation.
 
 The return value is a structure of type `SimResult`. 
 A `SimResul` can be plotted by `plot(result)`, 
@@ -81,7 +85,11 @@ Calculate the response of the system `sys` to an impulse at time `t = 0`.
 For continous-time systems, the impulse is a unit Dirac impulse. 
 For discrete-time systems, the impulse lasts one sample and has magnitude `1/Ts`. 
 If the final time `tfinal` or time vector `t` is not provided, 
-one is calculated based on the system pole locations. 
+one is calculated based on the system pole locations: the sample interval
+resolves the fastest pole and the final time is chosen such that the slowest
+stable mode has decayed, or, for an unstable system, such that the fastest
+growing mode has increased by a factor of about ``e^5``. Integrators are
+excluded from this computation.
 
 The return value is a structure of type `SimResult`. 
 A `SimResul` can be plotted by `plot(result)`, 
@@ -138,7 +146,7 @@ plot(result, plotu=true, plotx=false)
 ```
 `y`, `x`, `u` have time in the second dimension. Initial state `x0` defaults to zero.
 
-Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level interface, see `?Simulator` and `?solve`. For continuous-time systems, keyword arguments are forwarded to the ODE solver. By default, the option `dtmax = t[2]-t[1]` is used to prevent the solver from stepping over discontinuities in `u(x, t)`. This prevents the solver from taking too large steps, but may also slow down the simulation when `u` is smooth. To disable this behavior, set `dtmax = Inf`.
+Continuous-time systems are simulated using an ODE solver if `u` is a function (requires using ControlSystems). If `u` is an array, the system is discretized (with `method=:zoh` by default) before simulation. For a lower-level interface, see `?Simulator` and `?solve`. For continuous-time systems, keyword arguments are forwarded to the ODE solver. By default, the option `dtmax = t[2]-t[1]` is used to prevent the solver from stepping over discontinuities in `u(x, t)`. This prevents the solver from taking too large steps, but may also slow down the simulation when `u` is smooth. To disable this behavior, set `dtmax = Inf`. The default ODE solver is `AutoTsit5(Rosenbrock23())`, which switches from the explicit method `Tsit5` to the method `Rosenbrock23` for stiff problems when stiffness is detected. `Rosenbrock23` computes derivatives by forward-mode automatic differentiation and therefore evaluates `u` with arguments of a dual-number type; if `u` does not support such arguments, select another solver with the keyword argument `alg`, e.g., `alg = Tsit5()`.
 
 `u` can be a function or a *matrix* of precalculated control signals and must have dimensions `(nu, length(t))`.
 If `u` is a function, then `u(x,i)` (for discrete systems) or `u(x,t)` (for continuous ones) is called to calculate the control signal at every iteration (time instance used by solver). This can be used to provide a control law such as state feedback `u(x,t) = -L*x` calculated by `lqr`.
@@ -422,20 +430,30 @@ end
 
 # HELPERS:
 
-# TODO: This is a poor heuristic to estimate a "good" time vector to use for
-# simulation, in cases when one isn't provided.
+"""
+    t = _default_time_vector(sys, tfinal = -1)
+
+Compute a time vector for simulation of `sys` when none is provided.
+
+The sample interval `dt` resolves the fastest pole, see `_default_dt`. If `tfinal` is not provided, it is computed from the poles by `_default_tfinal`, such that the slowest stable mode has decayed. The number of samples is limited to 100 001: for a continuous-time system, `dt` is increased if required, for a discrete-time system, whose sample interval is fixed, `tfinal` is reduced and a warning is emitted.
+
+The time vector is invariant under `time_scale` up to the rounding of `dt` and `tfinal` to two significant digits.
+"""
 function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
-    dt = _default_dt(sys) # This is set small enough to resolve the fastest dynamics. 
+    dt = _default_dt(sys) # This is set small enough to resolve the fastest dynamics.
     if tfinal == -1
-        # The final simulation time should be chosen to also let the slowest dynamics run its course. 
-        # Integrating systems pose a problem for this heuristic, and we sort out any poles that appear to be integrators.
         if hasmethod(poles, typeof((sys,)))
             # DelaySystem does not define poles
-            ws = abs.(poles(sys))
-            ω0_min = minimum(w for w in ws if w > 1e-6; init=dt)
-            dt_slow = round(1/(2ω0_min), sigdigits=2)
-            tfinal = max(200dt, dt_slow)
-            tfinal = min(tfinal, 100_000*dt)
+            tfinal = _default_tfinal(sys, dt)
+            nmax = 100_000
+            if tfinal > nmax*dt
+                if isdiscrete(sys)
+                    @warn "The default final time $tfinal of the simulation of the discrete-time system requires more than $nmax samples, it is reduced to $(nmax*dt). Provide the final time or a time vector to simulate for a longer time."
+                    tfinal = nmax*dt
+                else
+                    dt = round(tfinal/nmax, RoundUp, sigdigits=2)
+                end
+            end
         else
             tfinal = 200dt
         end
@@ -445,16 +463,68 @@ function _default_time_vector(sys::LTISystem, tfinal::Real=-1)
     return 0:dt:tfinal
 end
 
-function _default_dt(sys::LTISystem)
-    if isdiscrete(sys)
-        return sys.Ts
-    elseif all(iszero, poles(sys)) # Static or pure integrators
-        return 0.05
-    else
-        ω0_max = maximum(abs.(poles(sys)))
-        dt = round(1/(12*ω0_max), sigdigits=2)
-        return dt
+"""
+    p, tol = _nonintegrator_poles(sys)
+
+Return the poles of `sys` that are not integrators, mapped to the s-plane by s = log(z)/Ts for discrete-time systems, together with a tolerance `tol` below which the real part of such a pole is considered zero. A pole at z = 0 is mapped to s = -∞.
+
+Poles in the origin (z = 1 in discrete time) are classified as integrators with the tolerance of `count_eigval_multiplicity`, which accounts for the larger rounding errors of multiple poles. The rounding errors of the eigenvalues of `A` are proportional to the norm of `A`, which may be much larger than the magnitude of the computed poles, e.g., if all poles are in the origin. The norm of `A` is therefore included in the scale of the tolerance.
+"""
+function _nonintegrator_poles(sys::LTISystem)
+    p = poles(sys)
+    location = iscontinuous(sys) ? 0 : 1
+    scale = float(maximum(abs, p, init=0.0))
+    if sys isa AbstractStateSpace && !isempty(sys.A)
+        scale = max(scale, opnorm(sys.A, 1))
     end
+    nint, tol = count_eigval_multiplicity(p, location; scale)
+    if nint > 0
+        p = filter(p -> abs(p - location) > tol, p)
+    end
+    tol_axis = 100*eps(float(real(eltype(p))))*scale # Tolerance for a simple pole on the imaginary axis (unit circle)
+    if isdiscrete(sys)
+        return log.(complex.(p)) ./ sys.Ts, tol_axis/sys.Ts
+    end
+    p, tol_axis
+end
+
+"""
+    tfinal = _default_tfinal(sys, dt)
+
+Final time of the default simulation time vector with sample interval `dt`, computed from the poles that are not integrators:
+- If there are unstable poles, `tfinal = 5τ` where `τ` is the time constant of the fastest growing mode, such that the growth is visible but the response does not overflow.
+- Otherwise, `tfinal = μ + 6s` with `μ = Σ τᵢ` and `s = √(Σ τᵢ²)`, where `τᵢ` are the time constants of the stable poles. The impulse response of a series connection of first-order systems with time constants `τᵢ` equals the probability density of a sum of independent exponentially distributed random variables with means `τᵢ`, whose mean and standard deviation are `μ` and `s`. For a single pole, `tfinal = 7τ`, after which a fraction `exp(-7) < 1e-3` of the initial deviation remains. For poles of high multiplicity, `s` accounts for the polynomial factors of the response. The time constant of a complex pole is the inverse of the magnitude of its real part, i.e., the time constant of the envelope of the oscillation. Each pole of a complex-conjugate pair is counted, which yields `tfinal ≈ 10.5τ` for a single pair. Counting each pair once would yield a final time that depends discontinuously on the poles, since rounding errors split a multiple real pole into complex-conjugate pairs. The time constants are bounded from below by `dt`, since a discrete-time mode does not decay faster than in one sample interval.
+- `tfinal` is at least five periods of the slowest undamped oscillatory mode.
+- If all poles are integrators, or the system has no poles, the system has no characteristic time and `tfinal = 200dt`.
+"""
+function _default_tfinal(sys::LTISystem, dt)
+    p, tol = _nonintegrator_poles(sys)
+    isempty(p) && return 200dt
+    σ = -real.(p) # Decay rates
+    growth_rate = -minimum(σ)
+    if growth_rate > tol
+        return round(5*max(1/growth_rate, dt), sigdigits=2)
+    end
+    stable = σ .> tol
+    τ = [max(1/σ[i], dt) for i in eachindex(p) if stable[i]]
+    tfinal = sum(τ, init=0.0) + 6*sqrt(sum(abs2, τ, init=0.0))
+    ω_undamped = minimum((abs(p[i]) for i in eachindex(p) if !stable[i]), init=Inf)
+    if isfinite(ω_undamped)
+        tfinal = max(tfinal, 5*2π/ω_undamped)
+    end
+    round(tfinal, sigdigits=2)
+end
+
+"""
+    dt = _default_dt(sys)
+
+Default sample interval for simulation of `sys`. For a discrete-time system, `dt = sys.Ts`. For a continuous-time system, `dt = 1/(12 max|pᵢ|)` resolves the fastest pole, where integrators are excluded. If all poles are integrators, or the system has no poles, the system has no characteristic time and `dt = 0.05`.
+"""
+function _default_dt(sys::LTISystem)
+    isdiscrete(sys) && return sys.Ts
+    p, _ = _nonintegrator_poles(sys)
+    isempty(p) && return 0.05
+    round(1/(12*maximum(abs, p)), sigdigits=2)
 end
 
 """

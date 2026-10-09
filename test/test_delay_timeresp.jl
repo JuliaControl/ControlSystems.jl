@@ -144,3 +144,6 @@ let sys = delay(0.01)
     @test res.y[1] ≈ 0 atol = 1e-8
     @test res.y[end] ≈ 1 atol = 1e-3
 end
+
+# An unsuccessful simulation throws an error that states the return code
+@test_throws "return code" lsim(delay(1)*tf(1, [1, 1]), (x, t) -> [1.0], 0:0.1:10; maxiters=5)

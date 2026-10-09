@@ -210,6 +210,173 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
 
 ## MARGIN ##
 
+@testset "Default margin frequency range" begin
+    # Issue #771: the unity-gain crossover is below the pole-based Bode grid.
+    G = tf([1.0], [1.0, 13, 40, 0])
+    for sys in (G, ss(G))
+        m = margin(sys)
+        @test m.wpm[] ≈ 0.024999565453073247 rtol=1e-3
+        @test m.pm[] ≈ 89.53448285318315 atol=1e-2
+        @test m.gm[] ≈ 520 rtol=1e-3
+        mall = margin(sys; allMargins=true)
+        @test only(mall.wpm[]) ≈ m.wpm[]
+        @test only(mall.pm[]) ≈ m.pm[]
+    end
+
+    # Cover crossovers on either side of the default frequency range.
+    for gain in (1e-6, 1e6)
+        m = margin(tf(gain, [1.0, 0]))
+        @test m.wpm[] ≈ gain rtol=1e-3
+        @test m.pm[] ≈ 90
+    end
+    # A finite DC gain can also put a crossover below the Bode grid.
+    gain = 1.000001
+    @test margin(tf(gain, [1.0, 1])).wpm[] ≈ sqrt(gain^2 - 1) rtol=1e-3
+
+    # Slow resonances must not be discarded by the plotting frequency cutoff.
+    slow = tf(1e-13, [1.0, 2e-9, 1e-12])
+    @test length(margin(slow; allMargins=true).pm[]) == 2
+    @test length(margin(slow*tf(1, [1, 1]); allMargins=true).pm[]) == 2
+
+    # Review of #1076: unity DC gain must not create tiny noise crossovers.
+    Tss = feedback(ss(tf(1, [1, 1, 0])) * ss(pid(1.0, 1.0, 0.1; Tf=0.01)))
+    L = ss(tf([1, 1], [1, 10])) * ss(10.0)
+    for sys in (Tss, L)
+        wm = ControlSystemsBase._default_freq_vector(sys, Val(:margin))
+        @test wm == ControlSystemsBase._default_freq_vector(sys, Val(:bode))
+        @test all(w -> iszero(w) || w >= wm[1], margin(sys; allMargins=true).wpm[])
+    end
+    @test only(filter(>(0), margin(Tss; allMargins=true).wpm[])) ≈ 1.36926 rtol=1e-3
+    @test isempty(filter(>(0), margin(L; allMargins=true).wpm[]))
+
+    # Use each gain's precision when deciding whether its limit is unity.
+    for T in (Float32, Float64, BigFloat), gain in (one(T) - eps(T), one(T) + eps(T))
+        for sys in (zpk(T[], T[-1], gain), zpk(T[-1], T[-2], gain))
+            @test ControlSystemsBase._default_freq_vector(sys, Val(:margin)) ==
+                  ControlSystemsBase._default_freq_vector(sys, Val(:bode))
+        end
+    end
+    for T in (Float32, Float64)
+        gain = one(T) + 4sqrt(eps(T))
+        @test margin(zpk(T[], T[-1], gain)).wpm[] ≈ sqrt(gain^2 - 1) rtol=1e-3
+        @test margin(zpk(T[-1], T[-2], gain)).wpm[] ≈ sqrt((4 - gain^2)/(gain^2 - 1)) rtol=1e-3
+        gain = one(T) - 4sqrt(eps(T))
+        @test margin(zpk(T[-2], T[-1], gain)).wpm[] ≈ sqrt((4gain^2 - 1)/(1 - gain^2)) rtol=1e-3
+    end
+
+    # Numerical integrators must not determine the frequency bounds.
+    double_mass = DemoSystems.double_mass_model()
+    wm = ControlSystemsBase._default_freq_vector(double_mass, Val(:margin))
+    @test wm == ControlSystemsBase._default_freq_vector(double_mass, Val(:bode))
+    @test wm[1] >= 1e-3
+    @test length(wm) < 500
+    @test margin(double_mass).wpm[] ≈ 0.45477 rtol=1e-3
+    @test ControlSystemsBase._margin_nonintegrators([-1e-14, -10.0], 0) == [-10.0]
+    @test ControlSystemsBase._margin_nonintegrators([-1e-12], 0) == [-1e-12]
+    @test ControlSystemsBase._margin_nonintegrators([1 + eps(), 0.5], 1) == [0.5]
+    @test ControlSystemsBase._margin_nonintegrators([1e-16], 0) == [1e-16]
+    @test isempty(ControlSystemsBase._margin_nonintegrators([1e-16], 0; scale=1.0))
+    # Zeros in the origin that are not computed exactly must not determine the frequency bounds.
+    let s = tf("s")
+        for sys in (balreal(ss(s/(s+1)^2))[1], balreal(ss(s^2/((s+1)*(s^2 + 0.2s + 4))))[1])
+            @test ControlSystemsBase._default_freq_vector(sys, Val(:margin)) ==
+                  ControlSystemsBase._default_freq_vector(sys, Val(:bode))
+            @test isempty(margin(sys; allMargins=true).wgm[])
+        end
+    end
+    # The endpoint evaluation must agree with the numerical-origin limit.
+    tiny = zpk(Float64[], [-1e-14, -1.0], 1e-16)
+    wtiny = ControlSystemsBase._default_freq_vector(tiny, Val(:margin))
+    @test wtiny[1] > 1e-20
+    @test isinf(margin(tiny).pm[])
+
+    # Discrete-time grids must still stop at the Nyquist frequency.
+    Gd = tf(1e-6, [1.0, -1], 0.1)
+    wd = ControlSystemsBase._default_freq_vector(Gd, Val(:margin))
+    @test wd[end] == π/Gd.Ts
+    @test margin(Gd).wpm[] ≈ 2asin(1e-6/2)/Gd.Ts rtol=1e-3
+    # Phase correction must use the unit circle for discrete-time poles.
+    @test margin(Gd).pm[] ≈ 90 atol=1e-2
+    @test margin(Gd*tf(1, [1, -0.5], Gd.Ts)).pm[] ≈ 90 atol=1e-2
+    @test margin(Gd*tf(1, [1, -1.5], Gd.Ts)).pm[] ≈ -90 atol=1e-2
+    for Ts in (0.1, 1000.0)
+        sys = tf(1e-6, [1.0, -1], Ts)
+        wd = ControlSystemsBase._default_freq_vector(sys, Val(:margin))
+        @test issorted(wd)
+        @test all(0 .< wd .<= π/Ts)
+        @test wd[end] == π/Ts
+    end
+    wd = ControlSystemsBase._default_freq_vector([Gd, tf(1, [1, 0.5], 10)], Val(:margin))
+    @test issorted(wd)
+    @test all(0 .< wd .<= π/10)
+
+    for sys in (tf(0), tf(2), tf(0.1, [1.0, 1]))
+        @test isinf(margin(sys).pm[])
+    end
+    # An explicit frequency vector continues to limit the search range.
+    w = exp10.(range(-1, 3; length=200))
+    @test isinf(margin(G, w).pm[])
+    @test ControlSystemsBase._processfreqplot(Val(:margin), [G], w)[2] === w
+    @test ControlSystemsBase._processfreqplot(Val(:margin), [Gd], w)[2] === w
+end
+
+@testset "Margins of MIMO systems" begin
+    s = tf("s")
+    θ = 0.3
+    Q = [cos(θ) -sin(θ); sin(θ) cos(θ)]
+    for a in (1e-12, 1e-6)
+        slow = ss(1/((s + a)*(s + 1)))
+        slow = ss(Q*slow.A*Q', Q*slow.B, slow.C*Q', slow.D)
+        # The slow pole extends the default frequency vector of channel (1, 1) into frequencies at which the frequency response of channel (2, 2) equals one up to rounding error
+        sys = append(slow, ss(1e4/(s + 1e4)))
+        m = margin(sys; allMargins=true)
+        for i in 1:2, j in 1:2
+            mij = margin(sys[i, j]; allMargins=true)
+            @test (m.wgm[i, j], m.gm[i, j], m.wpm[i, j], m.pm[i, j]) == (mij.wgm[], mij.gm[], mij.wpm[], mij.pm[])
+        end
+        @test only(m.wpm[1, 1]) ≈ 0.786 rtol=1e-3
+        @test all(iszero, m.wpm[2, 2])
+        # The off-diagonal channels are structurally zero
+        @test isempty(m.wgm[1, 2]) && isempty(m.wgm[2, 1])
+        @test isnan(margin(sys).wgm[2, 1])
+        @test margin(sys).gm[2, 1] == Inf
+    end
+
+    # Structurally zero transfer functions. In the first system, the input affects only the last state variable, which does not affect the measured state variables. The Hessenberg reduction of `A` mixes the state variables, so that the computed frequency response of the full realization is rounding error. The negation in the second system produces a negative zero gain, whose computed phase is 180°.
+    G = ss([-4.0 0.4 0; 1.4 -0.1 0; 1.4 2.6 -2.0], [0, 0, 0.5], [-1.1 -0.2 0], 0)
+    @test ControlSystemsBase._sminreal(G).nx == 0
+    w = ControlSystemsBase._add_zero(exp10.(range(-3, 3, length=500)))
+    for sys in (G, (-ss([1/(s + 1) 0; 0 1/(s + 2)]))[2, 1], zpk(-0.0))
+        @test isempty(margin(sys; allMargins=true).wgm[])
+        @test isempty(margin(sys, w; allMargins=true).wgm[])
+        @test isempty(margin(sys; allMargins=true).wpm[])
+    end
+end
+
+@testset "Margin phase guides" begin
+    guides = ControlSystemsBase._margin_phase_guides
+    @test guides([-90.0], [90.0], [-90.0, -270.0]) == [-180.0]
+    @test guides([90.0], [-90.0], [90.0]) == [180.0]
+    @test guides([-90.0, NaN], [90.0, Inf], [-90.0]) == [-180.0]
+    @test guides(Float64[], Float64[], [-90.0, -270.0]) == [-180.0]
+    @test guides(Float64[], Float64[], [90.0]) == [180.0]
+    @test guides([NaN], [Inf], [NaN, Inf, -450.0]) == [-540.0]
+    @test guides(Float64[], Float64[], [NaN, Inf]) == [-180.0]
+    @test guides(Float64[], Float64[], Float64[]) == [-180.0]
+
+    w = exp10.(range(-1, 3; length=200))
+    for (sys, phase) in (
+        (tf(0.1, [1.0, 1]), -180),
+        (tf(-0.1, [1.0, 1]), 180),
+        (tf(1e-6, [1.0, 0, 0, 0, 0, 0]), -540),
+    )
+        m = ControlSystemsBase.sisomargin(sys, w; full=true, allMargins=true)
+        @test guides(m.fullPhase, m.pm, m.phasedata) == [phase]
+        @test isempty(m.pm)
+        @test isempty(m.wpm)
+    end
+end
+
 # Test case that requires negative frequencies to be included in the grid in order to find one margin
 # https://github.com/JuliaControl/ControlSystems.jl/issues/1045
 temp = let
@@ -309,6 +476,8 @@ C3 = (kpo + kio/s)*(1/(t*s + 1))
 Cb = (kpb + kib/s)*(1/(t*s + 1))
 OL = (ss(Cb)*ss(C1)*ss(C2)*ss(C3)*exp(-3*tau*s))/((C1 - a*s)*(C2 - a*s)*(C3 - a*s));
 
+@test ControlSystemsBase._default_freq_vector(OL, Val(:margin)) ==
+      ControlSystemsBase._default_freq_vector(OL, Val(:bode))
 wgm, gm, ωϕₘ, ϕₘ = margin(OL; full=true, allMargins=true)
 @test ϕₘ[][] ≈ -320 rtol=1e-2
 for wgm in wgm[]
@@ -506,3 +675,18 @@ using ControlSystemsBase: isunstable
 @test isunstable(zpk([1], [im, im, -im, -im], 1)) # Repeated pole on imaginary axis not in origin
 @test !isunstable(zpk([1], [im+1e-8im, im, -im-1e-8im, -im], 1)) # Almost repeated pole on imaginary axis not in origin
 @test isunstable(zpk(Float64[], [0.01; -collect(1.0:9)], 1.0)) # Slightly unstable pole in a system with a large state dimension
+
+# Discrete time
+@test !isunstable(c2d(tf(1, [1,1]), 0.1))
+@test !isunstable(c2d(ss(tf(1, [1,1])), 0.1))
+@test isunstable(c2d(tf(1, [1,-1]), 0.1))
+@test isunstable(zpk(Float64[], [1.001, 0.5], 1.0, 1))
+@test !isunstable(tf(1, [1,0,0], 1)) # Double pole in the origin z = 0
+@test !isunstable(tf(1, [1,-1], 1)) # Simple pole at z = 1
+@test !isunstable(tf(1, [1,1], 1)) # Simple pole at z = -1
+@test isunstable(tf(1, [1,-2,1], 1)) # Double pole at z = 1
+@test isunstable(c2d(ss(tf(1, [1,0,0])), 0.1)) # Discretized double integrator
+@test isunstable(tf(1, [1,2,1], 1)) # Double pole at z = -1
+@test !isunstable(ss(c2d(tf(1, [1,0,1]), 0.1))) # Simple pole pair on the unit circle
+@test isunstable(ss(c2d(tf(1, [1,0,1])^2, 0.1))) # Repeated pole pair on the unit circle
+@test isunstable(zpk(Float64[], [cis(0.5), cis(0.5), cis(-0.5), cis(-0.5)], 1.0, 1))

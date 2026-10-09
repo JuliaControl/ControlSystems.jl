@@ -138,6 +138,10 @@ d = exp(-2*s)
 @test freqresp(ControlSystemsBase.delayd_ss(1.0, 0.2), Ω)[:] ≈ exp.(-im*Ω) atol=1e-14
 @test freqresp(ControlSystemsBase.delayd_ss(3.2, 0.4), Ω)[:] ≈ exp.(-3.2*im*Ω) atol=1e-14
 @test_throws ErrorException ControlSystemsBase.delayd_ss(3.2, 0.5)
+@test ControlSystemsBase.delayd_ss(0.3, 0.1).nx == 3 # 0.3/0.1 is not exactly 3 in floating-point arithmetic
+@test ControlSystemsBase.delayd_ss(0.1+0.2, 0.1).nx == 3
+@test_throws ErrorException ControlSystemsBase.delayd_ss(0.31, 0.1)
+@test c2d(tf(1, [1,1])*delay(0.3), 0.1).nx == 4
 
 # Simple tests for c2d of DelayLtiSystems
 @test freqrespv(c2d(feedback(ss(0,1,1,0), delay(1.5)), 0.5), Ω) ≈ [0.5/((z - 1) + 0.5*z^-3) for z in exp.(im*Ω*0.5)]
@@ -247,6 +251,10 @@ P15 = pade(t, 2, 5)
 for Ts = [1, 1.1]
     z = tf('z', Ts)
     @test thiran(2Ts, Ts) == 1/z^2
+end
+let z = tf('z', 0.1) # τ/Ts is not exactly an integer in floating-point arithmetic
+    @test thiran(3*0.1, 0.1) == 1/z^3
+    @test thiran(6*0.1, 0.1) == 1/z^6
 end
 
 @test thiran(pi, 1) ≈ tf([-0.00031815668236122736, 0.0042438423976339556, -0.03424682772398137, 0.8290601401044773, 1.0], [1.0, 0.8290601401044773, -0.03424682772398137, 0.0042438423976339556, -0.00031815668236122736], 1)

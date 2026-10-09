@@ -877,7 +877,10 @@ _to1series(y) = _to1series(1:size(y,3),y)
 
 Plot all the amplitude and phase margins of the system(s) `sys`.
 
-- A frequency vector `w` can be optionally provided.
+- If `w` is omitted, a margin-specific frequency range is selected for each
+  input-output channel of each system separately, using pole/zero features and
+  limiting gains to locate gain crossovers, see [`margin`](@ref). An explicit
+  frequency vector is used for all channels without extending its range.
 - `hz`: If true, the plot x-axis will be displayed in Hertz, the input frequency vector is still treated as rad/s.
 - `balance`: Call [`balance_statespace`](@ref) on the system before plotting.
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
@@ -886,8 +889,9 @@ Plot all the amplitude and phase margins of the system(s) `sys`.
 """
 marginplot
 @recipe function marginplot(p::Marginplot; plotphase=true, hz=false, balance=true, adjust_phase_start=true, adaptive=true)
-    systems, w = _processfreqplot(Val{:bode}(), p.args...; adaptive)
-    ws = (hz ? 1/(2π) : 1) .* w
+    # Without a frequency vector, each channel of each system uses its own default frequency vector, see `margin`
+    systems, w = length(p.args) > 1 ? _processfreqplot(Val{:margin}(), p.args...) :
+                                      _processfreqplot(Val{:margin}(), p.args[1], nothing)
     ny, nu = size(systems[1])
     s2i(i,j) = LinearIndices((nu,(plotphase ? 2 : 1)*ny))[j,i]
     layout --> ((plotphase ? 2 : 1)*ny, nu)
@@ -899,11 +903,12 @@ marginplot
     layout --> (2ny, nu)
     label --> ""
     for (si, s) in enumerate(systems)
-        bmag, bphase = bode(s, w; balance)
-
         for j=1:nu
             for i=1:ny
-                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j], w; full=true, allMargins=true, adjust_phase_start, balance)
+                wij = w === nothing ? _default_freq_vector(s[i,j], Val{:margin}(); adaptive) : w
+                ws = (hz ? 1/(2π) : 1) .* wij
+                bmag = vec(bode(s[i,j], wij; balance)[1])
+                wgm, gm, wpm, pm, fullPhase, phasedata = sisomargin(s[i,j], wij; full=true, allMargins=true, adjust_phase_start, balance)
                 if length(gm) > 5
                     @warn "Only showing smallest 5 out of $(length(gm)) gain margins"
                     idx = sortperm(gm)
@@ -916,6 +921,7 @@ marginplot
                     idx = sortperm(pm)
                     wpm = wpm[idx[1:5]]
                     pm = pm[idx[1:5]]
+                    fullPhase = fullPhase[idx[1:5]]
                 end
                 if _PlotScale == "dB"
                     mag = 20 .* log10.(1 ./ gm)
@@ -943,7 +949,7 @@ marginplot
                     end
                     primary := true
                     seriestype := :bodemag
-                    m = bmag[i, j, :]
+                    m = bmag
                     if adaptive
                         lmag = _PlotScale == "dB" ? m : log.(m)
                         wsi, _, inds = downsample(ws, lmag, _span(lmag)/500)
@@ -986,12 +992,13 @@ marginplot
                         ws, phasedata
                     end
                 end
+                phaseguides = _margin_phase_guides(fullPhase, pm, phasedata)
                 @series begin
                     primary := false
                     color --> :gray
                     linestyle --> :dash
                     seriestype := :hline
-                    ((fullPhase .- pm) .* ones(1, 2))'
+                    (phaseguides .* ones(1, 2))'
                 end
                 @series begin
                     primary := false
@@ -1003,6 +1010,16 @@ marginplot
 end
 
 # HELPERS:
+
+function _margin_phase_guides(fullPhase, pm, phasedata)
+    guides = filter(isfinite, fullPhase .- pm)
+    isempty(guides) || return guides
+    # No finite phase margin: use the critical phase nearest the displayed
+    # phase branch without adding a phase margin or a crossover frequency.
+    idx = findfirst(isfinite, phasedata)
+    phase = idx === nothing ? 0 : phasedata[idx]
+    [-180 + 360round((phase + 180)/360)]
+end
 
 function _same_io_dims(systems::LTISystem...)
     sizes = map(size, systems)
