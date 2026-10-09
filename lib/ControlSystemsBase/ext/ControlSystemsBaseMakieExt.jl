@@ -515,7 +515,7 @@ function CSMakie.rlocusplot(args...; kwargs...)
     fig = Figure()
     CSMakie.rlocusplot!(fig, args...; kwargs...)
 end
-function CSMakie.rlocusplot!(fig, P::LTISystem, K=500; output=false, kwargs...)
+function CSMakie.rlocusplot!(fig, P::LTISystem, K=nothing; output=false, kwargs...)
     # Compute root locus
     result = rlocus(P, K; output=output)
     roots, Z, K_vals = result.roots, result.Z, result.K
@@ -531,10 +531,14 @@ function CSMakie.rlocusplot!(fig, P::LTISystem, K=500; output=false, kwargs...)
     # Add grid at zero
     vlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
     hlines!(ax, 0, color=:gray, alpha=0.3, linewidth=0.5)
-    
+    if isdiscrete(P)
+        ϕ = range(0, 2π, length=200)
+        lines!(ax, cos.(ϕ), sin.(ϕ), color=:gray, linestyle=:dash)
+    end
+
     redata = real.(roots)
     imdata = imag.(roots)
-    
+
     # Plot root locus branches
     for i in 1:size(redata, 2)
         lines!(ax, redata[:, i], imdata[:, i], color=:blue)
@@ -549,7 +553,8 @@ function CSMakie.rlocusplot!(fig, P::LTISystem, K=500; output=false, kwargs...)
     end
     
     # Plot open-loop poles
-    scatter!(ax, redata[1, :], imdata[1, :], 
+    ol_poles = poles(result.sys)
+    scatter!(ax, real.(ol_poles), imag.(ol_poles), 
             marker=:xcross, markersize=10, 
             color=:red, label="Open-loop poles")
     
@@ -559,7 +564,10 @@ function CSMakie.rlocusplot!(fig, P::LTISystem, K=500; output=false, kwargs...)
                 marker=:diamond, markersize=10, 
                 color=:purple, label="Closed-loop poles")
     end
-    
+
+    xl, yl = ControlSystemsBase.rlocus_limits(result)
+    limits!(ax, xl..., yl...)
+
     return fig
 end
 

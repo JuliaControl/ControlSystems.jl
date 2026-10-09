@@ -357,6 +357,25 @@ wgm, gm, wpm, pm = margin(temp, allMargins=true)
 @test wgm[] ≈ [0.0, 1.2311038829891778] atol=1e-3
 @test gm[] ≈ [0.8733647564616344, 2.005125180939021] atol=1e-3
 
+# A zero in the origin implies that the frequency response at ω = 0 is zero. Its computed phase is determined by rounding error and must not produce a gain margin.
+let s = tf("s")
+    G = zpk([1e-17], [-1, -1], 1) # The computed G(0) is negative
+    Gd = zpk([1 + 1e-15], [0.5, 0.5], 1, 0.1)
+    for sys in (G, ss(G), G*delay(0.1), feedback(G*delay(0.1)), Gd, balreal(ss(s/(s+1)^2))[1], c2d(ss(s/(s+1)^2), 0.1))
+        @test !any(iszero, margin(sys; allMargins=true).wgm[])
+    end
+    @test margin(G).gm[] == Inf
+    @test margin(Gd).wgm[] ≈ π/Gd.Ts
+    @test ControlSystemsBase._zero_dc_gain(ControlSystemsBase.DelayLtiSystem(ss(G), Float64[]))
+    # A negative frequency response at ω = 0 is a crossing of the negative real axis
+    for sys in (-(s+1)/((s+2)*(s+3)), -(s+1)/((s+2)*(s+3))*delay(0.1))
+        @test !ControlSystemsBase._zero_dc_gain(sys)
+        m = margin(sys; allMargins=true)
+        @test iszero(m.wgm[][1])
+        @test m.gm[][1] ≈ 6
+    end
+end
+
 
 
 w = exp10.(LinRange(-1, 2, 100))
