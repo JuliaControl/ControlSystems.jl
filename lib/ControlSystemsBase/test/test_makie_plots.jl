@@ -107,6 +107,9 @@ import CairoMakie.Makie
         end
         fig = CSMakie.nyquistplot(P; limits=((-3, 3), (-3, 3)))
         @test only(c for c in fig.content if c isa Makie.Axis).limits[] == ((-3, 3), (-3, 3))
+        # The default limits are not computed for number types for which the poles are not available
+        fig = CSMakie.nyquistplot(tf(big(1.0), big.([1.0, 2, 1])), w)
+        @test only(c for c in fig.content if c isa Makie.Axis).limits[] == (nothing, nothing)
     end
     
     @testset "sigmaplot" begin

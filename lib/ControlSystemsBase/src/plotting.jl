@@ -489,6 +489,9 @@ function nyquist_limits(systems::AbstractVector{<:LTISystem}, w = nothing; criti
 end
 nyquist_limits(sys::LTISystem, args...; kwargs...) = nyquist_limits([sys], args...; kwargs...)
 
+# The default limits require the poles and zeros, which are computed for the number types supported by LAPACK. For other number types (e.g., uncertain or dual numbers), the plotting backend determines the limits.
+_nyquist_limits_available(systems) = all(s -> float(numeric_type(s)) <: BlasFloat, systems)
+
 # Circles (center, radius) drawn by the Nyquist plot recipes that are included in the default axis limits. The circles are defined relative to the point -1, circles with a radius larger than `max_radius` are not included.
 function _nyquist_limit_circles(Ms_circles, Mt_circles, disk_margin_circles, unit_circle; max_radius = 2)
     circles = Tuple{Float64, Float64}[]
@@ -513,7 +516,7 @@ end
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
 
-The default axis limits of each subplot are computed by [`ControlSystemsBase.nyquist_limits`](@ref). They contain the critical point and a neighborhood of it, the origin, the requested circles of radius at most 2, and the Nyquist curves of all systems, except for the frequency bands close to poles on the imaginary axis, where the curves tend to infinity. Limits provided with the keyword arguments `xlims` and `ylims` take precedence.
+The default axis limits of each subplot are computed by [`ControlSystemsBase.nyquist_limits`](@ref). They contain the critical point and a neighborhood of it, the origin, the requested circles of radius at most 2, and the Nyquist curves of all systems, except for the frequency bands close to poles on the imaginary axis, where the curves tend to infinity. Limits provided with the keyword arguments `xlims` and `ylims` take precedence. For systems whose numeric type is not supported by LAPACK (e.g., uncertain or dual numbers), the poles and zeros are not computed and the limits are determined by the plotting backend.
 
 - `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`. See also [`margin_bounds`](@ref), [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref).
@@ -537,7 +540,9 @@ nyquistplot
     S, C = sin.(θ), cos.(θ)
     responses = [nyquist(s, w; balance)[1:2] for s in systems]
     circles = _nyquist_limit_circles(Ms_circles, Mt_circles, disk_margin_circles, unit_circle)
-    limits = nyquist_limits(systems, w; critical_point, circles, balance, responses)
+    user_limits = haskey(plotattributes, :xlims) && haskey(plotattributes, :ylims)
+    limits = user_limits || !_nyquist_limits_available(systems) ? nothing :
+        nyquist_limits(systems, w; critical_point, circles, balance, responses)
     for (si,s) = enumerate(systems)
         re_resp, im_resp = responses[si]
         for j=1:nu
@@ -620,8 +625,10 @@ nyquistplot
                         # Title, yguide and the axis limits must be here in the last series of the subplot for the result to be correct
                         title --> "Nyquist plot from: $(input_names(s, j))"
                         yguide --> "To: $(output_names(s, i))"
-                        xlims --> limits[i, j][1]
-                        ylims --> limits[i, j][2]
+                        if limits !== nothing
+                            xlims --> limits[i, j][1]
+                            ylims --> limits[i, j][2]
+                        end
                         subplot --> s2i(i,j)
                         primary := false
                         markershape := :xcross

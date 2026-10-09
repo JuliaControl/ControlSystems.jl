@@ -284,7 +284,7 @@ function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LT
     θ = range(0, 2π, length=100)
 
     responses = [nyquist(s, w; balance)[1:2] for s in systems]
-    if !polar && !haskey(kwargs, :limits)
+    if !polar && !haskey(kwargs, :limits) && ControlSystemsBase._nyquist_limits_available(systems)
         circles = ControlSystemsBase._nyquist_limit_circles(Ms_circles, Mt_circles, Float64[], unit_circle)
         lims = ControlSystemsBase.nyquist_limits(systems, w; critical_point, circles, balance, responses)
         for j in 1:nu, i in 1:ny

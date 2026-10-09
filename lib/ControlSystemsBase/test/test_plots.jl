@@ -135,4 +135,12 @@ end
   end
   p = nyquistplot(1/(s*(s+1)), xlims=(-3, 3))
   @test Plots.xlims(p.subplots[1]) == (-3, 3)
+
+  # The default limits are not computed for number types for which the poles are not available (the poles of a BigFloat system require GenericSchur)
+  Gbig = tf(big(1.0), big.([1.0, 2, 1]))
+  @test !ControlSystemsBase._nyquist_limits_available([Gbig])
+  @test ControlSystemsBase._nyquist_limits_available([tf(1, [1, 1]), ss(1.0f0)])
+  @test nyquistplot(Gbig, w) isa Plots.Plot
+  p = nyquistplot(Gbig, w, xlims=(-3, 3), ylims=(-2, 2))
+  @test Plots.xlims(p.subplots[1]) == (-3, 3) && Plots.ylims(p.subplots[1]) == (-2, 2)
 end
