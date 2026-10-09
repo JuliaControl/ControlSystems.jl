@@ -204,6 +204,84 @@ sys2tau = tf(1, [0.1, 1]) * tf(1, [10, 1])
 @test 5 < ControlSystemsBase._default_time_vector(sysint)[end] < 15
 @test 20 < ControlSystemsBase._default_time_vector(sys2tau)[end] < 100
 
+@testset "default time vector" begin
+    default_tv = ControlSystemsBase._default_time_vector
+    default_dt = ControlSystemsBase._default_dt
+
+    # Multiple poles in the origin are computed with rounding errors, they are classified as integrators with a tolerance that depends on the multiplicity
+    P2 = similarity_transform(ss(tf(1, [1, 0, 0])), [1 2; 3 4.5])
+    P2m = minreal(ss(tf([1, 1], [1, 1, 0, 0])))
+    P3 = similarity_transform(ss(tf(1, [1, 0, 0, 0])), [1 2 0; 3 4.5 1; 0 1 1])
+    for P_tv in (P2, P2m, P3)
+        @test default_dt(P_tv) == 0.05
+        @test default_tv(P_tv)[end] ≈ 10
+        @test all(isfinite, step(P_tv).y)
+    end
+    @test default_tv(tf(1, [1, 0]))[end] ≈ 10
+    @test default_tv(ss(1.0))[end] ≈ 10
+
+    # The step response of a stable system reaches the DC gain, also when the time constants are widely separated or the damping is low
+    stable_systems = [
+        tf(1, [1, 1]),
+        tf(1, [1, 2*0.01, 1]),
+        zpk([], [-1, -1e-3], 1e-3),
+        zpk([], [-1, -0.01], 0.01),
+        zpk([], fill(-1.0, 5), 1),
+        tf(1, [1, 0.5]) * tf(4, [1, 0.1, 4]),
+    ]
+    for sys_tv in stable_systems, c_tv in (1, 1e-3, 1e3)
+        sys_tv_c = ControlSystemsBase.time_scale(sys_tv, c_tv)
+        @test step(sys_tv_c).y[end] ≈ dcgain(sys_tv_c)[] rtol = 1e-2
+        # Time-scale invariance
+        t_tv1 = default_tv(sys_tv)
+        t_tv2 = default_tv(sys_tv_c)
+        @test t_tv2[end] ≈ t_tv1[end]/c_tv rtol = 1e-2
+        @test step(t_tv2) ≈ step(t_tv1)/c_tv rtol = 1e-2
+    end
+    # The envelope of a lightly damped mode has decayed
+    @test default_tv(tf(1, [1, 2*0.01, 1]))[end] >= 7/0.01
+
+    # Discrete-time systems: the final time is determined by the poles mapped to the s-plane, it does not depend on the sample time
+    G_tv = ss(tf(1, [100, 1]))
+    for Ts_tv in (0.01, 1, 10)
+        G_tv_d = c2d(G_tv, Ts_tv)
+        t_tv = default_tv(G_tv_d)
+        @test step(t_tv) == Ts_tv
+        @test t_tv[end] ≈ 700 rtol = 0.02
+        @test step(G_tv_d).y[end] ≈ 1 rtol = 1e-2
+    end
+    # The number of samples is limited, a warning is emitted when the final time is reduced
+    @test_logs (:warn, r"reduced") default_tv(c2d(G_tv, 1e-4))
+    @test length(default_tv(c2d(G_tv, 1e-4))) == 100_001
+    # Integrators and poles at the origin of the z-plane in discrete time
+    @test default_tv(tf(1, [1, -1], 0.1))[end] ≈ 20
+    @test default_tv(tf(1, [1, 0, 0], 0.1))[end] >= 0.2
+    @test step(tf(1, [1, 0, 0], 0.1)).y[end] == 1
+
+    # For a continuous-time system, the sample interval is increased to limit the number of samples
+    t_tv = default_tv(tf(1, [1, 2e-4, 1]))
+    @test length(t_tv) <= 100_001
+    @test t_tv[end] >= 7/1e-4
+
+    # Unstable systems are simulated for a few time constants of the fastest growing mode
+    for c_tv in (1, 1e-3, 1e3)
+        sys_tv = ControlSystemsBase.time_scale(tf(1, [1, 0.5]) * tf(1, [1, -1]), c_tv)
+        t_tv = default_tv(sys_tv)
+        @test 4/c_tv < t_tv[end] <= 5/c_tv
+        @test all(isfinite, step(sys_tv).y)
+    end
+    @test 0.1 <= default_tv(tf(1, [1, -2], 0.1))[end] <= 1
+
+    # Undamped oscillatory modes are simulated for several periods
+    @test default_tv(tf(1, [1, 0, 1]))[end] >= 0.95*5*2π
+    @test default_tv(tf(1, [1, 0, 1, 0]))[end] >= 0.95*5*2π
+
+    # A user-provided final time
+    @test default_tv(tf(1, [1, 1]), 3)[end] == 3
+    @test step(default_tv(tf(1, [1, 1]), 3)) == 3/200
+    @test default_tv(c2d(tf(1, [1, 1]), 0.1), 3) == 0:0.1:3
+end
+
 
 # Test error hints
 if VERSION >= v"1.7"
