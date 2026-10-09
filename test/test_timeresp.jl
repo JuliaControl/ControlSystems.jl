@@ -49,6 +49,17 @@ uD(x, t) = [3.0]
 resD = lsim(sysD, uD, tD)
 @test resD.y[:] == fill(2.0 * 3.0, length(tD))
 
+# Stiff system with one slow and one fast pole
+sysstiff = ss(tf(1, [1, 1e6+1, 1e6]))
+tstiff = 0:0.1:10
+ustiff(x, t) = [1.0]
+resstiff = lsim(sysstiff, ustiff, tstiff)
+reszoh = lsim(sysstiff, ones(1, length(tstiff)), tstiff) # Exact for a constant input
+@test size(resstiff.y) == (1, length(tstiff))
+@test resstiff.y ≈ reszoh.y rtol=1e-3
+# An unsuccessful simulation throws an error that states the return code
+@test_throws "return code" lsim(sysstiff, ustiff, tstiff; alg=OrdinaryDiffEq.Tsit5(), maxiters=100)
+
 # Test for problem with broadcast dimensions
 @test lsim(sys, zeros(1, 5), 0:0.2:0.8)[1][:] == zeros(5)
 

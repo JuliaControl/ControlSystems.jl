@@ -1,4 +1,4 @@
-import OrdinaryDiffEq: ODEProblem, Tsit5, solve
+import OrdinaryDiffEq: ODEProblem, Tsit5, AutoTsit5, Rosenbrock23, solve
 import OrdinaryDiffEqLowOrderRK: BS3
 import ControlSystemsBase: lsim, step, impulse, HammersteinWienerSystem, DelayLtiSystem, SimResult
 import DelayDiffEq: MethodOfSteps
@@ -21,9 +21,19 @@ Internal function: Dynamics equation for simulation of a linear system.
     mul!(dx, B, u(x, t), 1, 1)
 end
 
+"""
+    check_retcode(sol)
+
+Internal function: Throw an error if the differential-equation solver did not complete the simulation successfully.
+"""
+function check_retcode(sol)
+    OrdinaryDiffEq.SciMLBase.successful_retcode(sol) && return
+    error("The simulation terminated at t = $(sol.t[end]) with return code $(sol.retcode). Consider selecting another solver with the keyword argument `alg`, e.g., a solver for stiff problems, or adjusting the keyword arguments `abstol`, `reltol` and `maxiters`.")
+end
+
 # This method is more specific than the lsim in ControlSystemsBase that does not specify Continuous timeevol for sys, hence, if ControlSystems is loaded, ControlSystems.lsim will take precedence over ControlSystemsBase.lsim for Continuous systems
 function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVector;
-        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, dtmax = t[2]-t[1], alg = Tsit5(), kwargs...)
+        x0::AbstractVecOrMat=zeros(Bool, nstates(sys)), method::Symbol=:cont, dtmax = t[2]-t[1], alg = AutoTsit5(Rosenbrock23()), kwargs...)
     ny, nu = size(sys)
     nx = sys.nx
     u0 = u(x0,t[1])
@@ -56,6 +66,7 @@ function lsim(sys::AbstractStateSpace{Continuous}, u::Function, t::AbstractVecto
     else
         p = (sys.A, sys.B, u)
         sol = solve(ODEProblem(f_lsim, x0, (t[1], t[end]+dt/2), p), alg; dtmax, saveat=t, kwargs...)
+        check_retcode(sol)
         x = reduce(hcat, sol.u)::Matrix{T}
         uout = Matrix{T}(undef, nu, length(t))
         for i = eachindex(t)
@@ -216,6 +227,7 @@ function _lsim(sys::DelayLtiSystem{T,S}, Base.@nospecialize(u!), t::AbstractArra
                 callback=cb)
     # Important to stop at t since we can not access derivatives in SavingCallback
     sol = DelayDiffEq.solve(prob, alg; tstops=t, saveat=t, kwargs...)
+    check_retcode(sol)
 
     # Retrive the saved values
     uout2 = zeros(T, nu, nt)
@@ -412,6 +424,7 @@ function _lsim(sys::HammersteinWienerSystem{T}, u!, t::AbstractArray{<:Real}, x0
         p = (A, B1, B2, C1, C2, D11, D12, D21, D22, f, u!, uout, dy, order)
         prob = ODEProblem{true}(hw_f, x0, (T(t[1]), T(t[end]+dt/2)), p)
         sol = OrdinaryDiffEq.solve(prob, alg; saveat=t, kwargs...)
+        check_retcode(sol)
         x = reduce(hcat, sol.u)::Matrix{T}
     else
         x = zeros(T, 0, nt)        # Empty State matrix
