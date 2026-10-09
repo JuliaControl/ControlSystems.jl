@@ -506,3 +506,18 @@ using ControlSystemsBase: isunstable
 @test isunstable(zpk([1], [im, im, -im, -im], 1)) # Repeated pole on imaginary axis not in origin
 @test !isunstable(zpk([1], [im+1e-8im, im, -im-1e-8im, -im], 1)) # Almost repeated pole on imaginary axis not in origin
 @test isunstable(zpk(Float64[], [0.01; -collect(1.0:9)], 1.0)) # Slightly unstable pole in a system with a large state dimension
+
+# Discrete time
+@test !isunstable(c2d(tf(1, [1,1]), 0.1))
+@test !isunstable(c2d(ss(tf(1, [1,1])), 0.1))
+@test isunstable(c2d(tf(1, [1,-1]), 0.1))
+@test isunstable(zpk(Float64[], [1.001, 0.5], 1.0, 1))
+@test !isunstable(tf(1, [1,0,0], 1)) # Double pole in the origin z = 0
+@test !isunstable(tf(1, [1,-1], 1)) # Simple pole at z = 1
+@test !isunstable(tf(1, [1,1], 1)) # Simple pole at z = -1
+@test isunstable(tf(1, [1,-2,1], 1)) # Double pole at z = 1
+@test isunstable(c2d(ss(tf(1, [1,0,0])), 0.1)) # Discretized double integrator
+@test isunstable(tf(1, [1,2,1], 1)) # Double pole at z = -1
+@test !isunstable(ss(c2d(tf(1, [1,0,1]), 0.1))) # Simple pole pair on the unit circle
+@test isunstable(ss(c2d(tf(1, [1,0,1])^2, 0.1))) # Repeated pole pair on the unit circle
+@test isunstable(zpk(Float64[], [cis(0.5), cis(0.5), cis(-0.5), cis(-0.5)], 1.0, 1))
