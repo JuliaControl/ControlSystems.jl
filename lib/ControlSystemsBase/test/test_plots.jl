@@ -92,4 +92,17 @@ end
   @test length(margin(peaks, dense; allMargins=true).pm[]) == 6
   @test_logs (:warn, r"Only showing .* 5 out of 6 phase margins") marginplot(peaks, dense)
   @test marginplot(Tss, exp10.(range(-8, 4; length=1000))) isa Plots.Plot
+
+  # Each channel of each system uses its own default frequency vector, so the slow pole of channel (1, 1) does not produce crossovers caused by rounding error in channel (2, 2), whose gain equals one at low frequencies
+  let s = tf("s")
+    sys = append(ss(1/((s + 1e-6)*(s + 1))), ss(1e4/(s + 1e4)))
+    @test_nowarn marginplot(sys)
+    @test_nowarn marginplot([sys, 2sys])
+    setPlotScale("dB")
+    try
+      @test_nowarn marginplot(sys)
+    finally
+      setPlotScale("log10")
+    end
+  end
 end

@@ -141,6 +141,16 @@ import CairoMakie.Makie
             end
         end
         @test_nowarn CSMakie.marginplot(Tss, exp10.(range(-8, 4; length=1000)))
+        # Each channel of each system uses its own default frequency vector, see `margin`
+        let s = tf("s")
+            sys = append(ss(1/((s + 1e-6)*(s + 1))), ss(1e4/(s + 1e4)))
+            for systems in (sys, [sys, 2sys])
+                @test_nowarn begin
+                    fig = CSMakie.marginplot(systems)
+                    @test fig isa Makie.Figure
+                end
+            end
+        end
     end
     
     @testset "rlocusplot" begin

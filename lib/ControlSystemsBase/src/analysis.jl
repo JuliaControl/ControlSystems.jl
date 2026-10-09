@@ -507,14 +507,19 @@ returns frequencies for gain margins, gain margins (magnitude), frequencies for 
 
 - If `!allMargins`, return only the smallest margin
 - If `full` return also `fullPhase`
-- If `w` is omitted, a gain-aware default frequency range is used. An explicit
-  frequency vector limits margin detection to that range.
+- If `w` is omitted, a gain-aware default frequency range is computed for each
+  input-output channel separately, so that `margin(sys)` and `margin(sys[i, j])`
+  agree for channel `(i, j)`. An explicit frequency vector is used for all
+  channels and limits margin detection to that range.
 - `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
 - `balance`: Call [`balance_statespace`](@ref) on each SISO channel before computing the frequency response, see [`freqresp`](@ref).
 
 See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
-function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargins=false, adjust_phase_start=true, balance=true)
+margin(sys::LTISystem, w::AbstractVector{<:Real}; kwargs...) = _margin(sys, (i, j) -> w; kwargs...)
+
+# The frequency vector of channel (i, j) is `channel_freqs(i, j)`
+function _margin(sys::LTISystem, channel_freqs; full=false, allMargins=false, adjust_phase_start=true, balance=true)
     ny, nu = size(sys)
 
     T = float(numeric_type(sys))
@@ -533,7 +538,7 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
     end
     for j=1:nu
         for i=1:ny
-            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], w; full=true, allMargins, adjust_phase_start, balance)
+            wgm[i,j], gm[i,j], wpm[i,j], pm[i,j], fullPhase[i,j] = sisomargin(sys[i,j], channel_freqs(i, j); full=true, allMargins, adjust_phase_start, balance)
         end
     end
     if full
@@ -542,6 +547,13 @@ function margin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMargin
         (; wgm, gm, wpm, pm)
     end
 end
+
+# Remove the state variables that are structurally uncontrollable or unobservable, as in `zpkdata`, which determines the default frequency vector. These state variables do not affect the transfer function, but they contribute rounding error to the frequency response, which is then not exactly zero for a structurally zero channel, and they change the scale with which poles and zeros in the origin are classified.
+function _sminreal(sys::AbstractStateSpace)
+    A, B, C = struct_ctrb_obsv(sys)
+    size(A, 1) == sys.nx ? sys : ss(A, B, C, sys.D, sys.timeevol)
+end
+_sminreal(sys::LTISystem) = sys
 
 """
     ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true, balance=true))
@@ -555,7 +567,7 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     if ny !=1 || nu != 1
         error("System must be SISO, use `margin` instead")
     end
-    sys = _balance(sys, balance) # All frequency-response evaluations below use the balanced realization
+    sys = _balance(_sminreal(sys), balance) # All frequency-response evaluations below use the balanced realization
     mag, phase, w = bode(sys, w; balance=false)
     wgm, = _allPhaseCrossings(w, phase)
     gm = similar(wgm)
@@ -568,6 +580,9 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
             push!(remove, i)
         elseif iszero(wgm[i]) && _zero_dc_gain(sys)
             # The frequency response at ω = 0 is zero, so its computed phase is determined by rounding error and the Nyquist contour does not cross the negative real axis there
+            push!(remove, i)
+        elseif iszero(Giw)
+            # The Nyquist contour passes through the origin, where the computed phase is determined by the signs of the zero real and imaginary parts, e.g., for a structurally zero channel
             push!(remove, i)
         end
         gm[i] = 1 ./ abs(Giw)
@@ -628,8 +643,9 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
         (; wgm, gm, wpm, pm)
     end
 end
+# A frequency vector shared by all channels would extend each channel into the frequency range required by the others, in which its frequency response may be determined by rounding error
 margin(system::LTISystem; kwargs...) =
-margin(system, _add_zero(_default_freq_vector(system, Val{:margin}())); kwargs...)
+    _margin(system, (i, j) -> _add_zero(_default_freq_vector(system[i, j], Val{:margin}())); kwargs...)
 #margin(sys::LTISystem, args...) = margin(LTISystem[sys], args...)
 
 _add_zero(w) = [-(zero(eltype(w))); w] # The size of the negative frequency is a tradeoff, too small and the check `if abs(d) > 20` in _findCrossings may fail, but too large and we get an inaccurate interpolation. 

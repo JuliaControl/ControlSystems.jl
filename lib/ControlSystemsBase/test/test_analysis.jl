@@ -281,7 +281,7 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
         for sys in (balreal(ss(s/(s+1)^2))[1], balreal(ss(s^2/((s+1)*(s^2 + 0.2s + 4))))[1])
             @test ControlSystemsBase._default_freq_vector(sys, Val(:margin)) ==
                   ControlSystemsBase._default_freq_vector(sys, Val(:bode))
-            @test all(w -> iszero(w) || w >= 1e-3, margin(sys; allMargins=true).wgm[])
+            @test isempty(margin(sys; allMargins=true).wgm[])
         end
     end
     # The endpoint evaluation must agree with the numerical-origin limit.
@@ -318,6 +318,39 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
     @test isinf(margin(G, w).pm[])
     @test ControlSystemsBase._processfreqplot(Val(:margin), [G], w)[2] === w
     @test ControlSystemsBase._processfreqplot(Val(:margin), [Gd], w)[2] === w
+end
+
+@testset "Margins of MIMO systems" begin
+    s = tf("s")
+    θ = 0.3
+    Q = [cos(θ) -sin(θ); sin(θ) cos(θ)]
+    for a in (1e-12, 1e-6)
+        slow = ss(1/((s + a)*(s + 1)))
+        slow = ss(Q*slow.A*Q', Q*slow.B, slow.C*Q', slow.D)
+        # The slow pole extends the default frequency vector of channel (1, 1) into frequencies at which the frequency response of channel (2, 2) equals one up to rounding error
+        sys = append(slow, ss(1e4/(s + 1e4)))
+        m = margin(sys; allMargins=true)
+        for i in 1:2, j in 1:2
+            mij = margin(sys[i, j]; allMargins=true)
+            @test (m.wgm[i, j], m.gm[i, j], m.wpm[i, j], m.pm[i, j]) == (mij.wgm[], mij.gm[], mij.wpm[], mij.pm[])
+        end
+        @test only(m.wpm[1, 1]) ≈ 0.786 rtol=1e-3
+        @test all(iszero, m.wpm[2, 2])
+        # The off-diagonal channels are structurally zero
+        @test isempty(m.wgm[1, 2]) && isempty(m.wgm[2, 1])
+        @test isnan(margin(sys).wgm[2, 1])
+        @test margin(sys).gm[2, 1] == Inf
+    end
+
+    # Structurally zero transfer functions. In the first system, the input affects only the last state variable, which does not affect the measured state variables. The Hessenberg reduction of `A` mixes the state variables, so that the computed frequency response of the full realization is rounding error. The negation in the second system produces a negative zero gain, whose computed phase is 180°.
+    G = ss([-4.0 0.4 0; 1.4 -0.1 0; 1.4 2.6 -2.0], [0, 0, 0.5], [-1.1 -0.2 0], 0)
+    @test ControlSystemsBase._sminreal(G).nx == 0
+    w = ControlSystemsBase._add_zero(exp10.(range(-3, 3, length=500)))
+    for sys in (G, (-ss([1/(s + 1) 0; 0 1/(s + 2)]))[2, 1], zpk(-0.0))
+        @test isempty(margin(sys; allMargins=true).wgm[])
+        @test isempty(margin(sys, w; allMargins=true).wgm[])
+        @test isempty(margin(sys; allMargins=true).wpm[])
+    end
 end
 
 @testset "Margin phase guides" begin
