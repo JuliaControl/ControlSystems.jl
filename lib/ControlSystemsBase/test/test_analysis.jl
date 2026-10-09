@@ -271,11 +271,11 @@ G = [1/(s+2) -1/(s+2); 1/(s+2) (s+1)/(s+2)]
     @test wm[1] >= 1e-3
     @test length(wm) < 500
     @test margin(double_mass).wpm[] ≈ 0.45477 rtol=1e-3
-    @test ControlSystemsBase._margin_nonintegrators([-1e-14, -10.0], 0) == [-10.0]
-    @test ControlSystemsBase._margin_nonintegrators([-1e-12], 0) == [-1e-12]
-    @test ControlSystemsBase._margin_nonintegrators([1 + eps(), 0.5], 1) == [0.5]
-    @test ControlSystemsBase._margin_nonintegrators([1e-16], 0) == [1e-16]
-    @test isempty(ControlSystemsBase._margin_nonintegrators([1e-16], 0; scale=1.0))
+    @test ControlSystemsBase._remove_origin_roots([-1e-14, -10.0], 0) == [-10.0]
+    @test ControlSystemsBase._remove_origin_roots([-1e-12], 0) == [-1e-12]
+    @test ControlSystemsBase._remove_origin_roots([1 + eps(), 0.5], 1) == [0.5]
+    @test ControlSystemsBase._remove_origin_roots([1e-16], 0) == [1e-16]
+    @test isempty(ControlSystemsBase._remove_origin_roots([1e-16], 0; scale=1.0))
     # Zeros in the origin that are not computed exactly must not determine the frequency bounds.
     let s = tf("s")
         for sys in (balreal(ss(s/(s+1)^2))[1], balreal(ss(s^2/((s+1)*(s^2 + 0.2s + 4))))[1])
@@ -448,6 +448,14 @@ dm = delaymargin(P)[]
 
 @test delaymargin(tf(0.1, [1, 1])) == Inf
 
+# A gain crossover close to a lightly damped resonance. The reference values are computed with a dense frequency grid.
+L = 0.02*tf(1, [1, 2e-3, 1])*tf(1, [0.1, 1])
+m = margin(L; allMargins=true)
+@test m.wpm[] ≈ [0.9900485017165597, 1.0098495161227574] rtol=1e-4
+@test m.pm[] ≈ [168.6361303158434, 0.059004203362803764] atol=0.02
+@test m.wgm[] ≈ [1.0099505071516728] rtol=1e-4
+@test m.gm[] ≈ [1.0102013450650185] rtol=1e-3
+
 # https://github.com/JuliaControl/ControlSystems.jl/issues/941
 C = 0.6 + 30 * tf([1, 0], [1])
 G = tf([0.04, 0.0001, 1.1], [1, 0.03, 254.9])
@@ -455,8 +463,12 @@ H = tf([0.25], [1, 1, 0.25])
 L = C * G * H * delay(1)
 m = margin(L)
 Lw = freqresp(L, m[1][])[]
-@test imag(Lw) ≈ 0 atol = 1e-6 # Test definition of gain margin
+# The smallest gain margin is located at the lightly damped resonance of G, where the
+# phase crossover is interpolated between closely spaced frequencies
+@test imag(Lw) ≈ 0 atol = 1e-3abs(Lw) # Test definition of gain margin
 @test inv(-real(Lw)) ≈ m[2][] atol = 1e-6 # Test definition of gain margin
+@test m[1][] ≈ 15.962646563946237 rtol = 1e-4 # Reference value computed with a dense frequency grid
+@test m[2][] ≈ 0.11434554917811805 rtol = 1e-3
 
 # https://github.com/JuliaControl/ControlSystems.jl/issues/961
 P = tf(1,[5, 10.25, 6.25, 1])

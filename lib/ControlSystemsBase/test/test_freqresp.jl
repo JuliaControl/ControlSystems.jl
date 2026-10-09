@@ -177,6 +177,72 @@ mag, mag, ws2 = bode(sys2)
 
 @test margin(tf(1, [1, -1], 0.01)).gm == [2;;]
 
+@testset "Default frequency vector" begin
+    dfv = ControlSystemsBase._default_freq_vector
+    G = ss(tf(1, [1, 1]))
+    # The grid of a time-scaled system is the time-scaled grid
+    for plot in (Val(:bode), Val(:nyquist), Val(:sigma), Val(:margin)), a in (1e-6, 1e-4, 1e3)
+        w = dfv(G, plot)
+        @test dfv(ControlSystemsBase.time_scale(G, a), plot) ≈ a .* w rtol=1e-10
+    end
+    # Slow poles are not ignored, the grid contains the DC gain
+    G2 = tf(1, [1, 1])*tf(1e-5, [1, 1e-5])
+    w = dfv(G2, Val(:bode))
+    @test abs(evalfr(G2, im*w[1])[]) ≈ 1 rtol=1e-3
+    @test w[end] >= 10
+    # Integrators do not determine the grid, also when they are computed with rounding error
+    Gi = tf(1, [1, 1, 0])
+    @test dfv(Gi, Val(:bode)) == dfv(tf(1, [1, 1]), Val(:bode))
+    @test extrema(dfv(ss(Gi), Val(:bode))) == extrema(dfv(Gi, Val(:bode)))
+    @test extrema(dfv(Gi, Val(:sigma))) == extrema(dfv(tf(1, [1, 1]), Val(:sigma)))
+    # Poles distributed over several decades are not classified as an n-fold pole in the origin
+    spread = ss(prod(tf(1, [1/10.0^k, 1]) for k in -4:5))
+    @test collect(extrema(dfv(spread, Val(:bode)))) ≈ [1e-6, 1e7]
+    modes = sum(ss(tf(ω^2, [1, 2e-3ω, ω^2])) for ω in exp10.(range(-1, 2, length=30)))
+    @test collect(extrema(dfv(modes, Val(:bode)))) ≈ [1e-3, 1e4]
+
+    # Discrete-time systems: the poles are mapped to the s-plane with s = log(z)/Ts
+    for Ts in (1e-3, 0.01, 1, 10, 100, 1000), p in (1e-3, 1, 100)
+        sysd = c2d(tf(p, [1, p]), Ts)
+        for plot in (Val(:bode), Val(:nyquist), Val(:sigma))
+            w = dfv(sysd, plot)
+            @test issorted(w)
+            @test allunique(w)
+            @test w[end] == π/Ts
+            @test w[1] <= (1 + 1e-10)*0.01π/Ts
+            # The equivalent continuous-time pole frequency is contained in the grid if it is below the Nyquist frequency
+            p < π/Ts && @test w[1] <= 0.1p
+        end
+    end
+    w = dfv(tf(0.1, [1, -0.9], 60), Val(:bode))
+    @test w[1] <= 0.1*(-log(0.9)/60)
+    @test w[end] == π/60
+    @test issorted(w)
+    # Poles in z = 0 and z = 1 do not determine the grid
+    @test collect(extrema(dfv(tf(1, [1, 0], 0.1), Val(:bode)))) ≈ [π/0.1/100, π/0.1] rtol=1e-10
+    @test collect(extrema(dfv(tf(1, [1, -1], 0.1), Val(:bode)))) ≈ [π/0.1/100, π/0.1] rtol=1e-10
+
+    # Lightly damped resonances are resolved
+    for ζ in (1e-2, 1e-3, 1e-4), ω0 in (1e-3, 1, 1e3)
+        P = tf(ω0^2, [1, 2ζ*ω0, ω0^2])
+        mag, _, w = bode(P)
+        @test maximum(mag) ≈ 1/(2ζ*sqrt(1 - ζ^2)) rtol=1e-2
+        @test issorted(w)
+        @test allunique(w)
+        # The anti-resonance of a lightly damped zero pair is resolved as well
+        @test minimum(bode(inv(P))[1]) ≈ 2ζ*sqrt(1 - ζ^2) rtol=1e-2
+    end
+    Pd = c2d(tf(1, [1, 2e-3, 1]), 0.1)
+    mag, _, w = bode(Pd)
+    @test maximum(mag) ≈ maximum(abs, freqresp(Pd, range(0.99, 1.01, length=100001))) rtol=1e-2
+    @test w[end] == π/0.1
+    # An undamped resonance does not result in a frequency at which the response is infinite
+    mag, _, w = bode(tf(1, [1, 0, 1]))
+    @test all(isfinite, mag)
+    # No frequencies are added for well-damped poles
+    @test dfv(tf(1, [1, 1, 1]), Val(:bode)) == exp10.(range(-2, 2, length=240))
+end
+
 ## Balancing ##
 # The functions that depend on the system only through its input-output map balance the
 # realization by default. The results must agree with the unbalanced computation for a
