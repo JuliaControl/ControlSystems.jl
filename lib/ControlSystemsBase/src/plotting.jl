@@ -1065,6 +1065,11 @@ function downsample(t,y,detail_th)
     # Compress signal by removing redundant points.
     # Adjust waveform detail/compression ratio with 'detail_th' (maximum allowed
     # difference between original and approximated points from the signal)
+    # The signal is approximated linearly in log(t) if all t are positive, since
+    # frequency responses are plotted against a logarithmic frequency axis and the
+    # default frequency vectors are not logarithmically equidistant everywhere.
+    # Otherwise, it is approximated linearly in the index.
+    x             = all(>(0), t) ? log.(t) : eachindex(y)
     yln           = length(y)
     idx_l         = 1
     idx_r         = yln
@@ -1078,7 +1083,7 @@ function downsample(t,y,detail_th)
     while cond_break
         # get maximum error(difference) and index, between original chunk of signal
         # and linear approximation
-        d_max, idx_d_max = get_d_max(idx_l,idx_r,y)
+        d_max, idx_d_max = get_d_max(idx_l,idx_r,x,y)
         # save all indices
         M[idx_d_max] = idx_r
         if d_max > detail_th
@@ -1108,11 +1113,14 @@ function downsample(t,y,detail_th)
     y_new    = @view y[idx2save]
     return t_new, y_new, idx2save
 end
-function get_d_max(idx_l,idx_r,y)
+function get_d_max(idx_l,idx_r,x,y)
     # cut segment to be resampled
     yp = view(y,idx_l:idx_r)
-    # construct linear approximation
-    dr = LinRange(y[idx_l], y[idx_r], length(yp))
+    # construct linear approximation in x, or in the index if x is constant on the segment.
+    # The approximation equals y at the end points of the segment without rounding error.
+    Δx = x[idx_r] - x[idx_l]
+    λ(i) = idx_r == idx_l ? zero(Δx) : iszero(Δx) ? (i - 1)/(idx_r - idx_l) : (x[idx_l+i-1] - x[idx_l])/Δx
+    dr(i) = (1 - λ(i))*y[idx_l] + λ(i)*y[idx_r]
     # compute distance(error) and get index of maximum error
     # -> this will be used for further splitting the
     # signal and will be part of the final resampled signal
@@ -1120,7 +1128,7 @@ function get_d_max(idx_l,idx_r,y)
     idx_d_max = 1
     err_val   = 0.0
     for i = 1:length(yp)
-        err_val = abs(yp[i] - dr[i])
+        err_val = abs(yp[i] - dr(i))
         if err_val > d_max
             d_max     = err_val
             idx_d_max = i

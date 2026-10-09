@@ -69,6 +69,20 @@ end
   @test_nowarn marginplot(tf([2], [1,1])^3, 10.0 .^range(-2,stop=2,length=50); hz=true)
 end
 
+@testset "downsample" begin
+  # The default frequency vector of a lightly damped system is not logarithmically equidistant,
+  # the downsampled magnitude must retain the resonance peak
+  mag, _, w = bode(tf(1, [1, 2e-4, 1]))
+  lmag = log.(vec(mag))
+  inds = ControlSystemsBase.downsample(w, lmag, (maximum(lmag) - minimum(lmag))/500)[3]
+  @test maximum(mag[inds]) == maximum(mag)
+  @test length(inds) < length(w)
+  # Termination with zero tolerance and data that are affine in log(w) up to rounding error
+  w = exp10.(range(-2, 2, length=100))
+  inds = ControlSystemsBase.downsample(w, 0.1 .+ 0.2 .* log.(w), 0.0)[3]
+  @test inds[1] == 1 && inds[end] == 100
+end
+
 @testset "marginplot regressions" begin
   G = tf([1.0], [1.0, 13, 40, 0])
   @test_nowarn marginplot(G; xticks=exp10.(-2:0.5:4))
