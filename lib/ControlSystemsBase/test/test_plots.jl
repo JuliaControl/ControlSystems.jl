@@ -69,6 +69,82 @@ end
   @test_nowarn marginplot(tf([2], [1,1])^3, 10.0 .^range(-2,stop=2,length=50); hz=true)
 end
 
+@testset "nyquistplot limits" begin
+  using ControlSystemsBase: nyquist_limits, nyquist_limit_mask, _nyquist_limit_circles
+  s = tf("s")
+  w = exp10.(range(-3, 3, length=1000))
+  flat(lims) = [l for lims in lims for l in (lims[1]..., lims[2]...)]
+  contains(lims, x, y) = lims[1][1] <= x <= lims[1][2] && lims[2][1] <= y <= lims[2][2]
+
+  # The limits contain the entire curve of a system with a high gain
+  G = 1000/(s+1)^3
+  redata, imdata = nyquist(G, w)
+  lims = nyquist_limits(G, w)[1, 1]
+  @test all(contains.(Ref(lims), redata[1, 1, :], imdata[1, 1, :]))
+  @test contains(lims, -1.5, 0.5) && contains(lims, -0.5, -0.5)
+
+  # A curve that is located far from the critical point
+  G = ss(100) + tf(1, [1, 1])
+  lims = nyquist_limits(G, w)[1, 1]
+  @test contains(lims, 101 - 1e-3, 0) && contains(lims, -1.5, 0)
+  @test nyquistplot(G) isa Plots.Plot
+
+  # The limits of each channel are computed separately, and contain the curves of all systems
+  Gmimo = [tf(1, [1, 1]) tf(10, [1, 1]); tf(0.1, [1, 1]) tf(10, [1, 2, 1])]
+  lims = nyquist_limits(Gmimo, w)
+  @test lims[1, 1][1][2] < 2
+  @test lims[1, 2][1][2] > 10
+  @test lims[2, 1][1][2] < 0.5 && lims[2, 1] != lims[1, 1]
+  @test nyquist_limits([tf(1, [1, 1]), tf(10, [1, 1])], w)[1, 1] == lims[1, 2]
+
+  # Invariance under a change of the time unit
+  for G in (ss(1/(s*(s+1))), ss(1/((s^2 + 1)*(s+1))), ss(1000/(s+1)^3))
+    @test flat(nyquist_limits(G, w)) ≈ flat(nyquist_limits(ControlSystemsBase.time_scale(G, 100), 100 .* w))
+  end
+
+  # The frequencies at which the factor contributed by the poles on the imaginary axis exceeds max_factor are excluded
+  @test nyquist_limit_mask(1/(s*(s+1)), w) == (w .>= 1/5)
+  @test nyquist_limit_mask(1/(s^2*(s+1)), w) == (w .>= 1/sqrt(5))
+  @test nyquist_limit_mask((s+1)/(s*(s+10)), w; max_factor=4) == (w .>= 1/4)
+  @test nyquist_limit_mask(1/((s^2 + 1)*(s+1)), w) == (abs.(1 .- w.^2) .>= 1/5)
+  @test nyquist_limit_mask(c2d(ss(1/(s*(s+1))), 0.01), w[w .< 300]) == (w[w .< 300] .>= 1/5)
+  @test nyquist_limit_mask(1/(s+1)^3, w) == trues(length(w))
+  @test !any(nyquist_limit_mask(1/s^2, w)) # No intrinsic scale
+
+  # A system with an integrator has finite limits that contain the critical point
+  lims = nyquist_limits(1/(s*(s+1)), w)[1, 1]
+  @test all(isfinite, (lims[1]..., lims[2]...))
+  @test contains(lims, -1, 0)
+  @test -6 < lims[2][1] < imag(1/(0.2im*(0.2im+1)))
+  lims = nyquist_limits(1/s^2, w)[1, 1]
+  @test flat([lims]) ≈ [-1.65, 0.15, -0.6, 0.6]
+  @test nyquist_limits(delay(1)*tf(1, [1, 1, 0]), w)[1, 1][2][1] > -10
+
+  @test nyquist_limits(tf(0.1, [1, 1]), w; critical_point=-2)[1, 1][1][1] < -3
+  @test length(_nyquist_limit_circles([1.2], [1.05, 2], Float64[], true)) == 3 # The Mt circle of radius > 2 is excluded
+  lims = nyquist_limits(tf(0.1, [1, 1]), w; circles=_nyquist_limit_circles([], [2], [], false))[1, 1]
+  @test contains(lims, -2, 0)
+
+  # The Plots recipe sets the limits of each subplot, user-provided limits take precedence
+  p = nyquistplot(Gmimo, w)
+  lims = nyquist_limits(Gmimo, w)
+  for i = 1:2, j = 1:2
+    sp = p.subplots[LinearIndices((2, 2))[j, i]]
+    @test Plots.xlims(sp) == lims[i, j][1]
+    @test Plots.ylims(sp) == lims[i, j][2]
+  end
+  p = nyquistplot(1/(s*(s+1)), xlims=(-3, 3))
+  @test Plots.xlims(p.subplots[1]) == (-3, 3)
+
+  # The default limits are not computed for number types for which the poles are not available (the poles of a BigFloat system require GenericSchur)
+  Gbig = tf(big(1.0), big.([1.0, 2, 1]))
+  @test !ControlSystemsBase._nyquist_limits_available([Gbig])
+  @test ControlSystemsBase._nyquist_limits_available([tf(1, [1, 1]), ss(1.0f0)])
+  @test nyquistplot(Gbig, w) isa Plots.Plot
+  p = nyquistplot(Gbig, w, xlims=(-3, 3), ylims=(-2, 2))
+  @test Plots.xlims(p.subplots[1]) == (-3, 3) && Plots.ylims(p.subplots[1]) == (-2, 2)
+end
+
 @testset "marginplot regressions" begin
   G = tf([1.0], [1.0, 13, 40, 0])
   @test_nowarn marginplot(G; xticks=exp10.(-2:0.5:4))

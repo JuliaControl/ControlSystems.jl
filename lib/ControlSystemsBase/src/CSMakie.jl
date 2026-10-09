@@ -38,6 +38,7 @@ CSMakie.nyquistplot(sys; polar=true, rlimits=(0, 3),
     thetaminorticks = Makie.IntervalsBetween(3),       # phase rays every 15°
     thetaminorgridvisible = true, rminorgridvisible = true)
 ```
+Unless the keyword argument `limits` is provided, the limits of each Cartesian axis are set to the default limits computed by [`ControlSystemsBase.nyquist_limits`](@ref), as in the Plots version (only for systems whose numeric type is supported by LAPACK).
 """
 function nyquistplot end
 function nyquistplot! end

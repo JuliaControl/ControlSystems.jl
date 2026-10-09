@@ -402,6 +402,111 @@ end
 end
 
 
+# Poles and zeros that determine the regions where the Nyquist curve of `sys` tends to infinity
+_nyquist_poles_zeros(sys::LTISystem) = isrational(sys) ? (poles(sys), tzeros(sys)) : (ComplexF64[], ComplexF64[])
+function _nyquist_poles_zeros(sys::DelayLtiSystem{T}) where T
+    # The frequency response of the delay-free system coincides with that of `sys` at ω = 0
+    n = length(sys.Tau)
+    _nyquist_poles_zeros(n == 0 ? sys.P.P : lft(sys.P.P, ss(Matrix{T}(I, n, n))))
+end
+
+"""
+    nyquist_limit_mask(sys, w; max_factor = 5)
+
+Return a `BitVector` indicating which of the frequencies `w` are used to determine the default axis limits of a Nyquist plot of `sys`, see [`nyquist_limits`](@ref).
+
+The frequencies close to the poles of `sys` on the imaginary axis (the unit circle in discrete time), where the Nyquist curve tends to infinity, are excluded. A pole `p` is classified as located on the imaginary axis if [`count_eigval_multiplicity`](@ref) counts `p` among the `n` poles at the projection of `p` onto the imaginary axis (the unit circle), i.e., with a tolerance relative to the largest pole magnitude. The frequencies at which the magnitude of the factor of the frequency response contributed by these poles exceeds `max_factor` are excluded:
+- For `n` poles at the frequency `ωp > 0` (`|angle(p)|/Ts` in discrete time), the factor is `(ωp^2/|ωp^2 - ω^2|)^n`, which equals one at `ω = 0`.
+- For `n` poles in the origin (`z = 1` in discrete time), the factor is `(ωl/ω)^n`, where `ωl` is the smallest magnitude of the poles and zeros that are not located in the origin (after mapping them by `s = log(z)/Ts` in discrete time). If all poles and zeros are located in the origin, the curve has no intrinsic scale and all frequencies are excluded.
+All classifications are relative to the magnitude of the poles, and the result is therefore invariant under [`time_scale`](@ref) (with the frequencies scaled accordingly).
+"""
+function nyquist_limit_mask(sys::LTISystem, w; max_factor = 5)
+    p, z = _nyquist_poles_zeros(sys)
+    discrete = isdiscrete(sys)
+    origin = discrete ? 1 : 0
+    project(x) = discrete ? (iszero(x) ? one(x) : x/abs(x)) : complex(0, imag(x))
+    frequency(x) = discrete ? abs(angle(x))/sys.Ts : abs(imag(x))
+    toc(x) = discrete ? log(complex(x))/sys.Ts : x # Map to the s-plane
+    np, tolp = count_eigval_multiplicity(p, origin)
+    scale = max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0))
+    _, tolz = count_eigval_multiplicity(z, origin; scale)
+    mask = trues(length(w))
+    for pk in p
+        abs(pk - origin) <= tolp && continue
+        loc = project(pk)
+        n, tol = count_eigval_multiplicity(p, loc)
+        n > 0 && abs(pk - loc) <= tol || continue
+        ωp = frequency(pk)
+        @. mask &= abs(1 - (w/ωp)^2) >= max_factor^(-1/n)
+    end
+    if np > 0
+        ωl = minimum((abs(toc(x)) for x in p if abs(x - origin) > tolp); init=Inf)
+        ωl = min(ωl, minimum((abs(toc(x)) for x in z if abs(x - origin) > tolz); init=Inf))
+        @. mask &= w >= ωl*max_factor^(-1/np) # All frequencies are excluded if ωl is infinite
+    end
+    mask
+end
+
+"""
+    nyquist_limits(systems, w = nothing; critical_point = -1, circles = (), max_factor = 5, pad = 0.1, balance = true, responses)
+
+Return a matrix of size `(ny, nu)` whose element `(i, j)` is a tuple `(xlims, ylims)` of the default axis limits of the Nyquist plot of the channel from input `j` to output `i` of the system(s) `systems`, evaluated at the frequencies `w` (a default frequency vector is used if `w = nothing`). The limits are the smallest box that contains, for all systems,
+- the critical point `c = critical_point` and the square of half side `|c|/2` centered at `c`, in which the encirclements of `c` are visible,
+- the origin,
+- the circles given as `(center, radius)` tuples in `circles`,
+- the points of the Nyquist curve at the frequencies selected by [`nyquist_limit_mask`](@ref) with the keyword argument `max_factor`. These are all frequencies if the system has no poles on the imaginary axis. Otherwise, the frequencies close to the poles on the imaginary axis, where the curve tends to infinity, are excluded.
+The box is enlarged at both ends of each axis by the fraction `pad` of its extent along that axis.
+
+The keyword argument `responses` may contain the precomputed tuples `(re, im)` returned by `nyquist(sys, w; balance)[1:2]` for each system.
+"""
+function nyquist_limits(systems::AbstractVector{<:LTISystem}, w = nothing; critical_point = -1, circles = (), max_factor = 5, pad = 0.1, balance = true, responses = nothing)
+    w === nothing && (w = _default_freq_vector(systems, Val{:nyquist}()))
+    responses === nothing && (responses = [nyquist(s, w; balance)[1:2] for s in systems])
+    masks = [nyquist_limit_mask(s, w; max_factor) for s in systems]
+    ny, nu = size(systems[1])
+    c = float(critical_point)
+    ρ = abs(c)/2
+    map(CartesianIndices((ny, nu))) do ij
+        xmin, xmax = min(c - ρ, 0.0), max(c + ρ, 0.0)
+        ymin, ymax = -ρ, ρ
+        for (center, r) in circles
+            xmin, xmax = min(xmin, real(center) - abs(r)), max(xmax, real(center) + abs(r))
+            ymin, ymax = min(ymin, imag(center) - abs(r)), max(ymax, imag(center) + abs(r))
+        end
+        for ((re, im), mask) in zip(responses, masks)
+            for k in eachindex(mask)
+                x, y = re[ij, k], im[ij, k]
+                mask[k] && isfinite(x) && isfinite(y) || continue
+                xmin, xmax = min(xmin, x), max(xmax, x)
+                ymin, ymax = min(ymin, y), max(ymax, y)
+            end
+        end
+        dx, dy = pad*(xmax - xmin), pad*(ymax - ymin)
+        dx > 0 || (dx = 1.0) # Only if the critical point and all points of the curves are located in the origin
+        dy > 0 || (dy = 1.0)
+        (xmin - dx, xmax + dx), (ymin - dy, ymax + dy)
+    end
+end
+nyquist_limits(sys::LTISystem, args...; kwargs...) = nyquist_limits([sys], args...; kwargs...)
+
+# The default limits require the poles and zeros, which are computed for the number types supported by LAPACK. For other number types (e.g., uncertain or dual numbers), the plotting backend determines the limits.
+_nyquist_limits_available(systems) = all(s -> float(numeric_type(s)) <: BlasFloat, systems)
+
+# Circles (center, radius) drawn by the Nyquist plot recipes that are included in the default axis limits. The circles are defined relative to the point -1, circles with a radius larger than `max_radius` are not included.
+function _nyquist_limit_circles(Ms_circles, Mt_circles, disk_margin_circles, unit_circle; max_radius = 2)
+    circles = Tuple{Float64, Float64}[]
+    for Ms in Ms_circles
+        push!(circles, (-1.0, 1/Ms))
+    end
+    for Mt in Mt_circles
+        push!(circles, (-Mt^2/(Mt^2-1), Mt/(Mt^2-1)))
+    end
+    for M in disk_margin_circles
+        push!(circles, (-(2M^2 - 2M + 1)/(2M*(M-1)), (2M - 1)/(2M*(M-1))))
+    end
+    unit_circle && push!(circles, (0.0, 1.0))
+    filter!(c -> isfinite(c[1]) && abs(c[2]) <= max_radius, circles)
+end
 
 @userplot Nyquistplot
 """
@@ -410,6 +515,8 @@ end
 
 Create a Nyquist plot of the `LTISystem`(s). A frequency vector `w` can be
 optionally provided.
+
+The default axis limits of each subplot are computed by [`ControlSystemsBase.nyquist_limits`](@ref). They contain the critical point and a neighborhood of it, the origin, the requested circles of radius at most 2, and the Nyquist curves of all systems, except for the frequency bands close to poles on the imaginary axis, where the curves tend to infinity. Limits provided with the keyword arguments `xlims` and `ylims` take precedence. For systems whose numeric type is not supported by LAPACK (e.g., uncertain or dual numbers), the poles and zeros are not computed and the limits are determined by the plotting backend.
 
 - `unit_circle`: if the unit circle should be displayed. The Nyquist curve crosses the unit circle at the gain crossover frequency.
 - `Ms_circles`: draw circles corresponding to given levels of sensitivity (circles around -1 with  radii `1/Ms`). `Ms_circles` can be supplied as a number or a vector of numbers. A design staying outside such a circle has a phase margin of at least `2asin(1/(2Ms))` rad and a gain margin of at least `Ms/(Ms-1)`. See also [`margin_bounds`](@ref), [`Ms_from_phase_margin`](@ref) and [`Ms_from_gain_margin`](@ref).
@@ -431,15 +538,17 @@ nyquistplot
     s2i(i,j) = LinearIndices((nu,ny))[j,i]
     θ = range(0, stop=2π, length=100)
     S, C = sin.(θ), cos.(θ)
+    responses = [nyquist(s, w; balance)[1:2] for s in systems]
+    circles = _nyquist_limit_circles(Ms_circles, Mt_circles, disk_margin_circles, unit_circle)
+    user_limits = haskey(plotattributes, :xlims) && haskey(plotattributes, :ylims)
+    limits = user_limits || !_nyquist_limits_available(systems) ? nothing :
+        nyquist_limits(systems, w; critical_point, circles, balance, responses)
     for (si,s) = enumerate(systems)
-        re_resp, im_resp = nyquist(s, w; balance)[1:2]
+        re_resp, im_resp = responses[si]
         for j=1:nu
             for i=1:ny
                 redata = re_resp[i, j, :]
                 imdata = im_resp[i, j, :]
-                mask = @. (-20 ≤ imdata ≤ 20) & (-20 ≤ redata ≤ 20)
-                ylims --> (min(minimum(imdata[mask]),-1.05), max(maximum(imdata[mask]),1.05))
-                xlims --> (min(minimum(redata[mask]),-1.05), max(maximum(redata[mask]),1.05))
                 @series begin
                     subplot --> s2i(i,j)
                     lab = _get_plotlabel(s, i, j)
@@ -513,9 +622,13 @@ nyquistplot
                         end
                     end
                     @series begin # Mark the critical point
-                        # Title and yguide must be here in the last series for the result to be correct
+                        # Title, yguide and the axis limits must be here in the last series of the subplot for the result to be correct
                         title --> "Nyquist plot from: $(input_names(s, j))"
                         yguide --> "To: $(output_names(s, i))"
+                        if limits !== nothing
+                            xlims --> limits[i, j][1]
+                            ylims --> limits[i, j][2]
+                        end
                         subplot --> s2i(i,j)
                         primary := false
                         markershape := :xcross
