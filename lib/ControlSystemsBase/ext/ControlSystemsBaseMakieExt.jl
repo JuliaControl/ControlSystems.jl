@@ -282,10 +282,19 @@ function CSMakie.nyquistplot!(fig, systems::Union{LTISystem, AbstractVector{<:LT
     coords = polar ? (x, y) -> (atan.(y, x), hypot.(x, y)) : tuple
 
     θ = range(0, 2π, length=100)
-    
+
+    responses = [nyquist(s, w; balance)[1:2] for s in systems]
+    if !polar && !haskey(kwargs, :limits)
+        circles = ControlSystemsBase._nyquist_limit_circles(Ms_circles, Mt_circles, Float64[], unit_circle)
+        lims = ControlSystemsBase.nyquist_limits(systems, w; critical_point, circles, balance, responses)
+        for j in 1:nu, i in 1:ny
+            limits!(axes[i, j], lims[i, j][1]..., lims[i, j][2]...)
+        end
+    end
+
     for (si, s) in enumerate(systems)
-        re_resp, im_resp = nyquist(s, w; balance)[1:2]
-        
+        re_resp, im_resp = responses[si]
+
         for j in 1:nu
             for i in 1:ny
                 redata = vec(re_resp[i, j, :])

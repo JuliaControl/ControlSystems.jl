@@ -96,6 +96,17 @@ import CairoMakie.Makie
         end
         # Unsupported keyword arguments now error instead of being silently ignored
         @test_throws Exception CSMakie.nyquistplot(P; not_a_keyword=true)
+        # Default limits are computed by nyquist_limits for each axis, user-provided limits take precedence
+        s = tf("s")
+        for G in (1/(s*(s+1)), 1000/(s+1)^3, ss(100) + tf(1, [1, 1]), [tf(1, [1, 1]) tf(10, [1, 1]); tf(0.1, [1, 1]) tf(10, [1, 2, 1])])
+            fig = CSMakie.nyquistplot(G, w)
+            lims = ControlSystemsBase.nyquist_limits(G, w)
+            axs = [c for c in fig.content if c isa Makie.Axis]
+            @test length(axs) == length(lims)
+            @test Set(ax.limits[] for ax in axs) == Set(lims)
+        end
+        fig = CSMakie.nyquistplot(P; limits=((-3, 3), (-3, 3)))
+        @test only(c for c in fig.content if c isa Makie.Axis).limits[] == ((-3, 3), (-3, 3))
     end
     
     @testset "sigmaplot" begin
