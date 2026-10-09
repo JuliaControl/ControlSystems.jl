@@ -734,9 +734,9 @@ end
 
 
 """
-    sysr, G, T = baltrunc(sys::StateSpace; atol = √ϵ, rtol=1e-3, n = nothing, residual = false)
+    sysr, G, T = baltrunc(sys::StateSpace; atol = 0, rtol=1e-3, n = nothing, residual = false)
 
-Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`, and truncating it to order `n`. If `n` is not provided, it's chosen such that all states corresponding to singular values less than `atol` and less that `rtol σmax` are removed.
+Reduces the state dimension by calculating a balanced realization of the system sys, such that the observability and reachability gramians of the balanced system are equal and diagonal `diagm(G)`, and truncating it to order `n`. If `n` is not provided, it is chosen such that all state variables corresponding to Hankel singular values less than `atol` or less than `rtol σmax` are removed. The Hankel singular values scale with the gain of the system, the default absolute tolerance `atol` is therefore zero and the truncation is determined by the relative tolerance `rtol`.
 
 `T` is the projection matrix between the old state `x` and the newstate `z` such that `z = Tx`. `T` will in general be a non-square matrix.
 
@@ -755,11 +755,11 @@ For more advanced model reduction, see [RobustAndOptimalControl.jl - Model Reduc
 # Extended help
 $(_scaling_notice)
 """
-function baltrunc(sys::ST; atol = sqrt(eps(numeric_type(sys))), rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
+function baltrunc(sys::ST; atol = 0, rtol = 1e-3, n = nothing, residual=false) where ST <: AbstractStateSpace
     sysbal, S, T = balreal(sys)
     if n === nothing
         S = S[S .>= atol]
-        S = S[S .>= S[1]*rtol]
+        isempty(S) || (S = S[S .>= S[1]*rtol])
         n = length(S)
     else
         n > sys.nx && error("n too large. A state dimension of n = $n was requested, but the original system has a $(sys.nx)-dimensional state.")

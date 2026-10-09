@@ -63,6 +63,19 @@ y2,x2 = step(sysmin,t, method=:zoh)[[1,3]]
     sysr,_ = baltrunc(sys)
     @test norm(sys-sysr) < 0.02
 
+    # The truncation is invariant to the gain of the system
+    for sys0 in (sys, ss(tf(1, [1,2,3,1])))
+        sysr0, Σ0 = baltrunc(sys0)
+        for k in (1e-12, 1e-9, 1e-6, 1e6)
+            sysrk, Σk = baltrunc(k*sys0)
+            @test sysrk.nx == sysr0.nx
+            @test Σk ≈ k*Σ0 rtol=1e-8
+        end
+    end
+    sysr3, Σ3 = baltrunc(ss(-1.0, 0, 1, 0)) # Zero gain
+    @test sysr3.nx == 0
+    @test isempty(Σ3)
+
 
     sysr,Σ = baltrunc(sys, n=3, residual=true)
     @test sysr.nx == 3

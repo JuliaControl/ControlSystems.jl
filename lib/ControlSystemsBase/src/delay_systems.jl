@@ -42,11 +42,12 @@ end
 Discrete-time statespace realization of a delay ``τ`` sampled with period ``T_s``,
 i.e. of ``z^{-N}`` where ``N = τ / T_s.``
 
-``τ`` must be a multiple of ``T_s``. See [`thiran`](@ref) for approximate discretization of fractional delays.
+``τ`` must be a multiple of ``T_s`` to within a relative tolerance ``\\sqrt{ϵ}``. See [`thiran`](@ref) for approximate discretization of fractional delays.
 """
 function delayd_ss(τ::Number, Ts::Number)
-    n = round(Int, τ / Ts)
-    if !(τ - n*Ts ≈ 0)
+    D = τ / Ts
+    n = round(Int, D)
+    if !isapprox(D, n; rtol = sqrt(eps(float(typeof(D)))))
         error("The delay τ must be a multiple of the sample time Ts, use the function `thiran` to approximately discretize fractional delays.")
     end
     ss(diagm(1 => ones(n-1)), [zeros(n-1,1); 1], [1 zeros(1,n-1)], 0, Ts)
@@ -182,12 +183,15 @@ Discretize a potentially fractional delay ``τ`` as a Thiran all-pass filter wit
 
 The Thiran all-pass filter gives an a maximally flat group delay.
 
-If ``τ`` is an integer multiple of ``Ts``, the Thiran all-pass filter reduces to ``z^{-τ/Ts}``.
+If ``τ`` is an integer multiple of ``Ts`` to within a relative tolerance ``\\sqrt{ϵ}``, the Thiran all-pass filter reduces to ``z^{-N}`` with ``N = \\operatorname{round}(τ/Ts)``.
 
 Ref: T. I. Laakso, V. Valimaki, M. Karjalainen and U. K. Laine, "Splitting the unit delay [FIR/all pass filters design]," in IEEE Signal Processing Magazine, vol. 13, no. 1, 1996.
 """
 function thiran(τ::Real, Ts)
     D = τ/Ts
+    # Rounding errors in τ/Ts must not increase the order of the filter
+    Dr = round(D)
+    isapprox(D, Dr; rtol = sqrt(eps(float(typeof(D))))) && (D = Dr)
     N = ceil(Int, D)
     a = ones(N+1)
     for k = 1:N
