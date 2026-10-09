@@ -257,3 +257,6 @@ res_smooth = lsim(sys_hyst_smooth, (x,t) -> 5sin(t), t)
 @test maximum(res_smooth.y) ≈ amplitude rtol=0.15
 @test minimum(res_smooth.y) ≈ -amplitude rtol=0.15
 
+
+# An unsuccessful simulation throws an error that states the return code
+@test_throws "return code" lsim(feedback(saturation(0.5)*tf(1, [1, 1])), (x, t) -> [1.0], 0:0.1:10; maxiters=5)
