@@ -746,7 +746,7 @@ If `residual = true`, matched static gain is achieved through "residualization",
 ```
 where indices 1/2 correspond to the remaining/truncated states respectively.
 
-See also `gram`, `balreal`
+See also `gram`, `balreal`, and [`modal_reduction`](@ref) for reduction of systems with separated time scales, which retains the poles of `sys` with natural frequency below a cutoff frequency.
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder.
 
@@ -805,6 +805,8 @@ Decompose `sys` into `sys = stab + unstab` where `stab` contains all stable pole
 
 `0 ≤ sep ≤ 1` is the estimated separation between the stable and unstable spectra.
 
+See also [`slow_fast`](@ref) for a decomposition based on the natural frequency of the poles.
+
 The docstring of `MatrixPencils.ssblkdiag`, reproduced below, provides more information on the keyword arguments:
 $(@doc(MatrixPencils.ssblkdiag))
 """
@@ -817,6 +819,132 @@ function stab_unstab(sys::AbstractStateSpace; kwargs...)
     return (; stab=ss(A[i1,i1], B[i1,:], C[:,i1], sys.D, timeevol(sys)), 
             unstab=ss(A[i2,i2], B[i2,:], C[:,i2], 0, timeevol(sys)),
             sep)
+end
+
+"""
+    slow, fast, sep = slow_fast(sys, ωc)
+
+Decompose `sys` into `sys = slow + fast`, where `slow` contains the poles with natural frequency less than `ωc` and `fast` contains the remaining poles and the direct feedthrough term `D` of `sys`.
+
+The natural frequency of a pole ``p`` is ``|p|`` for continuous-time systems and ``|\\log(p)|/T_s`` for discrete-time systems, consistent with [`damp`](@ref). A lightly damped pole with a large imaginary part is thus assigned to `fast`, in contrast to a decomposition based on the real part of the poles, such as `stab_unstab(sys; smarg)`.
+
+The decomposition is computed from an ordered Schur decomposition of the system matrix, followed by the solution of a Sylvester equation that removes the coupling between the slow and the fast diagonal blocks.
+
+`0 ≤ sep ≤ 1` is an estimate of the separation between the slow and the fast spectra. A value close to zero indicates that the two spectra are not well separated, in which case the decomposition is ill-conditioned.
+
+See also [`modal_reduction`](@ref), [`stab_unstab`](@ref).
+"""
+function slow_fast(sys::AbstractStateSpace, ωc::Real)
+    S, n1 = _slow_first_schur(sys, ωc)
+    Y = _blockdiag_sylvester(S, n1)
+    A1, A2, B1, B2, C1, C2, _ = _blockdiag_realization(sys, S, n1, Y)
+    ny, nu = size(sys.D)
+    return (; slow=ss(A1, B1, C1, zeros(eltype(A1), ny, nu), timeevol(sys)),
+            fast=ss(A2, B2, C2, sys.D, timeevol(sys)),
+            sep=1/(1 + norm(Y)))
+end
+
+"""
+    sysr, T = modal_reduction(sys, ωc; residual = true, coordinates = :modal, states = nothing)
+
+Reduce the state dimension of `sys` by removing the modes with natural frequency greater than or equal to `ωc`. See [`slow_fast`](@ref) for the definition of the natural frequency. The poles of `sysr` are the poles of `sys` with natural frequency less than `ωc`.
+
+If `residual = true` (default), the fast modes are replaced by their static gain (residualization), and `sysr` has the same static gain as `sys`. If `residual = false`, the fast modes are removed (truncation) and only the direct feedthrough term `D` of `sys` is retained.
+
+`T` is the matrix that maps the state `x` of `sys` to the state `z` of `sysr`. The keyword argument `coordinates` determines the state of `sysr`:
+- `:modal`: `z = T*x` are the coordinates of the slow modes in block-diagonal Schur form. The fast modes do not influence `z`, and `sysr` is equal to `slow + ss(D)` if `residual = false` and to `slow + ss(dcgain(fast))` if `residual = true`, where `slow, fast = slow_fast(sys, ωc)`.
+- `:original`: `z = x[states]` is a subset of the state variables of `sys`, and `T` is the corresponding selection matrix. With the partition ``x = [x_1; x_2]``, where ``x_1`` = `x[states]`, the slow invariant subspace of ``A`` is given by ``x_2 = X x_1``, where ``X`` solves the nonsymmetric algebraic Riccati equation
+  ```math
+  A_{22} X - X A_{11} - X A_{12} X + A_{21} = 0.
+  ```
+  In the coordinates ``x_1`` and ``e = x_2 - X x_1``, the deviation ``e`` from the slow invariant subspace evolves independently of ``x_1``, and ``e`` is residualized or truncated. The matrix of `sysr` is ``A_{11} + A_{12} X``. The remaining state variables are approximated by ``x_2 ≈ X x_1`` (plus the static contribution of the input if `residual = true`). If `states` is not provided, it is selected by a QR decomposition with column pivoting of a basis of the slow invariant subspace, which yields a well-conditioned representation. If `states` is provided, its length must equal the number of slow poles, and an error is thrown if the slow invariant subspace cannot be represented as a function of `x[states]`.
+
+The two choices of `coordinates` yield reduced models with the same poles and, if `residual = true`, the same static gain, but in general different transfer functions.
+
+The modes are selected based on their natural frequency only, and their controllability and observability are not taken into account. The method is suitable for systems with separated time scales, for example, to remove fast dynamics that limit the step size of a simulation or the sample interval of a discrete-time controller. For reduction based on the input-output importance of the modes, see [`baltrunc`](@ref).
+
+# Example
+```julia
+G = ss(tf(1, [1, 1]) * tf(100^2, [1, 2*0.1*100, 100^2])) # Lightly damped resonance at 100 rad/s
+Gr, T = modal_reduction(G, 10) # Gr has a single pole at -1
+```
+
+See also [`slow_fast`](@ref), [`baltrunc`](@ref), [`stab_unstab`](@ref).
+"""
+function modal_reduction(sys::AbstractStateSpace, ωc::Real; residual::Bool = true, coordinates::Symbol = :modal, states = nothing)
+    S, n1 = _slow_first_schur(sys, ωc)
+    if coordinates === :modal
+        states === nothing || throw(ArgumentError("The keyword argument states requires coordinates = :original."))
+        Y = _blockdiag_sylvester(S, n1)
+        A1, A2, B1, B2, C1, C2, T = _blockdiag_realization(sys, S, n1, Y)
+        A12 = zeros(eltype(A1), size(A1, 1), size(A2, 1))
+    elseif coordinates === :original
+        A1, A12, A2, B1, B2, C1, C2, T = _graph_realization(sys, S, n1, states)
+    else
+        throw(ArgumentError("coordinates must be :modal or :original, got $(repr(coordinates))."))
+    end
+    D = sys.D
+    if residual && size(A2, 1) > 0
+        M = isdiscrete(sys) ? I - A2 : -A2
+        F = M \ B2
+        B1 = B1 + A12*F
+        D = D + C2*F
+    end
+    return ss(A1, B1, C1, D, timeevol(sys)), T
+end
+
+# Ordered Schur decomposition of sys.A with the poles of natural frequency less than ωc in the leading block
+function _slow_first_schur(sys::AbstractStateSpace, ωc::Real)
+    ωc > 0 || throw(ArgumentError("The cutoff frequency ωc must be positive, got ωc = $ωc."))
+    S = schur(sys.A)
+    wn = isdiscrete(sys) ? abs.(log.(complex.(S.values))) ./ sys.Ts : abs.(S.values)
+    select = wn .< ωc
+    ordschur!(S, select)
+    return S, count(select)
+end
+
+# Solution Y of T11*Y - Y*T22 = T12, such that [I Y; 0 I]*S.T*[I -Y; 0 I] is block diagonal
+function _blockdiag_sylvester(S, n1)
+    n = size(S.T, 1)
+    i1 = 1:n1; i2 = n1+1:n
+    (n1 == 0 || n1 == n) && return zeros(eltype(S.T), n1, n - n1)
+    return MatrixEquations.sylvc(S.T[i1, i1], -S.T[i2, i2], S.T[i1, i2])
+end
+
+function _blockdiag_realization(sys, S, n1, Y)
+    n = size(S.T, 1)
+    i1 = 1:n1; i2 = n1+1:n
+    Zt = Matrix(S.Z')
+    T = Zt[i1, :] + Y*Zt[i2, :]
+    Cz = sys.C*S.Z
+    C1 = Cz[:, i1]
+    return S.T[i1, i1], S.T[i2, i2], T*sys.B, Zt[i2, :]*sys.B, C1, Cz[:, i2] - C1*Y, T
+end
+
+# Realization in the coordinates x1 = x[states] and e = x2 - X*x1, where x2 = X*x1 is the slow invariant subspace
+function _graph_realization(sys, S, n1, states)
+    A, B, C, _ = ssdata(sys)
+    n = sys.nx
+    Z1 = S.Z[:, 1:n1]
+    if states === nothing
+        states = n1 == 0 ? Int[] : sort(qr(Matrix(Z1'), ColumnNorm()).p[1:n1])
+    else
+        states = collect(Int, states)
+        length(states) == n1 || throw(ArgumentError("The number of selected state variables ($(length(states))) must equal the number of poles with natural frequency less than ωc ($n1)."))
+        allunique(states) && all(in(1:n), states) || throw(ArgumentError("states must contain unique indices in 1:$n."))
+    end
+    others = setdiff(1:n, states)
+    U = Z1[states, :]
+    if n1 > 0
+        κ = cond(U, 1) # The 2-norm requires an SVD, which is not available for all number types
+        κ < 1/eps(real(eltype(U))) || error("The slow invariant subspace cannot be represented as a function of the state variables $states.")
+        κ < 1/sqrt(eps(real(eltype(U)))) || @warn "The representation of the slow invariant subspace as a function of the state variables $states is ill-conditioned (condition number $κ)."
+    end
+    X = n1 == 0 ? zeros(eltype(Z1), n, 0) : Z1[others, :] / U
+    A11 = A[states, states]; A12 = A[states, others]
+    B1 = B[states, :]; C2 = C[:, others]
+    T = Matrix{eltype(Z1)}(I, n, n)[states, :]
+    return A11 + A12*X, A12, A[others, others] - X*A12, B1, B[others, :] - X*B1, C[:, states] + C2*X, C2, T
 end
 
 """
