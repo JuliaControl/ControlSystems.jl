@@ -746,7 +746,7 @@ If `residual = true`, matched static gain is achieved through "residualization",
 ```
 where indices 1/2 correspond to the remaining/truncated states respectively.
 
-See also `gram`, `balreal`
+See also `gram`, `balreal`, and [`modal_reduction`](@ref) for reduction of systems with separated time scales, which retains the poles of `sys` with natural frequency below a cutoff frequency.
 
 Glad, Ljung, Reglerteori: Flervariabla och Olinjära metoder.
 
@@ -868,6 +868,8 @@ The modes are selected based on their natural frequency only, and their controll
 G = ss(tf(1, [1, 1]) * tf(100^2, [1, 2*0.1*100, 100^2])) # Lightly damped resonance at 100 rad/s
 Gr, T = modal_reduction(G, 10) # Gr has a single pole at -1
 ```
+
+See also [`slow_fast`](@ref), [`baltrunc`](@ref), [`stab_unstab`](@ref).
 """
 function modal_reduction(sys::AbstractStateSpace, ωc::Real; residual::Bool = true, coordinates::Symbol = :modal, states = nothing)
     S, n1 = _slow_first_schur(sys, ωc)
