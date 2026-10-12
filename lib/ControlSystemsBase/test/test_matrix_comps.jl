@@ -1,4 +1,5 @@
 using Test, LinearAlgebra
+using GenericSchur # Required for the Schur decomposition of BigFloat matrices in slow_fast and modal_reduction
 @testset "test_matrix_comps" begin
 A = [-0.21 0.2; 0.2 -0.21]
 B = 0.01*[1 0; 0 1]
@@ -222,6 +223,20 @@ stab, unstab = stab_unstab(sys)
     @test sort(poles(slow), by=real) ≈ [-3, -1 + 1im]
     @test poles(fast) ≈ [-50 + 2im]
     @test resp_err(slow + fast, sysc) < 1e-10
+
+    # BigFloat, the Schur decomposition requires GenericSchur
+    sysb = big(1.0)*sys
+    pb = sortp(poles(sysb))
+    slow, fast, sep = slow_fast(sysb, ωc)
+    @test eltype(slow.A) == eltype(fast.A) == BigFloat
+    @test sortp(poles(slow)) ≈ pb[1:2]
+    @test maximum(norm(freqresp(slow + fast, wi) - freqresp(sysb, wi)) for wi in w) < 1e-60
+    for coordinates in (:modal, :original)
+        sysr, T = modal_reduction(sysb, ωc; coordinates)
+        @test eltype(sysr.A) == eltype(T) == BigFloat
+        @test sortp(poles(sysr)) ≈ pb[1:2]
+        @test dcgain(sysr) ≈ dcgain(sysb)
+    end
 end
 
 

@@ -934,7 +934,7 @@ function _graph_realization(sys, S, n1, states)
     others = setdiff(1:n, states)
     U = Z1[states, :]
     if n1 > 0
-        κ = cond(U)
+        κ = cond(U, 1) # The 2-norm requires an SVD, which is not available for all number types
         κ < 1/eps(real(eltype(U))) || error("The slow invariant subspace cannot be represented as a function of the state variables $states.")
         κ < 1/sqrt(eps(real(eltype(U)))) || @warn "The representation of the slow invariant subspace as a function of the state variables $states is ill-conditioned (condition number $κ)."
     end
