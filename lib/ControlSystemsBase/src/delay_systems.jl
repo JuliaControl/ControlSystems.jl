@@ -69,13 +69,11 @@ end
 # We have to default to something, look at the sys.P.P and delays
 function _bounds_and_features(sys::DelayLtiSystem, plot::Val)
     ws, pz =  _bounds_and_features(sys.P.P, plot)
-    logtau = log10.(abs.(sys.Tau))
-    logtau = filter(x->x>4, logtau) # Ignore low frequency
-    if isempty(logtau)
-        return ws, pz
-    end
-    extreme = extrema(logtau)
-    return [min(ws[1], floor(extreme[1]-0.2)), max(ws[2], ceil(extreme[2]+0.2))], pz
+    τ = filter(>(0), sys.Tau)
+    isempty(τ) && return ws, pz
+    # The characteristic frequency of a delay τ is 1/τ, represented by a real feature at -1/τ
+    pz = [pz; -inv.(τ)]
+    return _frequency_bounds(sys.P.P, plot, pz), pz
 end
 
 # At ω = 0, every delay equals the identity, so the frequency response equals that of the delay-free system

@@ -264,6 +264,13 @@ end
 mag, phase, w = bode(DemoSystems.lag()*delay(1))
 @test w[1] <= 0.05
 @test w[end] >= 5
+# The characteristic frequency of a delay τ is 1/τ
+for τ in (1e-3, 1e3, 1e5)
+    w = ControlSystemsBase._default_freq_vector(DemoSystems.lag()*delay(τ), Val(:bode))
+    @test w[1] <= min(0.05, 0.05/τ)
+    @test w[end] >= max(5, 5/τ)
+    @test w[end] <= max(1e3, 1e3/τ)
+end
 
 
 end

@@ -332,7 +332,7 @@ systems and `G(e^{jωT})` for discrete systems.
 
 # Arguments
 - `sys::LTISystem`: The system to analyze
-- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency vector is computed from the poles and zeros of the system. It is logarithmically spaced, with additional frequencies close to lightly damped poles and zeros.
 - `unwrap::Bool`: If true (default), apply phase unwrapping to avoid discontinuities
 - `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 
@@ -427,7 +427,7 @@ systems and `G(e^{jωT})` for discrete systems.
 
 # Arguments
 - `sys::LTISystem`: The system to analyze
-- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency vector is computed from the poles and zeros of the system. It is logarithmically spaced, with additional frequencies close to lightly damped poles and zeros.
 - `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 
 # Returns
@@ -460,7 +460,7 @@ systems and `G(e^{jωT})` for discrete systems.
 
 # Arguments
 - `sys::LTISystem`: The system to analyze
-- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency range is used.
+- `w::AbstractVector`: Frequency vector (rad/s). If omitted, a default frequency vector is computed from the poles and zeros of the system. It is logarithmically spaced, with additional frequencies close to lightly damped poles and zeros.
 - `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 
 # Returns
@@ -494,6 +494,13 @@ sv, w = sigma(sys)
 end
 @autovec (1,) sigma(sys::LTISystem; balance=true) = sigma(sys, _default_freq_vector(sys, Val{:sigma}()); balance)
 
+"""
+    w = _default_freq_vector(systems, plot; adaptive=false)
+
+Default frequency vector for `bode`, `nyquist`, `sigma`, `margin` and the frequency-response plots.
+
+The frequency range is determined by the characteristic frequencies `|s|` of the poles and zeros, see `_bounds_and_features`. The range is sampled logarithmically. Additional frequencies are inserted close to each lightly damped pole or zero pair, see `_resonance_frequencies`, so the returned vector is sorted but not logarithmically equidistant in general.
+"""
 function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false)
     if adaptive
         min_pt_per_dec = 100
@@ -548,40 +555,87 @@ function _default_freq_vector(systems::Vector{<:LTISystem}, plot; adaptive=false
     if length(systems) == 1 && isdiscrete(systems[1])
         w[end] = π/systems[1].Ts # To account for numerical rounding problems from exp(log())
     end
-    w
+    # Relative spacing of the logarithmic grid
+    Δ = exp10(log10(w[end]/w[1])/(length(w) - 1)) - 1
+    wr = mapreduce(bf -> _resonance_frequencies(bf[2], Δ), vcat, bounds_features)
+    filter!(ω -> w[1] < ω < w[end], wr)
+    isempty(wr) ? w : unique!(sort!([w; wr]))
 end
 _default_freq_vector(sys::LTISystem, plot; kwargs...) = _default_freq_vector(
         [sys], plot; kwargs...)
 
-function _margin_nonintegrators(roots, location; scale=maximum(abs, roots, init=0.0))
-    # Remove the roots that are located at `location` up to rounding error, using the
-    # same classification as the integrator excess in the phase adjustment of `sisomargin`.
-    n, tol = count_eigval_multiplicity(roots, location; scale)
-    n == 0 ? roots : filter(r -> abs(r - location) > tol, roots)
+"""
+    wr = _resonance_frequencies(features, Δ; du = 1/8)
+
+Frequencies that resolve the response of lightly damped pole and zero pairs, in addition to a logarithmic grid with relative spacing `Δ`.
+
+`features` are poles and zeros in the s-plane. For a pair with natural frequency `ωn` and damping ratio `ζ`, the frequencies are `ωp(1 ± ζ sinh(u))`, where `ωp = ωn sqrt(1 - 2ζ²)` is the frequency of the extremum of the magnitude and `u = 0, du, 2du, ...`. Close to `ωp`, the spacing is `ζ ωp du`, which resolves the peak of width proportional to `ζ ωp`; far from `ωp`, the frequencies are spaced logarithmically with ratio approximately `exp(du)`. A frequency is included only as long as this spacing is smaller than the spacing `Δ ωp` of the logarithmic grid, so that no frequencies are added for well-damped pairs. The frequency `ωp` is omitted if `ζ` is zero up to rounding error, since the response is not finite at a pole on the imaginary axis.
+"""
+function _resonance_frequencies(features, Δ; du = 1/8)
+    wr = Float64[]
+    ζmin = sqrt(eps(Float64))
+    for s in features
+        imag(s) > 0 || continue
+        ωn = abs(s)
+        ζ = abs(real(s))/ωn
+        ζ*du < Δ || continue
+        ωp = ωn*sqrt(max(1 - 2ζ^2, 0))
+        ζ >= ζmin && push!(wr, ωp)
+        ζ = max(ζ, ζmin)
+        u = du
+        while ζ*cosh(u)*du < Δ
+            x = ζ*sinh(u)
+            push!(wr, ωp*(1 + x), ωp*(1 - x))
+            u += du
+        end
+    end
+    filter!(>(0), wr)
 end
 
+function _remove_origin_roots(roots, location; scale=maximum(abs, roots, init=0.0))
+    # Remove the roots that are located at `location` up to rounding error, using the
+    # classification of the integrator excess in `integrator_excess_with_tol`.
+    n, tol = count_eigval_multiplicity(roots, location; scale)
+    n == 0 && return roots
+    # The n computed roots of an n-fold root are spread over a radius proportional to ϵ^(1/n),
+    # whereas their mean is perturbed by an amount proportional to ϵ only. The radius of
+    # `count_eigval_multiplicity` approaches `scale` for large n, so roots of a high-order system
+    # that are distributed over several decades may be counted as an n-fold root. Such roots are
+    # retained, since their mean is not located at `location` up to rounding error.
+    cluster = filter(r -> abs(r - location) <= tol, roots)
+    meantol = iszero(scale) ? zero(tol) : sqrt(tol*scale*(tol/scale)^n) # Geometric mean of the radii for multiplicity n and 1
+    abs(sum(r - location for r in cluster)/n) <= meantol || return roots
+    filter(r -> abs(r - location) > tol, roots)
+end
+
+"""
+    bounds, features = _bounds_and_features(sys, plot::Val)
+
+Return the bounds `[w1, w2]` of the default frequency range as base-10 logarithms of frequencies in rad/s, together with the poles and zeros of `sys` that determine them.
+
+Poles and zeros located in the origin (at ``z = 1`` for discrete-time systems), classified as in `integrator_excess`, are excluded since they do not have a characteristic frequency. The poles and zeros of discrete-time systems are mapped to the s-plane by ``s = \\log(z)/T_s``, so `features` are given in the s-plane for all systems.
+"""
 function _bounds_and_features(sys::LTISystem, plot::Val)
-    # Get zeros and poles for each channel
-    if !isa(plot, Val{:sigma})
-        zs, ps, ks = zpkdata(sys)
-        # Compose vector of all zs, ps, positive conjugates only.
-        zpType = promote_type(eltype(eltype(zs)), eltype(eltype(ps)))
-        zp = vcat(zpType[], zs..., ps...) # Emty vector to avoid type unstable vcat()
-        zp = zp[imag(zp) .>= 0.0]
-    else
-        # For sigma plots, use the MIMO poles and zeros
-        zp = [tzeros(sys); poles(sys)]
-    end
     location = iscontinuous(sys) ? 0 : 1
-    if plot isa Val{:margin} && isrational(sys)
+    if !isa(plot, Val{:sigma})
+        # Get zeros and poles for each channel
+        zs, ps, ks = zpkdata(sys)
+        zpType = promote_type(eltype(eltype(zs)), eltype(eltype(ps)))
         zfeatures = map(zs, ps) do z, p
             # A zero in the origin does not provide a scale of its own, see `integrator_excess_with_tol`.
-            _margin_nonintegrators(z, location; scale=max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0)))
+            _remove_origin_roots(z, location; scale=max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0)))
         end
-        pfeatures = map(p -> _margin_nonintegrators(p, location), ps)
-        features = vcat(zpType[], zfeatures..., pfeatures...)
+        pfeatures = map(p -> _remove_origin_roots(p, location), ps)
+        features = vcat(zpType[], zfeatures..., pfeatures...) # Emty vector to avoid type unstable vcat()
     else
-        features = zp
+        # For sigma plots, use the MIMO poles and zeros
+        p, z = poles(sys), tzeros(sys)
+        features = [_remove_origin_roots(z, location; scale=max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0)));
+                    _remove_origin_roots(p, location)]
+    end
+    if isdiscrete(sys)
+        # A root in z = 0 has no finite equivalent in the s-plane
+        features = filter(isfinite, log.(complex.(features)) ./ sys.Ts)
     end
     w1, w2 = _frequency_bounds(sys, plot, features)
     if plot isa Val{:margin} && isrational(sys)
@@ -619,14 +673,15 @@ function _bounds_and_features(sys::LTISystem, plot::Val)
             end
         end
     end
-    return [w1, w2], zp
+    return [w1, w2], features
 end
 
-function _frequency_bounds(sys, plot, zp)
-    # Margin searches must also retain features at very low frequencies.
-    fzp = log10.(abs.(zp))
-    fzp = plot isa Val{:margin} ? filter(isfinite, fzp) : fzp[fzp .> -4]
-    fzp = sort!(fzp)
+function _frequency_bounds(sys, plot, features)
+    # The characteristic frequency of a pole or zero s is |s|. For discrete-time
+    # systems, features above the Nyquist frequency are treated as features at the Nyquist frequency.
+    fzp = log10.(abs.(features))
+    isdiscrete(sys) && (fzp = min.(fzp, log10(π/sys.Ts)))
+    fzp = sort!(filter(isfinite, fzp))
     # Determine the bounds on the frequency vector
     if !isempty(fzp)
         w1 = floor(fzp[1] - 1.2)
@@ -642,7 +697,8 @@ function _frequency_bounds(sys, plot, zp)
     end
     if isdiscrete(sys)
         w2 = log10(π/sys.Ts) # Draw up to Nyquist frequency for discrete systems
-        plot isa Val{:margin} && (w1 = min(w1, w2 - 1))
+        # Include at least two decades below the Nyquist frequency
+        w1 = isempty(fzp) ? w2 - 2 : min(w1, w2 - 2)
     end
     [w1, w2]
 end
