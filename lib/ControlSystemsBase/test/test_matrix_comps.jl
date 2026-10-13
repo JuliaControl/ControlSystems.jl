@@ -1,4 +1,5 @@
 using Test, LinearAlgebra
+using GenericSchur # Required for the Schur decomposition of BigFloat matrices in slow_fast and modal_reduction
 @testset "test_matrix_comps" begin
 A = [-0.21 0.2; 0.2 -0.21]
 B = 0.01*[1 0; 0 1]
@@ -125,6 +126,118 @@ stab, unstab = stab_unstab(sys)
 @test all(abs.(poles(stab)) .< 1)
 @test all(abs.(poles(unstab)) .>= 1)
 @test linfnorm(stab + unstab - sys)[1] < 1e-5
+
+
+@testset "slow_fast and modal_reduction" begin
+    # Two slow real poles, a lightly damped resonance and a fast real pole
+    Λ = cat(-1.0, -2.0, [-0.1 50; -50 -0.1], -100.0; dims=(1,2))
+    Tr = [1.0 0.3 -0.2 0.1 0.5; 0.2 1.0 0.4 -0.3 0.1; -0.1 0.5 1.0 0.2 -0.4; 0.3 -0.2 0.1 1.0 0.2; 0.4 0.1 -0.3 0.5 1.0]
+    sys = ss(Tr*Λ/Tr, Tr*[1.0 0.5; -0.3 1.0; 0.8 0.2; 0.1 -0.6; 0.4 0.9], [1.0 0.2 -0.5 0.3 0.1; 0.0 1.0 0.4 -0.2 0.6]/Tr, [0.1 0.0; 0.0 0.2])
+    w = exp10.(range(-2, 3, length=200))
+    resp_err(a, b) = maximum(opnorm(freqresp(a, wi) - freqresp(b, wi)) for wi in w)
+    sortp(p) = sort(p, by = x -> (abs(x), imag(x)))
+    ωc = 10
+
+    slow, fast, sep = slow_fast(sys, ωc)
+    @test sortp(poles(slow)) ≈ [-1, -2]
+    @test sortp(poles(fast)) ≈ [-0.1 - 50im, -0.1 + 50im, -100]
+    @test iszero(slow.D)
+    @test fast.D == sys.D
+    @test 0 < sep <= 1
+    @test resp_err(slow + fast, sys) < 1e-10
+
+    # Modal coordinates
+    sysr, T = modal_reduction(sys, ωc)
+    @test sortp(poles(sysr)) ≈ [-1, -2]
+    @test dcgain(sysr) ≈ dcgain(sys)
+    @test resp_err(sysr, slow + ss(dcgain(fast))) < 1e-10
+    @test T*sys.A ≈ sysr.A*T
+    @test T*sys.B ≈ sysr.B
+
+    sysr, T = modal_reduction(sys, ωc; residual=false)
+    @test resp_err(sysr, slow + ss(sys.D)) < 1e-10
+    @test T*sys.A ≈ sysr.A*T
+
+    # Original coordinates
+    sysr, T = modal_reduction(sys, ωc; coordinates=:original)
+    @test sortp(poles(sysr)) ≈ [-1, -2]
+    @test dcgain(sysr) ≈ dcgain(sys)
+    states = [findfirst(!iszero, T[i, :]) for i in axes(T, 1)]
+    @test T == I(sys.nx)[states, :]
+    # The slow eigenvectors of A, restricted to x[states], are eigenvectors of sysr.A
+    E = eigen(sys.A)
+    for i in findall(abs.(E.values) .< ωc)
+        v = E.vectors[states, i]
+        @test sysr.A*v ≈ E.values[i]*v
+    end
+
+    sysr2, T2 = modal_reduction(sys, ωc; coordinates=:original, states=reverse(states))
+    @test sortp(poles(sysr2)) ≈ [-1, -2]
+    @test T2 == I(sys.nx)[reverse(states), :]
+    @test resp_err(sysr2, sysr) < 1e-10
+
+    sysr, T = modal_reduction(sys, ωc; coordinates=:original, residual=false)
+    @test sortp(poles(sysr)) ≈ [-1, -2]
+    @test sysr.B == sys.B[states, :]
+    @test sysr.D == sys.D
+
+    # The slow invariant subspace of a diagonal system is not a function of the fast state variable
+    @test_throws ErrorException modal_reduction(ss(diagm([-1.0, -100.0]), ones(2), ones(1, 2), 0), ωc; coordinates=:original, states=[2])
+    @test_throws ArgumentError modal_reduction(sys, ωc; coordinates=:original, states=[1])
+    @test_throws ArgumentError modal_reduction(sys, ωc; coordinates=:original, states=[1, 1])
+    @test_throws ArgumentError modal_reduction(sys, ωc; states=[1, 2])
+    @test_throws ArgumentError modal_reduction(sys, ωc; coordinates=:balanced)
+    @test_throws ArgumentError slow_fast(sys, 0)
+
+    # All poles slow or all poles fast
+    slow, fast, sep = slow_fast(sys, 1e6)
+    @test slow.nx == 5 && fast.nx == 0 && sep == 1
+    @test resp_err(slow + fast, sys) < 1e-10
+    slow, fast, sep = slow_fast(sys, 0.1)
+    @test slow.nx == 0 && fast.nx == 5
+    for coordinates in (:modal, :original)
+        sysr, T = modal_reduction(sys, 1e6; coordinates)
+        @test resp_err(sysr, sys) < 1e-10
+        sysr, T = modal_reduction(sys, 0.1; coordinates)
+        @test sysr.nx == 0 && size(T) == (0, 5)
+        @test dcgain(sysr) ≈ dcgain(sys)
+    end
+
+    # Discrete time, the natural frequency of a pole z is |log(z)|/Ts
+    Ts = 0.005
+    sysd = c2d(sys, Ts)
+    slow, fast, sep = slow_fast(sysd, ωc)
+    @test sortp(poles(slow)) ≈ exp.(Ts*[-2, -1])
+    @test fast.nx == 3
+    @test maximum(opnorm(freqresp(slow + fast, wi) - freqresp(sysd, wi)) for wi in w[w .< π/Ts]) < 1e-8
+    for coordinates in (:modal, :original)
+        sysr, T = modal_reduction(sysd, ωc; coordinates)
+        @test isdiscrete(sysr)
+        @test sortp(poles(sysr)) ≈ exp.(Ts*[-2, -1])
+        @test dcgain(sysr) ≈ dcgain(sysd)
+    end
+
+    # Complex-coefficient system
+    sysc = ss(diagm(ComplexF64[-1 + 1im, -50 + 2im, -3]), ones(3), ones(1, 3), 0)
+    slow, fast, sep = slow_fast(sysc, ωc)
+    @test sort(poles(slow), by=real) ≈ [-3, -1 + 1im]
+    @test poles(fast) ≈ [-50 + 2im]
+    @test resp_err(slow + fast, sysc) < 1e-10
+
+    # BigFloat, the Schur decomposition requires GenericSchur
+    sysb = big(1.0)*sys
+    pb = sortp(poles(sysb))
+    slow, fast, sep = slow_fast(sysb, ωc)
+    @test eltype(slow.A) == eltype(fast.A) == BigFloat
+    @test sortp(poles(slow)) ≈ pb[1:2]
+    @test maximum(norm(freqresp(slow + fast, wi) - freqresp(sysb, wi)) for wi in w) < 1e-60
+    for coordinates in (:modal, :original)
+        sysr, T = modal_reduction(sysb, ωc; coordinates)
+        @test eltype(sysr.A) == eltype(T) == BigFloat
+        @test sortp(poles(sysr)) ≈ pb[1:2]
+        @test dcgain(sysr) ≈ dcgain(sysb)
+    end
+end
 
 
 sys = ss([1 0.1; 0 1], ones(2), [1. 0], 0)
