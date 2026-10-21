@@ -44,15 +44,20 @@ end
 
 
 """
-    n, tol = count_eigval_multiplicity(p, location, e = nothing; scale = maximum(abs, p))
+    n, tol = count_eigval_multiplicity(p, location, e = nothing; scale = maximum(abs, p), coefftol = nothing)
 
-Return the multiplicity `n` of the eigenvalue `location` among the computed eigenvalues `p`, together with the tolerance `tol` used to obtain it. The multiplicity is the first value of `i` for which exactly `i` elements of `p` lie within the radius `r(i)` around `location`. If no such `i` exists, `n = 0` and `tol = r(1)`.
+Return the multiplicity `n` of the eigenvalue `location` among the computed eigenvalues `p`, together with the tolerance `tol` used to obtain it. A candidate multiplicity `i` requires exactly `i` elements of `p` within the radius `r(i)` around `location`. Return the first candidate that also passes the coefficient check below. If none passes, `n = 0` and `tol = r(1)`.
 
-A backward-stable eigenvalue algorithm perturbs an eigenvalue of multiplicity `i` by an amount of order `ϵ^(1/i)` relative to the scale of the problem. The default radius is therefore `r(i) = (100ϵ)^(1/i) * scale`, which coincides with the tolerances for simple and double imaginary-axis eigenvalues in the Bruinsma–Steinbuch algorithm for the ``H_∞`` norm (`100ϵ` and `10√ϵ`). The radius is proportional to `scale`, so that the result does not depend on the time unit of the system. If `e` is provided, the radius `r(i) = e^(1/i)` is used instead.
+A backward-stable eigenvalue algorithm perturbs an eigenvalue of multiplicity `i` by an amount of order `ϵ^(1/i)` relative to the scale of the problem. The default radius is therefore `r(i) = (100ϵ)^(1/i) * scale`, which coincides with the tolerances for simple and double imaginary-axis eigenvalues in the Bruinsma–Steinbuch algorithm for the ``H_∞`` norm (`100ϵ` and `10√ϵ`). The radius is proportional to `scale`, so that the result does not depend on the time unit of the system.
+
+To avoid mistaking unrelated slow modes for a repeated eigenvalue as the radius grows, form the monic polynomial with roots `(p[j] - location)/scale` for each candidate cluster. All coefficients other than the leading one must have magnitude at most `i*coefftol`, where `coefftol` defaults to `100ϵ`. This checks that the normalized cluster polynomial is close to `z^i`, and is invariant under a change of time unit for continuous-time integrators. This remains a heuristic based on computed eigenvalues, rather than a matrix backward-error bound.
+
+If `e` is provided, retain the explicit-radius rule `r(i) = e^(1/i)` without the coefficient check.
 """
-function count_eigval_multiplicity(p, location, e=nothing; scale=maximum(abs, p, init=0.0)) # The init is to handle poor type inference with exotic number types
+function count_eigval_multiplicity(p, location, e=nothing; scale=maximum(abs, p, init=0.0), coefftol=nothing) # The init is to handle poor type inference with exotic number types
     T = eltype(p)
     ϵ = T <: Number && isconcretetype(T) ? eps(real(float(T))) : eps(float(real(typeof(scale))))
+    η = coefftol === nothing ? 100ϵ : coefftol
     radius(i) = e === nothing ? (100ϵ)^(1/i)*scale : e^(1/i)
     n = length(p)
     n == 0 && return (0, zero(radius(1)))
@@ -60,6 +65,19 @@ function count_eigval_multiplicity(p, location, e=nothing; scale=maximum(abs, p,
         # if we count i poles within the circle assuming i integrators, we return i
         tol = radius(i)
         if count(p->abs(p-location) <= tol, p) == i
+            if e === nothing && !iszero(scale)
+                q = [(pj-location)/scale for pj in p if abs(pj-location) <= tol]
+                # Ascending coefficients of prod(z - qj), built in place. Check all
+                # coefficients: a zero centroid alone also accepts symmetric slow modes.
+                coefficients = fill(zero(first(q)), i+1)
+                coefficients[end] = one(first(q))
+                for (j, qj) in enumerate(q)
+                    for k in i-j+1:i
+                        coefficients[k] -= qj*coefficients[k+1]
+                    end
+                end
+                maximum(abs, @view(coefficients[1:i])) <= i*η || continue
+            end
             return (i, tol)
         end
     end
@@ -69,7 +87,7 @@ end
 """
     count_integrators(P)
 
-Count the number of poles in the origin by finding the first value of `n` for which the number of poles within a circle of radius `(100ϵ)^(1/n) * maximum(abs, p)` around the origin (1 in discrete time) equals `n`, see `ControlSystemsBase.count_eigval_multiplicity`.
+Count the number of poles in the origin (1 in discrete time), allowing for numerical splitting of repeated poles. Candidate clusters within a radius `(100ϵ)^(1/n) * maximum(abs, p)` must also have a normalized polynomial close to `z^n`, see `ControlSystemsBase.count_eigval_multiplicity`.
 
 See also [`integrator_excess`](@ref).
 """
