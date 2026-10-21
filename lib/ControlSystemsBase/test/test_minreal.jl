@@ -108,6 +108,46 @@
         @test dcgain(minreal(G)) ≈ dcgain(G)
     end
 
+    @testset "Cancellation in complex-coefficient models" begin
+        for scale in (1.0, 1e6), k in (1.0+0im, 1.0+im),
+            tol in (nothing, 1e-8scale), reverse_order in (false, true)
+            r = complex(-scale)
+            c = r + 1e-10scale*im
+            q = 2scale*im
+            roots = reverse_order ? [q, c] : [c, q]
+            G = zpk([r], roots, k)
+            H = zpk(roots, [r], k)
+            for (model, expected) in ((G, (ComplexF64[], [q])),
+                                      (H, ([q], ComplexF64[])))
+                original = deepcopy(zpkdata(model))
+                reduced = @inferred minreal(model, tol)
+                @test roots_of(reduced) == expected
+                @test zpkdata(reduced)[3][] == k
+                @test evalfr(reduced, 0) ≈ evalfr(model, 0) rtol=1e-8
+                @test zpkdata(model) == original
+            end
+        end
+
+        # Only real-coefficient models require the remaining conjugate to be real.
+        r = -2.0
+        c = r + 1e-10im
+        for tol in (nothing, sqrt(eps()))
+            for k in (1.0, 1.0+0im)
+                remaining = k isa Real ? complex(r) : conj(c)
+                G = zpk([r], [c, conj(c)], k)
+                H = zpk([c, conj(c)], [r], k)
+                @test roots_of(minreal(G, tol)) == (ComplexF64[], [remaining])
+                @test roots_of(minreal(H, tol)) == ([remaining], ComplexF64[])
+            end
+        end
+
+        G = zpk(ComplexF64[-1e6], ComplexF64[-1e6+0.001im, 2e6im], 1.0+0im)
+        expected = (ComplexF64[], ComplexF64[2e6im])
+        @test roots_of(minreal(G)) == expected
+        @test roots_of(G + 0) == expected
+        @test evalfr(minreal(tf(G)), 0) ≈ evalfr(G, 0) rtol=1e-8
+    end
+
     @testset "Independent polynomial common factors" begin
         rng = MersenneTwister(1081)
         for T in (Float32, Float64), scale in T.((1e-12, 1, 1e12)), _ in 1:20

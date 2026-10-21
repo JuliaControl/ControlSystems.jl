@@ -101,10 +101,11 @@ function minreal(sys::SisoZpk{T,TR}, tol::Union{Real,Nothing}=nothing) where {T,
             end
 
             if distance < threshold
-                if imag(p) == 0 && imag(newZ[zidx]) != 0 && zidx < length(newZ)
+                # Only real-coefficient models enforce adjacent conjugate pairs.
+                if T <: Real && imag(p) == 0 && imag(newZ[zidx]) != 0 && zidx < length(newZ)
                     newZ[zidx+1] = real(newZ[zidx+1])
                 end
-                if imag(newZ[zidx]) == 0 && imag(p) != 0
+                if T <: Real && imag(newZ[zidx]) == 0 && imag(p) != 0
                     pidx += 1
                     pidx > length(sys.p) && (deleteat!(newZ, zidx); break)
                     p = real(sys.p[pidx])
