@@ -207,11 +207,11 @@ C = tf('s')
 @test norm(P*C - C*P) < 1e-10
 # The difference below is analytically zero but contains near pole-zero cancellations on
 # the stability boundary. An explicit minreal tolerance is required to reliably remove the
-# nearly non-minimal modes; the default tolerance occasionally leaves a weakly coupled
-# boundary pole for which hinfnorm correctly returns Inf. The modes truncated by minreal
-# may contribute a gain on the order of the truncation tolerance, hence the test threshold
-# is above the minreal tolerance.
-mp = minreal(minreal(tf(P)*C) - P*C, 1e-9)
+# nearly non-minimal modes. Use it for both reductions: conversion from state space
+# can perturb a pole at zero, which a relative root criterion does not match with
+# an exact zero. The modes truncated by minreal may contribute a gain on the order
+# of the truncation tolerance, hence the test threshold is above the minreal tolerance.
+mp = minreal(minreal(tf(P)*C, 1e-9) - P*C, 1e-9)
 @test hinfnorm(mp)[1] < 1e-8
 @inferred P*C
 
@@ -223,7 +223,7 @@ mp = minreal(minreal(tf(P)*C) - P*C, 1e-9)
 P = c2d(P, 0.01, :fwdeuler) # to get poles exactly at 1
 C = tf('z', 0.01)-1
 @test norm(minreal(P*C - C*P)) < 1e-10
-mp = minreal(minreal(tf(P)*C) - P*C, 1e-9) # see comment on the continuous-time case above
+mp = minreal(minreal(tf(P)*C, 1e-9) - P*C, 1e-9) # see comment on the continuous-time case above
 @test hinfnorm(mp)[1] < 1e-8
 @inferred P*C
 

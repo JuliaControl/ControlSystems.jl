@@ -62,13 +62,31 @@ isproper(f::SisoZpk) = (length(f.z) <= length(f.p))
 # Will not be able to create complex polynomials without type instability
 
 
-function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
+# Normalize the distance rather than multiplying a tolerance by the root scale,
+# which can underflow for very small roots. No global scale should make distinct
+# slow roots eligible for cancellation.
+function _relative_root_distance(p, z)
+    p, z = float(p), float(z)
+    p == z && return zero(real(p))
+    scale = max(abs(p), abs(z))
+    if isinf(scale)
+        # Finite complex components can have an overflowing absolute value.
+        scale = max(abs(real(p)), abs(imag(p)), abs(real(z)), abs(imag(z)))
+        p, z = p/scale, z/scale
+        scale = max(abs(p), abs(z))
+    end
+    return abs(p-z)/scale
+end
+
+function minreal(sys::SisoZpk{T,TR}, tol::Union{Real,Nothing}=nothing) where {T, TR}
     if length(sys.p) == 0
         return sys
     end
 
     newZ = copy(sys.z)
     newP = Vector{TR}()
+    relative = tol === nothing
+    threshold = relative ? sqrt(eps(real(float(one(TR))))) : tol
 
     pidx = 1
     p = sys.p[pidx]
@@ -76,9 +94,13 @@ function minreal(sys::SisoZpk{T,TR}, eps::Real) where {T, TR}
         if isempty(newZ)
             push!(newP, p)
         else
-            distance, zidx = findmin(abs.(p .- newZ))
+            distance, zidx = if relative
+                findmin(_relative_root_distance.(p, newZ))
+            else
+                findmin(abs.(p .- newZ))
+            end
 
-            if distance < eps
+            if distance < threshold
                 if imag(p) == 0 && imag(newZ[zidx]) != 0 && zidx < length(newZ)
                     newZ[zidx+1] = real(newZ[zidx+1])
                 end
@@ -241,10 +263,7 @@ function +(f1::SisoZpk{T1,TR1}, f2::SisoZpk{T2,TR2}) where {T1<:Number,T2<:Numbe
         p = TRnew[]
     end
 
-    # FIXME:
-    # Threshold for pole-zero cancellation should depend on the roots of the system
-    # Note the difference between continuous and discrete-time systems...
-    minreal(SisoZpk(z::Vector{TRnew},p::Vector{TRnew},k), sqrt(eps())) # type assert required or inference
+    minreal(SisoZpk(z::Vector{TRnew},p::Vector{TRnew},k)) # type assert required for inference
 end
 
 

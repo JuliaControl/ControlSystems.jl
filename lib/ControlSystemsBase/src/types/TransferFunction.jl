@@ -75,15 +75,31 @@ numpoly(G::TransferFunction) = map(numpoly, G.matrix)
 denpoly(G::TransferFunction) = map(denpoly, G.matrix)
 
 """
-    minreal(tf::TransferFunction, eps=sqrt(eps()))
+    minreal(G::TransferFunction)
+    minreal(G::TransferFunction, tol::Real)
 
-Create a minimal representation of each transfer function in `tf` by cancelling poles and zeros
-will promote system to an appropriate numeric type
+Reduce each transfer function in `G` by cancelling nearby poles and zeros, promoting
+to an appropriate numeric type if needed.
+
+By default, roots are matched by their relative distance
+`abs(p-z)/max(abs(p), abs(z)) < sqrt(eps(T))`, where `T` is the real floating-point
+type of the roots. Exactly equal roots (including two roots at zero) are matched.
+There is no absolute tolerance floor: a root at zero only matches another root at
+zero. This criterion is invariant under a common scaling of the roots, up to
+floating-point rounding.
+
+An explicit positional `tol` retains the absolute-distance criterion
+`abs(p-z) < tol`.
+
+Root proximity is a heuristic, not a bound on the response error. In particular,
+nearby roots close to the imaginary axis (or the unit circle in discrete time)
+can have substantially different responses. Ill-conditioned or repeated roots
+computed from polynomial coefficients may require an explicit tolerance.
 """
-function minreal(G::TransferFunction, eps::Real=sqrt(eps()))
-    matrix = similar(G.matrix, typeof(minreal(one(first(G.matrix)), eps)))
+function minreal(G::TransferFunction, tol::Union{Real,Nothing}=nothing)
+    matrix = similar(G.matrix, typeof(minreal(one(first(G.matrix)), tol)))
     for i = eachindex(G.matrix)
-        matrix[i] = minreal(G.matrix[i], eps)
+        matrix[i] = minreal(G.matrix[i], tol)
     end
     return TransferFunction(matrix, G.timeevol)
 end
