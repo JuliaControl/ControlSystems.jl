@@ -50,7 +50,7 @@ Return the multiplicity `n` of the eigenvalue `location` among the computed eige
 
 A backward-stable eigenvalue algorithm perturbs an eigenvalue of multiplicity `i` by an amount of order `ϵ^(1/i)` relative to the scale of the problem. The default radius is therefore `r(i) = (100ϵ)^(1/i) * scale`, which coincides with the tolerances for simple and double imaginary-axis eigenvalues in the Bruinsma–Steinbuch algorithm for the ``H_∞`` norm (`100ϵ` and `10√ϵ`). The radius is proportional to `scale`, so that the result does not depend on the time unit of the system.
 
-To avoid mistaking unrelated slow modes for a repeated eigenvalue as the radius grows, form the monic polynomial with roots `(p[j] - location)/scale` for each candidate cluster. All coefficients other than the leading one must have magnitude at most `i*coefftol`, where `coefftol` defaults to `100ϵ`. This checks that the normalized cluster polynomial is close to `z^i`, and is invariant under a change of time unit for continuous-time integrators. This remains a heuristic based on computed eigenvalues, rather than a matrix backward-error bound.
+To avoid classifying unrelated slow modes as a repeated eigenvalue as the radius increases, form the monic polynomial with roots `(p[j] - location)/scale` for each candidate cluster. All coefficients other than the leading one must have magnitude at most `i*coefftol`, where `coefftol` defaults to `100ϵ`. This checks that the normalized cluster polynomial is close to `z^i`, and is invariant under a change of time unit for continuous-time integrators. This remains a heuristic based on computed eigenvalues, rather than a matrix backward-error bound.
 
 If `e` is provided, retain the explicit-radius rule `r(i) = e^(1/i)` without the coefficient check.
 """

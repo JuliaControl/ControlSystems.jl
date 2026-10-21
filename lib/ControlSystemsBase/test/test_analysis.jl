@@ -655,8 +655,8 @@ end
 
 @testset "Integrator cluster coefficients" begin
     count_mult = ControlSystemsBase.count_eigval_multiplicity
-    # An 11-state system with slow modes and a pole at -20 was reported as
-    # having ten integrators by the radius-only rule (r(10) ≈ 0.862).
+    # The radius-only rule classified the slow modes as integrators when the
+    # candidate radius included every pole except the one with largest magnitude.
     A = [
         -0.02314734339987039 -0.23470977613890898 0.40744939133965374 -0.614172004152354 -0.7336985077201985 -0.7188547646417938 -0.6116827006955479 0.28701228553159197 28.932835460401698 -0.8577016118934753 -0.002900248526486404
         0.04747182843197798 0.028473586849358613 -0.7336202770573863 0.8169604093939422 1.0737298575562346 0.22485825328995757 0.0779364215281102 -0.010519719302367558 0.8399890329652873 -0.026616152383339912 -8.029617097986969e-5
