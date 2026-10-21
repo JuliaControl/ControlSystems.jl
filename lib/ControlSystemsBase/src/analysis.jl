@@ -66,17 +66,40 @@ function count_eigval_multiplicity(p, location, e=nothing; scale=maximum(abs, p,
     (0, radius(1))
 end
 
+_integrator_poles_with_tol(P::LTISystem, p, location) = count_eigval_multiplicity(p, location)
+function _integrator_poles_with_tol(P::AbstractStateSpace, p, location)
+    n, tol = count_eigval_multiplicity(p, location)
+    n == 0 && return (n, tol)
+    # An expanding eigenvalue cluster can contain ordinary slow modes rather
+    # than a perturbed Jordan block. A full-rank A - location*I rules out an
+    # integrator, even when the pole-only heuristic finds such a cluster.
+    A = balance_statespace(P; verbose=false)[1].A
+    F = qr(Matrix(float.(A - location*I)), ColumnNorm())
+    # Use pivoted QR rather than SVD to also support BigFloat. Spell out the
+    # full-rank test since rank(::QRPivoted) requires Julia 1.12.
+    rank_tol = size(A, 1) * eps(real(float(eltype(F.factors)))) * abs(F.factors[1, 1])
+    if all(i -> abs(F.factors[i, i]) > rank_tol, axes(A, 1))
+        scale = maximum(abs, p, init=0.0)
+        return (0, 100eps(real(float(eltype(p)))) * scale)
+    end
+    n, tol
+end
+
 """
     count_integrators(P)
 
 Count the number of poles in the origin by finding the first value of `n` for which the number of poles within a circle of radius `(100ϵ)^(1/n) * maximum(abs, p)` around the origin (1 in discrete time) equals `n`, see `ControlSystemsBase.count_eigval_multiplicity`.
+
+For state-space models, a rank test of the balanced state matrix (minus the
+identity in discrete time) rejects clusters when the matrix is nonsingular.
+This avoids mistaking distinct slow modes for repeated integrators.
 
 See also [`integrator_excess`](@ref).
 """
 function count_integrators(P::LTISystem)
     p = poles(P)
     location = iscontinuous(P) ? 0 : 1
-    count_eigval_multiplicity(p, location)[1]
+    _integrator_poles_with_tol(P, p, location)[1]
 end
 
 """
@@ -94,7 +117,7 @@ function integrator_excess_with_tol(P::LTISystem)
     p = poles(P)
     z = tzeros(P)
     location = iscontinuous(P) ? 0 : 1
-    np, tolp = count_eigval_multiplicity(p, location)
+    np, tolp = _integrator_poles_with_tol(P, p, location)
     # The zeros are computed from the system pencil, whose scale is at least that of the poles. A single zero in the origin does not provide a scale of its own.
     nz, tolz = count_eigval_multiplicity(z, location; scale=max(maximum(abs, p, init=0.0), maximum(abs, z, init=0.0)))
     np - nz, p, z, tolp, tolz

@@ -504,6 +504,41 @@ nintbig = ControlSystemsBase.count_integrators(big(1.0)*pade(OL, 2))
 @test ControlSystemsBase.count_integrators(pade(OL, 4)) == nintbig
 @test ControlSystemsBase.count_integrators(pade(OL, 10)) == nintbig
 
+# A fast pole and several ordinary slow modes can form a spurious large
+# cluster in the pole-only multiplicity heuristic (DyadControlSystems #821).
+@testset "Slow modes are not integrators" begin
+    blocks = ([0.0035;;], [-20.0;;], [-0.0714;;],
+        [-0.002 0.0027; -0.0027 -0.002],
+        [-0.0172 0.339; -0.339 -0.0172],
+        [-0.113 0.656; -0.656 -0.113],
+        [-0.172 0.691; -0.691 -0.172])
+    A = cat(blocks...; dims=(1, 2))
+    Q = Matrix(qr([sin(i+2j) + (i==j) for i in 1:11, j in 1:11]).Q)
+    for c in (1e-4, 1.0, 1e4), rotate in (false, true)
+        Ac = c * (rotate ? Q'*A*Q : A)
+        P = ss(Ac, Matrix(1.0I, 11, 11), Matrix(1.0I, 11, 11), zeros(11, 11))
+        @test ControlSystemsBase.count_integrators(P) == 0
+        @test ControlSystemsBase.integrator_excess(P) == 0
+        @test ControlSystemsBase.isunstable(P)
+    end
+    Ad = Q'*(I + 1e-3*A)*Q
+    Pd = ss(Ad, Matrix(1.0I, 11, 11), Matrix(1.0I, 11, 11), zeros(11, 11), 1.0)
+    @test ControlSystemsBase.count_integrators(Pd) == 0
+    @test ControlSystemsBase.integrator_excess(Pd) == 0
+    @test ControlSystemsBase.isunstable(Pd)
+
+    # The matrix test must retain repeated, numerically split integrators.
+    for T in (Float32, Float64, BigFloat), n in (1, 2, 3)
+        A = diagm([T[-1, -2, -3]; zeros(T, n)])
+        for i in 4:size(A, 1)-1
+            A[i, i+1] = 1
+        end
+        Qn = Matrix(qr(T[sin(i+2j) + (i==j) for i in 1:3+n, j in 1:3+n]).Q)
+        G = ss(Qn'*A*Qn, ones(T, 3+n, 1), ones(T, 1, 3+n), zeros(T, 1, 1))
+        @test ControlSystemsBase.count_integrators(G) == n
+    end
+end
+
 # The integrator count must not depend on the time unit of the system
 let
     # The orthogonal similarity transformation prevents the eigenvalues in the origin from being computed exactly
