@@ -101,6 +101,9 @@
     A = ComplexF64[floatmax()*(1+im) floatmax(); floatmax()*(1+im) floatmax()]
     @test relative_gain_array(A) ≈ fill(0.25+0im,2,2)
     @test relative_gain_array([1 2; 3 5]) ≈ [-5 6; 6 -5]
+    A = [1//1 2//1; 3//1 5//1]
+    @test relative_gain_array(A) == [-5 6; 6 -5]
+    @test eltype(relative_gain_array(A)) == eltype(A)
     @test relative_gain_array(sparse([1.0 2 0; 0 1 1])) ≈ relative_gain_array([1.0 2 0; 0 1 1])
     @test relative_gain_array(BigFloat[1 2; 3 5]) ≈ BigFloat[-5 6; 6 -5]
     @test_throws MethodError relative_gain_array(BigFloat[1 2 3; 2 4 6])

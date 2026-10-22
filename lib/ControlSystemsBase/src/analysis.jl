@@ -515,13 +515,18 @@ function relative_gain_array(A::AbstractMatrix; tol = eps(real(float(eltype(A)))
     m, n = size(A)
     isempty(A) && return zeros(T, m, n)
     if m == n
-        F = lu!(Matrix{T}(A); check=false)
+        # Preserve exact rational inverses; integers still promote for division.
+        LT = typeof(zero(eltype(A)) / one(eltype(A)))
+        F = lu!(Matrix{LT}(A); check=false)
         if issuccess(F)
             AI = inv(F)
+            if !(eltype(AI) <: LinearAlgebra.BlasFloat)
+                return A .* transpose(AI)
+            end
             # This is only a fast-path screen, not a rank decision. In
             # particular, bad conditioning due to units needs equilibration.
             κ = opnorm(A, Inf) * opnorm(AI, Inf)
-            if κ * sqrt(eps(RT)) < 1 || !(eltype(AI) <: LinearAlgebra.BlasFloat)
+            if κ * sqrt(eps(RT)) < 1
                 return A .* transpose(AI)
             end
         end
