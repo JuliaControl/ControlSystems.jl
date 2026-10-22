@@ -173,8 +173,10 @@ end
     ]'
     # p = [-0.07732, -0.01423, -0.8953, -2.841, -5.982]
     p = [-0.2, -0.5, -1, -1+im, -1-im]
-    L = place(A, B, p; verbose=true) # with verbose, should prind cond(X) ≈ 39.4 which it does 
-    @test allin(eigvals(A - B*L), p; tol=0.025) # Tolerance from paper
+    # cond(X) can increase before the iteration settles. Stopping on the first
+    # increase used to leave a pole error of about 0.022 in this example.
+    L = place(A, B, p; verbose=true)
+    @test allin(eigvals(A - B*L), p; tol=1e-10)
     # norm(L)
 
     ## Rank deficient multi-input B
@@ -199,6 +201,85 @@ end
     F = place(P, [-2, -2], verbose=true)
     @test allin(eigvals(P.A - P.B*F), [-2, -2])
 
+end
+
+@testset "KNVD numerical rank" begin
+    for T in (Float32, Float64), scale in T.((1e-6, 1, 1e6))
+        A = T[0 1; 0 0]
+        B = scale .* T[1 1 1; 2 2 2]
+        p = T[-2, -1]
+        K = place(A, B, p)
+        # B = [1, 2]*[1 1 1]. The effective single-input gain is [1 1].
+        @test scale*K ≈ fill(one(T)/3, 3, 2) rtol=100eps(T)
+        @test A - B*K ≈ T[-1 0; -2 -2] rtol=100eps(T)
+        @test sort(eigvals(A - B*K)) ≈ p rtol=100eps(T)
+
+        # Promoting A must not change the precision used to determine rank(B).
+        K = place(Float64.(A), B, Float64.(p))
+        @test sort(eigvals(A - B*K)) ≈ p rtol=100eps(T)
+
+        # A square, singular B must not take the full-row-rank shortcut.
+        B = scale .* ones(T, 2, 2)
+        K = place(A, B, p)
+        @test sort(eigvals(A - B*K)) ≈ p rtol=100eps(T)
+    end
+
+    for T in (Float32, Float64)
+        A = T[0 1; 0 0]
+        @test_throws ArgumentError place(A, zeros(T, 2, 2), T[-1, -2])
+        @test_throws ArgumentError place(A, zeros(T, 2, 0), T[-1, -2])
+
+        # A genuinely small, independent input direction must be retained.
+        B = Matrix(Diagonal(T[1, 1000eps(T)]))
+        K = place(A, B, T[-1, -2])
+        @test sort(eigvals(A - B*K)) ≈ T[-2, -1] rtol=100eps(T)
+
+        B = T[1 1 1; 2 2 2]
+        p = Complex{T}[-1-im, -1+im]
+        K = place(A, B, p)
+        @test sort(eigvals(A - B*K); by=imag) ≈ p rtol=100eps(T)
+
+        # Repeated poles in the existing rank-one reduction use Ackermann's
+        # formula. Check the closed-loop matrix without root-splitting error.
+        K = place(A, B, T[-1, -1])
+        @test A - B*K ≈ T[-0.5 0.25; -1 -1.5] rtol=100eps(T)
+
+        A = zeros(T, 3, 3)
+        B = T[1 0; 0 1; 0 0]
+        @test_throws ErrorException place(A, B, T[-1, -2, -3])
+    end
+
+    # Rank two with redundant input columns exercises the iterative reduction.
+    for T in (Float32, Float64), scale in T.((1e-6, 1, 1e6))
+        A = T[0 1 0 0; 0 0 1 0; 0 0 0 1; 0 0 0 0]
+        B = scale .* T[1 0 1; 0 1 1; 1 0 1; 0 1 1]
+        p = T[-1, -2, -3, -4]
+        K = place(A, B, p)
+        @test sort(eigvals(A - B*K)) ≈ sort(p) rtol=100eps(T)
+        @test all(isfinite, K)
+
+        # Lowering the original safety factor treats these nearly dependent
+        # columns as independent in Float64 and yields huge, inaccurate gains.
+        A = T[0 1; 0 0]
+        B = scale .* T[1 1; 2 2+32eps(T)]
+        K = place(A, B, T[-1, -2])
+        @test sort(eigvals(A - B*K)) ≈ T[-2, -1] rtol=100eps(T)
+        @test norm(scale*K) < 2
+    end
+end
+
+@testset "KNVD random initialization with real poles" begin
+    for T in (Float32, Float64), seed in 1:3
+        A = T[2 0 2 2; 3 0 1 -3; 0 3 0 3; -3 3 1 -1]
+        B = T[-2 3; -3 -2; 1 3; 3 2]
+        p = T[-4, -3, -2, -1]
+        # Random initialization uses complex eigenvectors even for real poles.
+        # Determinant stagnation alone does not justify projecting the gain to real.
+        Random.seed!(seed)
+        K = place(A, B, p; init=:rand)
+        @test isreal(K)
+        @test sort(eigvals(A - B*K)) ≈ p rtol=100eps(T)
+    end
 end
 
 @testset "LQR" begin
