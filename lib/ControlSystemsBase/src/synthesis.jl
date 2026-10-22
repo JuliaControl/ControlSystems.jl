@@ -402,7 +402,15 @@ end
 Robust pole placement using the algorithm from
 > "Robust Pole Assignment in Linear State Feedback", Kautsky, Nichols, Van Dooren
 
-This implementation uses "method 0" for the X-step and the QR factorization for all factorizations.
+This implementation uses "method 0" for the X-step and QR factorizations to
+construct the input and eigenvector subspaces.
+The iteration monitors the relative change in `abs(det(X))` using logarithms
+and a tolerance of `sqrt(eps(real(T)))`, where `T` is the floating-point working
+type. For real systems with complex poles, the candidate closed-loop matrix must
+also be real to working precision before stopping. The limit is 200 sweeps.
+These are numerical stopping criteria, not a guarantee of pole accuracy.
+The iterative method seeks a nonsingular eigenvector matrix; repeated poles and
+poorly controllable systems can cause it to fail or reach the iteration limit.
 
 This function will be called automatically when [`place`](@ref) is called with a MIMO system.
 
@@ -417,7 +425,10 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
     length(λ) == size(A, 1) == n || error("Must specify as many poles as the state dimension")
     Λ = diagm(λ)
     R = svdvals(B)
-    m = count(>(100*eps()*R[1]), R) # Rank of B
+    # Use the precision of the SVD, which may differ from the promoted type T.
+    # Retain the safety factor for nearly dependent columns, and account for size.
+    m = isempty(R) ? 0 : count(>(max(100, size(B)...)*eps(eltype(R))*R[1]), R)
+    m > 0 || throw(ArgumentError("B must have nonzero numerical rank"))
     QRB = qr(B, ColumnNorm())
     U0, U1 = QRB.Q[:, 1:m], QRB.Q[:, m+1:end] # TODO: check dimension
     Z = (QRB.R*QRB.P')[:, 1:m] 
@@ -475,7 +486,9 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
         error("Unknown init method")
     end
 
-    cond_old = float(T)(Inf)
+    logdet_old = real(T)(-Inf)
+    rtol = sqrt(eps(real(T)))
+    check_real = isreal(A) && isreal(B) && !isreal(λ)
     if method == 0
         for i = 1:200
             verbose && @info "Iteration $i"
@@ -487,12 +500,20 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
                 any(!isfinite, xj) && error("Not finite")
                 X[:, j] = xj
             end
-            c = cond(X)
-            verbose && @info "cond(X) = $c"
-            if cond_old - c < 1e-14
-                break
+            # Method 0 increases abs(det(X)), not necessarily decreases cond(X).
+            # Logarithms avoid underflow; their difference measures relative change.
+            logdet = LinearAlgebra.logabsdet(X)[1]
+            verbose && @info "cond(X) = $(cond(X))"
+            stop = isfinite(logdet) && abs(logdet - logdet_old) <= rtol
+            if stop && check_real
+                # A small determinant change need not imply that discarding the
+                # imaginary part of the feedback preserves the assigned poles.
+                M = X*Λ/X
+                scale = norm(M)
+                stop = isfinite(scale) && norm(imag(M)) <= n*eps(real(T))*scale
             end
-            cond_old = c
+            stop && break
+            logdet_old = logdet
             i == 200 && @warn "Max iterations reached"
         end
     # elseif method == 1
