@@ -268,6 +268,20 @@ end
     end
 end
 
+@testset "KNVD random initialization with real poles" begin
+    for T in (Float32, Float64), seed in 1:3
+        A = T[2 0 2 2; 3 0 1 -3; 0 3 0 3; -3 3 1 -1]
+        B = T[-2 3; -3 -2; 1 3; 3 2]
+        p = T[-4, -3, -2, -1]
+        # Random initialization uses complex eigenvectors even for real poles.
+        # Determinant stagnation alone does not justify projecting the gain to real.
+        Random.seed!(seed)
+        K = place(A, B, p; init=:rand)
+        @test isreal(K)
+        @test sort(eigvals(A - B*K)) ≈ p rtol=100eps(T)
+    end
+end
+
 @testset "LQR" begin
     Ts = 0.1
     A = [1 Ts; 0 1]

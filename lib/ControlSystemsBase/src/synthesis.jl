@@ -406,8 +406,9 @@ This implementation uses "method 0" for the X-step and QR factorizations to
 construct the input and eigenvector subspaces.
 The iteration monitors the relative change in `abs(det(X))` using logarithms
 and a tolerance of `sqrt(eps(real(T)))`, where `T` is the floating-point working
-type. For real systems with complex poles, the candidate closed-loop matrix must
-also be real to working precision before stopping. The limit is 200 sweeps.
+type. For real systems, the candidate closed-loop matrix must also be real to
+working precision before stopping, including when random initialization is used
+with real target poles. The limit is 200 sweeps.
 These are numerical stopping criteria, not a guarantee of pole accuracy.
 The iterative method seeks a nonsingular eigenvector matrix; repeated poles and
 poorly controllable systems can cause it to fail or reach the iteration limit.
@@ -488,7 +489,7 @@ function place_knvd(A::AbstractMatrix, B, λ; verbose=false, init=:s, method = 0
 
     logdet_old = real(T)(-Inf)
     rtol = sqrt(eps(real(T)))
-    check_real = isreal(A) && isreal(B) && !isreal(λ)
+    check_real = isreal(A) && isreal(B)
     if method == 0
         for i = 1:200
             verbose && @info "Iteration $i"
