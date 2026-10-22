@@ -27,6 +27,7 @@ my_tests = [
             "test_staticsystems",
             "test_transferfunction",          
             "test_zpk",
+            "test_tf_minreal",
             "test_promotion",
             "test_connections",
             "test_discrete",
