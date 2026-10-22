@@ -523,13 +523,14 @@ end
 
 returns frequencies for gain margins, gain margins (magnitude), frequencies for phase margins, phase margins (degrees)
 
-- If `!allMargins`, return only the smallest margin
+- Phase margins are signed angles in `[-180°, 180°)`, independent of the unwrapped Bode phase.
+- If `!allMargins`, return the smallest gain margin and the phase margin closest to zero
 - If `full` return also `fullPhase`
 - If `w` is omitted, a gain-aware default frequency range is computed for each
   input-output channel separately, so that `margin(sys)` and `margin(sys[i, j])`
   agree for channel `(i, j)`. An explicit frequency vector is used for all
   channels and limits margin detection to that range.
-- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
+- `adjust_phase_start`: If true, adjust the unwrapped phase returned with `full=true` and used for plotting so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess. This does not affect the margins.
 - `balance`: Call [`balance_statespace`](@ref) on each SISO channel before computing the frequency response, see [`freqresp`](@ref).
 
 See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
@@ -576,7 +577,7 @@ _sminreal(sys::LTISystem) = sys
 """
     ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true, balance=true))
 
-Return frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. If `allMargins=false`, only the smallest margins are returned.
+Return gain-margin frequencies, gain margins, phase-margin frequencies, and signed phase margins in `[-180°, 180°)`. If `allMargins=false`, return the smallest gain margin and the phase margin closest to zero.
 
 `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 """
@@ -612,18 +613,15 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
     for i = eachindex(wpm)
-        # We have to access the actual phase value from the `phase` array to get unwrapped phase. This value is not fully accurate since it is computed at a grid point, so we compute the more accurate phase at the interpolated frequency. This accurate value is not unwrapped, so we add an integer multiple of 360 to get the closest unwrapped phase.
-        φ_nom = rad2deg(angle(freqresp(sys, wpm[i]; balance=false)[1]))
-        φ_rounded = phase[clamp(round(Int, fi[i]), 1, length(phase))] # fi is interpolated, so we round to the closest integer
-        φ_int = φ_nom - 360 * round( (φ_nom - φ_rounded) / 360 )
-
-        # Now compute phase margin relative to -180:
-        pm[i] = 180 + φ_int
+        # Measure the signed angle to the nearest negative-real-axis crossing.
+        φ = rad2deg(angle(freqresp(sys, wpm[i]; balance=false)[1]))
+        pm[i] = mod(φ, 360) - 180
     end
     if !allMargins #Only output the smallest margins
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
-        pm, idx = findmin([pm;Inf])
+        _, idx = findmin(abs.([pm;Inf]))
+        pm = [pm;Inf][idx]
         fi = [fi;NaN][idx]
         wpm = [wpm;NaN][idx]
         if full
@@ -639,18 +637,13 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
             fullPhase = interpolate(fi, phase)
         end
     end
-    if adjust_phase_start && isrational(sys)
-        intexcess, p, z, tol = integrator_excess_with_tol(sys)
-        n_unstable_poles =
-            iscontinuous(sys) ? count(real(pi) > tol for pi in p) :
-            count(abs(pi) > 1 + tol for pi in p)
+    if full && adjust_phase_start && isrational(sys)
+        intexcess = integrator_excess(sys)
         first_positive_freq_ind = findfirst(>(0), w)
         if intexcess != 0 && (first_positive_freq_ind !== nothing)
             # Snap phase so that it starts at -90*intexcess
             nineties = round(Int, phase[first_positive_freq_ind] / 90)
             adjust = ((90*(-intexcess-nineties)) ÷ 360) * 360
-            pm_unstable_adjust = n_unstable_poles*360 # count the number of unstable poles, and remove 360 for each. Be careful with poles that are counted as integrators
-            pm = pm .+ adjust .- pm_unstable_adjust
             phase .+= adjust
             fullPhase = fullPhase .+ adjust
         end
@@ -716,7 +709,7 @@ end
 Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
 Only supports SISO systems.
 
-The delay margin is computed as the phase margin in radians divided by the cross-over frequency in rad/s. The delay margin is the maximum time delay that can be added to the system before it becomes unstable.
+For a nominally stable closed loop, the delay margin is the maximum additional time delay before loss of stability. At each gain crossover, the nonnegative phase lag to the negative real axis is divided by the absolute crossover frequency. The smallest of these delays is returned. Closed-loop stability without delay is assumed, not checked.
 
 `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 """
@@ -725,13 +718,14 @@ function delaymargin(G::LTISystem; balance=true)
     issiso(G) || error("delaymargin only supports SISO systems")
     ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G; allMargins=true, balance)
     isempty(ϕₘa[1]) && return Inf
-    ϕₘ, i = findmin(sign.(ωϕₘa[1]) .* ϕₘa[1]) # flip sign of negative frequency margins 
-    ϕₘ   *= π/180
-    ωϕₘ   = ωϕₘa[1][i]
-    if numeric_type(G) <: Real
-        ωϕₘ = abs(ωϕₘ)
+    dₘ = oftype(float(real(zero(numeric_type(G)))), Inf)
+    for (ω, ϕ) in zip(ωϕₘa[1], ϕₘa[1])
+        ω, ϕ = real(ω), real(ϕ)
+        # A delay rotates positive and negative frequencies in opposite directions.
+        lag = mod(ω < 0 ? -ϕ : ϕ, 360)
+        candidate = iszero(ω) ? (iszero(lag) ? zero(dₘ) : oftype(dₘ, Inf)) : deg2rad(lag)/abs(ω)
+        dₘ = min(dₘ, candidate)
     end
-    dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end
