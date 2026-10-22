@@ -544,7 +544,13 @@ function relative_gain_array(A::AbstractMatrix; tol = eps(real(float(eltype(A)))
                     for i in 1:n
                         pivotmin = min(pivotmin, abs(F.factors[i,i]))
                     end
-                    pivottol = n * eps(RT) * maximum(abs, F.factors)
+                    # Use the LU backward-error scale, not just its largest
+                    # entry: cancellation in complex elimination can leave a
+                    # spurious pivot above n*eps*maximum(abs,U).
+                    γ = n * eps(RT)
+                    γ = γ < 1 ? γ / (1 - γ) : typemax(RT)
+                    pivottol = γ * opnorm(LinearAlgebra.UnitLowerTriangular(F.factors), Inf) *
+                                   opnorm(LinearAlgebra.UpperTriangular(F.factors), Inf)
                     if pivotmin > pivottol || opnorm(B, Inf) * opnorm(BI, Inf) * sqrt(eps(RT)) < 1
                         R = B .* transpose(BI)
                         all(isfinite, R) || error("relative_gain_array inverse exceeds the working range")

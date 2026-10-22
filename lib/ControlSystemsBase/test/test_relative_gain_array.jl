@@ -111,6 +111,25 @@
     @test relative_gain_array(d .* A) ≈ ref
     @test relative_gain_array(A .* d') ≈ ref
     @test relative_gain_array(d .* A .* reverse(d)') ≈ ref
+    # Exact complex rank four: a cancellation-generated LU pivot can exceed
+    # n*eps*maximum(abs,U), while remaining within the factor error scale.
+    A = ComplexF32[-6-7im 1+11im 7-7im 13-2im -10-3im;
+                   9-11im 3-19im -12+15im -3+4im -28+9im;
+                   -14-9im -3-17im 7+22im 4+10im 6+6im;
+                   24+15im 12-8im -18-7im -9-2im 11-8im;
+                   15-2im -6+11im -2-10im -3im 5+6im]
+    ref = setprecision(256) do
+        C = Complex{BigFloat}.(A)
+        L = log.(abs.(C))
+        S = exp.(-sum(L;dims=2)/5) .* C .*
+            exp.(-sum(L;dims=1)/5 .+ sum(L)/25)
+        X = S[:,1:4]
+        Y = inv(X[1:4,:]) * S[1:4,:]
+        SI = Y' * inv(Y*Y') * inv(X'*X) * X'
+        S .* transpose(SI)
+    end
+    @test relative_gain_array(A) ≈ ref rtol=100eps(Float32)
+    @test relative_gain_array(ComplexF32[im,1+im,-1,2im,3] .* A) ≈ ref rtol=100eps(Float32)
     @test relative_gain_array(fill(nextfloat(0.0),2,3)) ≈ fill(1/6,2,3)
     @test_throws ErrorException relative_gain_array([1e300 1e300 1e-300; 1e300 1e300 1e-300; 1e-300 1e-300 1e300])
     A = ComplexF64[floatmax()*(1+im) floatmax(); floatmax()*(1+im) floatmax()]
