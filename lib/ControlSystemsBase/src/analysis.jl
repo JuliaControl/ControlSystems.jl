@@ -492,8 +492,12 @@ iterations without convergence. Inputs must be finite.
 If the normalized entries cannot be represented in the working type, an error
 is thrown instead of silently dropping nonzero entries or returning nonfinite values.
 
-Well-conditioned square matrices use an LU inverse. Otherwise, for BLAS
-floating-point types, numerical rank is determined on the scaled matrix using
+Well-conditioned square matrices use an LU inverse. For BLAS floating-point
+types, binary diagonal scaling based on a maximum-weight matching of element
+exponents is also tried before discarding directions: geometric normalization
+can itself worsen conditioning. Resolvable LU pivots on the balanced matrix
+retain independent directions even when its inverse is sensitive. Otherwise,
+numerical rank is determined on the geometrically scaled matrix using
 the same relative cutoff as `pinv`: `min(size(A)...)*eps(T)`, where `T` is the
 real working type. A large condition number caused only by channel units does
 not imply rank deficiency. Directions below this cutoff are discarded; close
@@ -530,19 +534,96 @@ function relative_gain_array(A::AbstractMatrix; tol = eps(real(float(eltype(A)))
                 return A .* transpose(AI)
             end
         end
+        if T <: LinearAlgebra.BlasFloat
+            B = _rga_binary_balance(A)
+            if B !== nothing
+                F = lu!(copy(B); check=false)
+                if issuccess(F)
+                    BI = inv(F)
+                    pivotmin = typemax(RT)
+                    for i in 1:n
+                        pivotmin = min(pivotmin, abs(F.factors[i,i]))
+                    end
+                    pivottol = n * eps(RT) * maximum(abs, F.factors)
+                    if pivotmin > pivottol || opnorm(B, Inf) * opnorm(BI, Inf) * sqrt(eps(RT)) < 1
+                        R = B .* transpose(BI)
+                        all(isfinite, R) || error("relative_gain_array inverse exceeds the working range")
+                        return R
+                    end
+                end
+            end
+        end
     end
     S, B = _rga_scale(A, tol, maxiter)
     F = LinearAlgebra.svd(S)
+    all(isfinite, F.S) || error("relative_gain_array singular values exceed the working range")
     cutoff = min(m, n) * eps(real(eltype(F.S))) * maximum(F.S)
     if m == n && all(>(cutoff), F.S)
         # Retain resolvable small directions. Binary scaling preserves the
         # supplied entries exactly, avoiding extra rounding before inversion.
-        return B .* transpose(inv(B))
+        R = B .* transpose(inv(B))
+        all(isfinite, R) || error("relative_gain_array inverse exceeds the working range")
+        return R
     end
     si = map(s -> s > cutoff ? inv(s) : zero(s), F.S)
     # For S = Dl*A*Dr, Aᵁ = Dr*pinv(S)*Dl. The diagonal factors
     # cancel in the Hadamard product, so no inverse scales are needed.
     S .* transpose(F.V * (si .* F.U'))
+end
+
+function _rga_binary_balance(A)
+    T = float(eltype(A))
+    m, n = size(A)
+    # A maximum-weight matching of binary exponents supplies a diagonal
+    # scaling with matched maximum components in [1,2) and all other
+    # components below 2.
+    # This is only an inverse certificate, not the definition of the UC inverse.
+    E = fill(typemin(Int), m, n)
+    lo, hi = typemax(Int), typemin(Int)
+    for k in eachindex(A, E)
+        a = T(A[k])
+        iszero(a) && continue
+        E[k] = exponent(max(abs(real(a)), abs(imag(a))))
+        lo = min(lo, E[k])
+        hi = max(hi, E[k])
+    end
+    hi == typemin(Int) && return nothing
+    penalty = (hi - lo + 1) * n
+    C = map(e -> e == typemin(Int) ? penalty : hi - e, E)
+    p, _ = Hungarian.hungarian(C)
+    any(i -> p[i] == 0 || E[i,p[i]] == typemin(Int), 1:n) && return nothing
+    u = zeros(Int, n)
+    # Difference constraints for the matching dual, solved by bounded
+    # Bellman-Ford relaxation. Maximum weight excludes negative cycles.
+    for _ in 1:n-1
+        changed = false
+        for k in 1:n, i in 1:n
+            j = p[k]
+            E[i,j] == typemin(Int) && continue
+            bound = u[k] + E[k,j] - E[i,j]
+            if u[i] > bound
+                u[i] = bound
+                changed = true
+            end
+        end
+        changed || break
+    end
+    v = zeros(Int, n)
+    for i in 1:n
+        v[p[i]] = -E[i,p[i]] - u[i]
+    end
+    B = zeros(T, m, n)
+    for j in 1:n, i in 1:m
+        a = T(A[i,j])
+        iszero(a) && continue
+        e = u[i] + v[j]
+        re = ldexp(real(a), e)
+        im = ldexp(imag(a), e)
+        B[i,j] = T <: Real ? re : complex(re, im)
+        # An inconclusive certificate must not discard input support.
+        iszero(B[i,j]) && return nothing
+    end
+    B
 end
 
 function _rga_scale(A, tol, maxiter)

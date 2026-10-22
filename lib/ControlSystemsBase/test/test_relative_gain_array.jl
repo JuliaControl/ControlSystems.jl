@@ -32,6 +32,11 @@
         @test relative_gain_array(zeros(T,2,3)) == zeros(T,2,3)
         @test relative_gain_array(zeros(T,0,3)) == zeros(T,0,3)
         @test relative_gain_array(zeros(T,3,0)) == zeros(T,3,0)
+        # A large inverse norm does not remove the independent diagonal of
+        # a triangular matrix. Its RGA is exactly the identity.
+        ntri = T === Float32 ? 32 : 64
+        Atri = Matrix{T}(I,ntri,ntri) - triu(ones(T,ntri,ntri),1)
+        @test relative_gain_array(Atri) ≈ Matrix{T}(I,ntri,ntri)
         @test relative_gain_array(T[1 2 0 0; 2 4 0 0; 0 0 1 3]) ≈
               T[0.25 0.25 0 0; 0.25 0.25 0 0; 0 0 0.5 0.5] rtol=τ
 
@@ -96,6 +101,16 @@
     A = [1e300 1e-300; 1e300 2e-300]
     @test relative_gain_array(A) ≈ [2 -1; -1 2]
     @test relative_gain_array(Matrix(Diagonal([1e300,1e-300]))) ≈ Matrix(1.0I,2,2)
+    # Geometric normalization may be ill-conditioned even when A is not.
+    # This input remains reliably invertible after channel-unit changes.
+    A = [1.0 1e-100 0.1; 1e-100 1 0.1; 0.1 0.1 1]
+    B = BigFloat.(A)
+    ref = B .* transpose(inv(B))
+    d = [1e100,1e-100,1.0]
+    @test relative_gain_array(A) ≈ ref
+    @test relative_gain_array(d .* A) ≈ ref
+    @test relative_gain_array(A .* d') ≈ ref
+    @test relative_gain_array(d .* A .* reverse(d)') ≈ ref
     @test relative_gain_array(fill(nextfloat(0.0),2,3)) ≈ fill(1/6,2,3)
     @test_throws ErrorException relative_gain_array([1e300 1e300 1e-300; 1e300 1e300 1e-300; 1e-300 1e-300 1e300])
     A = ComplexF64[floatmax()*(1+im) floatmax(); floatmax()*(1+im) floatmax()]
