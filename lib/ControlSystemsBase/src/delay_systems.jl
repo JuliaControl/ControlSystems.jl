@@ -20,6 +20,34 @@ function freqresp!(R::Array{T,3}, sys::DelayLtiSystem, ω::AbstractVector{W}; ba
     return R
 end
 
+# A delay τ adds the phase -ωτ, so on a sparse frequency grid the phase may change by more than 180° between
+# neighbouring frequencies, and unwrapping on the grid itself then loses multiples of 360°. The phase is therefore
+# unwrapped on a finer grid, on which the delays change the phase by at most 90° between neighbouring frequencies,
+# and read off at the frequencies in `w`. If this would need more than `maxextra` additional frequencies, the
+# phase is unwrapped on `w` itself.
+function _unwrapped_phase(sys::DelayLtiSystem, w, resp; balance=true, maxextra=100_000)
+    τ = sum(abs, sys.Tau; init=0.0)
+    n = length(w)
+    (τ == 0 || n < 2) && return unwrap!(angle.(resp), 3)
+    nextra = [max(0, ceil(Int, min(abs(w[i+1] - w[i]) * τ / (π/2), maxextra + 1.0)) - 1) for i in 1:n-1]
+    (all(iszero, nextra) || sum(nextra) > maxextra) && return unwrap!(angle.(resp), 3)
+    wf = Vector{float(eltype(w))}(undef, n + sum(nextra))
+    inds = Vector{Int}(undef, n)
+    k = 1
+    for i in 1:n
+        wf[k] = w[i]
+        inds[i] = k
+        k += 1
+        i == n && break
+        for j in 1:nextra[i]
+            wf[k] = w[i] + j * (w[i+1] - w[i]) / (nextra[i] + 1)
+            k += 1
+        end
+    end
+    phase = unwrap!(angle.(freqresp(sys, wf; balance)), 3)
+    return phase[:, :, inds]
+end
+
 function evalfr(sys::DelayLtiSystem, s)
     (ny, nu) = size(sys)
 
