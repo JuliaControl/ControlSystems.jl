@@ -247,7 +247,7 @@ for which balancing improves the numerical conditioning without changing the res
 a no-op for system representations that have no state-space realization to balance, such as
 transfer functions.
 """
-_balance(sys, balance::Bool) = balance ? balance_statespace(sys)[1] : sys
+Base.@inline _balance(sys, balance::Bool) = balance ? balance_statespace(sys)[1] : sys
 
 """
 `T = balance_transform{R}(A::AbstractArray, B::AbstractArray, C::AbstractArray, perm::Bool=false)`

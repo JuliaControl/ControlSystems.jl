@@ -759,7 +759,7 @@ Given a transfer function describing the plant `P` and a transfer function descr
 
 If `minimal=true`, [`minreal`](@ref) will be applied to all transfer functions.
 """
-function gangoffour(P::LTISystem, C::LTISystem; minimal=true)
+Base.@inline function gangoffour(P::LTISystem, C::LTISystem; minimal=true)
     minfun = minimal ? robust_minreal : identity
     S = feedback(I(noutputs(P)), P*C)    |> minfun
     PS = feedback(P, C)     |> minfun

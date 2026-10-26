@@ -350,7 +350,7 @@ The manual section [From block diagrams to code](https://juliacontrol.github.io/
 
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
-function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
+Base.@inline Base.@constprop :aggressive function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
     Wperm=:, Zperm=:, pos_feedback::Bool=false)
 
@@ -371,10 +371,10 @@ function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
     Z2 isa Number && (Z2 = [Z2])
 
     if (U1 isa Colon ? size(sys1, 2) : length(U1)) != (Y2 isa Colon ? size(sys2, 1) : length(Y2))
-        error("Lengths of U1 ($U1) and Y2 ($Y2) must be equal")
+        error("Lengths of U1 and Y2 must be equal")
     end
     if (U2 isa Colon ? size(sys2, 2) : length(U2)) != (Y1 isa Colon ? size(sys1, 1) : length(Y1))
-        error("Lengths of U2 ($U2) and Y1 ($Y1) must be equal")
+        error("Lengths of U2 and Y1 must be equal")
     end
 
     α = pos_feedback ? 1 : -1 # The sign of feedback

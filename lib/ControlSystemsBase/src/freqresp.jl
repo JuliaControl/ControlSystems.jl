@@ -31,7 +31,7 @@ end
 
 BodemagWorkspace(sys::LTISystem, ω::AbstractVector) = BodemagWorkspace(sys, length(ω))
 
-function freqresp(sys::LTISystem, w::Real; balance=true)
+Base.@inline function freqresp(sys::LTISystem, w::Real; balance=true)
     sys = _balance(sys, balance)
     # Create imaginary freq vector s
     if iscontinuous(sys)
