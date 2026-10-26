@@ -446,7 +446,8 @@ end
     relative_gain_array(G, w::Number; balance=true)
 
 Calculate the relative gain array of `G` at frequencies `w`. 
-G(iω) .* pinv(tranpose(G(iω)))
+For a nonsingular square response matrix `A = G(iω)`, this is
+`A .* transpose(inv(A))`.
 
 The RGA can be used to find input-output pairings for MIMO control using individually tuned loops. Pair the inputs and outputs such that the RGA(ωc) at the crossover frequency becomes as close to diagonal as possible. Avoid pairings such that RGA(0) contains negative diagonal elements. 
 
@@ -463,7 +464,7 @@ The RGA can be used to find input-output pairings for MIMO control using individ
     between the transfer function elements. Therefore, diagonal input uncertainty
     (which is always present) is usually of more concern for plants with large RGA elements.
 
-The relative gain array is computed using the The unit-consistent (UC) generalized inverse
+For singular or rectangular matrices, the relative gain array uses the unit-consistent (UC) generalized inverse.
 Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
 Jeffrey Uhlmann
 https://arxiv.org/pdf/1805.10312.pdf
@@ -475,47 +476,236 @@ end
 relative_gain_array(G, w::Number; balance=true) = relative_gain_array(freqresp(G, w; balance))
 
 """
-    relative_gain_array(A::AbstractMatrix; tol = 1.0e-15)
+    relative_gain_array(A::AbstractMatrix; tol = eps(real(float(eltype(A)))), maxiter = 10000)
+
+Compute `A .* transpose(inv(A))` for a numerically nonsingular square matrix,
+and the unit-consistent (UC) generalization for singular or rectangular matrices.
+The UC inverse applies a Moore–Penrose inverse after diagonal scaling so that
+the geometric mean of the nonzero magnitudes in every nonzero row and column
+is one. Applying `pinv` directly to `A` does not preserve input/output scaling
+invariance.
+
+`tol` bounds the logarithmic row/column scaling corrections; it does not set
+the numerical rank tolerance. The scaling iteration also allows for rounding
+at the precision of the working type, and throws an error after `maxiter`
+iterations without convergence. Inputs must be finite.
+If the normalized entries cannot be represented in the working type, an error
+is thrown instead of silently dropping nonzero entries or returning nonfinite values.
+
+Well-conditioned square matrices use an LU inverse. For BLAS floating-point
+types, binary diagonal scaling based on a maximum-weight matching of element
+exponents is also tried before discarding directions: geometric normalization
+can itself worsen conditioning. Resolvable LU pivots on the balanced matrix
+retain independent directions even when its inverse is sensitive. Otherwise,
+numerical rank is determined on the geometrically scaled matrix using
+the same relative cutoff as `pinv`: `min(size(A)...)*eps(T)`, where `T` is the
+real working type. A large condition number caused only by channel units does
+not imply rank deficiency. Directions below this cutoff are discarded; close
+to the cutoff, neither rank nor scaling invariance can be guaranteed in finite
+precision. Use higher-precision data when small independent directions matter.
+Square matrices of other element types retain the LU inverse when it exists;
+their singular/rectangular cases require an appropriate `svd` implementation.
 
 Reference: "On the Relative Gain Array (RGA) with Singular and Rectangular Matrices"
 Jeffrey Uhlmann
 https://arxiv.org/pdf/1805.10312.pdf
 """
-function relative_gain_array(A::AbstractMatrix; tol = 1e-15)
+function relative_gain_array(A::AbstractMatrix; tol = eps(real(float(eltype(A)))), maxiter::Integer = 10000)
+    isfinite(tol) && tol > 0 || throw(ArgumentError("tol must be finite and positive"))
+    maxiter > 0 || throw(ArgumentError("maxiter must be positive"))
+    all(isfinite, A) || throw(ArgumentError("relative_gain_array requires finite entries"))
+    T = float(eltype(A))
+    RT = real(T)
     m, n = size(A)
-    if m == n && LinearAlgebra.det(A) != 0
-        return A .* inv(transpose(A))
+    isempty(A) && return zeros(T, m, n)
+    if m == n
+        # Preserve exact rational inverses; integers still promote for division.
+        LT = typeof(zero(eltype(A)) / one(eltype(A)))
+        F = lu!(Matrix{LT}(A); check=false)
+        if issuccess(F)
+            AI = inv(F)
+            if !(eltype(AI) <: LinearAlgebra.BlasFloat)
+                return A .* transpose(AI)
+            end
+            # This is only a fast-path screen, not a rank decision. In
+            # particular, bad conditioning due to units needs equilibration.
+            κ = opnorm(A, Inf) * opnorm(AI, Inf)
+            if κ * sqrt(eps(RT)) < 1
+                return A .* transpose(AI)
+            end
+        end
+        if T <: LinearAlgebra.BlasFloat
+            B = _rga_binary_balance(A)
+            if B !== nothing
+                F = lu!(copy(B); check=false)
+                if issuccess(F)
+                    BI = inv(F)
+                    pivotmin = typemax(RT)
+                    for i in 1:n
+                        pivotmin = min(pivotmin, abs(F.factors[i,i]))
+                    end
+                    # Use the LU backward-error scale, not just its largest
+                    # entry: cancellation in complex elimination can leave a
+                    # spurious pivot above n*eps*maximum(abs,U).
+                    γ = n * eps(RT)
+                    γ = γ < 1 ? γ / (1 - γ) : typemax(RT)
+                    pivottol = γ * opnorm(LinearAlgebra.UnitLowerTriangular(F.factors), Inf) *
+                                   opnorm(LinearAlgebra.UpperTriangular(F.factors), Inf)
+                    if pivotmin > pivottol || opnorm(B, Inf) * opnorm(BI, Inf) * sqrt(eps(RT)) < 1
+                        R = B .* transpose(BI)
+                        all(isfinite, R) || error("relative_gain_array inverse exceeds the working range")
+                        return R
+                    end
+                end
+            end
+        end
     end
-    L = zeros(m, n)
-    M = ones(m, n)
-    S = sign.(A)
-    AA = abs.(A)
-    idx = findall(vec(AA) .> 0.0)
-    L[idx] = log.(AA[idx])
-    idx = setdiff(1 : length(AA), idx)
-    L[idx] .= 0
-    M[idx] .= 0
-    r = sum(M, dims=2)[:]
-    c = sum(M, dims=1)[:]
-    u = zeros(m, 1)
-    v = zeros(1, n)
-    dx = 2*tol
-    while dx > tol
-        idx = c .> 0
-        p = sum(L[:, idx], dims=1) ./ c[idx]'
-        L[:, idx] .-= p .* M[:, idx]
-        v[idx] .-= p'
-        dx = sum(abs, p)/length(p)
-        idx = r .> 0
-        p = sum(L[idx, :], dims=2) ./ r[idx]
-        L[idx, :] .-= p .* M[idx, :]
-        u[idx] .-= p
-        dx += sum(abs, p)/length(p)
+    S, B = _rga_scale(A, tol, maxiter)
+    F = LinearAlgebra.svd(S)
+    all(isfinite, F.S) || error("relative_gain_array singular values exceed the working range")
+    cutoff = min(m, n) * eps(real(eltype(F.S))) * maximum(F.S)
+    if m == n && all(>(cutoff), F.S)
+        # Retain resolvable small directions. Binary scaling preserves the
+        # supplied entries exactly, avoiding extra rounding before inversion.
+        R = B .* transpose(inv(B))
+        all(isfinite, R) || error("relative_gain_array inverse exceeds the working range")
+        return R
     end
-    dl = exp.(u)
-    dr = exp.(v)
-    S = S .* exp.(L)
-    A .* transpose(pinv(S) .* (dl * dr)')
+    si = map(s -> s > cutoff ? inv(s) : zero(s), F.S)
+    # For S = Dl*A*Dr, Aᵁ = Dr*pinv(S)*Dl. The diagonal factors
+    # cancel in the Hadamard product, so no inverse scales are needed.
+    S .* transpose(F.V * (si .* F.U'))
+end
+
+function _rga_binary_balance(A)
+    T = float(eltype(A))
+    m, n = size(A)
+    # A maximum-weight matching of binary exponents supplies a diagonal
+    # scaling with matched maximum components in [1,2) and all other
+    # components below 2.
+    # This is only an inverse certificate, not the definition of the UC inverse.
+    E = fill(typemin(Int), m, n)
+    lo, hi = typemax(Int), typemin(Int)
+    for k in eachindex(A, E)
+        a = T(A[k])
+        iszero(a) && continue
+        E[k] = exponent(max(abs(real(a)), abs(imag(a))))
+        lo = min(lo, E[k])
+        hi = max(hi, E[k])
+    end
+    hi == typemin(Int) && return nothing
+    penalty = (hi - lo + 1) * n
+    C = map(e -> e == typemin(Int) ? penalty : hi - e, E)
+    p, _ = Hungarian.hungarian(C)
+    any(i -> p[i] == 0 || E[i,p[i]] == typemin(Int), 1:n) && return nothing
+    u = zeros(Int, n)
+    # Difference constraints for the matching dual, solved by bounded
+    # Bellman-Ford relaxation. Maximum weight excludes negative cycles.
+    for _ in 1:n-1
+        changed = false
+        for k in 1:n, i in 1:n
+            j = p[k]
+            E[i,j] == typemin(Int) && continue
+            bound = u[k] + E[k,j] - E[i,j]
+            if u[i] > bound
+                u[i] = bound
+                changed = true
+            end
+        end
+        changed || break
+    end
+    v = zeros(Int, n)
+    for i in 1:n
+        v[p[i]] = -E[i,p[i]] - u[i]
+    end
+    B = zeros(T, m, n)
+    for j in 1:n, i in 1:m
+        a = T(A[i,j])
+        iszero(a) && continue
+        e = u[i] + v[j]
+        re = ldexp(real(a), e)
+        im = ldexp(imag(a), e)
+        B[i,j] = T <: Real ? re : complex(re, im)
+        # An inconclusive certificate must not discard input support.
+        iszero(B[i,j]) && return nothing
+    end
+    B
+end
+
+function _rga_scale(A, tol, maxiter)
+    T = float(eltype(A))
+    RT = real(T)
+    m, n = size(A)
+    L = zeros(RT, m, n)
+    M = .!iszero.(A)
+    r = vec(sum(M; dims=2))
+    c = vec(sum(M; dims=1))
+    for k in eachindex(L, A)
+        if M[k]
+            a = T(A[k])
+            # The magnitude of a finite complex entry can itself overflow.
+            s = max(abs(real(a)), abs(imag(a)))
+            L[k] = log(s) + log(abs(a / s))
+        end
+    end
+    u = zeros(RT, m)
+    v = zeros(RT, n)
+    converged = false
+    for _ in 1:maxiter
+        dx = zero(RT)
+        for j in 1:n
+            c[j] == 0 && continue
+            p = sum(@view L[:, j]) / c[j]
+            v[j] -= p
+            dx = max(dx, abs(p))
+            for i in 1:m
+                M[i, j] && (L[i, j] -= p)
+            end
+        end
+        for i in 1:m
+            r[i] == 0 && continue
+            p = sum(@view L[i, :]) / r[i]
+            u[i] -= p
+            dx = max(dx, abs(p))
+            for j in 1:n
+                M[i, j] && (L[i, j] -= p)
+            end
+        end
+        if dx <= max(tol, eps(RT) * max(one(RT), maximum(abs, L)))
+            converged = true
+            break
+        end
+    end
+    converged || error("relative_gain_array scaling did not converge in $maxiter iterations")
+
+    # Scale the original entries, not exp.(L): a log/exp round trip can
+    # erase small, resolvable differences between nearly dependent entries.
+    # Split off binary exponents to avoid overflowing the diagonal factors
+    # or underflowing an intermediate row-scaled matrix.
+    logtwo = log(RT(2))
+    ue = floor.(Int, u / logtwo)
+    ve = floor.(Int, v / logtwo)
+    us = exp.(u - ue * logtwo)
+    vs = exp.(v - ve * logtwo)
+    S = zeros(T, m, n)
+    B = zeros(T, m, n)
+    for j in 1:n, i in 1:m
+        a = T(A[i, j])
+        iszero(a) && continue
+        _, e = frexp(max(abs(real(a)), abs(imag(a))))
+        f = us[i] * vs[j]
+        ex = e + ue[i] + ve[j]
+        re = ldexp(ldexp(real(a), -e) * f, ex)
+        im = ldexp(ldexp(imag(a), -e) * f, ex)
+        S[i, j] = T <: Real ? re : complex(re, im)
+        bre = ldexp(real(a), ue[i] + ve[j])
+        bim = ldexp(imag(a), ue[i] + ve[j])
+        B[i, j] = T <: Real ? bre : complex(bre, bim)
+        iszero(S[i, j]) && error("relative_gain_array scaled entries underflow the working range")
+        iszero(B[i, j]) && error("relative_gain_array binary-scaled entries underflow the working range")
+    end
+    all(isfinite, S) || error("relative_gain_array scaled entries exceed the working range")
+    S, B
 end
 
 """
