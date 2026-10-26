@@ -350,9 +350,10 @@ The manual section [From block diagrams to code](https://juliacontrol.github.io/
 
 See Zhou, Doyle, Glover (1996) for similar (somewhat less symmetric) formulas.
 """
-Base.@inline Base.@constprop :aggressive function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
-    U1=:, Y1=:, U2=:, Y2=:, W1=:, Z1=:, W2=Int[], Z2=Int[],
-    Wperm=:, Zperm=:, pos_feedback::Bool=false)
+function feedback(sys1::AbstractStateSpace, sys2::AbstractStateSpace;
+    U1::TU1=:, Y1::TY1=:, U2::TU2=:, Y2::TY2=:, W1::TW1=:, Z1::TZ1=:,
+    W2::TW2=Int[], Z2::TZ2=Int[], Wperm::TWperm=:, Zperm::TZperm=:,
+    pos_feedback::Bool=false) where {TU1, TY1, TU2, TY2, TW1, TZ1, TW2, TZ2, TWperm, TZperm}
 
     timeevol = common_timeevol(sys1,sys2)
     T = Base.promote_type(numeric_type(sys1), numeric_type(sys2))
