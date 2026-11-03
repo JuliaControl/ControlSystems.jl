@@ -272,5 +272,17 @@ for τ in (1e-3, 1e3, 1e5)
     @test w[end] <= max(1e3, 1e3/τ)
 end
 
+# The phase of a system with delay is unwrapped correctly also where the delay changes the phase by more than
+# 180° between neighbouring frequencies (#757)
+let sys = delay(2) * tf(1, [1, 1])
+    w = exp10.(range(-2, 2, length=200))
+    mag, phase, _ = bode(sys, w)
+    @test vec(phase) ≈ rad2deg.(-atan.(w) .- 2w)
+    mag, phase, w = bode(sys)
+    @test vec(phase) ≈ rad2deg.(-atan.(w) .- 2w)
+    mag, phase, _ = bode(delay(1) * delay(0.5) * tf(1, [1, 1]), w)
+    @test vec(phase) ≈ rad2deg.(-atan.(w) .- 1.5w)
+end
+
 
 end
