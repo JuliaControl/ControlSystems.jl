@@ -1,20 +1,27 @@
 """
-    lqr(sys,              Q, R;          extra = Val(false))
+    lqr(sys,              Q, R;             extra = Val(false), kwargs...)
+    lqr(sys,              Q, R, N;          extra = Val(false), kwargs...)
+    lqr(Continuous, A, B, Q, R, N;          extra = Val(false), kwargs...)
+    lqr(Discrete,   A, B, Q, R, N;          extra = Val(false), kwargs...)
     lqr(Continuous, A, B, Q, R, args...; extra = Val(false), kwargs...)
     lqr(Discrete,   A, B, Q, R, args...; extra = Val(false), kwargs...)
 
 Calculate the optimal gain matrix `K` for the state-feedback law `u = -K*x` that
 minimizes the cost function:
 
-J = integral(x'Qx + u'Ru, 0, inf) for the continuous-time model `dx = Ax + Bu`.
-J = sum(x'Qx + u'Ru, 0, inf) for the discrete-time model `x[k+1] = Ax[k] + Bu[k]`.
+J = integral(x'Qx + 2real(x'Nu) + u'Ru, 0, inf) for the continuous-time model `dx = Ax + Bu`.
+J = sum(x'Qx + 2real(x'Nu) + u'Ru, 0, inf) for the discrete-time model `x[k+1] = Ax[k] + Bu[k]`.
 
 Solve the LQR problem for state-space system `sys`. Works for both discrete
 and continuous time systems.
 
-The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?MatrixEquations.arec / ared` for more help.
+The optional state-input cross-term matrix `N` has size `(size(A, 1), size(B, 2))`
+and defaults to zero. For a single input, `B` and `N` may also be vectors.
+Pass it as `lqr(sys, Q, R, N)` or `lqr(Continuous, A, B, Q, R, N)`
+(use `Discrete` for a discrete-time model). For real data, the cross term is `2x'Nu`.
 
-To obtain also the solution to the Riccati equation and the eigenvalues of the closed-loop system as well, call `ControlSystemsBase.MatrixEquations.arec / ared` instead (note the different order of the arguments to these functions).
+The `args...; kwargs...` are sent to the Riccati solver. In particular, `N` is
+the solver's positional argument `S`. See `?MatrixEquations.arec / ared` for more help.
 
 To obtain a discrete-time approximation to a continuous-time LQR problem, the function [`c2d`](@ref) can be used to obtain corresponding discrete-time cost matrices.
 
@@ -60,11 +67,34 @@ y, t, x, uout = lsim(sys,u,t,x0=x0)
 plot(t,x', lab=["Position"  "Velocity"], xlabel="Time [s]")
 ```
 
+With a state-input cross term:
+```jldoctest
+julia> using ControlSystemsBase, LinearAlgebra
+
+julia> A = B = N = ones(1, 1);
+
+julia> lqr(Continuous, A, B, 2I, 2I, N)[1] ≈ 2
+true
+
+julia> lqr(Discrete, A, B, 2I, 2I, N)[1] ≈ sqrt(3) - 1
+true
+```
+
 # FAQ
-This function requires
-- `Q` must be positive semi-definite
+For the standard positive semi-definite LQR problem:
 - `R` must be positive definite
-- The pair `(Q,A)` must not have any unobservable modes on the imaginary axis (cont) / unit circle (disc), e.g., there must not be any integrating modes that are not penalized by `Q`. if this condition does not hold, you may get the error "The Hamiltonian matrix is not dichotomic".
+- `[Q N; N' R]` must be positive semi-definite (equivalently, `Q - N*(R\\N')` must be positive semi-definite)
+- With `F = R\\N'`, `(A - B*F, B)` must be stabilizable and `(Q - N*F, A - B*F)` must be detectable. For `N = 0`, these are the usual conditions on `(A, B)` and `(Q, A)`. Unobservable modes on the imaginary axis (cont) / unit circle (disc), such as an unpenalized integrator, may cause the error "The Hamiltonian matrix is not dichotomic".
+
+# Extended help
+Completing the square with `v = u + F*x`, where `F = R\\N'`, gives the cost
+`x'*(Q - N*F)*x + v'*R*v` and dynamics with state matrix `A - B*F`.
+This holds in both continuous and discrete time. If `Kbar` solves this transformed
+LQR problem, the original feedback gain is `K = Kbar + F`.
+
+The Riccati solvers handle `N` directly. With Riccati solution `P`, the gain is
+`R\\(B'*P + N')` in continuous time and `(R + B'*P*B)\\(B'*P*A + N')`
+in discrete time.
 """
 function lqr(::ContinuousType, A, B, Q, R, args...; extra::Val{E} = Val(false), kwargs...) where E
     S, p, K, args... = arec(A, B, R, Q, args...; kwargs...)
