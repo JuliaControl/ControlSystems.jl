@@ -38,6 +38,7 @@ my_tests = [
             "test_freqresp",
             "test_timeresp",
             "test_analysis",
+            "test_margin_phase",
             "test_matrix_comps",
             "test_synthesis",
             "test_pid_design",
