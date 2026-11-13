@@ -523,16 +523,18 @@ end
 
 returns frequencies for gain margins, gain margins (magnitude), frequencies for phase margins, phase margins (degrees)
 
-- If `!allMargins`, return only the smallest margin
+- Phase margins are signed angles in `[-180°, 180°)`, independent of the unwrapped Bode phase.
+- If `!allMargins`, return the smallest gain margin and the phase margin closest to zero
+- The sign of a phase margin does not determine the stability of the closed loop. An open-loop unstable system may have a stable closed loop with a negative phase margin, and a system with several gain crossovers may have an unstable closed loop with a positive phase margin at the crossover closest to zero. Use [`isstable`](@ref)`(feedback(sys))`, [`delaymargin`](@ref), or a Nyquist plot to assess stability.
 - If `full` return also `fullPhase`
 - If `w` is omitted, a gain-aware default frequency range is computed for each
   input-output channel separately, so that `margin(sys)` and `margin(sys[i, j])`
   agree for channel `(i, j)`. An explicit frequency vector is used for all
   channels and limits margin detection to that range.
-- `adjust_phase_start`: If true, the phase will be adjusted so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess of the system.
+- `adjust_phase_start`: If true, adjust the unwrapped phase returned with `full=true` and used for plotting so that it starts at -90*intexcess degrees, where `intexcess` is the integrator excess. This does not affect the margins.
 - `balance`: Call [`balance_statespace`](@ref) on each SISO channel before computing the frequency response, see [`freqresp`](@ref).
 
-See also [`delaymargin`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
+See also [`delaymargin`](@ref), [`delay_stability_intervals`](@ref) and [`RobustAndOptimalControl.diskmargin`](https://juliacontrol.github.io/RobustAndOptimalControl.jl/dev/api/#RobustAndOptimalControl.diskmargin)
 """
 margin(sys::LTISystem, w::AbstractVector{<:Real}; kwargs...) = _margin(sys, (i, j) -> w; kwargs...)
 
@@ -576,7 +578,7 @@ _sminreal(sys::LTISystem) = sys
 """
     ωgm, gm, ωpm, pm = sisomargin(sys::LTISystem, w::Vector; full=false, allMargins=false, adjust_phase_start=true, balance=true))
 
-Return frequencies for gain margins, gain margins, frequencies for phase margins, phase margins. If `allMargins=false`, only the smallest margins are returned.
+Return gain-margin frequencies, gain margins, phase-margin frequencies, and signed phase margins in `[-180°, 180°)`. If `allMargins=false`, return the smallest gain margin and the phase margin closest to zero.
 
 `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 """
@@ -612,18 +614,15 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
     wpm, fi = _allGainCrossings(w, mag)
     pm = similar(wpm)
     for i = eachindex(wpm)
-        # We have to access the actual phase value from the `phase` array to get unwrapped phase. This value is not fully accurate since it is computed at a grid point, so we compute the more accurate phase at the interpolated frequency. This accurate value is not unwrapped, so we add an integer multiple of 360 to get the closest unwrapped phase.
-        φ_nom = rad2deg(angle(freqresp(sys, wpm[i]; balance=false)[1]))
-        φ_rounded = phase[clamp(round(Int, fi[i]), 1, length(phase))] # fi is interpolated, so we round to the closest integer
-        φ_int = φ_nom - 360 * round( (φ_nom - φ_rounded) / 360 )
-
-        # Now compute phase margin relative to -180:
-        pm[i] = 180 + φ_int
+        # Measure the signed angle to the nearest negative-real-axis crossing.
+        φ = rad2deg(angle(freqresp(sys, wpm[i]; balance=false)[1]))
+        pm[i] = mod(φ, 360) - 180
     end
     if !allMargins #Only output the smallest margins
         gm, idx = findmin([gm;Inf])
         wgm = [wgm;NaN][idx]
-        pm, idx = findmin([pm;Inf])
+        _, idx = findmin(abs.([pm;Inf]))
+        pm = [pm;Inf][idx]
         fi = [fi;NaN][idx]
         wpm = [wpm;NaN][idx]
         if full
@@ -639,18 +638,13 @@ function sisomargin(sys::LTISystem, w::AbstractVector{<:Real}; full=false, allMa
             fullPhase = interpolate(fi, phase)
         end
     end
-    if adjust_phase_start && isrational(sys)
-        intexcess, p, z, tol = integrator_excess_with_tol(sys)
-        n_unstable_poles =
-            iscontinuous(sys) ? count(real(pi) > tol for pi in p) :
-            count(abs(pi) > 1 + tol for pi in p)
+    if full && adjust_phase_start && isrational(sys)
+        intexcess = integrator_excess(sys)
         first_positive_freq_ind = findfirst(>(0), w)
         if intexcess != 0 && (first_positive_freq_ind !== nothing)
             # Snap phase so that it starts at -90*intexcess
             nineties = round(Int, phase[first_positive_freq_ind] / 90)
             adjust = ((90*(-intexcess-nineties)) ÷ 360) * 360
-            pm_unstable_adjust = n_unstable_poles*360 # count the number of unstable poles, and remove 360 for each. Be careful with poles that are counted as integrators
-            pm = pm .+ adjust .- pm_unstable_adjust
             phase .+= adjust
             fullPhase = fullPhase .+ adjust
         end
@@ -711,27 +705,319 @@ function _findCrossings(w, n, res; filter_th=Inf)
 end
 
 """
-    dₘ = delaymargin(G::LTISystem; balance=true)
+    dₘ = delaymargin(L::LTISystem; balance=true)
 
-Return the delay margin, dₘ. For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample times. 
-Only supports SISO systems.
+Return the delay margin dₘ of the negative feedback interconnection with the SISO loop-transfer function `L`. The delay margin is the largest additional time delay such that the closed loop is exponentially stable for every additional delay in `[0, dₘ)`. For loops with `|L(j∞)| < 1`, exponential stability is equivalent to asymptotic stability, i.e., all closed-loop poles are located in the open left half-plane.
 
-The delay margin is computed as the phase margin in radians divided by the cross-over frequency in rad/s. The delay margin is the maximum time delay that can be added to the system before it becomes unstable.
+- `dₘ = Inf` if no additional delay results in loss of stability.
+- `dₘ = 0` if the closed loop without additional delay has poles on the stability boundary, or if every positive additional delay results in loss of exponential stability (continuous-time `L` with `|L(j∞)| ≥ 1`).
+- `dₘ = NaN` if the closed loop without additional delay is unstable. The delay margin is not defined in this case. Some intervals of additional delay may nevertheless result in a stable closed loop, see [`delay_stability_intervals`](@ref).
+
+For discrete-time systems, the delay margin is normalized by the sample time, i.e., the value represents the margin in number of sample intervals. It is the smallest delay, in general a fraction of a sample interval, at which the phase of the delayed loop-transfer function at a gain crossover reaches -180°, or one sample interval if a delay of one sample results in loss of stability before that.
+
+The stability of the closed loop without additional delay is determined if `L` is rational or of the form `G(s)e^{-sT}` with rational `G`, i.e., a loop with a single input or output delay. For other delay systems, it cannot be determined; a warning is emitted, nominal stability is assumed, and the margin is computed from the phase margins at the gain crossovers.
+
+See [`delay_stability_intervals`](@ref) for a description of the method.
 
 `balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
 """
-function delaymargin(G::LTISystem; balance=true)
-    # Phase margin in radians divided by cross-over frequency in rad/s.
-    issiso(G) || error("delaymargin only supports SISO systems")
+function delaymargin(L::LTISystem; balance=true)
+    issiso(L) || error("delaymargin only supports SISO systems")
+    G, T = _delay_free_part(L)
+    G === nothing && return _delaymargin_assuming_stability(L; balance)
+    data = _delay_crossing_data(G; balance)
+    F = typeof(data.scale)
+    T = F(T)
+    if data.neutral
+        # For |G(j∞)| ≥ 1, a chain of roots approaches or crosses the imaginary axis for every positive total delay
+        data.Z0 > 0 && return F(NaN)
+        iszero(T) && return zero(F)
+        return data.Dmag > 1 + sqrt(eps(F)) ? F(NaN) : zero(F)
+    end
+    Z, onaxis = _unstable_count_at(data, T)
+    Z > 0 && return F(NaN)
+    onaxis && return zero(F)
+    θ1 = _next_crossing(data, T)
+    if data.discrete
+        # Between interior crossings, the count changes only at the Nyquist frequency, so a delay of one sample is the only additional candidate
+        Z1, onaxis1 = _unstable_count_at(data, one(F))
+        θ1 > 1 && (Z1 > 0 || onaxis1) && return one(F)
+        return θ1
+    end
+    θ1 - T
+end
+
+"""
+    intervals = delay_stability_intervals(L::LTISystem; balance=true)
+
+Return the additional time delays `τ` for which the negative feedback interconnection with the SISO loop-transfer function `L(s)e^{-sτ}` is exponentially stable, in increasing order.
+
+For continuous-time systems, the result is a vector of open intervals `(τ₁, τ₂)`. `L` must be rational or of the form `G(s)e^{-sT}` with rational `G`, i.e., a loop with a single input or output delay `T`. Negative values of `τ`, down to `-T`, correspond to a reduction of the delay `T`. The vector is empty if no additional delay results in a stable closed loop.
+
+For discrete-time systems, the result is a vector of ranges of the integer numbers of sample intervals `d ≥ 0` for which the closed loop with loop-transfer function `L(z)z^{-d}` is stable. A range that is not bounded ends at `typemax(Int)`.
+
+If the closed loop without additional delay is stable, the first interval has the lower bound `-T` (continuous time) or the first range starts with `0` (discrete time), and the delay margin is the upper bound of this interval, see [`delaymargin`](@ref). Further intervals arise if the closed loop regains stability for larger delays, or if the closed loop is unstable without additional delay but is stabilized by a delay.
+
+# Method
+The closed-loop poles are the roots of `1 + G(s)e^{-sθ} = 0`, where `θ = T + τ` is the total delay. Since `|e^{-jωθ}| = 1`, a root is located on the imaginary axis at `s = jω` only if `ω` is a gain crossover frequency, `|G(jω)| = 1`, and only for the total delays
+```math
+θ_k = \\frac{\\operatorname{mod}(\\arg G(jω) + π, 2π) + 2πk}{ω}, \\quad k = 0, 1, 2, …
+```
+Implicit differentiation of the characteristic equation yields
+```math
+\\operatorname{sign} \\operatorname{Re} \\frac{ds}{dθ} = -\\operatorname{sign}\\left(ω \\frac{d|G(jω)|}{dω}\\right),
+```
+i.e., a pair of roots enters the right half-plane at a crossover at which `|G|` decreases with frequency, and leaves it at a crossover at which `|G|` increases with frequency, independently of `θ`. The number of unstable closed-loop poles for `θ = 0` is computed from the poles of `feedback(G)`, and the number for every other total delay follows by counting the crossings. For continuous-time `G` with `|G(j∞)| < 1`, the destabilizing crossings occur more frequently than the stabilizing crossings, so the number of stable intervals is finite. For `|G(j∞)| ≥ 1`, the delayed loop is of neutral type and is not exponentially stable for any positive total delay.
+
+For discrete-time systems, the number of closed-loop poles outside the unit circle is determined by the argument principle on the unit circle. In addition to the crossings at the gain crossovers in the interior of the Nyquist band, each additional sample of delay adds one unstable pole if `|G(-1)| > 1`.
+
+The gain crossovers are located on the default frequency grid of [`margin`](@ref), extended to negative frequencies for systems with complex coefficients, and are refined by bisection. A crossover that is not detected on the grid is not taken into account.
+
+`balance`: Call [`balance_statespace`](@ref) on the system before computing the frequency response, see [`freqresp`](@ref).
+"""
+function delay_stability_intervals(L::LTISystem; balance=true)
+    issiso(L) || error("delay_stability_intervals only supports SISO systems")
+    G, T = _delay_free_part(L)
+    G === nothing && throw(ArgumentError("delay_stability_intervals requires a rational loop-transfer function or a rational loop-transfer function with a single input or output delay"))
+    data = _delay_crossing_data(G; balance)
+    F = typeof(data.scale)
+    T = F(T)
+    if data.discrete
+        ranges = UnitRange{Int}[]
+        (data.neutral || data.axis_root) && return ranges
+        if isempty(data.crossings) && data.nyq_rate == 0 && !data.nyq_marginal
+            data.Z0 == 0 && push!(ranges, 0:typemax(Int))
+            return ranges
+        end
+        dmax = ceil(Int, _delay_horizon(data)) + 1
+        stable = [(Z = _unstable_count_at(data, F(d)); Z[1] == 0 && !Z[2]) for d in 0:dmax]
+        d = 0
+        while d <= dmax
+            if stable[d+1]
+                d0 = d
+                while d < dmax && stable[d+2]
+                    d += 1
+                end
+                push!(ranges, d0:d)
+            end
+            d += 1
+        end
+        return ranges
+    end
+    intervals = Tuple{F,F}[]
+    (data.neutral || data.axis_root) && return intervals
+    if isempty(data.crossings)
+        data.Z0 == 0 && push!(intervals, (-T, F(Inf)))
+        return intervals
+    end
+    events = _delay_events(data, _delay_horizon(data))
+    Z = data.Z0
+    prev = zero(F)
+    i = 1
+    while i <= length(events)
+        θ = events[i].θ
+        ΔZ = 0
+        while i <= length(events) && events[i].θ - θ <= _delay_tol(data, θ)
+            e = events[i]
+            # Z0 does not count the root on the imaginary axis at θ = 0
+            ΔZ += e.atzero ? (e.dir > 0 ? e.w : 0) : e.w*e.dir
+            i += 1
+        end
+        Z == 0 && θ - prev > _delay_tol(data, prev) && push!(intervals, (prev - T, θ - T))
+        Z += ΔZ
+        Z < 0 && @warn "The computed number of unstable closed-loop poles is negative. A gain crossover may have been missed." maxlog=1
+        prev = θ
+    end
+    Z == 0 && push!(intervals, (prev - T, _next_crossing(data, prev) - T))
+    intervals
+end
+
+# Return a rational G and a delay T such that L(s) = G(s)e^{-sT}, or (nothing, 0) if L does not have this form
+_delay_free_part(L::LTISystem) = isrational(L) ? (L, 0) : (nothing, 0)
+function _delay_free_part(L::DelayLtiSystem)
+    P, Tau = L.P, L.Tau
+    isempty(Tau) && return P.P, 0
+    all(==(Tau[1]), Tau) || return nothing, 0
+    P11 = ss(P.A, P.B1, P.C1, P.D11)
+    P22 = ss(P.A, P.B2, P.C2, P.D22)
+    (_iszero_transfer(P11) && _iszero_transfer(P22)) || return nothing, 0
+    # With P11 = P22 = 0 and equal delays, L = P12*P21*e^{-sT}
+    G = sminreal(ss(P.A, P.B2, P.C1, P.D12) * ss(P.A, P.B1, P.C2, P.D21))
+    if G.nx > P.P.nx
+        # The series connection duplicates the common dynamics
+        G = robust_minreal(G)
+    end
+    G, Tau[1]
+end
+
+function _iszero_transfer(sys::AbstractStateSpace)
+    s = sminreal(sys)
+    iszero(s.D) && (s.nx == 0 || iszero(s.B) || iszero(s.C))
+end
+
+# Transfer function value and its derivative with respect to x ∈ {s, z} of a SISO state-space system
+function _eval_with_derivative(A, B, C, D, x)
+    R = x*I - A
+    v = R \ B
+    (C*v)[1] + D[1], -(C*(R \ v))[1]
+end
+
+# Frequencies are normalized by the sample time for discrete-time systems, so that ω is given in rad/sample and delays in samples
+function _delay_crossing_data(G::LTISystem; balance)
+    sys = _balance(_sminreal(ss(G)), balance)
+    F = float(real(numeric_type(sys)))
+    CF = Complex{F}
+    realsys = numeric_type(sys) <: Real
+    discrete = isdiscrete(sys)
+    A, B, C, D = (Matrix{CF}(M) for M in (sys.A, sys.B, sys.C, sys.D))
+    x(ω) = discrete ? cis(ω) : im*ω
+    resp(ω) = _eval_with_derivative(A, B, C, D, x(ω))[1]
+    function dlogmag(ω)
+        g, dg = _eval_with_derivative(A, B, C, D, x(ω))
+        # dG/dω = j dG/ds = j z dG/dz
+        real(dg*(discrete ? im*cis(ω) : im)/g)
+    end
+    ϵ = sqrt(eps(F))
+
+    # Closed-loop poles without delay
+    Acl = feedback(sys).A
+    nrm = isempty(Acl) ? zero(F) : F(opnorm(Acl, 1))
+    p = eigvals(Acl)
+    Z0 = discrete ? count(p -> abs(p) > 1 + 100eps(F)*max(1, nrm), p) :
+                    count(p -> real(p) > 100eps(F)*nrm, p)
+    # A root at s = 0 (z = 1) for every delay if G = -1 there
+    g0 = try
+        resp(zero(F))
+    catch
+        CF(Inf)
+    end
+    axis_root = isfinite(g0) && abs(g0 + 1) <= ϵ
+    Dmag = F(abs(sys.D[1]))
+    neutral = !discrete && Dmag >= 1 - ϵ
+    gN = discrete ? (try resp(F(π)) catch; CF(Inf) end) : CF(NaN)
+    nyq_rate = discrete && abs(gN) > 1 + ϵ ? 1 : 0
+    nyq_marginal = discrete && isfinite(gN) && abs(abs(gN) - 1) <= ϵ
+
+    crossings = NamedTuple{(:ω, :lag, :w, :dir), Tuple{F,F,Int,Int}}[]
+    if !neutral
+        wpos = F.(_default_freq_vector(sys, Val{:margin}()) .* (discrete ? sys.Ts : 1))
+        w = realsys ? wpos : [-reverse(wpos); wpos]
+        f(ω) = abs(resp(ω)) - 1
+        fw = f.(w)
+        found = F[]
+        for i in 1:length(w)
+            ω = if fw[i] == 0
+                w[i]
+            elseif i < length(w) && fw[i+1] != 0 && signbit(fw[i]) != signbit(fw[i+1]) && isfinite(fw[i]) && isfinite(fw[i+1])
+                a, b, fa = w[i], w[i+1], fw[i]
+                for _ in 1:200
+                    m = (a + b)/2
+                    (m == a || m == b) && break
+                    fm = f(m)
+                    fm == 0 && (a = b = m; break)
+                    if signbit(fm) == signbit(fa)
+                        a, fa = m, fm
+                    else
+                        b = m
+                    end
+                end
+                (a + b)/2
+            else
+                continue
+            end
+            iszero(ω) && continue # Handled by axis_root
+            discrete && abs(ω) >= F(π)*(1 - ϵ) && continue # Handled by the Nyquist-frequency count
+            abs(log(abs(resp(ω)))) <= ϵ || continue # Not a crossover, e.g., a discontinuity of the computed response
+            any(ωr -> abs(ωr - ω) <= ϵ*abs(ω), found) && continue
+            push!(found, ω)
+            a = dlogmag(ω)
+            abs(a*ω) > ϵ || error("The gain crossover at ω = $(discrete ? ω/sys.Ts : ω) is tangential, the direction in which the closed-loop poles cross the stability boundary is undetermined")
+            φ = F(angle(resp(ω)))
+            # A delay θ places a root at s = jω if ωθ ≡ arg G(jω) + π (mod 2π)
+            lag = mod(ω > 0 ? φ + F(π) : -(φ + F(π)), 2*F(π))
+            (lag < ϵ || lag > 2*F(π) - ϵ) && (lag = zero(F))
+            # A real-coefficient system has a complex-conjugate pair of crossing roots
+            push!(crossings, (; ω=abs(ω), lag, w=realsys ? 2 : 1, dir=-Int(sign(ω*a))))
+        end
+    end
+    scale = isempty(crossings) ? one(F) : inv(maximum(c -> c.ω, crossings))
+    (; crossings, Z0, axis_root, neutral, Dmag, discrete, gN, nyq_rate, nyq_marginal, scale)
+end
+
+_delay_tol(data, θ) = sqrt(eps(typeof(data.scale)))*(abs(θ) + data.scale)
+
+# A total delay above which a lower bound of the number of unstable closed-loop poles is positive
+function _delay_horizon(data)
+    F = typeof(data.scale)
+    twoπ = 2*F(π)
+    destab = filter(c -> c.dir > 0, data.crossings)
+    stab = filter(c -> c.dir < 0, data.crossings)
+    rate = sum(c -> c.w*c.ω, destab; init=zero(F)) - sum(c -> c.w*c.ω, stab; init=zero(F)) + twoπ*data.nyq_rate
+    rate > 0 || throw(ArgumentError("The stabilizing crossings occur at least as frequently as the destabilizing crossings, so the stable delay intervals are not bounded"))
+    num = sum(c -> c.w*c.lag, destab; init=zero(F)) - sum(c -> c.w*c.lag, stab; init=zero(F)) +
+          twoπ*(sum(c -> c.w, stab; init=0) - data.Z0)
+    max(zero(F), num/rate)
+end
+
+# All crossing events with total delay at most θmax, sorted by delay
+function _delay_events(data, θmax)
+    F = typeof(data.scale)
+    twoπ = 2*F(π)
+    events = NamedTuple{(:θ, :w, :dir, :atzero), Tuple{F,Int,Int,Bool}}[]
+    for c in data.crossings, k in 0:floor(Int, (c.ω*θmax - c.lag)/twoπ)
+        push!(events, (; θ=(c.lag + twoπ*k)/c.ω, c.w, c.dir, atzero=iszero(c.lag) && k == 0))
+    end
+    sort!(events, by=e -> e.θ)
+end
+
+# Number of unstable closed-loop poles for the total delay θ, and whether a pole is located on the stability boundary. For discrete-time systems, θ must be an integer number of samples.
+function _unstable_count_at(data, θ)
+    tol = _delay_tol(data, θ)
+    Z = data.Z0
+    onaxis = data.axis_root
+    for e in _delay_events(data, θ + tol)
+        if abs(e.θ - θ) <= tol
+            onaxis = true
+            !e.atzero && e.dir < 0 && (Z -= e.w)
+        elseif e.atzero
+            # Z0 does not count the root on the imaginary axis at θ = 0
+            e.dir > 0 && (Z += e.w)
+        else
+            Z += e.w*e.dir
+        end
+    end
+    if data.discrete
+        d = round(Int, θ)
+        Z += data.nyq_rate*d
+        data.nyq_marginal && abs(data.gN*(-1)^d + 1) <= sqrt(eps(typeof(data.scale))) && (onaxis = true)
+    end
+    Z, onaxis
+end
+
+# The smallest total delay larger than θ at which a crossing occurs at a gain crossover in the interior of the frequency range
+function _next_crossing(data, θ)
+    F = typeof(data.scale)
+    tol = _delay_tol(data, θ)
+    θnext = F(Inf)
+    for c in data.crossings
+        k = max(0, floor(Int, (c.ω*(θ + tol) - c.lag)/(2*F(π))) + 1)
+        θnext = min(θnext, (c.lag + 2*F(π)*k)/c.ω)
+    end
+    θnext
+end
+
+function _delaymargin_assuming_stability(G::LTISystem; balance)
+    @warn "The stability of the closed loop without additional delay cannot be determined for this delay system and is assumed in the computation of the delay margin." maxlog=1
     ωgₘ, gₘ, ωϕₘa, ϕₘa = margin(G; allMargins=true, balance)
     isempty(ϕₘa[1]) && return Inf
-    ϕₘ, i = findmin(sign.(ωϕₘa[1]) .* ϕₘa[1]) # flip sign of negative frequency margins 
-    ϕₘ   *= π/180
-    ωϕₘ   = ωϕₘa[1][i]
-    if numeric_type(G) <: Real
-        ωϕₘ = abs(ωϕₘ)
+    dₘ = oftype(float(real(zero(numeric_type(G)))), Inf)
+    for (ω, ϕ) in zip(ωϕₘa[1], ϕₘa[1])
+        ω, ϕ = real(ω), real(ϕ)
+        # A delay rotates positive and negative frequencies in opposite directions.
+        lag = mod(ω < 0 ? -ϕ : ϕ, 360)
+        candidate = iszero(ω) ? (iszero(lag) ? zero(dₘ) : oftype(dₘ, Inf)) : deg2rad(lag)/abs(ω)
+        dₘ = min(dₘ, candidate)
     end
-    dₘ    = ϕₘ/ωϕₘ
     if isdiscrete(G)
         dₘ /= G.Ts # Give delay margin in number of sample times, as matlab does
     end

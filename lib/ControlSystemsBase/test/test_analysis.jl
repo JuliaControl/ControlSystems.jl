@@ -491,7 +491,7 @@ OL = (ss(Cb)*ss(C1)*ss(C2)*ss(C3)*exp(-3*tau*s))/((C1 - a*s)*(C2 - a*s)*(C3 - a*
 @test ControlSystemsBase._default_freq_vector(OL, Val(:margin)) ==
       ControlSystemsBase._default_freq_vector(OL, Val(:bode))
 wgm, gm, ωϕₘ, ϕₘ = margin(OL; full=true, allMargins=true)
-@test ϕₘ[][] ≈ -320 rtol=1e-2
+@test ϕₘ[][] ≈ 40 atol=0.1
 for wgm in wgm[]
      @test mod(rad2deg(angle(freqresp(OL, wgm)[])), 360)-180 ≈ 0 atol=1e-1
 end
