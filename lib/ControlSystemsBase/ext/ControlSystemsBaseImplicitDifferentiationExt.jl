@@ -8,12 +8,14 @@ using ComponentArrays
 using LinearAlgebra
 
 
+# The second output (the closed-loop eigenvalues) is a byproduct that is not differentiated
 function forward_arec(pars)
     (; A,B,Q,R) = pars
-    ControlSystemsBase.are(Continuous, A, B, Q, R), 0
+    X, p = ControlSystemsBase.arec(A, B, R, Q)
+    X, p
 end
 
-function conditions_arec(pars, X, noneed)
+function conditions_arec(pars, X, p)
     (; A,B,Q,R) = pars
     C = A'X
     C .+= C'
@@ -32,29 +34,28 @@ const implicit_arec = ImplicitFunction(forward_arec, conditions_arec)
 To make the ARE solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
 """
 function are(::ContinuousType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
-    pars = ComponentVector(; A,B,Q,R)
-    X0, _ = implicit_arec(pars)
-    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
-    X
+    first(_are_eigvals(Continuous, A, B, Q, R))
 end
 
-_primal(x::Dual) = _primal(ForwardDiff.value(x))
-_primal(x) = x
-
-# The closed-loop eigenvalues are computed from the primal values and carry no derivative information.
-_closedloop_poles(A, B, K) = eigvals(_primal.(A - B*K))
+# Returns the solution X and the closed-loop eigenvalues p, which carry no derivative information
+function _are_eigvals(te, A, B, Q, R)
+    pars = ComponentVector(; A,B,Q,R)
+    X0, p = (te isa ContinuousType ? implicit_arec : implicit_ared)(pars)
+    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
+    X, p
+end
 
 """
     lqr(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
 
 To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
 
-If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` are computed from the primal values and carry no derivative information.
+If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` carry no derivative information.
 """
 function lqr(::ContinuousType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false)) where E
-    X = are(Continuous, A, B, Q, R)
+    X, p = _are_eigvals(Continuous, A, B, Q, R)
     K = R\(B'X)
-    E ? (K, X, _closedloop_poles(A, B, K)) : K
+    E ? (K, X, p) : K
 end
 
 """
@@ -62,13 +63,13 @@ end
 
 To make the Kalman solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
 
-If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` are computed from the primal values and carry no derivative information.
+If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` carry no derivative information.
 """
 function kalman(::ContinuousType, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra::Val{E} = Val(false)) where E
     direct && error("direct = true only applies to discrete-time systems")
-    X = are(Continuous, A', C', Q, R)
+    X, p = _are_eigvals(Continuous, A', C', Q, R)
     K = Matrix((R\(C*X))')
-    E ? (K, X, _closedloop_poles(A, K, C)) : K
+    E ? (K, X, p) : K
 end
 
 
@@ -76,13 +77,14 @@ end
 ## Discrete
 
 
+# The second output (the closed-loop eigenvalues) is a byproduct that is not differentiated
 function forward_ared(pars)
     (; A,B,Q,R) = pars
-    # Q = reshape(Q0, size(A))
-    ControlSystemsBase.are(Discrete, A, B, Q, R), 0
+    X, p = ControlSystemsBase.ared(A, B, R, Q)
+    X, p
 end
 
-function conditions_ared(pars, X, noneed)
+function conditions_ared(pars, X, p)
     # A'XA - X - (A'XB+S)(R+B'XB)^(-1)(B'XA+S') + Q = 0
     # A'X*A - X - (A'X*B)*((R+B'X*B)\(B'X*A)) + Q
     (; A,B,Q,R) = pars
@@ -104,10 +106,7 @@ const implicit_ared = ImplicitFunction(forward_ared, conditions_ared)
 To make the ARE solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
 """
 function are(::DiscreteType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
-    pars = ComponentVector(; A,B,Q,R)
-    X0, _ = implicit_ared(pars)
-    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
-    X
+    first(_are_eigvals(Discrete, A, B, Q, R))
 end
 
 """
@@ -115,13 +114,13 @@ end
 
 To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
 
-If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` are computed from the primal values and carry no derivative information.
+If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` carry no derivative information.
 """
 function lqr(::DiscreteType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false)) where E
-    X = are(Discrete, A, B, Q, R)
+    X, p = _are_eigvals(Discrete, A, B, Q, R)
     BX = B'X
     K = (R+BX*B)\(BX*A)
-    E ? (K, X, _closedloop_poles(A, B, K)) : K
+    E ? (K, X, p) : K
 end
 
 """
@@ -129,15 +128,14 @@ end
 
 To make the Kalman solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
 
-If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` are computed from the primal values and carry no derivative information.
+If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` carry no derivative information.
 """
 function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra::Val{E} = Val(false)) where E
-    X = are(Discrete, A', C', Q, R)
+    X, p = _are_eigvals(Discrete, A', C', Q, R)
     CX = C*X
     S = R + CX*C'
-    Kp = Matrix(((S)\(CX*A'))')
-    K = direct ? Matrix((S\CX)') : Kp
-    E ? (K, X, _closedloop_poles(A, Kp, C)) : K
+    K = Matrix((S\(direct ? CX : CX*A'))')
+    E ? (K, X, p) : K
 end
 
 
