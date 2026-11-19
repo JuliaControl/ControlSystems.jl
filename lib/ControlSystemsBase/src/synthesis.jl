@@ -110,7 +110,7 @@ To obtain a discrete-time approximation to a continuous-time LQG problem, the fu
 
 To obtain an LTISystem that represents the Kalman filter, pass the obtained Kalman feedback gain into [`observer_filter`](@ref). To obtain an LQG controller, pass the obtained Kalman feedback gain as well as a state-feedback gain computed using [`lqr`](@ref) into [`observer_controller`](@ref).
 
-If `extra = Val(true)`, the function returns `K, R∞, p`, where `R∞` is the solution to the Riccati equation (the stationary prediction-error covariance matrix, the covariance of ``x̃(t|t-1)``), and `p` are the eigenvalues of `A-KC`. In this case, the _filtering error_ covariance is given by ``(I-KC) R∞``, i.e., the covariance of ``x̃(t|t)``.
+If `extra = Val(true)`, the function returns `K, R∞, p`, followed by the additional outputs of the Riccati solver, where `R∞` is the solution to the Riccati equation (the stationary prediction-error covariance matrix, the covariance of ``x̃(t|t-1)``), and `p` are the eigenvalues of `A-KC` if `direct = false` and of `A-AKC` if `direct = true`. In this case, the _filtering error_ covariance is given by ``(I-KC) R∞``, i.e., the covariance of ``x̃(t|t)``.
 
 The `args...; kwargs...` are sent to the Riccati solver, allowing specification of cross-covariance etc. See `?ControlSystemsBase.MatrixEquations.arec/ared` for more help.
 
