@@ -1,6 +1,6 @@
 module ControlSystemsBaseImplicitDifferentiationExt
 using ControlSystemsBase
-import ControlSystemsBase: kalman, lqr, are, ContinuousType, DiscreteType
+import ControlSystemsBase: lqr, are, ContinuousType, DiscreteType
 using ForwardDiff
 using ForwardDiff: Dual
 using ImplicitDifferentiation
@@ -8,134 +8,88 @@ using ComponentArrays
 using LinearAlgebra
 
 
-# The second output (the closed-loop eigenvalues) is a byproduct that is not differentiated
-function forward_arec(pars)
+# The solver keyword arguments `kw` are a constant argument of the implicit function. The
+# byproduct contains the remaining outputs of the Riccati solver (closed-loop eigenvalues, gain etc.),
+# which are not differentiated.
+function forward_arec(pars, kw)
     (; A,B,Q,R) = pars
-    X, p = ControlSystemsBase.arec(A, B, R, Q)
-    X, p
+    X, rest... = ControlSystemsBase.arec(A, B, R, Q; kw...)
+    X, rest
 end
 
-function conditions_arec(pars, X, p)
+function conditions_arec(pars, X, rest, kw)
     (; A,B,Q,R) = pars
     C = A'X
     C .+= C'
     C .+= Q
     XB = X*B
     mul!(C, XB, R\XB', -1, 1)
-    # C .+ X .- X' # Does not seem to be needed
 end
 
 const implicit_arec = ImplicitFunction(forward_arec, conditions_arec)
 
-
-"""
-    are(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual}; kwargs)
-
-To make the ARE solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
-"""
-function are(::ContinuousType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
-    first(_are_eigvals(Continuous, A, B, Q, R))
-end
-
-# Returns the solution X and the closed-loop eigenvalues p, which carry no derivative information
-function _are_eigvals(te, A, B, Q, R)
-    pars = ComponentVector(; A,B,Q,R)
-    X0, p = (te isa ContinuousType ? implicit_arec : implicit_ared)(pars)
-    X = X0 isa AbstractMatrix ? X0 : reshape(X0, size(A))
-    X, p
-end
-
-"""
-    lqr(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
-
-To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
-
-If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` carry no derivative information.
-"""
-function lqr(::ContinuousType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false)) where E
-    X, p = _are_eigvals(Continuous, A, B, Q, R)
-    K = R\(B'X)
-    E ? (K, X, p) : K
-end
-
-"""
-    kalman(::Continuous, A, C, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
-
-To make the Kalman solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
-
-If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` carry no derivative information.
-"""
-function kalman(::ContinuousType, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra::Val{E} = Val(false)) where E
-    direct && error("direct = true only applies to discrete-time systems")
-    X, p = _are_eigvals(Continuous, A', C', Q, R)
-    K = Matrix((R\(C*X))')
-    E ? (K, X, p) : K
-end
-
-
-
-## Discrete
-
-
-# The second output (the closed-loop eigenvalues) is a byproduct that is not differentiated
-function forward_ared(pars)
+function forward_ared(pars, kw)
     (; A,B,Q,R) = pars
-    X, p = ControlSystemsBase.ared(A, B, R, Q)
-    X, p
+    X, rest... = ControlSystemsBase.ared(A, B, R, Q; kw...)
+    X, rest
 end
 
-function conditions_ared(pars, X, p)
-    # A'XA - X - (A'XB+S)(R+B'XB)^(-1)(B'XA+S') + Q = 0
-    # A'X*A - X - (A'X*B)*((R+B'X*B)\(B'X*A)) + Q
+function conditions_ared(pars, X, rest, kw)
+    # A'XA - X - (A'XB)(R+B'XB)^(-1)(B'XA) + Q = 0
     (; A,B,Q,R) = pars
     AX = A'X
     C = AX*A
     C .+= Q .- X'
     AXB = AX*B
     C .-= AXB*(((B'X*B) .+= R)\AXB')
-    # C .+= X .- X'
     C
 end
 
 const implicit_ared = ImplicitFunction(forward_ared, conditions_ared)
 
-
-"""
-    are(::Discrete, A, B, Q, R::AbstractMatrix{<:Dual}; kwargs)
-
-To make the ARE solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
-"""
-function are(::DiscreteType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
-    first(_are_eigvals(Discrete, A, B, Q, R))
+# Returns the solution X, differentiable with respect to all of A, B, Q, R, and the remaining
+# outputs of the Riccati solver, starting with the closed-loop eigenvalues, which carry no
+# derivative information.
+function _are_extra(te, A, B, Q, R; kwargs...)
+    pars = ComponentVector(; A,B,Q,R)
+    implicit = te isa ContinuousType ? implicit_arec : implicit_ared
+    X0, rest = implicit(pars, NamedTuple(kwargs))
+    reshape(X0, size(A)), rest
 end
 
 """
-    lqr(::Discrete, A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
+    are(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
+    are(::Discrete,   A, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
 
-To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
-
-If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` carry no derivative information.
+To make the ARE solver work with dual numbers, make sure that the `R` matrix has the dual number element type. The keyword arguments are passed to the Riccati solver.
 """
-function lqr(::DiscreteType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false)) where E
-    X, p = _are_eigvals(Discrete, A, B, Q, R)
+function are(te::ContinuousType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
+    first(_are_extra(te, A, B, Q, R; kwargs...))
+end
+
+function are(te::DiscreteType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual}; kwargs...)
+    first(_are_extra(te, A, B, Q, R; kwargs...))
+end
+
+"""
+    lqr(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false), kwargs...)
+    lqr(::Discrete,   A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false), kwargs...)
+
+To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type. This method is also used by [`kalman`](@ref) when `R2` has the dual number element type.
+
+If `extra = Val(true)`, the outputs are the same as for the generic method. The closed-loop eigenvalues `p` and the additional outputs of the Riccati solver carry no derivative information.
+"""
+function lqr(te::ContinuousType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false), kwargs...) where E
+    X, (p, _, rest...) = _are_extra(te, A, B, Q, R; kwargs...)
+    K = R\(B'X)
+    E ? (K, X, p, rest...) : K
+end
+
+function lqr(te::DiscreteType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false), kwargs...) where E
+    X, (p, _, rest...) = _are_extra(te, A, B, Q, R; kwargs...)
     BX = B'X
     K = (R+BX*B)\(BX*A)
-    E ? (K, X, p) : K
-end
-
-"""
-    kalman(::Discrete, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra = Val(false))
-
-To make the Kalman solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
-
-If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` carry no derivative information.
-"""
-function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra::Val{E} = Val(false)) where E
-    X, p = _are_eigvals(Discrete, A', C', Q, R)
-    CX = C*X
-    S = R + CX*C'
-    K = Matrix((S\(direct ? CX : CX*A'))')
-    E ? (K, X, p) : K
+    E ? (K, X, p, rest...) : K
 end
 
 

@@ -70,49 +70,63 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
-## Keyword arguments and output sizes of kalman and lqr (ControlSystems.jl issue 1105)
+## Keyword arguments, outputs and derivatives of kalman, lqr and are (ControlSystems.jl issue 1105)
 dualize(R) = ForwardDiff.Dual{:test}.(R, 1.0)
+fdjac(f, x) = FiniteDifferences.jacobian(central_fdm(5, 1), f, x) |> first
+sortpoles(p) = sort(p, by=x->(real(x), imag(x)))
 let
+    Q = [2.0 0.1 0; 0.1 2 0; 0 0 1]
+    R = [1.0 0.2; 0.2 1.5]
+    r = vec(R)
+    symR(r) = (R = reshape(r, 2, 2); (R .+ R') ./ 2)
     for Ts in (nothing, 0.01)
         P = Ts === nothing ? ssrand(2, 1, 3) : ssrand(2, 1, 3; Ts)
-        Q = [2.0 0.1 0; 0.1 2 0; 0 0 1]
-        R = [1.0 0.2; 0.2 1.5]
-        r = vec(R)
-        directs = Ts === nothing ? (false,) : (false, true)
-        for direct in directs
-            Kref, Xref, pref = kalman(P, Q, R; direct, extra=Val(true))
-            Kd, Xd, pd = kalman(P, Q, dualize(R); direct, extra=Val(true))
-            @test size(Kd) == size(Kref) == (P.nx, P.ny)
-            @test ForwardDiff.value.(Kd) ≈ Kref
-            @test ForwardDiff.value.(Xd) ≈ Xref
-            @test sort(pd, by=x->(real(x), imag(x))) ≈ sort(pref, by=x->(real(x), imag(x)))
+        Pu = Ts === nothing ? ssrand(1, 2, 3) : ssrand(1, 2, 3; Ts)
+        A, C = P.A, P.C
+
+        for direct in (Ts === nothing ? (false,) : (false, true))
+            ref = kalman(P, Q, R; direct, extra=Val(true))
+            res = kalman(P, Q, dualize(R); direct, extra=Val(true))
+            @test length(res) == length(ref)
+            K, X, p = res
+            @test size(K) == size(ref[1]) == (P.nx, P.ny)
+            @test ForwardDiff.value.(K) ≈ ref[1]
+            @test ForwardDiff.value.(X) ≈ ref[2]
+            @test sortpoles(p) ≈ sortpoles(ref[3])
+            Kp = direct ? A*ref[1] : ref[1]
+            @test sortpoles(p) ≈ sortpoles(eigvals(A - Kp*C))
             @test size(kalman(P, Q, dualize(R); direct)) == (P.nx, P.ny)
 
-            difffun = function (r)
-                Rd = reshape(r, 2, 2)
-                Rd = (Rd .+ Rd') ./ 2
-                K = kalman(P, Q, Rd; direct)
-                sum(abs2, K * [1.0 2.0; 3.0 4.0])
+            for extra in (Val(false), Val(true))
+                f = function (r)
+                    out = kalman(P, Q, symR(r); direct, extra)
+                    extra isa Val{true} ? vcat(vec(out[1]), vec(out[2])) : vec(out)
+                end
+                @test ForwardDiff.jacobian(f, r) ≈ fdjac(f, r) rtol = 1e-5
             end
-            @test ForwardDiff.gradient(difffun, r) ≈ fdgrad(difffun, r) rtol = 1e-5
-
-            difffun_extra = function (r)
-                Rd = reshape(r, 2, 2)
-                Rd = (Rd .+ Rd') ./ 2
-                K, X, _ = kalman(P, Q, Rd; direct, extra=Val(true))
-                sum(abs2, K * [1.0 2.0; 3.0 4.0]) + sum(X)
-            end
-            @test ForwardDiff.gradient(difffun_extra, r) ≈ fdgrad(difffun_extra, r) rtol = 1e-5
         end
         Ts === nothing && @test_throws ErrorException kalman(P, Q, dualize(R); direct=true)
 
-        Pu = Ts === nothing ? ssrand(1, 2, 3) : ssrand(1, 2, 3; Ts)
-        Kref, Sref, pref = lqr(Pu, Q, R; extra=Val(true))
-        Kd, Sd, pd = lqr(Pu, Q, dualize(R); extra=Val(true))
-        @test size(Kd) == size(Kref) == (Pu.nu, Pu.nx)
-        @test ForwardDiff.value.(Kd) ≈ Kref
-        @test ForwardDiff.value.(Sd) ≈ Sref
-        @test sort(pd, by=x->(real(x), imag(x))) ≈ sort(pref, by=x->(real(x), imag(x)))
+        ref = lqr(Pu, Q, R; extra=Val(true))
+        res = lqr(Pu, Q, dualize(R); extra=Val(true))
+        @test length(res) == length(ref)
+        K, X, p = res
+        @test size(K) == size(ref[1]) == (Pu.nu, Pu.nx)
+        @test ForwardDiff.value.(K) ≈ ref[1]
+        @test ForwardDiff.value.(X) ≈ ref[2]
+        @test sortpoles(p) ≈ sortpoles(ref[3])
+        f = function (r)
+            K, X, _ = lqr(Pu, Q, symR(r); extra=Val(true))
+            vcat(vec(K), vec(X))
+        end
+        @test ForwardDiff.jacobian(f, r) ≈ fdjac(f, r) rtol = 1e-5
+
+        # Keyword arguments of the Riccati solver are not ignored
+        Xas = are(Pu, Q, R; as=true)
+        @test !(Xas ≈ are(Pu, Q, R))
+        @test ForwardDiff.value.(are(Pu, Q, dualize(R); as=true)) ≈ Xas
+        f = r -> vec(are(Pu, Q, symR(r); as=true))
+        @test ForwardDiff.jacobian(f, r) ≈ fdjac(f, r) rtol = 1e-5
     end
 
     # Example from the issue, with coupled state variables to obtain a nonzero derivative
@@ -122,14 +136,11 @@ let
         R1 = Matrix{T}(I, 2, 2)
         R2 = Matrix{T}(I, 1, 1)
         K = kalman(Discrete, A, C, R1, R2, direct=true)
-        @test size(K) == (2, 1)
         K2, _ = kalman(Discrete, A, C, R1, R2, extra=Val(true))
-        @test size(K2) == (2, 1)
         sum(K) + sum(K2)
     end
     @test ForwardDiff.derivative(cost, 0.1) ≈ central_fdm(5, 1)(cost, 0.1) rtol = 1e-6
 end
-
 
 # Diff w.r.t. plant
 P = ssrand(1, 1, 2)
