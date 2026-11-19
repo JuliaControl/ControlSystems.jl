@@ -38,24 +38,37 @@ function are(::ContinuousType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual
     X
 end
 
+_primal(x::Dual) = _primal(ForwardDiff.value(x))
+_primal(x) = x
+
+# The closed-loop eigenvalues are computed from the primal values and carry no derivative information.
+_closedloop_poles(A, B, K) = eigvals(_primal.(A - B*K))
+
 """
-    lqr(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual})
+    lqr(::Continuous, A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
 
 To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
+
+If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` are computed from the primal values and carry no derivative information.
 """
-function lqr(::ContinuousType, A, B, Q, R::AbstractMatrix{<:Dual})
+function lqr(::ContinuousType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false)) where E
     X = are(Continuous, A, B, Q, R)
-    R\(B'X)
+    K = R\(B'X)
+    E ? (K, X, _closedloop_poles(A, B, K)) : K
 end
 
 """
-    kalman(::Continuous, A, C, Q, R::AbstractMatrix{<:Dual})
+    kalman(::Continuous, A, C, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
 
 To make the Kalman solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
+
+If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` are computed from the primal values and carry no derivative information.
 """
-function kalman(::ContinuousType, A, C, Q, R::AbstractMatrix{<:Dual})
+function kalman(::ContinuousType, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra::Val{E} = Val(false)) where E
+    direct && error("direct = true only applies to discrete-time systems")
     X = are(Continuous, A', C', Q, R)
-    (R\(C*X))'
+    K = Matrix((R\(C*X))')
+    E ? (K, X, _closedloop_poles(A, K, C)) : K
 end
 
 
@@ -98,25 +111,33 @@ function are(::DiscreteType, A::AbstractMatrix, B, Q, R::AbstractMatrix{<:Dual};
 end
 
 """
-    lqr(::Discrete, A, B, Q, R::AbstractMatrix{<:Dual})
+    lqr(::Discrete, A, B, Q, R::AbstractMatrix{<:Dual}; extra = Val(false))
 
 To make the LQR solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
+
+If `extra = Val(true)`, the function returns `K, S, p`, where the closed-loop eigenvalues `p` are computed from the primal values and carry no derivative information.
 """
-function lqr(::DiscreteType, A, B, Q, R::AbstractMatrix{<:Dual})
+function lqr(::DiscreteType, A, B, Q, R::AbstractMatrix{<:Dual}; extra::Val{E} = Val(false)) where E
     X = are(Discrete, A, B, Q, R)
     BX = B'X
-    (R+BX*B)\(BX*A)
+    K = (R+BX*B)\(BX*A)
+    E ? (K, X, _closedloop_poles(A, B, K)) : K
 end
 
 """
-    kalman(::Discrete, A, C, Q, R::AbstractMatrix{<:Dual})
+    kalman(::Discrete, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra = Val(false))
 
 To make the Kalman solver work with dual numbers, make sure that the `R` matrix has the dual number element type.
+
+If `extra = Val(true)`, the function returns `K, R∞, p`, where the eigenvalues `p` of `A-KC` are computed from the primal values and carry no derivative information.
 """
-function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual})
+function kalman(::DiscreteType, A, C, Q, R::AbstractMatrix{<:Dual}; direct = false, extra::Val{E} = Val(false)) where E
     X = are(Discrete, A', C', Q, R)
     CX = C*X
-    (R+CX*C')\(CX*A')
+    S = R + CX*C'
+    Kp = Matrix(((S)\(CX*A'))')
+    K = direct ? Matrix((S\CX)') : Kp
+    E ? (K, X, _closedloop_poles(A, Kp, C)) : K
 end
 
 

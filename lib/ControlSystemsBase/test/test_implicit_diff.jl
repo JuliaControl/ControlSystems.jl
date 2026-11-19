@@ -70,6 +70,67 @@ J2 = fdgrad(difffun, q)
 @test J1 ≈ J2 rtol = 1e-6
 
 
+## Keyword arguments and output sizes of kalman and lqr (ControlSystems.jl issue 1105)
+dualize(R) = ForwardDiff.Dual{:test}.(R, 1.0)
+let
+    for Ts in (nothing, 0.01)
+        P = Ts === nothing ? ssrand(2, 1, 3) : ssrand(2, 1, 3; Ts)
+        Q = [2.0 0.1 0; 0.1 2 0; 0 0 1]
+        R = [1.0 0.2; 0.2 1.5]
+        r = vec(R)
+        directs = Ts === nothing ? (false,) : (false, true)
+        for direct in directs
+            Kref, Xref, pref = kalman(P, Q, R; direct, extra=Val(true))
+            Kd, Xd, pd = kalman(P, Q, dualize(R); direct, extra=Val(true))
+            @test size(Kd) == size(Kref) == (P.nx, P.ny)
+            @test ForwardDiff.value.(Kd) ≈ Kref
+            @test ForwardDiff.value.(Xd) ≈ Xref
+            @test sort(pd, by=x->(real(x), imag(x))) ≈ sort(pref, by=x->(real(x), imag(x)))
+            @test size(kalman(P, Q, dualize(R); direct)) == (P.nx, P.ny)
+
+            difffun = function (r)
+                Rd = reshape(r, 2, 2)
+                Rd = (Rd .+ Rd') ./ 2
+                K = kalman(P, Q, Rd; direct)
+                sum(abs2, K * [1.0 2.0; 3.0 4.0])
+            end
+            @test ForwardDiff.gradient(difffun, r) ≈ fdgrad(difffun, r) rtol = 1e-5
+
+            difffun_extra = function (r)
+                Rd = reshape(r, 2, 2)
+                Rd = (Rd .+ Rd') ./ 2
+                K, X, _ = kalman(P, Q, Rd; direct, extra=Val(true))
+                sum(abs2, K * [1.0 2.0; 3.0 4.0]) + sum(X)
+            end
+            @test ForwardDiff.gradient(difffun_extra, r) ≈ fdgrad(difffun_extra, r) rtol = 1e-5
+        end
+        Ts === nothing && @test_throws ErrorException kalman(P, Q, dualize(R); direct=true)
+
+        Pu = Ts === nothing ? ssrand(1, 2, 3) : ssrand(1, 2, 3; Ts)
+        Kref, Sref, pref = lqr(Pu, Q, R; extra=Val(true))
+        Kd, Sd, pd = lqr(Pu, Q, dualize(R); extra=Val(true))
+        @test size(Kd) == size(Kref) == (Pu.nu, Pu.nx)
+        @test ForwardDiff.value.(Kd) ≈ Kref
+        @test ForwardDiff.value.(Sd) ≈ Sref
+        @test sort(pd, by=x->(real(x), imag(x))) ≈ sort(pref, by=x->(real(x), imag(x)))
+    end
+
+    # Example from the issue, with coupled state variables to obtain a nonzero derivative
+    function cost(p::T) where T <: Real
+        A = [0.9 0.1; 0.0 p]
+        C = [1.0 0.0]
+        R1 = Matrix{T}(I, 2, 2)
+        R2 = Matrix{T}(I, 1, 1)
+        K = kalman(Discrete, A, C, R1, R2, direct=true)
+        @test size(K) == (2, 1)
+        K2, _ = kalman(Discrete, A, C, R1, R2, extra=Val(true))
+        @test size(K2) == (2, 1)
+        sum(K) + sum(K2)
+    end
+    @test ForwardDiff.derivative(cost, 0.1) ≈ central_fdm(5, 1)(cost, 0.1) rtol = 1e-6
+end
+
+
 # Diff w.r.t. plant
 P = ssrand(1, 1, 2)
 Q = I(P.nx)
