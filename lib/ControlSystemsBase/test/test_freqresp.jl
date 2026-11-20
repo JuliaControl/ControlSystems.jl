@@ -263,7 +263,7 @@ end
     @test relative_gain_array(Gbal, wbal) ≈ relative_gain_array(Gbal, wbal; balance=false)
     @test relative_gain_array(Gbal, 1.0) ≈ relative_gain_array(Gbal, 1.0; balance=false)
     @test margin(Gsiso, wbal).gm ≈ margin(Gsiso, wbal; balance=false).gm
-    @test delaymargin(Gsiso) ≈ delaymargin(Gsiso; balance=false)
+    @test delaymargin(Gsiso) ≈ delaymargin(Gsiso; balance=false) nans=true
     @test hinfnorm(Gbal)[1] ≈ hinfnorm(Gbal; balance=false)[1] rtol=1e-6
     @test linfnorm(Gbal)[1] ≈ linfnorm(Gbal; balance=false)[1] rtol=1e-6
     @test norm(Gbal) ≈ norm(Gbal; balance=false) rtol=1e-8

@@ -918,7 +918,7 @@ marginplot
                 # Let's be reasonable, only plot 5 smallest phase margins
                 if length(pm) > 5
                     @warn "Only showing \"smallest\" 5 out of $(length(pm)) phase margins"
-                    idx = sortperm(pm)
+                    idx = sortperm(pm; by=abs)
                     wpm = wpm[idx[1:5]]
                     pm = pm[idx[1:5]]
                     fullPhase = fullPhase[idx[1:5]]
