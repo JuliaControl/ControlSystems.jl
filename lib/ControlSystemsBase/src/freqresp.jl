@@ -354,11 +354,14 @@ mag, phase, w = bode(sys)
 """ 
 @autovec (1, 2) function bode(sys::LTISystem, w::AbstractVector; unwrap=true, balance=true)
     resp = freqresp(sys, w; balance)
-    angles = angle.(resp)
-    unwrap && unwrap!(angles,3)
+    angles = unwrap ? _unwrapped_phase(sys, w, resp; balance) : angle.(resp)
     @. angles = rad2deg(angles)
     return abs.(resp), angles, w
 end
+
+# Phase (radians) of the frequency response `resp` of `sys` at `w`, unwrapped along the frequency dimension.
+# Systems with delays have a method in delay_systems.jl.
+_unwrapped_phase(sys::LTISystem, w, resp; balance=true) = unwrap!(angle.(resp), 3)
 @autovec (1, 2) bode(sys::LTISystem; unwrap=true, balance=true) = bode(sys, _default_freq_vector(sys, Val{:bode}()); unwrap, balance)
 
 # Performance difference between bode and bodemag for tf. Note how expensive the phase unwrapping is.
