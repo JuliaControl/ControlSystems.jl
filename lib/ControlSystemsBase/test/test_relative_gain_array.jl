@@ -111,6 +111,20 @@
     @test relative_gain_array(d .* A) ≈ ref
     @test relative_gain_array(A .* d') ≈ ref
     @test relative_gain_array(d .* A .* reverse(d)') ≈ ref
+
+    # LU growth in one block makes its pivot error bound inconclusive for a
+    # small but resolved direction in the other block. The scaled SVD should
+    # retain that direction and recover the classical RGA.
+    W = I - 0.75f0 * tril(ones(Float32, 8, 8), -1)
+    W[:, end] .= 1
+    δ = 2.0f0^(-14)
+    A = zeros(Float32, 10, 10)
+    A[1:8, 1:8] = W
+    A[9:10, 9:10] = Float32[1 1; 1 1+δ]
+    R = relative_gain_array(A)
+    @test R[1:8, 1:8] ≈ W .* transpose(inv(W))
+    @test R[9:10, 9:10] ≈ Float32[1+δ -1; -1 1+δ] / δ
+
     # Exact complex rank four: a cancellation-generated LU pivot can exceed
     # n*eps*maximum(abs,U), while remaining within the factor error scale.
     A = ComplexF32[-6-7im 1+11im 7-7im 13-2im -10-3im;
