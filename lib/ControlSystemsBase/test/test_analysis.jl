@@ -612,6 +612,8 @@ R = [
 M = [A B]
 @test relative_gain_array(M) ≈ 1/2 .* [R R] atol=0.01
 
+include("test_relative_gain_array.jl")
+
 
 ## Gang of four
 P = ssrand(2,3,2)
