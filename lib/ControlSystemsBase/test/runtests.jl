@@ -52,6 +52,7 @@ my_tests = [
             "test_implicit_diff",
             "test_rootlocus",
             "test_root_locus_matrix",
+            "test_monte_carlo_measurements",
             ]
 
 @testset "All Tests" begin
