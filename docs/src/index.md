@@ -75,7 +75,7 @@ See also [the paper](https://portal.research.lu.se/en/publications/controlsystem
 and the introductory Youtube video below, as well as the following [Youtube playlist](https://youtube.com/playlist?list=PLd_RaCnvGpJAk8JXI9dVtIkhoe10CadnI) with videos about using Julia for control.
 
 ```@raw html
-<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/Fdz2Fsm1aTY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/Fdz2Fsm1aTY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ```
 
 ### The wider Julia ecosystem for control

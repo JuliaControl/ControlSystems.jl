@@ -61,7 +61,7 @@ To design an LQG controller (LQR with a Kalman filter), see the functions
 
 See also the following tutorial video on LQR and LQG design
 ```@raw html
-<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/NuAxN1mGCPs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/NuAxN1mGCPs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ```
 
 ## Pole Placement Design
@@ -126,7 +126,7 @@ Most functions that construct PID controllers allow the user to select which for
 
 A tutorial on PID design is available here:
 ```@raw html
-<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/BolNmqYYIEg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/BolNmqYYIEg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ```
 
 The following examples show basic workflows for designing PI/PID controllers. 
@@ -201,7 +201,7 @@ C, kp, ki, kd, fig, CF = loopshapingPID(P, ω; Mt, ϕt, doplot=true, F)
 
 A video tutorial on pole placement is available here:
 ```@raw html
-<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/etOzqXNmzp0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/etOzqXNmzp0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ```
 
 The following example illustrates how we can perform advanced pole-zero placement using the function [`rstc`](@ref) ([`rstd`](@ref) in discrete time). The task is to make the process ``P`` a bit faster and damp the poorly damped poles.
