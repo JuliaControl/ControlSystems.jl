@@ -19,7 +19,7 @@ Any [`TransferFunction`](@ref) can be evaluated at a point using
 A video demonstrating frequency-response analysis in ControlSystems.jl is available below.
 
 ```@raw html
-<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/_ZvvRLpCLG0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/_ZvvRLpCLG0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ```
 
 ## Time response (simulation)
@@ -77,7 +77,7 @@ plot(t,x', lab=["Position" "Velocity"], xlabel="Time [s]"); vline!([4], lab="Ste
 
 A video demonstrating time-domain simulation in ControlSystems.jl is available below.
 ```@raw html
-<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/ii86sg_8xGw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe style="height: 315px; width: 560px" src="https://www.youtube.com/embed/ii86sg_8xGw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ```
 
 ## Docstrings
