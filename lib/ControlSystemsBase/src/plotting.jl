@@ -296,7 +296,7 @@ _span(vec) = -(reverse(extrema(vec))...)
         if plotphase && adjust_phase_start && isrational(s)
             intexcess = integrator_excess(s)
         end
-        mag, phase = bode(s, w; unwrap=false, balance)
+        mag, phase = bode(s, w; unwrap, balance)
         if _PlotScale == "dB" # Set by setPlotScale(str) globally
             mag = 20*log10.(mag)
         elseif 0 ∈ mag
@@ -360,7 +360,6 @@ _span(vec) = -(reverse(extrema(vec))...)
                     xguide    --> (hz ? "Frequency [Hz]" : "Frequency [rad/s]")
                     label     --> ""
                     group     --> group_ind
-                    phasedata = unwrap ? ControlSystemsBase.unwrap(phasedata.*(pi/180)).*(180/pi) : phasedata
                     if adaptive && eltype(phasedata) <: AbstractFloat # To guard agains https://github.com/JuliaPlots/Plots.jl/issues/5092 when using uncertain number systems
                         downsample(ws, phasedata, _span(phasedata)/500)[1:2]
                     elseif adaptive
